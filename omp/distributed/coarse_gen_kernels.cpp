@@ -85,6 +85,17 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG);
 
 
+template <typename ValueType, typename IndexType>
+void fill_coarse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const device_matrix_data<ValueType, IndexType>& fine_matrix_data,
+    device_matrix_data<ValueType, IndexType>& coarse_data,
+    array<IndexType>& coarse_indices) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COARSE_GEN_FILL_COARSE);
+
+
 }  // namespace coarse_gen
 }  // namespace omp
 }  // namespace kernels

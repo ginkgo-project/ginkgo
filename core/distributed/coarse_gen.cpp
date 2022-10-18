@@ -76,18 +76,21 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 }  // namespace coarse_gen
 
 
-template <typename ValueType, typename IndexType>
-void CoarseGen<ValueType, IndexType>::generate_with_aggregation()
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void CoarseGen<ValueType, LocalIndexType,
+               GlobalIndexType>::generate_with_aggregation()
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 
-template <typename ValueType, typename IndexType>
-void CoarseGen<ValueType, IndexType>::generate_with_selection()
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void CoarseGen<ValueType, LocalIndexType,
+               GlobalIndexType>::generate_with_selection()
 {
-    using matrix_type = experimental::distributed::Matrix<ValueType, IndexType>;
-    using csr = matrix::Csr<ValueType, IndexType>;
+    using matrix_type =
+        experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                          GlobalIndexType>;
     using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
@@ -99,15 +102,18 @@ void CoarseGen<ValueType, IndexType>::generate_with_selection()
 
     const auto mat_data = dist_mat->get_matrix_data();
 
-    device_matrix_data<ValueType, IndexType> coarse_data{
+    device_matrix_data<ValueType, GlobalIndexType> coarse_data{
         exec, dim<2>{local_num_rows, global_size[1]}};
 
-    exec->run(coarse_gen::make_fill_coarse());
+    exec->run(coarse_gen::make_fill_coarse(mat_data, coarse_data,
+                                           coarse_indices_map_));
 }
 
 
-#define GKO_DECLARE_COARSE_GEN(_vtype, _itype) class CoarseGen<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSE_GEN);
+#define GKO_DECLARE_DISTRIBUTED_COARSE_GEN(_vtype, _litype, _gitype) \
+    class CoarseGen<_vtype, _litype, _gitype>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DISTRIBUTED_COARSE_GEN);
 
 
 }  // namespace distributed
