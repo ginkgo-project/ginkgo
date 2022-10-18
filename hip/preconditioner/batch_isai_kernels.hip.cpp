@@ -151,7 +151,7 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
     const auto nbatch = sys_mat->get_num_batch_entries();
     const auto approx_inv_batch = get_batch_struct(approx_inv);
-    using d_value_type = cuda_type<ValueType>;
+    using d_value_type = hip_type<ValueType>;
     using prec_type = batch_isai<d_value_type>;
     prec_type prec(approx_inv_batch);
 
