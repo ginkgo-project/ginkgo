@@ -31,6 +31,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
+namespace {
+
+// TODO: find a way to use single_matvec_kernel in batch_csr_kernels.hpp.inc
+template <typename ValueType>
+__device__ __forceinline__ void single_csr_spmv_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
+{
+    const auto num_rows = a.num_rows;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
+        }
+        c[tidx] = temp;
+    }
+}
+
+
+}  // namespace
+
 /**
  * Batch isai preconditioner.
  */
@@ -93,7 +117,7 @@ public:
                                           ValueType* const __restrict__ z) const
     {
         // z = precond * r  ==> z = approx_inv * r (SpMV)
-        printf("\n Yet to be implemented");
+        single_csr_spmv_kernel(approx_inv_entry_, r, z);
     }
 
 private:
