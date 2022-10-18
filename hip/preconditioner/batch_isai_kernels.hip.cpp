@@ -50,12 +50,10 @@ namespace hip {
 namespace batch_isai {
 namespace {
 
-
 constexpr size_type default_block_size = 256;
 constexpr size_type default_subwarp_size = config::warp_size;
 constexpr size_type max_grid_dim = 65535;
 
-//#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai_kernels.hpp.inc"
 

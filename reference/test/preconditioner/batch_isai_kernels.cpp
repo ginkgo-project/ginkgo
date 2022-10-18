@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// template <typename T>
+template <typename T>
 class BatchIsai : public ::testing::Test {
 protected:
     using value_type = double;
@@ -218,28 +218,28 @@ protected:
         auto approx_inv = prec->get_const_approximate_inverse();
         auto approx_inv_vec = approx_inv->unbatch();
 
-        if (type == std::string("general") && spy_power > 1) {
-            std::string mat_file = "given_mat.mtx";
-            write(std::ofstream(mat_file), mtxs[0].get(),
-                  gko::layout_type::coordinate);
-            std::string batched_inv_file =
-                "batched_inv_" + std::to_string(spy_power) + ".mtx";
-            write(std::ofstream(batched_inv_file), approx_inv_vec[0].get(),
-                  gko::layout_type::coordinate);
-            std::string unbatched_inv_file =
-                "unbatched_inv_" + std::to_string(spy_power) + ".mtx";
-            write(std::ofstream(unbatched_inv_file), check_isai[0].get(),
-                  gko::layout_type::coordinate);
+        // if (type == std::string("general") && spy_power > 1) {
+        //     std::string mat_file = "given_mat.mtx";
+        //     write(std::ofstream(mat_file), mtxs[0].get(),
+        //           gko::layout_type::coordinate);
+        //     std::string batched_inv_file =
+        //         "batched_inv_" + std::to_string(spy_power) + ".mtx";
+        //     write(std::ofstream(batched_inv_file), approx_inv_vec[0].get(),
+        //           gko::layout_type::coordinate);
+        //     std::string unbatched_inv_file =
+        //         "unbatched_inv_" + std::to_string(spy_power) + ".mtx";
+        //     write(std::ofstream(unbatched_inv_file), check_isai[0].get(),
+        //           gko::layout_type::coordinate);
 
-            std::cout << "given mat: " << std::endl;
-            gko::write(std::cout, mtxs[0].get(), gko::layout_type::coordinate);
-            std::cout << "batched inv: " << std::endl;
-            gko::write(std::cout, approx_inv_vec[0].get(),
-                       gko::layout_type::coordinate);
-            std::cout << "unbatched inv: " << std::endl;
-            gko::write(std::cout, check_isai[0].get(),
-                       gko::layout_type::coordinate);
-        }
+        //     std::cout << "given mat: " << std::endl;
+        //     gko::write(std::cout, mtxs[0].get(),
+        //     gko::layout_type::coordinate); std::cout << "batched inv: " <<
+        //     std::endl; gko::write(std::cout, approx_inv_vec[0].get(),
+        //                gko::layout_type::coordinate);
+        //     std::cout << "unbatched inv: " << std::endl;
+        //     gko::write(std::cout, check_isai[0].get(),
+        //                gko::layout_type::coordinate);
+        // }
 
 
         for (size_t i = 0; i < nbatch; i++) {
@@ -336,37 +336,29 @@ protected:
     }
 };
 
-// TYPED_TEST_SUITE(BatchIsai, gko::test::ValueTypes);
+TYPED_TEST_SUITE(BatchIsai, gko::test::ValueTypes);
 
 
-TEST_F(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy3)
-{
-    this->test_batch_isai_generation_is_eqvt_to_unbatched(
-        3, std::string("general"));
-}
-
-
-/*
 TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 {
     this->test_batch_isai_generation_is_eqvt_to_unbatched(
         1, std::string("general"));
 }
 
-
-TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
-{
-    this->test_batch_isai_generation_is_eqvt_to_unbatched(
-        2, std::string("general"));
-}
+// TODO: Fix bug in normal isai
+// TYPED_TEST(BatchIsai,
+// GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
+// {
+//     this->test_batch_isai_generation_is_eqvt_to_unbatched(
+//         2, std::string("general"));
+// }
 
 
 TYPED_TEST(BatchIsai, LowerBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 {
     this->test_batch_isai_generation_is_eqvt_to_unbatched(1,
-std::string("lower"));
+                                                          std::string("lower"));
 }
-
 
 
 TYPED_TEST(BatchIsai, LowerBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
@@ -397,13 +389,13 @@ TYPED_TEST(BatchIsai,
         1, std::string("general"));
 }
 
-
-TYPED_TEST(BatchIsai,
-           GeneralBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy2)
-{
-    this->test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-        2, std::string("general"));
-}
+// TODO: Fix bug in normal isai
+// TYPED_TEST(BatchIsai,
+//            GeneralBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy2)
+// {
+//     this->test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
+//         2, std::string("general"));
+// }
 
 
 TYPED_TEST(BatchIsai,
@@ -412,7 +404,6 @@ TYPED_TEST(BatchIsai,
     this->test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         1, std::string("lower"));
 }
-
 
 
 TYPED_TEST(BatchIsai,
@@ -437,5 +428,5 @@ TYPED_TEST(BatchIsai,
     this->test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         2, std::string("upper"));
 }
-*/
+
 }  // namespace

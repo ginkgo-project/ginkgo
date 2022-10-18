@@ -55,7 +55,6 @@ constexpr size_type default_block_size = 256;
 constexpr size_type default_subwarp_size = config::warp_size;
 constexpr size_type max_grid_dim = 65535;
 
-//#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai_kernels.hpp.inc"
 
@@ -192,6 +191,8 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
                            sizeof(ValueType)>>>(
         prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
         as_cuda_type(z->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
