@@ -115,32 +115,41 @@ __global__
                 dense_mat_ptr + dense_sys_row * row_size_limit;
 
 
-            auto do_this_on_match_1 = [dense_ptr_for_this_row, aiA_row_st](
-                                          int idx_match_arr1,
-                                          int idx_match_arr2) {
-                dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
-                    idx_match_arr2;
-            };
-
-            group_match_1<subwarp_size>(aiA_col_idxs, aiA_row_st, aiA_row_end,
-                                        A_col_idxs, A_row_st, A_row_end,
-                                        subwarpgrp, do_this_on_match_1);
-
-            // auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st](
-            //                             int, int idx_match_arr1,
-            //                             int idx_match_arr2,
-            //                             config::lane_mask_type, bool valid) {
-            //     if (valid) {
-            //         dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
-            //             idx_match_arr2;
-            //     }
+            // auto do_this_on_match_1 = [dense_ptr_for_this_row, aiA_row_st](
+            //                               int idx_match_arr1,
+            //                               int idx_match_arr2) {
+            //     dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
+            //         idx_match_arr2;
             // };
 
-            // // warp-parallel match algorithm
-            // group_match<subwarp_size>(
-            //     aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
-            //     A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
-            //     do_this_on_match);
+            // group_match_1<subwarp_size>(aiA_col_idxs, aiA_row_st,
+            // aiA_row_end,
+            //                             A_col_idxs, A_row_st, A_row_end,
+            //                             subwarpgrp, do_this_on_match_1);
+
+            auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st,
+                                     A_row_st](
+                                        int, int aiA_idx_match, int A_idx_match,
+                                        config::lane_mask_type, bool valid) {
+                if (valid) {
+                    // printf("\n match found for ele nz id: to write idx: %d,
+                    // and to write at place: %d with starting address: %x ",
+                    // A_idx_match, aiA_idx_match - aiA_row_st,
+                    // dense_ptr_for_this_row);
+                    dense_ptr_for_this_row[aiA_idx_match] =
+                        A_idx_match + A_row_st;
+                    // printf("\n match found for ele nz id: to write idx: %d,
+                    // and to write at place: %d with starting address: %x ",
+                    // A_idx_match + A_row_st, aiA_idx_match,
+                    // dense_ptr_for_this_row);
+                }
+            };
+
+            // warp-parallel match algorithm
+            group_match<subwarp_size>(
+                aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
+                A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
+                do_this_on_match);
 
             subwarpgrp.sync();
             ele_id_assigned_to_subwarpgrp += total_num_subwarp_grps_in_grid;
