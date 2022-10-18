@@ -342,8 +342,9 @@ int main(int argc, char* argv[])
     using GlobalIndexType = gko::int64;
     using LocalIndexType = GlobalIndexType;
     using dist_mtx =
-        gko::distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
-    using dist_vec = gko::distributed::Vector<ValueType>;
+        gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                               GlobalIndexType>;
+    using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
     const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
@@ -454,7 +455,7 @@ int main(int argc, char* argv[])
         }
         comm.synchronize();
         for (auto _ : ic.warmup_run()) {
-            solver->apply(lend(x), lend(b));
+            solver->apply(gko::lend(x), gko::lend(b));
         }
     }
 
@@ -471,7 +472,7 @@ int main(int argc, char* argv[])
         }
         comm.synchronize();
         for (auto _ : ic.run()) {
-            solver->apply(lend(x), lend(b));
+            solver->apply(gko::lend(x), gko::lend(b));
         }
     }
 

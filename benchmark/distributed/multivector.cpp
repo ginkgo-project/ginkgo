@@ -90,11 +90,11 @@ public:
                   gko::size_type cols, gko::size_type istride,
                   gko::size_type ostride)
     {
-        in_ = gko::distributed::Vector<etype>::create(
+        in_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             istride);
-        out_ = gko::distributed::Vector<etype>::create(
+        out_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             ostride);
@@ -111,11 +111,11 @@ public:
         return in_->get_size()[0] * in_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void run() override { in_->convert_to(lend(out_)); }
+    void run() override { in_->convert_to(gko::lend(out_)); }
 
 private:
-    std::unique_ptr<gko::distributed::Vector<etype>> in_;
-    std::unique_ptr<gko::distributed::Vector<etype>> out_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> in_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> out_;
 };
 
 
@@ -128,11 +128,11 @@ public:
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        x_ = gko::distributed::Vector<etype>::create(
+        x_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride_in);
-        y_ = gko::distributed::Vector<etype>::create(
+        y_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride_out);
@@ -152,12 +152,12 @@ public:
 
     void prepare() override { y_->fill(1); }
 
-    void run() override { y_->add_scaled(lend(alpha_), lend(x_)); }
+    void run() override { y_->add_scaled(gko::lend(alpha_), gko::lend(x_)); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::distributed::Vector<etype>> x_;
-    std::unique_ptr<gko::distributed::Vector<etype>> y_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> x_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> y_;
 };
 
 
@@ -169,7 +169,7 @@ public:
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        y_ = gko::distributed::Vector<etype>::create(
+        y_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride);
@@ -188,11 +188,11 @@ public:
 
     void prepare() override { y_->fill(1); }
 
-    void run() override { y_->scale(lend(alpha_)); }
+    void run() override { y_->scale(gko::lend(alpha_)); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::distributed::Vector<etype>> y_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> y_;
 };
 
 
@@ -204,11 +204,11 @@ public:
                  gko::size_type stride_y)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        x_ = gko::distributed::Vector<etype>::create(
+        x_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride_x);
-        y_ = gko::distributed::Vector<etype>::create(
+        y_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride_y);
@@ -226,12 +226,12 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void run() override { x_->compute_dot(lend(y_), lend(alpha_)); }
+    void run() override { x_->compute_dot(gko::lend(y_), gko::lend(alpha_)); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::distributed::Vector<etype>> x_;
-    std::unique_ptr<gko::distributed::Vector<etype>> y_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> x_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> y_;
 };
 
 
@@ -242,7 +242,7 @@ public:
                   gko::size_type cols, gko::size_type stride)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        y_ = gko::distributed::Vector<etype>::create(
+        y_ = gko::experimental::distributed::Vector<etype>::create(
             exec, comm, gko::dim<2>{rows, cols},
             gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
             stride);
@@ -259,11 +259,11 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype);
     }
 
-    void run() override { y_->compute_norm2(lend(alpha_)); }
+    void run() override { y_->compute_norm2(gko::lend(alpha_)); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::distributed::Vector<etype>> y_;
+    std::unique_ptr<gko::experimental::distributed::Vector<etype>> y_;
 };
 
 
@@ -422,7 +422,7 @@ int main(int argc, char* argv[])
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
 
-    gko::mpi::communicator comm(MPI_COMM_WORLD, exec);
+    gko::mpi::communicator comm(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
     std::string header =

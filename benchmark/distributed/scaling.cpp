@@ -344,8 +344,9 @@ int main(int argc, char* argv[])
     using GlobalIndexType = gko::int64;
     using LocalIndexType = GlobalIndexType;
     using dist_mtx =
-        gko::distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
-    using dist_vec = gko::distributed::Vector<ValueType>;
+        gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                               GlobalIndexType>;
+    using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
     std::string header =
@@ -449,7 +450,7 @@ int main(int argc, char* argv[])
     }
     comm.synchronize();
     for (auto _ : ic.warmup_run()) {
-        A->apply(lend(x), lend(b));
+        A->apply(gko::lend(x), gko::lend(b));
     }
 
     // Do and time the actual benchmark runs
@@ -458,7 +459,7 @@ int main(int argc, char* argv[])
     }
     comm.synchronize();
     for (auto _ : ic.run()) {
-        A->apply(lend(x), lend(b));
+        A->apply(gko::lend(x), gko::lend(b));
     }
 
     if (rank == 0) {
