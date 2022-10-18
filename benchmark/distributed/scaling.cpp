@@ -360,17 +360,15 @@ int main(int argc, char* argv[])
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
-    if (rank == 0) {
-        print_general_information("");
-    }
+    std::string extra_information;
     if (FLAGS_repetitions == "auto") {
-        if (rank == 0) {
-            std::string extra_information =
-                "WARNING: repetitions = 'auto' not supported for MPI "
-                "benchmarks, setting repetitions to the default value.";
-            print_general_information(extra_information);
-        }
+        extra_information =
+            "WARNING: repetitions = 'auto' not supported for MPI "
+            "benchmarks, setting repetitions to the default value.";
         FLAGS_repetitions = "10";
+    }
+    if (rank == 0) {
+        print_general_information(extra_information);
     }
 
     const auto num_target_rows = FLAGS_target_rows;

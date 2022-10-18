@@ -347,28 +347,26 @@ int main(int argc, char* argv[])
     using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
-
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
-
     std::string header =
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
         "distributed solver\n";
     std::string format = "";
     initialize_argument_parsing(&argc, &argv, header, format);
-    if (rank == 0) {
-        print_general_information("");
-    }
 
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
+
+    std::string extra_information;
     if (FLAGS_repetitions == "auto") {
-        if (rank == 0) {
-            std::string extra_information =
-                "WARNING: repetitions = 'auto' not supported for MPI "
-                "benchmarks, setting repetitions to the default value.";
-            print_general_information(extra_information);
-        }
+        extra_information =
+            "WARNING: repetitions = 'auto' not supported for MPI "
+            "benchmarks, setting repetitions to the default value.";
         FLAGS_repetitions = "1";
+    }
+    if (rank == 0) {
+        print_general_information(extra_information);
     }
 
     const auto num_target_rows = FLAGS_target_rows;
