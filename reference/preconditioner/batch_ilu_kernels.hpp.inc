@@ -114,11 +114,7 @@ inline void batch_entry_parilu0_factorize_impl(
 
             ValueType to_write = (A_vals[el] - sum) / diag_val;
 
-            if (has_diag_dependency == true) {
                 fact_mat_vals[el] = to_write;
-            } else {
-                fact_mat_vals[el] = to_write;
-            }
         }
     }
 }
