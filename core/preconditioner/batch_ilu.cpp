@@ -189,7 +189,7 @@ void BatchIlu<ValueType, IndexType>::generate_precond(
         // entries, the following algo. computes exact ILU0 factorization
         exec->run(batch_ilu::make_compute_ilu0_factorization(
             diag_locations_.get_const_data(), mat_factored_.get()));
-    } else {
+    } else if (parameters_.ilu_type == batch_ilu_type::parilu) {
         // create dependency graph
         std::vector<IndexType> dependencies_vec;
         array<IndexType> nz_ptrs(exec->get_master(), num_nz + 1);
@@ -211,6 +211,8 @@ void BatchIlu<ValueType, IndexType>::generate_precond(
             csr_sys_mat.get(), mat_factored_.get(),
             parameters_.parilu_num_sweeps, dependencies.get_const_data(),
             nz_ptrs.get_const_data()));
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
