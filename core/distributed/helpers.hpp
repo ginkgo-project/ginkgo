@@ -124,6 +124,21 @@ bool is_distributed(Arg* linop, Rest*... rest)
 }
 
 
+/**
+ * Cast an input linop to the correct underlying vector type (dense/distributed)
+ * and passes it to the given function.
+ *
+ * @tparam ValueType  The value type of the underlying dense or distributed
+ * vector.
+ * @tparam T  The linop type, either LinOp, or const LinOp.
+ * @tparam F  The function type.
+ * @tparam Args  The types for the additional arguments of f.
+ *
+ * @param linop  The linop to be casted into either a dense or distributed
+ *               vector.
+ * @param f  The function that is to be called with the correctly casted linop.
+ * @param args  The additional arguments of f.
+ */
 template <typename ValueType, typename T, typename F, typename... Args>
 void vector_dispatch(T* linop, F&& f, Args... args)
 {
