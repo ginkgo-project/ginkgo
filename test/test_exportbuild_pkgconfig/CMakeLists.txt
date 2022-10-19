@@ -14,8 +14,13 @@ message("GINKGO_LDFLAGS ${GINKGO_LDFLAGS}")
 # interface only.
 add_executable(test_exportbuild_pkgconfig ../test_install/test_install.cpp)
 target_compile_features(test_exportbuild_pkgconfig PUBLIC cxx_std_14)
-target_link_libraries(test_exportbuild_pkgconfig PUBLIC PkgConfig::GINKGO)
+# target_link_libraries(test_exportbuild_pkgconfig PRIVATE PkgConfig::GINKGO)
+# target_link_libraries(test_exportbuild_pkgconfig PRIVATE -l/usr/lib/libpapi.so)
+# CMake PkgConfig only puts the -l, -L, and -framework into link_libraries and others into link_options
+# When linking the target, the linking option will be before the compiled object such that the linking error
+set_property(TARGET PkgConfig::GINKGO PROPERTY INTERFACE_LINK_LIBRARIES "${GINKGO_LDFLAGS}")
+set_property(TARGET PkgConfig::GINKGO PROPERTY INTERFACE_LINK_OPTIONS "")
+target_link_libraries(test_exportbuild_pkgconfig PRIVATE PkgConfig::GINKGO)
 # target_link_libraries(test_exportbuild_pkgconfig PRIVATE ${GINKGO_LIBRARIES})
 # target_link_libraries(test_exportbuild_pkgconfig PRIVATE ${GINKGO_LDFLAGS})
-# target_include_directories(test_exportbuild_pkgconfig PRIVATE ${GINKGO_INCLUDE_DIRS})
-# target_compile_features(test_exportbuild_pkgconfig PRIVATE ${GINKGO_CFLAGS})
+# target_include_directories(test_exportbuild_pkgconfig PUBLIC ${GINKGO_INCLUDE_DIRS})
