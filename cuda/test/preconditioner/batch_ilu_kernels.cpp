@@ -160,6 +160,11 @@ TEST_F(BatchIlu, ExactIluGenerateIsEquivalentToReference)
 
 TEST_F(BatchIlu, ParIluGenerateIsEquivalentToReference)
 {
+    // Note: Since ref. parilu is basically eqvt. to exact ilu (even for a
+    // single sweep), we use very high number of sweeps to compare the cuda
+    // parilu with the reference one. Such a high number of sweeps for cuda
+    // parilu would ensure that generated incomplete L and U factors are close
+    // to the exact ILU factors.
     test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::parilu, 30);
 }
 
