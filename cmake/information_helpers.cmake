@@ -20,12 +20,15 @@ function(filter_generator_expressions INPUT OUTPUT)
 endfunction()
 
 macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
-    message("INTERFACE_LIBS ${INTERFACE_LIBS}")
+    message(STATUS "INTERFACE_LIBS ${INTERFACE_LIBS}")
     foreach(_libs ${INTERFACE_LIBS})
+    
         if (NOT "${_libs}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND
-                AND NOT "-l${_libs}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND)
+                AND NOT "-l${_libs}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND
+                AND NOT "-l${_libs}${CMAKE_DEBUG_POSTFIX}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND)
+            message(STATUS "handles ${_libs}")
             if (TARGET ${_libs})
-                message("${_libs} is TARGET")
+                message(STATUS "${_libs} is TARGET")
                 if (upper_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND "${_libs}" MATCHES "ginkgo.*")
                     set(GINKGO_INTERFACE_LIB_NAME "-l${_libs}${CMAKE_DEBUG_POSTFIX}")
                 elseif("${_libs}" MATCHES "ginkgo.*") # Ginkgo libs are appended in the form -l
@@ -72,15 +75,16 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     INTERFACE_LINK_LIBRARIES)
                 ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
             elseif(EXISTS "${_libs}")
-                message("${_libs} is EXISTED")
+                message(STATUS "${_libs} is EXISTED")
                 if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}/libhwloc.so")
                 else()
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
-                    message("GINKGO_INTERFACE_LIBS_FOUND ${GINKGO_INTERFACE_LIBS_FOUND}")
+                    message(STATUS "GINKGO_INTERFACE_LIBS_FOUND ${GINKGO_INTERFACE_LIBS_FOUND}")
                 endif()
             endif()
         else()
+            message(STATUS "add ${_libs}")
         # Still add the existed lib into the list such that keep the track of the dependency
             if (TARGET ${_libs})
                 if (upper_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND "${_libs}" MATCHES "ginkgo.*")
@@ -96,6 +100,10 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                         GINKGO_INTERFACE_LIB_NAME)
                 endif()
                 list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
+                # Keep recursing through the libraries
+                get_target_property(GINKGO_LIBS_INTERFACE_LIBS "${_libs}"
+                    INTERFACE_LINK_LIBRARIES)
+                ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
             elseif(EXISTS "${_libs}")
                 if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}/libhwloc.so")
@@ -128,10 +136,12 @@ macro(ginkgo_interface_information)
 
     # Format and store the interface libraries found
     # remove duplicates on the reversed list to keep the dependecy in the end of list.
+    message(STATUS "ORIGINAL ${GINKGO_INTERFACE_LIBS_FOUND}")
     list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_DUPLICATES GINKGO_INTERFACE_LIBS_FOUND)
     list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_ITEM GINKGO_INTERFACE_LIBS_FOUND "")
+    message(STATUS "AFTER ${GINKGO_INTERFACE_LIBS_FOUND}")
     string(REPLACE ";" " "
         GINKGO_FORMATTED_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIBS_FOUND}")
     set(GINKGO_INTERFACE_LINK_FLAGS
