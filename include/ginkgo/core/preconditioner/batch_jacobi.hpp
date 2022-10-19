@@ -53,6 +53,8 @@ namespace preconditioner {
  * A batch-Jacobi preconditioner is a diagonal batch linear operator, obtained
  * by inverting the diagonals, of the source batch operator.
  *
+ * Note: Batched Preconditioners do not support user facing apply.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup jacobi

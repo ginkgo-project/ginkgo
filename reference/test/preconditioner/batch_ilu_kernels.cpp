@@ -310,7 +310,7 @@ TYPED_TEST(BatchIlu, ParIluGenerationFromCoreIsEquivalentToUnbatched)
     using unbatch_ilu_type = gko::factorization::ParIlu<value_type>;
     using prec_type = typename TestFixture::prec_type;
 
-    const int sweeps = 30;
+    const int sweeps = 8;
     auto exec = this->exec;
     const auto sys_csr = this->mtx.get();
     const auto nbatch = this->nbatch;
@@ -363,7 +363,7 @@ TYPED_TEST(BatchIlu, ParIluApplyToSingleVectorIsEquivalentToUnbatched)
 
     using unbatch_fact_type = gko::factorization::ParIlu<value_type>;
 
-    const int sweeps = 30;
+    const int sweeps = 8;
 
     auto exec = this->exec;
     auto b = gko::batch_initialize<BDense>({{-2.0, 9.0, 4.0}, {-3.0, 5.0, 3.0}},
