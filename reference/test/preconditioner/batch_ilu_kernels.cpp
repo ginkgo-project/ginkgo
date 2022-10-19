@@ -154,7 +154,6 @@ TYPED_TEST(BatchIlu, ExactIluGenerationIsEquivalentToUnbatched)
     using mtx_type = typename TestFixture::Mtx;
     using unbatch_type = typename mtx_type::unbatch_type;
 
-
     auto exec = this->exec;
     const auto sys_csr = this->mtx.get();
     const auto nbatch = this->nbatch;
@@ -171,7 +170,6 @@ TYPED_TEST(BatchIlu, ExactIluGenerationIsEquivalentToUnbatched)
     auto first_csr = unbatch_type::create_const(
         exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
         std::move(sys_rows_view));
-
 
     // initialize L and U factors (unbatched ilu needs this)
     gko::array<index_type> l_row_ptrs(exec, nrows + 1);

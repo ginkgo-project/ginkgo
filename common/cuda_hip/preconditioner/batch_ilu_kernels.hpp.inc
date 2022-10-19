@@ -178,11 +178,7 @@ __device__ __forceinline__ void parilu0_sweep_for_batch_entry(
 
         ValueType to_write = (A_vals[el] - sum) / diag_val;
 
-        if (has_diag_dependency == true) {
             fact_mat_vals[el] = to_write;
-        } else {
-            fact_mat_vals[el] = to_write;
-        }
     }
 }
 
