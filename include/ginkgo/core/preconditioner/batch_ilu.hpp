@@ -54,6 +54,8 @@ enum class batch_ilu_type { parilu, exact_ilu };
  *
  * Currently, this always computes ILU(0) preconditioners
  *
+ * Note: Batched Preconditioners do not support user facing apply.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup ilu
