@@ -123,7 +123,7 @@ template <template <typename, typename> class MatrixType, typename... Args>
 auto with_matrix_type(Args&&... create_args)
 {
     return detail::MatrixTypeBuilderFromValueAndIndex<MatrixType, Args...>{
-        std::make_tuple(create_args...)};
+        std::tuple<Args...>{std::forward<Args>(create_args)...}};
 }
 
 
