@@ -79,15 +79,12 @@ protected:
 template <typename ValueLocalGlobalIndexType>
 class MatrixBuilder : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -118,9 +115,10 @@ protected:
         {
             SCOPED_TRACE("With Csr with strategy");
             using ConcreteCsr = Csr<value_type, local_index_type>;
-            f(gko::with_matrix_type<Csr>(
-                  std::make_shared<typename ConcreteCsr::classical>()),
-              ConcreteCsr::create(this->ref), [](const gko::LinOp* local_mat) {
+            auto strategy = std::make_shared<typename ConcreteCsr::classical>();
+            f(gko::with_matrix_type<Csr>(strategy),
+              ConcreteCsr::create(this->ref, strategy),
+              [](const gko::LinOp* local_mat) {
                   auto local_csr = gko::as<ConcreteCsr>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename ConcreteCsr::classical>(
@@ -141,7 +139,7 @@ protected:
         {
             SCOPED_TRACE("With Fbcsr with block_size");
             f(gko::with_matrix_type<Fbcsr>(5),
-              Fbcsr<value_type, local_index_type>::create(this->ref),
+              Fbcsr<value_type, local_index_type>::create(this->ref, 5),
               [](const gko::LinOp* local_mat) {
                   auto local_fbcsr =
                       gko::as<Fbcsr<value_type, local_index_type>>(local_mat);
@@ -158,9 +156,11 @@ protected:
         {
             SCOPED_TRACE("With Hybrid with strategy");
             using Concrete = Hybrid<value_type, local_index_type>;
-            f(gko::with_matrix_type<Hybrid>(
-                  std::make_shared<typename Concrete::column_limit>(11)),
-              Concrete::create(this->ref), [](const gko::LinOp* local_mat) {
+            auto strategy =
+                std::make_shared<typename Concrete::column_limit>(11);
+            f(gko::with_matrix_type<Hybrid>(strategy),
+              Concrete::create(this->ref, strategy),
+              [](const gko::LinOp* local_mat) {
                   auto local_hy = gko::as<Concrete>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename Concrete::column_limit>(
@@ -213,8 +213,8 @@ TYPED_TEST(MatrixBuilder, BuildWithLocal)
     this->template forall_matrix_types([this](auto with_matrix_type,
                                               auto expected_type_ptr,
                                               auto additional_test) {
-        using expected_type = typename std::remove_pointer<decltype(
-            expected_type_ptr.get())>::type;
+        using expected_type = typename std::remove_pointer<
+            decltype(expected_type_ptr.get())>::type;
 
         auto mat =
             dist_mat_type ::create(this->ref, this->comm, with_matrix_type);
@@ -236,14 +236,13 @@ TYPED_TEST(MatrixBuilder, BuildWithLocalAndNonLocal)
     this->template forall_matrix_types([this](auto with_local_matrix_type,
                                               auto expected_local_type_ptr,
                                               auto additional_local_test) {
-        using expected_local_type = typename std::remove_pointer<decltype(
-            expected_local_type_ptr.get())>::type;
-        this->forall_matrix_types([=](auto with_non_local_matrix_type,
+        using expected_local_type = typename std::remove_pointer<
+            decltype(expected_local_type_ptr.get())>::type;
+        this->forall_matrix_types([&](auto with_non_local_matrix_type,
                                       auto expected_non_local_type_ptr,
                                       auto additional_non_local_test) {
-            using expected_non_local_type =
-                typename std::remove_pointer<decltype(
-                    expected_non_local_type_ptr.get())>::type;
+            using expected_non_local_type = typename std::remove_pointer<
+                decltype(expected_non_local_type_ptr.get())>::type;
 
             auto mat = dist_mat_type ::create(this->ref, this->comm,
                                               with_local_matrix_type,
@@ -276,6 +275,62 @@ TYPED_TEST(MatrixBuilder, BuildWithCustomLinOp)
     this->expected_interface_no_throw(mat.get(),
                                       gko::with_matrix_type<CustomLinOp>(),
                                       gko::with_matrix_type<CustomLinOp>());
+}
+
+
+TYPED_TEST(MatrixBuilder, BuildFromLinOpLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::local_index_type;
+    using dist_mat_type = typename TestFixture::dist_mtx_type;
+    this->template forall_matrix_types([this](auto with_matrix_type,
+                                              auto expected_type_ptr,
+                                              auto additional_test) {
+        using expected_type = typename std::remove_pointer<
+            decltype(expected_type_ptr.get())>::type;
+
+        auto mat = dist_mat_type ::create(this->ref, this->comm,
+                                          expected_type_ptr.get());
+
+        ASSERT_NO_THROW(gko::as<expected_type>(mat->get_local_matrix()));
+        additional_test(mat->get_local_matrix().get());
+        additional_test(mat->get_non_local_matrix().get());
+        this->expected_interface_no_throw(mat.get(), with_matrix_type,
+                                          with_matrix_type);
+    });
+}
+
+
+TYPED_TEST(MatrixBuilder, BuildFromLinOpLocalAndNonLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::local_index_type;
+    using dist_mat_type = typename TestFixture::dist_mtx_type;
+    this->template forall_matrix_types([this](auto with_local_matrix_type,
+                                              auto expected_local_type_ptr,
+                                              auto additional_local_test) {
+        using expected_local_type = typename std::remove_pointer<
+            decltype(expected_local_type_ptr.get())>::type;
+        this->forall_matrix_types([&](auto with_non_local_matrix_type,
+                                      auto expected_non_local_type_ptr,
+                                      auto additional_non_local_test) {
+            using expected_non_local_type = typename std::remove_pointer<
+                decltype(expected_non_local_type_ptr.get())>::type;
+
+            auto mat = dist_mat_type ::create(
+                this->ref, this->comm, expected_local_type_ptr.get(),
+                expected_non_local_type_ptr.get());
+
+            ASSERT_NO_THROW(
+                gko::as<expected_local_type>(mat->get_local_matrix()));
+            ASSERT_NO_THROW(
+                gko::as<expected_non_local_type>(mat->get_non_local_matrix()));
+            additional_local_test(mat->get_local_matrix().get());
+            additional_non_local_test(mat->get_non_local_matrix().get());
+            this->expected_interface_no_throw(mat.get(), with_local_matrix_type,
+                                              with_non_local_matrix_type);
+        });
+    });
 }
 
 
