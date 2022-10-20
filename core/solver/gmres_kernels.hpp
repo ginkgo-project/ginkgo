@@ -49,12 +49,12 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_RESTART_KERNEL(_type)                       \
-    void restart(std::shared_ptr<const DefaultExecutor> exec,         \
-                 const matrix::Dense<_type>* residual,                \
-                 matrix::Dense<remove_complex<_type>>* residual_norm, \
-                 matrix::Dense<_type>* residual_norm_collection,      \
-                 matrix::Dense<_type>* krylov_bases,                  \
+#define GKO_DECLARE_GMRES_RESTART_KERNEL(_type)                             \
+    void restart(std::shared_ptr<const DefaultExecutor> exec,               \
+                 const matrix::Dense<_type>* residual,                      \
+                 const matrix::Dense<remove_complex<_type>>* residual_norm, \
+                 matrix::Dense<_type>* residual_norm_collection,            \
+                 matrix::Dense<_type>* krylov_bases,                        \
                  size_type* final_iter_nums)
 
 

@@ -33,6 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 
+#include <algorithm>
+#include <limits>
+
+
 #include <gtest/gtest.h>
 
 
@@ -47,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
+#include "core/solver/common_gmres_kernels.hpp"
+#include "core/solver/gmres_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -57,10 +63,14 @@ template <typename T>
 class Gmres : public ::testing::Test {
 protected:
     using value_type = T;
+    using rc_value_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
+    using rc_Mtx = gko::matrix::Dense<rc_value_type>;
     using Solver = gko::solver::Gmres<value_type>;
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
+          stopped{},
+          non_stopped{},
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
@@ -108,9 +118,55 @@ protected:
                                     {-111.40, -22.60, 110.10, -106.20, 88.90},
                                     {-0.70, 111.70, 154.40, 235.00, -76.50}},
                                    exec))
-    {}
+    {
+        auto small_size = gko::dim<2>{3, 2};
+        constexpr gko::size_type small_restart{2};
+        small_b = gko::initialize<Mtx>(
+            {I<T>{1., 2.}, I<T>{3., 4.}, I<T>{5., 6.}}, exec);
+        small_x = Mtx::create(exec, small_size);
+        small_residual = Mtx::create(exec, small_size);
+        small_residual_norm =
+            rc_Mtx::create(exec, gko::dim<2>{1, small_size[1]});
+        small_residual_norm_collection =
+            Mtx::create(exec, gko::dim<2>{small_restart + 1, small_size[1]});
+        small_krylov_bases = Mtx::create(
+            exec,
+            gko::dim<2>{small_size[0] * (small_restart + 1), small_size[1]});
 
-    std::shared_ptr<const gko::Executor> exec;
+        small_givens_sin =
+            Mtx::create(exec, gko::dim<2>{small_restart, small_size[1]});
+        small_givens_cos =
+            Mtx::create(exec, gko::dim<2>{small_restart, small_size[1]});
+        small_y = Mtx::create(exec, gko::dim<2>{small_restart, small_size[1]});
+        small_hessenberg = Mtx::create(
+            exec,
+            gko::dim<2>{small_restart + 1, small_restart * small_size[1]});
+        small_hessenberg->fill(gko::zero<value_type>());
+
+        stopped.converge(1, true);
+        non_stopped.reset();
+        small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
+        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
+                    non_stopped);
+        small_final_iter_nums = gko::array<gko::size_type>(exec, small_size[1]);
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::unique_ptr<Mtx> small_x;
+    std::unique_ptr<Mtx> small_b;
+    std::unique_ptr<Mtx> small_residual;
+    std::unique_ptr<rc_Mtx> small_residual_norm;
+    std::unique_ptr<Mtx> small_residual_norm_collection;
+    std::unique_ptr<Mtx> small_krylov_bases;
+    std::unique_ptr<Mtx> small_givens_sin;
+    std::unique_ptr<Mtx> small_givens_cos;
+    std::unique_ptr<Mtx> small_y;
+    std::unique_ptr<Mtx> small_hessenberg;
+    gko::array<gko::size_type> small_final_iter_nums;
+    gko::array<gko::stopping_status> small_stop;
+
+    gko::stopping_status stopped;
+    gko::stopping_status non_stopped;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
@@ -120,6 +176,189 @@ protected:
 };
 
 TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes, TypenameNameGenerator);
+
+
+TYPED_TEST(Gmres, KernelInitialize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    this->small_residual->fill(nan);
+    this->small_givens_sin->fill(nan);
+    this->small_givens_cos->fill(nan);
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+                this->stopped);
+    auto expected_sin_cos =
+        Mtx::create(this->exec, this->small_givens_sin->get_size());
+    expected_sin_cos->fill(gko::zero<T>());
+
+    gko::kernels::reference::common_gmres::initialize(
+        this->exec, this->small_b.get(), this->small_residual.get(),
+        this->small_givens_sin.get(), this->small_givens_cos.get(),
+        this->small_stop.get_data());
+
+    GKO_ASSERT_MTX_NEAR(this->small_residual, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_givens_sin, expected_sin_cos, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_givens_cos, expected_sin_cos, 0);
+    for (int i = 0; i < this->small_stop.get_num_elems(); ++i) {
+        ASSERT_EQ(this->small_stop.get_data()[i], this->non_stopped);
+    }
+}
+
+
+TYPED_TEST(Gmres, KernelRestart)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const value_type nan =
+        std::numeric_limits<gko::remove_complex<value_type>>::quiet_NaN();
+    this->small_residual->copy_from(this->small_b.get());
+    this->small_residual->compute_norm2(this->small_residual_norm.get());
+    this->small_residual_norm_collection->fill(nan);
+    this->small_krylov_bases->fill(9999);
+    std::fill_n(this->small_final_iter_nums.get_data(),
+                this->small_final_iter_nums.get_num_elems(), 999);
+    auto expected_krylov = Mtx::create(this->exec);
+    expected_krylov->copy_from(this->small_krylov_bases.get());
+    const auto small_size = this->small_residual->get_size();
+    for (int i = 0; i < small_size[0]; ++i) {
+        for (int j = 0; j < small_size[1]; ++j) {
+            expected_krylov
+                ->get_values()[(0 * small_size[0] + i) * small_size[1] + j] =
+                this->small_residual->get_values()[i * small_size[1] + j] /
+                this->small_residual_norm->get_const_values()[j];
+        }
+    }
+
+    gko::kernels::reference::gmres::restart(
+        this->exec, this->small_residual.get(), this->small_residual_norm.get(),
+        this->small_residual_norm_collection.get(),
+        this->small_krylov_bases.get(), this->small_final_iter_nums.get_data());
+
+    ASSERT_EQ(this->small_final_iter_nums.get_num_elems(),
+              this->small_residual_norm_collection->get_size()[1]);
+    for (int i = 0; i < this->small_final_iter_nums.get_num_elems(); ++i) {
+        ASSERT_EQ(this->small_final_iter_nums.get_const_data()[i], 0);
+        ASSERT_EQ(this->small_residual_norm_collection->get_const_values()[i],
+                  this->small_residual_norm->get_const_values()[i]);
+    }
+    GKO_ASSERT_MTX_NEAR(this->small_krylov_bases, expected_krylov,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Gmres, KernelHessenbergQr)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using std::sqrt;
+    const auto nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const gko::size_type iteration{0};
+    this->small_givens_cos =
+        gko::initialize<Mtx>({I<T>{-0.5, 1.}, I<T>{70., -71}}, this->exec);
+    this->small_givens_sin =
+        gko::initialize<Mtx>({I<T>{1., 0.}, I<T>{-72., 73.}}, this->exec);
+    this->small_residual_norm->fill(nan);
+    this->small_residual_norm_collection = gko::initialize<Mtx>(
+        {I<T>{1.25, 1.5}, I<T>{1., 1.25}, I<T>{95., 94.}}, this->exec);
+    this->small_hessenberg = gko::initialize<Mtx>(
+        {I<T>{0.5, -0.75}, I<T>{-0.5, 1}, I<T>{97., 96.}}, this->exec);
+    this->small_final_iter_nums.get_data()[0] = 1;
+    this->small_final_iter_nums.get_data()[1] = 1;
+
+    gko::kernels::reference::common_gmres::hessenberg_qr(
+        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
+        this->small_residual_norm.get(),
+        this->small_residual_norm_collection.get(),
+        this->small_hessenberg.get(), iteration,
+        this->small_final_iter_nums.get_data(),
+        this->small_stop.get_const_data());
+
+    ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
+    ASSERT_EQ(this->small_final_iter_nums.get_data()[1], 2);
+    GKO_EXPECT_MTX_NEAR(this->small_givens_cos,
+                        l({{0.5 * sqrt(2.), -0.6}, {70., -71.}}), r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_givens_sin,
+                        l({{-0.5 * sqrt(2.), 0.8}, {-72., 73.}}), r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_hessenberg,
+                        l({{0.5 * sqrt(2.), 1.25}, {0., 0.}, {97., 96.}}),
+                        r<T>::value);
+    GKO_EXPECT_MTX_NEAR(
+        this->small_residual_norm_collection,
+        l({{0.625 * sqrt(2.), -0.9}, {0.625 * sqrt(2.), -1.2}, {95., 94.}}),
+        r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_residual_norm, l({{0.625 * sqrt(2.), 1.2}}),
+                        r<T>::value);
+}
+
+
+TYPED_TEST(Gmres, KernelSolveKrylov)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const auto restart = this->small_givens_sin->get_size()[0];
+    this->small_y->fill(nan);
+    this->small_final_iter_nums.get_data()[0] = restart;
+    this->small_final_iter_nums.get_data()[1] = restart;
+    this->small_hessenberg = gko::initialize<Mtx>(
+        // clang-format off
+        {{-1, 3, 2, -4},
+         {0, 0, 1, 5},
+         {nan, nan, nan}},
+        // clang-format on
+        this->exec);
+    this->small_residual_norm_collection =
+        gko::initialize<Mtx>({I<T>{12, 3}, I<T>{-3, 15}}, this->exec);
+
+    gko::kernels::reference::common_gmres::solve_krylov(
+        this->exec, this->small_residual_norm_collection.get(),
+        this->small_hessenberg.get(), this->small_y.get(),
+        this->small_final_iter_nums.get_const_data(),
+        this->small_stop.get_const_data());
+
+    GKO_ASSERT_MTX_NEAR(this->small_y, l({{-18., 5.}, {-3., 3.}}), r<T>::value);
+}
+
+
+TYPED_TEST(Gmres, KernelMultiAxpy)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const auto restart = this->small_givens_sin->get_size()[0];
+    this->small_x->fill(nan);
+    this->small_y =
+        gko::initialize<Mtx>({I<T>{1., 2.}, I<T>{3., -1.}}, this->exec);
+    this->small_final_iter_nums.get_data()[0] = restart;
+    this->small_final_iter_nums.get_data()[1] = restart;
+    this->small_krylov_bases = gko::initialize<Mtx>(  // restart+1 x rows x #rhs
+        {
+            I<T>{1, 10},     // 0, 0, x
+            I<T>{2, 11},     // 0, 1, x
+            I<T>{3, 12},     // 0, 2, x
+            I<T>{4, 13},     // 1, 0, x
+            I<T>{5, 14},     // 1, 1, x
+            I<T>{6, 15},     // 1, 2, x
+            I<T>{nan, nan},  // 2, 0, x
+            I<T>{nan, nan},  // 2, 1, x
+            I<T>{nan, nan},  // 2, 2, x
+        },
+        this->exec);
+    this->small_stop.get_data()[0].stop(7, false);
+    gko::stopping_status expected_stop{};
+    expected_stop.stop(7, true);
+
+    gko::kernels::reference::gmres::multi_axpy(
+        this->exec, this->small_krylov_bases.get(), this->small_y.get(),
+        this->small_x.get(), this->small_final_iter_nums.get_const_data(),
+        this->small_stop.get_data());
+
+    ASSERT_EQ(this->small_stop.get_const_data()[0], expected_stop);
+    ASSERT_EQ(this->small_stop.get_const_data()[1], this->non_stopped);
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{13., 7.}, {17., 8.}, {21., 9.}}),
+                        r<T>::value);
+}
 
 
 TYPED_TEST(Gmres, SolvesStencilSystem)
@@ -442,8 +681,8 @@ TYPED_TEST(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
     ASSERT_LE(normC1 / normB1, normS1 / normB1 + r<value_type>::value);
     ASSERT_LE(normC2 / normB2, normS2 / normB2 + r<value_type>::value);
 
-    // Not sure if this is necessary, the assertions above should cover what is
-    // needed.
+    // Not sure if this is necessary, the assertions above should cover what
+    // is needed.
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
 }
 

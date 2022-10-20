@@ -55,17 +55,11 @@ namespace gmres {
 template <typename ValueType>
 void restart(std::shared_ptr<const ReferenceExecutor> exec,
              const matrix::Dense<ValueType>* residual,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             const matrix::Dense<remove_complex<ValueType>>* residual_norm,
              matrix::Dense<ValueType>* residual_norm_collection,
              matrix::Dense<ValueType>* krylov_bases, size_type* final_iter_nums)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-        // Calculate residual norm
-        residual_norm->at(0, j) = 0;
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            residual_norm->at(0, j) += squared_norm(residual->at(i, j));
-        }
-        residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
         residual_norm_collection->at(0, j) = residual_norm->at(0, j);
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             krylov_bases->at(i, j) =

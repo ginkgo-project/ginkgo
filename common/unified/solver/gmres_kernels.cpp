@@ -54,7 +54,7 @@ namespace gmres {
 template <typename ValueType>
 void restart(std::shared_ptr<const DefaultExecutor> exec,
              const matrix::Dense<ValueType>* residual,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             const matrix::Dense<remove_complex<ValueType>>* residual_norm,
              matrix::Dense<ValueType>* residual_norm_collection,
              matrix::Dense<ValueType>* krylov_bases, size_type* final_iter_nums)
 {
