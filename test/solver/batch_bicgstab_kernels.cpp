@@ -55,16 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_COMPILING_DPCPP
 
 
-namespace {
-
-
-class BatchBicgstab : public ::testing::Test {
+class BatchBicgstab : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
@@ -76,28 +68,15 @@ protected:
     using LogData = gko::log::BatchLogData<value_type>;
 
     BatchBicgstab()
-        : ref(gko::ReferenceExecutor::create()),
-          sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
+        : sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
     {
-        init_executor(ref, d_exec);
-        auto execp = d_exec;
-        solve_fn = [execp](const Options opts, const Mtx* mtx,
-                           const gko::BatchLinOp* prec, const BDense* b,
-                           BDense* x, LogData& logdata) {
+        solve_fn = [this](const Options opts, const Mtx* mtx,
+                          const gko::BatchLinOp* prec, const BDense* b,
+                          BDense* x, LogData& logdata) {
             gko::kernels::EXEC_NAMESPACE::batch_bicgstab::apply<value_type>(
-                execp, opts, mtx, prec, b, x, logdata);
+                this->exec, opts, mtx, prec, b, x, logdata);
         };
     }
-
-    void TearDown()
-    {
-        if (d_exec != nullptr) {
-            ASSERT_NO_THROW(d_exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
 
     const real_type eps = r<value_type>::value;
 
@@ -152,14 +131,14 @@ TEST_F(BatchBicgstab, SolveIsEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(ref, opts);
-    auto d_factory = this->create_factory(d_exec, opts);
+    auto d_factory = this->create_factory(exec, opts);
     const double iter_tol = 0.01;
     const double res_tol = 10 * r<value_type>::value;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
-        res_tol, sol_tol);
+        this->exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        sol_tol);
 }
 
 
@@ -168,8 +147,8 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
     using real_type = gko::remove_complex<value_type>;
 
     auto r_1 = gko::test::solve_poisson_uniform(
-        this->d_exec, this->solve_fn, this->opts_1, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(this->d_exec));
+        this->exec, this->solve_fn, this->opts_1, this->sys_1, 1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -190,7 +169,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
 
 TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
 {
-    auto dexec = this->d_exec;
+    auto dexec = this->exec;
     std::unique_ptr<typename solver_type::Factory> batchbicgstab_factory =
         solver_type::build()
             .with_default_max_iterations(100)
@@ -223,15 +202,15 @@ TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
 TEST_F(BatchBicgstab, UnitScalingDoesNotChangeResult)
 {
     using T = value_type;
-    auto left_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto right_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto factory = this->create_factory(d_exec, this->opts_1, nullptr,
-                                        left_scale, right_scale);
+    auto left_scale =
+        gko::share(gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, exec));
+    auto right_scale =
+        gko::share(gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, exec));
+    auto factory = this->create_factory(exec, this->opts_1, nullptr, left_scale,
+                                        right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        d_exec, factory.get(), sys_1, 1);
+        exec, factory.get(), sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -240,14 +219,14 @@ TEST_F(BatchBicgstab, UnitScalingDoesNotChangeResult)
 TEST_F(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
     auto left_scale = gko::share(
-        gko::batch_initialize<BDiag>(this->nbatch, {0.8, 0.9, 0.95}, d_exec));
+        gko::batch_initialize<BDiag>(this->nbatch, {0.8, 0.9, 0.95}, exec));
     auto right_scale = gko::share(
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.5, 1.05}, d_exec));
-    auto factory = this->create_factory(d_exec, this->opts_1, nullptr,
-                                        left_scale, right_scale);
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.5, 1.05}, exec));
+    auto factory = this->create_factory(exec, this->opts_1, nullptr, left_scale,
+                                        right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        d_exec, factory.get(), sys_1, 1);
+        exec, factory.get(), sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -269,14 +248,14 @@ TEST_F(BatchBicgstab, GoodScalingImprovesConvergence)
             right_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
         }
     }
-    auto d_left = gko::share(gko::clone(d_exec, left_scale));
-    auto d_right = gko::share(gko::clone(d_exec, right_scale));
+    auto d_left = gko::share(gko::clone(exec, left_scale));
+    auto d_right = gko::share(gko::clone(exec, right_scale));
     auto factory =
         solver_type::build()
             .with_default_max_iterations(10)
             .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .on(d_exec);
+            .on(exec);
     auto factory_s =
         solver_type::build()
             .with_default_max_iterations(10)
@@ -284,24 +263,20 @@ TEST_F(BatchBicgstab, GoodScalingImprovesConvergence)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_left_scaling_op(d_left)
             .with_right_scaling_op(d_right)
-            .on(d_exec);
+            .on(exec);
 
     gko::test::test_solve_iterations_with_scaling<solver_type>(
-        d_exec, nbatch, nrows, nrhs, factory.get(), factory_s.get());
+        exec, nbatch, nrows, nrhs, factory.get(), factory_s.get());
 }
 
 
-TEST(BatchBicgstabCsr, CanSolveWithoutScaling)
+TEST_F(BatchBicgstab, CanSolveWithoutScalingCsr)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchBicgstab<T>;
     using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-5;
-    std::shared_ptr<gko::ReferenceExecutor> refexec =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
-    init_executor(refexec, d_exec);
     const int maxits = 5000;
     auto batchbicgstab_factory =
         Solver::build()
@@ -309,139 +284,126 @@ TEST(BatchBicgstabCsr, CanSolveWithoutScaling)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(d_exec))
-            .on(d_exec);
+                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+            .on(exec);
     const int nrows = 29;
     const size_t nbatch = 3;
     const int nrhs = 1;
 
-    gko::test::test_solve<Solver, Csr>(d_exec, nbatch, nrows, nrhs, tol, maxits,
+    gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
                                        batchbicgstab_factory.get(), 5);
 }
 
 
-TEST(BatchBicgstabCsr, SolvesLargeSystemEquivalentToReference)
+TEST_F(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
     using mtx_type = gko::matrix::BatchCsr<value_type, int>;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
-    std::shared_ptr<gko::ReferenceExecutor> refexec =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
-    init_executor(refexec, d_exec);
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        refexec, 2, 990, 1, false);
+        ref, 2, 990, 1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(refexec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
-            .on(refexec);
+            .on(ref);
     auto d_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
-            .on(d_exec);
+            .on(exec);
     const double iter_tol = 0.01;
     const double res_tol = 1e-9;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
 
 
-TEST(BatchBicgstabDense, SolvesLargeSystemEquivalentToReference)
+TEST_F(BatchBicgstab, SolvesLargeDenseSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
     using mtx_type = gko::matrix::BatchDense<value_type>;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
-    std::shared_ptr<gko::ReferenceExecutor> refexec =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
-    init_executor(refexec, d_exec);
     const float solver_restol = 1e-4;
-    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        refexec, 2, 33, 1, false);
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 33,
+                                                                     1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(refexec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
-            .on(refexec);
+            .on(ref);
     auto d_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
-            .on(d_exec);
+            .on(exec);
     const double iter_tol = 0.01;
     const double res_tol = 1e-9;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
 
 
-TEST(BatchBicgstabEll, SolvesLargeSystemEquivalentToReference)
+TEST_F(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
     using mtx_type = gko::matrix::BatchEll<value_type, int>;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
-    std::shared_ptr<gko::ReferenceExecutor> refexec =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
-    init_executor(refexec, d_exec);
     const float solver_restol = 1e-4;
-    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        refexec, 2, 91, 1, false);
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 91,
+                                                                     1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(refexec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
-            .on(refexec);
+            .on(ref);
     auto d_factory =
         solver_type::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
-            .on(d_exec);
+            .on(exec);
     const double iter_tol = 0.01;
     const double res_tol = 1e-9;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
 
-}  // namespace
 
 #endif

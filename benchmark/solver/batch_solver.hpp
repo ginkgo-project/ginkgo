@@ -352,7 +352,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             return;
         }
 
-        auto prec_fact = gko::share(get_preconditioner(exec, prec_name));
+        std::shared_ptr<gko::BatchLinOpFactory> prec_fact =
+            get_preconditioner(exec, prec_name);
 
         add_or_set_member(solver_case, solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -399,8 +400,9 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
-            auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
-                              ->generate(mat_clone);
+            auto solver =
+                generate_solver(exec, sol_name, give(prec_fact), scaling_op)
+                    ->generate(mat_clone);
 
             solver->add_logger(logger);
             solver->apply(lend(b_clone), lend(x_clone));
@@ -618,7 +620,7 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
         std::to_string(FLAGS_num_batches) + "\n";
     print_general_information(extra_information);
 
-    auto exec = get_executor();
+    auto exec = get_executor(FLAGS_gpu_timer);
     auto solvers = split(FLAGS_batch_solvers, ',');
     auto preconditioners = split(FLAGS_preconditioners, ',');
     if (preconditioners.size() > 1) {
@@ -710,15 +712,15 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
             }
 
             if (FLAGS_using_suite_sparse) {
-                system_matrix = share(formats::batch_matrix_factory.at(
+                system_matrix = (formats::batch_matrix_factory.at(
                     FLAGS_batch_solver_mat_format)(exec, ndup, data[0]));
             } else {
-                system_matrix = share(formats::batch_matrix_factory2.at(
+                system_matrix = (formats::batch_matrix_factory2.at(
                     FLAGS_batch_solver_mat_format)(exec, ndup, data));
                 if (FLAGS_batch_scaling == "explicit") {
                     auto temp_scaling_op = formats::batch_matrix_factory2.at(
                         "batch_dense")(exec, ndup, scale_data);
-                    scaling_op = gko::share(BDiag::create(exec));
+                    scaling_op = (BDiag::create(exec));
                     gko::as<Vec>(temp_scaling_op.get())
                         ->convert_to(scaling_op.get());
                 }
