@@ -651,8 +651,8 @@ int main(int argc, char* argv[])
                 x = gko::initialize<Vec>({0.0}, exec);
             } else {
                 auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
-                system_matrix = share(formats::matrix_factory.at(
-                    test_case["optimal"]["spmv"].GetString())(exec, data));
+                system_matrix = share(formats::matrix_factory(
+                    test_case["optimal"]["spmv"].GetString(), exec, data));
                 if (test_case.HasMember("rhs")) {
                     std::ifstream rhs_fd{test_case["rhs"].GetString()};
                     b = gko::read<Vec>(rhs_fd, exec);
