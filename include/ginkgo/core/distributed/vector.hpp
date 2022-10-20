@@ -433,8 +433,7 @@ protected:
      * Creates an empty distributed vector with a specified size
      *
      * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector, the default is
-     *              MPI_COMM_WORLD
+     * @param comm  Communicator associated with vector
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector
      * @param stride  Stride of the local vector.
@@ -446,8 +445,7 @@ protected:
      * Creates an empty distributed vector with a specified size
      *
      * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector, the default is
-     *              MPI_COMM_WORLD
+     * @param comm  Communicator associated with vector
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector, uses local_size[1]
      *                    as the stride
