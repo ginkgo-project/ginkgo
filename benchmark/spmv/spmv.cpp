@@ -76,7 +76,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
         auto system_matrix =
-            share(formats::matrix_factory.at(format_name)(exec, data));
+            share(formats::matrix_factory(format_name, exec, data));
 
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
@@ -233,7 +233,7 @@ int main(int argc, char* argv[])
             auto answer = vec<etype>::create(exec);
             if (FLAGS_detailed) {
                 auto system_matrix =
-                    share(formats::matrix_factory.at("coo")(exec, data));
+                    share(formats::matrix_factory("coo", exec, data));
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));

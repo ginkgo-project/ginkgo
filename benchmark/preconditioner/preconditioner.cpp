@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
             auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
 
             auto system_matrix =
-                share(formats::matrix_factory.at(FLAGS_formats)(exec, data));
+                share(formats::matrix_factory(FLAGS_formats, exec, data));
             auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
                                           engine);
             auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
