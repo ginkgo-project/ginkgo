@@ -54,39 +54,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchDiagonal : public ::testing::Test {
+class BatchDiagonal : public CommonTestFixture {
 protected:
-    using itype = int;
-#if GINKGO_COMMON_SINGLE_MODE
-    using vtype = float;
-#else
-    using vtype = double;
-#endif
-    using Diag = gko::matrix::BatchDiagonal<vtype>;
-    using ComplexDiag = gko::matrix::BatchDiagonal<std::complex<vtype>>;
+    using Diag = gko::matrix::BatchDiagonal<value_type>;
+    using ComplexDiag = gko::matrix::BatchDiagonal<std::complex<value_type>>;
 
     BatchDiagonal() : rand_engine(15) {}
 
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t batch_size, int num_rows, int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(const size_t batch_size, int num_rows,
+                                     int num_cols)
     {
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             batch_size, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::uniform_real_distribution<>(-1.0, 1.0), rand_engine, false, ref);
+            std::uniform_real_distribution<>(-1.0, 1.0), rand_engine, false,
+            ref);
     }
 
     void set_up_data()
@@ -94,9 +77,6 @@ protected:
         c_diag = gen_mtx<ComplexDiag>(5, 100, 76);
         dc_diag = gko::clone(exec, c_diag);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 

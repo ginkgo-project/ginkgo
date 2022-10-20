@@ -45,14 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
+#include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "cuda/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
+#ifndef GKO_COMPILING_DPCPP
 
 
-class BatchDense : public ::testing::Test {
+class BatchDense : public CommonTestFixture {
 protected:
     using vtype = double;
     using Mtx = gko::matrix::BatchDense<vtype>;
@@ -60,20 +61,6 @@ protected:
     using ComplexMtx = gko::matrix::BatchDense<std::complex<vtype>>;
 
     BatchDense() : rand_engine(15) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(const size_t batchsize, int num_rows,
@@ -98,17 +85,17 @@ protected:
             alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
             beta = gko::batch_initialize<Mtx>(batch_size, {-0.5}, ref);
         }
-        dx = Mtx::create(cuda);
+        dx = Mtx::create(exec);
         dx->copy_from(x.get());
-        dy = Mtx::create(cuda);
+        dy = Mtx::create(exec);
         dy->copy_from(y.get());
-        dalpha = Mtx::create(cuda);
+        dalpha = Mtx::create(exec);
         dalpha->copy_from(alpha.get());
-        dbeta = gko::clone(cuda, beta.get());
+        dbeta = gko::clone(exec, beta.get());
         expected = Mtx::create(
             ref, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
         dresult = Mtx::create(
-            cuda, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
+            exec, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
     }
 
     void set_up_apply_data(const int p = 1)
@@ -122,24 +109,21 @@ protected:
         beta = gko::batch_initialize<Mtx>(batch_size, {-1.0}, ref);
         square = gen_mtx<Mtx>(batch_size, x->get_size().at()[0],
                               x->get_size().at()[0]);
-        dx = Mtx::create(cuda);
+        dx = Mtx::create(exec);
         dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(cuda);
+        dc_x = ComplexMtx::create(exec);
         dc_x->copy_from(c_x.get());
-        dy = Mtx::create(cuda);
+        dy = Mtx::create(exec);
         dy->copy_from(y.get());
-        dresult = Mtx::create(cuda);
+        dresult = Mtx::create(exec);
         dresult->copy_from(expected.get());
-        dalpha = Mtx::create(cuda);
+        dalpha = Mtx::create(exec);
         dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(cuda);
+        dbeta = Mtx::create(exec);
         dbeta->copy_from(beta.get());
-        dsquare = Mtx::create(cuda);
+        dsquare = Mtx::create(exec);
         dsquare->copy_from(square.get());
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
 
     std::ranlux48 rand_engine;
 
@@ -288,7 +272,7 @@ TEST_F(BatchDense, ComputeNorm2SingleIsEquivalentToRef)
     auto norm_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto norm_expected = NormVector::create(this->ref, norm_size);
-    auto dnorm = NormVector::create(this->cuda, norm_size);
+    auto dnorm = NormVector::create(this->exec, norm_size);
 
     x->compute_norm2(norm_expected.get());
     dx->compute_norm2(dnorm.get());
@@ -303,7 +287,7 @@ TEST_F(BatchDense, ComputeNorm2IsEquivalentToRef)
     auto norm_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto norm_expected = NormVector::create(this->ref, norm_size);
-    auto dnorm = NormVector::create(this->cuda, norm_size);
+    auto dnorm = NormVector::create(this->exec, norm_size);
 
     x->compute_norm2(norm_expected.get());
     dx->compute_norm2(dnorm.get());
@@ -318,7 +302,7 @@ TEST_F(BatchDense, ComputeDotIsEquivalentToRef)
     auto dot_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
-    auto ddot = Mtx::create(this->cuda, dot_size);
+    auto ddot = Mtx::create(this->exec, dot_size);
 
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
@@ -333,7 +317,7 @@ TEST_F(BatchDense, ComputeDotSingleIsEquivalentToRef)
     auto dot_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
-    auto ddot = Mtx::create(this->cuda, dot_size);
+    auto ddot = Mtx::create(this->exec, dot_size);
 
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
@@ -347,7 +331,8 @@ TEST_F(BatchDense, CopySingleIsEquivalentToRef)
     set_up_vector_data(1);
 
     gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
-    gko::kernels::cuda::batch_dense::copy(this->cuda, dx.get(), dy.get());
+    gko::kernels::EXEC_NAMESPACE::batch_dense::copy(this->exec, dx.get(),
+                                                    dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
@@ -358,7 +343,8 @@ TEST_F(BatchDense, CopyIsEquivalentToRef)
     set_up_vector_data(20);
 
     gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
-    gko::kernels::cuda::batch_dense::copy(this->cuda, dx.get(), dy.get());
+    gko::kernels::EXEC_NAMESPACE::batch_dense::copy(this->exec, dx.get(),
+                                                    dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
@@ -374,15 +360,15 @@ TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
     const auto left =
         gen_mtx<BDiag>(batch_size, num_rows_in_mat, num_rows_in_mat);
     const auto rght = gen_mtx<BDiag>(batch_size, num_rhs, num_rhs);
-    auto dleft = BDiag::create(this->cuda);
+    auto dleft = BDiag::create(this->exec);
     dleft->copy_from(left.get());
-    auto drght = BDiag::create(this->cuda);
+    auto drght = BDiag::create(this->exec);
     drght->copy_from(rght.get());
 
     gko::kernels::reference::batch_dense::batch_scale(this->ref, left.get(),
                                                       rght.get(), x.get());
-    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, dleft.get(),
-                                                 drght.get(), dx.get());
+    gko::kernels::EXEC_NAMESPACE::batch_dense::batch_scale(
+        this->exec, dleft.get(), drght.get(), dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
@@ -394,7 +380,7 @@ TEST_F(BatchDense, TransposeIsEquivalentToRef)
     const int ncols = 6;
     const size_t nbatch = 5;
     const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
-    auto corig = Mtx::create(cuda);
+    auto corig = Mtx::create(exec);
     corig->copy_from(orig.get());
 
     auto trans = orig->transpose();
@@ -412,7 +398,7 @@ TEST_F(BatchDense, ConjugateTransposeIsEquivalentToRef)
     const int ncols = 6;
     const size_t nbatch = 5;
     const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
-    auto corig = Mtx::create(cuda);
+    auto corig = Mtx::create(exec);
     corig->copy_from(orig.get());
 
     auto trans = orig->conj_transpose();
@@ -434,7 +420,7 @@ TEST_F(BatchDense, AddScaledIdentityNonSquareIsEquivalentToReference)
         batchsize, num_rows, num_cols,
         std::uniform_int_distribution<>(num_cols, num_cols),
         std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
-    auto dmtx = Mtx::create(cuda);
+    auto dmtx = Mtx::create(exec);
     dmtx->copy_from(rmtx.get());
 
     rmtx->add_scaled_identity(alpha.get(), beta.get());
@@ -444,4 +430,4 @@ TEST_F(BatchDense, AddScaledIdentityNonSquareIsEquivalentToReference)
 }
 
 
-}  // namespace
+#endif

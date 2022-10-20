@@ -98,8 +98,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         auto nbatch = FLAGS_num_duplications;
         auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
-        auto system_matrix = share(
-            formats::batch_matrix_factory.at(format_name)(exec, nbatch, data));
+        std::shared_ptr<gko::BatchLinOp> system_matrix =
+            (formats::batch_matrix_factory.at(format_name)(exec, nbatch, data));
 
         std::clog << "Batch Matrix has: "
                   << system_matrix->get_num_batch_entries()
@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
                                     std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
@@ -432,11 +432,11 @@ int main(int argc, char* argv[])
             if (FLAGS_detailed) {
                 std::shared_ptr<gko::BatchLinOp> system_matrix;
                 if (FLAGS_using_suite_sparse) {
-                    system_matrix = share(formats::batch_matrix_factory.at(
-                        "batch_csr")(exec, ndup, data[0]));
+                    system_matrix = formats::batch_matrix_factory.at(
+                        "batch_csr")(exec, ndup, data[0]);
                 } else {
-                    system_matrix = share(formats::batch_matrix_factory2.at(
-                        "batch_csr")(exec, ndup, data));
+                    system_matrix = formats::batch_matrix_factory2.at(
+                        "batch_csr")(exec, ndup, data);
                 }
                 auto sys_size = system_matrix->get_size();
                 auto x_size = x->get_size();
