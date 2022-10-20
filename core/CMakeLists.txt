@@ -13,7 +13,6 @@ target_sources(ginkgo
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
-    base/reordered.cpp
     base/version.cpp
     distributed/partition.cpp
     factorization/elimination_forest.cpp
@@ -46,6 +45,7 @@ target_sources(ginkgo
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp
+    reorder/scaled_reordered.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp

@@ -63,11 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-<<<<<<< HEAD
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
-=======
-#include <ginkgo/core/base/reordered.hpp>
->>>>>>> c3f77253aa... Format files
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
@@ -122,6 +118,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
+#include <ginkgo/core/reorder/scaled_reordered.hpp>
 
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>

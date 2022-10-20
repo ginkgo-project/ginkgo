@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/reordered.hpp>
+#include <ginkgo/core/reorder/scaled_reordered.hpp>
 
 
 #include <memory>
@@ -318,7 +318,7 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithOnlyInnerOperator)
     auto res = this->b->clone();
     scaled_reordered->apply(this->b.get(), res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, this->x, this->tol);
+    GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
 }
 
 
@@ -406,7 +406,7 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
     auto res = b->clone();
     scaled_reordered->apply(b.get(), res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, x, 2e-6);
+    GKO_ASSERT_MTX_NEAR(res, x, 1e-5);
 }
 
 
@@ -453,7 +453,7 @@ TYPED_TEST(ScaledReordered,
     auto res = b->clone();
     scaled_reordered->apply(alpha.get(), b.get(), beta.get(), res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), 2e-6);
+    GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), 1e-5);
 }
 
 

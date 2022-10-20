@@ -59,11 +59,13 @@ namespace reorder {
  * It contains a factory to instantiate the reorderings. It is up to each
  * specific reordering to decide what to do with the data that is passed to it.
  */
-class ReorderingBase : public EnableAbstractPolymorphicObject<ReorderingBase> {
+template <typename IndexType = int32>
+class ReorderingBase
+    : public EnableAbstractPolymorphicObject<ReorderingBase<IndexType>> {
 public:
-    virtual std::shared_ptr<const gko::LinOp> get_permutation() const = 0;
+    using index_type = IndexType;
 
-    virtual std::shared_ptr<const gko::LinOp> get_inverse_permutation()
+    virtual std::shared_ptr<const array<index_type>> get_permutation_array()
         const = 0;
 
 protected:
@@ -85,36 +87,6 @@ struct ReorderingBaseArgs {
         : system_matrix{system_matrix}
     {}
 };
-
-
-/**
- * Declares an Abstract Factory specialized for ReorderingBases
- */
-using ReorderingBaseFactory =
-    AbstractFactory<ReorderingBase, ReorderingBaseArgs>;
-
-
-/**
- * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of ReorderingBaseFactory.
- *
- * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
- * @tparam ConcreteReorderingBase  the concrete ReorderingBase type which this
- * factory produces, needs to have a constructor which takes a const
- * ConcreteFactory *, and a const ReorderingBaseArgs * as parameters.
- * @tparam ParametersType  a subclass of enable_parameters_type template which
- *                         defines all of the parameters of the factory
- * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
- *                          hierarchy, has to be a subclass of
- * ReorderingBaseFactory
- */
-template <typename ConcreteFactory, typename ConcreteReorderingBase,
-          typename ParametersType,
-          typename PolymorphicBase = ReorderingBaseFactory>
-using EnableDefaultReorderingBaseFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteReorderingBase,
-                         ParametersType, PolymorphicBase>;
 
 
 /**
@@ -144,26 +116,37 @@ public:                                                                        \
     }                                                                          \
                                                                                \
     class _factory_name                                                        \
-        : public ::gko::reorder::EnableDefaultReorderingBaseFactory<           \
-              _factory_name, _reordering_base, _parameters_name##_type> {      \
+        : public ::gko::EnableDefaultFactory<                                  \
+              _factory_name, _reordering_base, _parameters_name##_type,        \
+              ::gko::AbstractFactory<ReorderingBase<IndexType>,                \
+                                     ::gko::reorder::ReorderingBaseArgs>> {    \
         friend class ::gko::EnablePolymorphicObject<                           \
-            _factory_name, ::gko::reorder::ReorderingBaseFactory>;             \
+            _factory_name,                                                     \
+            ::gko::AbstractFactory<::gko::reorder::ReorderingBase<IndexType>,  \
+                                   ::gko::reorder::ReorderingBaseArgs>>;       \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
                                                    _factory_name>;             \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
-            : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
-                  _factory_name, _reordering_base, _parameters_name##_type>(   \
-                  std::move(exec))                                             \
+            : ::gko::EnableDefaultFactory<                                     \
+                  _factory_name, _reordering_base, _parameters_name##_type,    \
+                  ::gko::AbstractFactory<                                      \
+                      ::gko::reorder::ReorderingBase<IndexType>,               \
+                      ::gko::reorder::ReorderingBaseArgs>>(std::move(exec))    \
         {}                                                                     \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
                                const _parameters_name##_type& parameters)      \
-            : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
-                  _factory_name, _reordering_base, _parameters_name##_type>(   \
-                  std::move(exec), parameters)                                 \
+            : ::gko::EnableDefaultFactory<                                     \
+                  _factory_name, _reordering_base, _parameters_name##_type,    \
+                  ::gko::AbstractFactory<                                      \
+                      ::gko::reorder::ReorderingBase<IndexType>,               \
+                      ::gko::reorder::ReorderingBaseArgs>>(std::move(exec),    \
+                                                           parameters)         \
         {}                                                                     \
     };                                                                         \
-    friend ::gko::reorder::EnableDefaultReorderingBaseFactory<                 \
-        _factory_name, _reordering_base, _parameters_name##_type>;             \
+    friend ::gko::EnableDefaultFactory<                                        \
+        _factory_name, _reordering_base, _parameters_name##_type,              \
+        ::gko::AbstractFactory<::gko::reorder::ReorderingBase<IndexType>,      \
+                               ::gko::reorder::ReorderingBaseArgs>>;           \
                                                                                \
 private:                                                                       \
     _parameters_name##_type _parameters_name##_;                               \

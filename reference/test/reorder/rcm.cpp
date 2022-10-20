@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
@@ -81,27 +80,6 @@ protected:
           reorder_op(rcm_factory->generate(id3_mtx))
     {}
 
-    void assert_correct_permutation(const reorder_type* rcm)
-    {
-        auto perm =
-            gko::as<gko::matrix::Permutation<i_type>>(rcm->get_permutation())
-                ->get_const_permutation();
-
-        ASSERT_EQ(perm[0], 2);
-        ASSERT_EQ(perm[1], 1);
-        ASSERT_EQ(perm[2], 0);
-
-        if (rcm->get_parameters().construct_inverse_permutation) {
-            auto i_perm = gko::as<gko::matrix::Permutation<i_type>>(
-                              rcm->get_inverse_permutation())
-                              ->get_const_permutation();
-
-            ASSERT_EQ(i_perm[0], 2);
-            ASSERT_EQ(i_perm[1], 1);
-            ASSERT_EQ(i_perm[2], 0);
-        }
-    }
-
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<CsrMtx> id3_mtx;
     std::shared_ptr<CsrMtx> not_id3_mtx;
@@ -129,7 +107,9 @@ TYPED_TEST(Rcm, CanBeCopied)
 
     rcm_copy->copy_from(rcm.get());
 
-    this->assert_correct_permutation(rcm_copy.get());
+    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[0], 2);
+    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[1], 1);
+    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[2], 0);
 }
 
 
@@ -140,7 +120,9 @@ TYPED_TEST(Rcm, CanBeMoved)
 
     rcm->move_to(rcm_move.get());
 
-    this->assert_correct_permutation(rcm_move.get());
+    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[0], 2);
+    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[1], 1);
+    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[2], 0);
 }
 
 
@@ -150,7 +132,9 @@ TYPED_TEST(Rcm, CanBeCloned)
 
     auto rcm_clone = rcm->clone();
 
-    this->assert_correct_permutation(rcm_clone.get());
+    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[0], 2);
+    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[1], 1);
+    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[2], 0);
 }
 
 
@@ -191,8 +175,10 @@ TYPED_TEST(Rcm, CanBeCreatedWithConstructInversePermutation)
                    .on(this->exec)
                    ->generate(this->id3_mtx);
 
+    ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[0], 2);
+    ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[1], 1);
+    ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[2], 0);
     ASSERT_EQ(rcm->get_parameters().construct_inverse_permutation, true);
-    this->assert_correct_permutation(rcm.get());
 }
 
 
