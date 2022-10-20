@@ -92,10 +92,10 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm
-    : public EnablePolymorphicObject<Rcm<ValueType, IndexType>, ReorderingBase>,
-      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Rcm, ReorderingBase>;
+class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
+                                           ReorderingBase<IndexType>>,
+            public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
+    friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
 
 public:
     using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;
@@ -109,7 +109,7 @@ public:
      *
      * @return the permutation (permutation matrix)
      */
-    std::shared_ptr<const LinOp> get_permutation() const override
+    std::shared_ptr<const PermutationMatrix> get_permutation() const
     {
         return permutation_;
     }
@@ -120,9 +120,18 @@ public:
      *
      * @return the inverse permutation (permutation matrix)
      */
-    std::shared_ptr<const LinOp> get_inverse_permutation() const override
+    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
     {
         return inv_permutation_;
+    }
+
+    std::shared_ptr<const array<index_type>> get_permutation_array()
+        const override
+    {
+        auto permutation_array =
+            make_array_view(this->get_executor(), permutation_->get_size()[0],
+                            permutation_->get_permutation());
+        return std::make_shared<const array<index_type>>(permutation_array);
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -152,11 +161,13 @@ protected:
                   std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
     explicit Rcm(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
+        : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(
+              std::move(exec))
     {}
 
     explicit Rcm(const Factory* factory, const ReorderingBaseArgs& args)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(factory->get_executor()),
+        : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(
+              factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
         // Always execute the reordering on the cpu.

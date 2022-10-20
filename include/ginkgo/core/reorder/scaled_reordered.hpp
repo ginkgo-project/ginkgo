@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_BASE_REORDERED_HPP_
-#define GKO_PUBLIC_CORE_BASE_REORDERED_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_SCALED_REORDERED_HPP_
+#define GKO_PUBLIC_CORE_BASE_SCALEDREORDERED_HPP_
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
@@ -57,14 +57,14 @@ namespace gko {
  * stability by reducing the condition number of the system matrix.
  *
  * With a permutation matrix P, a row scaling R and a column scaling C, the
- * inner operator is applied to the system matrix P*R*A*C*P^T instead of A,
- * so the instead of A*x = b the inner operator attempts to solve the equivalent
+ * inner operator is applied to the system matrix P*R*A*C*P^T instead of A.
+ * Instead of A*x = b, the inner operator attempts to solve the equivalent
  * linear system P*R*A*C*P^T*y = P*R*b and retrieves the solution x = C*P^T*y.
  * Note: The inner system matrix is computed from a clone of A, so the original
  * system matrix is not changed.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
- * @tparam IndexType  Type of the indices of all matrix used in this class
+ * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledReordered
@@ -75,6 +75,9 @@ class ScaledReordered
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using ReorderingBaseFactory =
+        AbstractFactory<reorder::ReorderingBase<IndexType>,
+                        reorder::ReorderingBaseArgs>;
 
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
@@ -98,7 +101,7 @@ public:
         /**
          * The reordering that is to be applied to the system matrix.
          */
-        std::shared_ptr<const reorder::ReorderingBaseFactory>
+        std::shared_ptr<const ReorderingBaseFactory>
             GKO_FACTORY_PARAMETER_SCALAR(reordering, nullptr);
 
         /**
@@ -155,14 +158,9 @@ protected:
         // permute the system matrix accordingly.
         if (parameters_.reordering) {
             auto reordering = parameters_.reordering->generate(system_matrix_);
-            auto perm = reordering->get_permutation();
-            permutation_ =
-                clone(exec, as<matrix::Permutation<index_type>>(perm));
-            auto permutation_array =
-                make_array_view(exec, permutation_->get_size()[0],
-                                permutation_->get_permutation());
+            permutation_array_ = reordering->get_permutation_array();
             system_matrix_ = as<Permutable<index_type>>(system_matrix_)
-                                 ->permute(&permutation_array);
+                                 ->permute(permutation_array_.get());
         }
 
         // Generate the inner operator with the scaled and reordered system
@@ -193,7 +191,8 @@ protected:
      */
     void set_cache_to(const LinOp* b, const LinOp* x) const
     {
-        if (cache_.inner_b == nullptr) {
+        if (cache_.inner_b == nullptr ||
+            cache_.inner_b->get_size() != b->get_size()) {
             const auto size = b->get_size();
             cache_.inner_b =
                 matrix::Dense<value_type>::create(this->get_executor(), size);
@@ -213,7 +212,8 @@ private:
     std::shared_ptr<const LinOp> inner_operator_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};
-    std::shared_ptr<matrix::Permutation<index_type>> permutation_{};
+    std::shared_ptr<const array<index_type>> permutation_array_{};
+
     /**
      * Manages three vectors as a cache, so there is no need to allocate them
      * every time an intermediate vector is required. Copying an instance
@@ -226,14 +226,23 @@ private:
      */
     mutable struct cache_struct {
         cache_struct() = default;
+
         ~cache_struct() = default;
+
         cache_struct(const cache_struct&) {}
+
         cache_struct(cache_struct&&) {}
+
         cache_struct& operator=(const cache_struct&) { return *this; }
+
         cache_struct& operator=(cache_struct&&) { return *this; }
+
         std::unique_ptr<matrix::Dense<value_type>> inner_b{};
+
         std::unique_ptr<matrix::Dense<value_type>> inner_x{};
+
         std::unique_ptr<matrix::Dense<value_type>> intermediate{};
+
     } cache_;
 };
 
@@ -241,4 +250,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_BASE_REORDERED_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_SCALED_REORDERED_HPP_

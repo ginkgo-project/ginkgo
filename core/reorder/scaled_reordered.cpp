@@ -30,7 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/reordered.hpp>
+#include <ginkgo/core/reorder/scaled_reordered.hpp>
+
+
+#include <utility>
 
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -62,15 +65,12 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
                                             cache_.intermediate.get());
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
-            if (permutation_) {
-                auto permutation_array =
-                    make_array_view(exec, permutation_->get_size()[0],
-                                    permutation_->get_permutation());
-                cache_.inner_b->row_permute(&permutation_array,
+            if (permutation_array_) {
+                cache_.inner_b->row_permute(permutation_array_.get(),
                                             cache_.intermediate.get());
                 std::swap(cache_.inner_b, cache_.intermediate);
                 if (inner_operator_->apply_uses_initial_guess()) {
-                    cache_.inner_x->row_permute(&permutation_array,
+                    cache_.inner_x->row_permute(permutation_array_.get(),
                                                 cache_.intermediate.get());
                     std::swap(cache_.inner_x, cache_.intermediate);
                 }
@@ -79,11 +79,8 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
             inner_operator_->apply(cache_.inner_b.get(), cache_.inner_x.get());
 
             // Permute and scale the solution vector back.
-            if (permutation_) {
-                auto permutation_array =
-                    make_array_view(exec, permutation_->get_size()[0],
-                                    permutation_->get_permutation());
-                cache_.inner_x->inverse_row_permute(&permutation_array,
+            if (permutation_array_) {
+                cache_.inner_x->inverse_row_permute(permutation_array_.get(),
                                                     cache_.intermediate.get());
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
