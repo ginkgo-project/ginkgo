@@ -46,14 +46,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "cuda/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
+#ifndef GKO_COMPILING_DPCPP
 
 
-class BatchEll : public ::testing::Test {
+class BatchEll : public CommonTestFixture {
 protected:
     using value_type = float;
     using real_type = gko::remove_complex<value_type>;
@@ -64,20 +65,6 @@ protected:
     using Dense = gko::matrix::Dense<value_type>;
 
     BatchEll() : mtx_size(2, gko::dim<2>(63, 47)), rand_engine(42) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        d_exec = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (d_exec != nullptr) {
-            ASSERT_NO_THROW(d_exec->synchronize());
-        }
-    }
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(size_t batch_size, int num_rows,
@@ -102,24 +89,21 @@ protected:
         y = gen_mtx<Vec>(batch_size, ncols, num_vectors, 1);
         alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
-        dmtx = Mtx::create(d_exec);
+        dmtx = Mtx::create(exec);
         dmtx->copy_from(mtx.get());
-        square_dmtx = Mtx::create(d_exec);
+        square_dmtx = Mtx::create(exec);
         square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(d_exec);
+        dresult = Vec::create(exec);
         dresult->copy_from(expected.get());
-        dy = Vec::create(d_exec);
+        dy = Vec::create(exec);
         dy->copy_from(y.get());
-        dalpha = Vec::create(d_exec);
+        dalpha = Vec::create(exec);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(d_exec);
+        dbeta = Vec::create(exec);
         dbeta->copy_from(beta.get());
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> d_exec;
-
-    const gko::batch_dim<> mtx_size;
+    const gko::batch_dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
@@ -169,12 +153,12 @@ TEST_F(BatchEll, DetectsMissingDiagonalEntry)
     const int ncols = mtx_size.at()[1];
     auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
     gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
-    auto omtx = Mtx::create(d_exec);
+    auto omtx = Mtx::create(exec);
     omtx->copy_from(mtx.get());
     bool all_diags = false;
 
-    gko::kernels::cuda::batch_ell::check_diagonal_entries_exist(
-        d_exec, omtx.get(), all_diags);
+    gko::kernels::EXEC_NAMESPACE::batch_ell::check_diagonal_entries_exist(
+        exec, omtx.get(), all_diags);
 
     ASSERT_FALSE(all_diags);
 }
@@ -189,12 +173,12 @@ TEST_F(BatchEll, DetectsPresenceOfAllDiagonalEntries)
         batch_size, nrows, ncols,
         std::uniform_int_distribution<>(ncols / 10, ncols),
         std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
-    auto omtx = Mtx::create(d_exec);
+    auto omtx = Mtx::create(exec);
     omtx->copy_from(mtx.get());
     bool all_diags = false;
 
-    gko::kernels::cuda::batch_ell::check_diagonal_entries_exist(
-        d_exec, omtx.get(), all_diags);
+    gko::kernels::EXEC_NAMESPACE::batch_ell::check_diagonal_entries_exist(
+        exec, omtx.get(), all_diags);
 
     ASSERT_TRUE(all_diags);
 }
@@ -211,9 +195,9 @@ TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
         std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
     auto alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
     auto beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
-    auto dalpha = alpha->clone(d_exec);
-    auto dbeta = beta->clone(d_exec);
-    auto omtx = Mtx::create(d_exec);
+    auto dalpha = alpha->clone(exec);
+    auto dbeta = beta->clone(exec);
+    auto omtx = Mtx::create(exec);
     omtx->copy_from(mtx.get());
 
     mtx->add_scaled_identity(alpha.get(), beta.get());
@@ -223,4 +207,4 @@ TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
 }
 
 
-}  // namespace
+#endif
