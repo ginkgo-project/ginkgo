@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/pgm_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -45,11 +45,11 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The AmgxPgm namespace.
+ * @brief The Pgm namespace.
  *
- * @ingroup amgx_pgm
+ * @ingroup pgm
  */
-namespace amgx_pgm {
+namespace pgm {
 
 
 template <typename IndexType>
@@ -75,7 +75,7 @@ void match_edge(std::shared_ptr<const DefaultExecutor> exec,
         agg.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
@@ -91,7 +91,7 @@ void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
     *num_unagg = exec->copy_val_to_host(d_result.get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL);
 
 
 template <typename IndexType>
@@ -122,7 +122,7 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
     *num_agg = exec->copy_val_to_host(agg_map.get_const_data() + num);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_RENUMBER_KERNEL);
 
 
 template <typename IndexType>
@@ -143,7 +143,7 @@ void map_row(std::shared_ptr<const DefaultExecutor> exec,
         num_fine_row, fine_row_ptrs, agg, row_idxs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MAP_ROW_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MAP_ROW_KERNEL);
 
 
 template <typename IndexType>
@@ -159,7 +159,7 @@ void map_col(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
         nnz, fine_col_idxs, agg, col_idxs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MAP_COL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MAP_COL_KERNEL);
 
 
 template <typename IndexType>
@@ -185,7 +185,7 @@ void count_unrepeated_nnz(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_COUNT_UNREPEATED_NNZ_KERNEL);
+    GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -247,7 +247,7 @@ void find_strongest_neighbor(
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR);
+    GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR);
 
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
@@ -333,10 +333,10 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
+    GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 
 
-}  // namespace amgx_pgm
+}  // namespace pgm
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

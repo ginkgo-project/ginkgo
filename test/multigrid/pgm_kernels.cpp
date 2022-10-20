@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/pgm_kernels.hpp"
 
 
 #include <fstream>
@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-class AmgxPgm : public CommonTestFixture {
+class Pgm : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -68,7 +68,7 @@ protected:
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
 
-    AmgxPgm() : rand_engine(30) {}
+    Pgm() : rand_engine(30) {}
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -180,43 +180,43 @@ protected:
 };
 
 
-TEST_F(AmgxPgm, MatchEdgeIsEquivalentToRef)
+TEST_F(Pgm, MatchEdgeIsEquivalentToRef)
 {
     initialize_data();
     auto x = unfinished_agg;
     auto d_x = d_unfinished_agg;
 
-    gko::kernels::reference::amgx_pgm::match_edge(ref, strongest_neighbor, x);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::match_edge(
+    gko::kernels::reference::pgm::match_edge(ref, strongest_neighbor, x);
+    gko::kernels::EXEC_NAMESPACE::pgm::match_edge(
         exec, d_strongest_neighbor, d_x);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
 
 
-TEST_F(AmgxPgm, CountUnaggIsEquivalentToRef)
+TEST_F(Pgm, CountUnaggIsEquivalentToRef)
 {
     initialize_data();
     index_type num_unagg;
     index_type d_num_unagg;
 
-    gko::kernels::reference::amgx_pgm::count_unagg(ref, unfinished_agg,
+    gko::kernels::reference::pgm::count_unagg(ref, unfinished_agg,
                                                    &num_unagg);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::count_unagg(exec, d_unfinished_agg,
+    gko::kernels::EXEC_NAMESPACE::pgm::count_unagg(exec, d_unfinished_agg,
                                                         &d_num_unagg);
 
     ASSERT_EQ(d_num_unagg, num_unagg);
 }
 
 
-TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
+TEST_F(Pgm, RenumberIsEquivalentToRef)
 {
     initialize_data();
     index_type num_agg;
     index_type d_num_agg;
 
-    gko::kernels::reference::amgx_pgm::renumber(ref, agg, &num_agg);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::renumber(exec, d_agg, &d_num_agg);
+    gko::kernels::reference::pgm::renumber(ref, agg, &num_agg);
+    gko::kernels::EXEC_NAMESPACE::pgm::renumber(exec, d_agg, &d_num_agg);
 
     ASSERT_EQ(d_num_agg, num_agg);
     GKO_ASSERT_ARRAY_EQ(d_agg, agg);
@@ -224,22 +224,22 @@ TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
 }
 
 
-TEST_F(AmgxPgm, FindStrongestNeighborIsEquivalentToRef)
+TEST_F(Pgm, FindStrongestNeighborIsEquivalentToRef)
 {
     initialize_data();
     auto snb = strongest_neighbor;
     auto d_snb = d_strongest_neighbor;
 
-    gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
+    gko::kernels::reference::pgm::find_strongest_neighbor(
         ref, weight_csr.get(), weight_diag.get(), agg, snb);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::find_strongest_neighbor(
+    gko::kernels::EXEC_NAMESPACE::pgm::find_strongest_neighbor(
         exec, d_weight_csr.get(), d_weight_diag.get(), d_agg, d_snb);
 
     GKO_ASSERT_ARRAY_EQ(d_snb, snb);
 }
 
 
-TEST_F(AmgxPgm, AssignToExistAggIsEquivalentToRef)
+TEST_F(Pgm, AssignToExistAggIsEquivalentToRef)
 {
     initialize_data();
     auto x = unfinished_agg;
@@ -247,25 +247,25 @@ TEST_F(AmgxPgm, AssignToExistAggIsEquivalentToRef)
     auto intermediate_agg = x;
     auto d_intermediate_agg = d_x;
 
-    gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
+    gko::kernels::reference::pgm::assign_to_exist_agg(
         ref, weight_csr.get(), weight_diag.get(), x, intermediate_agg);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::assign_to_exist_agg(
+    gko::kernels::EXEC_NAMESPACE::pgm::assign_to_exist_agg(
         exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
 
 
-TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
+TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 {
     initialize_data();
     auto d_x = d_unfinished_agg;
     auto d_intermediate_agg = gko::array<index_type>(exec, 0);
     index_type d_num_unagg;
 
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::assign_to_exist_agg(
+    gko::kernels::EXEC_NAMESPACE::pgm::assign_to_exist_agg(
         exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
-    gko::kernels::EXEC_NAMESPACE::amgx_pgm::count_unagg(exec, d_agg,
+    gko::kernels::EXEC_NAMESPACE::pgm::count_unagg(exec, d_agg,
                                                         &d_num_unagg);
 
     // only test whether all elements are aggregated.
@@ -273,14 +273,14 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 }
 
 
-TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
+TEST_F(Pgm, GenerateMgLevelIsEquivalentToRef)
 {
     initialize_data();
-    auto mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
+    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                 .with_deterministic(true)
                                 .with_skip_sorting(true)
                                 .on(ref);
-    auto d_mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
+    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                   .with_deterministic(true)
                                   .with_skip_sorting(true)
                                   .on(exec);
@@ -306,15 +306,15 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
 }
 
 
-TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
+TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 {
     initialize_data();
     gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
     d_system_mtx = gko::clone(exec, system_mtx);
-    auto mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
+    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                 .with_deterministic(true)
                                 .on(ref);
-    auto d_mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
+    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                   .with_deterministic(true)
                                   .on(exec);
 

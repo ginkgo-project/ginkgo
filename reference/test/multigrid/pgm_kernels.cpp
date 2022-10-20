@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 
 
 #include <memory>
@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/pgm_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -61,7 +61,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class AmgxPgm : public ::testing::Test {
+class Pgm : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -70,18 +70,18 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
-    using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
+    using MgLevel = gko::multigrid::Pgm<value_type, index_type>;
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
     using WeightMtx = gko::matrix::Csr<real_type, index_type>;
-    AmgxPgm()
+    Pgm()
         : exec(gko::ReferenceExecutor::create()),
-          amgxpgm_factory(MgLevel::build()
-                              .with_max_iterations(2u)
-                              .with_max_unassigned_ratio(0.1)
-                              .with_skip_sorting(true)
-                              .on(exec)),
+          pgm_factory(MgLevel::build()
+                          .with_max_iterations(2u)
+                          .with_max_unassigned_ratio(0.1)
+                          .with_skip_sorting(true)
+                          .on(exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
                I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
@@ -112,7 +112,7 @@ protected:
           agg(exec, 5)
     {
         this->create_mtx(mtx.get(), weight.get(), &agg, coarse.get());
-        mg_level = amgxpgm_factory->generate(mtx);
+        mg_level = pgm_factory->generate(mtx);
         mtx_diag = weight->extract_diagonal();
     }
 
@@ -215,19 +215,18 @@ protected:
     std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
-    std::unique_ptr<typename MgLevel::Factory> amgxpgm_factory;
+    std::unique_ptr<typename MgLevel::Factory> pgm_factory;
     std::unique_ptr<MgLevel> mg_level;
 };
 
-TYPED_TEST_SUITE(AmgxPgm, gko::test::ValueIndexTypes,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Pgm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
-TYPED_TEST(AmgxPgm, CanBeCopied)
+TYPED_TEST(Pgm, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
+    auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(this->mg_level.get());
     auto copy_mtx = copy->get_system_matrix();
@@ -243,11 +242,11 @@ TYPED_TEST(AmgxPgm, CanBeCopied)
 }
 
 
-TYPED_TEST(AmgxPgm, CanBeMoved)
+TYPED_TEST(Pgm, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
+    auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(std::move(this->mg_level));
     auto copy_mtx = copy->get_system_matrix();
@@ -263,7 +262,7 @@ TYPED_TEST(AmgxPgm, CanBeMoved)
 }
 
 
-TYPED_TEST(AmgxPgm, CanBeCloned)
+TYPED_TEST(Pgm, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
@@ -281,7 +280,7 @@ TYPED_TEST(AmgxPgm, CanBeCloned)
 }
 
 
-TYPED_TEST(AmgxPgm, CanBeCleared)
+TYPED_TEST(Pgm, CanBeCleared)
 {
     using MgLevel = typename TestFixture::MgLevel;
 
@@ -296,7 +295,7 @@ TYPED_TEST(AmgxPgm, CanBeCleared)
 }
 
 
-TYPED_TEST(AmgxPgm, MatchEdge)
+TYPED_TEST(Pgm, MatchEdge)
 {
     using index_type = typename TestFixture::index_type;
     gko::array<index_type> agg(this->exec, 5);
@@ -313,7 +312,7 @@ TYPED_TEST(AmgxPgm, MatchEdge)
     // isolated item
     snb_val[4] = 4;
 
-    gko::kernels::reference::amgx_pgm::match_edge(this->exec, snb, agg);
+    gko::kernels::reference::pgm::match_edge(this->exec, snb, agg);
 
     ASSERT_EQ(agg_val[0], 0);
     ASSERT_EQ(agg_val[1], -1);
@@ -324,7 +323,7 @@ TYPED_TEST(AmgxPgm, MatchEdge)
 }
 
 
-TYPED_TEST(AmgxPgm, CountUnagg)
+TYPED_TEST(Pgm, CountUnagg)
 {
     using index_type = typename TestFixture::index_type;
     gko::array<index_type> agg(this->exec, 5);
@@ -336,13 +335,13 @@ TYPED_TEST(AmgxPgm, CountUnagg)
     agg_val[3] = -1;
     agg_val[4] = -1;
 
-    gko::kernels::reference::amgx_pgm::count_unagg(this->exec, agg, &num_unagg);
+    gko::kernels::reference::pgm::count_unagg(this->exec, agg, &num_unagg);
 
     ASSERT_EQ(num_unagg, 3);
 }
 
 
-TYPED_TEST(AmgxPgm, Renumber)
+TYPED_TEST(Pgm, Renumber)
 {
     using index_type = typename TestFixture::index_type;
     gko::array<index_type> agg(this->exec, 5);
@@ -354,7 +353,7 @@ TYPED_TEST(AmgxPgm, Renumber)
     agg_val[3] = 1;
     agg_val[4] = 4;
 
-    gko::kernels::reference::amgx_pgm::renumber(this->exec, agg, &num_agg);
+    gko::kernels::reference::pgm::renumber(this->exec, agg, &num_agg);
 
     ASSERT_EQ(num_agg, 3);
     ASSERT_EQ(agg_val[0], 0);
@@ -365,9 +364,9 @@ TYPED_TEST(AmgxPgm, Renumber)
 }
 
 
-TYPED_TEST(AmgxPgm, Generate)
+TYPED_TEST(Pgm, Generate)
 {
-    auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
+    auto coarse_fine = this->pgm_factory->generate(this->mtx);
 
     auto agg_result = coarse_fine->get_const_agg();
 
@@ -379,73 +378,73 @@ TYPED_TEST(AmgxPgm, Generate)
 }
 
 
-TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
+TYPED_TEST(Pgm, CoarseFineRestrictApply)
 {
-    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto pgm = this->pgm_factory->generate(this->mtx);
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
 
-    amgx_pgm->get_restrict_op()->apply(this->fine_b.get(), x.get());
+    pgm->get_restrict_op()->apply(this->fine_b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
 
 
-TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
+TYPED_TEST(Pgm, CoarseFineProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto pgm = this->pgm_factory->generate(this->mtx);
     auto one = gko::initialize<Vec>({value_type{1.0}}, this->exec);
     auto x = gko::clone(this->fine_x);
 
-    amgx_pgm->get_prolong_op()->apply(one.get(), this->coarse_b.get(),
-                                      one.get(), x.get());
+    pgm->get_prolong_op()->apply(one.get(), this->coarse_b.get(), one.get(),
+                                 x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
 
 
-TYPED_TEST(AmgxPgm, CoarseFineProlongApply)
+TYPED_TEST(Pgm, CoarseFineProlongApply)
 {
     using value_type = typename TestFixture::value_type;
-    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto pgm = this->pgm_factory->generate(this->mtx);
     auto x = gko::clone(this->fine_x);
 
-    amgx_pgm->get_prolong_op()->apply(this->coarse_b.get(), x.get());
+    pgm->get_prolong_op()->apply(this->coarse_b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
 }
 
 
-TYPED_TEST(AmgxPgm, Apply)
+TYPED_TEST(Pgm, Apply)
 {
     using VT = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto pgm = this->pgm_factory->generate(this->mtx);
     auto b = gko::clone(this->fine_x);
     auto x = gko::clone(this->fine_x);
-    auto exec = amgx_pgm->get_executor();
+    auto exec = pgm->get_executor();
     auto answer = gko::initialize<Vec>(
         {I<VT>({-23.0, 5.0}), I<VT>({17.0, -5.0}), I<VT>({-23.0, 5.0}),
          I<VT>({17.0, -5.0}), I<VT>({-23.0, 5.0})},
         exec);
 
-    amgx_pgm->apply(b.get(), x.get());
+    pgm->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
 
 
-TYPED_TEST(AmgxPgm, AdvancedApply)
+TYPED_TEST(Pgm, AdvancedApply)
 {
     using VT = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto pgm = this->pgm_factory->generate(this->mtx);
     auto b = gko::clone(this->fine_x);
     auto x = gko::clone(this->fine_x);
-    auto exec = amgx_pgm->get_executor();
+    auto exec = pgm->get_executor();
     auto alpha = gko::initialize<Vec>({1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
     auto answer = gko::initialize<Vec>(
@@ -453,13 +452,13 @@ TYPED_TEST(AmgxPgm, AdvancedApply)
          I<VT>({17.0, -5.0}), I<VT>({-23.0, 9.0})},
         exec);
 
-    amgx_pgm->apply(alpha.get(), b.get(), beta.get(), x.get());
+    pgm->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
 
 
-TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
+TYPED_TEST(Pgm, FindStrongestNeighbor)
 {
     using index_type = typename TestFixture::index_type;
     gko::array<index_type> strongest_neighbor(this->exec, 5);
@@ -471,7 +470,7 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
         agg_vals[i] = -1;
     }
 
-    gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
+    gko::kernels::reference::pgm::find_strongest_neighbor(
         this->exec, this->weight.get(), this->mtx_diag.get(), agg,
         strongest_neighbor);
 
@@ -483,7 +482,7 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
 }
 
 
-TYPED_TEST(AmgxPgm, AssignToExistAgg)
+TYPED_TEST(Pgm, AssignToExistAgg)
 {
     using index_type = typename TestFixture::index_type;
     gko::array<index_type> agg(this->exec, 5);
@@ -496,7 +495,7 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
     agg_vals[3] = 1;
     agg_vals[4] = -1;
 
-    gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
+    gko::kernels::reference::pgm::assign_to_exist_agg(
         this->exec, this->weight.get(), this->mtx_diag.get(), agg,
         intermediate_agg);
 
@@ -508,7 +507,7 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
 }
 
 
-TYPED_TEST(AmgxPgm, GenerateMgLevel)
+TYPED_TEST(Pgm, GenerateMgLevel)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -521,7 +520,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
         {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
-    auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
+    auto coarse_fine = this->pgm_factory->generate(this->mtx);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
     auto row_gather_view = gko::array<index_type>::const_view(
         this->exec, row_gatherer->get_size()[0],
@@ -537,7 +536,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
 }
 
 
-TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
+TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_
-#define GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_
+#ifndef GKO_PUBLIC_CORE_MULTIGRID_PGM_HPP_
+#define GKO_PUBLIC_CORE_MULTIGRID_PGM_HPP_
 
 
 #include <vector>
@@ -50,13 +50,13 @@ namespace multigrid {
 
 
 /**
- * Amgx parallel graph match (AmgxPgm) is the aggregate method introduced in the
+ * Parallel graph match (Pgm) is the aggregate method introduced in the
  * paper M. Naumov et al., "AmgX: A Library for GPU Accelerated Algebraic
  * Multigrid and Preconditioned Iterative Methods". Current implementation only
  * contains size = 2 version.
  *
- * AmgxPgm creates the aggregate group according to the matrix value not the
- * structure. AmgxPgm gives two steps (one-phase handshaking) to group the
+ * Pgm creates the aggregate group according to the matrix value not the
+ * structure. Pgm gives two steps (one-phase handshaking) to group the
  * elements.
  * 1: get the strongest neighbor of each unaggregated element.
  * 2: group the elements whose strongest neighbor is each other.
@@ -72,10 +72,10 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public EnableLinOp<AmgxPgm<ValueType, IndexType>>,
-                public EnableMultigridLevel<ValueType> {
-    friend class EnableLinOp<AmgxPgm>;
-    friend class EnablePolymorphicObject<AmgxPgm, LinOp>;
+class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
+            public EnableMultigridLevel<ValueType> {
+    friend class EnableLinOp<Pgm>;
+    friend class EnablePolymorphicObject<Pgm, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -103,7 +103,7 @@ public:
     IndexType* get_agg() noexcept { return agg_.get_data(); }
 
     /**
-     * @copydoc AmgxPgm::get_agg()
+     * @copydoc Pgm::get_agg()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -152,7 +152,7 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(AmgxPgm, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -167,14 +167,13 @@ protected:
         this->get_composition()->apply(alpha, b, beta, x);
     }
 
-    explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AmgxPgm>(std::move(exec))
+    explicit Pgm(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Pgm>(std::move(exec))
     {}
 
-    explicit AmgxPgm(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<AmgxPgm>(factory->get_executor(),
-                               system_matrix->get_size()),
+    explicit Pgm(const Factory* factory,
+                 std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Pgm>(factory->get_executor(), system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
@@ -196,8 +195,12 @@ private:
 };
 
 
+template <typename ValueType = default_precision, typename IndexType = int32>
+using AmgxPgm [[deprecated("please use Pgm")]] = Pgm<ValueType, IndexType>;
+
+
 }  // namespace multigrid
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_
+#endif  // GKO_PUBLIC_CORE_MULTIGRID_PGM_HPP_
