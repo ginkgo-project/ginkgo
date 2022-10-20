@@ -231,10 +231,12 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
-        residual_stop = gko::share(
-            gko::stop::RelativeResidualNorm<rc_etype>::build()
-                .with_tolerance(static_cast<rc_etype>(FLAGS_rel_res_goal))
-                .on(exec));
+        residual_stop =
+            gko::share(gko::stop::ResidualNorm<rc_etype>::build()
+                           .with_baseline(gko::stop::mode::initial_resnorm)
+                           .with_reduction_factor(
+                               static_cast<rc_etype>(FLAGS_rel_res_goal))
+                           .on(exec));
     } else {
         residual_stop =
             gko::share(gko::stop::ResidualNorm<rc_etype>::build()
@@ -470,9 +472,9 @@ void solve_system(const std::string& solver_name,
                 add_or_set_member(solver_json, "preconditioner",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
-                write_precond_info(lend(clone(get_executor()->get_master(),
-                                              prec->get_preconditioner())),
-                                   solver_json["preconditioner"], allocator);
+                write_precond_info(
+                    lend(clone(exec->get_master(), prec->get_preconditioner())),
+                    solver_json["preconditioner"], allocator);
             }
 
             auto apply_logger =
@@ -624,7 +626,7 @@ int main(int argc, char* argv[])
         std::to_string(FLAGS_nrhs) + ".\n";
     print_general_information(extra_information);
 
-    auto exec = get_executor();
+    auto exec = get_executor(FLAGS_gpu_timer);
     auto solvers = split(FLAGS_solvers, ',');
     auto preconds = split(FLAGS_preconditioners, ',');
     std::vector<std::string> precond_solvers;

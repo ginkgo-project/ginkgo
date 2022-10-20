@@ -1,6 +1,8 @@
 ginkgo_create_common_device_test(csr_kernels)
 ginkgo_create_common_test(batch_csr_kernels)
 ginkgo_create_common_test(batch_diagonal_kernels)
+ginkgo_create_common_test(batch_dense_kernels)
+ginkgo_create_common_test(batch_ell_kernels)
 ginkgo_create_common_test(dense_kernels)
 ginkgo_create_common_test(matrix)
 ginkgo_create_common_test(sellp_kernels)
