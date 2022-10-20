@@ -56,13 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchIdr : public ::testing::Test {
+class BatchIdr : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::solver::BatchIdr<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
@@ -73,28 +68,15 @@ protected:
     using LogData = gko::log::BatchLogData<value_type>;
 
     BatchIdr()
-        : ref(gko::ReferenceExecutor::create()),
-          sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
+        : sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
     {
-        init_executor(ref, d_exec);
-        auto execp = d_exec;
-        solve_fn = [execp](const Options opts, const Mtx* mtx,
-                           const gko::BatchLinOp* prec, const BDense* b,
-                           BDense* x, LogData& logdata) {
+        solve_fn = [this](const Options opts, const Mtx* mtx,
+                          const gko::BatchLinOp* prec, const BDense* b,
+                          BDense* x, LogData& logdata) {
             gko::kernels::EXEC_NAMESPACE::batch_idr::apply<value_type>(
-                execp, opts, mtx, prec, b, x, logdata);
+                this->exec, opts, mtx, prec, b, x, logdata);
         };
     }
-
-    void TearDown()
-    {
-        if (d_exec != nullptr) {
-            ASSERT_NO_THROW(d_exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> d_exec;
 
     const real_type eps = r<value_type>::value;
     const size_t nbatch = 2;
@@ -156,13 +138,13 @@ TEST_F(BatchIdr, SolveIsEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, nbatch, 11, 1, false);
     auto r_factory = create_factory(ref, opts);
-    auto d_factory = create_factory(d_exec, opts);
+    auto d_factory = create_factory(exec, opts);
     const double iter_tol = 0.01;
     const double res_tol = 10 * r<value_type>::value;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
 
@@ -170,8 +152,8 @@ TEST_F(BatchIdr, SolveIsEquivalentToReference)
 TEST_F(BatchIdr, StencilSystemLoggerIsCorrect)
 {
     auto r_1 = gko::test::solve_poisson_uniform(
-        d_exec, solve_fn, opts_1, sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
+        exec, solve_fn, opts_1, sys_1, 1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
 
     const int ref_iters = single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -190,15 +172,15 @@ TEST_F(BatchIdr, StencilSystemLoggerIsCorrect)
 
 TEST_F(BatchIdr, UnitScalingDoesNotChangeResult)
 {
-    auto left_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto right_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
+    auto left_scale =
+        gko::share(gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, exec));
+    auto right_scale =
+        gko::share(gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, exec));
     auto factory =
-        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
+        create_factory(exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        d_exec, factory.get(), sys_1, 1);
+        exec, factory.get(), sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, eps);
 }
@@ -207,14 +189,14 @@ TEST_F(BatchIdr, UnitScalingDoesNotChangeResult)
 TEST_F(BatchIdr, GeneralScalingDoesNotChangeResult)
 {
     auto left_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {0.8, 0.9, 0.95}, d_exec));
+        gko::batch_initialize<BDiag>(nbatch, {0.8, 0.9, 0.95}, exec));
     auto right_scale = gko::share(
-        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, d_exec));
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, exec));
     auto factory =
-        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
+        create_factory(exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        d_exec, factory.get(), sys_1, 1);
+        exec, factory.get(), sys_1, 1);
 
     double tol = eps;
     if (std::is_same<real_type, double>::value) {
@@ -224,17 +206,13 @@ TEST_F(BatchIdr, GeneralScalingDoesNotChangeResult)
 }
 
 
-TEST(BatchIdrCsr, CanSolveWithoutScaling)
+TEST_F(BatchIdr, CanSolveCsrSystemWithoutScaling)
 {
     using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchIdr<T>;
     using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-9;
-    std::shared_ptr<gko::ReferenceExecutor> ref =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-    init_executor(ref, exec);
     const int maxits = 5000;
     auto batchidr_factory =
         Solver::build()
@@ -257,16 +235,12 @@ TEST(BatchIdrCsr, CanSolveWithoutScaling)
 }
 
 
-TEST(BatchIdrCsr, SolvesSystemWithJacobiPreconditioner)
+TEST_F(BatchIdr, SolvesSystemWithJacobiPreconditioner)
 {
     using value_type = std::complex<float>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using Solver = gko::solver::BatchIdr<value_type>;
-    std::shared_ptr<gko::ReferenceExecutor> ref =
-        gko::ReferenceExecutor::create();
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-    init_executor(ref, exec);
     const float eps = r<value_type>::value;
     std::unique_ptr<typename Solver::Factory> batchidr_factory =
         Solver::build()
