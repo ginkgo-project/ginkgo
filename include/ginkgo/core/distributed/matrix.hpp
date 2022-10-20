@@ -60,6 +60,24 @@ class Csr;
 namespace detail {
 
 
+/**
+ * Helper struct to test if the Builder type has a function create<ValueType,
+ * IndexType>(std::shared_ptr<const Executor>).
+ */
+template <typename Builder, typename ValueType, typename IndexType,
+          typename = void>
+struct is_matrix_type_builder : std::false_type {};
+
+
+template <typename Builder, typename ValueType, typename IndexType>
+struct is_matrix_type_builder<
+    Builder, ValueType, IndexType,
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
+            std::declval<std::shared_ptr<const Executor>>()))>>
+    : std::true_type {};
+
+
 template <template <typename, typename> class MatrixType,
           typename... CreateArgs>
 struct MatrixTypeBuilderFromValueAndIndex {
@@ -417,14 +435,15 @@ protected:
      *                         same type as `create` returns. It should be the
      *                         return value of make_matrix_template.
      */
-    template <typename MatrixType>
+    template <typename MatrixType,
+              typename = std::enable_if_t<detail::is_matrix_type_builder<
+                  MatrixType, ValueType, LocalIndexType>::value>>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, MatrixType matrix_template)
-        : Matrix(exec, comm,
-                 static_cast<const LinOp*>(
-                     matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
-                         .get()))
+        : Matrix(
+              exec, comm,
+              matrix_template.template create<ValueType, LocalIndexType>(exec)
+                  .get())
     {}
 
     /**
@@ -453,20 +472,23 @@ protected:
      *                                   `create` returns. It should be the
      *                                   return value of make_matrix_template.
      */
-    template <typename LocalMatrixType, typename NonLocalMatrixType>
+    template <typename LocalMatrixType, typename NonLocalMatrixType,
+              typename = std::enable_if_t<
+                  detail::is_matrix_type_builder<LocalMatrixType, ValueType,
+                                                 LocalIndexType>::value &&
+                  detail::is_matrix_type_builder<NonLocalMatrixType, ValueType,
+                                                 LocalIndexType>::value>>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
                     LocalMatrixType local_matrix_template,
                     NonLocalMatrixType non_local_matrix_template)
         : Matrix(exec, comm,
-                 static_cast<const LinOp*>(
-                     local_matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
-                         .get()),
-                 static_cast<const LinOp*>(
-                     non_local_matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
-                         .get()))
+                 local_matrix_template
+                     .template create<ValueType, LocalIndexType>(exec)
+                     .get(),
+                 non_local_matrix_template
+                     .template create<ValueType, LocalIndexType>(exec)
+                     .get())
     {}
 
     /**
