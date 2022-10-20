@@ -70,8 +70,7 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         gko::matrix_data<etype, itype> data{gko::dim<2>{1, 1}, 1};
-        auto matrix_to =
-            share(formats::matrix_factory.at(format_to)(exec, data));
+        auto matrix_to = share(formats::matrix_factory(format_to, exec, data));
 
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         IterationControl ic{timer};
@@ -161,7 +160,7 @@ int main(int argc, char* argv[])
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =
-                    share(formats::matrix_factory.at(format_from)(exec, data));
+                    share(formats::matrix_factory(format_from, exec, data));
                 for (const auto& format_to : formats) {
                     if (format_from == format_to) {
                         continue;
@@ -182,7 +181,7 @@ int main(int argc, char* argv[])
                 }
                 backup_results(test_cases);
             } catch (const gko::AllocationError& e) {
-                for (const auto& format : formats::matrix_factory) {
+                for (const auto& format : formats::matrix_type_factory) {
                     const auto format_to = std::get<0>(format);
                     auto conversion_name =
                         std::string(format_from) + "-" + format_to;
