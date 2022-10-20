@@ -531,8 +531,6 @@ class MatrixGpuAwareCheck : public CommonMpiTestFixture {
 public:
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
-    using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -540,7 +538,7 @@ public:
     using dense_vec_type = gko::matrix::Dense<value_type>;
 
     MatrixGpuAwareCheck()
-        : logger(gko::share(HostToDeviceLogger::create())), engine()
+        : logger(gko::share(HostToDeviceLogger::create())), engine(42)
     {
         exec->add_logger(logger);
 
