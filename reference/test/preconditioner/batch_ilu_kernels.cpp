@@ -146,7 +146,7 @@ void check_fact_mat_is_eqvt_to_l_and_u(
     GKO_ASSERT_MTX_NEAR(u_factor, check_u_factors[batch_id], 0.0);
 }
 
-
+// TODO: Add tests for non-sorted input matrix
 TYPED_TEST(BatchIlu, ExactIluGenerationIsEquivalentToUnbatched)
 {
     using value_type = typename TestFixture::value_type;
