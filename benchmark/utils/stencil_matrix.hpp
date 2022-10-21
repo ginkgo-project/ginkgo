@@ -100,17 +100,41 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
                target_local_idx(ix) + target_local_idx(iy) * dp;
     };
 
+    auto is_valid_idx = [&](const IndexType i) {
+        return i >= 0 && i < static_cast<IndexType>(global_size);
+    };
+
+    auto nnz_in_row = [&](const IndexType i, const IndexType j) {
+        int num_neighbors = 0;
+        for (IndexType d_i : {-1, 0, 1}) {
+            for (IndexType d_j : {-1, 0, 1}) {
+                if (d_i != 0 && d_j != 0) {
+                    auto neighbor = flat_idx(j + d_j, i + d_i);
+                    if (is_valid_idx(neighbor)) {
+                        num_neighbors++;
+                    }
+                }
+            }
+        }
+        return num_neighbors;
+    };
+
     for (IndexType i = 0; i < dp; ++i) {
         for (IndexType j = 0; j < dp; ++j) {
             auto row = flat_idx(j, i);
+            auto diag_value = static_cast<ValueType>(nnz_in_row(i, j));
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
                     if (!restricted || ((d_i == 0 && d_j == 0))) {
                         auto col = flat_idx(j + d_j, i + d_i);
-                        if (col >= 0 &&
-                            col < static_cast<IndexType>(global_size)) {
-                            A_data.nonzeros.emplace_back(row, col,
-                                                         gko::one<ValueType>());
+                        if (is_valid_idx(col)) {
+                            if (col != row) {
+                                A_data.nonzeros.emplace_back(
+                                    row, col, -gko::one<ValueType>());
+                            } else {
+                                A_data.nonzeros.emplace_back(row, col,
+                                                             diag_value);
+                            }
                         }
                     }
                 }
