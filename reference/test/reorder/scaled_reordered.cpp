@@ -67,7 +67,8 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
-    using SR = gko::ScaledReordered<value_type, index_type>;
+    using SR =
+        gko::experimental::reorder::ScaledReordered<value_type, index_type>;
     using Cg = gko::solver::Cg<value_type>;
     using Bicgstab = gko::solver::Bicgstab<value_type>;
     using Rcm = gko::reorder::Rcm<value_type, index_type>;

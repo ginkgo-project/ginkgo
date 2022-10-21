@@ -56,7 +56,8 @@ protected:
     using diag = gko::matrix::Diagonal<value_type>;
     using solver_type = gko::solver::Bicgstab<value_type>;
     using reorder_type = gko::reorder::Rcm<value_type, index_type>;
-    using scaled_reordered_type = gko::ScaledReordered<value_type, index_type>;
+    using scaled_reordered_type =
+        gko::experimental::reorder::ScaledReordered<value_type, index_type>;
 
     ScaledReorderedFactory()
         : exec(gko::ReferenceExecutor::create()),
