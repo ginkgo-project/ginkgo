@@ -57,9 +57,3 @@ jobs:
         cd build
         cmake --install . --config ${{ matrix.config.build_type }}
         cmake --build . --target test_install --config ${{ matrix.config.build_type }}
-        cmake --build . --target genexdebug --config ${{ matrix.config.build_type }}
-        echo "PKG $env:PKG_CONFIG_PATH"
-        $env:PKG_CONFIG_PATH="C:\Program Files (x86)\Ginkgo\lib\pkgconfig"
-        echo "PKG $env:PKG_CONFIG_PATH"
-        cat "C:\Program Files (x86)\Ginkgo\lib\pkgconfig\ginkgo.pc"
-        cmake --build . --target test_exportbuild_pkgconfig --config ${{ matrix.config.build_type }}
