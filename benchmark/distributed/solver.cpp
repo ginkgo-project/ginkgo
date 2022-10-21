@@ -55,6 +55,9 @@ DEFINE_bool(restrict, false,
 DEFINE_string(comm_pattern, "stencil",
               "Choose the communication pattern for the matrix, "
               "possible values are: stencil, optimal, neighborhood");
+DEFINE_string(solver, "cg",
+              "The solver to use, possible values are: "
+              "cg, fcg, cgs, bicgstab");
 DEFINE_bool(
     strong_scaling, false,
     "If set to true will treat target_rows as the total number of rows.");
@@ -330,6 +333,42 @@ build_part_from_local_size(
 }
 
 
+template <typename ValueType, template <typename> class SolverType>
+auto create_solver_factory(std::shared_ptr<const gko::Executor> exec)
+{
+    return SolverType<ValueType>::build()
+        .with_criteria(gko::stop::Iteration::build()
+                           .with_max_iters(FLAGS_warmup_max_iters)
+                           .on(exec))
+        .on(exec);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<gko::LinOp> create_solver(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<gko::LinOp> system_matrix)
+{
+    std::unique_ptr<gko::LinOpFactory> factory;
+    if (FLAGS_solver == "cg") {
+        factory =
+            create_solver_factory<ValueType, gko::solver::Cg>(std::move(exec));
+    } else if (FLAGS_solver == "cgs") {
+        factory =
+            create_solver_factory<ValueType, gko::solver::Cgs>(std::move(exec));
+    } else if (FLAGS_solver == "fcg") {
+        factory =
+            create_solver_factory<ValueType, gko::solver::Fcg>(std::move(exec));
+    } else if (FLAGS_solver == "bicgstab") {
+        factory = create_solver_factory<ValueType, gko::solver::Bicgstab>(
+            std::move(exec));
+    } else {
+        throw std::runtime_error("Unrecognized solver >" + FLAGS_solver + "<");
+    }
+    return factory->generate(std::move(system_matrix));
+}
+
+
 int main(int argc, char* argv[])
 {
     FLAGS_repetitions = "1";
@@ -444,13 +483,7 @@ int main(int argc, char* argv[])
 
     // Do a warmup run
     {
-        auto solver =
-            gko::solver::Cg<ValueType>::build()
-                .with_criteria(gko::stop::Iteration::build()
-                                   .with_max_iters(FLAGS_warmup_max_iters)
-                                   .on(exec))
-                .on(exec)
-                ->generate(A);
+        auto solver = create_solver<ValueType>(exec, A);
         if (rank == 0) {
             std::cout << "Warming up..." << std::endl;
         }
@@ -462,12 +495,7 @@ int main(int argc, char* argv[])
 
     // Do and time the actual benchmark runs
     {
-        auto solver = gko::solver::Cg<ValueType>::build()
-                          .with_criteria(gko::stop::Iteration::build()
-                                             .with_max_iters(FLAGS_max_iters)
-                                             .on(exec))
-                          .on(exec)
-                          ->generate(A);
+        auto solver = create_solver<ValueType>(exec, A);
         if (rank == 0) {
             std::cout << "Running benchmark..." << std::endl;
         }
