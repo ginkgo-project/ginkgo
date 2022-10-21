@@ -212,12 +212,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
-    const IndexType target_local_size, gko::mpi::communicator comm,
-    bool restricted, bool strong_scaling)
+    gko::mpi::communicator comm, const IndexType target_local_size,
+    bool restricted)
 {
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto mat_size = strong_scaling ? dp * dp : dp * dp * comm.size();
+    const auto mat_size = dp * dp * comm.size();
     const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
@@ -254,13 +254,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
-    const IndexType target_local_size, gko::mpi::communicator comm,
-    bool restricted, bool strong_scaling)
+    gko::mpi::communicator comm, const IndexType target_local_size,
+    bool restricted)
 {
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 3));
-    const auto mat_size =
-        strong_scaling ? dp * dp * dp : dp * dp * dp * comm.size();
+    const auto mat_size = dp * dp * dp * comm.size();
     const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
@@ -294,4 +293,45 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
 }
 
 
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_stencil(
+    std::string stencil_name, gko::mpi::communicator comm,
+    const gko::size_type target_local_size, bool optimal_comm)
+{
+    if (optimal_comm) {
+        if (stencil_name == "5pt") {
+            return generate_2d_stencil_with_optimal_comm<ValueType, IndexType>(
+                std::move(comm), target_local_size, false);
+        } else if (stencil_name == "9pt") {
+            return generate_2d_stencil_with_optimal_comm<ValueType, IndexType>(
+                std::move(comm), target_local_size, true);
+        } else if (stencil_name == "7pt") {
+            return generate_3d_stencil_with_optimal_comm<ValueType, IndexType>(
+                std::move(comm), target_local_size, false);
+        } else if (stencil_name == "27pt") {
+            return generate_3d_stencil_with_optimal_comm<ValueType, IndexType>(
+                std::move(comm), target_local_size, true);
+        } else {
+            throw std::runtime_error("Stencil " + stencil_name +
+                                     " not implemented");
+        }
+    } else {
+        if (stencil_name == "5pt") {
+            return generate_2d_stencil<ValueType, IndexType>(
+                std::move(comm), target_local_size, false);
+        } else if (stencil_name == "9pt") {
+            return generate_2d_stencil<ValueType, IndexType>(
+                std::move(comm), target_local_size, true);
+        } else if (stencil_name == "7pt") {
+            return generate_3d_stencil<ValueType, IndexType>(
+                std::move(comm), target_local_size, false);
+        } else if (stencil_name == "27pt") {
+            return generate_3d_stencil<ValueType, IndexType>(
+                std::move(comm), target_local_size, true);
+        } else {
+            throw std::runtime_error("Stencil " + stencil_name +
+                                     " not implemented");
+        }
+    }
+}
 #endif  // GINKGO_BENCHMARK_UTILS_STENCIL_MATRIX_HPP
