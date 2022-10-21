@@ -60,8 +60,7 @@ std::string example_config = R"(
   [
     {"size": 100, "stencil": "7pt", "comm_pattern": "optimal",
      "format" : {"local": "csr", "non_local": "coo"}},
-    {"size": 100, "stencil": "9pt", "comm_pattern": "stencil",
-     "format" : {"local": "ell"}}
+    {"filename": "my_file.mtx", "format" : {"local": "ell"}}
   ]
 )";
 
@@ -77,8 +76,10 @@ std::string example_config = R"(
 
 void validate_option_object(const rapidjson::Value& value)
 {
-    if (!value.IsObject() || !value.HasMember("size") ||
-        !value.HasMember("stencil") || !value.HasMember("comm_pattern")) {
+    if (!value.IsObject() ||
+        !((value.HasMember("size") && value.HasMember("stencil")) ||
+          value.HasMember("filename")) ||
+        (value.HasMember("format") && !value["format"].IsObject())) {
         print_config_error_and_exit();
     }
 }
@@ -156,6 +157,22 @@ void apply_spmv(std::shared_ptr<gko::Executor> exec,
 }
 
 
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_matrix_data(
+    rapidjson::Value& test_case, gko::mpi::communicator comm)
+{
+    if (test_case.HasMember("filename")) {
+        std::ifstream in(test_case["filename"].GetString());
+        return gko::read_generic_raw<ValueType, IndexType>(in);
+    } else {
+        return generate_stencil<ValueType, IndexType>(
+            test_case["stencil"].GetString(), std::move(comm),
+            test_case["size"].GetInt64(),
+            test_case["comm_pattern"].GetString() == std::string("optimal"));
+    }
+}
+
+
 int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
@@ -164,11 +181,16 @@ int main(int argc, char* argv[])
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
         "distributed SpMV\n";
     std::string format = example_config + R"(
+  The matrix will either be read from an input file if the filename parameter
+  is given, or generated as a stencil matrix.
+  If the filename parameter is given, all processes will read the file and
+  then the matrix is distributed row-block-wise.
+  In the other case, a size and stencil parameter have to be provided.
   The size parameter denotes the size per process. It might be adjusted to
   fit the dimensionality of the stencil more easily.
   Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
-  Possible values for "comm_pattern" are: stencil, optimal.
-  Possible values for "local" and "non_local" are any of the recognized spmv
+  Optional values for "comm_pattern" are: stencil, optimal.
+  Optional values for "local" and "non_local" are any of the recognized spmv
   formats.
 )";
     initialize_argument_parsing(&argc, &argv, header, format);
@@ -220,6 +242,11 @@ int main(int argc, char* argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
+            if (test_case.HasMember("stencil") &&
+                !test_case.HasMember("comm_pattern")) {
+                add_or_set_member(test_case, "comm_pattern", "optimal",
+                                  allocator);
+            }
             if (!test_case.HasMember("format")) {
                 test_case.AddMember("format",
                                     rapidjson::Value(rapidjson::kObjectType),
@@ -238,11 +265,8 @@ int main(int argc, char* argv[])
                 std::clog << "Running test case: " << test_case << std::endl;
             }
 
-            auto data = generate_stencil<etype, gko::int64>(
-                test_case["stencil"].GetString(), comm,
-                test_case["size"].GetInt64(),
-                test_case["comm_pattern"].GetString() ==
-                    std::string("optimal"));
+            auto data =
+                generate_matrix_data<etype, gko::int64>(test_case, comm);
             auto part = gko::distributed::Partition<itype, gko::int64>::
                 build_from_global_size_uniform(
                     exec, comm.size(), static_cast<gko::int64>(data.size[0]));

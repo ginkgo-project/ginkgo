@@ -137,7 +137,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
            "format,\n"
         << "  but with test cases extended to include an additional member "
            "\n"
-        << "  object for each solver run in the benchmark.\n"
+        << "  object for each benchmark run.\n"
         << "  If run with a --backup flag, an intermediate result is "
            "written \n"
         << "  to a file in the same format. The backup file can be used as "
