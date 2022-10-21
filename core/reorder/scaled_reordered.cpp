@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
+namespace reorder {
 
 
 template <typename ValueType, typename IndexType>
@@ -117,4 +119,6 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCALED_REORDERED);
 
 
+}  // namespace reorder
+}  // namespace experimental
 }  // namespace gko

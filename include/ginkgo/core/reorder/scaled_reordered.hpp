@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
+namespace reorder {
 
 
 /**
@@ -76,8 +78,8 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using ReorderingBaseFactory =
-        AbstractFactory<reorder::ReorderingBase<IndexType>,
-                        reorder::ReorderingBaseArgs>;
+        AbstractFactory<gko::reorder::ReorderingBase<IndexType>,
+                        gko::reorder::ReorderingBaseArgs>;
 
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
@@ -247,6 +249,8 @@ private:
 };
 
 
+}  // namespace reorder
+}  // namespace experimental
 }  // namespace gko
 
 
