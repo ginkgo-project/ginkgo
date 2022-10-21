@@ -142,7 +142,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
            "written \n"
         << "  to a file in the same format. The backup file can be used as "
            "\n"
-        << "  input \n to this test suite, and the benchmarking will \n"
+        << "  input to this test suite, and the benchmarking will \n"
         << "  continue from the point where the backup file was created.";
 
     gflags::SetUsageMessage(doc.str());

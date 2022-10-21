@@ -186,6 +186,24 @@ struct StorageLogger : gko::log::Logger {
         add_or_set_member(output, "storage", total, allocator);
     }
 
+#if GINKGO_BUILD_MPI
+    void write_data(gko::mpi::communicator comm, rapidjson::Value& output,
+                    rapidjson::MemoryPoolAllocator<>& allocator)
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        gko::size_type total{};
+        for (const auto& e : storage) {
+            total += e.second;
+        }
+        comm.reduce(gko::ReferenceExecutor::create(),
+                    comm.rank() == 0
+                        ? static_cast<gko::size_type*>(MPI_IN_PLACE)
+                        : &total,
+                    &total, 1, MPI_SUM, 0);
+        add_or_set_member(output, "storage", total, allocator);
+    }
+#endif
+
 private:
     mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
