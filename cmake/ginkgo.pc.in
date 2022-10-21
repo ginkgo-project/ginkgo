@@ -1,4 +1,4 @@
-prefix=@CMAKE_INSTALL_PREFIX@
+prefix=@PKG_CMAKE_INSTALL_PREFIX@
 libdir=${prefix}/@GINKGO_INSTALL_LIBRARY_DIR@
 includedir=${prefix}/@GINKGO_INSTALL_INCLUDE_DIR@
 
