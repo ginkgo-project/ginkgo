@@ -37,23 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 
+#include "benchmark/utils/distributed_helpers.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/stencil_matrix.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
-
-
-template <typename ValueType>
-using dist_vec = gko::experimental::distributed::Vector<ValueType>;
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-using dist_mtx =
-    gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                           GlobalIndexType>;
 
 
 std::string example_config = R"(
@@ -82,31 +74,6 @@ void validate_option_object(const rapidjson::Value& value)
         (value.HasMember("format") && !value["format"].IsObject())) {
         print_config_error_and_exit();
     }
-}
-
-
-std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
-    std::shared_ptr<gko::Executor> exec, gko::mpi::communicator comm,
-    const std::string& format_local, const std::string& format_non_local,
-    const gko::matrix_data<etype, gko::int64>& data,
-    const gko::distributed::Partition<itype, gko::int64>* part,
-    rapidjson::Value& spmv_case, rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    auto local_mat = formats::matrix_type_factory.at(format_local)(exec);
-    auto non_local_mat =
-        formats::matrix_type_factory.at(format_non_local)(exec);
-
-    auto storage_logger = std::make_shared<StorageLogger>();
-    exec->add_logger(storage_logger);
-
-    auto dist_mat = dist_mtx<etype, itype, gko::int64>::create(
-        exec, comm, local_mat.get(), non_local_mat.get());
-    dist_mat->read_distributed(data, part);
-
-    exec->remove_logger(gko::lend(storage_logger));
-    storage_logger->write_data(comm, spmv_case, allocator);
-
-    return dist_mat;
 }
 
 
@@ -157,29 +124,12 @@ void apply_spmv(std::shared_ptr<gko::Executor> exec,
 }
 
 
-template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_matrix_data(
-    rapidjson::Value& test_case, gko::mpi::communicator comm)
-{
-    if (test_case.HasMember("filename")) {
-        std::ifstream in(test_case["filename"].GetString());
-        return gko::read_generic_raw<ValueType, IndexType>(in);
-    } else {
-        return generate_stencil<ValueType, IndexType>(
-            test_case["stencil"].GetString(), std::move(comm),
-            test_case["size"].GetInt64(),
-            test_case["comm_pattern"].GetString() == std::string("optimal"));
-    }
-}
-
-
 int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
 
     std::string header =
-        "A benchmark for measuring the strong or weak scaling of Ginkgo's "
-        "distributed SpMV\n";
+        "A benchmark for measuring Ginkgo's distributed SpMV\n";
     std::string format = example_config + R"(
   The matrix will either be read from an input file if the filename parameter
   is given, or generated as a stencil matrix.
