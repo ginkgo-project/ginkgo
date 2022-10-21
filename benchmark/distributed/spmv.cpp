@@ -189,9 +189,9 @@ int main(int argc, char* argv[])
   The size parameter denotes the size per process. It might be adjusted to
   fit the dimensionality of the stencil more easily.
   Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
-  Optional values for "comm_pattern" are: stencil, optimal.
+  Optional values for "comm_pattern" are: stencil, optimal (default).
   Optional values for "local" and "non_local" are any of the recognized spmv
-  formats.
+  formats (default "csr" for both).
 )";
     initialize_argument_parsing(&argc, &argv, header, format);
 
