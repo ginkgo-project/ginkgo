@@ -80,6 +80,31 @@ void apply_ilu(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_APPLY_KERNEL);
 
+
+template <typename ValueType, typename IndexType>
+void generate_common_pattern_to_fill_l_and_u(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const first_sys_mat,
+    const IndexType* const l_row_ptrs, const IndexType* const u_row_ptrs,
+    IndexType* const l_col_holders,
+    IndexType* const u_col_holders) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_GENERATE_COMMON_PATTERN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_batch_l_and_batch_u(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    matrix::BatchCsr<ValueType, IndexType>* const l_factor,
+    matrix::BatchCsr<ValueType, IndexType>* const u_factor,
+    const IndexType* const l_col_holders,
+    const IndexType* const u_col_holders) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_INITIALIZE_BATCH_L_AND_BATCH_U);
+
 }  // namespace batch_ilu
 }  // namespace dpcpp
 }  // namespace kernels

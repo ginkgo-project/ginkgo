@@ -72,11 +72,8 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
 
     std::pair<std::shared_ptr<const matrix_type>,
               std::shared_ptr<const matrix_type>>
-        l_and_u_factors;
-
-    // std::pair<std::shared_ptr<const matrix_type>,std::shared_ptr<const
-    // matrix_type>> l_and_u_factors =
-    // batch_ilu_precond->generate_split_factors_from_factored_matrix();
+        l_and_u_factors =
+            batch_ilu_precond->generate_split_factors_from_factored_matrix();
 
     std::shared_ptr<const matrix_type> l_factor = l_and_u_factors.first;
     std::shared_ptr<const matrix_type> u_factor = l_and_u_factors.second;
