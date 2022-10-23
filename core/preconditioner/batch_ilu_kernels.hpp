@@ -71,6 +71,24 @@ namespace kernels {
         const IndexType* diag_locs, const matrix::BatchDense<ValueType>* r, \
         matrix::BatchDense<ValueType>* z)
 
+#define GKO_DECLARE_BATCH_ILU_GENERATE_COMMON_PATTERN_KERNEL(ValueType, \
+                                                             IndexType) \
+    void generate_common_pattern_to_fill_l_and_u(                       \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* first_sys_mat,         \
+        const IndexType* l_row_ptrs, const IndexType* u_row_ptrs,       \
+        IndexType* l_col_holders, IndexType* u_col_holders)
+
+
+#define GKO_DECLARE_BATCH_ILU_INITIALIZE_BATCH_L_AND_BATCH_U(ValueType, \
+                                                             IndexType) \
+    void initialize_batch_l_and_batch_u(                                \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,          \
+        matrix::BatchCsr<ValueType, IndexType>* l_factor,               \
+        matrix::BatchCsr<ValueType, IndexType>* u_factor,               \
+        const IndexType* l_col_holders, const IndexType* u_col_holders)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
     template <typename ValueType, typename IndexType>                    \
@@ -80,7 +98,12 @@ namespace kernels {
     GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL(ValueType,     \
                                                           IndexType);    \
     template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_ILU_GENERATE_COMMON_PATTERN_KERNEL(ValueType,      \
+                                                         IndexType);     \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_ILU_INITIALIZE_BATCH_L_AND_BATCH_U(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_ilu,

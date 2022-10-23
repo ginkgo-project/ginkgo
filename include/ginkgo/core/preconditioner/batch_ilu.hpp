@@ -138,6 +138,10 @@ public:
         return diag_locations_.get_const_data();
     }
 
+    std::pair<std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>,
+              std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>>
+    generate_split_factors_from_factored_matrix() const;
+
 protected:
     /**
      * Creates an empty Ilu preconditioner.
