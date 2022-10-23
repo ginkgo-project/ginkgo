@@ -409,4 +409,53 @@ TYPED_TEST(BatchIlu, ParIluApplyToSingleVectorIsEquivalentToUnbatched)
 }
 
 
+TYPED_TEST(BatchIlu, IluSplitFactoredMatrixIntoLAndUWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using mtx_type = typename TestFixture::Mtx;
+    using unbatch_type = typename mtx_type::unbatch_type;
+    using unbatch_ilu_type = gko::factorization::Ilu<value_type>;
+    using prec_type = typename TestFixture::prec_type;
+    auto exec = this->exec;
+    const auto sys_csr = this->mtx.get();
+    const auto nbatch = this->nbatch;
+    const auto nrows = this->nrows;
+    const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+
+    // unbatch for check
+    const auto unbatch_size = gko::dim<2>(nrows, sys_csr->get_size().at(0)[1]);
+    auto mtxs = gko::test::share(sys_csr->unbatch());
+    auto ilu_fact = unbatch_ilu_type::build().with_skip_sorting(true).on(exec);
+    std::vector<std::shared_ptr<const unbatch_type>> check_l_factors(
+        mtxs.size());
+    std::vector<std::shared_ptr<const unbatch_type>> check_u_factors(
+        mtxs.size());
+    for (size_t i = 0; i < mtxs.size(); i++) {
+        auto facts = ilu_fact->generate(mtxs[i]);
+        check_l_factors[i] = facts->get_l_factor();
+        check_u_factors[i] = facts->get_u_factor();
+    }
+
+    auto prec_fact =
+        prec_type::build()
+            .with_skip_sorting(true)
+            .with_ilu_type(gko::preconditioner::batch_ilu_type::exact_ilu)
+            .on(exec);
+    auto prec = prec_fact->generate(this->mtx);
+
+    auto batch_l_and_u_pair =
+        prec->generate_split_factors_from_factored_matrix();
+    auto batch_l_vec = (batch_l_and_u_pair.first)->unbatch();
+    auto batch_u_vec = (batch_l_and_u_pair.second)->unbatch();
+
+    for (size_t batch_id = 0; batch_id < mtxs.size(); batch_id++) {
+        GKO_ASSERT_MTX_NEAR(batch_l_vec[batch_id].get(),
+                            check_l_factors[batch_id], 0.0);
+        GKO_ASSERT_MTX_NEAR(batch_u_vec[batch_id].get(),
+                            check_u_factors[batch_id], 0.0);
+    }
+}
+
+
 }  // namespace

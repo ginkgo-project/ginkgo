@@ -46,77 +46,104 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// class BatchIluFactory : public ::testing::Test {
-// protected:
-//     using value_type = double;
-//     using index_type = gko::int32;
-//     using batch_ilu_isai_prec =
-//         gko::preconditioner::BatchIlu<value_type, index_type>;
+class BatchIluIsaiFactory : public ::testing::Test {
+protected:
+    using value_type = double;
+    using index_type = gko::int32;
+    using batch_ilu_isai_prec =
+        gko::preconditioner::BatchIluIsai<value_type, index_type>;
 
-//     BatchIluFactory()
-//         : exec(gko::ReferenceExecutor::create()),
-//           type(gko::preconditioner::batch_ilu_isai_type::parilu),
-//           skip_sorting(true),
-//           parilu_num_sweeps(20)
-//     {}
+    BatchIluIsaiFactory()
+        : exec(gko::ReferenceExecutor::create()),
+          apply_type(
+              gko::preconditioner::batch_ilu_isai_apply::relaxation_steps),
+          ilu_type(gko::preconditioner::batch_ilu_type::parilu),
+          parilu_num_sweeps(20),
+          skip_sorting(true),
+          lower_factor_isai_spy_power(2),
+          upper_factor_isai_spy_power(3)
+    {}
 
-//     std::shared_ptr<const gko::Executor> exec;
-//     const enum gko::preconditioner::batch_ilu_isai_type type;
-//     const bool skip_sorting;
-//     const int parilu_num_sweeps;
-// };
+    std::shared_ptr<const gko::Executor> exec;
+    const enum gko::preconditioner::batch_ilu_isai_apply apply_type;
+    const enum gko::preconditioner::batch_ilu_type ilu_type;
+    const int parilu_num_sweeps;
+    const bool skip_sorting;
+    const int lower_factor_isai_spy_power;
+    const int upper_factor_isai_spy_power;
+};
+
+TEST_F(BatchIluIsaiFactory, KnowsItsExecutor)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build().on(this->exec);
+    ASSERT_EQ(batch_ilu_isai_factory->get_executor(), this->exec);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetApplyType)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
+                                      .with_apply_type(this->apply_type)
+                                      .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().apply_type,
+              this->apply_type);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetIluType)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
+                                      .with_ilu_type(this->ilu_type)
+                                      .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().ilu_type,
+              this->ilu_type);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetNumSweeps)
+{
+    auto batch_ilu_isai_factory =
+        batch_ilu_isai_prec::build()
+            .with_parilu_num_sweeps(this->parilu_num_sweeps)
+            .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().parilu_num_sweeps,
+              this->parilu_num_sweeps);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetSorting)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
+                                      .with_skip_sorting(this->skip_sorting)
+                                      .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().skip_sorting,
+              this->skip_sorting);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetLowerIsaiSpy)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
+                                      .with_lower_factor_isai_sparsity_power(
+                                          this->lower_factor_isai_spy_power)
+                                      .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters()
+                  .lower_factor_isai_sparsity_power,
+              this->lower_factor_isai_spy_power);
+}
 
 
-// TEST_F(BatchIluFactory, KnowsItsExecutor)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //    auto batch_ilu_isai_factory =
-// batch_ilu_isai_prec::build().on(this->exec);
-// //
-// //    ASSERT_EQ(batch_ilu_isai_factory->get_executor(), this->exec);
-// //}
+TEST_F(BatchIluIsaiFactory, CanSetUpperIsaiSpy)
+{
+    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
+                                      .with_upper_factor_isai_sparsity_power(
+                                          this->upper_factor_isai_spy_power)
+                                      .on(this->exec);
 
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters()
+                  .upper_factor_isai_sparsity_power,
+              this->upper_factor_isai_spy_power);
+}
 
-// TEST_F(BatchIluFactory, CanSetIluType)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //    auto batch_ilu_isai_factory =
-// // batch_ilu_isai_prec::build().with_ilu_type(this->type).on(this->exec);
-// //
-// //    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().ilu_type,
-// this->type);
-// //}
-
-// TEST_F(BatchIluFactory, CanSetSorting)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //    auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
-// //                                 .with_skip_sorting(this->skip_sorting)
-// //                                 .on(this->exec);
-// //
-// //    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().skip_sorting,
-// //              this->skip_sorting);
-// //}
-
-
-// TEST_F(BatchIluFactory, CanSetNumSweeps)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //    auto batch_ilu_isai_factory =
-// //        batch_ilu_isai_prec::build()
-// //            .with_parilu_num_sweeps(this->parilu_num_sweeps)
-// //            .on(this->exec);
-// //
-// //    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().parilu_num_sweeps,
-// //              this->parilu_num_sweeps);
-// //}
 
 }  // namespace

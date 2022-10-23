@@ -181,5 +181,24 @@ TEST_F(BatchIlu, ParIluApplyIsEquivalentToReference)
     test_apply_eqvt_to_ref(gko::preconditioner::batch_ilu_type::parilu, 30);
 }
 
+TEST_F(BatchIlu, GenerateSplitFactorsIsEquivalentToReference)
+{
+    auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+    auto prec_fact = prec_type::build().with_skip_sorting(true).on(ref);
+    auto d_prec_fact = prec_type::build().with_skip_sorting(true).on(d_exec);
+
+    auto prec = prec_fact->generate(mtx);
+    auto d_prec = d_prec_fact->generate(d_mtx);
+
+    const auto l_and_u_pair =
+        prec->generate_split_factors_from_factored_matrix();
+    const auto d_l_and_u_pair =
+        d_prec->generate_split_factors_from_factored_matrix();
+    const auto tol = 5000 * r<value_type>::value;
+    GKO_ASSERT_BATCH_MTX_NEAR(l_and_u_pair.first.get(),
+                              d_l_and_u_pair.first.get(), tol);
+    GKO_ASSERT_BATCH_MTX_NEAR(l_and_u_pair.second.get(),
+                              d_l_and_u_pair.second.get(), tol);
+}
 
 }  // namespace
