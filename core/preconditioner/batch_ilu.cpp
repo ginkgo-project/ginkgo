@@ -49,10 +49,16 @@ GKO_REGISTER_OPERATION(nonbatch_check_diag_entries_exist,
                        csr::check_diagonal_entries_exist);
 GKO_REGISTER_OPERATION(nonbatch_find_diag_locs,
                        csr::find_diagonal_entries_locations);
+GKO_REGISTER_OPERATION(nonbatch_initialize_row_ptrs_l_u,
+                       factorization::initialize_row_ptrs_l_u);
 GKO_REGISTER_OPERATION(compute_ilu0_factorization,
                        batch_ilu::compute_ilu0_factorization);
 GKO_REGISTER_OPERATION(compute_parilu0_factorization,
                        batch_ilu::compute_parilu0_factorization);
+GKO_REGISTER_OPERATION(generate_common_pattern_to_fill_l_and_u,
+                       batch_ilu::generate_common_pattern_to_fill_l_and_u);
+GKO_REGISTER_OPERATION(initialize_batch_l_and_batch_u,
+                       batch_ilu::initialize_batch_l_and_batch_u);
 
 }  // namespace
 }  // namespace batch_ilu
@@ -132,6 +138,76 @@ void create_dependency_graph(
 
 }  // namespace detail
 
+template <typename ValueType, typename IndexType>
+std::pair<std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>,
+          std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>>
+BatchIlu<ValueType, IndexType>::generate_split_factors_from_factored_matrix()
+    const
+{
+    using unbatch_type = matrix::Csr<ValueType, IndexType>;
+    std::pair<std::shared_ptr<const matrix_type>,
+              std::shared_ptr<const matrix_type>>
+        l_and_u_factors;
+    auto exec = this->get_executor();
+
+    const auto num_batch = this->mat_factored_->get_num_batch_entries();
+    const auto num_rows = this->mat_factored_->get_size().at(0)[0];
+    const auto num_nz =
+        this->mat_factored_->get_num_stored_elements() / num_batch;
+
+    // extract the first matrix, as a view, into a regular Csr matrix.
+    const auto unbatch_size =
+        gko::dim<2>{num_rows, this->mat_factored_->get_size().at(0)[1]};
+    auto sys_rows_view = array<IndexType>::const_view(
+        exec, num_rows + 1, this->mat_factored_->get_const_row_ptrs());
+    auto sys_cols_view = array<IndexType>::const_view(
+        exec, num_nz, this->mat_factored_->get_const_col_idxs());
+    auto sys_vals_view = array<ValueType>::const_view(
+        exec, num_nz, this->mat_factored_->get_const_values());
+    auto first_csr = unbatch_type::create_const(
+        exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
+        std::move(sys_rows_view));
+
+
+    // initialize L and U factors
+    array<IndexType> l_row_ptrs(exec, num_rows + 1);
+    array<IndexType> u_row_ptrs(exec, num_rows + 1);
+    exec->run(batch_ilu::make_nonbatch_initialize_row_ptrs_l_u(
+        first_csr.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+    const auto l_nnz =
+        exec->copy_val_to_host(&l_row_ptrs.get_const_data()[num_rows]);
+    const auto u_nnz =
+        exec->copy_val_to_host(&u_row_ptrs.get_const_data()[num_rows]);
+
+    auto l_factor =
+        gko::share(matrix_type::create(exec, num_batch, unbatch_size, l_nnz));
+    auto u_factor =
+        gko::share(matrix_type::create(exec, num_batch, unbatch_size, u_nnz));
+
+    exec->copy(num_rows + 1, l_row_ptrs.get_const_data(),
+               l_factor->get_row_ptrs());
+    exec->copy(num_rows + 1, u_row_ptrs.get_const_data(),
+               u_factor->get_row_ptrs());
+
+
+    // fill batch_L and batch_U col_idxs and values
+    array<IndexType> l_col_holders(exec, l_nnz);
+    array<IndexType> u_col_holders(exec, u_nnz);
+
+    exec->run(batch_ilu::make_generate_common_pattern_to_fill_l_and_u(
+        first_csr.get(), l_factor->get_const_row_ptrs(),
+        u_factor->get_const_row_ptrs(), l_col_holders.get_data(),
+        u_col_holders.get_data()));
+
+    exec->run(batch_ilu::make_initialize_batch_l_and_batch_u(
+        this->mat_factored_.get(), l_factor.get(), u_factor.get(),
+        l_col_holders.get_const_data(), u_col_holders.get_const_data()));
+
+    l_and_u_factors.first = l_factor;
+    l_and_u_factors.second = u_factor;
+
+    return l_and_u_factors;
+}
 
 template <typename ValueType, typename IndexType>
 void BatchIlu<ValueType, IndexType>::generate_precond(
