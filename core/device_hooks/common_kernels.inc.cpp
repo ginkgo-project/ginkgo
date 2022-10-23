@@ -71,6 +71,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
+#include "core/preconditioner/batch_ilu_isai_kernels.hpp"
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_isai_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
@@ -1242,6 +1243,13 @@ GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
 
 
 }  // namespace batch_ilu
+
+
+namespace batch_ilu_isai {
+
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL);
+
+}  // namespace batch_ilu_isai
 
 
 namespace batch_isai {

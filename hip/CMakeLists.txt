@@ -39,6 +39,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/batch_identity_kernels.hip.cpp
     preconditioner/batch_ilu_kernels.hip.cpp
     preconditioner/batch_isai_kernels.hip.cpp
+    preconditioner/batch_ilu_isai_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp

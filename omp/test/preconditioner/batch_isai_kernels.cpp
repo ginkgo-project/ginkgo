@@ -133,8 +133,8 @@ protected:
         auto prec = prec_fact->generate(mtx);
         auto d_prec = d_prec_fact->generate(d_mtx);
 
-        const auto approx_inv = prec->get_const_approximate_inverse();
-        const auto d_approx_inv = d_prec->get_const_approximate_inverse();
+        const auto approx_inv = prec->get_const_approximate_inverse().get();
+        const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
     }
@@ -152,7 +152,7 @@ protected:
                              .with_sparsity_power(spy_power)
                              .on(ref);
         auto prec = prec_fact->generate(mtx);
-        const auto approx_inv = prec->get_const_approximate_inverse();
+        const auto approx_inv = prec->get_const_approximate_inverse().get();
 
 
         auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
@@ -162,7 +162,7 @@ protected:
                                .with_sparsity_power(spy_power)
                                .on(d_exec);
         auto d_prec = d_prec_fact->generate(d_mtx);
-        const auto d_approx_inv = d_prec->get_const_approximate_inverse();
+        const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
 
         auto rv = gko::test::generate_uniform_batch_random_matrix<BDense>(
             nbatch, nrows, 1, std::uniform_int_distribution<>(1, 1),

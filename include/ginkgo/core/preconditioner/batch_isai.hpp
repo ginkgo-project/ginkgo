@@ -131,10 +131,10 @@ public:
                 as<BatchTransposable>(this->system_matrix_)->conj_transpose()));
     }
 
-    const matrix::BatchCsr<ValueType, IndexType>*
+    std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
     get_const_approximate_inverse() const
     {
-        return approx_inv_.get();
+        return approx_inv_;
     }
 
 protected:
