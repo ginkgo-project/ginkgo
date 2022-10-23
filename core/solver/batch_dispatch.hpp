@@ -241,23 +241,10 @@ public:
 
             preconditioner::batch_ilu_isai_apply apply_type =
                 prec->get_apply_type();
-            int apply_type_map = -1;
-            if (apply_type ==
-                preconditioner::batch_ilu_isai_apply::simple_spmvs) {
-                apply_type_map = 0;
-            } else if (apply_type == preconditioner::batch_ilu_isai_apply::
-                                         inv_factors_spgemm) {
-                apply_type_map = 1;
-            } else if (apply_type ==
-                       preconditioner::batch_ilu_isai_apply::relaxation_steps) {
-                apply_type_map = 2;
-            } else {
-                GKO_NOT_IMPLEMENTED;
-            }
 
             dispatch_on_stop(logger, amat,
                              device::batch_ilu_isai<device_value_type>(
-                                 l_isai, u_isai, mult_inv, apply_type_map),
+                                 l_isai, u_isai, mult_inv, apply_type),
                              b_b, x_b);
 
         } else {
