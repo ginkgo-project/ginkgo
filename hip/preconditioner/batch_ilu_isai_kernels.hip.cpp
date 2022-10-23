@@ -60,13 +60,15 @@ constexpr size_type default_block_size = 256;
 
 
 template <typename ValueType, typename IndexType>
-void apply_ilu_isai(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
-                    const matrix::BatchCsr<ValueType, IndexType>* const l_inv,
-                    const matrix::BatchCsr<ValueType, IndexType>* const u_inv,
-                    const preconditioner::batch_ilu_isai_apply apply_type,
-                    const matrix::BatchDense<ValueType>* const r,
-                    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+void apply_ilu_isai(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const matrix::BatchCsr<ValueType, IndexType>* const l_inv,
+    const matrix::BatchCsr<ValueType, IndexType>* const u_inv,
+    const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
+    const preconditioner::batch_ilu_isai_apply apply_type,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_ilu_isai): change the code imported from
 // preconditioner/batch_ilu if needed

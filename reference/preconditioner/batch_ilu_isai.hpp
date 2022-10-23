@@ -74,7 +74,7 @@ public:
         const gko::batch_csr::UniformBatch<const value_type>& l_isai_batch,
         const gko::batch_csr::UniformBatch<const value_type>& u_isai_batch,
         const gko::batch_csr::UniformBatch<const value_type>& mult_inv_batch,
-        const int apply_type)
+        const enum gko::preconditioner::batch_ilu_isai_apply& apply_type)
         : l_isai_batch_{l_isai_batch},
           u_isai_batch_{u_isai_batch},
           mult_inv_batch_{mult_inv_batch},
@@ -100,7 +100,8 @@ public:
         work_ = work;
         l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
         u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ == 1) {
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
             mult_inv_entry_ =
                 gko::batch::batch_entry(mult_inv_batch_, batch_id);
         }
@@ -113,7 +114,8 @@ public:
         work_ = work;
         l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
         u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ == 1) {
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
             mult_inv_entry_ =
                 gko::batch::batch_entry(mult_inv_batch_, batch_id);
         }
@@ -126,7 +128,8 @@ public:
         work_ = work;
         l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
         u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ == 1) {
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
             mult_inv_entry_ =
                 gko::batch::batch_entry(mult_inv_batch_, batch_id);
         }
@@ -138,17 +141,20 @@ public:
     {
         // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
         // lai_U * laiL * r ===> z = lai_U * laiL * r
-        if (apply_type_ == 0)  // simple_spmvs
+        if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                               simple_spmvs)  // simple_spmvs
         {
             const gko::batch_dense::BatchEntry<ValueType> work_entry{
                 work_, 1, r.num_rows, 1};
             batch_ilu_isai_temp::matvec_kernel(l_isai_entry_, r, work_entry);
             batch_ilu_isai_temp::matvec_kernel(
                 u_isai_entry_, gko::batch::to_const(work_entry), z);
-        } else if (apply_type_ == 1)  // inv_factors_spgemm
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      inv_factors_spgemm)  // inv_factors_spgemm
         {
             batch_ilu_isai_temp::matvec_kernel(mult_inv_entry_, r, z);
-        } else if (apply_type_ == 2)  // relaxation steps
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      relaxation_steps)  // relaxation steps
         {
             printf("\n Relaxation steps- Not implemented");
             GKO_NOT_IMPLEMENTED;
@@ -159,7 +165,7 @@ public:
 
 private:
     value_type* work_;
-    const int apply_type_;
+    const enum gko::preconditioner::batch_ilu_isai_apply apply_type_;
     const gko::batch_csr::UniformBatch<const value_type> l_isai_batch_;
     gko::batch_csr::BatchEntry<const value_type> l_isai_entry_;
     const gko::batch_csr::UniformBatch<const value_type> u_isai_batch_;
