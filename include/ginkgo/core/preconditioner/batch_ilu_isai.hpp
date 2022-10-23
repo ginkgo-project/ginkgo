@@ -161,17 +161,29 @@ public:
                 as<BatchTransposable>(this->system_matrix_)->conj_transpose()));
     }
 
-    const matrix::BatchCsr<ValueType, IndexType>* get_const_lower_factor_isai()
-        const
+    std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
+    get_const_lower_factor_isai() const
     {
-        return lower_factor_isai_.get();
+        return lower_factor_isai_;
     }
 
-    const matrix::BatchCsr<ValueType, IndexType>* get_const_upper_factor_isai()
-        const
+    std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
+    get_const_upper_factor_isai() const
     {
-        return upper_factor_isai_.get();
+        return upper_factor_isai_;
     }
+
+    batch_ilu_isai_apply get_apply_type() const
+    {
+        return parameters_.apply_type;
+    }
+
+    std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
+    get_const_mult_inv() const
+    {
+        return mult_inv_;
+    }
+
 
 protected:
     /**
@@ -234,7 +246,7 @@ private:
         lower_factor_isai_;
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
         upper_factor_isai_;
-    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> mult_inv_;
+    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> mult_inv_{nullptr};
 };
 
 

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
@@ -103,6 +104,7 @@ using DeviceValueType = ValueType;
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
+#include "reference/preconditioner/batch_ilu_isai.hpp"
 #include "reference/preconditioner/batch_isai.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
@@ -226,6 +228,37 @@ public:
                 logger, amat,
                 device::batch_ilu<device_value_type>(factorized_mat, diag_locs),
                 b_b, x_b);
+
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchIluIsai<value_type>*>(
+                       precon_)) {
+            const auto l_isai = device::get_batch_struct(
+                prec->get_const_lower_factor_isai().get());
+            const auto u_isai = device::get_batch_struct(
+                prec->get_const_upper_factor_isai().get());
+            const auto mult_inv = device::maybe_null_batch_struct(
+                prec->get_const_upper_factor_isai().get());
+
+            preconditioner::batch_ilu_isai_apply apply_type =
+                prec->get_apply_type();
+            int apply_type_map = -1;
+            if (apply_type ==
+                preconditioner::batch_ilu_isai_apply::simple_spmvs) {
+                apply_type_map = 0;
+            } else if (apply_type == preconditioner::batch_ilu_isai_apply::
+                                         inv_factors_spgemm) {
+                apply_type_map = 1;
+            } else if (apply_type ==
+                       preconditioner::batch_ilu_isai_apply::relaxation_steps) {
+                apply_type_map = 2;
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+
+            dispatch_on_stop(logger, amat,
+                             device::batch_ilu_isai<device_value_type>(
+                                 l_isai, u_isai, mult_inv, apply_type_map),
+                             b_b, x_b);
 
         } else {
             GKO_NOT_IMPLEMENTED;
