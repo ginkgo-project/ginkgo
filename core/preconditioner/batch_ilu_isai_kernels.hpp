@@ -47,14 +47,16 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL(ValueType, IndexType)          \
-    void apply_ilu_isai(std::shared_ptr<const DefaultExecutor> exec,           \
-                        const matrix::BatchCsr<ValueType, IndexType>* sys_mat, \
-                        const matrix::BatchCsr<ValueType, IndexType>* l_inv,   \
-                        const matrix::BatchCsr<ValueType, IndexType>* u_inv,   \
-                        const preconditioner::batch_ilu_isai_apply apply_type, \
-                        const matrix::BatchDense<ValueType>* r,                \
-                        matrix::BatchDense<ValueType>* z)
+#define GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL(ValueType, IndexType) \
+    void apply_ilu_isai(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,        \
+        const matrix::BatchCsr<ValueType, IndexType>* l_inv,          \
+        const matrix::BatchCsr<ValueType, IndexType>* u_inv,          \
+        const matrix::BatchCsr<ValueType, IndexType>* mult_invs,      \
+        const preconditioner::batch_ilu_isai_apply apply_type,        \
+        const matrix::BatchDense<ValueType>* r,                       \
+        matrix::BatchDense<ValueType>* z)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
