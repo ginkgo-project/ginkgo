@@ -99,8 +99,9 @@ protected:
         auto prec = prec_fact->generate(mtx);
         auto d_prec = d_prec_fact->generate(d_mtx);
 
-        const auto factorized_mat = prec->get_const_factorized_matrix();
-        const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
+        const auto factorized_mat = prec->get_const_factorized_matrix().get();
+        const auto d_factorized_mat =
+            d_prec->get_const_factorized_matrix().get();
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(factorized_mat, d_factorized_mat, tol);
     }
@@ -117,7 +118,7 @@ protected:
                              .on(ref);
         auto prec = prec_fact->generate(mtx);
 
-        const auto factorized_mat = prec->get_const_factorized_matrix();
+        const auto factorized_mat = prec->get_const_factorized_matrix().get();
         const auto diag_locs = prec->get_const_diag_locations();
 
         auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
@@ -128,7 +129,8 @@ protected:
                                .on(exec);
         auto d_prec = d_prec_fact->generate(d_mtx);
 
-        const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
+        const auto d_factorized_mat =
+            d_prec->get_const_factorized_matrix().get();
         const auto d_diag_locs = d_prec->get_const_diag_locations();
 
         auto rv = gko::test::generate_uniform_batch_random_matrix<BDense>(
