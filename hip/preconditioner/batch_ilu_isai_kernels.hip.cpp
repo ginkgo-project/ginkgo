@@ -54,7 +54,7 @@ constexpr size_type default_block_size = 256;
 
 
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
-//#include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"
 
 }  // namespace
 

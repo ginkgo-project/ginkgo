@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-//#include "reference/preconditioner/batch_ilu_isai.hpp"
+#include "reference/preconditioner/batch_ilu_isai.hpp"
 
 
 namespace gko {
