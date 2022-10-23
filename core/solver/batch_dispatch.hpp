@@ -209,8 +209,8 @@ public:
                 x_b);
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIsai<value_type>*>(precon_)) {
-            const auto approx_inv =
-                device::get_batch_struct(prec->get_const_approximate_inverse());
+            const auto approx_inv = device::get_batch_struct(
+                prec->get_const_approximate_inverse().get());
 
             dispatch_on_stop(logger, amat,
                              device::batch_isai<device_value_type>(approx_inv),
@@ -218,8 +218,8 @@ public:
 
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIlu<value_type>*>(precon_)) {
-            const auto factorized_mat =
-                device::get_batch_struct(prec->get_const_factorized_matrix());
+            const auto factorized_mat = device::get_batch_struct(
+                prec->get_const_factorized_matrix().get());
             const auto diag_locs = prec->get_const_diag_locations();
 
             dispatch_on_stop(

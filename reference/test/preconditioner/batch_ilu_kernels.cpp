@@ -246,9 +246,10 @@ TYPED_TEST(BatchIlu, ExactIluGenerationFromCoreIsEquivalentToUnbatched)
     auto prec = prec_fact->generate(this->mtx);
 
     for (size_t i = 0; i < mtxs.size(); i++) {
-        check_fact_mat_is_eqvt_to_l_and_u(exec, i, nrows, unbatch_size,
-                                          prec->get_const_factorized_matrix(),
-                                          check_l_factors, check_u_factors);
+        check_fact_mat_is_eqvt_to_l_and_u(
+            exec, i, nrows, unbatch_size,
+            prec->get_const_factorized_matrix().get(), check_l_factors,
+            check_u_factors);
     }
 }
 
@@ -286,7 +287,7 @@ TYPED_TEST(BatchIlu, ExactIluApplyToSingleVectorIsEquivalentToUnbatched)
             .with_ilu_type(gko::preconditioner::batch_ilu_type::exact_ilu)
             .on(exec);
     auto prec = prec_fact->generate(this->mtx);
-    const auto factorized_sys_csr = prec->get_const_factorized_matrix();
+    const auto factorized_sys_csr = prec->get_const_factorized_matrix().get();
     const auto diag_locs = prec->get_const_diag_locations();
 
     gko::kernels::reference::batch_ilu::apply_ilu(
@@ -341,9 +342,10 @@ TYPED_TEST(BatchIlu, ParIluGenerationFromCoreIsEquivalentToUnbatched)
     auto prec = prec_fact->generate(this->mtx);
 
     for (size_t i = 0; i < mtxs.size(); i++) {
-        check_fact_mat_is_eqvt_to_l_and_u(exec, i, nrows, unbatch_size,
-                                          prec->get_const_factorized_matrix(),
-                                          check_l_factors, check_u_factors);
+        check_fact_mat_is_eqvt_to_l_and_u(
+            exec, i, nrows, unbatch_size,
+            prec->get_const_factorized_matrix().get(), check_l_factors,
+            check_u_factors);
     }
 }
 
@@ -394,7 +396,7 @@ TYPED_TEST(BatchIlu, ParIluApplyToSingleVectorIsEquivalentToUnbatched)
             .with_parilu_num_sweeps(sweeps)
             .on(exec);
     auto prec = prec_fact->generate(this->mtx);
-    const auto factorized_sys_csr = prec->get_const_factorized_matrix();
+    const auto factorized_sys_csr = prec->get_const_factorized_matrix().get();
     const auto diag_locs = prec->get_const_diag_locations();
 
     gko::kernels::reference::batch_ilu::apply_ilu(
