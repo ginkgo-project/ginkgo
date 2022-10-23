@@ -109,6 +109,20 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
     if (this->parameters_.apply_type ==
         batch_ilu_isai_apply::inv_factors_spgemm) {
         GKO_NOT_IMPLEMENTED;
+
+        // z = precond * r
+        // L * U * z = r
+        // lai_L * L * U * z = lai_L * r
+        // U * z = lai_L * r
+        // lai_U * U * z = lai_U * lai_L * r
+        // z = lai_U * lai_L * r
+        // z = mult_inv * r
+
+        // Therefore, mult_inv = lai_U * lai_L
+        this->mult_inv_ = gko::share(matrix_type::create(exec));
+        // mult_inv_ : memory allocation? to store solution (u_inv * l_inv)
+        this->upper_factor_isai_->apply(this->lower_factor_isai_.get(),
+                                        this->mult_inv_.get());
     }
 }
 
