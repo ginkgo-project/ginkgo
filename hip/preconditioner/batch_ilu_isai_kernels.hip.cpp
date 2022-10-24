@@ -68,30 +68,30 @@ void apply_ilu_isai(
     const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
     const preconditioner::batch_ilu_isai_apply apply_type,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-//    const auto num_rows =
-//        static_cast<int>(factored_matrix->get_size().at(0)[0]);
-//    const auto nbatch = factored_matrix->get_num_batch_entries();
-//    const auto factored_matrix_batch = get_batch_struct(factored_matrix);
-//    using d_value_type = hip_type<ValueType>;
-//    using prec_type = batch_ilu_isai<d_value_type>;
-//
-//    prec_type prec(factored_matrix_batch, diag_locs);
-//
-//    hipLaunchKernelGGL(
-//        batch_ilu_isai_apply, nbatch, default_block_size,
-//        prec_type::dynamic_work_size(
-//            num_rows,
-//            static_cast<int>(sys_matrix->get_num_stored_elements() / nbatch))
-//            * sizeof(ValueType),
-//        0, prec, nbatch, num_rows, as_hip_type(r->get_const_values()),
-//        as_hip_type(z->get_values()));
-//
-//    GKO_HIP_LAST_IF_ERROR_THROW;
-//}
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
+    const auto nbatch = sys_mat->get_num_batch_entries();
+
+    const auto l_inv_batch = get_batch_struct(l_inv);
+    const auto u_inv_batch = get_batch_struct(u_inv);
+    const auto mult_batch = maybe_null_batch_struct(mult_invs);
+
+    using d_value_type = hip_type<ValueType>;
+    using prec_type = batch_ilu_isai<d_value_type>;
+    prec_type prec(l_inv_batch, u_inv_batch, mult_batch, apply_type);
+
+    hipLaunchKernelGGL(
+        batch_ilu_isai_apply, nbatch, default_block_size,
+        prec_type::dynamic_work_size(
+            num_rows,
+            static_cast<int>(sys_mat->get_num_stored_elements() / nbatch)) *
+            sizeof(ValueType),
+        0, prec, nbatch, num_rows, as_hip_type(r->get_const_values()),
+        as_hip_type(z->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL);
