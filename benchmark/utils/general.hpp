@@ -62,6 +62,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/types.hpp"
 
 
+#include "core/distributed/helpers.hpp"
+
+
 // Global command-line arguments
 DEFINE_string(executor, "reference",
               "The executor used to run the benchmarks, one of: reference, "
@@ -464,8 +467,9 @@ ValueType get_norm(const vec<ValueType>* norm)
 }
 
 
-template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
+gko::remove_complex<ValueType> compute_norm2(const VectorType* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -475,10 +479,11 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
-                                                    const vec<ValueType>* b,
-                                                    const vec<ValueType>* x)
+                                                    const VectorType* b,
+                                                    const VectorType* x)
 {
     auto ref_exec = gko::ReferenceExecutor::create();
     auto exec = solver->get_executor();
@@ -491,10 +496,10 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp* system_matrix, const vec<ValueType>* b,
-    const vec<ValueType>* x)
+    const gko::LinOp* system_matrix, const VectorType* b, const VectorType* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -505,9 +510,10 @@ gko::remove_complex<ValueType> compute_residual_norm(
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_max_relative_norm2(
-    vec<ValueType>* result, const vec<ValueType>* answer)
+    VectorType* result, const VectorType* answer)
 {
     using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
@@ -525,9 +531,10 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
-        max_relative_norm2 =
-            std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
-                     max_relative_norm2);
+        max_relative_norm2 = std::max(
+            gko::detail::get_local(host_absolute_norm.get())->at(0, i) /
+                gko::detail::get_local(host_answer_norm.get())->at(0, i),
+            max_relative_norm2);
     }
     return max_relative_norm2;
 }
