@@ -54,147 +54,184 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// class BatchIlu : public ::testing::Test {
-// protected:
-//     using value_type = double;
-//     using index_type = int;
-//     using real_type = gko::remove_complex<value_type>;
-//     using Mtx = gko::matrix::BatchCsr<value_type>;
-//     using BDense = gko::matrix::BatchDense<value_type>;
-//     using RBDense = gko::matrix::BatchDense<real_type>;
-//     using prec_type = gko::preconditioner::BatchIlu<value_type>;
+class BatchIluIsai : public ::testing::Test {
+protected:
+    using value_type = double;
+    using index_type = int;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::BatchCsr<value_type>;
+    using BDense = gko::matrix::BatchDense<value_type>;
+    using RBDense = gko::matrix::BatchDense<real_type>;
+    using prec_type = gko::preconditioner::BatchIluIsai<value_type>;
 
-//     BatchIlu()
-//         : ref(gko::ReferenceExecutor::create()),
-//           d_exec(gko::HipExecutor::create(0, ref)),
-//           mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
-//               nbatch, nrows, nrows,
-//               std::uniform_int_distribution<>(min_nnz_row, nrows),
-//               std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-//               true, ref)))
-//     {}
+    BatchIluIsai()
+        : ref(gko::ReferenceExecutor::create()),
+          d_exec(gko::HipExecutor::create(0, ref)),
+          mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
+              nbatch, nrows, nrows,
+              std::uniform_int_distribution<>(min_nnz_row, nrows),
+              std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
+              ref)))
+    {}
 
-//     std::shared_ptr<gko::ReferenceExecutor> ref;
-//     std::shared_ptr<const gko::HipExecutor> d_exec;
-//     std::ranlux48 rand_engine;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::HipExecutor> d_exec;
+    std::ranlux48 rand_engine;
 
-//     const size_t nbatch = 9;
-//     const index_type nrows = 15;
-//     const int min_nnz_row = 3;
-//     std::shared_ptr<const Mtx> mtx;
+    const size_t nbatch = 9;
+    const index_type nrows = 15;
+    const int min_nnz_row = 3;
+    std::shared_ptr<const Mtx> mtx;
 
-//     void test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type
-//     ilu_type,
-//                                    const int num_sweeps = 30)
-//     {
-//         auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
-//         auto prec_fact = prec_type::build()
-//                              .with_skip_sorting(true)
-//                              .with_ilu_type(ilu_type)
-//                              .with_parilu_num_sweeps(num_sweeps)
-//                              .on(ref);
-//         auto d_prec_fact = prec_type::build()
-//                                .with_skip_sorting(true)
-//                                .with_ilu_type(ilu_type)
-//                                .with_parilu_num_sweeps(num_sweeps)
-//                                .on(d_exec);
+    void test_generate_eqvt_to_ref(
+        const gko::preconditioner::batch_ilu_type ilu_type,
+        const int num_sweeps = 30, const int lower_spy_power = 2,
+        const int upper_spy_power = 3)
+    {
+        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto prec_fact =
+            prec_type::build()
+                .with_skip_sorting(true)
+                .with_ilu_type(ilu_type)
+                .with_parilu_num_sweeps(num_sweeps)
+                .with_lower_factor_isai_sparsity_power(lower_spy_power)
+                .with_upper_factor_isai_sparsity_power(upper_spy_power)
+                .on(ref);
+        auto d_prec_fact =
+            prec_type::build()
+                .with_skip_sorting(true)
+                .with_ilu_type(ilu_type)
+                .with_parilu_num_sweeps(num_sweeps)
+                .with_lower_factor_isai_sparsity_power(lower_spy_power)
+                .with_upper_factor_isai_sparsity_power(upper_spy_power)
+                .on(d_exec);
 
-//         auto prec = prec_fact->generate(mtx);
-//         auto d_prec = d_prec_fact->generate(d_mtx);
+        auto prec = prec_fact->generate(mtx);
+        auto d_prec = d_prec_fact->generate(d_mtx);
 
-//         const auto factorized_mat = prec->get_const_factorized_matrix();
-//         const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
-//         const auto tol = 5000 * r<value_type>::value;
-//         GKO_ASSERT_BATCH_MTX_NEAR(factorized_mat, d_factorized_mat, tol);
-//     }
+        const auto lower_factor_isai = prec->get_const_lower_factor_isai();
+        const auto d_lower_factor_isai = d_prec->get_const_lower_factor_isai();
+        const auto upper_factor_isai = prec->get_const_upper_factor_isai();
+        const auto d_upper_factor_isai = d_prec->get_const_upper_factor_isai();
+        const auto tol = 5000 * r<value_type>::value;
+        GKO_ASSERT_BATCH_MTX_NEAR(lower_factor_isai, d_lower_factor_isai, tol);
+        GKO_ASSERT_BATCH_MTX_NEAR(upper_factor_isai, d_upper_factor_isai, tol);
+    }
 
-//     void test_apply_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type
-//     ilu_type,
-//                                 const int num_sweeps = 30)
-//     {
-//         using BDense = gko::matrix::BatchDense<value_type>;
+    void test_apply_eqvt_to_ref(
+        const gko::preconditioner::batch_ilu_isai_apply apply_type,
+        const gko::preconditioner::batch_ilu_type ilu_type,
+        const int num_sweeps = 30, const int lower_spy_power = 2,
+        const int upper_spy_power = 3)
+    {
+        using BDense = gko::matrix::BatchDense<value_type>;
 
-//         auto prec_fact = prec_type::build()
-//                              .with_skip_sorting(true)
-//                              .with_ilu_type(ilu_type)
-//                              .with_parilu_num_sweeps(num_sweeps)
-//                              .on(ref);
-//         auto prec = prec_fact->generate(mtx);
+        auto prec_fact =
+            prec_type::build()
+                .with_skip_sorting(true)
+                .with_ilu_type(ilu_type)
+                .with_parilu_num_sweeps(num_sweeps)
+                .with_lower_factor_isai_sparsity_power(lower_spy_power)
+                .with_upper_factor_isai_sparsity_power(upper_spy_power)
+                .with_apply_type(apply_type)
+                .on(ref);
+        auto prec = prec_fact->generate(mtx);
 
-//         const auto factorized_mat = prec->get_const_factorized_matrix();
-//         const auto diag_locs = prec->get_const_diag_locations();
+        const auto l_isai = prec->get_const_lower_factor_isai().get();
+        const auto u_isai = prec->get_const_upper_factor_isai().get();
+        const auto mult_inv = prec->get_const_mult_inv().get();
 
-//         auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
-//         auto d_prec_fact = prec_type::build()
-//                                .with_skip_sorting(true)
-//                                .with_ilu_type(ilu_type)
-//                                .with_parilu_num_sweeps(num_sweeps)
-//                                .on(d_exec);
-//         auto d_prec = d_prec_fact->generate(d_mtx);
+        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_prec_fact =
+            prec_type::build()
+                .with_skip_sorting(true)
+                .with_ilu_type(ilu_type)
+                .with_parilu_num_sweeps(num_sweeps)
+                .with_lower_factor_isai_sparsity_power(lower_spy_power)
+                .with_upper_factor_isai_sparsity_power(upper_spy_power)
+                .with_apply_type(apply_type)
+                .on(d_exec);
+        auto d_prec = d_prec_fact->generate(d_mtx);
 
-//         const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
-//         const auto d_diag_locs = d_prec->get_const_diag_locations();
+        const auto d_l_isai = d_prec->get_const_lower_factor_isai().get();
+        const auto d_u_isai = d_prec->get_const_upper_factor_isai().get();
+        const auto d_mult_inv = d_prec->get_const_mult_inv().get();
 
-//         auto rv = gko::test::generate_uniform_batch_random_matrix<BDense>(
-//             nbatch, nrows, 1, std::uniform_int_distribution<>(1, 1),
-//             std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-//             false, ref);
-//         auto z = BDense::create(ref, rv->get_size());
-//         auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
-//         auto d_z = BDense::create(d_exec, rv->get_size());
+        auto rv = gko::test::generate_uniform_batch_random_matrix<BDense>(
+            nbatch, nrows, 1, std::uniform_int_distribution<>(1, 1),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
+            ref);
+        auto z = BDense::create(ref, rv->get_size());
+        auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
+        auto d_z = BDense::create(d_exec, rv->get_size());
 
-//         gko::kernels::reference::batch_ilu_isai::apply_ilu(
-//             ref, mtx.get(), factorized_mat, diag_locs, rv.get(), z.get());
-//         gko::kernels::hip::batch_ilu_isai::apply_ilu(d_exec, d_mtx.get(),
-//                                                 d_factorized_mat,
-//                                                 d_diag_locs, d_rv.get(),
-//                                                 d_z.get());
+        gko::kernels::reference::batch_ilu_isai::apply_ilu_isai(
+            ref, mtx.get(), l_isai, u_isai, mult_inv, prec->get_apply_type(),
+            rv.get(), z.get());
+        gko::kernels::hip::batch_ilu_isai::apply_ilu_isai(
+            d_exec, d_mtx.get(), d_l_isai, d_u_isai, d_mult_inv,
+            d_prec->get_apply_type(), d_rv.get(), d_z.get());
 
-//         const auto tol = 5000 * r<value_type>::value;
-//         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
-//     }
-// };
-
-
-// TEST_F(BatchIlu, ExactIluGenerateIsEquivalentToReference)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //
-// test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type::exact_ilu);
-// //}
-
-
-// TEST_F(BatchIlu, ParIluGenerateIsEquivalentToReference)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //
-// test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type::parilu,
-// 30);
-// //}
-
-
-// TEST_F(BatchIlu, ExactIluApplyIsEquivalentToReference)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// //
-// test_apply_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type::exact_ilu);
-// //}
+        const auto tol = 5000 * r<value_type>::value;
+        GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
+    }
+};
 
 
-// TEST_F(BatchIlu, ParIluApplyIsEquivalentToReference)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-// // test_apply_eqvt_to_ref(gko::preconditioner::batch_ilu_isai_type::parilu,
-// 30);
-// //}
+TEST_F(BatchIluIsai, IluIsaiGenerateIsEquivalentToReference)
+{
+    test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::exact_ilu,
+                              30, 1, 3);
+    test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::exact_ilu,
+                              30, 2, 2);
+    test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::parilu, 30,
+                              1, 3);
+    test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::parilu, 30,
+                              2, 2);
+}
+
+
+TEST_F(BatchIluIsai, IluIsaiSimpleSpmvsApplyIsEquivalentToReference)
+{
+    const auto apply_type =
+        gko::preconditioner::batch_ilu_isai_apply::simple_spmvs;
+    test_apply_eqvt_to_ref(
+        apply_type, gko::preconditioner::batch_ilu_type::exact_ilu, 30, 1, 3);
+    test_apply_eqvt_to_ref(
+        apply_type, gko::preconditioner::batch_ilu_type::exact_ilu, 30, 2, 2);
+    test_apply_eqvt_to_ref(
+        apply_type, gko::preconditioner::batch_ilu_type::parilu, 30, 1, 3);
+    test_apply_eqvt_to_ref(
+        apply_type, gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
+}
+
+// TEST_F(BatchIluIsai, IluIsaiInvFactorsSpgemmApplyIsEquivalentToReference)
+// {
+//     const auto apply_type =
+//     gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm;
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::exact_ilu, 30, 1, 3);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::exact_ilu, 30, 2, 2);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::parilu, 30, 1, 3);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
+// }
+
+// TEST_F(BatchIluIsai, IluIsaiRelaxationStepsApplyIsEquivalentToReference)
+// {
+//     const auto apply_type =
+//     gko::preconditioner::batch_ilu_isai_apply::relaxation_steps;
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::exact_ilu, 30, 1, 3);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::exact_ilu, 30, 2, 2);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::parilu, 30, 1, 3);
+//     test_apply_eqvt_to_ref(apply_type,
+//     gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
+// }
 
 
 }  // namespace

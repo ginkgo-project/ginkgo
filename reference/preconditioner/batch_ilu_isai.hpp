@@ -100,7 +100,7 @@ public:
      * both- generation and application (for application, returns the max. of
      * what is required by each of the 3 methods))
      */
-    static constexpr int dynamic_work_size(int nrows, int) { return 0; }
+    static constexpr int dynamic_work_size(int nrows, int) { return nrows; }
 
     /**
      * Complete the precond generation process.
@@ -136,10 +136,13 @@ public:
         if (apply_type_ ==
             gko::preconditioner::batch_ilu_isai_apply::simple_spmvs) {
             const gko::batch_dense::BatchEntry<ValueType> work_entry{
-                work_, 1, r.num_rows, 1};
+                work_, r.stride, r.num_rows, r.num_rhs};
+
             batch_ilu_isai_temp::matvec_kernel(l_isai_entry_, r, work_entry);
+
             batch_ilu_isai_temp::matvec_kernel(
                 u_isai_entry_, gko::batch::to_const(work_entry), z);
+
         } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
                                       inv_factors_spgemm) {
             batch_ilu_isai_temp::matvec_kernel(mult_inv_entry_, r, z);

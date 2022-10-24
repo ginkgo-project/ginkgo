@@ -178,6 +178,8 @@ public:
         return parameters_.apply_type;
     }
 
+
+    // Note: Will return null shared_ptr if apply_type != inv_factors_spgemm
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
     get_const_mult_inv() const
     {
