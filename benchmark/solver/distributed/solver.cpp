@@ -1,0 +1,173 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2022, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include <ginkgo/ginkgo.hpp>
+
+
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+#include <set>
+
+
+#include "benchmark/solver/solver_common.hpp"
+#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/generator.hpp"
+
+
+std::string example_config = R"(
+  [
+    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
+     "optimal": {"spmv": {"local": "csr", "non-local": "coo"}}},
+    {"filename": "my_file.mtx", "optimal": {"spmv": {"local": "csr", "non-local": "coo"}},
+     "rhs": "my_file_rhs.mtx"}
+  ]
+)";
+
+
+// input validation
+[[noreturn]] void print_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of solver configurations:\n"
+              << example_config << std::endl;
+    std::exit(1);
+}
+
+
+struct Generator : public DistributedDefaultSystemGenerator {
+    Generator(gko::mpi::communicator comm)
+        : DistributedDefaultSystemGenerator{std::move(comm), {}}
+    {}
+
+    void validate_options(const rapidjson::Value& options) const
+    {
+        if (!options.IsObject() ||
+            !((options.HasMember("size") && options.HasMember("stencil")) ||
+              options.HasMember("filename")) ||
+            (!options.HasMember("optimal") &&
+             !options["optimal"].HasMember("spmv") &&
+             !options["optimal"]["spmv"].HasMember("local") &&
+             !options["optimal"]["spmv"].HasMember("non-local"))) {
+            print_config_error_and_exit();
+        }
+    }
+};
+
+
+int main(int argc, char* argv[])
+{
+    gko::mpi::environment mpi_env{argc, argv};
+
+    // Set the default repetitions = 1.
+    FLAGS_repetitions = "1";
+    FLAGS_min_repetitions = 1;
+
+    std::string header =
+        "A benchmark for measuring Ginkgo's distributed solvers\n";
+    std::string format = example_config + R"(
+  The matrix will either be read from an input file if the filename parameter
+  is given, or generated as a stencil matrix.
+  If the filename parameter is given, all processes will read the file and
+  then the matrix is distributed row-block-wise.
+  In the other case, a size and stencil parameter have to be provided.
+  The size parameter denotes the size per process. It might be adjusted to
+  fit the dimensionality of the stencil more easily.
+  Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
+  Optional values for "comm_pattern" are: stencil, optimal (default).
+  Optional values for "local" and "non_local" are any of the recognized spmv
+  formats (default "csr" for both).
+)";
+    initialize_argument_parsing(&argc, &argv, header, format);
+
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
+
+    std::string extra_information;
+    if (FLAGS_repetitions == "auto") {
+        extra_information =
+            "WARNING: repetitions = 'auto' not supported for MPI "
+            "benchmarks, setting repetitions to the default value.";
+        FLAGS_repetitions = "10";
+    }
+    if (rank == 0) {
+        print_general_information(extra_information);
+    }
+
+    std::set<std::string> supported_solvers = {"cg", "fcg", "cgs", "bicgstab",
+                                               "gmres"};
+    auto solvers = split(FLAGS_solvers, ',');
+    for (const auto& solver : solvers) {
+        if (supported_solvers.find(solver) == supported_solvers.end()) {
+            throw std::range_error(
+                std::string("The requested solvers <") + FLAGS_solvers +
+                "> contain the unsupported solver <" + solver + ">!");
+        }
+    }
+
+    std::stringstream ss_rel_res_goal;
+    ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
+
+
+    std::string json_input;
+    if (rank == 0) {
+        if (FLAGS_overhead) {
+            // Fake test case to run once
+            json_input += R"(
+[{"filename": "overhead.mtx",
+  "optimal": {"spmv": {"local": "csr", "non-local": "csr"}}]
+)";
+        } else {
+            std::string line;
+            while (std::cin >> line) {
+                json_input += line;
+            }
+        }
+    }
+    auto input_size = json_input.size();
+    comm.broadcast(exec->get_master(), &input_size, 1, 0);
+    json_input.resize(input_size);
+    comm.broadcast(exec->get_master(), &json_input[0],
+                   static_cast<int>(input_size), 0);
+
+    rapidjson::Document test_cases;
+    test_cases.Parse(json_input.c_str());
+
+    if (!test_cases.IsArray()) {
+        print_config_error_and_exit();
+    }
+
+    run_solver_benchmarks(exec, test_cases, Generator(comm));
+
+    std::cout << test_cases << std::endl;
+}

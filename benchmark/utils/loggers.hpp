@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 
 
+#include "core/distributed/helpers.hpp"
+
+
 // A logger that accumulates the time of all operations
 struct OperationLogger : gko::log::Logger {
     void on_allocation_started(const gko::Executor* exec,
@@ -239,14 +242,21 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)), alloc);
         } else {
-            rec_res_norms.PushBack(
-                compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);
+            gko::detail::vector_dispatch<rc_vtype>(
+                residual, [&](const auto v_residual) {
+                    rec_res_norms.PushBack(compute_norm2(v_residual), alloc);
+                });
         }
         if (solution) {
-            true_res_norms.PushBack(
-                compute_residual_norm(matrix, b,
-                                      gko::as<vec<ValueType>>(solution)),
-                alloc);
+            gko::detail::vector_dispatch<
+                rc_vtype>(solution, [&](auto v_solution) {
+                using concrete_type =
+                    std::remove_pointer_t<std::decay_t<decltype(v_solution)>>;
+                true_res_norms.PushBack(
+                    compute_residual_norm(matrix, gko::as<concrete_type>(b),
+                                          v_solution),
+                    alloc);
+            });
         } else {
             true_res_norms.PushBack(-1.0, alloc);
         }
@@ -261,7 +271,7 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(const gko::LinOp* matrix, const vec<ValueType>* b,
+    ResidualLogger(const gko::LinOp* matrix, const gko::LinOp* b,
                    rapidjson::Value& rec_res_norms,
                    rapidjson::Value& true_res_norms,
                    rapidjson::Value& implicit_res_norms,
@@ -283,7 +293,7 @@ struct ResidualLogger : gko::log::Logger {
 
 private:
     const gko::LinOp* matrix;
-    const vec<ValueType>* b;
+    const gko::LinOp* b;
     std::chrono::steady_clock::time_point start;
     rapidjson::Value& rec_res_norms;
     rapidjson::Value& true_res_norms;
