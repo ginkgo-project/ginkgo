@@ -59,6 +59,20 @@ __device__ __forceinline__ void single_csr_spmv_kernel(
  */
 template <typename ValueType>
 class batch_ilu_isai final {
+private:
+    __device__ __forceinline__ void common_generate_for_all_system_matrix_types(
+        size_type batch_id, ValueType* const __restrict__ work)
+    {
+        work_ = work;
+        l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
+        u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
+            mult_inv_entry_ =
+                gko::batch::batch_entry(mult_inv_batch_, batch_id);
+        }
+    }
+
 public:
     using value_type = ValueType;
 
@@ -105,28 +119,14 @@ public:
         size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
         ValueType* const __restrict__ work)
     {
-        work_ = work;
-        l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
-        u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ ==
-            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
-            mult_inv_entry_ =
-                gko::batch::batch_entry(mult_inv_batch_, batch_id);
-        }
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
     __device__ __forceinline__ void generate(
         size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
         ValueType* const __restrict__ work)
     {
-        work_ = work;
-        l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
-        u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ ==
-            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
-            mult_inv_entry_ =
-                gko::batch::batch_entry(mult_inv_batch_, batch_id);
-        }
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
     __device__ __forceinline__ void generate(
@@ -134,14 +134,7 @@ public:
         const gko::batch_dense::BatchEntry<const ValueType>&,
         ValueType* const __restrict__ work)
     {
-        work_ = work;
-        l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
-        u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
-        if (apply_type_ ==
-            gko::preconditioner::batch_ilu_isai_apply::inv_factors_spgemm) {
-            mult_inv_entry_ =
-                gko::batch::batch_entry(mult_inv_batch_, batch_id);
-        }
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
 
