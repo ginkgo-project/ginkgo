@@ -55,27 +55,43 @@ template <typename ValueType, typename IndexType>
 void apply_ilu_isai(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const matrix::BatchCsr<ValueType, IndexType>* const l,
+    const matrix::BatchCsr<ValueType, IndexType>* const u,
     const matrix::BatchCsr<ValueType, IndexType>* const l_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const u_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_lower_solve,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_upper_solve,
     const preconditioner::batch_ilu_isai_apply apply_type,
+    const int num_relaxation_steps,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
     const auto nbatch = sys_mat->get_num_batch_entries();
     const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
 
+    const batch_csr::UniformBatch<const ValueType> l_batch =
+        gko::kernels::host::get_batch_struct(l);
+    const batch_csr::UniformBatch<const ValueType> u_batch =
+        gko::kernels::host::get_batch_struct(u);
     const batch_csr::UniformBatch<const ValueType> l_inv_batch =
         gko::kernels::host::get_batch_struct(l_inv);
     const batch_csr::UniformBatch<const ValueType> u_inv_batch =
         gko::kernels::host::get_batch_struct(u_inv);
     const batch_csr::UniformBatch<const ValueType> mult_batch =
         gko::kernels::host::maybe_null_batch_struct(mult_invs);
+    const batch_csr::UniformBatch<const ValueType> iter_mat_lower_solve_batch =
+        gko::kernels::host::maybe_null_batch_struct(iter_mat_lower_solve);
+    const batch_csr::UniformBatch<const ValueType> iter_mat_upper_solve_batch =
+        gko::kernels::host::maybe_null_batch_struct(iter_mat_upper_solve);
+
     const auto rub = gko::kernels::host::get_batch_struct(r);
     const auto zub = gko::kernels::host::get_batch_struct(z);
 
     using prec_type = gko::kernels::host::batch_ilu_isai<ValueType>;
-    prec_type prec(l_inv_batch, u_inv_batch, mult_batch, apply_type);
+    prec_type prec(l_batch, u_batch, l_inv_batch, u_inv_batch, mult_batch,
+                   iter_mat_lower_solve_batch, iter_mat_upper_solve_batch,
+                   apply_type, num_relaxation_steps);
 
     const auto work_arr_size = prec_type::dynamic_work_size(
         num_rows,

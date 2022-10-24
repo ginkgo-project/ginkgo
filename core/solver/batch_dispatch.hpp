@@ -232,20 +232,32 @@ public:
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIluIsai<value_type>*>(
                        precon_)) {
+            const auto l =
+                device::get_batch_struct(prec->get_const_lower_factor().get());
+            const auto u =
+                device::get_batch_struct(prec->get_const_upper_factor().get());
             const auto l_isai = device::get_batch_struct(
                 prec->get_const_lower_factor_isai().get());
             const auto u_isai = device::get_batch_struct(
                 prec->get_const_upper_factor_isai().get());
             const auto mult_inv = device::maybe_null_batch_struct(
                 prec->get_const_upper_factor_isai().get());
+            const auto iter_mat_lower_solve = device::maybe_null_batch_struct(
+                prec->get_const_iteration_matrix_lower_solve().get());
+            const auto iter_mat_upper_solve = device::maybe_null_batch_struct(
+                prec->get_const_iteration_matrix_upper_solve().get());
 
             preconditioner::batch_ilu_isai_apply apply_type =
                 prec->get_apply_type();
 
-            dispatch_on_stop(logger, amat,
-                             device::batch_ilu_isai<device_value_type>(
-                                 l_isai, u_isai, mult_inv, apply_type),
-                             b_b, x_b);
+            const int num_relaxation_steps = prec->get_num_relaxation_steps();
+
+            dispatch_on_stop(
+                logger, amat,
+                device::batch_ilu_isai<device_value_type>(
+                    l, u, l_isai, u_isai, mult_inv, iter_mat_lower_solve,
+                    iter_mat_upper_solve, apply_type, num_relaxation_steps),
+                b_b, x_b);
 
         } else {
             GKO_NOT_IMPLEMENTED;
