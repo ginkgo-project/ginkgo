@@ -88,5 +88,21 @@ std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
     return dist_mat;
 }
 
+std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::mpi::communicator comm,
+    const std::string& format_local, const std::string& format_non_local,
+    const gko::matrix_data<etype, gko::int64>& data,
+    const gko::distributed::Partition<itype, gko::int64>* part)
+{
+    auto local_mat = formats::matrix_type_factory.at(format_local)(exec);
+    auto non_local_mat =
+        formats::matrix_type_factory.at(format_non_local)(exec);
+
+    auto dist_mat = dist_mtx<etype, itype, gko::int64>::create(
+        exec, comm, local_mat.get(), non_local_mat.get());
+    dist_mat->read_distributed(data, part);
+
+    return dist_mat;
+}
 
 #endif  // GINKGO_BENCHMARK_UTILS_DISTRIBUTED_HELPERS_HPP
