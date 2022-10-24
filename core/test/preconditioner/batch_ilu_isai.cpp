@@ -55,13 +55,14 @@ protected:
 
     BatchIluIsaiFactory()
         : exec(gko::ReferenceExecutor::create()),
-          apply_type(
-              gko::preconditioner::batch_ilu_isai_apply::relaxation_steps),
+          apply_type(gko::preconditioner::batch_ilu_isai_apply::
+                         relaxation_steps_isai_simple),
           ilu_type(gko::preconditioner::batch_ilu_type::parilu),
           parilu_num_sweeps(20),
           skip_sorting(true),
           lower_factor_isai_spy_power(2),
-          upper_factor_isai_spy_power(3)
+          upper_factor_isai_spy_power(3),
+          num_relaxation_steps(5)
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -71,6 +72,7 @@ protected:
     const bool skip_sorting;
     const int lower_factor_isai_spy_power;
     const int upper_factor_isai_spy_power;
+    const int num_relaxation_steps;
 };
 
 TEST_F(BatchIluIsaiFactory, KnowsItsExecutor)
@@ -143,6 +145,17 @@ TEST_F(BatchIluIsaiFactory, CanSetUpperIsaiSpy)
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters()
                   .upper_factor_isai_sparsity_power,
               this->upper_factor_isai_spy_power);
+}
+
+TEST_F(BatchIluIsaiFactory, CanSetRelaxationSteps)
+{
+    auto batch_ilu_isai_factory =
+        batch_ilu_isai_prec::build()
+            .with_num_relaxation_steps(this->num_relaxation_steps)
+            .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_isai_factory->get_parameters().num_relaxation_steps,
+              this->num_relaxation_steps);
 }
 
 
