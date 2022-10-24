@@ -86,8 +86,7 @@ public:
      * @param mult_inv_batch Mutiplication of inverses:  u_isai_batch *
      * l_isai_batch (generated externally).
      *
-     * @param apply_type How the preconditioner is to be applied? (0:
-     * simple_spmvs, 1: inv_factors_spgemm , 2: relaxation_steps)
+     * @param apply_type How the preconditioner is to be applied?
      */
     batch_ilu_isai(
         const gko::batch_csr::UniformBatch<const value_type>& l_isai_batch,
@@ -144,21 +143,18 @@ public:
     {
         // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
         // lai_U * laiL * r ===> z = lai_U * laiL * r
-        if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
-                               simple_spmvs)  // simple_spmvs
-        {
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::simple_spmvs) {
             batch_ilu_isai_temp::single_csr_spmv_kernel(l_isai_entry_, r,
                                                         work_);
             __syncthreads();
             batch_ilu_isai_temp::single_csr_spmv_kernel(u_isai_entry_, work_,
                                                         z);
         } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
-                                      inv_factors_spgemm)  // inv_factors_spgemm
-        {
+                                      inv_factors_spgemm) {
             batch_ilu_isai_temp::single_csr_spmv_kernel(mult_inv_entry_, r, z);
         } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
-                                      relaxation_steps)  // relaxation steps
-        {
+                                      relaxation_steps) {
             printf("\n Relaxation steps- Not implemented");
         } else {
             printf("\n Not implemented");
