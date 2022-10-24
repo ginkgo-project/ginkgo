@@ -112,27 +112,12 @@ void fill_values_dense_mat_and_solve(
     }
     dim3 grid(grid_size);
 
-    int matrix_type;
-
-    if (input_matrix_type_isai ==
-        gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {
-        matrix_type = 0;
-    } else if (input_matrix_type_isai ==
-               gko::preconditioner::batch_isai_input_matrix_type::upper_tri) {
-        matrix_type = 1;
-    } else if (input_matrix_type_isai ==
-               gko::preconditioner::batch_isai_input_matrix_type::general) {
-        matrix_type = 2;
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-
     hipLaunchKernelGGL(
         fill_values_dense_mat_and_solve_kernel<default_subwarp_size>, grid,
         block, 0, 0, nbatch, nrows, A_nnz,
         as_hip_type(sys_csr->get_const_values()), aiA_nnz,
         inv->get_const_row_ptrs(), as_hip_type(inv->get_values()),
-        dense_mat_pattern, rhs_one_idxs, sizes, matrix_type);
+        dense_mat_pattern, rhs_one_idxs, sizes, input_matrix_type_isai);
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }

@@ -362,7 +362,9 @@ __global__
         ValueType* const __restrict__ aiA_values,
         const int* const __restrict__ dense_mat_pattern,
         const int* const __restrict__ rhs_one_idxs,
-        const int* const __restrict__ sizes, const int matrix_type)
+        const int* const __restrict__ sizes,
+        const enum gko::preconditioner::batch_isai_input_matrix_type
+            matrix_type)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     static_assert(row_size_limit <= subwarp_size, "incompatible subwarp size");
@@ -421,17 +423,22 @@ __global__
         subwarpgrp.sync();
         ValueType sol;
 
-        if (matrix_type ==
-            0)  // input matrix: lower_tri => tranposed system: uppper_tri
+        if (matrix_type == gko::preconditioner::batch_isai_input_matrix_type::
+                               lower_tri)  // input matrix: lower_tri =>
+                                           // tranposed system: uppper_tri
         {
             sol = solve_upper_tri_dense_system(subwarpgrp, size, local_row,
                                                rhs_one_idx);
         } else if (matrix_type ==
-                   1)  // input matrix: upper_tri => tranposed system: lower_tri
+                   gko::preconditioner::batch_isai_input_matrix_type::
+                       upper_tri)  // input matrix: upper_tri => tranposed
+                                   // system: lower_tri
         {
             sol = solve_lower_tri_dense_system(subwarpgrp, size, local_row,
                                                rhs_one_idx);
-        } else if (matrix_type == 2)  // general input matrix
+        } else if (matrix_type ==
+                   gko::preconditioner::batch_isai_input_matrix_type::
+                       general)  // general input matrix
         {
             sol = solve_general_dense_system(subwarpgrp, size, local_row,
                                              rhs_one_idx);
