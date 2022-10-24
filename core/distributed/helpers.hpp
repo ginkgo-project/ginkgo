@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_DISTRIBUTED_HELPERS_HPP_
+#define GKO_CORE_DISTRIBUTED_HELPERS_HPP_
+
+
 #include <memory>
 
 
@@ -162,3 +166,6 @@ void vector_dispatch(T* linop, F&& f, Args... args)
 
 }  // namespace detail
 }  // namespace gko
+
+
+#endif
