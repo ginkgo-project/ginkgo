@@ -172,20 +172,35 @@ int main(int argc, char* argv[])
             //     gko::preconditioner::BatchIlu<value_type,
             //     index_type>::build()
             //         .with_skip_sorting(true)
-            //         // .with_ilu_type(
-            //         //     gko::preconditioner::batch_ilu_type::exact_ilu)
+            //         .with_ilu_type(
+            //             gko::preconditioner::batch_ilu_type::exact_ilu)
+            //         //
             //         .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
             //         .with_parilu_num_sweeps(10)
             //         .on(exec))
             // .with_preconditioner(gko::preconditioner::BatchJacobi<value_type,
             // index_type>::build().on(exec))
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchIsai<value_type,
+            //     index_type>::build()
+            //         .with_skip_sorting(true)
+            //         .with_sparsity_power(3)
+            //         .with_isai_input_matrix_type(
+            //             gko::preconditioner::batch_isai_input_matrix_type::
+            //                 general)
+            //         .on(exec))
             .with_preconditioner(
-                gko::preconditioner::BatchIsai<value_type, index_type>::build()
+                gko::preconditioner::BatchIluIsai<value_type,
+                                                  index_type>::build()
                     .with_skip_sorting(true)
-                    .with_sparsity_power(1)
-                    .with_isai_input_matrix_type(
-                        gko::preconditioner::batch_isai_input_matrix_type::
-                            general)
+                    .with_ilu_type(
+                        gko::preconditioner::batch_ilu_type::exact_ilu)
+                    .with_lower_factor_isai_sparsity_power(2)
+                    .with_upper_factor_isai_sparsity_power(1)
+                    .with_num_relaxation_steps(5)
+                    .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::
+                                         spmv_isai_simple)
+                    // .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::relaxation_steps_isai_simple)
                     .on(exec))
             .on(exec);
 
