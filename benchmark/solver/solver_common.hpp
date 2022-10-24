@@ -495,8 +495,6 @@ void solve_system(const std::string& solver_name,
                           apply_timer->compute_average_time(), allocator);
         add_or_set_member(solver_json, "repetitions",
                           apply_timer->get_num_repetitions(), allocator);
-        add_or_set_member(solver_json, "size", solver->get_size()[0],
-                          allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
@@ -549,7 +547,6 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
-            std::ifstream mtx_fd(test_case["filename"].GetString());
 
             using Vec = typename SystemGenerator::Vec;
             std::shared_ptr<gko::LinOp> system_matrix;
@@ -572,6 +569,8 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
+            add_or_set_member(test_case, "size", system_matrix->get_size()[0],
+                              allocator);
             auto precond_solver_name = begin(precond_solvers);
             for (const auto& solver_name : solvers) {
                 for (const auto& precond_name : preconds) {
