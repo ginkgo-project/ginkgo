@@ -53,6 +53,13 @@ namespace {
  */
 template <typename ValueType>
 class batch_isai final {
+private:
+    inline void common_generate_for_all_system_matrix_types(size_type batch_id)
+    {
+        approx_inv_entry_ =
+            gko::batch::batch_entry(approx_inv_batch_, batch_id);
+    }
+
 public:
     using value_type = ValueType;
 
@@ -77,24 +84,21 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const)
     {
-        approx_inv_entry_ =
-            gko::batch::batch_entry(approx_inv_batch_, batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
     void generate(size_type batch_id,
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const)
     {
-        approx_inv_entry_ =
-            gko::batch::batch_entry(approx_inv_batch_, batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
     void generate(size_type batch_id,
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const)
     {
-        approx_inv_entry_ =
-            gko::batch::batch_entry(approx_inv_batch_, batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
 

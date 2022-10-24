@@ -36,64 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType>
 class batch_ilu final {
-public:
-    using value_type = ValueType;
-
-    /**
-     *
-     * @param mat_factorized   Factorized matrix (that was factored externally).
-     * @param csr_diag_locs  pointers to the diagonal entries in factorized
-     *
-     */
-    batch_ilu(
-        const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
-        const int* __restrict__ const csr_diag_locs)
-        : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
-    {}
-
-
-    /**
-     * The size of the work vector required per batch entry. (takes into account
-     * both- generation and application)
-     */
-    __host__ __device__ static constexpr int dynamic_work_size(int nrows,
-                                                               int nnz)
-    {
-        return nrows;
-    }
-
-    /**
-     * Complete the precond generation process.
-     *
-     */
-    __device__ __forceinline__ void generate(
-        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__ work)
+private:
+    __device__ __forceinline__ void common_generate_for_all_system_matrix_types(
+        size_type batch_id, ValueType* const __restrict__ work)
     {
         mat_factorized_entry_ =
             gko::batch::batch_entry(mat_factorized_batch_, batch_id);
         work_ = work;
     }
-
-    __device__ __forceinline__ void generate(
-        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__ work)
-    {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
-        work_ = work;
-    }
-
-    __device__ __forceinline__ void generate(
-        size_type batch_id,
-        const gko::batch_dense::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__ work)
-    {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
-        work_ = work;
-    }
-
 
     __device__ __forceinline__ void naive_combined_lower_trsv(
         const ValueType* const __restrict__ r) const
@@ -274,6 +224,58 @@ public:
         }
     }
 
+
+public:
+    using value_type = ValueType;
+
+    /**
+     *
+     * @param mat_factorized   Factorized matrix (that was factored externally).
+     * @param csr_diag_locs  pointers to the diagonal entries in factorized
+     *
+     */
+    batch_ilu(
+        const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
+        const int* __restrict__ const csr_diag_locs)
+        : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
+    {}
+
+
+    /**
+     * The size of the work vector required per batch entry. (takes into account
+     * both- generation and application)
+     */
+    __host__ __device__ static constexpr int dynamic_work_size(int nrows,
+                                                               int nnz)
+    {
+        return nrows;
+    }
+
+    /**
+     * Complete the precond generation process.
+     *
+     */
+    __device__ __forceinline__ void generate(
+        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work)
+    {
+        common_generate_for_all_system_matrix_types(batch_id, work);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work)
+    {
+        common_generate_for_all_system_matrix_types(batch_id, work);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id,
+        const gko::batch_dense::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work)
+    {
+        common_generate_for_all_system_matrix_types(batch_id, work);
+    }
 
     __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const __restrict__ r,

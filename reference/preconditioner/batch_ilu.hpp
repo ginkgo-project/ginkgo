@@ -48,6 +48,15 @@ namespace host {
  */
 template <typename ValueType>
 class batch_ilu final {
+private:
+    inline void common_generate_for_all_system_matrix_types(
+        size_type batch_id, ValueType* const work)
+    {
+        mat_factorized_entry_ =
+            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
+        work_ = work;
+    }
+
 public:
     using value_type = ValueType;
 
@@ -78,27 +87,21 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
-        work_ = work;
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
     void generate(size_type batch_id,
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
-        work_ = work;
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
     void generate(size_type batch_id,
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
-        work_ = work;
+        common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
 
