@@ -53,7 +53,6 @@ namespace {
 
 constexpr size_type default_block_size = 256;
 
-#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"
 
 }  // namespace
@@ -63,23 +62,36 @@ template <typename ValueType, typename IndexType>
 void apply_ilu_isai(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const matrix::BatchCsr<ValueType, IndexType>* const l,
+    const matrix::BatchCsr<ValueType, IndexType>* const u,
     const matrix::BatchCsr<ValueType, IndexType>* const l_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const u_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_lower_solve,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_upper_solve,
     const preconditioner::batch_ilu_isai_apply apply_type,
+    const int num_relaxation_steps,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
     const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
     const auto nbatch = sys_mat->get_num_batch_entries();
 
+    const auto l_batch = get_batch_struct(l);
+    const auto u_batch = get_batch_struct(u);
     const auto l_inv_batch = get_batch_struct(l_inv);
     const auto u_inv_batch = get_batch_struct(u_inv);
     const auto mult_batch = maybe_null_batch_struct(mult_invs);
+    const auto iter_mat_lower_solve_batch =
+        maybe_null_batch_struct(iter_mat_lower_solve);
+    const auto iter_mat_upper_solve_batch =
+        maybe_null_batch_struct(iter_mat_upper_solve);
 
     using d_value_type = cuda_type<ValueType>;
     using prec_type = batch_ilu_isai<d_value_type>;
-    prec_type prec(l_inv_batch, u_inv_batch, mult_batch, apply_type);
+    prec_type prec(l_batch, u_batch, l_inv_batch, u_inv_batch, mult_batch,
+                   iter_mat_lower_solve_batch, iter_mat_upper_solve_batch,
+                   apply_type, num_relaxation_steps);
 
     batch_ilu_isai_apply<<<
         nbatch, default_block_size,

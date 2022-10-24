@@ -47,15 +47,20 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL(ValueType, IndexType) \
-    void apply_ilu_isai(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,        \
-        const matrix::BatchCsr<ValueType, IndexType>* l_inv,          \
-        const matrix::BatchCsr<ValueType, IndexType>* u_inv,          \
-        const matrix::BatchCsr<ValueType, IndexType>* mult_invs,      \
-        const preconditioner::batch_ilu_isai_apply apply_type,        \
-        const matrix::BatchDense<ValueType>* r,                       \
+#define GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL(ValueType, IndexType)       \
+    void apply_ilu_isai(                                                    \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,              \
+        const matrix::BatchCsr<ValueType, IndexType>* l,                    \
+        const matrix::BatchCsr<ValueType, IndexType>* u,                    \
+        const matrix::BatchCsr<ValueType, IndexType>* l_inv,                \
+        const matrix::BatchCsr<ValueType, IndexType>* u_inv,                \
+        const matrix::BatchCsr<ValueType, IndexType>* mult_invs,            \
+        const matrix::BatchCsr<ValueType, IndexType>* iter_mat_lower_solve, \
+        const matrix::BatchCsr<ValueType, IndexType>* iter_mat_upper_solve, \
+        const preconditioner::batch_ilu_isai_apply apply_type,              \
+        const int num_relaxation_steps,                                     \
+        const matrix::BatchDense<ValueType>* r,                             \
         matrix::BatchDense<ValueType>* z)
 
 

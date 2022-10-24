@@ -48,10 +48,15 @@ template <typename ValueType, typename IndexType>
 void apply_ilu_isai(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const matrix::BatchCsr<ValueType, IndexType>* const l,
+    const matrix::BatchCsr<ValueType, IndexType>* const u,
     const matrix::BatchCsr<ValueType, IndexType>* const l_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const u_inv,
     const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_lower_solve,
+    const matrix::BatchCsr<ValueType, IndexType>* const iter_mat_upper_solve,
     const preconditioner::batch_ilu_isai_apply apply_type,
+    const int num_relaxation_steps,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
