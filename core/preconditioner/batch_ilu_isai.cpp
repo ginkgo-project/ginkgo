@@ -77,6 +77,8 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
 
     std::shared_ptr<const matrix_type> l_factor = l_and_u_factors.first;
     std::shared_ptr<const matrix_type> u_factor = l_and_u_factors.second;
+    this->lower_factor_ = l_factor;
+    this->upper_factor_ = u_factor;
 
     auto lower_factor_isai_precond =
         gko::preconditioner::BatchIsai<ValueType, IndexType>::build()
@@ -103,8 +105,13 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
     this->upper_factor_isai_ =
         upper_factor_isai_precond->get_const_approximate_inverse();
 
+    // Note: mult_inv and iteration matrices etc. are created/computed outside
+    // the solver kernel (in precond. external generate)
+    // since they require SpGemm (memory allocation for which is not
+    // straightforward)
+
     if (this->parameters_.apply_type ==
-        batch_ilu_isai_apply::inv_factors_spgemm) {
+        batch_ilu_isai_apply::spmv_isai_with_spgemm) {
         GKO_NOT_IMPLEMENTED;
 
         // z = precond * r
@@ -120,6 +127,20 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
         // mult_inv_ : memory allocation? to store solution (u_inv * l_inv)
         this->upper_factor_isai_->apply(this->lower_factor_isai_.get(),
                                         this->mult_inv_.get());
+    } else if (this->parameters_.apply_type ==
+               batch_ilu_isai_apply::relaxation_steps_isai_with_spgemm) {
+        GKO_NOT_IMPLEMENTED;
+        // form iteration matrices and store in the member veraible of
+        // BatchIluIsai object  ( has shared_ptrs for iter. matrices )
+        // z = precond * r
+        // L * U * z = r
+        // L * y = r  and then U * z = y
+        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
+        // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
+        // (iterations)
+
+        //  Therefore, iter_mat_lower_solve = I - lai_L * L   and
+        //  iter_mat_upper_solve = I - lai_U * U
     }
 }
 
