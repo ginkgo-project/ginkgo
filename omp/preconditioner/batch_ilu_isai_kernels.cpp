@@ -56,37 +56,37 @@ void apply_ilu_isai(
     const matrix::BatchCsr<ValueType, IndexType>* const mult_invs,
     const preconditioner::batch_ilu_isai_apply apply_type,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_ilu_isai): change the code imported from
-// preconditioner/batch_ilu if needed
-//    const auto nbatch = sys_matrix->get_num_batch_entries();
-//    const auto num_rows = static_cast<int>(sys_matrix->get_size().at(0)[0]);
-//
-//    const batch_csr::UniformBatch<const ValueType> factored_mat_batch =
-//        gko::kernels::host::get_batch_struct(factored_matrix);
-//    const auto rub = gko::kernels::host::get_batch_struct(r);
-//    const auto zub = gko::kernels::host::get_batch_struct(z);
-//
-//    using prec_type = gko::kernels::host::batch_ilu_isai<ValueType>;
-//    prec_type prec(factored_mat_batch, diag_locs);
-//
-//#pragma omp parallel for firstprivate(prec)
-//    for (size_type batch_id = 0;
-//         batch_id < factored_matrix->get_num_batch_entries(); batch_id++) {
-//        const auto work_arr_size = prec_type::dynamic_work_size(
-//            num_rows,
-//            static_cast<int>(sys_matrix->get_num_stored_elements() / nbatch));
-//
-//        std::vector<ValueType> work(work_arr_size);
-//
-//        const auto r_b = gko::batch::batch_entry(rub, batch_id);
-//        const auto z_b = gko::batch::batch_entry(zub, batch_id);
-//        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
-//                      work.data());
-//        prec.apply(r_b, z_b);
-//    }
-//}
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto nbatch = sys_mat->get_num_batch_entries();
+    const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
+
+    const batch_csr::UniformBatch<const ValueType> l_inv_batch =
+        gko::kernels::host::get_batch_struct(l_inv);
+    const batch_csr::UniformBatch<const ValueType> u_inv_batch =
+        gko::kernels::host::get_batch_struct(u_inv);
+    const batch_csr::UniformBatch<const ValueType> mult_batch =
+        gko::kernels::host::maybe_null_batch_struct(mult_invs);
+    const auto rub = gko::kernels::host::get_batch_struct(r);
+    const auto zub = gko::kernels::host::get_batch_struct(z);
+
+    using prec_type = gko::kernels::host::batch_ilu_isai<ValueType>;
+    prec_type prec(l_inv_batch, u_inv_batch, mult_batch, apply_type);
+
+#pragma omp parallel for firstprivate(prec)
+    for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
+        const auto work_arr_size = prec_type::dynamic_work_size(
+            num_rows,
+            static_cast<int>(sys_mat->get_num_stored_elements() / nbatch));
+
+        std::vector<ValueType> work(work_arr_size);
+        const auto r_b = gko::batch::batch_entry(rub, batch_id);
+        const auto z_b = gko::batch::batch_entry(zub, batch_id);
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      work.data());
+        prec.apply(r_b, z_b);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_ISAI_APPLY_KERNEL);
