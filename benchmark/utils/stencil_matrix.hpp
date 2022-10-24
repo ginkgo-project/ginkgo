@@ -79,7 +79,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     const auto local_size = static_cast<gko::size_type>(dp * dp);
     const auto global_size = local_size * comm.size();
     auto A_data = gko::matrix_data<ValueType, IndexType>(
-        gko::dim<2>{global_size, global_size});
+        gko::dim<2>{static_cast<gko::size_type>(global_size),
+                    static_cast<gko::size_type>(global_size)});
 
     auto global_offset = [&](const int px, const int py) {
         return static_cast<int>(local_size) * px +
@@ -174,7 +175,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     const auto local_size = static_cast<gko::size_type>(dp * dp * dp);
     const auto global_size = local_size * comm.size();
     auto A_data = gko::matrix_data<ValueType, IndexType>(
-        gko::dim<2>{global_size, global_size});
+        gko::dim<2>{static_cast<gko::size_type>(global_size),
+                    static_cast<gko::size_type>(global_size)});
 
     auto global_offset = [&](const int cx, const int cy, const int cz) {
         return cx * static_cast<int>(local_size) +
@@ -246,8 +248,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
 
-    auto A_data =
-        gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
+    auto A_data = gko::matrix_data<ValueType, IndexType>(
+        gko::dim<2>{static_cast<gko::size_type>(mat_size),
+                    static_cast<gko::size_type>(mat_size)});
 
     for (IndexType row = start; row < end; row++) {
         auto i = row / dp;
@@ -288,8 +291,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
 
-    auto A_data =
-        gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
+    auto A_data = gko::matrix_data<ValueType, IndexType>(
+        gko::dim<2>{static_cast<gko::size_type>(mat_size),
+                    static_cast<gko::size_type>(mat_size)});
 
     for (IndexType row = start; row < end; row++) {
         auto i = row / (dp * dp);
