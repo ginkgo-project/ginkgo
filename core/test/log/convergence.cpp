@@ -49,6 +49,7 @@ template <typename T>
 class Convergence : public ::testing::Test {
 public:
     using Dense = gko::matrix::Dense<T>;
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<T>>;
 
     Convergence()
     {
@@ -60,9 +61,10 @@ public:
         gko::ReferenceExecutor::create();
 
     std::unique_ptr<Dense> residual = gko::initialize<Dense>({3, 4}, exec);
-    std::unique_ptr<Dense> residual_norm = gko::initialize<Dense>({5}, exec);
-    std::unique_ptr<Dense> implicit_sq_resnorm =
-        gko::initialize<Dense>({6}, exec);
+    std::unique_ptr<AbsoluteDense> residual_norm =
+        gko::initialize<AbsoluteDense>({5}, exec);
+    std::unique_ptr<AbsoluteDense> implicit_sq_resnorm =
+        gko::initialize<AbsoluteDense>({6}, exec);
     std::unique_ptr<Dense> solution = gko::initialize<Dense>({-2, 7}, exec);
 
     gko::array<gko::stopping_status> status = {exec, 1};
@@ -87,6 +89,7 @@ TYPED_TEST(Convergence, CanGetEmptyData)
 TYPED_TEST(Convergence, CanLogData)
 {
     using Dense = gko::matrix::Dense<TypeParam>;
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto logger = gko::log::Convergence<TypeParam>::create(
         gko::log::Logger::criterion_events_mask);
 
@@ -99,10 +102,11 @@ TYPED_TEST(Convergence, CanLogData)
     ASSERT_EQ(logger->get_num_iterations(), 100);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual()),
                         this->residual.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual_norm()),
+    GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
                         this->residual_norm.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_implicit_sq_resnorm()),
-                        this->implicit_sq_resnorm.get(), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<AbsoluteDense>(logger->get_implicit_sq_resnorm()),
+        this->implicit_sq_resnorm.get(), 0);
 }
 
 
@@ -125,7 +129,7 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
 
 TYPED_TEST(Convergence, CanComputeResidualNorm)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto logger = gko::log::Convergence<TypeParam>::create(
         gko::log::Logger::criterion_events_mask);
 
@@ -133,7 +137,7 @@ TYPED_TEST(Convergence, CanComputeResidualNorm)
         nullptr, 100, this->residual.get(), nullptr, nullptr, nullptr, 0, false,
         &this->status, false, true);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual_norm()),
+    GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
                         this->residual_norm, r<TypeParam>::value);
 }
 
