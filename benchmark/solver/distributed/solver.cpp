@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 std::string example_config = R"(
   [
     {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
-     "optimal": {"spmv": {"local": "csr", "non-local": "coo"}}},
-    {"filename": "my_file.mtx", "optimal": {"spmv": {"local": "csr", "non-local": "coo"}},
+     "optimal": {"spmv": "csr-coo"}},
+    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
      "rhs": "my_file_rhs.mtx"}
   ]
 )";
@@ -74,9 +74,7 @@ struct Generator : public DistributedDefaultSystemGenerator {
             !((options.HasMember("size") && options.HasMember("stencil")) ||
               options.HasMember("filename")) ||
             (!options.HasMember("optimal") &&
-             !options["optimal"].HasMember("spmv") &&
-             !options["optimal"]["spmv"].HasMember("local") &&
-             !options["optimal"]["spmv"].HasMember("non-local"))) {
+             !options["optimal"].HasMember("spmv"))) {
             print_config_error_and_exit();
         }
     }
@@ -103,8 +101,9 @@ int main(int argc, char* argv[])
   fit the dimensionality of the stencil more easily.
   Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
   Optional values for "comm_pattern" are: stencil, optimal (default).
-  Optional values for "local" and "non_local" are any of the recognized spmv
-  formats (default "csr" for both).
+  Possible values for "optimal[spmv]" follow the pattern
+  "<local_format>-<non_local_format>", where both "local_format" and
+  "non_local_format" can be any of the recognized spmv formats.
 )";
     initialize_argument_parsing(&argc, &argv, header, format);
 
@@ -145,7 +144,7 @@ int main(int argc, char* argv[])
             // Fake test case to run once
             json_input += R"(
 [{"filename": "overhead.mtx",
-  "optimal": {"spmv": {"local": "csr", "non-local": "csr"}}]
+  "optimal": {"spmv": "csr-csr"}]
 )";
         } else {
             std::string line;
