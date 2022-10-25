@@ -159,6 +159,9 @@ void handle_list(
 }
 
 
+}  // namespace
+
+
 struct MultigridState {
     MultigridState(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
                    const size_type nrhs_in)
@@ -486,9 +489,6 @@ struct MultigridState {
     KCycleMultiGridState kcycle_state;
     size_type nrhs;
 };
-
-
-}  // namespace
 
 
 void Multigrid::generate()
