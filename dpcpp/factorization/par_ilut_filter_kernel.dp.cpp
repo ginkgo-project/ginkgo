@@ -70,7 +70,7 @@ constexpr int default_block_size = 256;
 
 
 // subwarp sizes for filter kernels
-using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 16, 32>;
 
 
 #include "dpcpp/factorization/par_ilut_filter_kernels.hpp.inc"

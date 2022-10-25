@@ -104,7 +104,7 @@ constexpr int max_thread_per_worker = 32;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 0, 16, 32>;
 
 
 namespace kernel {
