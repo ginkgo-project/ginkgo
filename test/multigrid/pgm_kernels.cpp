@@ -187,8 +187,8 @@ TEST_F(Pgm, MatchEdgeIsEquivalentToRef)
     auto d_x = d_unfinished_agg;
 
     gko::kernels::reference::pgm::match_edge(ref, strongest_neighbor, x);
-    gko::kernels::EXEC_NAMESPACE::pgm::match_edge(
-        exec, d_strongest_neighbor, d_x);
+    gko::kernels::EXEC_NAMESPACE::pgm::match_edge(exec, d_strongest_neighbor,
+                                                  d_x);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
@@ -200,10 +200,9 @@ TEST_F(Pgm, CountUnaggIsEquivalentToRef)
     index_type num_unagg;
     index_type d_num_unagg;
 
-    gko::kernels::reference::pgm::count_unagg(ref, unfinished_agg,
-                                                   &num_unagg);
+    gko::kernels::reference::pgm::count_unagg(ref, unfinished_agg, &num_unagg);
     gko::kernels::EXEC_NAMESPACE::pgm::count_unagg(exec, d_unfinished_agg,
-                                                        &d_num_unagg);
+                                                   &d_num_unagg);
 
     ASSERT_EQ(d_num_unagg, num_unagg);
 }
@@ -265,8 +264,7 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 
     gko::kernels::EXEC_NAMESPACE::pgm::assign_to_exist_agg(
         exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
-    gko::kernels::EXEC_NAMESPACE::pgm::count_unagg(exec, d_agg,
-                                                        &d_num_unagg);
+    gko::kernels::EXEC_NAMESPACE::pgm::count_unagg(exec, d_agg, &d_num_unagg);
 
     // only test whether all elements are aggregated.
     GKO_ASSERT_EQ(d_num_unagg, 0);
