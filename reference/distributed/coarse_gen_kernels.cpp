@@ -179,15 +179,27 @@ void fill_coarse(
     array<IndexType>& coarse_indices)
 {
     const auto global_size = fine_matrix_data.get_size();
-    const auto local_size = coarse_data.get_size();
+    const auto coarse_size = coarse_data.get_size();
+    const auto f_row_idxs = fine_matrix_data.get_const_row_idxs();
+    const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
 
-    for (auto i = 0; i < local_size[0]; ++i) {
-        coarse_data.get_row_idxs()[i] =
-            fine_matrix_data.get_const_row_idxs()[coarse_indices.get_data()[i]];
-        coarse_data.get_col_idxs()[i] =
-            fine_matrix_data.get_const_col_idxs()[coarse_indices.get_data()[i]];
-        coarse_data.get_values()[i] =
-            fine_matrix_data.get_const_values()[coarse_indices.get_data()[i]];
+    for (auto i = 0; i < coarse_size[0]; ++i) {
+        if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
+                      coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
+            if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
+                          coarse_indices.get_data()[i]) !=
+                std::end(f_col_idxs)) {
+                // Assume row major ordering
+                coarse_data.get_row_idxs()[i] = i;
+                //    fine_matrix_data.get_const_row_idxs()[coarse_indices.get_data()[i]];
+                coarse_data.get_col_idxs()[i] =
+                    fine_matrix_data
+                        .get_const_col_idxs()[coarse_indices.get_data()[i]];
+                coarse_data.get_values()[i] =
+                    fine_matrix_data
+                        .get_const_values()[coarse_indices.get_data()[i]];
+            }
+        }
     }
 }
 

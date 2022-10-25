@@ -96,17 +96,24 @@ void CoarseGen<ValueType, LocalIndexType,
     auto exec = this->get_executor();
     const matrix_type* dist_mat =
         dynamic_cast<const matrix_type*>(system_matrix_.get());
+    const matrix_type* dist_coarse_mat =
+        dynamic_cast<const matrix_type*>(coarse_matrix_.get());
 
     const auto global_size = dist_mat->get_size();
     const auto local_num_rows = dist_mat->get_local_matrix()->get_size()[0];
 
     const auto mat_data = dist_mat->get_matrix_data();
+    coarse_indices_map_ = array<GlobalIndexType>(exec, global_coarse_size);
+    // TODO kernel to fill the coarse indices
+
 
     device_matrix_data<ValueType, GlobalIndexType> coarse_data{
-        exec, dim<2>{local_num_rows, global_size[1]}};
+        exec, dim<2>{global_coarse_size, global_coarse_size}};
 
     exec->run(coarse_gen::make_fill_coarse(mat_data, coarse_data,
                                            coarse_indices_map_));
+
+    dist_coarse_mat->read_distributed(coarse_data, coarse_partition);
 }
 
 
