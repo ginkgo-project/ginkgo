@@ -130,7 +130,7 @@ public:
          * @brief Number of relaxtion steps
          *
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(num_relaxation_steps, 5);
+        int GKO_FACTORY_PARAMETER_SCALAR(num_relaxation_steps, 3);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchIluIsai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
