@@ -332,10 +332,12 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
 }
 
 
+namespace experimental {
+
+
 #if GINKGO_BUILD_MPI
 
 
-namespace experimental {
 namespace distributed {
 
 
@@ -522,7 +524,6 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
 
 
 }  // namespace distributed
-}  // namespace experimental
 
 
 /**
@@ -612,6 +613,7 @@ void precision_dispatch_real_complex_distributed(Function fn, Args*... args)
 #endif
 
 
+}  // namespace experimental
 }  // namespace gko
 
 
