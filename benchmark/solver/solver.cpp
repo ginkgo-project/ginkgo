@@ -77,7 +77,7 @@ void validate_option_object(const rapidjson::Value& value)
     }
 }
 
-struct SolverSystemGenerator : public DefaultSystemGenerator {
+struct Generator : public SolverGenerator {
     void validate_options(const rapidjson::Value& options) const
     {
         if (!options.IsObject() || !options.HasMember("optimal") ||
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_solver_benchmarks(exec, test_cases, SolverSystemGenerator{});
+    run_solver_benchmarks(exec, test_cases, Generator{});
 
     std::cout << test_cases << std::endl;
 }
