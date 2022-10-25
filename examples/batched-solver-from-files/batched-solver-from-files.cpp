@@ -197,10 +197,11 @@ int main(int argc, char* argv[])
                         gko::preconditioner::batch_ilu_type::exact_ilu)
                     .with_lower_factor_isai_sparsity_power(2)
                     .with_upper_factor_isai_sparsity_power(1)
-                    .with_num_relaxation_steps(5)
+                    .with_num_relaxation_steps(2)
+                    // .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::
+                    //                      spmv_isai_simple)
                     .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::
-                                         spmv_isai_simple)
-                    // .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::relaxation_steps_isai_simple)
+                                         relaxation_steps_isai_simple)
                     .on(exec))
             .on(exec);
 
