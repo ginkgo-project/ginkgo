@@ -62,24 +62,41 @@ struct DefaultSystemGenerator {
             config["optimal"]["spmv"].GetString(), std::move(exec), data));
     }
 
-    std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
-                                      const gko::LinOp* system_matrix,
-                                      rapidjson::Value& config) const
+    std::unique_ptr<Vec> create_matrix(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+        etype value) const
     {
-        if (config.HasMember("rhs")) {
-            std::ifstream rhs_fd{config["rhs"].GetString()};
-            return gko::read<Vec>(rhs_fd, std::move(exec));
-        } else {
-            return ::generate_rhs(std::move(exec), system_matrix, engine);
-        }
+        auto res = Vec::create(exec);
+        res->read(gko::matrix_data<etype, itype>(size, value));
+        return res;
     }
 
-    std::unique_ptr<Vec> generate_initial_guess(
-        std::shared_ptr<const gko::Executor> exec,
-        const gko::LinOp* system_matrix, const Vec* rhs) const
+    // creates a random matrix
+    std::unique_ptr<Vec> create_matrix_random(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size) const
     {
-        return ::generate_initial_guess(std::move(exec), system_matrix, rhs,
-                                        engine);
+        auto res = Vec::create(exec);
+        res->read(gko::matrix_data<etype, itype>(
+            size,
+            std::uniform_real_distribution<gko::remove_complex<etype>>(-1.0,
+                                                                       1.0),
+            get_engine()));
+        return res;
+    }
+
+    // creates a zero vector
+    std::unique_ptr<Vec> create_vector(
+        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
+    {
+        auto res = Vec::create(exec, gko::dim<2>{size, 1});
+        return res;
+    }
+
+    // creates a random vector
+    std::unique_ptr<Vec> create_vector_random(
+        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
+    {
+        return create_matrix_random(exec, gko::dim<2>{size, 1});
     }
 
     std::unique_ptr<Vec> initialize(
@@ -88,15 +105,15 @@ struct DefaultSystemGenerator {
     {
         return gko::initialize<Vec>(std::move(il), std::move(exec));
     }
-
-    std::default_random_engine engine = get_engine();
 };
 
 
 #if GINKGO_BUILD_MPI
 
 
+template <typename LocalGeneratorType>
 struct DistributedDefaultSystemGenerator {
+    using LocalGenerator = LocalGeneratorType;
     using Mtx = dist_mtx<etype, itype, gko::int64>;
     using Vec = dist_vec<etype>;
 
@@ -115,42 +132,16 @@ struct DistributedDefaultSystemGenerator {
         auto part = gko::distributed::Partition<itype, gko::int64>::
             build_from_global_size_uniform(
                 exec, comm.size(), static_cast<gko::int64>(data.size[0]));
-        auto formats = split(config["optimal"]["spmv"].GetString(), "-");
-        return ::create_distributed_matrix(exec, comm, formats[0], formats{1},
+        auto formats = split(config["optimal"]["spmv"].GetString(), '-');
+        return ::create_distributed_matrix(exec, comm, formats[0], formats[1],
                                            data, part.get());
-    }
-
-    std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
-                                      const gko::LinOp* system_matrix,
-                                      rapidjson::Value& config) const
-    {
-        return Vec::create(
-            exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-            gko::as<DefaultSystemGenerator::Vec>(
-                local_generator.generate_rhs(
-                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
-                    config))
-                .get());
-    }
-
-    std::unique_ptr<Vec> generate_initial_guess(
-        std::shared_ptr<const gko::Executor> exec,
-        const gko::LinOp* system_matrix, const Vec* rhs) const
-    {
-        return Vec::create(
-            exec, comm, gko::dim<2>{rhs->get_size()[0], FLAGS_nrhs},
-            gko::as<DefaultSystemGenerator::Vec>(
-                local_generator.generate_initial_guess(
-                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
-                    rhs->get_local_vector()))
-                .get());
     }
 
     std::unique_ptr<Vec> initialize(
         std::initializer_list<etype> il,
         std::shared_ptr<const gko::Executor> exec) const
     {
-        auto local = gko::initialize<DefaultSystemGenerator::Vec>(
+        auto local = gko::initialize<typename LocalGenerator::Vec>(
             std::move(il), std::move(exec));
         auto global_rows = local->get_size()[0];
         comm.all_reduce(gko::ReferenceExecutor::create(), &global_rows, 1,
@@ -161,7 +152,7 @@ struct DistributedDefaultSystemGenerator {
     }
 
     gko::mpi::communicator comm;
-    DefaultSystemGenerator local_generator{};
+    LocalGenerator local_generator{};
 };
 
 

@@ -63,9 +63,10 @@ std::string example_config = R"(
 }
 
 
-struct Generator : public DistributedDefaultSystemGenerator {
+struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     Generator(gko::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator{std::move(comm), {}}
+        : DistributedDefaultSystemGenerator<SolverGenerator>{std::move(comm),
+                                                             {}}
     {}
 
     void validate_options(const rapidjson::Value& options) const
@@ -77,6 +78,32 @@ struct Generator : public DistributedDefaultSystemGenerator {
              !options["optimal"].HasMember("spmv"))) {
             print_config_error_and_exit();
         }
+    }
+
+    std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
+                                      const gko::LinOp* system_matrix,
+                                      rapidjson::Value& config) const
+    {
+        return Vec::create(
+            exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+            gko::as<typename LocalGenerator::Vec>(
+                local_generator.generate_rhs(
+                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                    config))
+                .get());
+    }
+
+    std::unique_ptr<Vec> generate_initial_guess(
+        std::shared_ptr<const gko::Executor> exec,
+        const gko::LinOp* system_matrix, const Vec* rhs) const
+    {
+        return Vec::create(
+            exec, comm, gko::dim<2>{rhs->get_size()[0], FLAGS_nrhs},
+            gko::as<typename LocalGenerator::Vec>(
+                local_generator.generate_initial_guess(
+                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                    rhs->get_local_vector()))
+                .get());
     }
 };
 
