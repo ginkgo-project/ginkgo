@@ -53,7 +53,7 @@ namespace formats {
 
 
 std::string available_format =
-    "coo, csr, ell, ell-mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
+    "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
@@ -84,7 +84,7 @@ std::string format_description =
     "csrs: Ginkgo's CSR implementation with sparselib strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse\n"
     "     Matrix-Vector Multiplication on CUDA.\n"
-    "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland:\n"
+    "ell_mixed: Mixed Precision Ellpack format according to Bell and Garland:\n"
     "           Efficient Sparse Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ELL and COO to represent the matrix.\n"
@@ -241,7 +241,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrs", create_matrix_type<csr>(std::make_shared<csr::sparselib>())},
         {"coo", create_matrix_type<coo>()},
         {"ell", create_matrix_type<ell>()},
-        {"ell-mixed", create_matrix_type<ell_mixed>()},
+        {"ell_mixed", create_matrix_type<ell_mixed>()},
 #ifdef HAS_CUDA
         {"cusparse_csr", create_sparselib_linop<cusparse_csr>},
         {"cusparse_csrmp", create_sparselib_linop<cusparse_csrmp>},
@@ -301,10 +301,10 @@ std::unique_ptr<gko::LinOp> matrix_factory(
     const gko::matrix_data<etype, itype>& data)
 {
     auto mat = matrix_type_factory.at(format)(exec);
-    if (format == "ell" || format == "ell-mixed") {
+    if (format == "ell" || format == "ell_mixed") {
         check_ell_admissibility(data);
     }
-    if (format == "ell-mixed") {
+    if (format == "ell_mixed") {
         gko::matrix_data<gko::next_precision<etype>, itype> conv_data;
         conv_data.size = data.size;
         conv_data.nonzeros.resize(data.nonzeros.size());
