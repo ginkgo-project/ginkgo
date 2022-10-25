@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 
@@ -322,6 +323,40 @@ std::unique_ptr<vec<etype>> generate_initial_guess(
                                 FLAGS_initial_guess_generation +
                                 " is not supported!");
 }
+
+
+struct SolverGenerator : DefaultSystemGenerator {
+    using Vec = typename DefaultSystemGenerator::Vec;
+
+    std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
+                                      const gko::LinOp* system_matrix,
+                                      rapidjson::Value& config) const
+    {
+        if (config.HasMember("rhs")) {
+            std::ifstream rhs_fd{config["rhs"].GetString()};
+            return gko::read<Vec>(rhs_fd, std::move(exec));
+        } else {
+            return ::generate_rhs(std::move(exec), system_matrix, engine);
+        }
+    }
+
+    std::unique_ptr<Vec> generate_initial_guess(
+        std::shared_ptr<const gko::Executor> exec,
+        const gko::LinOp* system_matrix, const Vec* rhs) const
+    {
+        return ::generate_initial_guess(std::move(exec), system_matrix, rhs,
+                                        engine);
+    }
+
+    std::unique_ptr<Vec> initialize(
+        std::initializer_list<etype> il,
+        std::shared_ptr<const gko::Executor> exec) const
+    {
+        return gko::initialize<Vec>(std::move(il), std::move(exec));
+    }
+
+    std::default_random_engine engine = get_engine();
+};
 
 
 template <typename VectorType>
