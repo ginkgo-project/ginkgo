@@ -115,10 +115,9 @@ struct DistributedDefaultSystemGenerator {
         auto part = gko::distributed::Partition<itype, gko::int64>::
             build_from_global_size_uniform(
                 exec, comm.size(), static_cast<gko::int64>(data.size[0]));
-        return ::create_distributed_matrix(
-            exec, comm, config["optimal"]["spmv"]["local"].GetString(),
-            config["optimal"]["spmv"]["non-local"].GetString(), data,
-            part.get());
+        auto formats = split(config["optimal"]["spmv"].GetString(), "-");
+        return ::create_distributed_matrix(exec, comm, formats[0], formats{1},
+                                           data, part.get());
     }
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
