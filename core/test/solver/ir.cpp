@@ -167,9 +167,6 @@ TYPED_TEST(Ir, CanBeCleared)
 
 TYPED_TEST(Ir, DefaultApplyUsesInitialGuess)
 {
-    using Solver = typename TestFixture::Solver;
-    ASSERT_TRUE(static_cast<Solver*>(this->solver.get())->get_apply_hint() ==
-                gko::solver::input_hint::given);
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
 
@@ -314,7 +311,6 @@ TYPED_TEST(Ir, CanSetApplyHint)
                 .on(this->exec);
         auto solver = ir_factory->generate(this->mtx);
 
-        ASSERT_EQ(solver->get_apply_hint(), hint);
         ASSERT_EQ(solver->apply_uses_initial_guess(),
                   hint == gko::solver::input_hint::given);
     }

@@ -94,8 +94,13 @@ inline void fill_zero(LinOp* input)
 }  // namespace
 
 
+class MultigridState;
+
+
 class ApplyHint {
-public:
+protected:
+    friend class MultigridState;
+
     /**
      * Applies a linear operator to a vector (or a sequence of vectors) with
      * a hint.
@@ -161,7 +166,6 @@ public:
      */
     input_hint get_apply_hint() const { return hint_; }
 
-protected:
     /**
      * ApplyHint constructor.
      *
@@ -210,7 +214,9 @@ private:
 
 template <typename DerivedType>
 class EnableApplyHint : public ApplyHint {
-public:
+protected:
+    friend class MultigridState;
+
     DerivedType* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
     {
         ApplyHint::apply_hint(b, x, hint);
