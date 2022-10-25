@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -262,8 +262,8 @@ protected:
     using Csr = gko::matrix::Csr<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid;
-    using Coarse = gko::multigrid::AmgxPgm<value_type>;
-    using CoarseNext = gko::multigrid::AmgxPgm<gko::next_precision<value_type>>;
+    using Coarse = gko::multigrid::Pgm<value_type>;
+    using CoarseNext = gko::multigrid::Pgm<gko::next_precision<value_type>>;
     using Smoother = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
     using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;

@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
+    using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
             .on(exec));
     // Create MultigridLevel factory
     auto mg_level_gen =
-        gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
+        gko::share(pgm::build().with_deterministic(true).on(exec));
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()

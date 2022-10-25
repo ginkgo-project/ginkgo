@@ -30,59 +30,72 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+// force-top: on
+// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+// force-top: off
 
 
-#include <algorithm>
+#include "core/multigrid/pgm_kernels.hpp"
+
+
 #include <memory>
-
-
-#include <omp.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
-
-
-#include "core/base/iterator_factory.hpp"
+#include <ginkgo/core/multigrid/pgm.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace dpcpp {
 /**
- * @brief The AMGX_PGM solver namespace.
+ * @brief The PGM solver namespace.
  *
- * @ingroup amgx_pgm
+ * @ingroup pgm
  */
-namespace amgx_pgm {
+namespace pgm {
 
 
 template <typename IndexType>
 void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
               IndexType* row_idxs, IndexType* col_idxs)
 {
-    auto it = detail::make_zip_iterator(row_idxs, col_idxs);
-    std::sort(it, it + num);
+    auto policy =
+        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
+    std::sort(policy, it, it + num, [](auto a, auto b) {
+        return std::tie(std::get<0>(a), std::get<1>(a)) <
+               std::tie(std::get<0>(b), std::get<1>(b));
+    });
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
                     IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
 {
-    auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
-    std::stable_sort(it, it + nnz, [](auto a, auto b) {
+    auto policy =
+        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
+    // Because reduce_by_segment is not determinstic, so we do not need
+    // stable_sort
+    // TODO: If we have determinstic reduce_by_segment, it should be stable_sort
+    std::sort(policy, it, it + nnz, [](auto a, auto b) {
         return std::tie(std::get<0>(a), std::get<1>(a)) <
                std::tie(std::get<0>(b), std::get<1>(b));
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_SORT_ROW_MAJOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
+
+
+template <typename ValueType, typename IndexType>
+class coarse_coo_policy {};
 
 
 template <typename ValueType, typename IndexType>
@@ -91,38 +104,31 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* col_idxs, const ValueType* vals,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
-    auto coarse_row = coarse_coo->get_row_idxs();
-    auto coarse_col = coarse_coo->get_col_idxs();
-    auto coarse_val = coarse_coo->get_values();
-    size_type idxs = 0;
-    size_type coarse_idxs = 0;
-    IndexType curr_row = row_idxs[0];
-    IndexType curr_col = col_idxs[0];
-    ValueType temp_val = vals[0];
-    for (size_type idxs = 1; idxs < fine_nnz; idxs++) {
-        if (curr_row != row_idxs[idxs] || curr_col != col_idxs[idxs]) {
-            coarse_row[coarse_idxs] = curr_row;
-            coarse_col[coarse_idxs] = curr_col;
-            coarse_val[coarse_idxs] = temp_val;
-            curr_row = row_idxs[idxs];
-            curr_col = col_idxs[idxs];
-            temp_val = vals[idxs];
-            coarse_idxs++;
-            continue;
-        }
-        temp_val += vals[idxs];
-    }
-    GKO_ASSERT(coarse_idxs + 1 == coarse_coo->get_num_stored_elements());
-    coarse_row[coarse_idxs] = curr_row;
-    coarse_col[coarse_idxs] = curr_col;
-    coarse_val[coarse_idxs] = temp_val;
+    // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
+    // throws same mangled name error. Related:
+    // https://github.com/oneapi-src/oneDPL/issues/507
+    auto policy = oneapi::dpl::execution::make_device_policy<
+        coarse_coo_policy<ValueType, IndexType>>(*exec->get_queue());
+    auto key_it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
+
+    auto coarse_key_it = oneapi::dpl::make_zip_iterator(
+        coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs());
+
+    oneapi::dpl::reduce_by_segment(
+        policy, key_it, key_it + fine_nnz, vals, coarse_key_it,
+        coarse_coo->get_values(),
+        [](auto a, auto b) {
+            return std::tie(std::get<0>(a), std::get<1>(a)) ==
+                   std::tie(std::get<0>(b), std::get<1>(b));
+        },
+        [](auto a, auto b) { return a + b; });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_COMPUTE_COARSE_COO);
+    GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 
 
-}  // namespace amgx_pgm
-}  // namespace omp
+}  // namespace pgm
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

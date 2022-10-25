@@ -30,12 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/pgm_kernels.hpp"
 
 
 #include <memory>
 
 
+#include <cuda.h>
+#include <cusparse.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/reduce.h>
@@ -45,27 +47,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 
 
-#include "hip/base/types.hip.hpp"
+#include "cuda/base/types.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
- * @brief The AMGX_PGM solver namespace.
+ * @brief The PGM solver namespace.
  *
- * @ingroup amgx_pgm
+ * @ingroup pgm
  */
-namespace amgx_pgm {
+namespace pgm {
 
 
-#include "common/cuda_hip/multigrid/amgx_pgm_kernels.hpp.inc"
+#include "common/cuda_hip/multigrid/pgm_kernels.hpp.inc"
 
 
-}  // namespace amgx_pgm
-}  // namespace hip
+}  // namespace pgm
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

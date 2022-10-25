@@ -408,9 +408,9 @@ int main()
         auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
-    // core/multigrid/amgx_pgm.hpp
+    // core/multigrid/pgm.hpp
     {
-        auto test = gko::multigrid::AmgxPgm<>::build().on(exec);
+        auto test = gko::multigrid::Pgm<>::build().on(exec);
     }
 
     // core/preconditioner/ilu.hpp

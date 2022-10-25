@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
     using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using bj2 = gko::preconditioner::Jacobi<ValueType2, IndexType>;
-    using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
-    using amgx_pgm2 = gko::multigrid::AmgxPgm<ValueType2, IndexType>;
+    using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
+    using pgm2 = gko::multigrid::Pgm<ValueType2, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -143,9 +143,9 @@ int main(int argc, char* argv[])
             .on(exec));
     // Create RestrictProlong factory
     auto mg_level_gen =
-        gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
+        gko::share(pgm::build().with_deterministic(true).on(exec));
     auto mg_level_gen2 =
-        gko::share(amgx_pgm2::build().with_deterministic(true).on(exec));
+        gko::share(pgm2::build().with_deterministic(true).on(exec));
     // Create CoarsesSolver factory
     auto coarsest_solver_gen =
         cg::build()
@@ -197,8 +197,8 @@ int main(int argc, char* argv[])
     auto smoother_list = solver->get_pre_smoother_list();
     // Check the MultigridLevel and smoother.
     // throw error if there is mismatch
-    auto level0 = gko::as<amgx_pgm>(mg_level_list.at(0));
-    auto level1 = gko::as<amgx_pgm2>(mg_level_list.at(1));
+    auto level0 = gko::as<pgm>(mg_level_list.at(0));
+    auto level1 = gko::as<pgm2>(mg_level_list.at(1));
     auto smoother0 = gko::as<ir>(smoother_list.at(0));
     auto smoother1 = gko::as<ir2>(smoother_list.at(1));
 

@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 
 
 #include <memory>
@@ -49,7 +49,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class AmgxPgmFactory : public ::testing::Test {
+class PgmFactory : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -57,33 +57,33 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
-    AmgxPgmFactory()
+    using MgLevel = gko::multigrid::Pgm<value_type, index_type>;
+    PgmFactory()
         : exec(gko::ReferenceExecutor::create()),
-          amgxpgm_factory(MgLevel::build()
-                              .with_max_iterations(2u)
-                              .with_max_unassigned_ratio(0.1)
-                              .with_deterministic(true)
-                              .with_skip_sorting(true)
-                              .on(exec))
+          pgm_factory(MgLevel::build()
+                          .with_max_iterations(2u)
+                          .with_max_unassigned_ratio(0.1)
+                          .with_deterministic(true)
+                          .with_skip_sorting(true)
+                          .on(exec))
 
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename MgLevel::Factory> amgxpgm_factory;
+    std::unique_ptr<typename MgLevel::Factory> pgm_factory;
 };
 
-TYPED_TEST_SUITE(AmgxPgmFactory, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(PgmFactory, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(AmgxPgmFactory, FactoryKnowsItsExecutor)
+TYPED_TEST(PgmFactory, FactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->pgm_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(AmgxPgmFactory, DefaultSetting)
+TYPED_TEST(PgmFactory, DefaultSetting)
 {
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
@@ -95,28 +95,27 @@ TYPED_TEST(AmgxPgmFactory, DefaultSetting)
 }
 
 
-TYPED_TEST(AmgxPgmFactory, SetMaxIterations)
+TYPED_TEST(PgmFactory, SetMaxIterations)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_parameters().max_iterations, 2u);
+    ASSERT_EQ(this->pgm_factory->get_parameters().max_iterations, 2u);
 }
 
 
-TYPED_TEST(AmgxPgmFactory, SetMaxUnassignedPercentage)
+TYPED_TEST(PgmFactory, SetMaxUnassignedPercentage)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_parameters().max_unassigned_ratio,
-              0.1);
+    ASSERT_EQ(this->pgm_factory->get_parameters().max_unassigned_ratio, 0.1);
 }
 
 
-TYPED_TEST(AmgxPgmFactory, SetDeterministic)
+TYPED_TEST(PgmFactory, SetDeterministic)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_parameters().deterministic, true);
+    ASSERT_EQ(this->pgm_factory->get_parameters().deterministic, true);
 }
 
 
-TYPED_TEST(AmgxPgmFactory, SetSkipSorting)
+TYPED_TEST(PgmFactory, SetSkipSorting)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_parameters().skip_sorting, true);
+    ASSERT_EQ(this->pgm_factory->get_parameters().skip_sorting, true);
 }
 
 
