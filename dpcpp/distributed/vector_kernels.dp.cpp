@@ -46,7 +46,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        partition,
     comm_index_type local_part,
     matrix::Dense<ValueType>* local_mtx) GKO_NOT_IMPLEMENTED;
 

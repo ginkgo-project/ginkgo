@@ -66,7 +66,8 @@ int main(int argc, char* argv[])
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =
-        gko::distributed::Partition<LocalIndexType, GlobalIndexType>;
+        gko::experimental::distributed::Partition<LocalIndexType,
+                                                  GlobalIndexType>;
     // We can use here the same solver type as you would use in a
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
@@ -151,8 +152,9 @@ int main(int argc, char* argv[])
     // These part-ids will be used for the distributed data structures to
     // determine which rows will be stored locally. In this example each rank
     // has (nearly) the same number of rows, so we can use the following
-    // specialized constructor. See @ref gko::distributed::Partition for other
-    // modes of creating a partition.
+    // specialized constructor. See @ref
+    // gko::experimental::distributed::Partition for other modes of creating a
+    // partition.
     const auto num_rows = grid_dim;
     auto partition = gko::share(part_type::build_from_global_size_uniform(
         exec->get_master(), comm.size(),

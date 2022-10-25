@@ -46,9 +46,9 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
     comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
     array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,

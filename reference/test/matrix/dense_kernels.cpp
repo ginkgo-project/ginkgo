@@ -637,7 +637,7 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
     using T = typename TestFixture::value_type;
     using T_nc = gko::remove_complex<T>;
     using NormVector = gko::matrix::Dense<T_nc>;
-    gko::Array<char> tmp{this->exec};
+    gko::array<char> tmp{this->exec};
     auto mtx(gko::initialize<Mtx>(
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});

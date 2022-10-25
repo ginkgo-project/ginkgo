@@ -54,13 +54,13 @@ namespace kernels {
     void build_local(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const device_matrix_data<ValueType, GlobalIndexType>& input,          \
-        const distributed::Partition<LocalIndexType, GlobalIndexType>*        \
-            partition,                                                        \
+        const experimental::distributed::Partition<                           \
+            LocalIndexType, GlobalIndexType>* partition,                      \
         comm_index_type local_part, matrix::Dense<ValueType>* local_mtx)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    using comm_index_type = distributed::comm_index_type;                 \
+    using comm_index_type = experimental::distributed::comm_index_type;   \
     template <typename ValueType, typename LocalIndexType,                \
               typename GlobalIndexType>                                   \
     GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL(ValueType, LocalIndexType, \

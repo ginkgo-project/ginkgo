@@ -47,18 +47,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
-
-
-}
-
-
-namespace experimental {
-namespace distributed {
 
 
 /**
@@ -143,8 +137,7 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const device_matrix_data<ValueType, GlobalIndexType>& data,
-        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>*
-            partition);
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     /**
      * Reads a vector from the matrix_data structure and a global row
@@ -158,8 +151,7 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const matrix_data<ValueType, GlobalIndexType>& data,
-        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>*
-            partition);
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 

@@ -100,7 +100,7 @@ public:
         typename std::tuple_element<2, decltype(
                                            ValueLocalGlobalIndexType())>::type;
     using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type, global_index_type>;
     using md_type = gko::matrix_data<value_type, global_index_type>;
     using d_md_type = gko::device_matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
@@ -346,7 +346,7 @@ public:
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type, global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
     using real_dense_type = typename dense_type::real_type;
@@ -369,12 +369,12 @@ public:
         tmp = gko::Array<char>(exec);
 
         auto num_parts =
-            static_cast<gko::distributed::comm_index_type>(comm.size());
+            static_cast<gko::experimental::distributed::comm_index_type>(comm.size());
         auto mapping =
-            gko::test::generate_random_array<gko::distributed::comm_index_type>(
+            gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
                 size[0],
                 std::uniform_int_distribution<
-                    gko::distributed::comm_index_type>(0, num_parts - 1),
+                    gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
                 engine, ref);
         auto part = part_type::build_from_mapping(ref, mapping, num_parts);
 

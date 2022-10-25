@@ -127,20 +127,12 @@ auto with_matrix_type(Args&&... create_args)
 }
 
 
+namespace experimental {
 namespace distributed {
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
-
-
-}
-
-
-namespace experimental {
-namespace distributed {
-
-
 template <typename ValueType>
 class Vector;
 
@@ -297,8 +289,7 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            partition);
+        const Partition<local_index_type, global_index_type>* partition);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -311,8 +302,7 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            partition);
+        const Partition<local_index_type, global_index_type>* partition);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -331,10 +321,8 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            row_partition,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            col_partition);
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -347,10 +335,8 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            row_partition,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            col_partition);
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
      * Get read access to the stored local matrix.
@@ -532,10 +518,10 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::vector<gko::distributed::comm_index_type> send_offsets_;
-    std::vector<gko::distributed::comm_index_type> send_sizes_;
-    std::vector<gko::distributed::comm_index_type> recv_offsets_;
-    std::vector<gko::distributed::comm_index_type> recv_sizes_;
+    std::vector<comm_index_type> send_offsets_;
+    std::vector<comm_index_type> send_sizes_;
+    std::vector<comm_index_type> recv_offsets_;
+    std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
