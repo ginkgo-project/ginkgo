@@ -334,12 +334,12 @@ build_part_from_local_size(
 
 
 template <typename ValueType, template <typename> class SolverType>
-auto create_solver_factory(std::shared_ptr<const gko::Executor> exec)
+auto create_solver_factory(std::shared_ptr<const gko::Executor> exec,
+                           gko::size_type max_iters)
 {
     return SolverType<ValueType>::build()
-        .with_criteria(gko::stop::Iteration::build()
-                           .with_max_iters(FLAGS_warmup_max_iters)
-                           .on(exec))
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(max_iters).on(exec))
         .on(exec);
 }
 
@@ -347,21 +347,21 @@ auto create_solver_factory(std::shared_ptr<const gko::Executor> exec)
 template <typename ValueType>
 std::unique_ptr<gko::LinOp> create_solver(
     std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<gko::LinOp> system_matrix)
+    std::shared_ptr<gko::LinOp> system_matrix, gko::size_type max_iters)
 {
     std::unique_ptr<gko::LinOpFactory> factory;
     if (FLAGS_solver == "cg") {
-        factory =
-            create_solver_factory<ValueType, gko::solver::Cg>(std::move(exec));
+        factory = create_solver_factory<ValueType, gko::solver::Cg>(
+            std::move(exec), max_iters);
     } else if (FLAGS_solver == "cgs") {
-        factory =
-            create_solver_factory<ValueType, gko::solver::Cgs>(std::move(exec));
+        factory = create_solver_factory<ValueType, gko::solver::Cgs>(
+            std::move(exec), max_iters);
     } else if (FLAGS_solver == "fcg") {
-        factory =
-            create_solver_factory<ValueType, gko::solver::Fcg>(std::move(exec));
+        factory = create_solver_factory<ValueType, gko::solver::Fcg>(
+            std::move(exec), max_iters);
     } else if (FLAGS_solver == "bicgstab") {
         factory = create_solver_factory<ValueType, gko::solver::Bicgstab>(
-            std::move(exec));
+            std::move(exec), max_iters);
     } else {
         throw std::runtime_error("Unrecognized solver >" + FLAGS_solver + "<");
     }
@@ -483,7 +483,7 @@ int main(int argc, char* argv[])
 
     // Do a warmup run
     {
-        auto solver = create_solver<ValueType>(exec, A);
+        auto solver = create_solver<ValueType>(exec, A, FLAGS_warmup_max_iters);
         if (rank == 0) {
             std::cout << "Warming up..." << std::endl;
         }
@@ -495,7 +495,7 @@ int main(int argc, char* argv[])
 
     // Do and time the actual benchmark runs
     {
-        auto solver = create_solver<ValueType>(exec, A);
+        auto solver = create_solver<ValueType>(exec, A, FLAGS_max_iters);
         if (rank == 0) {
             std::cout << "Running benchmark..." << std::endl;
         }
