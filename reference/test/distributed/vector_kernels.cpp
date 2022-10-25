@@ -50,31 +50,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using comm_index_type = gko::distributed::comm_index_type;
+using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
 template <typename ValueLocalGlobalIndexType>
 class Vector : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using mtx = gko::matrix::Dense<value_type>;
 
     Vector() : ref(gko::ReferenceExecutor::create()) {}
 
-    void validate(
-        const gko::dim<2> size,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            partition,
-        I<global_index_type> input_rows, I<global_index_type> input_cols,
-        I<value_type> input_vals, I<I<I<value_type>>> output_entries)
+    void validate(const gko::dim<2> size,
+                  const gko::experimental::distributed::Partition<
+                      local_index_type, global_index_type>* partition,
+                  I<global_index_type> input_rows,
+                  I<global_index_type> input_cols, I<value_type> input_vals,
+                  I<I<I<value_type>>> output_entries)
     {
         std::vector<I<I<value_type>>> ref_outputs;
         auto input = gko::device_matrix_data<value_type, global_index_type>{
@@ -108,7 +105,7 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
     using global_index_type = typename TestFixture::global_index_type;
     gko::array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);
@@ -124,7 +121,7 @@ TYPED_TEST(Vector, BuildsLocalSmall)
     using global_index_type = typename TestFixture::global_index_type;
     gko::array<comm_index_type> mapping{this->ref, {1, 0}};
     comm_index_type num_parts = 2;
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);
@@ -140,7 +137,7 @@ TYPED_TEST(Vector, BuildsLocal)
     using global_index_type = typename TestFixture::global_index_type;
     gko::array<comm_index_type> mapping{this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);

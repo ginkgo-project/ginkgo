@@ -764,6 +764,7 @@ inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
 }
 
 
+namespace experimental {
 namespace distributed {
 
 
@@ -791,6 +792,7 @@ using comm_index_type = int;
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 

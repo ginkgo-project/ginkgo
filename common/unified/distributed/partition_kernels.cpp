@@ -44,7 +44,7 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace partition {
 
 
-using distributed::comm_index_type;
+using experimental::distributed::comm_index_type;
 
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
                   const array<comm_index_type>& mapping, size_type& num_ranges)
@@ -149,7 +149,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE);
 template <typename LocalIndexType, typename GlobalIndexType>
 void has_ordered_parts(
     std::shared_ptr<const DefaultExecutor> exec,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        partition,
     bool* result)
 {
     const auto part_ids = partition->get_part_ids();

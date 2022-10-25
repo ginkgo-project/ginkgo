@@ -52,21 +52,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using comm_index_type = gko::distributed::comm_index_type;
+using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
 template <typename ValueLocalGlobalIndexType>
 class Matrix : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
@@ -85,10 +82,10 @@ protected:
 
     void validate(
         gko::dim<2> size,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            row_partition,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
-            col_partition,
+        const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>* row_partition,
+        const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>* col_partition,
         std::initializer_list<global_index_type> input_rows,
         std::initializer_list<global_index_type> input_cols,
         std::initializer_list<value_type> input_vals,
@@ -206,8 +203,9 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalEmpty)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
 
     this->validate(
         gko::dim<2>{8, 8}, partition.get(), partition.get(), {}, {}, {},
@@ -228,8 +226,9 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalSmall)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 0}};
     comm_index_type num_parts = 2;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
 
     this->validate(
         gko::dim<2>{2, 2}, partition.get(), partition.get(), {0, 0, 1, 1},
@@ -249,8 +248,9 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoNonLocal)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
 
     this->validate(
         gko::dim<2>{6, 6}, partition.get(), partition.get(),
@@ -276,8 +276,9 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoLocal)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
 
     this->validate(
         gko::dim<2>{6, 6}, partition.get(), partition.get(), {0, 0, 1, 3, 4, 5},
@@ -301,8 +302,9 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalMixed)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
 
     this->validate(
         gko::dim<2>{6, 6}, partition.get(), partition.get(),
@@ -332,12 +334,13 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalEmptyWithColPartition)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref,
                                             {0, 0, 2, 2, 2, 1, 1, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(
@@ -359,11 +362,12 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalSmallWithColPartition)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 0}};
     comm_index_type num_parts = 2;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref, {0, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(
@@ -383,11 +387,12 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoNonLocalWithColPartition)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(
@@ -412,11 +417,12 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoLocalWithColPartition)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(
@@ -442,11 +448,12 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalMixedWithColPartition)
     using vt = typename TestFixture::value_type;
     this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, this->mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(gko::dim<2>{6, 6}, partition.get(), col_partition.get(),
@@ -477,11 +484,12 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNonSquare)
     using vt = typename TestFixture::value_type;
     gko::array<comm_index_type> row_mapping{this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
-        this->ref, row_mapping, num_parts);
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, row_mapping, num_parts);
     gko::array<comm_index_type> col_mapping{this->ref, {0, 2, 2, 1}};
     auto col_partition =
-        gko::distributed::Partition<lit, git>::build_from_mapping(
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
     this->validate(
@@ -509,7 +517,7 @@ TYPED_TEST(Matrix, BuildGhostMapContinuous)
     using global_index_type = typename TestFixture::global_index_type;
     this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
     constexpr comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  this->mapping,
                                                                  num_parts);
@@ -536,7 +544,7 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
     using global_index_type = typename TestFixture::global_index_type;
     this->mapping = {this->ref, {0, 1, 2, 0, 1, 2, 0}};
     constexpr comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  this->mapping,
                                                                  num_parts);

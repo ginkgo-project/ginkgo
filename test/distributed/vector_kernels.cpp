@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-using comm_index_type = gko::distributed::comm_index_type;
+using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
 template <typename ValueLocalGlobalIndexType>
@@ -71,9 +71,9 @@ protected:
     Vector() : engine(42) {}
 
     void validate(
-        const gko::distributed::Partition<local_index_type, global_index_type>*
+        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
             partition,
-        const gko::distributed::Partition<local_index_type, global_index_type>*
+        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
             d_partition,
         gko::device_matrix_data<value_type, global_index_type> input)
     {
@@ -125,18 +125,18 @@ TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::distributed::comm_index_type num_parts = 10;
+    gko::experimental::distributed::comm_index_type num_parts = 10;
     auto mapping =
-        gko::test::generate_random_array<gko::distributed::comm_index_type>(
+        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
             100,
-            std::uniform_int_distribution<gko::distributed::comm_index_type>(
+            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
                 0, num_parts - 1),
             this->engine, this->ref);
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);
-    auto d_partition = gko::distributed::Partition<
+    auto d_partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->exec,
                                                                  mapping,
                                                                  num_parts);
@@ -152,13 +152,13 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::distributed::comm_index_type num_parts = 3;
+    gko::experimental::distributed::comm_index_type num_parts = 3;
     gko::size_type num_rows = 10;
     gko::size_type num_cols = 2;
     auto mapping =
-        gko::test::generate_random_array<gko::distributed::comm_index_type>(
+        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
             num_rows,
-            std::uniform_int_distribution<gko::distributed::comm_index_type>(
+            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
                 0, num_parts - 1),
             this->engine, this->ref);
     auto input =
@@ -169,11 +169,11 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
             std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
                                                                             1),
             this->engine, this->ref);
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);
-    auto d_partition = gko::distributed::Partition<
+    auto d_partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->exec,
                                                                  mapping,
                                                                  num_parts);
@@ -187,13 +187,13 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::distributed::comm_index_type num_parts = 13;
+    gko::experimental::distributed::comm_index_type num_parts = 13;
     gko::size_type num_rows = 40;
     gko::size_type num_cols = 67;
     auto mapping =
-        gko::test::generate_random_array<gko::distributed::comm_index_type>(
+        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
             num_rows,
-            std::uniform_int_distribution<gko::distributed::comm_index_type>(
+            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
                 0, num_parts - 1),
             this->engine, this->ref);
     auto input =
@@ -204,11 +204,11 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
             std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
                                                                             1),
             this->engine, this->ref);
-    auto partition = gko::distributed::Partition<
+    auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
                                                                  num_parts);
-    auto d_partition = gko::distributed::Partition<
+    auto d_partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->exec,
                                                                  mapping,
                                                                  num_parts);

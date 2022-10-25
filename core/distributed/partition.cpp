@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 namespace partition {
 
@@ -142,4 +143,5 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_PARTITION);
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
