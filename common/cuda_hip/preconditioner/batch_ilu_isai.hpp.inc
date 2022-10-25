@@ -103,11 +103,100 @@ private:
         batch_ilu_isai_temp::single_csr_spmv_kernel(mult_inv_entry_, r, z);
     }
 
+    __device__ __forceinline__ void solve_system_relaxation_steps_simple(
+        const int num_rows,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_entry,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
+        const ValueType* const __restrict__ rhs,
+        ValueType* const __restrict__ sol_guess,
+        ValueType* const __restrict__ temp1,
+        ValueType* const __restrict__ temp2) const
+    {
+        // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) * sol_guess
+        // (iterations)
+
+        batch_ilu_isai_temp::single_csr_spmv_kernel(mat_isai_entry, rhs, temp1);
+        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
+            sol_guess[i] = 0;
+        }
+        __syncthreads();
+
+        for (int step = 0; step < num_relaxation_steps_; step++) {
+            // sol_guess_updated =  temp1 + sol_guess -  (lai_mat * temp2) where
+            // temp2 = mat * sol_guess
+            batch_ilu_isai_temp::single_csr_spmv_kernel(mat_entry, sol_guess,
+                                                        temp2);
+            __syncthreads();
+            // merged kernel
+            for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
+                auto sum = zero<ValueType>();
+                for (auto i = mat_isai_entry.row_ptrs[row];
+                     i < mat_isai_entry.row_ptrs[row + 1]; i++) {
+                    const auto col_idx = mat_isai_entry.col_idxs[i];
+                    sum += mat_isai_entry.values[i] * temp2[col_idx];
+                }
+
+                sol_guess[row] = temp1[row] + sol_guess[row] - sum;
+            }
+            __syncthreads();
+        }
+    }
+
     __device__ __forceinline__ void apply_relaxation_steps_isai_simple(
         const int num_rows, const ValueType* const __restrict__ r,
         ValueType* const __restrict__ z) const
     {
-        printf("\n Yet to be implemented \n");
+        // z = precond * r
+        // L * U * z = r
+        // L * y = r  and then U * z = y
+        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
+        // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
+        // (iterations)
+
+        ValueType* y = work_;
+        ValueType* temp1 = work_ + num_rows;
+        ValueType* temp2 = temp1 + num_rows;
+
+        solve_system_relaxation_steps_simple(num_rows, l_entry_, l_isai_entry_,
+                                             r, y, temp1, temp2);
+        __syncthreads();
+        solve_system_relaxation_steps_simple(num_rows, u_entry_, u_isai_entry_,
+                                             y, z, temp1, temp2);
+    }
+
+    __device__ __forceinline__ void
+    solve_system_relaxation_steps_external_spgemm(
+        const int num_rows,
+        const gko::batch_csr::BatchEntry<const ValueType>& iteration_mat_entry,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
+        const ValueType* const __restrict__ rhs,
+        ValueType* const __restrict__ sol_guess,
+        ValueType* const __restrict__ temp) const
+    {
+        // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) * sol_guess
+        // (iterations)
+        batch_ilu_isai_temp::single_csr_spmv_kernel(mat_isai_entry, rhs, temp);
+        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
+            sol_guess[i] = 0;
+        }
+        __syncthreads();
+
+        for (int step = 0; step < num_relaxation_steps_; step++) {
+            // sol_guess_updated =  temp + iter_mat * sol_guess
+
+            // merged kernel
+            for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
+                auto sum = zero<ValueType>();
+                for (auto i = iteration_mat_entry.row_ptrs[row];
+                     i < iteration_mat_entry.row_ptrs[row + 1]; i++) {
+                    const auto col_idx = iteration_mat_entry.col_idxs[i];
+                    sum += iteration_mat_entry.values[i] * sol_guess[col_idx];
+                }
+
+                sol_guess[row] = temp[row] + sum;
+            }
+            __syncthreads();
+        }
     }
 
     __device__ __forceinline__ void apply_relaxation_steps_isai_with_spgemm(
@@ -121,7 +210,13 @@ private:
         // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
         // (iterations)
 
-        printf("\n Yet to be implemented \n");
+        ValueType* y = work_;
+        ValueType* temp = work_ + num_rows;
+        solve_system_relaxation_steps_external_spgemm(
+            num_rows, iter_mat_lower_solve_entry_, l_isai_entry_, r, y, temp);
+        __syncthreads();
+        solve_system_relaxation_steps_external_spgemm(
+            num_rows, iter_mat_upper_solve_entry_, u_isai_entry_, y, z, temp);
     }
 
 public:
@@ -182,7 +277,7 @@ public:
     __host__ __device__ static constexpr int dynamic_work_size(int nrows,
                                                                int nnz)
     {
-        return nrows;
+        return 3 * nrows;
     }
 
     /**
@@ -239,7 +334,7 @@ public:
     }
 
 private:
-    value_type* __restrict__ work_;
+    value_type* work_;
     const enum gko::preconditioner::batch_ilu_isai_apply apply_type_;
     const int num_relaxation_steps_;
     const gko::batch_csr::UniformBatch<const value_type> l_batch_;
