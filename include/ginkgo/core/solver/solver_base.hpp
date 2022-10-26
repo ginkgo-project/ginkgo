@@ -97,6 +97,10 @@ inline void fill_zero(LinOp* input)
 class MultigridState;
 
 
+/**
+ * ApplyHint provides a way to give the input hint for apply function.
+ * All functionalities are under protected. It should only be used internally.
+ */
 class ApplyHint {
 protected:
     friend class MultigridState;
@@ -114,16 +118,17 @@ protected:
      *
      * @return this
      */
-    ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
+    ApplyHint* apply_with_hint(const LinOp* b, LinOp* x, input_hint hint)
     {
         this->apply_impl(b, x, hint);
         return this;
     }
 
     /**
-     * @copydoc apply_hint(const LinOp *, LinOp *, input_hint)
+     * @copydoc apply_with_hint(const LinOp *, LinOp *, input_hint)
      */
-    const ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint) const
+    const ApplyHint* apply_with_hint(const LinOp* b, LinOp* x,
+                                     input_hint hint) const
     {
         this->apply_impl(b, x, hint);
         return this;
@@ -140,20 +145,20 @@ protected:
      *
      * @return this
      */
-    ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                          LinOp* x, input_hint hint)
+    ApplyHint* apply_with_hint(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x, input_hint hint)
     {
         this->apply_impl(alpha, b, beta, x, hint);
         return this;
     }
 
     /**
-     * @copydoc apply_hint(const LinOp *, const LinOp *, const LinOp *, LinOp *,
-     *          input_hint)
+     * @copydoc apply_with_hint(const LinOp *, const LinOp *, const LinOp *,
+     * LinOp *, input_hint)
      */
-    const ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b,
-                                const LinOp* beta, LinOp* x,
-                                input_hint hint) const
+    const ApplyHint* apply_with_hint(const LinOp* alpha, const LinOp* b,
+                                     const LinOp* beta, LinOp* x,
+                                     input_hint hint) const
     {
         this->apply_impl(alpha, b, beta, x, hint);
         return this;
@@ -173,24 +178,52 @@ protected:
      */
     ApplyHint(input_hint hint = input_hint::given) : hint_(hint) {}
 
-    virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
+    /**
+     * Modify the input vector x by the hint
+     *
+     * @param b  the right hand side vectors
+     * @param x  the input vectors
+     * @param hint  the input hint
+     */
+    static void modify_input(const LinOp* b, LinOp* x, input_hint hint)
     {
         if (hint == input_hint::zero) {
             fill_zero(x);
         } else if (hint == input_hint::rhs) {
             x->copy_from(b);
         }
+    }
+
+    /**
+     * Implementers of ApplyHint should override this function.
+     *
+     * Performs the operation x = op(b) with a hint
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     * @param hint  the input hint
+     */
+    virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
+    {
+        modify_input(b, x, hint);
         this->apply_impl(b, x);
     }
 
+    /**
+     * Implementers of ApplyHint should override this function.
+     *
+     * Performs the operation x = alpha * op(b) + beta * x with a hint
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     * @param hint  the input hint
+     */
     virtual void apply_impl(const LinOp* alpha, const LinOp* b,
                             const LinOp* beta, LinOp* x, input_hint hint) const
     {
-        if (hint == input_hint::zero) {
-            fill_zero(x);
-        } else if (hint == input_hint::rhs) {
-            x->copy_from(b);
-        }
+        modify_input(b, x, hint);
         this->apply_impl(b, x);
     }
 
@@ -212,42 +245,51 @@ private:
     input_hint hint_;
 };
 
+
+/**
+ * The EnableApplyHint mixin can be used to provide sensible default
+ * implementations of ApplyHint.
+ *
+ * @tparam DerivedType  the concrete LinOp which is being implemented
+ *                      [CRTP parameter]
+ */
 template <typename DerivedType>
 class EnableApplyHint : public ApplyHint {
 protected:
     friend class MultigridState;
 
-    DerivedType* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
+    DerivedType* apply_with_hint(const LinOp* b, LinOp* x, input_hint hint)
     {
-        ApplyHint::apply_hint(b, x, hint);
+        ApplyHint::apply_with_hint(b, x, hint);
         return self();
     }
 
-    const DerivedType* apply_hint(const LinOp* b, LinOp* x,
-                                  input_hint hint) const
+    const DerivedType* apply_with_hint(const LinOp* b, LinOp* x,
+                                       input_hint hint) const
     {
-        ApplyHint::apply_hint(b, x, hint);
+        ApplyHint::apply_with_hint(b, x, hint);
         return self();
     }
 
-    DerivedType* apply_hint(const LinOp* alpha, const LinOp* b,
-                            const LinOp* beta, LinOp* x, input_hint hint)
+    DerivedType* apply_with_hint(const LinOp* alpha, const LinOp* b,
+                                 const LinOp* beta, LinOp* x, input_hint hint)
     {
-        ApplyHint::apply_hint(alpha, b, beta, x, hint);
+        ApplyHint::apply_with_hint(alpha, b, beta, x, hint);
         return self();
     }
 
-    const DerivedType* apply_hint(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x,
-                                  input_hint hint) const
+    const DerivedType* apply_with_hint(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       input_hint hint) const
     {
-        ApplyHint::apply_hint(alpha, b, beta, x, hint);
+        ApplyHint::apply_with_hint(alpha, b, beta, x, hint);
         return self();
     }
 
 protected:
     GKO_ENABLE_SELF(DerivedType);
 };
+
 
 /**
  * Traits class providing information on the type and location of workspace
