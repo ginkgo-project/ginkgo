@@ -373,7 +373,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a)
 {
-    int num_thread_per_worker = 8;
+    int num_thread_per_worker = 16;
     int atomic = 0;
     int num_worker_per_row = 1;
 
