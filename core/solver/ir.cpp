@@ -172,6 +172,7 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
     if (!this->get_system_matrix()) {
         return;
     }
+    this->modify_input(b, x, hint);
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this, hint](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x, hint);
@@ -201,12 +202,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
-    if (hint == input_hint::rhs) {
-        dense_x->copy_from(dense_b);
-    } else if (hint == input_hint::zero) {
-        dense_x->fill(zero<ValueType>());
-    }
-
     if (hint != input_hint::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -292,13 +287,14 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
+    ApplyHint::modify_input(b, x, hint);
+    experimental::precision_dispatch_real_complex_distributed<ValueType>((
         [this, hint](auto dense_alpha, auto dense_b, auto dense_beta,
                      auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get(), hint);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+        auto x_clone = dense_x->clone();
+        this->apply_dense_impl(dense_b, x_clone.get(), hint);
+        dense_x->scale(dense_beta);
+        dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
 }

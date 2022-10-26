@@ -278,7 +278,7 @@ struct MultigridState {
             auto pre_allow_zero_input =
                 std::dynamic_pointer_cast<const ApplyHint>(pre_smoother);
             if (x_is_zero && pre_allow_zero_input) {
-                pre_allow_zero_input->apply_hint(b, x, input_hint::zero);
+                pre_allow_zero_input->apply_with_hint(b, x, input_hint::zero);
             } else {
                 pre_smoother->apply(b, x);
             }

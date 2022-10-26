@@ -202,7 +202,7 @@ public:
                                                value_type{1});
 
         /**
-         * Default ApplyHint
+         * Default ApplyHint. The available options are under input_hint.
          */
         input_hint GKO_FACTORY_PARAMETER_SCALAR(apply_hint, input_hint::given);
     };
