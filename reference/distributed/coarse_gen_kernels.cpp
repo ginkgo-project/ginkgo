@@ -176,6 +176,8 @@ void fill_coarse(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, IndexType>& fine_matrix_data,
     device_matrix_data<ValueType, IndexType>& coarse_data,
+    device_matrix_data<ValueType, IndexType>& restrict_data,
+    device_matrix_data<ValueType, IndexType>& prolong_data,
     array<IndexType>& coarse_indices)
 {
     const auto global_size = fine_matrix_data.get_size();
@@ -183,6 +185,7 @@ void fill_coarse(
     const auto f_row_idxs = fine_matrix_data.get_const_row_idxs();
     const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
 
+    // Get coarse data with global fine matrix indexing.
     for (auto i = 0; i < coarse_size[0]; ++i) {
         if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
                       coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
@@ -190,11 +193,14 @@ void fill_coarse(
                           coarse_indices.get_data()[i]) !=
                 std::end(f_col_idxs)) {
                 // Assume row major ordering
-                coarse_data.get_row_idxs()[i] = i;
-                //    fine_matrix_data.get_const_row_idxs()[coarse_indices.get_data()[i]];
+                coarse_data.get_row_idxs()[i] =
+                    fine_matrix_data
+                        .get_const_row_idxs()[coarse_indices.get_data()[i]] -
+                    coarse_indices.get_data()[i];
                 coarse_data.get_col_idxs()[i] =
                     fine_matrix_data
-                        .get_const_col_idxs()[coarse_indices.get_data()[i]];
+                        .get_const_col_idxs()[coarse_indices.get_data()[i]] -
+                    coarse_indices.get_data()[i];
                 coarse_data.get_values()[i] =
                     fine_matrix_data
                         .get_const_values()[coarse_indices.get_data()[i]];

@@ -94,26 +94,48 @@ void CoarseGen<ValueType, LocalIndexType,
     using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
-    const matrix_type* dist_mat =
+    const matrix_type* dist_fine_mat =
         dynamic_cast<const matrix_type*>(system_matrix_.get());
-    const matrix_type* dist_coarse_mat =
-        dynamic_cast<const matrix_type*>(coarse_matrix_.get());
 
-    const auto global_size = dist_mat->get_size();
-    const auto local_num_rows = dist_mat->get_local_matrix()->get_size()[0];
+    std::shared_ptr<matrix_type> dist_coarse_mat =
+        matrix_type::create(exec, dist_fine_mat->get_communicator());
+    std::shared_ptr<matrix_type> dist_restrict_mat =
+        matrix_type::create(exec, dist_fine_mat->get_communicator());
+    std::shared_ptr<matrix_type> dist_prolong_mat =
+        matrix_type::create(exec, dist_fine_mat->get_communicator());
 
-    const auto mat_data = dist_mat->get_matrix_data();
+    const auto global_size = dist_fine_mat->get_size();
+    const auto local_num_rows =
+        dist_fine_mat->get_local_matrix()->get_size()[0];
+
+    const auto fine_mat_data = dist_fine_mat->get_matrix_data();
+    const auto global_coarse_size = global_size[0] / 2;
     coarse_indices_map_ = array<GlobalIndexType>(exec, global_coarse_size);
-    // TODO kernel to fill the coarse indices
+    auto coarse_indices_map_host =
+        array<GlobalIndexType>(exec->get_master(), global_coarse_size);
 
+    for (auto i = 0; i < coarse_indices_map_host.get_num_elems(); ++i) {
+        coarse_indices_map_host.get_data()[i] = i * 2;
+    }
+    coarse_indices_map_ = coarse_indices_map_host;
 
     device_matrix_data<ValueType, GlobalIndexType> coarse_data{
         exec, dim<2>{global_coarse_size, global_coarse_size}};
+    device_matrix_data<ValueType, GlobalIndexType> restrict_data{
+        exec, dim<2>{global_coarse_size, global_size[0]}};
+    device_matrix_data<ValueType, GlobalIndexType> prolong_data{
+        exec, dim<2>{global_size[0], global_coarse_size}};
 
-    exec->run(coarse_gen::make_fill_coarse(mat_data, coarse_data,
+    exec->run(coarse_gen::make_fill_coarse(fine_mat_data, coarse_data,
+                                           restrict_data, prolong_data,
                                            coarse_indices_map_));
 
     dist_coarse_mat->read_distributed(coarse_data, coarse_partition);
+    dist_restrict_mat->read_distributed(restrict_data, coarse_partition);
+    dist_prolong_mat->read_distributed(restrict_data, coarse_partition);
+
+    this->set_multigrid_level(dist_prolong_mat, dist_coarse_mat,
+                              dist_restrict_mat);
 }
 
 
