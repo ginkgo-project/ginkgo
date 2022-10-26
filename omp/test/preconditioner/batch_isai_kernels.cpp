@@ -113,6 +113,7 @@ protected:
         return Mtx::create(ref, nbatch, unbatch_mat.get());
     }
 
+    // TODO: Add tests for non-sorted input matrix
     void test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type isai_type,
         const int spy_power,
@@ -139,6 +140,7 @@ protected:
         GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
     }
 
+    // TODO: Add tests for non-sorted input matrix
     void test_apply_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type isai_type,
         const int spy_power,

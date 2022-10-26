@@ -61,8 +61,10 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
             .with_parilu_num_sweeps(this->parameters_.parilu_num_sweeps)
             .on(exec);
 
-    // QUESTION: When this smart pointer is assigned to another shared ptr, is
-    // the deletor also copied??
+    // Note: Use a custom deleter to prevent memory deallocation when the
+    // control returns to calling function and smart pointer goes out of scope
+    // When this smart pointer is assigned to another shared ptr, its deleter is
+    // also copied.
     std::shared_ptr<const BatchLinOp> sys_smart_ptr(
         system_matrix, [](const BatchLinOp* plain_ptr) {});
 
