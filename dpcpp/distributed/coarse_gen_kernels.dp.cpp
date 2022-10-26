@@ -90,6 +90,8 @@ void fill_coarse(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, IndexType>& fine_matrix_data,
     device_matrix_data<ValueType, IndexType>& coarse_data,
+    device_matrix_data<ValueType, IndexType>& restrict_data,
+    device_matrix_data<ValueType, IndexType>& prolong_data,
     array<IndexType>& coarse_indices) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

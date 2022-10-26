@@ -203,7 +203,6 @@ protected:
           multigrid::EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
-          coarse_matrix_{factory->get_executor()},
           coarse_indices_map_(factory->get_executor(),
                               system_matrix_->get_size()[0])
     {
@@ -224,7 +223,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<dist_matrix_type> coarse_matrix_{};
     array<GlobalIndexType> coarse_indices_map_{};
 };
 

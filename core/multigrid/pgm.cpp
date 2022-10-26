@@ -224,6 +224,7 @@ void Pgm<ValueType, IndexType>::generate()
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
             exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
+
     agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
