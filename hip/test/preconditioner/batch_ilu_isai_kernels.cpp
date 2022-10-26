@@ -226,6 +226,7 @@ TEST_F(BatchIluIsai, IluIsaiSpmvSimpleApplyIsEquivalentToReference)
         apply_type, 2, gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
 }
 
+// TODO: Implement batch_csr spgemm
 // TEST_F(BatchIluIsai, IluIsaiSpmvWithSpgemmApplyIsEquivalentToReference)
 // {
 //     const auto apply_type =
@@ -261,7 +262,7 @@ TEST_F(BatchIluIsai, IluIsaiRelaxtionStepsSimpleApplyIsEquivalentToReference)
         apply_type, 2, gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
 }
 
-
+// TODO: Implement batch_csr spgemm
 // TEST_F(BatchIluIsai,
 //        IluIsaiRelaxtionStepsWithSpgemmApplyIsEquivalentToReference)
 // {
