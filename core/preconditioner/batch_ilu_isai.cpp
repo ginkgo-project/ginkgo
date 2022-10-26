@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
@@ -40,16 +41,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace preconditioner {
-namespace batch_ilu_isai {
-namespace {}  // namespace
-}  // namespace batch_ilu_isai
 
 
 template <typename ValueType, typename IndexType>
 void BatchIluIsai<ValueType, IndexType>::generate_precond(
     const BatchLinOp* const system_matrix)
 {
-    // generate entire batch of factorizations
+    // generate entire batch of preconditioners
     if (!system_matrix->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
@@ -63,8 +61,8 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
             .with_parilu_num_sweeps(this->parameters_.parilu_num_sweeps)
             .on(exec);
 
-    // When this smart pointer is assigned to another shared ptr, is the deletor
-    // also copied??
+    // QUESTION: When this smart pointer is assigned to another shared ptr, is
+    // the deletor also copied??
     std::shared_ptr<const BatchLinOp> sys_smart_ptr(
         system_matrix, [](const BatchLinOp* plain_ptr) {});
 
@@ -107,13 +105,11 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
 
     // Note: mult_inv and iteration matrices etc. are created/computed outside
     // the solver kernel (in precond. external generate)
-    // since they require SpGemm (memory allocation for which is not
+    // since they require SpGemm (memory allocation to store the result is not
     // straightforward)
 
     if (this->parameters_.apply_type ==
         batch_ilu_isai_apply::spmv_isai_with_spgemm) {
-        GKO_NOT_IMPLEMENTED;
-
         // z = precond * r
         // L * U * z = r
         // lai_L * L * U * z = lai_L * r
@@ -121,26 +117,48 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
         // lai_U * U * z = lai_U * lai_L * r
         // z = lai_U * lai_L * r
         // z = mult_inv * r
-
         // Therefore, mult_inv = lai_U * lai_L
-        this->mult_inv_ = gko::share(matrix_type::create(exec));
-        // mult_inv_ : memory allocation? to store solution (u_inv * l_inv)
+        this->mult_inv_ =
+            gko::share(matrix_type::create(exec, system_matrix->get_size()));
         this->upper_factor_isai_->apply(this->lower_factor_isai_.get(),
                                         this->mult_inv_.get());
     } else if (this->parameters_.apply_type ==
                batch_ilu_isai_apply::relaxation_steps_isai_with_spgemm) {
-        GKO_NOT_IMPLEMENTED;
-        // form iteration matrices and store in the member veraible of
+        // compute iteration matrices and store in the member variables of
         // BatchIluIsai object  ( has shared_ptrs for iter. matrices )
         // z = precond * r
         // L * U * z = r
         // L * y = r  and then U * z = y
-        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
+        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterate)
         // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
-        // (iterations)
+        // (iterate) Therefore, iter_mat_lower_solve = I - lai_L * L   and
+        // iter_mat_upper_solve = I - lai_U * U
 
-        //  Therefore, iter_mat_lower_solve = I - lai_L * L   and
-        //  iter_mat_upper_solve = I - lai_U * U
+        using vec_type = gko::matrix::BatchDense<ValueType>;
+        auto one = gko::batch_initialize<vec_type>(
+            system_matrix->get_num_batch_entries(), {1.0}, exec);
+        auto neg_one = gko::batch_initialize<vec_type>(
+            system_matrix->get_num_batch_entries(), {-1.0}, exec);
+
+        this->iter_mat_lower_solve_ =
+            gko::share(matrix_type::create(exec, system_matrix->get_size()));
+        this->lower_factor_isai_->apply(this->lower_factor_.get(),
+                                        this->iter_mat_lower_solve_.get());
+        this->iter_mat_lower_solve_->add_scaled_identity(
+            one.get(),
+            neg_one.get());  //  M <- a I + b M, thus a = one, b = neg_one
+
+        this->iter_mat_upper_solve_ =
+            gko::share(matrix_type::create(exec, system_matrix->get_size()));
+        this->upper_factor_isai_->apply(this->upper_factor_.get(),
+                                        this->iter_mat_upper_solve_.get());
+        this->iter_mat_upper_solve_->add_scaled_identity(one.get(),
+                                                         neg_one.get());
+
+        // Another way:
+        // iter_mat = identity  (But the BatchIdentity class does not yet have
+        // the kernel: convert_to BatchCsr) lai_L->apply(neg_one, L, one,
+        // iter_mat)
     }
 }
 
