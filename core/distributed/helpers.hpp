@@ -159,7 +159,11 @@ void vector_dispatch(T* linop, F&& f, Args... args)
         using type = std::conditional_t<std::is_const<T>::value,
                                         const matrix::Dense<ValueType>,
                                         matrix::Dense<ValueType>>;
-        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+        if (auto concrete_linop = dynamic_cast<type*>(linop)) {
+            f(concrete_linop, std::forward<Args>(args)...);
+        } else {
+            GKO_NOT_SUPPORTED(linop);
+        }
     }
 }
 
@@ -168,4 +172,4 @@ void vector_dispatch(T* linop, F&& f, Args... args)
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CORE_DISTRIBUTED_HELPERS_HPP_
