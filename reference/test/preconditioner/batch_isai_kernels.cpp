@@ -145,7 +145,7 @@ protected:
         return mat;
     }
 
-
+    // TODO: Add tests for non-sorted input matrix
     void test_batch_isai_generation_is_eqvt_to_unbatched(const int spy_power,
                                                          std::string type)
     {
@@ -248,6 +248,7 @@ protected:
         }
     }
 
+    // TODO: Add tests for non-sorted input matrix
     void test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         const int spy_power, std::string type)
     {

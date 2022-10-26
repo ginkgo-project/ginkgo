@@ -83,6 +83,7 @@ protected:
     const int min_nnz_row = 3;
     std::shared_ptr<const Mtx> mtx;
 
+    // TODO: Add tests for non-sorted input matrix
     void test_generate_eqvt_to_ref(
         const gko::preconditioner::batch_ilu_type ilu_type,
         const int num_sweeps = 30, const int lower_spy_power = 2,
@@ -118,6 +119,7 @@ protected:
         GKO_ASSERT_BATCH_MTX_NEAR(upper_factor_isai, d_upper_factor_isai, tol);
     }
 
+    // TODO: Add tests for non-sorted input matrix
     void test_apply_eqvt_to_ref(
         const gko::preconditioner::batch_ilu_isai_apply apply_type,
         const int num_relaxation_steps,

@@ -58,6 +58,8 @@ enum class batch_ilu_isai_apply {
 /**
  * A batch of ILU-ISAI preconditioners for a batch of matrices.
  *
+ * Note: Batched Preconditioners do not support user facing apply.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup ilu
