@@ -69,8 +69,23 @@ class repartitioner : public EnableCreateMethod<
 
 public:
     template <typename ValueType>
-    void gather(const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
-                Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
+    std::tuple<array<LocalIndexType>, array<LocalIndexType>> gather(
+        const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
+
+    /* updates an existing matrix without communicating the sparsity pattern **
+     *
+     * @param from - matrix from which coefficients should be repartitioned
+     * @param to - matrix which coefficients should be overwritten
+     */
+    template <typename ValueType>
+    void update_existing(const array<GlobalIndexType>& indices,
+                         const array<ValueType>& local_from_data,
+                         const array<ValueType>& non_local_from_data,
+                         const array<LocalIndexType>& local_scatter_pattern,
+                         const array<LocalIndexType>& non_local_scatter_pattern,
+                         array<ValueType>& local_to_data,
+                         array<ValueType>& non_local_to_data) const;
 
     template <typename ValueType>
     void gather(const Vector<ValueType>* from, Vector<ValueType>* to) const;

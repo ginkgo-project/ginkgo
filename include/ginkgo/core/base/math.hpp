@@ -395,6 +395,22 @@ template <typename T>
 struct next_precision_impl {};
 
 template <>
+struct next_precision_impl<int> {
+    using type = long;
+};
+
+template <>
+struct next_precision_impl<long> {
+    using type = int;
+};
+
+template <>
+struct next_precision_impl<long long> {
+    using type = int;
+};
+
+
+template <>
 struct next_precision_impl<float> {
     using type = double;
 };

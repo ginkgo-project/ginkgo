@@ -357,6 +357,14 @@ public:
         const Partition<local_index_type, global_index_type>* row_partition,
         const Partition<local_index_type, global_index_type>* col_partition);
 
+    void build_scatter_pattern(
+        const array<GlobalIndexType>& row_indices,
+        const array<GlobalIndexType>& column_indices,
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition,
+        array<local_index_type>& local_values,
+        array<local_index_type>& non_local_values);
+
     /**
      * Get read access to the stored local matrix.
      *
