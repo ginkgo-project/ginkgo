@@ -140,6 +140,13 @@ public:
     void sort_row_major();
 
     /**
+     * Sorts the matrix entries in row-major order
+     * This means that they will be sorted by row index first, and then by
+     * column index inside each row.
+     */
+    void sort_row_major(array<int>& scatter_pattern);
+
+    /**
      * Removes all zero entries from the storage.
      * This does not modify the storage if there are no zero entries, and keeps
      * the relative order of nonzero entries otherwise.
