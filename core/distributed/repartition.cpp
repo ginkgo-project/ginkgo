@@ -47,7 +47,6 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 
-
 struct all_to_all_pattern {
     using comm_vector = std::vector<comm_index_type>;
     comm_vector send_sizes;
@@ -55,7 +54,6 @@ struct all_to_all_pattern {
     comm_vector recv_sizes;
     comm_vector recv_offsets;
 };
-
 
 template <typename LocalIndexType, typename GlobalIndexType>
 all_to_all_pattern build_communication_pattern(
@@ -221,12 +219,12 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     }
 }
 
-#define GKO_DECLARE_REPETITIONER_GATHER(_value_type, _index_type_l,        \
-                                        _index_type_g)                     \
+#define GKO_DECLARE_REPARTITIONER_GATHER(_value_type, _index_type_l,       \
+                                         _index_type_g)                    \
     void repartitioner<_index_type_l, _index_type_g>::gather<_value_type>( \
         const Vector<_value_type>* from, Vector<_value_type>* to) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_REPETITIONER_GATHER);
+    GKO_DECLARE_REPARTITIONER_GATHER);
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -289,7 +287,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-auto write_local(std::shared_ptr<const Executor> exec,
+auto write_local(std::shared_ptr<const Executor> exec, array<int>& sorting_idx,
                  const Matrix<ValueType, LocalIndexType, GlobalIndexType>* mat,
                  const Partition<LocalIndexType, GlobalIndexType>* part)
 {
@@ -334,29 +332,112 @@ auto write_local(std::shared_ptr<const Executor> exec,
     }
 
     for (int i = 0; i < local_nnz; ++i) {
-        data.get_row_idxs()[i] =
+        const GlobalIndexType row =
             map_local_to_global.get_data()[local_md.get_row_idxs()[i]];
-        data.get_col_idxs()[i] =
+        const GlobalIndexType col =
             map_local_to_global.get_data()[local_md.get_col_idxs()[i]];
+        data.get_row_idxs()[i] = row;
+        data.get_col_idxs()[i] = col;
         data.get_values()[i] = local_md.get_values()[i];
     }
     for (int i = 0; i < non_local_nnz; ++i) {
-        data.get_row_idxs()[local_nnz + i] =
+        const GlobalIndexType row =
             map_local_to_global.get_data()[non_local_md.get_row_idxs()[i]];
-        data.get_col_idxs()[local_nnz + i] =
+        const GlobalIndexType col =
             mat->get_non_local_to_global()[non_local_md.get_col_idxs()[i]];
+
+        data.get_row_idxs()[local_nnz + i] = row;
+        data.get_col_idxs()[local_nnz + i] = col;
+
         data.get_values()[local_nnz + i] = non_local_md.get_values()[i];
     }
 
     data = md_global{exec, data};
-    data.sort_row_major();
+    data.sort_row_major(sorting_idx);
     return data;
 }
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
 template <typename ValueType>
-void repartitioner<LocalIndexType, GlobalIndexType>::gather(
+void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
+    const array<LocalIndexType>& local_indices,
+    const array<LocalIndexType>& non_local_indices,
+    const array<ValueType>& local_from_data,
+    const array<ValueType>& non_local_from_data,
+    const array<LocalIndexType>& local_scatter_pattern,
+    const array<LocalIndexType>& non_local_scatter_pattern,
+    array<ValueType>& local_to_data, array<ValueType>& non_local_to_data) const
+{
+    auto from = local_from_data.append(non_local_from_data);
+    auto rows = local_indices.append(non_local_indices);
+    auto exec = local_to_data.get_executor();
+
+
+    auto rank = from_comm_.rank();
+    array<GlobalIndexType> map_local_to_global(
+        exec->get_master(), from_partition_->get_part_size(rank));
+    int local_idx = 0;
+    for (int rid = 0; rid < from_partition_->get_num_ranges(); ++rid) {
+        if (from_partition_->get_part_ids()[rid] == rank) {
+            for (int i = from_partition_->get_range_bounds()[rid];
+                 i < from_partition_->get_range_bounds()[rid + 1]; ++i) {
+                map_local_to_global.get_data()[local_idx++] = i;
+            }
+        }
+    }
+
+    array<GlobalIndexType> indices(exec->get_master(), rows.get_num_elems());
+    for (int i = 0; i < rows.get_num_elems(); ++i) {
+        indices.get_data()[i] =
+            map_local_to_global.get_data()[rows.get_const_data()[i]];
+    }
+
+    auto pattern = build_communication_pattern(from_comm_, from_partition_,
+                                               to_partition_, indices);
+
+    const auto new_local_nnz = pattern.recv_offsets.back();
+    array<ValueType> recv_values(local_to_data.get_executor(), new_local_nnz);
+
+    auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
+        if (to_partition_->get_num_parts() > 1) {
+            from_comm_.all_to_all_v(
+                exec, send_buffer, pattern.send_sizes.data(),
+                pattern.send_offsets.data(), recv_buffer,
+                pattern.recv_sizes.data(), pattern.recv_offsets.data());
+        } else {
+            const comm_index_type root = 0;
+            from_comm_.gather_v(exec, send_buffer, pattern.send_sizes[root],
+                                recv_buffer, pattern.recv_sizes.data(),
+                                pattern.recv_offsets.data(), root);
+        }
+    };
+    communicate(from.get_const_data(), recv_values.get_data());
+
+    local_to_data = recv_values.scatter(local_scatter_pattern);
+    non_local_to_data = recv_values.scatter(non_local_scatter_pattern);
+}
+
+#define GKO_DECLARE_REPETITIONER_UPDATE_EXISTING(_value_type, _index_type_l,   \
+                                                 _index_type_g)                \
+    void                                                                       \
+    repartitioner<_index_type_l, _index_type_g>::update_existing<_value_type>( \
+        const array<_index_type_l>& local_indices,                             \
+        const array<_index_type_l>& non_local_indices,                         \
+        const array<_value_type>& local_from_data,                             \
+        const array<_value_type>& non_local_from_data,                         \
+        const array<_index_type_l>& local_scatter_pattern,                     \
+        const array<_index_type_l>& non_local_scatter_pattern,                 \
+        array<_value_type>& local_to_data,                                     \
+        array<_value_type>& non_local_to_data) const
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_REPETITIONER_UPDATE_EXISTING);
+
+template <typename LocalIndexType, typename GlobalIndexType>
+template <typename ValueType>
+std::tuple<gko::array<int>, gko::array<int>>
+repartitioner<LocalIndexType, GlobalIndexType>::gather(
     const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
     Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const
 {
@@ -366,8 +447,13 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     }
 
     using md_global = device_matrix_data<ValueType, GlobalIndexType>;
+    using md_idx = device_matrix_data<LocalIndexType, GlobalIndexType>;
+
+    auto exec = from->get_executor();
+
+    array<int> sorting_idx(exec);
     md_global local_data =
-        write_local(from->get_executor(), from, from_partition_.get());
+        write_local(exec, sorting_idx, from, from_partition_.get());
     auto local_arrays = std::move(local_data).empty_out();
 
     auto pattern = build_communication_pattern(
@@ -377,6 +463,7 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     array<GlobalIndexType> recv_rows(to->get_executor(), new_local_nnz);
     array<GlobalIndexType> recv_cols(to->get_executor(), new_local_nnz);
     array<ValueType> recv_values(to->get_executor(), new_local_nnz);
+    array<int> recv_sorting_idx(to->get_executor(), new_local_nnz);
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         if (to_partition_->get_num_parts() > 1) {
@@ -396,11 +483,25 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     communicate(local_arrays.row_idxs.get_const_data(), recv_rows.get_data());
     communicate(local_arrays.col_idxs.get_const_data(), recv_cols.get_data());
     communicate(local_arrays.values.get_const_data(), recv_values.get_data());
+    // TODO needs offset here
+    communicate(sorting_idx.get_const_data(), recv_sorting_idx.get_data());
 
-    md_global new_local_data(to->get_executor(), from->get_size(),
-                             std::move(recv_rows), std::move(recv_cols),
-                             std::move(recv_values));
-    new_local_data.sort_row_major();
+
+    int ctr = 0;
+    for (int rank = 0; rank < pattern.recv_sizes.size(); ++rank) {
+        auto elems = pattern.recv_sizes[rank];
+        auto offset = pattern.recv_offsets[rank];
+        if (elems == 0) continue;
+        for (int i = ctr; i < ctr + elems; ++i) {
+            recv_sorting_idx.get_data()[i] += offset;
+        }
+        ctr += elems;
+    }
+
+    array<int> sorting_after_comm(exec);
+    md_global new_local_data(to->get_executor(), from->get_size(), recv_rows,
+                             recv_cols, recv_values);
+    new_local_data.sort_row_major(sorting_after_comm);
 
     auto tmp = Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
         to->get_executor(), to_comm_);
@@ -408,15 +509,26 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
         tmp->read_distributed(new_local_data, to_partition_.get());
     }
     tmp->move_to(to);
+
+    array<LocalIndexType> local_scatter(exec);
+    array<LocalIndexType> non_local_scatter(exec);
+    tmp->build_scatter_pattern(recv_rows, recv_cols, to_partition_.get(),
+                               to_partition_.get(), local_scatter,
+                               non_local_scatter);
+
+    return {recv_sorting_idx.scatter(sorting_after_comm).scatter(local_scatter),
+            recv_sorting_idx.scatter(sorting_after_comm)
+                .scatter(non_local_scatter)};
 }
 
-#define GKO_DECLARE_REPETITIONER_GATHER_MATRIX(_value_type, _index_type_l, \
-                                               _index_type_g)              \
-    void repartitioner<_index_type_l, _index_type_g>::gather<_value_type>( \
-        const Matrix<_value_type, _index_type_l, _index_type_g>* to,       \
+#define GKO_DECLARE_REPARTITIONER_GATHER_MATRIX(_value_type, _index_type_l, \
+                                                _index_type_g)              \
+    std::tuple<array<int>, array<int>>                                      \
+    repartitioner<_index_type_l, _index_type_g>::gather<_value_type>(       \
+        const Matrix<_value_type, _index_type_l, _index_type_g>* to,        \
         Matrix<_value_type, _index_type_l, _index_type_g>* from) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_REPETITIONER_GATHER_MATRIX);
+    GKO_DECLARE_REPARTITIONER_GATHER_MATRIX);
 
 #define GKO_DECLARE_REPARTITIONER(_type_l, _type_g) \
     class repartitioner<_type_l, _type_g>
