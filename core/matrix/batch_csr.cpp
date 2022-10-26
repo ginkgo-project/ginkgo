@@ -76,8 +76,21 @@ template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp* b,
                                                 BatchLinOp* x) const
 {
-    this->get_executor()->run(batch_csr::make_spmv(
-        this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
+    using TBatchCsr = BatchCsr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TBatchCsr*>(b)) {
+        // if b is a BatchCSR matrix, we compute an SpGeMM  (Refer to csr matrix
+        // apply_impl)
+        auto x_csr = as<TBatchCsr>(x);
+        // TODO: Implement SpGemm kernel (Note: x must be of the correct size to
+        // pass the apply dim match check; the memory allocation(i.e acc. to
+        // nnz) is taken care of in the kernel)
+        GKO_NOT_IMPLEMENTED;
+        // this->get_executor()->run(batch_csr::make_spgemm(this, b_csr,
+        // x_csr));
+    } else {
+        this->get_executor()->run(batch_csr::make_spmv(
+            this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
+    }
 }
 
 
