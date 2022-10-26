@@ -116,6 +116,14 @@ void device_matrix_data<ValueType, IndexType>::sort_row_major()
     this->values_.get_executor()->run(components::make_sort_row_major(*this));
 }
 
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::sort_row_major(
+    array<int>& scatter_pattern)
+{
+    this->values_.get_executor()->run(
+        components::make_sort_row_major(*this, scatter_pattern));
+}
+
 
 template <typename ValueType, typename IndexType>
 template <typename SortingIndexType>

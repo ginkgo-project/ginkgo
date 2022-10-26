@@ -576,6 +576,36 @@ public:
     }
 
     /**
+     * Append other to this array by copying both to a new one
+     */
+    array<ValueType> append(const array<ValueType>& other) const
+    {
+        auto other_num_elems = other.get_num_elems();
+        auto num_elems = num_elems_ + other_num_elems;
+        auto arr = array(exec_, num_elems);
+        make_array_view(exec_, num_elems_, arr.get_data()) = *this;
+        make_array_view(exec_, other_num_elems, arr.get_data() + num_elems_) =
+            other;
+        return arr;
+    }
+
+    /**
+     *
+     *
+     *
+     */
+    template <typename IndexType>
+    array<ValueType> scatter(const array<IndexType>& map) const
+    {
+        // TODO implement proper kernel
+        array<ValueType> to(exec_, map.get_num_elems());
+        for (size_t i = 0; i < map.get_num_elems(); ++i) {
+            to.get_data()[i] = get_const_data()[map.get_const_data()[i]];
+        }
+        return to;
+    }
+
+    /**
      * Deallocates all data used by the array.
      *
      * The array is left in a valid, but empty state, so the same array can be

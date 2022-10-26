@@ -72,8 +72,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -356,6 +356,14 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* row_partition,
         const Partition<local_index_type, global_index_type>* col_partition);
+
+    void build_scatter_pattern(
+        const array<GlobalIndexType>& row_indices,
+        const array<GlobalIndexType>& column_indices,
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition,
+        array<local_index_type>& local_values,
+        array<local_index_type>& non_local_values);
 
     /**
      * Get read access to the stored local matrix.
