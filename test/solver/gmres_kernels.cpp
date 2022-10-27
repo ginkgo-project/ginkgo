@@ -313,10 +313,8 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     auto exec_solver = exec_gmres_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
@@ -334,10 +332,8 @@ TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
     auto exec_solver = exec_gmres_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());

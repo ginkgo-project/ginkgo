@@ -218,8 +218,7 @@ TYPED_TEST(Gmres, KernelRestart)
     this->small_krylov_bases->fill(9999);
     std::fill_n(this->small_final_iter_nums.get_data(),
                 this->small_final_iter_nums.get_num_elems(), 999);
-    auto expected_krylov = Mtx::create(this->exec);
-    expected_krylov->copy_from(this->small_krylov_bases.get());
+    auto expected_krylov = gko::clone(this->exec, this->small_krylov_bases);
     const auto small_size = this->small_residual->get_size();
     for (int i = 0; i < small_size[0]; ++i) {
         for (int j = 0; j < small_size[1]; ++j) {
@@ -305,7 +304,7 @@ TYPED_TEST(Gmres, KernelSolveKrylov)
         // clang-format off
         {{-1, 3, 2, -4},
          {0, 0, 1, 5},
-         {nan, nan, nan}},
+         {nan, nan, nan, nan}},
         // clang-format on
         this->exec);
     this->small_residual_norm_collection =
@@ -658,12 +657,9 @@ TYPED_TEST(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
     auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
 
-    auto residual1 = Mtx::create(this->exec, b1->get_size());
-    residual1->copy_from(b1.get());
-    auto residual2 = Mtx::create(this->exec, b2->get_size());
-    residual2->copy_from(b2.get());
-    auto residualC = Mtx::create(this->exec, bc->get_size());
-    residualC->copy_from(bc.get());
+    auto residual1 = gko::clone(this->exec, b1);
+    auto residual2 = gko::clone(this->exec, b2);
+    auto residualC = gko::clone(this->exec, bc);
 
     this->mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
     this->mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
