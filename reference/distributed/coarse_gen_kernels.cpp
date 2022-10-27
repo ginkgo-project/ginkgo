@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/coarse_gen_kernels.hpp"
 
 
+#include <iterator>
 #include <memory>
 #include <tuple>
 
@@ -175,6 +176,7 @@ template <typename ValueType, typename IndexType>
 void fill_coarse(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, IndexType>& fine_matrix_data,
+    const array<IndexType>& fine_row_ptrs,
     device_matrix_data<ValueType, IndexType>& coarse_data,
     device_matrix_data<ValueType, IndexType>& restrict_data,
     device_matrix_data<ValueType, IndexType>& prolong_data,
@@ -186,26 +188,43 @@ void fill_coarse(
     const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
 
     // Get coarse data with global fine matrix indexing.
+    int nnz = 0;
+    int ridx = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
         if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
                       coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
-            if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
-                          coarse_indices.get_data()[i]) !=
-                std::end(f_col_idxs)) {
-                // Assume row major ordering
-                coarse_data.get_row_idxs()[i] =
-                    fine_matrix_data
-                        .get_const_row_idxs()[coarse_indices.get_data()[i]] -
-                    coarse_indices.get_data()[i];
-                coarse_data.get_col_idxs()[i] =
-                    fine_matrix_data
-                        .get_const_col_idxs()[coarse_indices.get_data()[i]] -
-                    coarse_indices.get_data()[i];
-                coarse_data.get_values()[i] =
-                    fine_matrix_data
-                        .get_const_values()[coarse_indices.get_data()[i]];
+            int cidx = 0;
+            for (auto j = 0; j < coarse_size[0]; ++j) {
+                if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
+                              coarse_indices.get_data()[j]) !=
+                    std::end(f_col_idxs)) {
+                    // Assume row major ordering
+                    coarse_data.get_row_idxs()[nnz] = ridx;
+                    coarse_data.get_col_idxs()[nnz] = cidx;
+                    coarse_data.get_values()[nnz] =
+                        fine_matrix_data.get_const_values()
+                            [fine_row_ptrs.get_const_data()
+                                 [coarse_indices.get_data()[i]] +
+                             coarse_indices.get_data()[j]];
+                    nnz++;
+                }
+                cidx++;
             }
+            ridx++;
         }
+    }
+
+    nnz = 0;
+    ridx = 0;
+    for (auto i = 0; i < coarse_size[0]; ++i) {
+        if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
+                      coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
+            // Assume row major ordering
+            restrict_data.get_row_idxs()[nnz] = ridx;
+            restrict_data.get_col_idxs()[nnz] = cidx;
+            restrict_data.get_values()[nnz] = nnz++;
+        }
+        ridx++;
     }
 }
 
