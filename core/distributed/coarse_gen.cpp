@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/distributed/coarse_gen_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
@@ -68,6 +69,7 @@ GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        coarse_gen::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, coarse_gen::assign_to_exist_agg);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
@@ -105,8 +107,7 @@ void CoarseGen<ValueType, LocalIndexType,
         matrix_type::create(exec, dist_fine_mat->get_communicator());
 
     const auto global_size = dist_fine_mat->get_size();
-    const auto local_num_rows =
-        dist_fine_mat->get_local_matrix()->get_size()[0];
+    const auto local_size = dist_fine_mat->get_local_matrix()->get_size();
 
     const auto fine_mat_data = dist_fine_mat->get_matrix_data();
     const auto global_coarse_size = global_size[0] / 2;
@@ -125,10 +126,15 @@ void CoarseGen<ValueType, LocalIndexType,
         exec, dim<2>{global_coarse_size, global_size[0]}};
     device_matrix_data<ValueType, GlobalIndexType> prolong_data{
         exec, dim<2>{global_size[0], global_coarse_size}};
+    auto fine_row_ptrs = array<GlobalIndexType>(exec, local_size[0] + 1);
 
-    exec->run(coarse_gen::make_fill_coarse(fine_mat_data, coarse_data,
-                                           restrict_data, prolong_data,
-                                           coarse_indices_map_));
+    exec->run(coarse_gen::make_convert_idxs_to_ptrs(
+        fine_mat_data.get_const_row_idxs(), fine_mat_data.get_num_elems(),
+        local_size[0], fine_row_ptrs.get_data()));
+
+    exec->run(coarse_gen::make_fill_coarse(fine_mat_data, fine_row_ptrs,
+                                           coarse_data, restrict_data,
+                                           prolong_data, coarse_indices_map_));
 
     dist_coarse_mat->read_distributed(coarse_data, coarse_partition);
     dist_restrict_mat->read_distributed(restrict_data, coarse_partition);

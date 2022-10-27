@@ -71,6 +71,7 @@ namespace coarse_gen {
     void fill_coarse(                                                     \
         std::shared_ptr<const DefaultExecutor> exec,                      \
         const device_matrix_data<ValueType, IndexType>& fine_matrix_data, \
+        const array<IndexType>& fine_row_ptrs,                            \
         device_matrix_data<ValueType, IndexType>& coarse_data,            \
         device_matrix_data<ValueType, IndexType>& restrict_data,          \
         device_matrix_data<ValueType, IndexType>& prolong_data,           \
