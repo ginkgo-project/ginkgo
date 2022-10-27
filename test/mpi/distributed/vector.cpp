@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 bool needs_transfers(std::shared_ptr<const gko::Executor> exec)
 {
-    return exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    return exec->get_master() != exec && !gko::experimental::mpi::is_gpu_aware();
 }
 
 

@@ -493,7 +493,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
 
 bool needs_transfers(std::shared_ptr<const gko::Executor> exec)
 {
-    return exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    return exec->get_master() != exec && !gko::experimental::mpi::is_gpu_aware();
 }
 
 

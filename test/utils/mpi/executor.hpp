@@ -77,7 +77,7 @@ inline std::shared_ptr<gko::CudaExecutor> init_executor<gko::CudaExecutor>(
             throw std::runtime_error{"No suitable CUDA devices"};
         }
         return gko::CudaExecutor::create(
-            gko::mpi::map_rank_to_device_id(
+            gko::experimental::mpi::map_rank_to_device_id(
                 MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
             ref);
     }
@@ -92,7 +92,7 @@ inline std::shared_ptr<gko::HipExecutor> init_executor<gko::HipExecutor>(
         throw std::runtime_error{"No suitable HIP devices"};
     }
     return gko::HipExecutor::create(
-        gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
+        gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
                                         gko::HipExecutor::get_num_devices()),
         ref);
 }
@@ -106,11 +106,11 @@ inline std::shared_ptr<gko::DpcppExecutor> init_executor<gko::DpcppExecutor>(
     auto num_cpu_devices = gko::DpcppExecutor::get_num_devices("cpu");
     if (num_gpu_devices > 0) {
         return gko::DpcppExecutor::create(
-            gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_gpu_devices),
+            gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_gpu_devices),
             ref, "gpu");
     } else if (num_cpu_devices > 0) {
         return gko::DpcppExecutor::create(
-            gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_cpu_devices),
+            gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_cpu_devices),
             ref, "cpu");
     } else {
         throw std::runtime_error{"No suitable DPC++ devices"};
@@ -143,7 +143,7 @@ public:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
-    gko::mpi::communicator comm;
+    gko::experimental::mpi::communicator comm;
 };
 
 
