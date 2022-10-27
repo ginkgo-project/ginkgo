@@ -57,7 +57,7 @@ namespace {
 template <typename T>
 class BatchIsai : public ::testing::Test {
 protected:
-    using value_type = double;
+    using value_type = T;
     using index_type = int;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
