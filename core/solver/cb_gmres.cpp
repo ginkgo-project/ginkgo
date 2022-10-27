@@ -470,7 +470,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         // Solve x
 
         auto hessenberg_small = hessenberg->create_submatrix(
-            span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
+            span{0, restart_iter}, span{0, num_rhs * restart_iter});
 
         exec->run(cb_gmres::make_solve_krylov(
             residual_norm_collection.get(),

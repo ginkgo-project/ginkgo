@@ -107,44 +107,48 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
             }
             // increment iteration count
             final_iter_nums[rhs]++;
+            auto hess_this = hessenberg_iter(0, rhs);
+            auto hess_next = hessenberg_iter(1, rhs);
             // apply previous Givens rotations to column
-            for (int64 j = 0; j < iter; ++j) {
-                auto out1 = givens_cos(j, rhs) * hessenberg_iter(j, rhs) +
-                            givens_sin(j, rhs) * hessenberg_iter(j + 1, rhs);
-                auto out2 =
-                    -conj(givens_sin(j, rhs)) * hessenberg_iter(j, rhs) +
-                    conj(givens_cos(j, rhs)) * hessenberg_iter(j + 1, rhs);
+            for (decltype(iter) j = 0; j < iter; ++j) {
+                // in here: hess_this = hessenberg_iter(j, rhs);
+                //          hess_next = hessenberg_iter(j+1, rhs);
+                hess_next = hessenberg_iter(j + 1, rhs);
+                const auto gc = givens_cos(j, rhs);
+                const auto gs = givens_sin(j, rhs);
+                const auto out1 = gc * hess_this + gs * hess_next;
+                const auto out2 = -conj(gs) * hess_this + conj(gc) * hess_next;
                 hessenberg_iter(j, rhs) = out1;
-                hessenberg_iter(j + 1, rhs) = out2;
+                hessenberg_iter(j + 1, rhs) = hess_this = out2;
+                hess_next = hessenberg_iter(j + 2, rhs);
             }
+            // hess_this is hessenberg_iter(iter, rhs) and
+            // hess_next is hessenberg_iter(iter + 1, rhs)
+            auto gs = givens_sin(iter, rhs);
+            auto gc = givens_cos(iter, rhs);
             // compute new Givens rotation
-            if (hessenberg_iter(iter, rhs) == zero<value_type>()) {
-                givens_cos(iter, rhs) = zero<value_type>();
-                givens_sin(iter, rhs) = one<value_type>();
+            if (hess_this == zero<value_type>()) {
+                givens_cos(iter, rhs) = gc = zero<value_type>();
+                givens_sin(iter, rhs) = gs = one<value_type>();
             } else {
-                const auto this_hess = hessenberg_iter(iter, rhs);
-                const auto next_hess = hessenberg_iter(iter + 1, rhs);
-                const auto scale = abs(this_hess) + abs(next_hess);
+                const auto scale = abs(hess_this) + abs(hess_next);
                 const auto hypotenuse =
                     scale *
-                    sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
-                         abs(next_hess / scale) * abs(next_hess / scale));
-                givens_cos(iter, rhs) = conj(this_hess) / hypotenuse;
-                givens_sin(iter, rhs) = conj(next_hess) / hypotenuse;
+                    sqrt(abs(hess_this / scale) * abs(hess_this / scale) +
+                         abs(hess_next / scale) * abs(hess_next / scale));
+                givens_cos(iter, rhs) = gc = conj(hess_this) / hypotenuse;
+                givens_sin(iter, rhs) = gs = conj(hess_next) / hypotenuse;
             }
             // apply new Givens rotation to column
-            hessenberg_iter(iter, rhs) =
-                givens_cos(iter, rhs) * hessenberg_iter(iter, rhs) +
-                givens_sin(iter, rhs) * hessenberg_iter(iter + 1, rhs);
+            hessenberg_iter(iter, rhs) = gc * hess_this + gs * hess_next;
             hessenberg_iter(iter + 1, rhs) = zero<value_type>();
             // apply new Givens rotation to RHS of least-squares problem
-            residual_norm_collection(iter + 1, rhs) =
-                -conj(givens_sin(iter, rhs)) *
-                residual_norm_collection(iter, rhs);
+            const auto rnc_new =
+                -conj(gs) * residual_norm_collection(iter, rhs);
+            residual_norm_collection(iter + 1, rhs) = rnc_new;
             residual_norm_collection(iter, rhs) =
-                givens_cos(iter, rhs) * residual_norm_collection(iter, rhs);
-            residual_norm(0, rhs) =
-                abs(residual_norm_collection(iter + 1, rhs));
+                gc * residual_norm_collection(iter, rhs);
+            residual_norm(0, rhs) = abs(rnc_new);
         },
         hessenberg_iter->get_size()[1], givens_sin, givens_cos, residual_norm,
         residual_norm_collection, hessenberg_iter, iter, final_iter_nums,
@@ -169,9 +173,9 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
             if (stop[col].is_finalized()) {
                 return;
             }
-            for (int i = sizes[col] - 1; i >= 0; i--) {
+            for (int64 i = sizes[col] - 1; i >= 0; i--) {
                 auto value = rhs(i, col);
-                for (int j = i + 1; j < sizes[col]; j++) {
+                for (int64 j = i + 1; j < sizes[col]; j++) {
                     value -= mtx(i, j * num_cols + col) * y(j, col);
                 }
                 // y(i) = (rhs(i) - U(i,i+1:) * y(i+1:)) / U(i, i)

@@ -159,7 +159,6 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // rows: rows of Hessenberg matrix, columns: block for each entry
     auto hessenberg = this->template create_workspace_op<Vector>(
         ws::hessenberg, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
-    hessenberg->fill(0);
     auto givens_sin = this->template create_workspace_op<Vector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
     auto givens_cos = this->template create_workspace_op<Vector>(
@@ -332,7 +331,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // calculate next Givens parameters
         // this_hess = hessenberg(restart_iter)
         // next_hess = hessenberg(restart_iter+1)
-        // hypotenuse = norm2([this_hess next_hess])
+        // hypotenuse = ||(this_hess, next_hess)||
         // cos(restart_iter) = conj(this_hess) / hypotenuse
         // sin(restart_iter) = conj(next_hess) / this_hess
         // update Krylov approximation of b, apply new Givens rotation
