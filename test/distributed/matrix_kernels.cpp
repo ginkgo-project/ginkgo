@@ -70,16 +70,15 @@ protected:
 
     Matrix() : engine(42) {}
 
-    void validate(
-        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
-            row_partition,
-        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
-            col_partition,
-        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
-            d_row_partition,
-        const gko::experimental::distributed::Partition<local_index_type, global_index_type>*
-            d_col_partition,
-        gko::device_matrix_data<value_type, global_index_type> input)
+    void validate(const gko::experimental::distributed::Partition<
+                      local_index_type, global_index_type>* row_partition,
+                  const gko::experimental::distributed::Partition<
+                      local_index_type, global_index_type>* col_partition,
+                  const gko::experimental::distributed::Partition<
+                      local_index_type, global_index_type>* d_row_partition,
+                  const gko::experimental::distributed::Partition<
+                      local_index_type, global_index_type>* d_col_partition,
+                  gko::device_matrix_data<value_type, global_index_type> input)
     {
         gko::device_matrix_data<value_type, global_index_type> d_input{exec,
                                                                        input};
@@ -170,12 +169,12 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
     gko::experimental::distributed::comm_index_type num_parts = 3;
     gko::size_type num_rows = 10;
     gko::size_type num_cols = 10;
-    auto mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
+    auto mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
@@ -205,12 +204,12 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
     gko::experimental::distributed::comm_index_type num_parts = 13;
     gko::size_type num_rows = 67;
     gko::size_type num_cols = 67;
-    auto mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
+    auto mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
@@ -276,18 +275,18 @@ TYPED_TEST(Matrix, BuildsLocalSmallWithColPartitionIsEquivalentToRef)
     gko::experimental::distributed::comm_index_type num_parts = 3;
     gko::size_type num_rows = 10;
     gko::size_type num_cols = 10;
-    auto row_mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
-    auto col_mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
+    auto row_mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
+    auto col_mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
@@ -325,18 +324,18 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
     gko::experimental::distributed::comm_index_type num_parts = 13;
     gko::size_type num_rows = 67;
     gko::size_type num_cols = 67;
-    auto row_mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
-    auto col_mapping =
-        gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-            num_rows,
-            std::uniform_int_distribution<gko::experimental::distributed::comm_index_type>(
-                0, num_parts - 1),
-            this->engine, this->ref);
+    auto row_mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
+    auto col_mapping = gko::test::generate_random_array<
+        gko::experimental::distributed::comm_index_type>(
+        num_rows,
+        std::uniform_int_distribution<
+            gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
+        this->engine, this->ref);
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,

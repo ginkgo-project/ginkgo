@@ -87,13 +87,10 @@ inline constexpr bool is_gpu_aware()
 int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type) \
-    template <>                                     \
-    struct type_impl<input_type> {                  \
-        static MPI_Datatype get_type()              \
-        {                                           \
-            return mpi_type;                        \
-        }                                           \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
+    template <>                                             \
+    struct type_impl<input_type> {                          \
+        static MPI_Datatype get_type() { return mpi_type; } \
     }
 
 /**

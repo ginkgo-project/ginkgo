@@ -76,7 +76,8 @@ protected:
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using Partition =
-        gko::experimental::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
 
 
@@ -104,7 +105,9 @@ protected:
         col_part = Partition::build_from_mapping(
             exec,
             gko::array<gko::experimental::distributed::comm_index_type>(
-                exec, I<gko::experimental::distributed::comm_index_type>{1, 1, 2, 0, 0}),
+                exec,
+                I<gko::experimental::distributed::comm_index_type>{1, 1, 2, 0,
+                                                                   0}),
             3);
 
         dist_mat = dist_mtx_type::create(exec, comm);
@@ -195,7 +198,8 @@ public:
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using part_type =
-        gko::experimental::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
     using csr_mtx_type = gko::matrix::Csr<value_type, global_index_type>;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
@@ -213,7 +217,9 @@ public:
         col_part = part_type::build_from_mapping(
             exec,
             gko::array<gko::experimental::distributed::comm_index_type>(
-                exec, I<gko::experimental::distributed::comm_index_type>{1, 1, 2, 0, 0}),
+                exec,
+                I<gko::experimental::distributed::comm_index_type>{1, 1, 2, 0,
+                                                                   0}),
             3);
 
         dist_mat = dist_mtx_type::create(exec, comm);
@@ -292,14 +298,14 @@ public:
             std::normal_distribution<gko::remove_complex<value_type>>(),
             engine);
 
-        auto row_mapping =
-            gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-                num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
-                engine, exec);
-        auto col_mapping =
-            gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-                num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
-                engine, exec);
+        auto row_mapping = gko::test::generate_random_array<
+            gko::experimental::distributed::comm_index_type>(
+            num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
+            engine, exec);
+        auto col_mapping = gko::test::generate_random_array<
+            gko::experimental::distributed::comm_index_type>(
+            num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
+            engine, exec);
         row_part_large =
             part_type::build_from_mapping(exec, row_mapping, num_parts);
         col_part_large =
@@ -493,7 +499,8 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
 
 bool needs_transfers(std::shared_ptr<const gko::Executor> exec)
 {
-    return exec->get_master() != exec && !gko::experimental::mpi::is_gpu_aware();
+    return exec->get_master() != exec &&
+           !gko::experimental::mpi::is_gpu_aware();
 }
 
 

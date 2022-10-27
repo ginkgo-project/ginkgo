@@ -86,7 +86,8 @@ struct SimpleSolverTest {
         gko::experimental::distributed::Vector<mixed_value_type>;
     using mixed_non_dist_vector_type = gko::matrix::Dense<mixed_value_type>;
     using partition_type =
-        gko::experimental::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
 
     static constexpr double tolerance() { return 10 * reduction_factor(); }
 
@@ -197,12 +198,13 @@ protected:
 
     std::unique_ptr<Part> gen_part(int size, int num_active_parts)
     {
-        auto mapping =
-            gko::test::generate_random_array<gko::experimental::distributed::comm_index_type>(
-                size,
-                std::uniform_int_distribution<
-                    gko::experimental::distributed::comm_index_type>(0, num_active_parts - 1),
-                rand_engine, ref);
+        auto mapping = gko::test::generate_random_array<
+            gko::experimental::distributed::comm_index_type>(
+            size,
+            std::uniform_int_distribution<
+                gko::experimental::distributed::comm_index_type>(
+                0, num_active_parts - 1),
+            rand_engine, ref);
         return Part::build_from_mapping(ref, mapping, comm.size());
     }
 
