@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace mpi {
 
 
@@ -91,6 +92,7 @@ int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
 
 
 }  // namespace mpi
+}  // namespace experimental
 }  // namespace gko
 
 

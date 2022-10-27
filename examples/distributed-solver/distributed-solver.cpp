@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
     // MPI at the begin and end respectively of our program. This can be easily
     // done with the following helper construct that uses RAII to automize the
     // initialization and finalization.
-    const gko::mpi::environment env(argc, argv);
+    const gko::experimental::mpi::environment env(argc, argv);
 
     // Create an MPI communicator wrapper and get the rank.
-    const gko::mpi::communicator comm{MPI_COMM_WORLD};
+    const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
 
     // Print the ginkgo version information and help message.
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    ValueType t_init = gko::mpi::get_walltime();
+    ValueType t_init = gko::experimental::mpi::get_walltime();
 
     // User input settings:
     // - The executor, defaults to reference.
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
             {"cuda",
              [&] {
                  return gko::CudaExecutor::create(
-                     gko::mpi::map_rank_to_device_id(
+                     gko::experimental::mpi::map_rank_to_device_id(
                          MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), false,
                      gko::allocation_mode::device);
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
             {"hip",
              [&] {
                  return gko::HipExecutor::create(
-                     gko::mpi::map_rank_to_device_id(
+                     gko::experimental::mpi::map_rank_to_device_id(
                          MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), true);
              }},
@@ -129,13 +129,13 @@ int main(int argc, char* argv[])
                  auto ref = gko::ReferenceExecutor::create();
                  if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         gko::mpi::map_rank_to_device_id(
+                         gko::experimental::mpi::map_rank_to_device_id(
                              MPI_COMM_WORLD,
                              gko::DpcppExecutor::get_num_devices("gpu")),
                          ref);
                  } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         gko::mpi::map_rank_to_device_id(
+                         gko::experimental::mpi::map_rank_to_device_id(
                              MPI_COMM_WORLD,
                              gko::DpcppExecutor::get_num_devices("cpu")),
                          ref);
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_init_end = gko::mpi::get_walltime();
+    ValueType t_init_end = gko::experimental::mpi::get_walltime();
 
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_read_setup_end = gko::mpi::get_walltime();
+    ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_generate_end = gko::mpi::get_walltime();
+    ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_apply_end = gko::mpi::get_walltime();
+    ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
 
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_end = gko::mpi::get_walltime();
+    ValueType t_end = gko::experimental::mpi::get_walltime();
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.

@@ -92,7 +92,7 @@ protected:
 
     MatrixBuilder()
         : ref(gko::ReferenceExecutor::create()),
-          comm(gko::mpi::communicator(MPI_COMM_WORLD))
+          comm(gko::experimental::mpi::communicator(MPI_COMM_WORLD))
     {}
 
     void SetUp() override {}
@@ -196,7 +196,7 @@ protected:
 
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    gko::mpi::communicator comm;
+    gko::experimental::mpi::communicator comm;
 };
 
 TYPED_TEST_SUITE(MatrixBuilder, gko::test::ValueLocalGlobalIndexTypes);
