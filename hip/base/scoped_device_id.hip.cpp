@@ -61,8 +61,17 @@ hip_scoped_device_id_guard::hip_scoped_device_id_guard(int device_id)
 hip_scoped_device_id_guard::~hip_scoped_device_id_guard()
 {
     if (need_reset_) {
-        if (hipSetDevice(original_device_id_) != hipSuccess) {
-            std::terminate();
+        auto error_code = hipSetDevice(original_device_id_);
+        if (error_code != hipSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+            std::cerr
+                << "Unrecoverable CUDA error while resetting the device id to "
+                << original_device_id_ << " in " << __func__ << ": "
+                << hipGetErrorName(error_code) << ": "
+                << hipGetErrorString(error_code) << std::endl
+                << "Exiting program" << std::endl;
+#endif  // GKO_VERBOSE_LEVEL >= 1
+            std::exit(error_code);
         }
     }
 }

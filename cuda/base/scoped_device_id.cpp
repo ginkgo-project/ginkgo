@@ -61,8 +61,17 @@ cuda_scoped_device_id_guard::cuda_scoped_device_id_guard(int device_id)
 cuda_scoped_device_id_guard::~cuda_scoped_device_id_guard()
 {
     if (need_reset_) {
-        if (cudaSetDevice(original_device_id_) != cudaSuccess) {
-            std::terminate();
+        auto error_code = cudaSetDevice(original_device_id_);
+        if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+            std::cerr
+                << "Unrecoverable CUDA error while resetting the device id to "
+                << original_device_id_ << " in " << __func__ << ": "
+                << cudaGetErrorName(error_code) << ": "
+                << cudaGetErrorString(error_code) << std::endl
+                << "Exiting program" << std::endl;
+#endif  // GKO_VERBOSE_LEVEL >= 1
+            std::exit(error_code);
         }
     }
 }
