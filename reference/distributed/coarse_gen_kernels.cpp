@@ -215,16 +215,27 @@ void fill_coarse(
     }
 
     nnz = 0;
-    ridx = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
         if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
                       coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
             // Assume row major ordering
-            restrict_data.get_row_idxs()[nnz] = ridx;
-            restrict_data.get_col_idxs()[nnz] = cidx;
-            restrict_data.get_values()[nnz] = nnz++;
+            restrict_data.get_row_idxs()[nnz] = i;
+            restrict_data.get_col_idxs()[nnz] = coarse_indices.get_data()[i];
+            restrict_data.get_values()[nnz] = one<ValueType>();
+            nnz++;
         }
-        ridx++;
+    }
+
+    nnz = 0;
+    for (auto i = 0; i < coarse_size[0]; ++i) {
+        if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
+                      coarse_indices.get_data()[i]) != std::end(f_col_idxs)) {
+            // Assume row major ordering
+            prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
+            prolong_data.get_col_idxs()[nnz] = i;
+            prolong_data.get_values()[nnz] = one<ValueType>();
+            nnz++;
+        }
     }
 }
 
