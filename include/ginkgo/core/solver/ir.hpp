@@ -127,7 +127,8 @@ public:
      */
     bool apply_uses_initial_guess() const override
     {
-        return this->get_apply_hint() == input_hint::given;
+        return this->get_default_initial_guess() ==
+               initial_guess_mode::provided;
     }
 
     /**
@@ -202,9 +203,11 @@ public:
                                                value_type{1});
 
         /**
-         * Default ApplyHint. The available options are under input_hint.
+         * Default initial guess mode. The available options are under
+         * initial_guess_mode.
          */
-        input_hint GKO_FACTORY_PARAMETER_SCALAR(apply_hint, input_hint::given);
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            default_initial_guess, initial_guess_mode::provided);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -213,16 +216,18 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
-    void apply_dense_impl(const VectorType* b,
-                          VectorType* x, input_hint hint) const;
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          initial_guess_mode guess) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const override;
+    void apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                  initial_guess_mode guess) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x, input_hint hint) const override;
+    void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                  const LinOp* beta, LinOp* x,
+                                  initial_guess_mode guess) const override;
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
@@ -249,7 +254,7 @@ protected:
             this->set_solver(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()));
         }
-        this->set_apply_hint(parameters_.apply_hint);
+        this->set_default_initial_guess(parameters_.default_initial_guess);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
     }

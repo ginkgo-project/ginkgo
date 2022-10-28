@@ -162,20 +162,21 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_impl(b, x, this->get_apply_hint());
+    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
 }
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
+void Ir<ValueType>::apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                             initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    this->modify_input(b, x, hint);
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this, hint](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x, hint);
+        [this, guess](auto dense_b, auto dense_x) {
+            this->prepare_initial_guess(dense_b, dense_x, guess);
+            this->apply_dense_impl(dense_b, dense_x, guess);
         },
         b, x);
 }
@@ -184,7 +185,8 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
 template <typename ValueType>
 template <typename VectorType>
 void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                     VectorType* dense_x, input_hint hint) const
+                                     VectorType* dense_x,
+                                     initial_guess_mode guess) const
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
@@ -202,12 +204,13 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
-    if (hint != input_hint::zero) {
+    if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     }
     // zero input the residual is dense_b
-    const Vector* residual_ptr = hint == input_hint::zero ? dense_b : residual;
+    const Vector* residual_ptr =
+        guess == initial_guess_mode::zero ? dense_b : residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -276,25 +279,26 @@ template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
 {
-    this->apply_impl(alpha, b, beta, x, input_hint::given);
+    this->apply_with_initial_guess(alpha, b, beta, x,
+                                   this->get_default_initial_guess());
 }
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x,
-                               input_hint hint) const
+void Ir<ValueType>::apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                             const LinOp* beta, LinOp* x,
+                                             initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    ApplyHint::modify_input(b, x, hint);
-    experimental::precision_dispatch_real_complex_distributed<ValueType>((
-        [this, hint](auto dense_alpha, auto dense_b, auto dense_beta,
-                     auto dense_x) {
-        auto x_clone = dense_x->clone();
-        this->apply_dense_impl(dense_b, x_clone.get(), hint);
-        dense_x->scale(dense_beta);
-        dense_x->add_scaled(dense_alpha, x_clone.get());
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
+        [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            this->prepare_initial_guess(dense_b, dense_x, guess);
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), guess);
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
 }

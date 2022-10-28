@@ -52,9 +52,9 @@ namespace solver {
 
 
 /**
- * Give a hint about the input of the apply method.
+ * Give a initial guess mode about the input of the apply method.
  */
-enum class input_hint {
+enum class initial_guess_mode {
     /**
      * the input is zero
      */
@@ -64,175 +64,96 @@ enum class input_hint {
      */
     rhs,
     /**
-     * the input is given
+     * the input is provided
      */
-    given
+    provided
 };
-
-
-namespace {
-
-
-inline void fill_zero(LinOp* input)
-{
-    if (auto dense = dynamic_cast<matrix::Dense<float>*>(input)) {
-        dense->fill(gko::zero<float>());
-    } else if (auto dense = dynamic_cast<matrix::Dense<double>*>(input)) {
-        dense->fill(gko::zero<double>());
-    } else if (auto dense =
-                   dynamic_cast<matrix::Dense<std::complex<float>>*>(input)) {
-        dense->fill(gko::zero<std::complex<float>>());
-    } else if (auto dense =
-                   dynamic_cast<matrix::Dense<std::complex<double>>*>(input)) {
-        dense->fill(gko::zero<std::complex<double>>());
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-
-}  // namespace
 
 
 class MultigridState;
 
 
 /**
- * ApplyHint provides a way to give the input hint for apply function.
- * All functionalities are under protected. It should only be used internally.
+ * ApplyWithInitialGuess provides a way to give the input guess for apply
+ * function. All functionalities have the protected access specifier. It should
+ * only be used internally.
  */
-class ApplyHint {
+class ApplyWithInitialGuess {
 protected:
     friend class MultigridState;
 
     /**
-     * Applies a linear operator to a vector (or a sequence of vectors) with
-     * a hint.
-     *
-     * Performs the operation x = op(b) with a hint, where op is this linear
-     * operator.
-     *
-     * @param b  the input vector(s) on which the operator is applied
-     * @param x  the output vector(s) where the result is stored
-     * @param hint  the input hint to handle the input vector(s)
-     *
-     * @return this
-     */
-    ApplyHint* apply_with_hint(const LinOp* b, LinOp* x, input_hint hint)
-    {
-        this->apply_impl(b, x, hint);
-        return this;
-    }
-
-    /**
-     * @copydoc apply_with_hint(const LinOp *, LinOp *, input_hint)
-     */
-    const ApplyHint* apply_with_hint(const LinOp* b, LinOp* x,
-                                     input_hint hint) const
-    {
-        this->apply_impl(b, x, hint);
-        return this;
-    }
-
-    /**
-     * Performs the operation x = alpha * op(b) + beta * x with a hint
-     *
-     * @param alpha  scaling of the result of op(b)
-     * @param b  vector(s) on which the operator is applied
-     * @param beta  scaling of the input x
-     * @param x  output vector(s)
-     * @param hint  the input hint
-     *
-     * @return this
-     */
-    ApplyHint* apply_with_hint(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x, input_hint hint)
-    {
-        this->apply_impl(alpha, b, beta, x, hint);
-        return this;
-    }
-
-    /**
-     * @copydoc apply_with_hint(const LinOp *, const LinOp *, const LinOp *,
-     * LinOp *, input_hint)
-     */
-    const ApplyHint* apply_with_hint(const LinOp* alpha, const LinOp* b,
-                                     const LinOp* beta, LinOp* x,
-                                     input_hint hint) const
-    {
-        this->apply_impl(alpha, b, beta, x, hint);
-        return this;
-    }
-
-    /**
-     * Get the input hint
-     *
-     * @return input_hint
-     */
-    input_hint get_apply_hint() const { return hint_; }
-
-    /**
-     * ApplyHint constructor.
-     *
-     * @param hint  the input hint whose default is input_hint::given
-     */
-    ApplyHint(input_hint hint = input_hint::given) : hint_(hint) {}
-
-    /**
-     * Modify the input vector x by the hint
+     * Modify the input vector x by the guess
      *
      * @param b  the right hand side vectors
      * @param x  the input vectors
-     * @param hint  the input hint
+     * @param guess  the input guess
      */
-    static void modify_input(const LinOp* b, LinOp* x, input_hint hint)
-    {
-        if (hint == input_hint::zero) {
-            fill_zero(x);
-        } else if (hint == input_hint::rhs) {
-            x->copy_from(b);
-        }
-    }
+    template <typename ValueType>
+    static void prepare_initial_guess(const matrix::Dense<ValueType>* b,
+                                      matrix::Dense<ValueType>* x,
+                                      initial_guess_mode guess);
 
     /**
-     * Implementers of ApplyHint should override this function.
+     * Applies a linear operator to a vector (or a sequence of vectors) with
+     * initial guess statement.
      *
-     * Performs the operation x = op(b) with a hint
+     * Performs the operation x = op(b) with a initial guess statement, where op
+     * is this linear operator and the initial guess parameter will modify the
+     * input vector to the requested the initial guess mode (See @enum
+     * initial_guess_mode) .
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
-     * @param hint  the input hint
+     * @param guess  the input guess to handle the input vector(s)
+     *
+     * @return this
      */
-    virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
-    {
-        modify_input(b, x, hint);
-        this->apply_impl(b, x);
-    }
+    virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                          initial_guess_mode guess) const;
 
     /**
-     * Implementers of ApplyHint should override this function.
-     *
-     * Performs the operation x = alpha * op(b) + beta * x with a hint
+     * Performs the operation x = alpha * op(b) + beta * x with a initial guess
+     * statement, where op is this linear operator and the initial guess
+     * parameter will modify the input vector to the requested the initial guess
+     * mode (See @enum initial_guess_mode) .
      *
      * @param alpha  scaling of the result of op(b)
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
-     * @param hint  the input hint
+     * @param guess  the input guess
+     *
+     * @return this
      */
-    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
-                            const LinOp* beta, LinOp* x, input_hint hint) const
-    {
-        modify_input(b, x, hint);
-        this->apply_impl(b, x);
-    }
+    virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                          const LinOp* beta, LinOp* x,
+                                          initial_guess_mode guess) const;
 
     /**
-     * set the input hint
+     * Get the default initial guess
      *
-     * @param hint  the input hint
+     * @return default initial guess
      */
-    void set_apply_hint(input_hint hint) { hint_ = hint; }
+    initial_guess_mode get_default_initial_guess() const { return guess_; }
+
+    /**
+     * ApplyWithInitialGuess constructor.
+     *
+     * @param guess  the input guess whose default is
+     * initial_guess_mode::provided
+     */
+    explicit ApplyWithInitialGuess(
+        initial_guess_mode guess = initial_guess_mode::provided)
+        : guess_(guess)
+    {}
+
+    /**
+     * set the default initial guess
+     *
+     * @param guess  the initial guess
+     */
+    void set_default_initial_guess(initial_guess_mode guess) { guess_ = guess; }
 
     // override this at the same time when overridden
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
@@ -242,52 +163,7 @@ protected:
                             const LinOp* beta, LinOp* x) const = 0;
 
 private:
-    input_hint hint_;
-};
-
-
-/**
- * The EnableApplyHint mixin can be used to provide sensible default
- * implementations of ApplyHint.
- *
- * @tparam DerivedType  the concrete LinOp which is being implemented
- *                      [CRTP parameter]
- */
-template <typename DerivedType>
-class EnableApplyHint : public ApplyHint {
-protected:
-    friend class MultigridState;
-
-    DerivedType* apply_with_hint(const LinOp* b, LinOp* x, input_hint hint)
-    {
-        ApplyHint::apply_with_hint(b, x, hint);
-        return self();
-    }
-
-    const DerivedType* apply_with_hint(const LinOp* b, LinOp* x,
-                                       input_hint hint) const
-    {
-        ApplyHint::apply_with_hint(b, x, hint);
-        return self();
-    }
-
-    DerivedType* apply_with_hint(const LinOp* alpha, const LinOp* b,
-                                 const LinOp* beta, LinOp* x, input_hint hint)
-    {
-        ApplyHint::apply_with_hint(alpha, b, beta, x, hint);
-        return self();
-    }
-
-    const DerivedType* apply_with_hint(const LinOp* alpha, const LinOp* b,
-                                       const LinOp* beta, LinOp* x,
-                                       input_hint hint) const
-    {
-        ApplyHint::apply_with_hint(alpha, b, beta, x, hint);
-        return self();
-    }
-
-protected:
-    GKO_ENABLE_SELF(DerivedType);
+    initial_guess_mode guess_;
 };
 
 
@@ -700,7 +576,7 @@ private:
 
 /**
  * A LinOp deriving from this CRTP class stores a stopping criterion factory and
- * allows applying with a hint.
+ * allows applying with a guess.
  *
  * @tparam DerivedType  the CRTP type that derives from this
  *
@@ -708,8 +584,7 @@ private:
  * @ingroup LinOp
  */
 template <typename DerivedType>
-class EnableIterativeBase : public IterativeBase,
-                            public EnableApplyHint<DerivedType> {
+class EnableIterativeBase : public IterativeBase, public ApplyWithInitialGuess {
 public:
     /**
      * Creates a shallow copy of the provided stopping criterion, clones it onto

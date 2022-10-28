@@ -295,24 +295,24 @@ TYPED_TEST(Ir, CanSetInnerSolver)
 }
 
 
-TYPED_TEST(Ir, CanSetApplyHint)
+TYPED_TEST(Ir, CanSetApplyWithInitialGuessMode)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    using input_hint = gko::solver::input_hint;
-    for (auto hint : {input_hint::given, input_hint::rhs, input_hint::zero}) {
-        // SCOPED_TRACE?
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
         auto ir_factory =
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(3u).on(
                         this->exec))
-                .with_apply_hint(hint)
+                .with_default_initial_guess(guess)
                 .on(this->exec);
         auto solver = ir_factory->generate(this->mtx);
 
         ASSERT_EQ(solver->apply_uses_initial_guess(),
-                  hint == gko::solver::input_hint::given);
+                  guess == gko::solver::initial_guess_mode::provided);
     }
 }
 
