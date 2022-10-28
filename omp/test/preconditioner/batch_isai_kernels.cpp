@@ -177,7 +177,7 @@ protected:
         gko::kernels::reference::batch_isai::apply_isai(
             ref, mtx.get(), approx_inv, rv.get(), z.get());
         gko::kernels::omp::batch_isai::apply_isai(
-            d_exec, d_mtx.get(), approx_inv, d_rv.get(), d_z.get());
+            d_exec, d_mtx.get(), d_approx_inv, d_rv.get(), d_z.get());
 
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
