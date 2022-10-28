@@ -109,6 +109,7 @@ void CoarseGen<ValueType, LocalIndexType,
     const auto global_size = dist_fine_mat->get_size();
     const auto local_size = dist_fine_mat->get_local_matrix()->get_size();
 
+    // Assumes that the only local partition relevant matrix data is stored.
     const auto fine_mat_data = dist_fine_mat->get_matrix_data();
     const auto global_coarse_size = global_size[0] / 2;
     coarse_indices_map_ = array<GlobalIndexType>(exec, global_coarse_size);
