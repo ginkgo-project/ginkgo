@@ -103,6 +103,7 @@ protected:
         return mat;
     }
 
+    // TODO: Add tests for non-sorted input matrix
     void test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
         const gko::preconditioner::batch_ilu_type ilu_type,
         const int parilu_num_sweeps, const int lower_spy_power,
@@ -233,9 +234,11 @@ protected:
             auto lower_trisolve_factory =
                 ir::build()
                     .with_solver(lower_isai_factory)
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(num_relaxation_steps)
-                                       .on(exec))
+                    .with_criteria(
+                        gko::stop::Iteration::build()
+                            .with_max_iters(static_cast<gko::size_type>(
+                                num_relaxation_steps))
+                            .on(exec))
                     .on(exec);
 
             auto upper_trisolve_factory =
