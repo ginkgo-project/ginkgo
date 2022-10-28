@@ -245,28 +245,28 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 }
 
 
-TEST_F(Ir, ApplyWithGivenHintIsEquivalentToRef)
+TEST_F(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
 {
-    using input_hint = gko::solver::input_hint;
+    using initial_guess_mode = gko::solver::initial_guess_mode;
     auto mtx = gko::share(gen_mtx(50, 50, 52));
     auto b = gen_mtx(50, 3, 7);
     auto d_mtx = gko::share(clone(exec, mtx));
     auto d_b = clone(exec, b);
-    for (auto hint : {input_hint::given, input_hint::rhs, input_hint::zero}) {
-        // SCOPED_TRACE?
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
         auto x = gen_mtx(50, 3, 4);
         auto d_x = clone(exec, x);
         auto ir_factory =
             gko::solver::Ir<value_type>::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(2u).on(ref))
-                .with_apply_hint(hint)
+                .with_default_initial_guess(guess)
                 .on(ref);
         auto d_ir_factory =
             gko::solver::Ir<value_type>::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-                .with_apply_hint(hint)
+                .with_default_initial_guess(guess)
                 .on(exec);
         auto solver = ir_factory->generate(mtx);
         auto d_solver = d_ir_factory->generate(d_mtx);

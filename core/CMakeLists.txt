@@ -57,6 +57,7 @@ target_sources(ginkgo
     solver/ir.cpp
     solver/lower_trs.cpp
     solver/multigrid.cpp
+    solver/solver_base.cpp
     solver/upper_trs.cpp
     stop/combined.cpp
     stop/criterion.cpp
