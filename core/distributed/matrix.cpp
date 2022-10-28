@@ -85,6 +85,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
+      row_partition_{},
+      col_partition_{},
       matrix_data_{exec},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
@@ -116,6 +118,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->send_sizes_ = this->send_sizes_;
     // FIXME Add mixed prec copies to device_matrix_data
     // result->matrix_data_ = this->matrix_data_;
+    result->row_partition_ = this->row_partition_;
+    result->col_partition_ = this->col_partition_;
     result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
@@ -137,6 +141,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->send_sizes_ = std::move(this->send_sizes_);
     // FIXME Add mixed prec copies to device_matrix_data
     // result->matrix_data_ = std::move(this->matrix_data_);
+    result->row_partition_ = std::move(this->row_partition_);
+    result->col_partition_ = std::move(this->col_partition_);
     result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -156,6 +162,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
+    this->row_partition_ = gko::share(row_partition);
+    this->col_partition_ = gko::share(col_partition);
     this->matrix_data_ = data;
 
     // set up LinOp sizes
@@ -414,6 +422,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_offsets_ = other.recv_offsets_;
         send_sizes_ = other.send_sizes_;
         recv_sizes_ = other.recv_sizes_;
+        matrix_data_ = other.matrix_data_;
+        row_partition_ = other.row_partition_;
+        col_partition_ = other.col_partition_;
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
@@ -438,6 +449,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         recv_offsets_ = std::move(other.recv_offsets_);
         send_sizes_ = std::move(other.send_sizes_);
         recv_sizes_ = std::move(other.recv_sizes_);
+        matrix_data_ = std::move(other.matrix_data_);
+        row_partition_ = std::move(other.row_partition_);
+        col_partition_ = std::move(other.col_partition_);
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());

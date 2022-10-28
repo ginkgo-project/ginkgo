@@ -565,6 +565,12 @@ private:
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
     device_matrix_data<value_type, global_index_type> matrix_data_;
+    std::shared_ptr<
+        const gko::distributed::Partition<local_index_type, global_index_type>>
+        row_partition_;
+    std::shared_ptr<
+        const gko::distributed::Partition<local_index_type, global_index_type>>
+        col_partition_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };
