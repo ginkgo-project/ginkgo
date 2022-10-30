@@ -33,14 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <dpcpp/preconditioner/jacobi_common.hpp>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

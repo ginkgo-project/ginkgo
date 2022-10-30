@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <dpcpp/preconditioner/jacobi_common.hpp>
-
-
 #include <CL/sycl.hpp>
 
 
@@ -49,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
