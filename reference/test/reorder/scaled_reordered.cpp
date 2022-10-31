@@ -186,6 +186,7 @@ TYPED_TEST(ScaledReordered, BuildsWithRowScaling)
     using Mtx = typename TestFixture::Mtx;
     auto scaled_reordered_fact =
         SR::build().with_row_scaling(this->diag).on(this->exec);
+
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(scaled_reordered->get_system_matrix()),
@@ -199,6 +200,7 @@ TYPED_TEST(ScaledReordered, BuildsWithColScaling)
     using Mtx = typename TestFixture::Mtx;
     auto scaled_reordered_fact =
         SR::build().with_col_scaling(this->diag).on(this->exec);
+
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(scaled_reordered->get_system_matrix()),
@@ -214,6 +216,7 @@ TYPED_TEST(ScaledReordered, BuildsWithRowAndColScaling)
                                      .with_row_scaling(this->diag)
                                      .with_col_scaling(this->diag)
                                      .on(this->exec);
+
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(scaled_reordered->get_system_matrix()),
@@ -227,6 +230,7 @@ TYPED_TEST(ScaledReordered, BuildsWithRcmReordering)
     using Mtx = typename TestFixture::Mtx;
     auto scaled_reordered_fact =
         SR::build().with_reordering(this->rcm_factory).on(this->exec);
+
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(scaled_reordered->get_system_matrix()),
@@ -254,11 +258,10 @@ TYPED_TEST(ScaledReordered, CanBeCopied)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-
     auto before_system_matrix = scaled_reordered->get_system_matrix();
     auto before_inner_operator = scaled_reordered->get_inner_operator();
-
     auto copied = SR::build().on(this->exec)->generate(this->rcm_mtx);
+
     copied->copy_from(scaled_reordered.get());
 
     ASSERT_EQ(before_system_matrix, copied->get_system_matrix());
@@ -276,11 +279,10 @@ TYPED_TEST(ScaledReordered, CanBeMoved)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-
     auto before_system_matrix = scaled_reordered->get_system_matrix();
     auto before_inner_operator = scaled_reordered->get_inner_operator();
-
     auto moved = SR::build().on(this->exec)->generate(this->rcm_mtx);
+
     moved->copy_from(std::move(scaled_reordered.get()));
 
     ASSERT_EQ(before_system_matrix, moved->get_system_matrix());
@@ -298,7 +300,6 @@ TYPED_TEST(ScaledReordered, CanBeCloned)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-
     auto before_system_matrix = scaled_reordered->get_system_matrix();
     auto before_inner_operator = scaled_reordered->get_inner_operator();
 
@@ -309,14 +310,97 @@ TYPED_TEST(ScaledReordered, CanBeCloned)
 }
 
 
+TYPED_TEST(ScaledReordered, AppliesWithoutOperators)
+{
+    using SR = typename TestFixture::SR;
+    using Vec = typename TestFixture::Vec;
+    auto scaled_reordered_fact = SR::build().on(this->exec);
+    auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
+    auto res = Vec::create_with_config_of(this->b.get());
+
+    scaled_reordered->apply(this->b.get(), res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, this->b, this->tol);
+}
+
+
+TYPED_TEST(ScaledReordered, AppliesWithOnlyRowScaling)
+{
+    using SR = typename TestFixture::SR;
+    using Vec = typename TestFixture::Vec;
+    auto scaled_reordered_fact =
+        SR::build().with_row_scaling(this->diag2).on(this->exec);
+    auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
+    auto res = Vec::create_with_config_of(this->b.get());
+    auto expected_result = this->b->clone();
+    this->diag2->apply(this->b.get(), expected_result.get());
+
+    scaled_reordered->apply(this->b.get(), res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, expected_result, this->tol);
+}
+
+
+TYPED_TEST(ScaledReordered, AppliesWithOnlyColScaling)
+{
+    using SR = typename TestFixture::SR;
+    using Vec = typename TestFixture::Vec;
+    auto scaled_reordered_fact =
+        SR::build().with_col_scaling(this->diag2).on(this->exec);
+    auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
+    auto res = Vec::create_with_config_of(this->b.get());
+    auto expected_result = this->b->clone();
+    this->diag2->apply(this->b.get(), expected_result.get());
+
+    scaled_reordered->apply(this->b.get(), res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, expected_result, this->tol);
+}
+
+
+TYPED_TEST(ScaledReordered, AppliesWithRowAndColScaling)
+{
+    using SR = typename TestFixture::SR;
+    using Vec = typename TestFixture::Vec;
+    auto scaled_reordered_fact = SR::build()
+                                     .with_row_scaling(this->diag2)
+                                     .with_col_scaling(this->diag3)
+                                     .on(this->exec);
+    auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
+    auto res = Vec::create_with_config_of(this->b.get());
+    auto expected_result = this->b->clone();
+    this->diag2->apply(this->b.get(), expected_result.get());
+    this->diag3->apply(expected_result.get(), expected_result.get());
+
+    scaled_reordered->apply(this->b.get(), res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, expected_result, this->tol);
+}
+
+
+TYPED_TEST(ScaledReordered, AppliesWithRcmReordering)
+{
+    using SR = typename TestFixture::SR;
+    using Vec = typename TestFixture::Vec;
+    auto scaled_reordered_fact =
+        SR::build().with_reordering(this->rcm_factory).on(this->exec);
+    auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
+    auto res = Vec::create_with_config_of(this->b.get());
+
+    scaled_reordered->apply(this->b.get(), res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, this->b, this->tol);
+}
+
+
 TYPED_TEST(ScaledReordered, SolvesSingleRhsWithOnlyInnerOperator)
 {
     using SR = typename TestFixture::SR;
     auto scaled_reordered_fact =
         SR::build().with_inner_operator(this->solver_factory).on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(this->b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
@@ -331,8 +415,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithRowScaling)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(this->b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
@@ -347,8 +431,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithColScaling)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(this->b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
@@ -363,8 +447,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithRcmReordering)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(this->b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
@@ -381,8 +465,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReordering)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(this->b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, this->x, 15 * this->tol);
@@ -403,8 +487,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
     auto x = gko::initialize<Vec>({1., 2., 3., 4., 5.}, this->exec);
     auto b = gko::initialize<Vec>({10.3, 16.5, 11.9, 10., 7.1}, this->exec);
-
     auto res = b->clone();
+
     scaled_reordered->apply(b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, x, 1e-5);
@@ -424,8 +508,8 @@ TYPED_TEST(ScaledReordered, AdvancedSolvesSingleRhsWithScalingAndRcmReordering)
                                      .with_inner_operator(this->solver_factory)
                                      .on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
-
     auto res = this->b->clone();
+
     scaled_reordered->apply(alpha.get(), this->b.get(), beta.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), 15 * this->tol);
@@ -450,8 +534,8 @@ TYPED_TEST(ScaledReordered,
     const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto x = gko::initialize<Vec>({1., 2., 3., 4., 5.}, this->exec);
     auto b = gko::initialize<Vec>({10.3, 16.5, 11.9, 10., 7.1}, this->exec);
-
     auto res = b->clone();
+
     scaled_reordered->apply(alpha.get(), b.get(), beta.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), 1e-5);
@@ -477,8 +561,8 @@ TYPED_TEST(ScaledReordered, SolvesMultipleRhs)
         {I<T>{10.3, 20.6}, I<T>{16.5, 33.}, I<T>{11.9, 23.8}, I<T>{10., 20.},
          I<T>{7.1, 14.2}},
         this->exec);
-
     auto res = b->clone();
+
     scaled_reordered->apply(b.get(), res.get());
 
     GKO_ASSERT_MTX_NEAR(res, x, 15 * this->tol);

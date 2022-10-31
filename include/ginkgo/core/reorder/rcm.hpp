@@ -125,13 +125,9 @@ public:
         return inv_permutation_;
     }
 
-    std::shared_ptr<const array<index_type>> get_permutation_array()
-        const override
+    const array<index_type>& get_permutation_array() const override
     {
-        auto permutation_array =
-            make_array_view(this->get_executor(), permutation_->get_size()[0],
-                            permutation_->get_permutation());
-        return std::make_shared<const array<index_type>>(permutation_array);
+        return permutation_array_;
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -215,11 +211,15 @@ protected:
                 inv_permutation_ = gpu_inv_perm;
             }
         }
+        permutation_array_ =
+            make_array_view(this->get_executor(), permutation_->get_size()[0],
+                            permutation_->get_permutation());
     }
 
 private:
     std::shared_ptr<PermutationMatrix> permutation_;
     std::shared_ptr<PermutationMatrix> inv_permutation_;
+    array<index_type> permutation_array_;
 };
 
 
