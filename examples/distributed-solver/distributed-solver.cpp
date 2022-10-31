@@ -71,10 +71,14 @@ int main(int argc, char* argv[])
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
     using solver = gko::solver::Cg<ValueType>;
+    using coarse_gen =
+        gko::experimental::distributed::CoarseGen<ValueType, LocalIndexType,
+                                                  GlobalIndexType>;
     using schwarz =
         gko::experimental::distributed::preconditioner::Schwarz<ValueType,
                                                                 LocalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
+    using mg = gko::solver::Multigrid;
     using ic = gko::preconditioner::Ic<>;
 
     const gko::mpi::environment env(argc, argv);
@@ -229,15 +233,33 @@ int main(int argc, char* argv[])
     // Generate the solver, this is the same as in the non-distributed case.
     //
     auto local_solver =
-        // gko::share(bj::build().with_max_block_size(1u).on(exec));
-        gko::share(ic::build().on(exec));
-    auto Ainv =
+        gko::share(bj::build().with_max_block_size(1u).on(exec));
+    // gko::share(ic::build().on(exec));
+    auto coarse_gen_fac = gko::share(coarse_gen::build().on(exec));
+    auto mg_coarsest_solver = gko::share(
         solver::build()
-            .with_preconditioner(
-                schwarz::build().with_local_solver(local_solver).on(exec))
-            .with_criteria(iter_stop, tol_stop)
-            .on(exec)
-            ->generate(A);
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .on(exec));
+
+    auto coarse_fac = gko::share(
+        mg::build()
+            .with_max_levels(1u)
+            .with_mg_level(coarse_gen_fac)
+            .with_coarsest_solver(mg_coarsest_solver)
+            .with_zero_guess(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec));
+    auto coarse_solver = gko::share(coarse_fac->generate(A));
+    auto Ainv = solver::build()
+                    .with_preconditioner(schwarz::build()
+                                             .with_local_solver(local_solver)
+                                             .with_coarse_solvers(coarse_solver)
+                                             .on(exec))
+                    .with_criteria(iter_stop, tol_stop)
+                    .on(exec)
+                    ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.
