@@ -51,12 +51,12 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
-template <typename Generator, typename VectorType>
+template <typename Generator, typename VectorType, typename IndexType>
 void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                 const Generator& generator,
-                const gko::matrix_data<etype, itype>& data, const VectorType* b,
-                const VectorType* x, const VectorType* answer,
-                rapidjson::Value& test_case,
+                const gko::matrix_data<etype, IndexType>& data,
+                const VectorType* b, const VectorType* x,
+                const VectorType* answer, rapidjson::Value& test_case,
                 rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
@@ -66,7 +66,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
 
         auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
-        auto system_matrix = generator.generate_matrix(exec, test_case, data);
+        auto system_matrix =
+            generator.generate_matrix_with_format(exec, format_name, data);
 
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
@@ -182,8 +183,7 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            auto data = system_generator.generate_matrix_data(test_case);
 
             auto nrhs = FLAGS_nrhs;
             auto b = system_generator.create_matrix_random(
@@ -203,11 +203,11 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
             }
 
             // Compute the result from ginkgo::coo as the correct answer
-            auto answer = vec<etype>::create(exec);
+            auto answer = gko::clone(lend(x));
             if (FLAGS_detailed) {
                 auto system_matrix =
-                    share(formats::matrix_factory("coo", exec, data));
-                answer->copy_from(lend(x));
+                    system_generator.generate_matrix_with_default_format(exec,
+                                                                         data);
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
                 exec->synchronize();
