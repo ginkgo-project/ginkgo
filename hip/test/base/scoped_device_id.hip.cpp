@@ -66,7 +66,9 @@ TEST_F(ScopedDeviceIdGuard, SetsId)
 
     gko::detail::hip_scoped_device_id_guard g{new_device_id};
 
-    ASSERT_EQ(hip->get_device_id(), new_device_id);
+    int device_id;
+    hipGetDevice(&device_id);
+    ASSERT_EQ(device_id, new_device_id);
 }
 
 
@@ -79,7 +81,9 @@ TEST_F(ScopedDeviceIdGuard, ResetsId)
         gko::detail::hip_scoped_device_id_guard g{new_device_id};
     }
 
-    ASSERT_EQ(hip->get_device_id(), old_device_id);
+    int device_id;
+    hipGetDevice(&device_id);
+    ASSERT_EQ(device_id, old_device_id);
 }
 
 
