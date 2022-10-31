@@ -51,46 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/generator.hpp"
 
 
-// input validation
-[[noreturn]] void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-                 "\"spmv\": \"<matrix format>\" },\n"
-                 "      \"rhs\": \"my_file_rhs.mtx\" },\n"
-              << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
-                 "\"spmv\": \"<matrix format>\" } }\n"
-              << "  ]" << std::endl;
-    std::exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value& value)
-{
-    if (!value.IsObject() || !value.HasMember("optimal") ||
-        !value["optimal"].HasMember("spmv") ||
-        !value["optimal"]["spmv"].IsString() || !value.HasMember("filename") ||
-        !value["filename"].IsString() ||
-        (value.HasMember("rhs") && !value["rhs"].IsString())) {
-        print_config_error_and_exit();
-    }
-}
-
-struct Generator : public SolverGenerator {
-    void validate_options(const rapidjson::Value& options) const
-    {
-        if (!options.IsObject() || !options.HasMember("optimal") ||
-            !options["optimal"].HasMember("spmv") ||
-            !options["optimal"]["spmv"].IsString() ||
-            !options.HasMember("filename") || !options["filename"].IsString() ||
-            (options.HasMember("rhs") && !options["rhs"].IsString())) {
-            print_config_error_and_exit();
-        }
-    }
-};
-
-
 int main(int argc, char* argv[])
 {
     // Set the default repetitions = 1.
@@ -98,16 +58,9 @@ int main(int argc, char* argv[])
     FLAGS_min_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
-    std::string format =
-        std::string() + "  [\n" +
-        "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-        "\"spmv\": \"<matrix format>\" },\n"
-        "      \"rhs\": \"my_file_rhs.mtx\" },\n" +
-        "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
-        "\"spmv\": \"<matrix format>\" } }\n" +
-        "  ]\n\n" +
-        "  \"optimal_format\" can be one of the recognized spmv "
-        "format\n\n";
+    std::string format = example_config + R"(
+  "optimal":"spmv" can be one of the recognized spmv formats
+)";
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::stringstream ss_rel_res_goal;
@@ -138,7 +91,7 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_solver_benchmarks(exec, test_cases, Generator{});
+    run_solver_benchmarks(exec, test_cases, SolverGenerator{});
 
     std::cout << test_cases << std::endl;
 }

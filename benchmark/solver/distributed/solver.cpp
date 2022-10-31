@@ -44,41 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/generator.hpp"
 
 
-std::string example_config = R"(
-  [
-    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
-     "optimal": {"spmv": "csr-coo"}},
-    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
-     "rhs": "my_file_rhs.mtx"}
-  ]
-)";
-
-
-// input validation
-[[noreturn]] void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of solver configurations:\n"
-              << example_config << std::endl;
-    std::exit(1);
-}
-
-
 struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     Generator(gko::mpi::communicator comm)
         : DistributedDefaultSystemGenerator<SolverGenerator>{std::move(comm),
                                                              {}}
     {}
-
-    void validate_options(const rapidjson::Value& options) const
-    {
-        if (!options.IsObject() ||
-            !((options.HasMember("size") && options.HasMember("stencil")) ||
-              options.HasMember("filename")) ||
-            (!options.HasMember("optimal") &&
-             !options["optimal"].HasMember("spmv"))) {
-            print_config_error_and_exit();
-        }
-    }
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
                                       const gko::LinOp* system_matrix,
