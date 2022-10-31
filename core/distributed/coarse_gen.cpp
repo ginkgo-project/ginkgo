@@ -100,7 +100,7 @@ void fill_coarse_partition(
         coarse_indices_map.get_executor()->get_master(),
         coarse_indices_map.get_num_elems());
     auto coarse_map_host =
-        array<LocalIndexType>(coarse_indices_map.get_executor()->get_master());
+        array<GlobalIndexType>(coarse_indices_map.get_executor()->get_master());
     coarse_map_host = coarse_indices_map;
     auto fine_part_host = gko::share(
         gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(

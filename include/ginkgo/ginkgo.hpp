@@ -73,6 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/coarse_gen.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
