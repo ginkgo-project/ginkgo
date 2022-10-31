@@ -87,7 +87,7 @@ struct DefaultSystemGenerator {
         return generate_matrix_with_format(std::move(exec), "coo", data);
     }
 
-    static std::unique_ptr<Vec> create_matrix(
+    static std::unique_ptr<Vec> create_multi_vector(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
         ValueType value)
     {
@@ -96,8 +96,16 @@ struct DefaultSystemGenerator {
         return res;
     }
 
-    // creates a random matrix
-    static std::unique_ptr<Vec> create_matrix_random(
+    static std::unique_ptr<Vec> create_multi_vector(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+        gko::size_type stride)
+    {
+        auto res = Vec::create(exec, size, stride);
+        return res;
+    }
+
+    // creates a random multi_vector
+    static std::unique_ptr<Vec> create_multi_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     {
         auto res = Vec::create(exec);
@@ -113,15 +121,14 @@ struct DefaultSystemGenerator {
     static std::unique_ptr<Vec> create_vector(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size)
     {
-        auto res = Vec::create(exec, gko::dim<2>{size, 1});
-        return res;
+        return create_multi_vector(std::move(exec), gko::dim<2>{size, 1}, 1);
     }
 
     // creates a random vector
     static std::unique_ptr<Vec> create_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size)
     {
-        return create_matrix_random(exec, gko::dim<2>{size, 1});
+        return create_multi_vector_random(exec, gko::dim<2>{size, 1});
     }
 
     static std::unique_ptr<Vec> initialize(
@@ -189,7 +196,7 @@ struct DistributedDefaultSystemGenerator {
         return generate_matrix_with_format(std::move(exec), "coo-coo", data);
     }
 
-    std::unique_ptr<Vec> create_matrix(
+    std::unique_ptr<Vec> create_multi_vector(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
         value_type value) const
     {
@@ -199,7 +206,7 @@ struct DistributedDefaultSystemGenerator {
         return Vec::create(
             exec, comm, size,
             local_generator
-                .create_matrix(
+                .create_multi_vector(
                     exec,
                     gko::dim<2>{static_cast<gko::size_type>(
                                     part->get_part_size(comm.rank())),
@@ -208,8 +215,8 @@ struct DistributedDefaultSystemGenerator {
                 .get());
     }
 
-    // creates a random matrix
-    std::unique_ptr<Vec> create_matrix_random(
+    // creates a random multi_vector
+    std::unique_ptr<Vec> create_multi_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size) const
     {
         auto part = gko::distributed::Partition<itype, gko::int64>::
@@ -218,7 +225,7 @@ struct DistributedDefaultSystemGenerator {
         return Vec::create(
             exec, comm, size,
             local_generator
-                .create_matrix_random(
+                .create_multi_vector_random(
                     exec, gko::dim<2>{static_cast<gko::size_type>(
                                           part->get_part_size(comm.rank())),
                                       size[1]})
@@ -229,14 +236,14 @@ struct DistributedDefaultSystemGenerator {
     std::unique_ptr<Vec> create_vector(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
     {
-        return create_matrix(exec, gko::dim<2>{size, 1}, value_type{});
+        return create_multi_vector(exec, gko::dim<2>{size, 1}, value_type{});
     }
 
     // creates a random vector
     std::unique_ptr<Vec> create_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
     {
-        return create_matrix_random(exec, gko::dim<2>{size, 1});
+        return create_multi_vector_random(exec, gko::dim<2>{size, 1});
     }
 
     std::unique_ptr<Vec> initialize(
