@@ -124,7 +124,7 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
     if (grid_size > 0) {
-        duplicate_array<default_num_warps><<<grid_size, block_size>>>(
+        duplicate_array<<<grid_size, block_size>>>(
             source.get_const_data(), source.get_num_elems(),
             precisions.get_data(), precisions.get_num_elems());
     }

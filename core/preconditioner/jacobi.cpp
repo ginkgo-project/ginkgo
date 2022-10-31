@@ -333,11 +333,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
                                                          skip_sorting);
-
         if (parameters_.block_pointers.get_data() == nullptr) {
             this->detect_blocks(csr_mtx.get());
         }
-
         const auto all_block_opt =
             parameters_.storage_optimization.of_all_blocks;
         auto& precisions = parameters_.storage_optimization.block_wise;
@@ -355,7 +353,6 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             precisions = std::move(tmp);
             conditioning_.resize_and_reset(num_blocks_);
         }
-
         exec->run(jacobi::make_generate(
             csr_mtx.get(), num_blocks_, parameters_.max_block_size,
             parameters_.accuracy, storage_scheme_, conditioning_, precisions,
