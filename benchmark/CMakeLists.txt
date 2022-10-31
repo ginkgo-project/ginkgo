@@ -152,10 +152,6 @@ add_subdirectory(sparse_blas)
 add_subdirectory(spmv)
 add_subdirectory(tools)
 
-if(GINKGO_BUILD_MPI)
-    add_subdirectory(distributed)
-endif()
-
 add_custom_target(make_run_all_benchmarks ALL)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
