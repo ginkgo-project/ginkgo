@@ -45,82 +45,88 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+template <typename ValueType = etype, typename IndexType = itype>
 struct DefaultSystemGenerator {
-    using IndexType = itype;
-    using Vec = vec<etype>;
+    using index_type = IndexType;
+    using value_type = ValueType;
+    using Vec = vec<ValueType>;
 
-    gko::matrix_data<etype, IndexType> generate_matrix_data(
-        rapidjson::Value& config) const
+    static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
+        rapidjson::Value& config)
     {
-        std::ifstream mtx_fd(config["filename"].GetString());
-        return gko::read_generic_raw<etype, itype>(mtx_fd);
+        if (config.HasMember("filename")) {
+            std::ifstream in(config["filename"].GetString());
+            return gko::read_generic_raw<ValueType, IndexType>(in);
+        } else {
+            return generate_stencil<ValueType, IndexType>(
+                config["stencil"].GetString(), config["size"].GetInt64());
+        }
     }
 
-    std::shared_ptr<gko::LinOp> generate_matrix(
-        std::shared_ptr<const gko::Executor> exec,
-        rapidjson::Value& config) const
+    static std::shared_ptr<gko::LinOp> generate_matrix(
+        std::shared_ptr<const gko::Executor> exec, rapidjson::Value& config)
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
             std::move(exec), config["optimal"]["spmv"].GetString(), data);
     }
 
-    std::shared_ptr<gko::LinOp> generate_matrix_with_format(
+    static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<const gko::Executor> exec,
         const std::string& format_name,
-        const gko::matrix_data<etype, itype>& data) const
+        const gko::matrix_data<ValueType, itype>& data)
     {
         return gko::share(
             ::formats::matrix_factory(format_name, std::move(exec), data));
     }
 
-    std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
+    static std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<const gko::Executor> exec,
-        const gko::matrix_data<etype, itype>& data) const
+        const gko::matrix_data<ValueType, itype>& data)
     {
         return generate_matrix_with_format(std::move(exec), "coo", data);
     }
 
-    std::unique_ptr<Vec> create_matrix(
+    static std::unique_ptr<Vec> create_matrix(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-        etype value) const
+        ValueType value)
     {
         auto res = Vec::create(exec);
-        res->read(gko::matrix_data<etype, itype>(size, value));
+        res->read(gko::matrix_data<ValueType, itype>(size, value));
         return res;
     }
 
     // creates a random matrix
-    std::unique_ptr<Vec> create_matrix_random(
-        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size) const
+    static std::unique_ptr<Vec> create_matrix_random(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     {
         auto res = Vec::create(exec);
-        res->read(gko::matrix_data<etype, itype>(
+        res->read(gko::matrix_data<ValueType, itype>(
             size,
-            std::uniform_real_distribution<gko::remove_complex<etype>>(-1.0,
-                                                                       1.0),
+            std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                           1.0),
             get_engine()));
         return res;
     }
 
     // creates a zero vector
-    std::unique_ptr<Vec> create_vector(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
+    static std::unique_ptr<Vec> create_vector(
+        std::shared_ptr<const gko::Executor> exec, gko::size_type size)
     {
         auto res = Vec::create(exec, gko::dim<2>{size, 1});
         return res;
     }
 
     // creates a random vector
-    std::unique_ptr<Vec> create_vector_random(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
+    static std::unique_ptr<Vec> create_vector_random(
+        std::shared_ptr<const gko::Executor> exec, gko::size_type size)
     {
         return create_matrix_random(exec, gko::dim<2>{size, 1});
     }
 
-    std::unique_ptr<Vec> initialize(
-        std::initializer_list<etype> il,
-        std::shared_ptr<const gko::Executor> exec) const
+    static std::unique_ptr<Vec> initialize(
+        std::initializer_list<ValueType> il,
+        std::shared_ptr<const gko::Executor> exec)
     {
         return gko::initialize<Vec>(std::move(il), std::move(exec));
     }
@@ -134,15 +140,24 @@ template <typename LocalGeneratorType>
 struct DistributedDefaultSystemGenerator {
     using LocalGenerator = LocalGeneratorType;
 
-    using IndexType = gko::int64;
+    using index_type = gko::int64;
+    using local_index_type = typename LocalGenerator::index_type;
+    using value_type = typename LocalGenerator::value_type;
 
-    using Mtx = dist_mtx<etype, itype, gko::int64>;
-    using Vec = dist_vec<etype>;
+    using Mtx = dist_mtx<value_type, local_index_type, index_type>;
+    using Vec = dist_vec<value_type>;
 
-    gko::matrix_data<etype, IndexType> generate_matrix_data(
+    gko::matrix_data<value_type, index_type> generate_matrix_data(
         rapidjson::Value& config) const
     {
-        return ::generate_matrix_data<etype, IndexType>(config, comm);
+        if (config.HasMember("filename")) {
+            std::ifstream in(config["filename"].GetString());
+            return gko::read_generic_raw<value_type, index_type>(in);
+        } else {
+            return generate_stencil<value_type, index_type>(
+                config["stencil"].GetString(), comm, config["size"].GetInt64(),
+                config["comm_pattern"].GetString() == std::string("optimal"));
+        }
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix(
@@ -157,7 +172,7 @@ struct DistributedDefaultSystemGenerator {
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<const gko::Executor> exec,
         const std::string& format_name,
-        const gko::matrix_data<etype, IndexType>& data) const
+        const gko::matrix_data<value_type, index_type>& data) const
     {
         auto part = gko::distributed::Partition<itype, gko::int64>::
             build_from_global_size_uniform(
@@ -169,14 +184,14 @@ struct DistributedDefaultSystemGenerator {
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<const gko::Executor> exec,
-        const gko::matrix_data<etype, gko::int64>& data) const
+        const gko::matrix_data<value_type, gko::int64>& data) const
     {
         return generate_matrix_with_format(std::move(exec), "coo-coo", data);
     }
 
     std::unique_ptr<Vec> create_matrix(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-        etype value) const
+        value_type value) const
     {
         auto part = gko::distributed::Partition<itype, gko::int64>::
             build_from_global_size_uniform(exec, comm.size(),
@@ -214,7 +229,7 @@ struct DistributedDefaultSystemGenerator {
     std::unique_ptr<Vec> create_vector(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
     {
-        return create_matrix(exec, gko::dim<2>{size, 1}, etype{});
+        return create_matrix(exec, gko::dim<2>{size, 1}, value_type{});
     }
 
     // creates a random vector
@@ -225,7 +240,7 @@ struct DistributedDefaultSystemGenerator {
     }
 
     std::unique_ptr<Vec> initialize(
-        std::initializer_list<etype> il,
+        std::initializer_list<value_type> il,
         std::shared_ptr<const gko::Executor> exec) const
     {
         auto local = gko::initialize<typename LocalGenerator::Vec>(

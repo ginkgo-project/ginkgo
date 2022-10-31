@@ -34,14 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cmath>
-#include <cstdlib>
 #include <exception>
-#include <fstream>
 #include <iostream>
 
 
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/types.hpp"
 
 
@@ -173,9 +172,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that collects additional statistical properties of the "
         "matrix.\n";
-    std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::clog << gko::version_info::get() << std::endl;
@@ -202,12 +199,13 @@ int main(int argc, char* argv[])
 
             std::clog << "Running test case: " << test_case << std::endl;
 
-            std::ifstream ifs(test_case["filename"].GetString());
-            auto matrix = gko::read_generic_raw<etype, gko::int64>(ifs);
-            ifs.close();
+            auto matrix =
+                DefaultSystemGenerator<etype, gko::int64>::generate_matrix_data(
+                    test_case);
 
             std::clog << "Matrix is of size (" << matrix.size[0] << ", "
                       << matrix.size[1] << ")" << std::endl;
+            add_or_set_member(test_case, "size", matrix.size[0], allocator);
 
             extract_matrix_statistics(matrix, test_case["problem"], allocator);
 

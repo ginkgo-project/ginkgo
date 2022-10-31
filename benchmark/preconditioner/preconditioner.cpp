@@ -34,19 +34,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <chrono>
 #include <cstdlib>
 #include <exception>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -259,9 +258,7 @@ int main(int argc, char* argv[])
     FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
-    std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information =
@@ -307,8 +304,8 @@ int main(int argc, char* argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            auto data =
+                DefaultSystemGenerator<>::generate_matrix_data(test_case);
 
             auto system_matrix =
                 share(formats::matrix_factory(FLAGS_formats, exec, data));
@@ -319,6 +316,7 @@ int main(int argc, char* argv[])
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
+            add_or_set_member(test_case, "size", data.size[0], allocator);
             for (const auto& precond_name : preconditioners) {
                 run_preconditioner(precond_name.c_str(), exec, system_matrix,
                                    lend(b), lend(x), test_case, allocator);
