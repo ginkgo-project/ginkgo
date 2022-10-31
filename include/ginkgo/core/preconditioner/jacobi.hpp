@@ -215,7 +215,7 @@ class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
                public WritableToMatrixData<ValueType, IndexType>,
                public Transposable {
     friend class EnableLinOp<Jacobi>;
-    friend class EnablePolymorphicObject<Jacobi, LinOp>;
+    friend struct polymorphic_object_traits<Jacobi>;
 
 public:
     using EnableLinOp<Jacobi>::convert_to;

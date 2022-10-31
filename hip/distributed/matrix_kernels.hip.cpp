@@ -30,70 +30,38 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-#define GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#include "core/distributed/matrix_kernels.hpp"
 
 
-#include <exception>
-
-
-#include <hip/hip_runtime.h>
+#include <thrust/binary_search.h>
+#include <thrust/copy.h>
+#include <thrust/distance.h>
+#include <thrust/execution_policy.h>
+#include <thrust/for_each.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+#include <thrust/transform_reduce.h>
+#include <thrust/unique.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "hip/components/atomic.hip.hpp"
+
+
 namespace gko {
+namespace kernels {
 namespace hip {
+namespace distributed_matrix {
 
 
-/**
- * This class defines a device guard for the hip functions and the hip module.
- * The guard is used to make sure that the device code is run on the correct
- * hip device, when run with multiple devices. The class records the current
- * device id and uses `hipSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
- */
-class device_guard {
-public:
-    device_guard(int device_id) : original_device_id{}, need_reset{}
-    {
-        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        if (original_device_id != device_id) {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
-            need_reset = true;
-        }
-    }
-
-    device_guard(device_guard& other) = delete;
-
-    device_guard& operator=(const device_guard& other) = delete;
-
-    device_guard(device_guard&& other) = delete;
-
-    device_guard const& operator=(device_guard&& other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        if (need_reset) {
-            /* Ignore the error during stack unwinding for this call */
-            if (std::uncaught_exception()) {
-                hipSetDevice(original_device_id);
-            } else {
-                GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id));
-            }
-        }
-    }
-
-private:
-    int original_device_id;
-    bool need_reset;
-};
+#include "common/cuda_hip/distributed/matrix_kernels.hpp.inc"
 
 
+}  // namespace distributed_matrix
 }  // namespace hip
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_

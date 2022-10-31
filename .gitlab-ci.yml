@@ -341,38 +341,6 @@ build/cuda102/nompi/intel/cuda/debug/static:
     CUDA_ARCH: 35
 
 # cuda 11.0 and friends on HoreKa with tests
-build/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
-    SLURM_TIME: "00:45:00"
-  dependencies: null
-  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
-
-
 build/cuda110/nompi/clang/cuda/release/static:
   extends:
     - .build_template
@@ -533,13 +501,15 @@ build/amd/openmpi/clang/rocm502/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
-    - .use_gko-rocm502-openmpi-gnu11-llvm11
+    - .full_test_condition
+    - .use_gko-rocm502-openmpi-gnu11-llvm11-multi-gpu
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
@@ -834,7 +804,6 @@ iwyu:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_CUDA: "HIP"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
   allow_failure: yes
 

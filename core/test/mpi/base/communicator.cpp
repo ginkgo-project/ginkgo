@@ -53,7 +53,7 @@ protected:
         ASSERT_EQ(comm.size(), 8);
     }
 
-    gko::mpi::communicator comm;
+    gko::experimental::mpi::communicator comm;
     int rank;
 };
 
@@ -88,7 +88,7 @@ TEST_F(Communicator, CommKnowsItsLocalRank)
 
 TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
-    gko::mpi::communicator copy(comm);
+    gko::experimental::mpi::communicator copy(comm);
 
     EXPECT_TRUE(copy == comm);
 }
@@ -96,7 +96,7 @@ TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 
 TEST_F(Communicator, CommunicatorCanBeCopyAssigned)
 {
-    gko::mpi::communicator copy = comm;
+    gko::experimental::mpi::communicator copy = comm;
 
     EXPECT_TRUE(copy == comm);
 }
@@ -104,8 +104,8 @@ TEST_F(Communicator, CommunicatorCanBeCopyAssigned)
 
 TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 {
-    gko::mpi::communicator comm2(MPI_COMM_WORLD);
-    gko::mpi::communicator copy(std::move(comm2));
+    gko::experimental::mpi::communicator comm2(MPI_COMM_WORLD);
+    gko::experimental::mpi::communicator copy(std::move(comm2));
 
     EXPECT_TRUE(copy == comm);
 }
@@ -113,8 +113,8 @@ TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 
 TEST_F(Communicator, CommunicatorCanBeMoveAssigned)
 {
-    gko::mpi::communicator comm2(MPI_COMM_WORLD);
-    gko::mpi::communicator copy(MPI_COMM_NULL);
+    gko::experimental::mpi::communicator comm2(MPI_COMM_WORLD);
+    gko::experimental::mpi::communicator copy(MPI_COMM_NULL);
     copy = std::move(comm2);
 
     EXPECT_TRUE(copy == comm);
@@ -133,7 +133,8 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     auto world_size = comm.size();
     auto color = world_rank / 4;
 
-    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
+    auto row_comm =
+        gko::experimental::mpi::communicator(comm.get(), color, world_rank);
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }

@@ -87,10 +87,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine01 GINKGO_BUILD_MPI
 // clang-format on
 
+/* Is the MPI implementation GPU aware? */
+// clang-format off
+#cmakedefine01 GINKGO_HAVE_GPU_AWARE_MPI
+// clang-format on
+
 
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
+// clang-format on
+
+
+/* Do we need to use blocking communication in our SpMV? */
+// clang-format off
+#cmakedefine GINKGO_FORCE_SPMV_BLOCKING_COMM
 // clang-format on
 
 

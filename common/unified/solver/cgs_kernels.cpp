@@ -63,27 +63,43 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType>* rho,
                 array<stopping_status>* stop_status)
 {
-    run_kernel_solver(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld, auto p,
-                      auto q, auto u, auto u_hat, auto v_hat, auto t,
-                      auto alpha, auto beta, auto gamma, auto prev_rho,
-                      auto rho, auto stop) {
-            if (row == 0) {
+    if (b->get_size()) {
+        run_kernel_solver(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld,
+                          auto p, auto q, auto u, auto u_hat, auto v_hat,
+                          auto t, auto alpha, auto beta, auto gamma,
+                          auto prev_rho, auto rho, auto stop) {
+                if (row == 0) {
+                    rho[col] = zero(rho[col]);
+                    prev_rho[col] = alpha[col] = beta[col] = gamma[col] =
+                        one(prev_rho[col]);
+                    stop[col].reset();
+                }
+                r(row, col) = r_tld(row, col) = b(row, col);
+                u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
+                    v_hat(row, col) = t(row, col) = zero(u(row, col));
+            },
+            b->get_size(), b->get_stride(), default_stride(b),
+            default_stride(r), default_stride(r_tld), default_stride(p),
+            default_stride(q), default_stride(u), default_stride(u_hat),
+            default_stride(v_hat), default_stride(t), row_vector(alpha),
+            row_vector(beta), row_vector(gamma), row_vector(prev_rho),
+            row_vector(rho), *stop_status);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto col, auto alpha, auto beta, auto gamma,
+                          auto prev_rho, auto rho, auto stop) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = alpha[col] = beta[col] = gamma[col] =
                     one(prev_rho[col]);
                 stop[col].reset();
-            }
-            r(row, col) = r_tld(row, col) = b(row, col);
-            u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
-                v_hat(row, col) = t(row, col) = zero(u(row, col));
-        },
-        b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
-        default_stride(r_tld), default_stride(p), default_stride(q),
-        default_stride(u), default_stride(u_hat), default_stride(v_hat),
-        default_stride(t), row_vector(alpha), row_vector(beta),
-        row_vector(gamma), row_vector(prev_rho), row_vector(rho), *stop_status);
+            },
+            b->get_size()[1], row_vector(alpha), row_vector(beta),
+            row_vector(gamma), row_vector(prev_rho), row_vector(rho),
+            *stop_status);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);

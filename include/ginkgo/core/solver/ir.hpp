@@ -110,7 +110,7 @@ class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Ir>;
-    friend class EnablePolymorphicObject<Ir, LinOp>;
+    friend struct polymorphic_object_traits<Ir>;
 
 public:
     using value_type = ValueType;
@@ -204,8 +204,8 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x) const;
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;

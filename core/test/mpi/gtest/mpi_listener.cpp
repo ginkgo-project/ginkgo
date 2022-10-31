@@ -40,10 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
 #include <cassert>
-#include <mpi.h>
 #include <sstream>
 #include <string>
 #include <vector>
+
+
+#include <mpi.h>
 
 
 #include <gtest/gtest.h>
@@ -383,5 +385,5 @@ int main(int argc, char** argv)
     listeners.Append(
         new GTestMPIListener::MPIWrapperPrinter(l, MPI_COMM_WORLD));
     int result = RUN_ALL_TESTS();
-    return 0;
+    return result;
 }

@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using comm_index_type = gko::distributed::comm_index_type;
+using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
 template <typename T, typename U>
@@ -73,7 +73,8 @@ protected:
     using global_index_type =
         typename std::tuple_element<1, decltype(LocalGlobalIndexType())>::type;
     using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
 
     Partition() : ref(gko::ReferenceExecutor::create()) {}
 

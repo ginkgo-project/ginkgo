@@ -3,6 +3,7 @@ target_sources(ginkgo_reference
     PRIVATE
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
+    base/scoped_device_id.cpp
     base/version.cpp
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
@@ -10,7 +11,9 @@ target_sources(ginkgo_reference
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
+    distributed/matrix_kernels.cpp
     distributed/partition_kernels.cpp
+    distributed/vector_kernels.cpp
     factorization/cholesky_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp

@@ -139,7 +139,8 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 template <typename LocalIndexType, typename GlobalIndexType>
 void has_ordered_parts(
     std::shared_ptr<const DefaultExecutor> exec,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        partition,
     bool* result)
 {
     *result = true;

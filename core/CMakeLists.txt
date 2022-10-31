@@ -6,9 +6,11 @@ target_sources(ginkgo
     base/array.cpp
     base/combination.cpp
     base/composition.cpp
+    base/dense_cache.cpp
     base/device_matrix_data.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
@@ -67,7 +69,10 @@ endif()
 
 if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
-        PRIVATE mpi/exception.cpp)
+        PRIVATE
+        mpi/exception.cpp
+        distributed/matrix.cpp
+        distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)

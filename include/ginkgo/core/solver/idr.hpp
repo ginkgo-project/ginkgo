@@ -85,7 +85,7 @@ class Idr
       public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Idr>;
-    friend class EnablePolymorphicObject<Idr, LinOp>;
+    friend struct polymorphic_object_traits<Idr>;
 
 public:
     using value_type = ValueType;
@@ -232,9 +232,8 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    template <typename SubspaceType>
-    void iterate(const matrix::Dense<SubspaceType>* dense_b,
-                 matrix::Dense<SubspaceType>* dense_x) const;
+    template <typename VectorType>
+    void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Idr>(std::move(exec))

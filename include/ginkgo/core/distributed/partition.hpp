@@ -40,6 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
+/**
+ * @brief The distributed namespace.
+ *
+ * @ingroup distributed
+ */
 namespace distributed {
 
 
@@ -87,12 +93,15 @@ namespace distributed {
  * for(int i = 0; i < r[3] - r[2]; ++i){
  *   data[starting_index[2] + i] = val;
  * }
+ * ```
  *
  * @tparam LocalIndexType  The index type used for part-local indices.
  *                         To prevent overflows, no single part's size may
  *                         exceed this index type's maximum value.
  * @tparam GlobalIndexType  The index type used for the global indices. Needs
  *                          to be at least as large a type as LocalIndexType.
+ *
+ * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Partition
@@ -102,7 +111,7 @@ class Partition
           Partition<LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<Partition<LocalIndexType, GlobalIndexType>> {
     friend class EnableCreateMethod<Partition>;
-    friend class EnablePolymorphicObject<Partition>;
+    friend struct polymorphic_object_traits<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
@@ -316,6 +325,7 @@ private:
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 

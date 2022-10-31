@@ -101,7 +101,7 @@ template <typename ValueType = default_precision>
 class Overhead : public EnableLinOp<Overhead<ValueType>>,
                  public Preconditionable {
     friend class EnableLinOp<Overhead>;
-    friend class EnablePolymorphicObject<Overhead, LinOp>;
+    friend struct polymorphic_object_traits<Overhead>;
 
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)

@@ -47,6 +47,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
+namespace distributed {
+
+
+template <typename ValueType>
+class Vector;
+
+
+}
+}  // namespace experimental
+
+
 namespace matrix {
 
 
@@ -120,7 +132,7 @@ class Dense
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
       public ScaledIdentityAddable {
     friend class EnableCreateMethod<Dense>;
-    friend class EnablePolymorphicObject<Dense, LinOp>;
+    friend struct polymorphic_object_traits<Dense>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -137,6 +149,7 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
+    friend class experimental::distributed::Vector<ValueType>;
 
 public:
     using EnableLinOp<Dense>::convert_to;

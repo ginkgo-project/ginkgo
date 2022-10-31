@@ -1,5 +1,5 @@
 set(gko_test_single_args "MPI_SIZE")
-set(gko_test_multi_arg "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
@@ -7,12 +7,21 @@ function(ginkgo_build_test_name test_name target_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
-endfunction()
+endfunction(ginkgo_build_test_name)
+
+function(ginkgo_create_gtest_mpi_main)
+    add_library(gtest_mpi_main "")
+    target_sources(gtest_mpi_main
+      PRIVATE
+      ${PROJECT_SOURCE_DIR}/core/test/mpi/gtest/mpi_listener.cpp)
+    find_package(MPI REQUIRED)
+    target_link_libraries(gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX)
+endfunction(ginkgo_create_gtest_mpi_main)
 
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 function(ginkgo_set_test_target_properties test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_arg}")
+    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_args}")
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
     endif()
@@ -23,6 +32,9 @@ function(ginkgo_set_test_target_properties test_target_name)
         target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
     if (set_properties_MPI_SIZE)
+        if(NOT TARGET gtest_mpi_main)
+            ginkgo_create_gtest_mpi_main()
+        endif()
         set(gtest_main gtest_mpi_main MPI::MPI_CXX)
     else()
         set(gtest_main GTest::Main)
@@ -40,7 +52,7 @@ endfunction()
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
 function(ginkgo_add_test test_name test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
+    cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
     if (add_test_MPI_SIZE)
@@ -189,7 +201,7 @@ function(ginkgo_create_common_test test_name)
 endfunction(ginkgo_create_common_test)
 
 function(ginkgo_create_common_test_internal test_name exec_type exec)
-    cmake_parse_arguments(PARSE_ARGV 3 common_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
+    cmake_parse_arguments(PARSE_ARGV 3 common_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     if(exec IN_LIST common_test_DISABLE_EXECUTORS)
         return()
     endif()
@@ -211,7 +223,7 @@ endfunction(ginkgo_create_common_test_internal)
 
 ## Common test compiled with the device compiler, one target for each enabled backend
 function(ginkgo_create_common_device_test test_name)
-    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
+    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     ginkgo_build_test_name(${test_name} test_target_name)
     if(GINKGO_BUILD_DPCPP)
         ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})

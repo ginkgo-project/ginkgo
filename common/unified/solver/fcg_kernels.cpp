@@ -59,23 +59,36 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* rho_t,
                 array<stopping_status>* stop_status)
 {
-    run_kernel_solver(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
-                      auto q, auto t, auto prev_rho, auto rho, auto rho_t,
-                      auto stop) {
-            if (row == 0) {
+    if (b->get_size()) {
+        run_kernel_solver(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                          auto q, auto t, auto prev_rho, auto rho, auto rho_t,
+                          auto stop) {
+                if (row == 0) {
+                    rho[col] = zero(rho[col]);
+                    prev_rho[col] = rho_t[col] = one(prev_rho[col]);
+                    stop[col].reset();
+                }
+                t(row, col) = r(row, col) = b(row, col);
+                z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
+            },
+            b->get_size(), b->get_stride(), default_stride(b),
+            default_stride(r), default_stride(z), default_stride(p),
+            default_stride(q), default_stride(t), row_vector(prev_rho),
+            row_vector(rho), row_vector(rho_t), *stop_status);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto col, auto prev_rho, auto rho, auto rho_t,
+                          auto stop) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = rho_t[col] = one(prev_rho[col]);
                 stop[col].reset();
-            }
-            t(row, col) = r(row, col) = b(row, col);
-            z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
-        },
-        b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
-        default_stride(z), default_stride(p), default_stride(q),
-        default_stride(t), row_vector(prev_rho), row_vector(rho),
-        row_vector(rho_t), *stop_status);
+            },
+            b->get_size()[1], row_vector(prev_rho), row_vector(rho),
+            row_vector(rho_t), *stop_status);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);

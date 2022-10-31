@@ -47,8 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 class ByInteraction
     : public gko::EnablePolymorphicObject<ByInteraction, gko::stop::Criterion> {
-    friend class gko::EnablePolymorphicObject<ByInteraction,
-                                              gko::stop::Criterion>;
+    friend class gko::polymorphic_object_traits<ByInteraction>;
     using Criterion = gko::stop::Criterion;
 
 public:
