@@ -155,6 +155,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const Partition<local_index_type, global_index_type>* row_partition,
     const Partition<local_index_type, global_index_type>* col_partition)
 {
+    using part_type =
+        gko::distributed::Partition<local_index_type, global_index_type>;
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
     GKO_ASSERT_EQ(data.get_size()[1], col_partition->get_size());
@@ -162,8 +164,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    this->row_partition_ = gko::share(row_partition);
-    this->col_partition_ = gko::share(col_partition);
+    this->row_partition_ = std::make_shared<const part_type>(row_partition);
+    this->col_partition_ = std::make_shared<const part_type>(col_partition);
     this->matrix_data_ = data;
 
     // set up LinOp sizes

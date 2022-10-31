@@ -358,6 +358,30 @@ public:
         const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
+     * Get read access to the row partition of the matrix.
+     *
+     * @return  Shared pointer to the stored row partition
+     */
+    std::shared_ptr<
+        const gko::distributed::Partition<local_index_type, global_index_type>>
+    get_row_partition() const
+    {
+        return row_partition_;
+    }
+
+    /**
+     * Get read access to the col partition of the matrix.
+     *
+     * @return  Shared pointer to the stored col partition
+     */
+    std::shared_ptr<
+        const gko::distributed::Partition<local_index_type, global_index_type>>
+    get_col_partition() const
+    {
+        return col_partition_;
+    }
+
+    /**
      * Get read access to the stored local matrix.
      *
      * @return  Shared pointer to the stored local matrix

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -85,6 +86,42 @@ void CoarseGen<ValueType, LocalIndexType,
     GKO_NOT_IMPLEMENTED;
 }
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void fill_coarse_partition(
+    std::shared_ptr<
+        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>>
+        fine_row_partition,
+    const array<GlobalIndexType>& coarse_indices_map,
+    std::shared_ptr<
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>>
+        coarse_row_partition)
+{
+    auto coarse_part_map = array<gko::distributed::comm_index_type>(
+        coarse_indices_map.get_executor()->get_master(),
+        coarse_indices_map.get_num_elems());
+    auto coarse_map_host =
+        array<LocalIndexType>(coarse_indices_map.get_executor()->get_master());
+    coarse_map_host = coarse_indices_map;
+    auto fine_part_host = gko::share(
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
+            fine_row_partition->get_executor()->get_master()));
+    fine_part_host->copy_from(fine_row_partition.get());
+    for (auto i = 0; i < coarse_map_host.get_num_elems(); ++i) {
+        if (auto idx =
+                std::upper_bound(fine_part_host->get_range_bounds(),
+                                 fine_part_host->get_range_bounds() +
+                                     fine_part_host->get_num_ranges() + 1,
+                                 coarse_map_host.get_data()[i])) {
+            coarse_part_map.get_data()[i] = fine_part_host->get_part_ids()[i];
+        }
+    }
+    coarse_row_partition = gko::share(
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::
+            build_from_mapping(fine_row_partition->get_executor(),
+                               coarse_part_map,
+                               fine_part_host->get_num_parts()));
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void CoarseGen<ValueType, LocalIndexType,
@@ -98,6 +135,8 @@ void CoarseGen<ValueType, LocalIndexType,
     auto exec = this->get_executor();
     const matrix_type* dist_fine_mat =
         dynamic_cast<const matrix_type*>(system_matrix_.get());
+    auto fine_row_partition = dist_fine_mat->get_row_partition();
+    auto fine_col_partition = dist_fine_mat->get_col_partition();
 
     std::shared_ptr<matrix_type> dist_coarse_mat =
         matrix_type::create(exec, dist_fine_mat->get_communicator());
@@ -133,13 +172,22 @@ void CoarseGen<ValueType, LocalIndexType,
         fine_mat_data.get_const_row_idxs(), fine_mat_data.get_num_elems(),
         local_size[0], fine_row_ptrs.get_data()));
 
+    auto coarse_row_partition = gko::share(
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
+            exec, fine_row_partition->get_num_parts()));
+
     exec->run(coarse_gen::make_fill_coarse(fine_mat_data, fine_row_ptrs,
                                            coarse_data, restrict_data,
                                            prolong_data, coarse_indices_map_));
 
-    dist_coarse_mat->read_distributed(coarse_data, coarse_partition);
-    dist_restrict_mat->read_distributed(restrict_data, coarse_partition);
-    dist_prolong_mat->read_distributed(restrict_data, coarse_partition);
+    fill_coarse_partition(fine_row_partition, coarse_indices_map_,
+                          coarse_row_partition);
+
+    dist_coarse_mat->read_distributed(coarse_data, coarse_row_partition.get());
+    dist_restrict_mat->read_distributed(restrict_data,
+                                        coarse_row_partition.get());
+    dist_prolong_mat->read_distributed(restrict_data,
+                                       coarse_row_partition.get());
 
     this->set_multigrid_level(dist_prolong_mat, dist_coarse_mat,
                               dist_restrict_mat);
