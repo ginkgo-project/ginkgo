@@ -84,6 +84,12 @@
     - amdci
     - gpu
 
+.use_gko-rocm502-openmpi-gnu11-llvm11-multi-gpu:
+  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
+  tags:
+    - private_ci
+    - nla-gpu
+
 .use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:latest
   tags:
