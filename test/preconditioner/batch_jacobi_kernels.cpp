@@ -104,7 +104,7 @@ protected:
     const size_t nbatch = 10;
     const int nrows = 50;
     std::unique_ptr<Mtx> ref_mtx;
-    std::unique_ptr<Mtx> a_mtx;
+    std::unique_ptr<Mtx> d_mtx;
     static constexpr real_type eps = std::numeric_limits<real_type>::epsilon();
 
     void check_jacobi(const int nrhs)
@@ -125,8 +125,8 @@ protected:
         gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
             ref, ref_mtx.get(), ref_b.get(), ref_x.get());
 
-        cuexec->synchronize();
-        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, cu_x, 5 * eps);
+        exec->synchronize();
+        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, d_x, 5 * eps);
     }
 };
 
