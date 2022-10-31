@@ -103,6 +103,40 @@ DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
 
+std::string example_config = R"(
+  [
+    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
+     "rhs": "my_file_rhs.mtx"},
+    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo-coo"},
+     "rhs": "my_file_rhs.mtx"},
+    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
+     "optimal": {"spmv": "csr-coo"}}
+  ]
+)";
+
+
+// input validation
+[[noreturn]] void print_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of solver configurations:\n"
+              << example_config << std::endl;
+    std::exit(1);
+}
+
+
+void validate_option_object(const rapidjson::Value& value)
+{
+    if (!value.IsObject() ||
+        !((value.HasMember("size") && value.HasMember("stencil") &&
+           value["size"].IsInt64() && value["stencil"].IsString()) ||
+          (value.HasMember("filename") && value["filename"].IsString())) ||
+        (!value.HasMember("optimal") && !value["optimal"].HasMember("spmv") &&
+         !value["optimal"]["spmv"].IsString())) {
+        print_config_error_and_exit();
+    }
+}
+
+
 std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
     std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters)
 {
@@ -567,7 +601,7 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
     for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
-            system_generator.validate_options(test_case);
+            validate_option_object(test_case);
             if (!test_case.HasMember("solver")) {
                 test_case.AddMember("solver",
                                     rapidjson::Value(rapidjson::kObjectType),
