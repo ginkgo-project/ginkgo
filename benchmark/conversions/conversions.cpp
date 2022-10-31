@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -113,9 +113,7 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
-    std::string format_str =
-        std::string() + "  [\n" + "    { \"filename\": \"my_file.mtx\"},\n" +
-        "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format_str = example_config;
     initialize_argument_parsing(&argc, &argv, header, format_str);
 
     std::string extra_information =
@@ -146,10 +144,9 @@ int main(int argc, char* argv[])
         auto& conversion_case = test_case["conversions"];
 
         std::clog << "Running test case: " << test_case << std::endl;
-        std::ifstream mtx_fd(test_case["filename"].GetString());
         gko::matrix_data<etype, itype> data;
         try {
-            data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            data = DefaultSystemGenerator<>::generate_matrix_data(test_case);
         } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
@@ -157,6 +154,7 @@ int main(int argc, char* argv[])
         }
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << ")" << std::endl;
+        add_or_set_member(test_case, "size", data.size[0], allocator);
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =

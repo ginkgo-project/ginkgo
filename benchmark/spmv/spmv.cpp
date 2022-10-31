@@ -33,30 +33,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
-#include <algorithm>
-#include <chrono>
 #include <cstdlib>
-#include <exception>
-#include <fstream>
-#include <iomanip>
 #include <iostream>
-#include <typeinfo>
 
 
 #include "benchmark/spmv/spmv_common.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
-#include "benchmark/utils/timer.hpp"
-#include "benchmark/utils/types.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 
 
-struct Generator : DefaultSystemGenerator {
-    void validate_options(const rapidjson::Value& value) const
+struct Generator : DefaultSystemGenerator<> {
+    void validate_options(const rapidjson::Value& options) const
     {
-        validate_option_object(value);
+        if (!options.IsObject() ||
+            !((options.HasMember("size") && options.HasMember("stencil")) ||
+              options.HasMember("filename"))) {
+            std::cerr
+                << "Input has to be a JSON array of matrix configurations:\n"
+                << example_config << std::endl;
+            std::exit(1);
+        }
     }
 };
 
@@ -65,9 +63,7 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information = "The formats are " + FLAGS_formats +
@@ -76,7 +72,6 @@ int main(int argc, char* argv[])
     print_general_information(extra_information);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
-    auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);

@@ -34,10 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <chrono>
-#include <cstdlib>
 #include <exception>
-#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -45,12 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <random>
 #include <typeinfo>
-#include <unordered_set>
 
 
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/types.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 
@@ -58,7 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const auto benchmark_name = "sparse_blas";
 
 
-using itype = gko::int32;
 using Mtx = gko::matrix::Csr<etype, itype>;
 using mat_data = gko::matrix_data<etype, itype>;
 
@@ -454,9 +449,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A benchmark for measuring performance of Ginkgo's sparse BLAS "
         "operations.\n";
-    std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
@@ -487,12 +480,13 @@ int main(int argc, char* argv[])
             }
             auto& sp_blas_case = test_case[benchmark_name];
             std::clog << "Running test case: " << test_case << std::endl;
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            auto data =
+                DefaultSystemGenerator<>::generate_matrix_data(test_case);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
                       << std::endl;
+            add_or_set_member(test_case, "size", data.size[0], allocator);
 
             for (const auto& strategy_name : strategies) {
                 auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),

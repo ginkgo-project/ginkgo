@@ -325,7 +325,7 @@ std::unique_ptr<vec<etype>> generate_initial_guess(
 }
 
 
-struct SolverGenerator : DefaultSystemGenerator {
+struct SolverGenerator : DefaultSystemGenerator<> {
     using Vec = typename DefaultSystemGenerator::Vec;
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
