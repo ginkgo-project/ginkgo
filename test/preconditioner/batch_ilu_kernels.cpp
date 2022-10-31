@@ -125,7 +125,7 @@ protected:
                                .with_skip_sorting(true)
                                .with_ilu_type(ilu_type)
                                .with_parilu_num_sweeps(num_sweeps)
-                               .on(d_exec);
+                               .on(exec);
         auto d_prec = d_prec_fact->generate(d_mtx);
 
         const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
@@ -136,12 +136,12 @@ protected:
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
             ref);
         auto z = BDense::create(ref, rv->get_size());
-        auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
-        auto d_z = BDense::create(d_exec, rv->get_size());
+        auto d_rv = gko::as<BDense>(gko::clone(exec, rv));
+        auto d_z = BDense::create(exec, rv->get_size());
 
         gko::kernels::reference::batch_ilu::apply_ilu(
             ref, factorized_mat, diag_locs, rv.get(), z.get());
-        gko::kernels::EXEC_NAMESPACE:::batch_ilu::apply_ilu(
+        gko::kernels::EXEC_NAMESPACE::batch_ilu::apply_ilu(
             exec, d_factorized_mat, d_diag_locs, d_rv.get(), d_z.get());
 
         const auto tol = 5000 * r<value_type>::value;
