@@ -102,6 +102,8 @@ public:
 
         /**
          * The reordering that is to be applied to the system matrix.
+         * If a reordering is provided, the system matrix must be of type
+         * `Permutable<IndexType>`.
          */
         std::shared_ptr<const ReorderingBaseFactory>
             GKO_FACTORY_PARAMETER_SCALAR(reordering, nullptr);
@@ -126,14 +128,16 @@ protected:
      * Creates an empty scaled reordered operator (0x0 operator).
      */
     explicit ScaledReordered(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<ScaledReordered>(std::move(exec))
+        : EnableLinOp<ScaledReordered>(std::move(exec)),
+          permutation_array_{exec}
     {}
 
     explicit ScaledReordered(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<ScaledReordered>(factory->get_executor(),
                                        system_matrix->get_size()),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          permutation_array_{factory->get_executor()}
     {
         // For now only support square matrices.
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
@@ -162,7 +166,7 @@ protected:
             auto reordering = parameters_.reordering->generate(system_matrix_);
             permutation_array_ = reordering->get_permutation_array();
             system_matrix_ = as<Permutable<index_type>>(system_matrix_)
-                                 ->permute(permutation_array_.get());
+                                 ->permute(&permutation_array_);
         }
 
         // Generate the inner operator with the scaled and reordered system
@@ -171,7 +175,8 @@ protected:
             inner_operator_ =
                 parameters_.inner_operator->generate(system_matrix_);
         } else {
-            inner_operator_ = gko::matrix::Identity<value_type>::create(exec);
+            inner_operator_ = gko::matrix::Identity<value_type>::create(
+                exec, this->get_size());
         }
     }
 
@@ -214,7 +219,7 @@ private:
     std::shared_ptr<const LinOp> inner_operator_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};
-    std::shared_ptr<const array<index_type>> permutation_array_{};
+    array<index_type> permutation_array_{};
 
     /**
      * Manages three vectors as a cache, so there is no need to allocate them
@@ -240,11 +245,8 @@ private:
         cache_struct& operator=(cache_struct&&) { return *this; }
 
         std::unique_ptr<matrix::Dense<value_type>> inner_b{};
-
         std::unique_ptr<matrix::Dense<value_type>> inner_x{};
-
         std::unique_ptr<matrix::Dense<value_type>> intermediate{};
-
     } cache_;
 };
 

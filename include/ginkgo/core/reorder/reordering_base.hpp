@@ -65,8 +65,7 @@ class ReorderingBase
 public:
     using index_type = IndexType;
 
-    virtual std::shared_ptr<const array<index_type>> get_permutation_array()
-        const = 0;
+    virtual const array<index_type>& get_permutation_array() const = 0;
 
 protected:
     explicit ReorderingBase(std::shared_ptr<const gko::Executor> exec)
