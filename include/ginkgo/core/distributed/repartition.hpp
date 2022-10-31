@@ -69,7 +69,7 @@ class repartitioner : public EnableCreateMethod<
 
 public:
     template <typename ValueType>
-    std::tuple<array<LocalIndexType>, array<LocalIndexType>> gather(
+    std::tuple<array<int>, array<int>> gather(
         const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
         Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
 
