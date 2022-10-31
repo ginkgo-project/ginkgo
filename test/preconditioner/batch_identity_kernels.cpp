@@ -45,13 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_identity_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
 
 
 template <typename T>
-class BatchIdentity : public ::testing::Test {
+class BatchIdentity : public CommonTestFixture {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
@@ -59,32 +60,21 @@ protected:
     using BDense = gko::matrix::BatchDense<value_type>;
 
     BatchIdentity()
-        : exec(gko::ReferenceExecutor::create()),
-          cuexec(gko::CudaExecutor::create(0, exec)),
+        :
           ref_mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(1, nrows - 1),
               std::normal_distribution<real_type>(), std::ranlux48(34), true,
-              exec)),
-          cu_mtx(Mtx::create(cuexec))
+              ref)),
+          d_mtx(Mtx::create(exec))
     {
-        cu_mtx->copy_from(ref_mtx.get());
+        d_mtx->copy_from(ref_mtx.get());
     }
-
-    void TearDown()
-    {
-        if (cuexec != nullptr) {
-            ASSERT_NO_THROW(cuexec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> exec;
-    std::shared_ptr<const gko::CudaExecutor> cuexec;
 
     const size_t nbatch = 10;
     const int nrows = 50;
     std::unique_ptr<Mtx> ref_mtx;
-    std::unique_ptr<Mtx> cu_mtx;
+    std::unique_ptr<Mtx> d_mtx;
 
 
     void check_identity(const int nrhs)
@@ -92,21 +82,21 @@ protected:
         auto ref_b = gko::test::generate_uniform_batch_random_matrix<BDense>(
             nbatch, nrows, nrhs, std::uniform_int_distribution<>(nrhs, nrhs),
             std::normal_distribution<real_type>(), std::ranlux48(34), false,
-            exec);
-        auto cu_b = BDense::create(cuexec);
-        cu_b->copy_from(ref_b.get());
+            ref);
+        auto d_b = BDense::create(exec);
+        d_b->copy_from(ref_b.get());
         auto ref_x = BDense::create(
+            ref, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
+        auto d_x = BDense::create(
             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
-        auto cu_x = BDense::create(
-            cuexec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
 
-        gko::kernels::cuda::batch_identity::batch_identity_apply(
-            cuexec, cu_mtx.get(), cu_b.get(), cu_x.get());
+        gko::kernels::EXEC_NAMESPACE::batch_identity::batch_identity_apply(
+            exec, d_mtx.get(), d_b.get(), d_x.get());
         gko::kernels::reference::batch_identity::batch_identity_apply(
-            exec, ref_mtx.get(), ref_b.get(), ref_x.get());
+            ref, ref_mtx.get(), ref_b.get(), ref_x.get());
 
-        cuexec->synchronize();
-        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, cu_x, 0.0);
+        exec->synchronize();
+        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, d_x, 0.0);
     }
 };
 
