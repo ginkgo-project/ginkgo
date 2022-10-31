@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -65,17 +66,13 @@ protected:
     using prec_type = gko::preconditioner::BatchIlu<value_type>;
 
     BatchIlu()
-        : ref(gko::ReferenceExecutor::create()),
-          d_exec(gko::CudaExecutor::create(0, ref)),
-          mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        : mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(min_nnz_row, nrows),
               std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
               ref)))
     {}
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> d_exec;
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
@@ -87,7 +84,7 @@ protected:
     void test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type ilu_type,
                                    const int num_sweeps = 30)
     {
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
                              .with_ilu_type(ilu_type)
@@ -97,7 +94,7 @@ protected:
                                .with_skip_sorting(true)
                                .with_ilu_type(ilu_type)
                                .with_parilu_num_sweeps(num_sweeps)
-                               .on(d_exec);
+                               .on(exec);
 
         auto prec = prec_fact->generate(mtx);
         auto d_prec = d_prec_fact->generate(d_mtx);
@@ -123,7 +120,7 @@ protected:
         const auto factorized_mat = prec->get_const_factorized_matrix();
         const auto diag_locs = prec->get_const_diag_locations();
 
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto d_prec_fact = prec_type::build()
                                .with_skip_sorting(true)
                                .with_ilu_type(ilu_type)
@@ -144,8 +141,8 @@ protected:
 
         gko::kernels::reference::batch_ilu::apply_ilu(
             ref, factorized_mat, diag_locs, rv.get(), z.get());
-        gko::kernels::cuda::batch_ilu::apply_ilu(
-            d_exec, d_factorized_mat, d_diag_locs, d_rv.get(), d_z.get());
+        gko::kernels::EXEC_NAMESPACE:::batch_ilu::apply_ilu(
+            exec, d_factorized_mat, d_diag_locs, d_rv.get(), d_z.get());
 
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
@@ -162,8 +159,8 @@ TEST_F(BatchIlu, ExactIluGenerateIsEquivalentToReference)
 TEST_F(BatchIlu, ParIluGenerateIsEquivalentToReference)
 {
     // Note: Since ref. parilu is basically eqvt. to exact ilu (even for a
-    // single sweep), we use very high number of sweeps to compare the cuda
-    // parilu with the reference one. Such a high number of sweeps for cuda
+    // single sweep), we use very high number of sweeps to compare the cuda/hip
+    // parilu with the reference one. Such a high number of sweeps for cuda/hip
     // parilu would ensure that generated incomplete L and U factors are close
     // to the exact ILU factors.
     test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::parilu, 30);
