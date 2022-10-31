@@ -152,6 +152,15 @@ public:
         this->rapply_impl(b, x);
     }
 
+    /**
+     * Applies the inverse of the diagonal matrix to a matrix b,
+     * which means scales the columns of b with the inverse of the according
+     * diagonal entries.
+     *
+     * @param b  the input vector(s) on which the inverse of the diagonal matrix
+     * is applied
+     * @param x  the output vector(s) where the result is stored
+     */
     void inverse_apply(const LinOp* b, LinOp* x) const
     {
         GKO_ASSERT_CONFORMANT(this, b);

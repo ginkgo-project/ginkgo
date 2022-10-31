@@ -71,12 +71,16 @@ protected:
           dense1(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
                                         exec)),
           dense2(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
+                                        exec)),
+          dense3(gko::initialize<Dense>(4, {{2.0, 3.0, 4.0}, {3.0, 4.5, 6.0}},
                                         exec))
     {
         csr1 = Csr::create(exec);
         csr1->copy_from(dense1.get());
         csr2 = Csr::create(exec);
         csr2->copy_from(dense2.get());
+        csr3 = Csr::create(exec);
+        csr3->copy_from(dense3.get());
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
     }
@@ -99,10 +103,12 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Csr> csr1;
     std::unique_ptr<Csr> csr2;
+    std::unique_ptr<Csr> csr3;
     std::unique_ptr<Diag> diag1;
     std::unique_ptr<Diag> diag2;
     std::unique_ptr<Dense> dense1;
     std::unique_ptr<Dense> dense2;
+    std::unique_ptr<Dense> dense3;
 };
 
 TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
@@ -215,6 +221,41 @@ TYPED_TEST(Diagonal, RightAppliesToMixedDense)
     EXPECT_EQ(mdense2->at(1, 0), mixed_value_type{3.0});
     EXPECT_EQ(mdense2->at(1, 1), mixed_value_type{7.5});
     EXPECT_EQ(mdense2->at(1, 2), mixed_value_type{14.0});
+}
+
+
+TYPED_TEST(Diagonal, InverseAppliesToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->diag1->inverse_apply(this->dense3.get(), this->dense2.get());
+
+    EXPECT_EQ(this->dense2->at(0, 0), value_type{1.0});
+    EXPECT_EQ(this->dense2->at(0, 1), value_type{1.5});
+    EXPECT_EQ(this->dense2->at(0, 2), value_type{2.0});
+    EXPECT_EQ(this->dense2->at(1, 0), value_type{1.0});
+    EXPECT_EQ(this->dense2->at(1, 1), value_type{1.5});
+    EXPECT_EQ(this->dense2->at(1, 2), value_type{2.0});
+}
+
+
+TYPED_TEST(Diagonal, InverseAppliesToMixedDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using MixedDense = typename TestFixture::MixedDense;
+    using mixed_value_type = typename MixedDense::value_type;
+    auto mdense2 = MixedDense::create(this->exec);
+    auto mdense3 = MixedDense::create(this->exec);
+    this->dense2->convert_to(mdense2.get());
+    this->dense3->convert_to(mdense3.get());
+
+    this->diag1->inverse_apply(mdense3.get(), mdense2.get());
+
+    EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{1.0});
+    EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{1.5});
+    EXPECT_EQ(mdense2->at(0, 2), mixed_value_type{2.0});
+    EXPECT_EQ(mdense2->at(1, 0), mixed_value_type{1.0});
+    EXPECT_EQ(mdense2->at(1, 1), mixed_value_type{1.5});
+    EXPECT_EQ(mdense2->at(1, 2), mixed_value_type{2.0});
 }
 
 
@@ -376,6 +417,34 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
     EXPECT_EQ(values[3], value_type{3.0});
     EXPECT_EQ(values[4], value_type{7.5});
     EXPECT_EQ(values[5], value_type{14.0});
+    EXPECT_EQ(row_ptrs[0], 0);
+    EXPECT_EQ(row_ptrs[1], 3);
+    EXPECT_EQ(row_ptrs[2], 6);
+    EXPECT_EQ(col_idxs[0], 0);
+    EXPECT_EQ(col_idxs[1], 1);
+    EXPECT_EQ(col_idxs[2], 2);
+    EXPECT_EQ(col_idxs[3], 0);
+    EXPECT_EQ(col_idxs[4], 1);
+    EXPECT_EQ(col_idxs[5], 2);
+}
+
+
+TYPED_TEST(Diagonal, InverseAppliesToCsr)
+{
+    using value_type = typename TestFixture::value_type;
+    this->diag1->inverse_apply(this->csr3.get(), this->csr2.get());
+
+    const auto values = this->csr2->get_const_values();
+    const auto row_ptrs = this->csr2->get_const_row_ptrs();
+    const auto col_idxs = this->csr2->get_const_col_idxs();
+
+    EXPECT_EQ(this->csr2->get_num_stored_elements(), 6);
+    EXPECT_EQ(values[0], value_type{1.0});
+    EXPECT_EQ(values[1], value_type{1.5});
+    EXPECT_EQ(values[2], value_type{2.0});
+    EXPECT_EQ(values[3], value_type{1.0});
+    EXPECT_EQ(values[4], value_type{1.5});
+    EXPECT_EQ(values[5], value_type{2.0});
     EXPECT_EQ(row_ptrs[0], 0);
     EXPECT_EQ(row_ptrs[1], 3);
     EXPECT_EQ(row_ptrs[2], 6);
