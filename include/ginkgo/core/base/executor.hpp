@@ -169,6 +169,35 @@ class ExecutorBase;
 
 
 /**
+ * Stores a work estimate for a Operation.
+ */
+struct work_estimate {
+    /**
+     * Did the Operation actually provide a work estimate?
+     */
+    bool available{};
+
+    /**
+     * An estimate for the amount of floating point operations executed by the
+     * operation.
+     */
+    size_type flops{};
+
+    /**
+     * An estimate for the amount of memory accessed by the operation. It is
+     * measured in bytes.
+     */
+    size_type memory_volume{};
+
+    work_estimate() : available{false}, flops{}, memory_volume{} {}
+
+    work_estimate(size_type flops, size_type memory_volume)
+        : available{true}, flops{flops}, memory_volume{memory_volume}
+    {}
+};
+
+
+/**
  * Operations can be used to define functionalities whose implementations differ
  * among devices.
  *
@@ -300,6 +329,14 @@ public:
      * @return the operation's name
      */
     virtual const char* get_name() const noexcept;
+
+    /**
+     * Returns a work estimate for this operation.
+     *
+     * @return a work estimate for this operation. If no such estimate is
+     *         available, it will contain zero values.
+     */
+    virtual work_estimate get_work_estimate() const { return {}; }
 };
 
 
@@ -322,7 +359,8 @@ public:
      * Creates a RegisteredOperation object from a functor and a name.
      *
      * @param name  the name to be used for this operation
-     * @param op  a functor object which will be called with the executor.
+     * @param num_params  the number of parameters of the operation
+     * @param op  a functor object which will be called with the executor
      */
     RegisteredOperation(const char* name, int num_params, Closure op)
         : name_(name), num_params_(num_params), op_(std::move(op))
@@ -370,11 +408,51 @@ private:
 };
 
 
+template <typename OperationClosure, typename EstimateClosure>
+class RegisteredOperationWithWorkEstimate
+    : public RegisteredOperation<OperationClosure> {
+public:
+    /**
+     * Creates a RegisteredOperationWithWorkEstimate object from an operation
+     * and estimate functor and a name.
+     *
+     * @param name  the name to be used for this operation
+     * @param num_params  the number of parameters of the operation
+     * @param op  a functor object which will be called with the executor
+     * @param estimate  a functor object which will provide the work estimate
+     */
+    RegisteredOperationWithWorkEstimate(const char* name, int num_params,
+                                        OperationClosure op,
+                                        EstimateClosure estimate)
+        : RegisteredOperation<OperationClosure>{name, num_params,
+                                                std::move(op)},
+          estimate_{std::move(estimate)}
+    {}
+
+    work_estimate get_work_estimate() const override { return estimate_(); }
+
+private:
+    EstimateClosure estimate_;
+};
+
+
 template <typename Closure>
 RegisteredOperation<Closure> make_register_operation(const char* name,
                                                      int num_params, Closure op)
 {
     return RegisteredOperation<Closure>{name, num_params, std::move(op)};
+}
+
+
+template <typename OperationClosure, typename EstimateClosure>
+RegisteredOperationWithWorkEstimate<OperationClosure, EstimateClosure>
+make_register_operation_with_estimate(const char* name, int num_params,
+                                      OperationClosure op,
+                                      EstimateClosure estimate)
+{
+    return RegisteredOperationWithWorkEstimate<OperationClosure,
+                                               EstimateClosure>{
+        name, num_params, std::move(op), std::move(estimate)};
 }
 
 
@@ -502,6 +580,68 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                 } else {                                                       \
                     GKO_NOT_IMPLEMENTED;                                       \
                 }                                                              \
+            });                                                                \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+#define GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(_name, _kernel)              \
+    template <typename... Args>                                                \
+    auto make_##_name(Args&&... args)                                          \
+    {                                                                          \
+        return ::gko::detail::make_register_operation_with_estimate(           \
+            #_name, sizeof...(Args),                                           \
+            [&args...](auto exec) {                                            \
+                using exec_type = decltype(exec);                              \
+                if (std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
+                        value) {                                               \
+                    ::gko::kernels::reference::_kernel(                        \
+                        std::dynamic_pointer_cast<                             \
+                            const ::gko::ReferenceExecutor>(exec),             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::OmpExecutor>>::    \
+                               value) {                                        \
+                    ::gko::kernels::omp::_kernel(                              \
+                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::CudaExecutor>>::   \
+                               value) {                                        \
+                    ::gko::kernels::cuda::_kernel(                             \
+                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::HipExecutor>>::    \
+                               value) {                                        \
+                    ::gko::kernels::hip::_kernel(                              \
+                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::DpcppExecutor>>::  \
+                               value) {                                        \
+                    ::gko::kernels::dpcpp::_kernel(                            \
+                        std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else {                                                       \
+                    GKO_NOT_IMPLEMENTED;                                       \
+                }                                                              \
+            },                                                                 \
+            [&] {                                                              \
+                return ::gko::kernels::estimate::_kernel(                      \
+                    std::forward<Args>(args)...);                              \
             });                                                                \
     }                                                                          \
     static_assert(true,                                                        \

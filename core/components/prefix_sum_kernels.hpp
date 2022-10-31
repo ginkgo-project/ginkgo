@@ -81,6 +81,19 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace estimate {
+namespace components {
+
+
+template <typename IndexType>
+work_estimate prefix_sum(IndexType* counts, size_type num_entries)
+{
+    return {0, 2 * num_entries * sizeof(IndexType)};
+}
+
+
+}  // namespace components
+}  // namespace estimate
 }  // namespace kernels
 }  // namespace gko
 

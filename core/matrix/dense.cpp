@@ -66,52 +66,77 @@ namespace dense {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
-GKO_REGISTER_OPERATION(copy, dense::copy);
-GKO_REGISTER_OPERATION(fill, dense::fill);
-GKO_REGISTER_OPERATION(scale, dense::scale);
-GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
-GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
-GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
-GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
-GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
-GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(simple_apply, dense::simple_apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(apply, dense::apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(copy, dense::copy);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill, dense::fill);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(scale, dense::scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inv_scale, dense::inv_scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(sub_scaled, dense::sub_scaled);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_diag,
+                                          dense::add_scaled_diag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(sub_scaled_diag,
+                                          dense::sub_scaled_diag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_dot,
+                                          dense::compute_dot_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_conj_dot,
+                                          dense::compute_conj_dot_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm2,
+                                          dense::compute_norm2_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm1, dense::compute_norm1);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_max_nnz_per_row,
+                                          dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
-GKO_REGISTER_OPERATION(count_nonzeros_per_row, dense::count_nonzeros_per_row);
-GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
-                       dense::count_nonzero_blocks_per_row);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(count_nonzeros_per_row,
+                                          dense::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(count_nonzero_blocks_per_row,
+                                          dense::count_nonzero_blocks_per_row);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
-GKO_REGISTER_OPERATION(transpose, dense::transpose);
-GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
-GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
-GKO_REGISTER_OPERATION(inv_symm_permute, dense::inv_symm_permute);
-GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
-GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
-GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
-GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
-GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
-GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
-GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
-GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
-GKO_REGISTER_OPERATION(convert_to_fbcsr, dense::convert_to_fbcsr);
-GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
-GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
-GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
-GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
-GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
-GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
-GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
-GKO_REGISTER_OPERATION(get_real, dense::get_real);
-GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
-GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(transpose, dense::transpose);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(conj_transpose,
+                                          dense::conj_transpose);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(symm_permute, dense::symm_permute);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inv_symm_permute,
+                                          dense::inv_symm_permute);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(row_gather, dense::row_gather);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(advanced_row_gather,
+                                          dense::advanced_row_gather);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(column_permute,
+                                          dense::column_permute);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inverse_row_permute,
+                                          dense::inverse_row_permute);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inverse_column_permute,
+                                          dense::inverse_column_permute);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill_in_matrix_data,
+                                          dense::fill_in_matrix_data);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_coo,
+                                          dense::convert_to_coo);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_csr,
+                                          dense::convert_to_csr);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_ell,
+                                          dense::convert_to_ell);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_fbcsr,
+                                          dense::convert_to_fbcsr);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_hybrid,
+                                          dense::convert_to_hybrid);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_sellp,
+                                          dense::convert_to_sellp);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(convert_to_sparsity_csr,
+                                          dense::convert_to_sparsity_csr);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(extract_diagonal,
+                                          dense::extract_diagonal);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inplace_absolute_dense,
+                                          dense::inplace_absolute_dense);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(outplace_absolute_dense,
+                                          dense::outplace_absolute_dense);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(make_complex, dense::make_complex);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(get_real, dense::get_real);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(get_imag, dense::get_imag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_identity,
+                                          dense::add_scaled_identity);
 
 
 }  // anonymous namespace
