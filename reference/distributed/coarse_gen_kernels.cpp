@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -191,13 +192,12 @@ void fill_coarse(
     int nnz = 0;
     int ridx = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
-                      coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
+        if (std::find(f_row_idxs, f_row_idxs, coarse_indices.get_data()[i]) !=
+            f_row_idxs) {
             int cidx = 0;
             for (auto j = 0; j < coarse_size[0]; ++j) {
-                if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
-                              coarse_indices.get_data()[j]) !=
-                    std::end(f_col_idxs)) {
+                if (std::find(f_col_idxs, f_col_idxs,
+                              coarse_indices.get_data()[j]) != f_col_idxs) {
                     // Assume row major ordering
                     coarse_data.get_row_idxs()[nnz] = ridx;
                     coarse_data.get_col_idxs()[nnz] = cidx;
@@ -216,8 +216,8 @@ void fill_coarse(
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(std::begin(f_row_idxs), std::end(f_row_idxs),
-                      coarse_indices.get_data()[i]) != std::end(f_row_idxs)) {
+        if (std::find(f_row_idxs, f_row_idxs, coarse_indices.get_data()[i]) !=
+            f_row_idxs) {
             // Assume row major ordering
             restrict_data.get_row_idxs()[nnz] = i;
             restrict_data.get_col_idxs()[nnz] = coarse_indices.get_data()[i];
@@ -228,8 +228,8 @@ void fill_coarse(
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(std::begin(f_col_idxs), std::end(f_col_idxs),
-                      coarse_indices.get_data()[i]) != std::end(f_col_idxs)) {
+        if (std::find(f_col_idxs, f_col_idxs, coarse_indices.get_data()[i]) !=
+            f_col_idxs) {
             // Assume row major ordering
             prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
             prolong_data.get_col_idxs()[nnz] = i;
