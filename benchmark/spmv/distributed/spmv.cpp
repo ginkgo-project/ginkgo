@@ -44,11 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/spmv/spmv_common.hpp"
-#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -69,9 +66,17 @@ std::string example_config = R"(
 )";
 
 
-struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator> {
+[[noreturn]] void print_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
+              << example_config << std::endl;
+    std::exit(1);
+}
+
+
+struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
     Generator(gko::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<DefaultSystemGenerator>{
+        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>{
               std::move(comm), {}}
     {}
 
@@ -81,10 +86,7 @@ struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator> {
             !((options.HasMember("size") && options.HasMember("stencil") &&
                options.HasMember("comm_pattern")) ||
               options.HasMember("filename"))) {
-            std::cerr
-                << "Input has to be a JSON array of matrix configurations:\n"
-                << example_config << std::endl;
-            std::exit(1);
+            print_config_error_and_exit();
         }
     }
 };
