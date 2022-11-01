@@ -1295,7 +1295,6 @@ std::unique_ptr<const matrix::Dense<ValueType>> make_const_dense_view(
  *                     argument
  *
  * @ingroup LinOp
- * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1334,7 +1333,6 @@ std::unique_ptr<Matrix> initialize(
  *                     argument
  *
  * @ingroup LinOp
- * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1365,7 +1363,6 @@ std::unique_ptr<Matrix> initialize(
  *                     argument
  *
  * @ingroup LinOp
- * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1414,7 +1411,6 @@ std::unique_ptr<Matrix> initialize(
  *                     argument
  *
  * @ingroup LinOp
- * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
