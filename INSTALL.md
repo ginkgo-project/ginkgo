@@ -212,6 +212,14 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_HWLOC=ON:
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
++ GINKGO_BUILD_HWLOC=ON and GINKGO_BUILD_TESTS=ON:
+  [libnuma](https://www.man7.org/linux/man-pages/man3/numa.3.html) is required
+  when testing the functions provided through MachineTopology.
++ GINKGO_BUILD_EXAMPLES=ON:
+  [OpenCV](https://opencv.org/) is required for some examples.
++ GINKGO_BUILD_DOC=ON:
+  [doxygen](https://www.doxygen.nl/) is required to build the documentation and
+  additionally graphviz and dot are required to build the class hierarchy graphs.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
