@@ -364,7 +364,7 @@ protected:
 /**
  * The AbsoluteResidualNorm class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
- * threshold, i.e. when norm(residual) / threshold.
+ * threshold, i.e. when norm(residual) < threshold.
  * For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
