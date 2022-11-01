@@ -85,8 +85,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
-      row_partition_{},
-      col_partition_{},
+      row_partition_{part_type::create(exec)},
+      col_partition_{part_type::create(exec)},
       matrix_data_{exec},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
@@ -164,13 +164,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    this->row_partition_ = std::make_shared<const part_type>(*row_partition);
-    this->col_partition_ = std::make_shared<const part_type>(*col_partition);
+    this->row_partition_->copy_from(row_partition);
+    this->col_partition_->copy_from(col_partition);
     this->matrix_data_ = data;
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
-    auto global_num_rows = row_partition->get_size();
+    auto global_num_rows = this->get_row_partition()->get_size();
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
     this->set_size(global_dim);

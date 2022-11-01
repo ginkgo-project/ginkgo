@@ -282,6 +282,8 @@ public:
     using global_vector_type =
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
+    using part_type =
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>;
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
@@ -590,10 +592,10 @@ private:
     gko::detail::DenseCache<value_type> recv_buffer_;
     device_matrix_data<value_type, global_index_type> matrix_data_;
     std::shared_ptr<
-        const gko::distributed::Partition<local_index_type, global_index_type>>
+        gko::distributed::Partition<local_index_type, global_index_type>>
         row_partition_;
     std::shared_ptr<
-        const gko::distributed::Partition<local_index_type, global_index_type>>
+        gko::distributed::Partition<local_index_type, global_index_type>>
         col_partition_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
