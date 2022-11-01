@@ -219,7 +219,7 @@ packages can be turned off by disabling the relevant options.
   [OpenCV](https://opencv.org/) is required for some examples, they are disabled when OpenCV is not available.
 + GINKGO_BUILD_DOC=ON:
   [doxygen](https://www.doxygen.nl/) is required to build the documentation and
-  additionally [graphviz](https://graphviz.org/) are required to build the class hierarchy graphs.
+  additionally [graphviz](https://graphviz.org/) is required to build the class hierarchy graphs.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
