@@ -79,7 +79,8 @@ public:
      * @param to - matrix which coefficients should be overwritten
      */
     template <typename ValueType>
-    void update_existing(const array<GlobalIndexType>& indices,
+    void update_existing(const array<LocalIndexType>& local_indices,
+                         const array<LocalIndexType>& non_local_indices,
                          const array<ValueType>& local_from_data,
                          const array<ValueType>& non_local_from_data,
                          const array<LocalIndexType>& local_scatter_pattern,

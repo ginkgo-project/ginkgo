@@ -584,8 +584,8 @@ public:
         auto num_elems = num_elems_ + other_num_elems;
         auto arr = array(exec_, num_elems);
         make_array_view(exec_, num_elems_, arr.get_data()) = *this;
-        make_array_view(exec_, other_num_elems,
-                        arr.get_data() + other_num_elems) = other;
+        make_array_view(exec_, other_num_elems, arr.get_data() + num_elems_) =
+            other;
         return arr;
     }
 
