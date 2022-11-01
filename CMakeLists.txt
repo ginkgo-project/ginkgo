@@ -346,10 +346,12 @@ if(GINKGO_BUILD_DOC)
 endif()
 
 
-# add escape character '\' and convert the list to string
+# add escape character '\' for space
 string(REPLACE " " "\ " PKG_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+# add escape character '\' for space in regex mode
 list(TRANSFORM GINKGO_INTERFACE_LINK_FLAGS REPLACE " " "\\\\ ")
 list(TRANSFORM GINKGO_INTERFACE_CXX_FLAGS REPLACE " " "\\\\ ")
+# convert the list to string
 string(REPLACE ";" " " GINKGO_INTERFACE_CXX_FLAGS "${GINKGO_INTERFACE_CXX_FLAGS}")
 string(REPLACE ";" " " GINKGO_INTERFACE_LINK_FLAGS "${GINKGO_INTERFACE_LINK_FLAGS}")
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
