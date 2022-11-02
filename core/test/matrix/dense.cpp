@@ -430,7 +430,6 @@ TYPED_TEST(Dense, CanMakeConstView)
 class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
     friend class gko::EnablePolymorphicObject<CustomDense,
                                               gko::matrix::Dense<>>;
-    friend struct gko::polymorphic_object_traits<CustomDense>;
 
 public:
     static std::unique_ptr<CustomDense> create(

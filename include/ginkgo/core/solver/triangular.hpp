@@ -94,7 +94,7 @@ class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<LowerTrs>;
-    friend struct polymorphic_object_traits<LowerTrs>;
+    friend class EnablePolymorphicObject<LowerTrs, LinOp>;
     friend class UpperTrs<ValueType, IndexType>;
 
 public:
@@ -247,7 +247,7 @@ class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<UpperTrs>;
-    friend struct polymorphic_object_traits<UpperTrs>;
+    friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;
 
 public:

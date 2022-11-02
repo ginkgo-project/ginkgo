@@ -67,7 +67,7 @@ template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
-    friend class polymorphic_object_traits<Composition>;
+    friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 
 public:
