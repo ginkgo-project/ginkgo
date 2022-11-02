@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
+
+
 #include <limits>
 #include <random>
 
@@ -42,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 #include "test/utils/executor.hpp"
@@ -72,8 +74,7 @@ protected:
     using BDense = gko::matrix::BatchDense<value_type>;
 
     BatchJacobi()
-        : 
-          ref_mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        : ref_mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(1, nrows - 1),
               std::normal_distribution<real_type>(), std::ranlux48(34), true,
@@ -100,7 +101,7 @@ protected:
         d_mtx->copy_from(ref_mtx.get());
     }
 
-  
+
     const size_t nbatch = 10;
     const int nrows = 50;
     std::unique_ptr<Mtx> ref_mtx;
