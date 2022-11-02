@@ -90,7 +90,7 @@ class Vector
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableCreateMethod<Vector>;
-    friend struct polymorphic_object_traits<Vector>;
+    friend class polymorphic_object_traits<Vector>;
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;

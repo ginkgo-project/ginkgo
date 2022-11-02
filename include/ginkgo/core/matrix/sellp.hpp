@@ -79,7 +79,7 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableAbsoluteComputation<
                   remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
-    friend struct polymorphic_object_traits<Sellp>;
+    friend class polymorphic_object_traits<Sellp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Sellp<to_complex<ValueType>, IndexType>;

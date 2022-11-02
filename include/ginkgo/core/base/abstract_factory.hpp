@@ -150,7 +150,7 @@ class EnableDefaultFactory
     : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
       public EnablePolymorphicAssignment<ConcreteFactory> {
 public:
-    friend struct polymorphic_object_traits<ConcreteFactory>;
+    friend class polymorphic_object_traits<ConcreteFactory>;
 
     using product_type = ProductType;
     using parameters_type = ParametersType;
