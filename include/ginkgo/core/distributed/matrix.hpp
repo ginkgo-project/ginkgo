@@ -72,8 +72,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -262,7 +262,8 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
-    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+    : public EnableDistributedLinOp<
+          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
@@ -270,6 +271,7 @@ class Matrix
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend struct polymorphic_object_traits<Matrix>;
+    friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
 
@@ -282,8 +284,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableLinOp<Matrix>::convert_to;
-    using EnableLinOp<Matrix>::move_to;
+    using EnableDistributedLinOp<Matrix>::convert_to;
+    using EnableDistributedLinOp<Matrix>::move_to;
 
     void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;

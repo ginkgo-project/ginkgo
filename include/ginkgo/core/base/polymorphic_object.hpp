@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#if GINKGO_BUILD_MPI
+#include <ginkgo/core/distributed/base.hpp>
+#endif
 
 
 namespace gko {
@@ -424,12 +427,15 @@ public:
  * implementing mixins which depend on the type of the affected object, in which
  * case the type is set to the affected object (i.e. the CRTP parameter).
  */
-#define GKO_ENABLE_SELF(_type)                                   \
-    _type* self() noexcept { return static_cast<_type*>(this); } \
-                                                                 \
-    const _type* self() const noexcept                           \
-    {                                                            \
-        return static_cast<const _type*>(this);                  \
+#define GKO_ENABLE_SELF(_type)                  \
+    _type* self() noexcept                      \
+    {                                           \
+        return static_cast<_type*>(this);       \
+    }                                           \
+                                                \
+    const _type* self() const noexcept          \
+    {                                           \
+        return static_cast<const _type*>(this); \
     }
 
 
@@ -714,6 +720,98 @@ protected:
 private:
     GKO_ENABLE_SELF(ConcreteObject);
 };
+
+
+namespace experimental {
+
+
+/**
+ * This mixin inherits from (a subclass of) PolymorphicObject and provides a
+ * base implementation of a new concrete polymorphic object.
+ *
+ * The mixin changes parameter and return types of appropriate public methods of
+ * PolymorphicObject in the same way EnableAbstractPolymorphicObject does.
+ * In addition, it also provides default implementations of PolymorphicObject's
+ * vritual methods by using the _executor default constructor_ and the
+ * assignment operator of ConcreteObject. Consequently, the following is a
+ * minimal example of PolymorphicObject:
+ *
+ * ```c++
+ * struct MyObject : EnablePolymorphicObject<MyObject> {
+ *     MyObject(std::shared_ptr<const Executor> exec)
+ *         : EnablePolymorphicObject<MyObject>(std::move(exec))
+ *     {}
+ * };
+ * ```
+ *
+ * In a way, this mixin can be viewed as an extension of default
+ * constructor/destructor/assignment operators.
+ *
+ * @note  This mixin does not enable copying the polymorphic object to the
+ *        object of the same type (i.e. it does not implement the
+ *        ConvertibleTo<ConcreteObject> interface). To enable a default
+ *        implementation of this interface see the EnablePolymorphicAssignment
+ *        mixin.
+ *
+ * @tparam ConcreteObject  the concrete type which is being implemented
+ *                         [CRTP parameter]
+ * @tparam PolymorphicBase  parent of ConcreteObject in the polymorphic
+ *                          hierarchy, has to be a subclass of polymorphic
+ *                          object
+ */
+template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
+class EnableDistributedPolymorphicObject
+    : public EnableAbstractPolymorphicObject<ConcreteObject, PolymorphicBase> {
+protected:
+    using EnableAbstractPolymorphicObject<
+        ConcreteObject, PolymorphicBase>::EnableAbstractPolymorphicObject;
+
+    std::unique_ptr<PolymorphicObject> create_default_impl(
+        std::shared_ptr<const Executor> exec) const override
+    {
+        return std::unique_ptr<ConcreteObject>{
+            new ConcreteObject(exec, self()->get_communicator())};
+    }
+
+    PolymorphicObject* copy_from_impl(const PolymorphicObject* other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other)->convert_to(self());
+        return this;
+    }
+
+    PolymorphicObject* copy_from_impl(
+        std::unique_ptr<PolymorphicObject> other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* move_from_impl(PolymorphicObject* other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other)->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* move_from_impl(
+        std::unique_ptr<PolymorphicObject> other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* clear_impl() override
+    {
+        *self() =
+            ConcreteObject{self()->get_executor(), self()->get_communicator()};
+        return this;
+    }
+
+private:
+    GKO_ENABLE_SELF(ConcreteObject);
+};
+
+
+}  // namespace experimental
 
 
 /**

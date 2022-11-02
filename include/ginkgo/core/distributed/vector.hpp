@@ -84,20 +84,21 @@ class Partition;
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
+    : public EnableDistributedLinOp<Vector<ValueType>>,
       public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableCreateMethod<Vector>;
     friend struct polymorphic_object_traits<Vector>;
+    friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;
 
 public:
-    using EnableLinOp<Vector>::convert_to;
-    using EnableLinOp<Vector>::move_to;
+    using EnableDistributedLinOp<Vector>::convert_to;
+    using EnableDistributedLinOp<Vector>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<Vector>;
