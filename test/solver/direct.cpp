@@ -61,7 +61,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class Direct : public ::testing::Test {
+class Direct : public CommonTestFixture {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -75,19 +75,6 @@ protected:
     using vector_type = gko::matrix::Dense<value_type>;
 
     Direct() : rand_engine(633) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<vector_type> gen_mtx(gko::size_type num_rows,
                                          gko::size_type num_cols)
@@ -126,8 +113,6 @@ protected:
         doutput = gko::clone(exec, output);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine rand_engine;
     std::unique_ptr<typename solver_type::Factory> factory;
     std::shared_ptr<matrix_type> mtx;

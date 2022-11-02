@@ -53,6 +53,7 @@ class Lu
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<Lu, LinOpFactory>;
+    friend struct polymorphic_object_traits<Lu>;
     friend class enable_parameters_type<parameters_type, Lu>;
 
     using value_type = ValueType;

@@ -46,45 +46,64 @@ namespace experimental {
 namespace factorization {
 
 
+/**
+ * Stores how a Factorization is represented internally. Depending on the
+ * representation, different functionality may be available in the class.
+ */
 enum class storage_type {
-    /** The factorization is empty (moved-from or default-constructed) */
+    /** The factorization is empty (moved-from or default-constructed). */
     empty,
     /**
      * The two factors are stored as a composition L * U or L * D * U
-     * where L and U are Csr matrices and D is a Diagonal matrix
+     * where L and U are Csr matrices and D is a Diagonal matrix.
      */
     composition,
     /*
      * The two factors are stored as a single matrix containing L + U - I, where
-     * L has an implicit unit diagonal
+     * L has an implicit unit diagonal.
      */
     combined_lu,
     /*
      * The factorization L * D * U is stored as L + D + U - 2I, where
-     * L and U have implicit unit diagonals
+     * L and U have implicit unit diagonals.
      */
     combined_ldu,
     /**
-     * The two factors are stored as a composition L * L^H or L * D * L^H
-     * where L and L^T are Csr matrices and D is a Diagonal matrix
+     * The factors are stored as a composition L * L^H or L * D * L^H
+     * where L and L^H are Csr matrices and D is a Diagonal matrix.
      */
     symm_composition,
     /*
      * The factorization L * L^H is symmetric and stored as a single matrix
-     * containing L + L^H - diag(L)
+     * containing L + L^H - diag(L).
      */
     symm_combined_cholesky,
     /*
      * The factorization is symmetric and stored as a single matrix containing
-     * L + D + L^H - 2 * diag(L), where L and L^H have an implicit unit diagonal
+     * L + D + L^H - 2 * diag(L), where L and L^H have an implicit unit
+     * diagonal.
      */
     symm_combined_ldl,
 };
 
 
+/**
+ * Represents a generic factorization consisting of two triangular factors
+ * (upper and lower) and an optional diagonal scaling matrix.
+ * This class is used to represent a wide range of different factorizations to
+ * be passed on to direct solvers and other similar operations. The storage_type
+ * represents how the individual factors are stored internally: They may be
+ * stored as separate matrices or in a single matrix, and be symmetric or
+ * unsymmetric, with the diagonal belonging to both factory, a single factor or
+ * being a separate scaling factor (Cholesky vs. LDL^H vs. LU vs. LDU).
+ *
+ * @tparam ValueType  the value type used to store the factorization entries
+ * @tparam IndexType  the index type used to represent the sparsity pattern
+ */
 template <typename ValueType, typename IndexType>
 class Factorization : public EnableLinOp<Factorization<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Factorization, LinOp>;
+    friend struct polymorphic_object_traits<Factorization>;
 
 public:
     using value_type = ValueType;
@@ -103,6 +122,7 @@ public:
      */
     std::unique_ptr<Factorization> unpack() const;
 
+    /** Returns the storage type used by this factorization. */
     storage_type get_storage_type() const;
 
     /**
@@ -139,23 +159,53 @@ public:
 
     Factorization& operator=(Factorization&&);
 
+    /**
+     * Creates a Factorization from an existing composition.
+     * @param composition  the composition consisting of 2 or 3 elements.
+     * We expect the first entry to be a lower triangular matrix, and the last
+     * entry to be an upper triangular matrix. If the composition has 3
+     * elements, we expect the middle entry to be a diagonal matrix.
+     *
+     * @return  a Factorization storing the elements from the Composition.
+     */
     static std::unique_ptr<Factorization> create_from_composition(
-        std::unique_ptr<composition_type>);
+        std::unique_ptr<composition_type> composition);
 
+    /**
+     * Creates a Factorization from an existing symmetric composition.
+     * @param composition  the composition consisting of 2 or 3 elements.
+     * We expect the first entry to be a lower triangular matrix, and the last
+     * entry to be the transpose of the first entry. If the composition has 3
+     * elements, we expect the middle entry to be a diagonal matrix.
+     *
+     * @return  a symmetric Factorization storing the elements from the
+     * Composition.
+     */
     static std::unique_ptr<Factorization> create_from_symm_composition(
-        std::unique_ptr<composition_type>);
+        std::unique_ptr<composition_type> composition);
 
+    /**
+     * Creates a Factorization from an existing combined representation of an LU
+     * factorization.
+     * @param matrix  the composition consisting of 2 or 3 elements.
+     * We expect the first entry to be a lower triangular matrix, and the last
+     * entry to be the transpose of the first entry. If the composition has 3
+     * elements, we expect the middle entry to be a diagonal matrix.
+     *
+     * @return  a symmetric Factorization storing the elements from the
+     * Composition.
+     */
     static std::unique_ptr<Factorization> create_from_combined_lu(
-        std::unique_ptr<matrix_type>);
+        std::unique_ptr<matrix_type> matrix);
 
     static std::unique_ptr<Factorization> create_from_combined_ldu(
-        std::unique_ptr<matrix_type>);
+        std::unique_ptr<matrix_type> matrix);
 
     static std::unique_ptr<Factorization> create_from_combined_cholesky(
-        std::unique_ptr<matrix_type>);
+        std::unique_ptr<matrix_type> matrix);
 
     static std::unique_ptr<Factorization> create_from_combined_ldl(
-        std::unique_ptr<matrix_type>);
+        std::unique_ptr<matrix_type> matrix);
 
 protected:
     explicit Factorization(std::shared_ptr<const Executor> exec);

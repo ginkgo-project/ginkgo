@@ -105,12 +105,9 @@ Factorization<ValueType, IndexType>::get_upper_factor() const
     switch (storage_type_) {
     case storage_type::composition:
     case storage_type::symm_composition:
-        if (factors_->get_operators().size() == 2) {
-            return as<matrix_type>(factors_->get_operators()[1]);
-        } else {
-            GKO_ASSERT(factors_->get_operators().size() == 3);
-            return as<matrix_type>(factors_->get_operators()[2]);
-        }
+        GKO_ASSERT(factors_->get_operators().size() == 2 ||
+                   factors_->get_operators().size() == 3);
+        return as<matrix_type>(factors_->get_operators().back());
     case storage_type::empty:
     case storage_type::combined_lu:
     case storage_type::combined_ldu:
@@ -286,6 +283,7 @@ void Factorization<ValueType, IndexType>::apply_impl(const LinOp* b,
     case storage_type::composition:
     case storage_type::symm_composition:
         factors_->apply(b, x);
+        break;
     case storage_type::empty:
     case storage_type::combined_lu:
     case storage_type::combined_ldu:
@@ -307,6 +305,7 @@ void Factorization<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     case storage_type::composition:
     case storage_type::symm_composition:
         factors_->apply(alpha, b, beta, x);
+        break;
     case storage_type::empty:
     case storage_type::combined_lu:
     case storage_type::combined_ldu:

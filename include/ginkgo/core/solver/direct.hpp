@@ -36,9 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 namespace gko {
@@ -53,6 +52,7 @@ class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                    factorization::Factorization<ValueType, IndexType>>,
                public Transposable {
     friend class EnablePolymorphicObject<Direct, LinOp>;
+    friend struct polymorphic_object_traits<Direct>;
 
 public:
     using value_type = ValueType;

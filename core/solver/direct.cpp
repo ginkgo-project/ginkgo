@@ -151,6 +151,9 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     const bool separate_diag = factors->get_diagonal() ||
                                type == storage_type::combined_ldu ||
                                type == storage_type::symm_combined_ldl;
+    if (separate_diag) {
+        GKO_NOT_SUPPORTED(type);
+    }
     const auto lower_factory =
         lower_type::build().with_unit_diagonal(lower_unit_diag).on(exec);
     const auto upper_factory =
