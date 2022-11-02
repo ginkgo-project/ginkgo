@@ -144,7 +144,7 @@ bool is_distributed(Arg* linop, Rest*... rest)
  * @param args  The additional arguments of f.
  */
 template <typename ValueType, typename T, typename F, typename... Args>
-void vector_dispatch(T* linop, F&& f, Args... args)
+void vector_dispatch(T* linop, F&& f, Args&&... args)
 {
 #if GINKGO_BUILD_MPI
     if (is_distributed(linop)) {
