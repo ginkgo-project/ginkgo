@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename ValueType>
 inline void batch_entry_factorize_impl(
     const int* const diag_locs,
@@ -114,7 +113,7 @@ inline void batch_entry_parilu0_factorize_impl(
 
             ValueType to_write = (A_vals[el] - sum) / diag_val;
 
-                fact_mat_vals[el] = to_write;
+            fact_mat_vals[el] = to_write;
         }
     }
 }
