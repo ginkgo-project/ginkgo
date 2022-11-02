@@ -89,7 +89,7 @@ inline void batch_entry_parilu0_factorize_impl(
 
     for (int iter = 0; iter < parilu_num_sweeps;
          iter++)  // just 1 sweep is sufficient as this is eqvt. to exact ilu0
-                  // (with this order pf computing elements)
+                  // (with this order of computing elements)
     {
         for (int el = 0; el < nnz; el++) {
             ValueType diag_val{one<ValueType>()};
