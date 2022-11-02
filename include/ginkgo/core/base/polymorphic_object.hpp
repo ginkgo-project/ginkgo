@@ -427,15 +427,12 @@ public:
  * implementing mixins which depend on the type of the affected object, in which
  * case the type is set to the affected object (i.e. the CRTP parameter).
  */
-#define GKO_ENABLE_SELF(_type)                  \
-    _type* self() noexcept                      \
-    {                                           \
-        return static_cast<_type*>(this);       \
-    }                                           \
-                                                \
-    const _type* self() const noexcept          \
-    {                                           \
-        return static_cast<const _type*>(this); \
+#define GKO_ENABLE_SELF(_type)                                   \
+    _type* self() noexcept { return static_cast<_type*>(this); } \
+                                                                 \
+    const _type* self() const noexcept                           \
+    {                                                            \
+        return static_cast<const _type*>(this);                  \
     }
 
 
