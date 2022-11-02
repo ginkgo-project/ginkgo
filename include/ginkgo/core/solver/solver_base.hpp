@@ -83,18 +83,6 @@ protected:
     friend class MultigridState;
 
     /**
-     * Modify the input vector x by the guess
-     *
-     * @param b  the right hand side vectors
-     * @param x  the input vectors
-     * @param guess  the input guess
-     */
-    template <typename ValueType>
-    static void prepare_initial_guess(const matrix::Dense<ValueType>* b,
-                                      matrix::Dense<ValueType>* x,
-                                      initial_guess_mode guess);
-
-    /**
      * Applies a linear operator to a vector (or a sequence of vectors) with
      * initial guess statement.
      *
@@ -106,11 +94,9 @@ protected:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      * @param guess  the input guess to handle the input vector(s)
-     *
-     * @return this
      */
     virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
-                                          initial_guess_mode guess) const;
+                                          initial_guess_mode guess) const = 0;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x with a initial guess
@@ -122,13 +108,11 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
-     * @param guess  the input guess
-     *
-     * @return this
+     * @param guess  the input guess to handle the input vector(s)
      */
     virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
                                           const LinOp* beta, LinOp* x,
-                                          initial_guess_mode guess) const;
+                                          initial_guess_mode guess) const = 0;
 
     /**
      * Get the default initial guess
@@ -155,15 +139,93 @@ protected:
      */
     void set_default_initial_guess(initial_guess_mode guess) { guess_ = guess; }
 
-    // override this at the same time when overridden
-    virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
-
-    // override this at the same time when overridden
-    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
-                            const LinOp* beta, LinOp* x) const = 0;
-
 private:
     initial_guess_mode guess_;
+};
+
+
+/**
+ * EnableApplyWithInitialGuess providing default operation for
+ * ApplyWithInitialGuess with correct validation and log. It ensures that
+ * vectors of apply_with_initial_guess will always have the same executor as the
+ * object this mixin is used in, creating a clone on the correct executor if
+ * necessary.
+ *
+ * @tparam DerivedType  The type that this Mixin is used in. It must provide
+ *                      get_size() and get_executor() functions that return
+ *                      correctly initialized values and the logger
+ *                      functionality.
+ */
+template <typename DerivedType>
+class EnableApplyWithInitialGuess : public ApplyWithInitialGuess {
+protected:
+    friend class MultigridState;
+
+    explicit EnableApplyWithInitialGuess(
+        initial_guess_mode guess = initial_guess_mode::provided)
+        : ApplyWithInitialGuess(guess)
+    {}
+
+    /**
+     * @copydoc apply_with_initial_guess(const LinOp*, LinOp*,
+     *          initial_guess_mode)
+     */
+    void apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                  initial_guess_mode guess) const override
+    {
+        self()->template log<log::Logger::linop_apply_started>(self(), b, x);
+        auto exec = self()->get_executor();
+        GKO_ASSERT_CONFORMANT(self(), b);
+        GKO_ASSERT_EQUAL_ROWS(self(), x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+        this->apply_with_initial_guess_impl(make_temporary_clone(exec, b).get(),
+                                            make_temporary_clone(exec, x).get(),
+                                            guess);
+        self()->template log<log::Logger::linop_apply_completed>(self(), b, x);
+    }
+
+    /**
+     * @copydoc apply_with_initial_guess(const LinOp*,const LinOp*,const LinOp*,
+     *          LinOp*, initial_guess_mode)
+     */
+    void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                  const LinOp* beta, LinOp* x,
+                                  initial_guess_mode guess) const override
+    {
+        self()->template log<log::Logger::linop_advanced_apply_started>(
+            self(), alpha, b, beta, x);
+        auto exec = self()->get_executor();
+        GKO_ASSERT_CONFORMANT(self(), b);
+        GKO_ASSERT_EQUAL_ROWS(self(), x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+        this->apply_with_initial_guess_impl(
+            make_temporary_clone(exec, alpha).get(),
+            make_temporary_clone(exec, b).get(),
+            make_temporary_clone(exec, beta).get(),
+            make_temporary_clone(exec, x).get(), guess);
+        self()->template log<log::Logger::linop_advanced_apply_completed>(
+            self(), alpha, b, beta, x);
+    }
+
+    // TODO: should we provide the defaule implementation?
+    /**
+     * The class should override this method and must modify the input vectors
+     * according to the initial_guess_mode
+     */
+    virtual void apply_with_initial_guess_impl(
+        const LinOp* b, LinOp* x, initial_guess_mode guess) const = 0;
+
+    /**
+     * The class should override this method and must modify the input vectors
+     * according to the initial_guess_mode
+     */
+    virtual void apply_with_initial_guess_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        initial_guess_mode guess) const = 0;
+
+    GKO_ENABLE_SELF(DerivedType);
 };
 
 
@@ -584,7 +646,7 @@ private:
  * @ingroup LinOp
  */
 template <typename DerivedType>
-class EnableIterativeBase : public IterativeBase, public ApplyWithInitialGuess {
+class EnableIterativeBase : public IterativeBase {
 public:
     /**
      * Creates a shallow copy of the provided stopping criterion, clones it onto

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
@@ -167,15 +168,15 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_with_initial_guess(const LinOp* b, LinOp* x,
-                                             initial_guess_mode guess) const
+void Ir<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* b, LinOp* x, initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this, guess](auto dense_b, auto dense_x) {
-            this->prepare_initial_guess(dense_b, dense_x, guess);
+            prepare_initial_guess(dense_b, dense_x, guess);
             this->apply_dense_impl(dense_b, dense_x, guess);
         },
         b, x);
@@ -209,7 +210,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     }
     // zero input the residual is dense_b
-    const Vector* residual_ptr =
+    const VectorType* residual_ptr =
         guess == initial_guess_mode::zero ? dense_b : residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -284,9 +285,9 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 template <typename ValueType>
-void Ir<ValueType>::apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
-                                             const LinOp* beta, LinOp* x,
-                                             initial_guess_mode guess) const
+void Ir<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -294,7 +295,7 @@ void Ir<ValueType>::apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
                       auto dense_x) {
-            this->prepare_initial_guess(dense_b, dense_x, guess);
+            prepare_initial_guess(dense_b, dense_x, guess);
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
