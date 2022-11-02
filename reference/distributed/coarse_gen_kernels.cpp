@@ -184,6 +184,7 @@ void fill_coarse(
     array<IndexType>& coarse_indices)
 {
     const auto global_size = fine_matrix_data.get_size();
+    const auto global_nnz = fine_matrix_data.get_num_elems();
     const auto coarse_size = coarse_data.get_size();
     const auto f_row_idxs = fine_matrix_data.get_const_row_idxs();
     const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
@@ -192,12 +193,14 @@ void fill_coarse(
     int nnz = 0;
     int ridx = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(f_row_idxs, f_row_idxs, coarse_indices.get_data()[i]) !=
-            f_row_idxs) {
+        if (std::find(f_row_idxs, f_row_idxs + global_nnz,
+                      coarse_indices.get_data()[i]) !=
+            f_row_idxs + global_nnz) {
             int cidx = 0;
             for (auto j = 0; j < coarse_size[0]; ++j) {
-                if (std::find(f_col_idxs, f_col_idxs,
-                              coarse_indices.get_data()[j]) != f_col_idxs) {
+                if (std::find(f_col_idxs, f_col_idxs + global_nnz,
+                              coarse_indices.get_data()[j]) !=
+                    f_col_idxs + global_nnz) {
                     // Assume row major ordering
                     coarse_data.get_row_idxs()[nnz] = ridx;
                     coarse_data.get_col_idxs()[nnz] = cidx;
@@ -216,8 +219,9 @@ void fill_coarse(
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(f_row_idxs, f_row_idxs, coarse_indices.get_data()[i]) !=
-            f_row_idxs) {
+        if (std::find(f_row_idxs, f_row_idxs + global_nnz,
+                      coarse_indices.get_data()[i]) !=
+            f_row_idxs + global_nnz) {
             // Assume row major ordering
             restrict_data.get_row_idxs()[nnz] = i;
             restrict_data.get_col_idxs()[nnz] = coarse_indices.get_data()[i];
@@ -228,8 +232,9 @@ void fill_coarse(
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(f_col_idxs, f_col_idxs, coarse_indices.get_data()[i]) !=
-            f_col_idxs) {
+        if (std::find(f_col_idxs + global_nnz, f_col_idxs + global_nnz,
+                      coarse_indices.get_data()[i]) !=
+            f_col_idxs + global_nnz) {
             // Assume row major ordering
             prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
             prolong_data.get_col_idxs()[nnz] = i;
