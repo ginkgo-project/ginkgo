@@ -75,7 +75,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     const LinOp* local_matrix_template, const LinOp* non_local_matrix_template)
-    : EnableLinOp<
+    : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
@@ -371,8 +371,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
+                                    global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = other;
@@ -382,8 +382,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
+                                    global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = std::move(other);

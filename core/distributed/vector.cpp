@@ -92,7 +92,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -103,7 +103,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -115,7 +115,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, {}},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
       DistributedBase{comm},
       local_{exec}
 {
@@ -448,8 +448,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
