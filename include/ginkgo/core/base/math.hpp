@@ -496,6 +496,16 @@ using next_precision = typename detail::next_precision_impl<T>::type;
 
 
 /**
+ * Obtains the previous type in the singly-linked precision list.
+ *
+ * @note Currently our lists contains only two elements, so this is the same as
+ *       next_precision.
+ */
+template <typename T>
+using previous_precision = next_precision<T>;
+
+
+/**
  * Obtains the next type in the hierarchy with lower precision than T.
  */
 template <typename T>

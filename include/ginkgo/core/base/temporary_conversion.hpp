@@ -107,6 +107,17 @@ public:
 };
 
 
+template <typename TargetType>
+struct conversion_target_helper {
+    template <typename SourceType>
+    static std::unique_ptr<TargetType> create(
+        const SourceType* source, std::shared_ptr<const Executor> exec)
+    {
+        return TargetType::create(exec);
+    }
+};
+
+
 /**
  * @internal
  *
@@ -146,7 +157,9 @@ struct conversion_helper {
         if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
-            auto converted = TargetType::create(obj->get_executor());
+            auto converted =
+                conversion_target_helper<std::remove_cv_t<TargetType>>::create(
+                    cast_obj, cast_obj->get_executor());
             cast_obj->convert_to(converted.get());
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(

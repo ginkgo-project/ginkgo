@@ -508,6 +508,30 @@ private:
 
 }  // namespace distributed
 }  // namespace experimental
+
+
+namespace detail {
+
+
+template <typename TargetType>
+struct conversion_target_helper;
+
+
+template <typename ValueType>
+struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
+    using target_type = experimental::distributed::Vector<ValueType>;
+    using source_type =
+        experimental::distributed::Vector<gko::previous_precision<ValueType>>;
+
+    static std::unique_ptr<target_type> create(
+        const source_type* source, std::shared_ptr<const Executor> exec)
+    {
+        return target_type::create(exec, source->get_communicator());
+    }
+};
+
+
+}  // namespace detail
 }  // namespace gko
 
 
