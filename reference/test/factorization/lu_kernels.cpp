@@ -59,9 +59,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "matrices/config.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class Lu : public ::testing::Test {
 protected:
@@ -262,6 +259,3 @@ TYPED_TEST(Lu, FactorizeAmdWorks)
     ASSERT_EQ(lu->get_upper_factor(), nullptr);
     ASSERT_EQ(lu->get_diagonal(), nullptr);
 }
-
-
-}  // namespace
