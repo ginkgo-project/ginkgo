@@ -188,6 +188,12 @@ void fill_coarse(
     const auto coarse_size = coarse_data.get_size();
     const auto f_row_idxs = fine_matrix_data.get_const_row_idxs();
     const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
+    auto c_matrix_data =
+        matrix_assembly_data<ValueType, IndexType>(coarse_size);
+    auto r_matrix_data = matrix_assembly_data<ValueType, IndexType>(
+        dim<2>(coarse_size[0], global_size[0]));
+    auto p_matrix_data = matrix_assembly_data<ValueType, IndexType>(
+        dim<2>(global_size[0], coarse_size[0]));
 
     // Get coarse data with global fine matrix indexing.
     int nnz = 0;
@@ -202,13 +208,15 @@ void fill_coarse(
                               coarse_indices.get_data()[j]) !=
                     f_col_idxs + global_nnz) {
                     // Assume row major ordering
-                    coarse_data.get_row_idxs()[nnz] = ridx;
-                    coarse_data.get_col_idxs()[nnz] = cidx;
-                    coarse_data.get_values()[nnz] =
+                    c_matrix_data.add_value(
+                        ridx, cidx,
                         fine_matrix_data.get_const_values()
                             [fine_row_ptrs.get_const_data()
                                  [coarse_indices.get_data()[i]] +
-                             coarse_indices.get_data()[j]];
+                             coarse_indices.get_data()[j]]);
+                    // c_matrix_data.get_row_idxs()[nnz] = ridx;
+                    // coarse_data.get_col_idxs()[nnz] = cidx;
+                    // coarse_data.get_values()[nnz] =
                     nnz++;
                 }
                 cidx++;
@@ -216,6 +224,8 @@ void fill_coarse(
             ridx++;
         }
     }
+    coarse_data = device_matrix_data<ValueType, IndexType>::create_from_host(
+        exec, c_matrix_data.get_ordered_data());
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
@@ -223,12 +233,16 @@ void fill_coarse(
                       coarse_indices.get_data()[i]) !=
             f_row_idxs + global_nnz) {
             // Assume row major ordering
-            restrict_data.get_row_idxs()[nnz] = i;
-            restrict_data.get_col_idxs()[nnz] = coarse_indices.get_data()[i];
-            restrict_data.get_values()[nnz] = one<ValueType>();
+            r_matrix_data.add_value(i, coarse_indices.get_data()[i],
+                                    one<ValueType>());
+            // restrict_data.get_row_idxs()[nnz] = i;
+            // restrict_data.get_col_idxs()[nnz] = coarse_indices.get_data()[i];
+            // restrict_data.get_values()[nnz] = one<ValueType>();
             nnz++;
         }
     }
+    restrict_data = device_matrix_data<ValueType, IndexType>::create_from_host(
+        exec, r_matrix_data.get_ordered_data());
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
@@ -236,12 +250,16 @@ void fill_coarse(
                       coarse_indices.get_data()[i]) !=
             f_col_idxs + global_nnz) {
             // Assume row major ordering
-            prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
-            prolong_data.get_col_idxs()[nnz] = i;
-            prolong_data.get_values()[nnz] = one<ValueType>();
+            p_matrix_data.add_value(coarse_indices.get_data()[i], i,
+                                    one<ValueType>());
+            // prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
+            // prolong_data.get_col_idxs()[nnz] = i;
+            // prolong_data.get_values()[nnz] = one<ValueType>();
             nnz++;
         }
     }
+    prolong_data = device_matrix_data<ValueType, IndexType>::create_from_host(
+        exec, p_matrix_data.get_ordered_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
