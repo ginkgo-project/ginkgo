@@ -108,9 +108,11 @@ template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
+           public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
+    friend class EnableApplyWithInitialGuess<Ir>;
 
 public:
     using value_type = ValueType;
@@ -222,12 +224,12 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    void apply_with_initial_guess(const LinOp* b, LinOp* x,
-                                  initial_guess_mode guess) const override;
+    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                       initial_guess_mode guess) const override;
 
-    void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x,
-                                  initial_guess_mode guess) const override;
+    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       initial_guess_mode guess) const override;
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
