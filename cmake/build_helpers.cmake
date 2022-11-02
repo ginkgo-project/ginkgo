@@ -11,9 +11,12 @@ function(ginkgo_default_includes name)
         )
     if(GINKGO_HAVE_HWLOC)
       target_include_directories("${name}"
-        PUBLIC 
+        PUBLIC
         $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
         )
+    endif()
+    if(GINKGO_BUILD_MPI)
+        target_include_directories("${name}" PUBLIC ${MPI_CXX_INCLUDE_DIRS})
     endif()
 endfunction()
 
@@ -62,7 +65,7 @@ function(ginkgo_check_headers target defines)
     if(CUDA_HEADERS)
         set(CUDA_HEADERS ${CUDA_HEADERS} ${CXX_HEADERS})
         set(CXX_HEADERS "")
-        if (HIP_HEADERS) 
+        if (HIP_HEADERS)
             message(FATAL_ERROR "Mixing CUDA and HIP files in header check")
         endif()
     endif()
