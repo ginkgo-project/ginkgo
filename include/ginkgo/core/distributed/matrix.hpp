@@ -270,7 +270,7 @@ class Matrix
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
-    friend struct polymorphic_object_traits<Matrix>;
+    friend class polymorphic_object_traits<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
