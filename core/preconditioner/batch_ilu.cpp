@@ -54,6 +54,11 @@ GKO_REGISTER_OPERATION(compute_ilu0_factorization,
 GKO_REGISTER_OPERATION(compute_parilu0_factorization,
                        batch_ilu::compute_parilu0_factorization);
 
+}  // namespace
+}  // namespace batch_ilu
+
+
+namespace detail {
 
 template <typename ValueType, typename IndexType>
 void create_dependency_graph(
@@ -125,9 +130,7 @@ void create_dependency_graph(
     }
 }
 
-
-}  // namespace
-}  // namespace batch_ilu
+}  // namespace detail
 
 
 template <typename ValueType, typename IndexType>
@@ -194,9 +197,9 @@ void BatchIlu<ValueType, IndexType>::generate_precond(
         std::vector<IndexType> dependencies_vec;
         array<IndexType> nz_ptrs(exec->get_master(), num_nz + 1);
 
-        batch_ilu::create_dependency_graph(
-            exec, diag_locations_.get_const_data(), mat_factored_.get(),
-            dependencies_vec, nz_ptrs);
+        detail::create_dependency_graph(exec, diag_locations_.get_const_data(),
+                                        mat_factored_.get(), dependencies_vec,
+                                        nz_ptrs);
 
         array<IndexType> dependencies(exec, dependencies_vec.size());
         exec->copy_from(exec->get_master().get(), dependencies_vec.size(),
