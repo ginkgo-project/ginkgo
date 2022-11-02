@@ -912,6 +912,9 @@ protected:
 };
 
 
+#if GINKGO_BUILD_MPI
+
+
 namespace experimental {
 
 
@@ -985,6 +988,9 @@ protected:
 
 
 }  // namespace experimental
+
+
+#endif
 
 
 /**
