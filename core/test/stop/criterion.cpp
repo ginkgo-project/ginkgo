@@ -73,7 +73,8 @@ struct DummyLogger : public gko::log::Logger {
 class DummyCriterion
     : public gko::EnablePolymorphicObject<DummyCriterion,
                                           gko::stop::Criterion> {
-    friend class gko::polymorphic_object_traits<DummyCriterion>;
+    friend class gko::EnablePolymorphicObject<DummyCriterion,
+                                              gko::stop::Criterion>;
 
 public:
     explicit DummyCriterion(std::shared_ptr<const gko::Executor> exec)

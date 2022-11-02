@@ -119,7 +119,7 @@ class HipsparseCsr
       public gko::EnableCreateMethod<HipsparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsr>;
-    friend class gko::polymorphic_object_traits<HipsparseCsr>;
+    friend class gko::EnablePolymorphicObject<HipsparseCsr, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -194,7 +194,7 @@ class HipsparseCsrmm
       public gko::EnableCreateMethod<HipsparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsrmm>;
-    friend class gko::polymorphic_object_traits<HipsparseCsrmm>;
+    friend class gko::EnablePolymorphicObject<HipsparseCsrmm, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -274,7 +274,7 @@ class HipsparseHybrid
           HipsparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseHybrid>;
-    friend class gko::polymorphic_object_traits<HipsparseHybrid>;
+    friend class gko::EnablePolymorphicObject<HipsparseHybrid, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;

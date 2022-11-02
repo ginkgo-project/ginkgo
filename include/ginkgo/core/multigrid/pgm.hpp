@@ -75,7 +75,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
             public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<Pgm>;
-    friend class polymorphic_object_traits<Pgm>;
+    friend class EnablePolymorphicObject<Pgm, LinOp>;
 
 public:
     using value_type = ValueType;
