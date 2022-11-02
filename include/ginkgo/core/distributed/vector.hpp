@@ -90,7 +90,6 @@ class Vector
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableCreateMethod<Vector>;
-    friend class polymorphic_object_traits<Vector>;
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
@@ -509,36 +508,6 @@ private:
 
 }  // namespace distributed
 }  // namespace experimental
-
-
-template <typename ValueType>
-struct polymorphic_object_traits<experimental::distributed::Vector<ValueType>> {
-    using Vector = experimental::distributed::Vector<ValueType>;
-
-    static std::unique_ptr<PolymorphicObject> create_default_impl(
-        const Vector* self, std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<Vector>{
-            new Vector(exec, self->get_communicator())};
-    }
-
-    static std::unique_ptr<Vector> create_conversion_target_impl(
-        const experimental::distributed::Vector<next_precision<ValueType>>*
-            self,
-        std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<Vector>{
-            new Vector(exec, self->get_communicator())};
-    }
-
-    static PolymorphicObject* clear_impl(Vector* self)
-    {
-        *self = Vector{self->get_executor(), self->get_communicator()};
-        return self;
-    }
-};
-
-
 }  // namespace gko
 
 

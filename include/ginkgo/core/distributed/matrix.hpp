@@ -270,7 +270,6 @@ class Matrix
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
-    friend class polymorphic_object_traits<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
@@ -417,7 +416,8 @@ protected:
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
      */
-    Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm);
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -560,29 +560,6 @@ private:
 
 }  // namespace distributed
 }  // namespace experimental
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-struct polymorphic_object_traits<experimental::distributed::Matrix<
-    ValueType, LocalIndexType, GlobalIndexType>> {
-    using Matrix = experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                     GlobalIndexType>;
-
-    static std::unique_ptr<PolymorphicObject> create_default_impl(
-        const Matrix* self, std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<Matrix>{
-            new Matrix(exec, self->get_communicator())};
-    }
-
-    static PolymorphicObject* clear_impl(Matrix* self)
-    {
-        *self = Matrix{self->get_executor(), self->get_communicator()};
-        return self;
-    }
-};
-
-
 }  // namespace gko
 
 
