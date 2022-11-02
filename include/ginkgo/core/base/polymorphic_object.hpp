@@ -702,6 +702,9 @@ private:
 };
 
 
+#if GINKGO_BUILD_MPI
+
+
 namespace experimental {
 
 
@@ -783,6 +786,9 @@ private:
 
 
 }  // namespace experimental
+
+
+#endif
 
 
 /**
