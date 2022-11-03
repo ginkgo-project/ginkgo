@@ -56,46 +56,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class RgsCoarsening : public ::testing::Test {
+class RgsCoarsening : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif  // GINKGO_COMMON_SINGLE_MODE
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     RgsCoarsening() : rand_engine(30) {}
 
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        m = 597;
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    gko::Array<index_type> gen_coarse_array(gko::size_type num,
+    gko::array<index_type> gen_coarse_array(gko::size_type num,
                                             gko::size_type num_rows)
     {
         GKO_ASSERT(num <= num_rows);
-        gko::Array<index_type> coarse_array(ref, num);
+        gko::array<index_type> coarse_array(ref, num);
         std::vector<index_type> base_vec(num_rows, 0);
         std::iota(base_vec.begin(), base_vec.end(), 0);
         std::shuffle(base_vec.begin(), base_vec.end(),
@@ -119,7 +96,7 @@ protected:
         coarse_rows = gen_coarse_array(coarse_size, m);
         c_dim = coarse_size;
 
-        d_coarse_rows = gko::Array<index_type>(exec);
+        d_coarse_rows = gko::array<index_type>(exec);
         d_coarse_rows = coarse_rows;
         restrict_op = Csr::create(ref, gko::dim<2>(c_dim, m), c_dim);
 
@@ -132,13 +109,10 @@ protected:
         d_system_mtx = gko::clone(exec, system_mtx);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
     std::default_random_engine rand_engine;
 
-    gko::Array<index_type> coarse_rows;
-    gko::Array<index_type> d_coarse_rows;
+    gko::array<index_type> coarse_rows;
+    gko::array<index_type> d_coarse_rows;
 
     std::shared_ptr<Csr> restrict_op;
     std::shared_ptr<Csr> d_restrict_op;
@@ -205,6 +179,3 @@ TEST_F(RgsCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
 }
-
-
-}  // namespace
