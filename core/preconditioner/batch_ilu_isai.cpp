@@ -80,6 +80,8 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
     this->lower_factor_ = l_factor;
     this->upper_factor_ = u_factor;
 
+    // Note: The generated l_factor and u_factor are always sorted irrespective
+    // of whether the input matrix is sorted or unsorted.
     auto lower_factor_isai_precond =
         gko::preconditioner::BatchIsai<ValueType, IndexType>::build()
             .with_skip_sorting(true)
