@@ -102,8 +102,8 @@ void BatchIsai<ValueType, IndexType>::generate_precond(
     // find approx_inv's sparsity pattern (and allocate memory for it, set its
     // row_ptrs and col_idxs)
     std::shared_ptr<unbatch_type> first_approx_inv;
-    first_approx_inv = gko::matrix::extend_sparsity(exec, first_sys_csr,
-                                                    parameters_.sparsity_power);
+    first_approx_inv = gko::matrix::detail::extend_sparsity(
+        exec, first_sys_csr, parameters_.sparsity_power);
 
     const auto first_approx_inv_nnz =
         first_approx_inv->get_num_stored_elements();
