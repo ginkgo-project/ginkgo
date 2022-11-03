@@ -785,7 +785,7 @@ private:
 }  // namespace experimental
 
 
-#endif
+#endif  // GINKGO_BUILD_MPI
 
 
 /**

@@ -16,7 +16,7 @@ function(ginkgo_default_includes name)
         )
     endif()
     if(GINKGO_BUILD_MPI)
-        target_include_directories("${name}" PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+        target_link_libraries("${name}" PUBLIC MPI::MPI_CXX)
     endif()
 endfunction()
 

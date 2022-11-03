@@ -107,13 +107,27 @@ public:
 };
 
 
+/**
+ * @internal
+ *
+ * Helper type to create an empty object of TargetType that will be used
+ * as the target object of a convert_to call. This can be specialized to
+ * gain more control on how a TargetType object has to be created.
+ *
+ * @tparam TargetType  The type an object shall be converted to
+ */
 template <typename TargetType>
 struct conversion_target_helper {
+    /**
+     * Creates an empty object on the same executor as source.
+     * @tparam SourceType  The type of the source object for the conversion
+     * @param source  The source object for the conversion
+     * @return  An unique_ptr of TargetType on the same executor as source.
+     */
     template <typename SourceType>
-    static std::unique_ptr<TargetType> create(
-        const SourceType* source, std::shared_ptr<const Executor> exec)
+    static std::unique_ptr<TargetType> create_empty(const SourceType* source)
     {
-        return TargetType::create(exec);
+        return TargetType::create(source->get_executor());
     }
 };
 
@@ -157,9 +171,8 @@ struct conversion_helper {
         if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
-            auto converted =
-                conversion_target_helper<std::remove_cv_t<TargetType>>::create(
-                    cast_obj, cast_obj->get_executor());
+            auto converted = conversion_target_helper<
+                std::remove_cv_t<TargetType>>::create_empty(cast_obj);
             cast_obj->convert_to(converted.get());
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
