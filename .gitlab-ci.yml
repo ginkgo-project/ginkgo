@@ -431,6 +431,19 @@ build/amd/nompi/clang/rocm45/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
 
+build/amd/mvapich2/clang/glibcxx-debug/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-rocm45-mvapich2-gnu8-llvm8
+  variables:
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
+    BUILD_TYPE: "Debug"
+
 # ROCm 5.0.2 and friends
 build/amd/nompi/gcc/rocm502/debug/static:
   extends:
