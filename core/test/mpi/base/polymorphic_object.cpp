@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/distributed/polymorphic_object.hpp>
 
 
 namespace {
@@ -179,7 +179,8 @@ protected:
 
 TEST_F(EnableDistributedPolymorphicObject, CreatesConcreteClass)
 {
-    // this test passes as soon as an instance of `DummyObject` can be created
+    // this test passes as soon as an instance of `DummyDistributedObject` can
+    // be created
 }
 
 
