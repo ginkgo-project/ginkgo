@@ -222,7 +222,7 @@ void MultigridState::generate(const LinOp* system_matrix_in,
             [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
                       auto next_nrows) {
                 using value_type = typename std::decay_t<
-                    detail::pointee<decltype(mg_level)>>::value_type;
+                    gko::detail::pointee<decltype(mg_level)>>::value_type;
                 using vec = matrix::Dense<value_type>;
                 this->allocate_memory<value_type>(i, cycle, current_nrows,
                                                   next_nrows);
@@ -292,7 +292,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
             using value_type = typename std::decay_t<
-                detail::pointee<decltype(mg_level)>>::value_type;
+                gko::detail::pointee<decltype(mg_level)>>::value_type;
             this->run_cycle<value_type>(cycle, level, matrix, b, x, x_is_zero,
                                         is_first, is_end);
         });
@@ -345,7 +345,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                 dynamic_cast<matrix::Dense<VT>*>(x_ptr)->fill(zero<VT>());
             }
             if (auto pre_allow_zero_input =
-                    std::dynamic_pointer_cast<const EnableZeroInput>(
+                    std::dynamic_pointer_cast<const ApplyWithInitialGuess>(
                         pre_smoother)) {
                 pre_allow_zero_input->apply_with_initial_guess(
                     b_ptr, x_ptr, initial_guess_mode::zero);
