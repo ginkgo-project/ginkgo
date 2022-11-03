@@ -141,18 +141,18 @@ Factorization<ValueType, IndexType>::get_combined() const
 
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(const Factorization& fact)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{fact},
-      storage_type_{fact.storage_type_},
-      factors_{fact.factors_->clone()}
-{}
+    : Factorization{fact.get_executor()}
+{
+    *this = fact;
+}
 
 
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(Factorization&& fact)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{std::move(fact)},
-      storage_type_{std::exchange(fact.storage_type_, storage_type::empty)},
-      factors_{std::exchange(fact.factors_, fact.factors_->create_default())}
-{}
+    : Factorization{fact.get_executor()}
+{
+    *this = std::move(fact);
+}
 
 
 template <typename ValueType, typename IndexType>
