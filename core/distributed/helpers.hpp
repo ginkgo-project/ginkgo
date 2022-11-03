@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_DISTRIBUTED_HELPERS_HPP_
+#define GKO_CORE_DISTRIBUTED_HELPERS_HPP_
+
+
 #include <memory>
 
 
@@ -124,5 +128,48 @@ bool is_distributed(Arg* linop, Rest*... rest)
 }
 
 
+/**
+ * Cast an input linop to the correct underlying vector type (dense/distributed)
+ * and passes it to the given function.
+ *
+ * @tparam ValueType  The value type of the underlying dense or distributed
+ * vector.
+ * @tparam T  The linop type, either LinOp, or const LinOp.
+ * @tparam F  The function type.
+ * @tparam Args  The types for the additional arguments of f.
+ *
+ * @param linop  The linop to be casted into either a dense or distributed
+ *               vector.
+ * @param f  The function that is to be called with the correctly casted linop.
+ * @param args  The additional arguments of f.
+ */
+template <typename ValueType, typename T, typename F, typename... Args>
+void vector_dispatch(T* linop, F&& f, Args&&... args)
+{
+#if GINKGO_BUILD_MPI
+    if (is_distributed(linop)) {
+        using type = std::conditional_t<
+            std::is_const<T>::value,
+            const experimental::distributed::Vector<ValueType>,
+            experimental::distributed::Vector<ValueType>>;
+        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+    } else
+#endif
+    {
+        using type = std::conditional_t<std::is_const<T>::value,
+                                        const matrix::Dense<ValueType>,
+                                        matrix::Dense<ValueType>>;
+        if (auto concrete_linop = dynamic_cast<type*>(linop)) {
+            f(concrete_linop, std::forward<Args>(args)...);
+        } else {
+            GKO_NOT_SUPPORTED(linop);
+        }
+    }
+}
+
+
 }  // namespace detail
 }  // namespace gko
+
+
+#endif  // GKO_CORE_DISTRIBUTED_HELPERS_HPP_
