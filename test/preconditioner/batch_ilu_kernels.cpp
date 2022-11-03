@@ -143,7 +143,7 @@ protected:
 
         gko::kernels::reference::batch_ilu::apply_ilu(
             ref, mtx.get(), factorized_mat, diag_locs, rv.get(), z.get());
-        gko::kernels::cuda::batch_ilu::apply_ilu(exec, d_mtx.get(),
+        gko::kernels::EXEC_NAMESPACE::batch_ilu::apply_ilu(exec, d_mtx.get(),
                                                  d_factorized_mat, d_diag_locs,
                                                  d_rv.get(), d_z.get());
 
@@ -183,9 +183,9 @@ TEST_F(BatchIlu, ParIluApplyIsEquivalentToReference)
 
 TEST_F(BatchIlu, GenerateSplitFactorsIsEquivalentToReference)
 {
-    auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+    auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
     auto prec_fact = prec_type::build().with_skip_sorting(true).on(ref);
-    auto d_prec_fact = prec_type::build().with_skip_sorting(true).on(d_exec);
+    auto d_prec_fact = prec_type::build().with_skip_sorting(true).on(exec);
 
     auto prec = prec_fact->generate(mtx);
     auto d_prec = d_prec_fact->generate(d_mtx);

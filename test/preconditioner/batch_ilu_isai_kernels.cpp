@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_ilu_isai_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-
+#include "test/utils/executor.hpp"
 
 namespace {
 
@@ -65,8 +65,7 @@ protected:
     using prec_type = gko::preconditioner::BatchIluIsai<value_type>;
 
     BatchIluIsai()
-        : ref(gko::ReferenceExecutor::create()),
-          d_exec(gko::HipExecutor::create(0, ref)),
+        : 
           mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(min_nnz_row, nrows),
@@ -74,8 +73,6 @@ protected:
               ref)))
     {}
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> d_exec;
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
@@ -89,7 +86,7 @@ protected:
         const int num_sweeps = 30, const int lower_spy_power = 2,
         const int upper_spy_power = 3)
     {
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto prec_fact =
             prec_type::build()
                 .with_skip_sorting(true)
@@ -105,7 +102,7 @@ protected:
                 .with_parilu_num_sweeps(num_sweeps)
                 .with_lower_factor_isai_sparsity_power(lower_spy_power)
                 .with_upper_factor_isai_sparsity_power(upper_spy_power)
-                .on(d_exec);
+                .on(exec);
 
         auto prec = prec_fact->generate(mtx);
         auto d_prec = d_prec_fact->generate(d_mtx);
@@ -152,7 +149,7 @@ protected:
             prec->get_const_iteration_matrix_upper_solve().get();
 
 
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto d_prec_fact =
             prec_type::build()
                 .with_skip_sorting(true)
@@ -162,7 +159,7 @@ protected:
                 .with_upper_factor_isai_sparsity_power(upper_spy_power)
                 .with_apply_type(apply_type)
                 .with_num_relaxation_steps(num_relaxation_steps)
-                .on(d_exec);
+                .on(exec);
         auto d_prec = d_prec_fact->generate(d_mtx);
 
         const auto d_l = d_prec->get_const_lower_factor().get();
@@ -180,15 +177,15 @@ protected:
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
             ref);
         auto z = BDense::create(ref, rv->get_size());
-        auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
-        auto d_z = BDense::create(d_exec, rv->get_size());
+        auto d_rv = gko::as<BDense>(gko::clone(exec, rv));
+        auto d_z = BDense::create(exec, rv->get_size());
 
         gko::kernels::reference::batch_ilu_isai::apply_ilu_isai(
             ref, mtx.get(), l, u, l_isai, u_isai, mult_inv,
             iter_mat_lower_solve, iter_mat_upper_solve, prec->get_apply_type(),
             prec->get_num_relaxation_steps(), rv.get(), z.get());
-        gko::kernels::hip::batch_ilu_isai::apply_ilu_isai(
-            d_exec, d_mtx.get(), d_l, d_u, d_l_isai, d_u_isai, d_mult_inv,
+        gko::kernels::EXEC_NAMESPACE::batch_ilu_isai::apply_ilu_isai(
+            exec, d_mtx.get(), d_l, d_u, d_l_isai, d_u_isai, d_mult_inv,
             d_iter_mat_lower_solve, d_iter_mat_upper_solve,
             d_prec->get_apply_type(), prec->get_num_relaxation_steps(),
             d_rv.get(), d_z.get());

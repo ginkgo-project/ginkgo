@@ -2,4 +2,7 @@ ginkgo_create_common_test(jacobi_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(isai_kernels)
 ginkgo_create_common_test(batch_identity_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(batch_ilu_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(batch_ilu_isai_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(batch_isai_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(batch_jacobi_kernels DISABLE_EXECUTORS dpcpp)
+
