@@ -53,8 +53,6 @@ namespace reference {
  * @ingroup gmres
  */
 namespace common_gmres {
-
-
 namespace {
 
 

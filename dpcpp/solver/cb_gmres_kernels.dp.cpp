@@ -1037,7 +1037,9 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
     }
 
     const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size),
+        1, 1);
     restart_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
