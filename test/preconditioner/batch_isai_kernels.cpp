@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchIsai : public ::testing::Test {
+class BatchIsai : public CommonTestFixture {
 protected:
     using value_type = double;
     using index_type = int;

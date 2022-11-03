@@ -58,7 +58,6 @@ enum class batch_isai_input_matrix_type { lower_tri, upper_tri, general };
  *
  * Note: Batched Preconditioners do not support user facing apply.
  *
- *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup isai
