@@ -1,3 +1,3 @@
 ginkgo_create_test(pgm_kernels)
 ginkgo_create_test(fixed_coarsening_kernels)
-ginkgo_create_test(rgs_coarsening)
+ginkgo_create_test(rgs_coarsening_kernels)

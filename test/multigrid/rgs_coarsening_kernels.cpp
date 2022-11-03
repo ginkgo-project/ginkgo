@@ -66,7 +66,7 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    RgsCoarsening() : rand_engine(30) {}
+    RgsCoarsening() : rand_engine(30), m{597} {}
 
     gko::array<index_type> gen_coarse_array(gko::size_type num,
                                             gko::size_type num_rows)
