@@ -37,7 +37,7 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void apply_to_csr(
     size_type num_rows, const ValueType* __restrict__ diag,
     const IndexType* __restrict__ row_ptrs,
-    ValueType* __restrict__ result_values)
+    ValueType* __restrict__ result_values, bool inverse)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
@@ -49,7 +49,7 @@ __global__ __launch_bounds__(default_block_size) void apply_to_csr(
         return;
     }
 
-    const auto diag_val = diag[row];
+    const auto diag_val = inverse ? one<ValueType>() / diag[row] : diag[row];
 
     for (size_type idx = row_ptrs[row] + tid_in_warp; idx < row_ptrs[row + 1];
          idx += warp_size) {

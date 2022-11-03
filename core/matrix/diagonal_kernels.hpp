@@ -53,7 +53,7 @@ namespace kernels {
     void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Diagonal<value_type>* a,       \
                         const matrix::Dense<value_type>* b,          \
-                        matrix::Dense<value_type>* c)
+                        matrix::Dense<value_type>* c, bool inverse)
 
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(value_type)       \
     void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
@@ -65,7 +65,7 @@ namespace kernels {
     void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
                       const matrix::Diagonal<value_type>* a,             \
                       const matrix::Csr<value_type, index_type>* b,      \
-                      matrix::Csr<value_type, index_type>* c)
+                      matrix::Csr<value_type, index_type>* c, bool inverse)
 
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(value_type, index_type) \
     void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \

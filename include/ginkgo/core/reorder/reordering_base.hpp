@@ -59,11 +59,30 @@ namespace reorder {
  * It contains a factory to instantiate the reorderings. It is up to each
  * specific reordering to decide what to do with the data that is passed to it.
  */
-class ReorderingBase : public EnableAbstractPolymorphicObject<ReorderingBase> {
+template <typename IndexType = int32>
+class ReorderingBase
+    : public EnableAbstractPolymorphicObject<ReorderingBase<IndexType>> {
+public:
+    using index_type = IndexType;
+
+    const array<index_type>& get_permutation_array() const
+    {
+        return permutation_array_;
+    }
+
 protected:
     explicit ReorderingBase(std::shared_ptr<const gko::Executor> exec)
-        : EnableAbstractPolymorphicObject<ReorderingBase>(exec)
+        : EnableAbstractPolymorphicObject<ReorderingBase>(exec),
+          permutation_array_{exec}
     {}
+
+    void set_permutation_array(array<index_type>& permutation_array)
+    {
+        permutation_array_ = permutation_array;
+    }
+
+private:
+    array<index_type> permutation_array_;
 };
 
 
@@ -84,8 +103,9 @@ struct ReorderingBaseArgs {
 /**
  * Declares an Abstract Factory specialized for ReorderingBases
  */
+template <typename IndexType = int32>
 using ReorderingBaseFactory =
-    AbstractFactory<ReorderingBase, ReorderingBaseArgs>;
+    AbstractFactory<ReorderingBase<IndexType>, ReorderingBaseArgs>;
 
 
 /**
@@ -104,8 +124,8 @@ using ReorderingBaseFactory =
  * ReorderingBaseFactory
  */
 template <typename ConcreteFactory, typename ConcreteReorderingBase,
-          typename ParametersType,
-          typename PolymorphicBase = ReorderingBaseFactory>
+          typename ParametersType, typename IndexType = int32,
+          typename PolymorphicBase = ReorderingBaseFactory<IndexType>>
 using EnableDefaultReorderingBaseFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteReorderingBase,
                          ParametersType, PolymorphicBase>;
@@ -139,25 +159,26 @@ public:                                                                        \
                                                                                \
     class _factory_name                                                        \
         : public ::gko::reorder::EnableDefaultReorderingBaseFactory<           \
-              _factory_name, _reordering_base, _parameters_name##_type> {      \
+              _factory_name, _reordering_base, _parameters_name##_type,        \
+              IndexType> {                                                     \
         friend class ::gko::EnablePolymorphicObject<                           \
-            _factory_name, ::gko::reorder::ReorderingBaseFactory>;             \
+            _factory_name, ::gko::reorder::ReorderingBaseFactory<IndexType>>;  \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
                                                    _factory_name>;             \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
             : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
-                  _factory_name, _reordering_base, _parameters_name##_type>(   \
-                  std::move(exec))                                             \
+                  _factory_name, _reordering_base, _parameters_name##_type,    \
+                  IndexType>(std::move(exec))                                  \
         {}                                                                     \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
                                const _parameters_name##_type& parameters)      \
             : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
-                  _factory_name, _reordering_base, _parameters_name##_type>(   \
-                  std::move(exec), parameters)                                 \
+                  _factory_name, _reordering_base, _parameters_name##_type,    \
+                  IndexType>(std::move(exec), parameters)                      \
         {}                                                                     \
     };                                                                         \
     friend ::gko::reorder::EnableDefaultReorderingBaseFactory<                 \
-        _factory_name, _reordering_base, _parameters_name##_type>;             \
+        _factory_name, _reordering_base, _parameters_name##_type, IndexType>;  \
                                                                                \
 private:                                                                       \
     _parameters_name##_type _parameters_name##_;                               \

@@ -54,14 +54,16 @@ template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Diagonal<ValueType>* a,
                     const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::Dense<ValueType>* c, bool inverse)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
-            result(row, col) = source(row, col) * diag[row];
+        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result,
+                      bool inverse) {
+            result(row, col) = inverse ? source(row, col) / diag[row]
+                                       : source(row, col) * diag[row];
         },
-        b->get_size(), a->get_const_values(), b, c);
+        b->get_size(), a->get_const_values(), b, c, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);

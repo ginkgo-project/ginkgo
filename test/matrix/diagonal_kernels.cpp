@@ -180,6 +180,17 @@ TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
 }
 
 
+TEST_F(Diagonal, InverseApplyToDenseIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->inverse_apply(dense1.get(), denseexpected1.get());
+    ddiag->inverse_apply(ddense1.get(), denseresult1.get());
+
+    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, r<value_type>::value);
+}
+
+
 TEST_F(Diagonal, ApplyToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -197,6 +208,17 @@ TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
 
     diag->rapply(csr2.get(), csrexpected2.get());
     ddiag->rapply(dcsr2.get(), csrresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, r<value_type>::value);
+}
+
+
+TEST_F(Diagonal, InverseApplyToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->inverse_apply(csr1.get(), csrexpected1.get());
+    ddiag->inverse_apply(dcsr1.get(), csrresult1.get());
 
     GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, r<value_type>::value);
 }
