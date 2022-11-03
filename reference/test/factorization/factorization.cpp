@@ -178,7 +178,6 @@ TYPED_TEST(Factorization, CreateSymmCompositionWithDiagonalWorks)
 TYPED_TEST(Factorization, CreateCombinedLUWorks)
 {
     using factorization_type = typename TestFixture::factorization_type;
-    using composition_type = typename TestFixture::composition_type;
 
     auto fact = factorization_type::create_from_combined_lu(
         this->combined_mtx->clone());
@@ -201,7 +200,6 @@ TYPED_TEST(Factorization, CreateCombinedLUWorks)
 TYPED_TEST(Factorization, CreateCombinedLDUWorks)
 {
     using factorization_type = typename TestFixture::factorization_type;
-    using composition_type = typename TestFixture::composition_type;
 
     auto fact = factorization_type::create_from_combined_ldu(
         this->combined_mtx->clone());
@@ -224,7 +222,6 @@ TYPED_TEST(Factorization, CreateCombinedLDUWorks)
 TYPED_TEST(Factorization, CreateSymmCombinedCholeskyWorks)
 {
     using factorization_type = typename TestFixture::factorization_type;
-    using composition_type = typename TestFixture::composition_type;
 
     auto fact = factorization_type::create_from_combined_cholesky(
         this->combined_mtx->clone());
@@ -248,7 +245,6 @@ TYPED_TEST(Factorization, CreateSymmCombinedCholeskyWorks)
 TYPED_TEST(Factorization, CreateSymmCombinedLDLWorks)
 {
     using factorization_type = typename TestFixture::factorization_type;
-    using composition_type = typename TestFixture::composition_type;
 
     auto fact = factorization_type::create_from_combined_ldl(
         this->combined_mtx->clone());
