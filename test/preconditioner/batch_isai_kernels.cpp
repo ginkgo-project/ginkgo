@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_isai_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-
+#include "test/utils/executor.hpp"
 
 namespace {
 
@@ -66,8 +66,7 @@ protected:
     using prec_type = gko::preconditioner::BatchIsai<value_type>;
 
     BatchIsai()
-        : ref(gko::ReferenceExecutor::create()),
-          d_exec(gko::OmpExecutor::create()),
+        :
           general_mtx(
               gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
                   nbatch, nrows, nrows,
@@ -78,13 +77,11 @@ protected:
           upper_mtx(get_upper_matrix())
     {}
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> d_exec;
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
-    const index_type nrows = 15;
-    const int min_nnz_row = 3;
+    const index_type nrows = 29;
+    const int min_nnz_row = 5;
     std::shared_ptr<const Mtx> general_mtx;
     std::shared_ptr<const Mtx> lower_mtx;
     std::shared_ptr<const Mtx> upper_mtx;
@@ -119,7 +116,7 @@ protected:
         const int spy_power,
         std::shared_ptr<const gko::matrix::BatchCsr<value_type>> mtx)
     {
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
                              .with_isai_input_matrix_type(isai_type)
@@ -129,7 +126,7 @@ protected:
                                .with_skip_sorting(true)
                                .with_isai_input_matrix_type(isai_type)
                                .with_sparsity_power(spy_power)
-                               .on(d_exec);
+                               .on(exec);
 
         auto prec = prec_fact->generate(mtx);
         auto d_prec = d_prec_fact->generate(d_mtx);
@@ -157,12 +154,12 @@ protected:
         const auto approx_inv = prec->get_const_approximate_inverse().get();
 
 
-        auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto d_prec_fact = prec_type::build()
                                .with_skip_sorting(true)
                                .with_isai_input_matrix_type(isai_type)
                                .with_sparsity_power(spy_power)
-                               .on(d_exec);
+                               .on(exec);
         auto d_prec = d_prec_fact->generate(d_mtx);
         const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
 
@@ -171,13 +168,14 @@ protected:
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
             ref);
         auto z = BDense::create(ref, rv->get_size());
-        auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
-        auto d_z = BDense::create(d_exec, rv->get_size());
+        auto d_rv = gko::as<BDense>(gko::clone(exec, rv));
+        auto d_z = BDense::create(exec, rv->get_size());
 
         gko::kernels::reference::batch_isai::apply_isai(
             ref, mtx.get(), approx_inv, rv.get(), z.get());
-        gko::kernels::omp::batch_isai::apply_isai(
-            d_exec, d_mtx.get(), d_approx_inv, d_rv.get(), d_z.get());
+
+        gko::kernels::EXEC_NAMESPACE::batch_isai::apply_isai(
+            exec, d_mtx.get(), d_approx_inv, d_rv.get(), d_z.get());
 
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
