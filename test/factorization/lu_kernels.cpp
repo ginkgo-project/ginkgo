@@ -134,7 +134,22 @@ protected:
     gko::array<gko::int64> drow_descs;
 };
 
-TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+#ifdef GKO_COMPILING_OMP
+using Types = gko::test::ValueIndexTypes;
+#elif defined(GKO_COMPILING_CUDA)
+// CUDA don't support long indices for sorting, and the triangular solvers
+// seem broken
+using Types = ::testing::Types<std::tuple<float, gko::int32>,
+                               std::tuple<double, gko::int32>,
+                               std::tuple<std::complex<float>, gko::int32>,
+                               std::tuple<std::complex<double>, gko::int32>>;
+#else
+// HIP only supports real types and int32
+using Types = ::testing::Types<std::tuple<float, gko::int32>,
+                               std::tuple<double, gko::int32>>;
+#endif
+
+TYPED_TEST_SUITE(Lu, Types, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
