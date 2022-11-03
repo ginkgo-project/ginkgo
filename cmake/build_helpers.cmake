@@ -15,9 +15,6 @@ function(ginkgo_default_includes name)
         $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
         )
     endif()
-    if(GINKGO_BUILD_MPI)
-        target_link_libraries("${name}" PUBLIC MPI::MPI_CXX)
-    endif()
 endfunction()
 
 function(ginkgo_compile_features name)
