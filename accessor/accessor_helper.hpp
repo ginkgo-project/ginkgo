@@ -50,13 +50,16 @@ struct row_major_helper_s {
         const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>& stride,
         IndexType first, Indices&&... idxs)
     {
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        auto stride_access = reinterpret_cast<const SizeType*>(&stride);
         // The ASSERT size check must NOT be indexed with `dim_idx` directly,
         // otherwise, it leads to a linker error. The reason is likely that
         // `std::array<size_type, N>::operator[](const size_type &)` uses a
         // reference. Since `dim_idx` is constexpr (and not defined in a
         // namespace scope), it can't be odr-used.
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
-               first * static_cast<IndexType>(stride[dim_idx]) +
+        return GKO_ACC_ASSERT(first <
+                              static_cast<IndexType>(size_access[dim_idx])),
+               first * static_cast<IndexType>(stride_access[dim_idx]) +
                    row_major_helper_s<IndexType, total_dim, current_iter + 1>::
                        compute(size, stride, std::forward<Indices>(idxs)...);
     }
@@ -70,8 +73,9 @@ struct row_major_helper_s<IndexType, total_dim, total_dim> {
             const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>,
             IndexType first)
     {
-        return GKO_ACC_ASSERT(first <
-                              static_cast<IndexType>(size[total_dim - 1])),
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        return GKO_ACC_ASSERT(
+                   first < static_cast<IndexType>(size_access[total_dim - 1])),
                first;
     }
 };
@@ -239,11 +243,14 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        auto stride_access = reinterpret_cast<const SizeType*>(&stride);
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first <
+                              static_cast<IndexType>(size_access[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? 1
-                            : stride[set_bits_processed]) +
+                            : stride_access[set_bits_processed]) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -260,11 +267,14 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
     {
         static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
                       "Mismatching number of Idxs!");
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        auto stride_access = reinterpret_cast<const SizeType*>(&stride);
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first <
+                              static_cast<IndexType>(size_access[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? 1
-                            : stride[set_bits_processed]) +
+                            : stride_access[set_bits_processed]) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -314,11 +324,13 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        auto stride_access = reinterpret_cast<const SizeType*>(&stride);
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < size[dim_idx]),
+        return GKO_ACC_ASSERT(first < size_access[dim_idx]),
                first * (set_bits_processed == stride_size
                             ? 1
-                            : stride[set_bits_processed]) +
+                            : stride_access[set_bits_processed]) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -335,11 +347,14 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
     {
         static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
                       "Mismatching number of Idxs!");
+        auto size_access = reinterpret_cast<const SizeType*>(&size);
+        auto stride_access = reinterpret_cast<const SizeType*>(&stride);
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first <
+                              static_cast<IndexType>(size_access[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? 1
-                            : stride[set_bits_processed]) +
+                            : stride_access[set_bits_processed]) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
