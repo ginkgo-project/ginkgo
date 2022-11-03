@@ -77,7 +77,8 @@ enum class mode { absolute, initial_resnorm, rhs_norm };
 template <typename ValueType>
 class ResidualNormBase
     : public EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion> {
-    friend struct polymorphic_object_traits<ResidualNormBase>;
+    friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
+                                         Criterion>;
 
 protected:
     using absolute_type = remove_complex<ValueType>;

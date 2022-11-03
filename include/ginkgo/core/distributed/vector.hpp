@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -84,20 +85,20 @@ class Partition;
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
+    : public EnableDistributedLinOp<Vector<ValueType>>,
       public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableCreateMethod<Vector>;
-    friend struct polymorphic_object_traits<Vector>;
+    friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;
 
 public:
-    using EnableLinOp<Vector>::convert_to;
-    using EnableLinOp<Vector>::move_to;
+    using EnableDistributedLinOp<Vector>::convert_to;
+    using EnableDistributedLinOp<Vector>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<Vector>;
@@ -510,34 +511,37 @@ private:
 }  // namespace experimental
 
 
+namespace detail {
+
+
+template <typename TargetType>
+struct conversion_target_helper;
+
+
+/**
+ * @internal
+ *
+ * Specialization of conversion_target_helper for distributed vectors.
+ * This is necessary, since Vector needs to be created from both an executor and
+ * a communicator.
+ *
+ * @see conversion_target_helper
+ */
 template <typename ValueType>
-struct polymorphic_object_traits<experimental::distributed::Vector<ValueType>> {
-    using Vector = experimental::distributed::Vector<ValueType>;
+struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
+    using target_type = experimental::distributed::Vector<ValueType>;
+    using source_type =
+        experimental::distributed::Vector<previous_precision<ValueType>>;
 
-    static std::unique_ptr<PolymorphicObject> create_default_impl(
-        const Vector* self, std::shared_ptr<const Executor> exec)
+    static std::unique_ptr<target_type> create_empty(const source_type* source)
     {
-        return std::unique_ptr<Vector>{
-            new Vector(exec, self->get_communicator())};
-    }
-
-    static std::unique_ptr<Vector> create_conversion_target_impl(
-        const experimental::distributed::Vector<next_precision<ValueType>>*
-            self,
-        std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<Vector>{
-            new Vector(exec, self->get_communicator())};
-    }
-
-    static PolymorphicObject* clear_impl(Vector* self)
-    {
-        *self = Vector{self->get_executor(), self->get_communicator()};
-        return self;
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
     }
 };
 
 
+}  // namespace detail
 }  // namespace gko
 
 

@@ -41,9 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/lin_op.hpp>
 
 
 namespace gko {
@@ -262,14 +262,15 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
-    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+    : public EnableDistributedLinOp<
+          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
-    friend struct polymorphic_object_traits<Matrix>;
+    friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
 
@@ -282,8 +283,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableLinOp<Matrix>::convert_to;
-    using EnableLinOp<Matrix>::move_to;
+    using EnableDistributedLinOp<Matrix>::convert_to;
+    using EnableDistributedLinOp<Matrix>::move_to;
 
     void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
@@ -415,7 +416,8 @@ protected:
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
      */
-    Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm);
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -558,29 +560,6 @@ private:
 
 }  // namespace distributed
 }  // namespace experimental
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-struct polymorphic_object_traits<experimental::distributed::Matrix<
-    ValueType, LocalIndexType, GlobalIndexType>> {
-    using Matrix = experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                     GlobalIndexType>;
-
-    static std::unique_ptr<PolymorphicObject> create_default_impl(
-        const Matrix* self, std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<Matrix>{
-            new Matrix(exec, self->get_communicator())};
-    }
-
-    static PolymorphicObject* clear_impl(Matrix* self)
-    {
-        *self = Matrix{self->get_executor(), self->get_communicator()};
-        return self;
-    }
-};
-
-
 }  // namespace gko
 
 

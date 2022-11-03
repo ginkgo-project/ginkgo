@@ -72,7 +72,7 @@ template <typename IndexType = int32>
 class RowGatherer : public EnableLinOp<RowGatherer<IndexType>>,
                     public EnableCreateMethod<RowGatherer<IndexType>> {
     friend class EnableCreateMethod<RowGatherer>;
-    friend struct polymorphic_object_traits<RowGatherer>;
+    friend class EnablePolymorphicObject<RowGatherer, LinOp>;
 
 public:
     using index_type = IndexType;

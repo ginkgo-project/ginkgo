@@ -129,7 +129,7 @@ class CusparseCsrmp
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CusparseCsrmp<ValueType, IndexType>> {
     friend class gko::EnableCreateMethod<CusparseCsrmp>;
-    friend class gko::polymorphic_object_traits<CusparseCsrmp>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrmp, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -203,7 +203,7 @@ class CusparseCsr
       public gko::EnableCreateMethod<CusparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsr>;
-    friend class gko::polymorphic_object_traits<CusparseCsr>;
+    friend class gko::EnablePolymorphicObject<CusparseCsr, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -278,7 +278,7 @@ class CusparseCsrmm
       public gko::EnableCreateMethod<CusparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrmm>;
-    friend class gko::polymorphic_object_traits<CusparseCsrmm>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrmm, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -357,7 +357,7 @@ class CusparseCsrEx
       public gko::EnableCreateMethod<CusparseCsrEx<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrEx>;
-    friend class gko::polymorphic_object_traits<CusparseCsrEx>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrEx, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -463,7 +463,7 @@ class CusparseHybrid
           CusparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseHybrid>;
-    friend class gko::polymorphic_object_traits<CusparseHybrid>;
+    friend class gko::EnablePolymorphicObject<CusparseHybrid, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -602,7 +602,7 @@ class CusparseGenericCsr
           CusparseGenericCsr<ValueType, IndexType, Alg>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCsr>;
-    friend class gko::polymorphic_object_traits<CusparseGenericCsr>;
+    friend class gko::EnablePolymorphicObject<CusparseGenericCsr, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -694,7 +694,7 @@ class CusparseGenericCoo
       public gko::EnableCreateMethod<CusparseGenericCoo<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCoo>;
-    friend class gko::polymorphic_object_traits<CusparseGenericCoo>;
+    friend class gko::EnablePolymorphicObject<CusparseGenericCoo, CusparseBase>;
 
 public:
     using coo = gko::matrix::Coo<ValueType, IndexType>;
