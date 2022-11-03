@@ -65,7 +65,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class RgsCoarsening : public EnableLinOp<RgsCoarsening<ValueType, IndexType>>,
                       public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<RgsCoarsening>;
-    friend class EnablePolymorphicObject<RgsCoarsening, LinOp>;
+    friend struct polymorphic_object_traits<RgsCoarsening>;
 
 public:
     using value_type = ValueType;
@@ -88,7 +88,7 @@ public:
          * This array specifies the rows of the fine matrix which should be
          * selected as rows for the coarse matrix.
          */
-        Array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
+        array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
