@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-
+namespace detail {
 
 #define GKO_DECLARE_CSR_EXTEND_SPARSITY(ValueType, IndexType)                \
     std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> extend_sparsity( \
@@ -66,6 +66,7 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_CSR_EXTEND_SPARSITY(ValueType, IndexType);
 
+}  // namespace detail
 }  // namespace matrix
 }  // namespace gko
 
