@@ -67,7 +67,7 @@
   image: ginkgohub/rocm:40-openmpi-gnu8-llvm50
   tags:
     - private_ci
-    - gpu
+    - nla-gpu
 
 .use_gko-rocm45-mvapich2-gnu8-llvm8:
   image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
@@ -82,12 +82,6 @@
     - private_ci
     - amdci
     - gpu
-
-.use_gko-rocm502-openmpi-gnu11-llvm11-multi-gpu:
-  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
-  tags:
-    - private_ci
-    - nla-gpu
 
 .use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:latest
