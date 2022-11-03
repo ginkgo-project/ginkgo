@@ -45,6 +45,16 @@ namespace experimental {
 namespace solver {
 
 
+/**
+ * A direct solver based on a factorization into lower and upper triangular
+ * factors (with an optional diagonal scaling).
+ * The solver is built from the Factorization returned by the provided
+ * LinOpFactory.
+ *
+ * @tparam ValueType  the type used to store values of the system matrix
+ * @tparam IndexType  the type used to store sparsity pattern indices of the
+ *                    system matrix
+ */
 template <typename ValueType, typename IndexType>
 class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                public gko::solver::EnableSolverBase<
@@ -52,7 +62,6 @@ class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                    factorization::Factorization<ValueType, IndexType>>,
                public Transposable {
     friend class EnablePolymorphicObject<Direct, LinOp>;
-    friend struct polymorphic_object_traits<Direct>;
 
 public:
     using value_type = ValueType;
@@ -67,14 +76,9 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        std::shared_ptr<const LinOpFactory> factorization;
-
-        parameters_type& with_factorization(
-            std::shared_ptr<const LinOpFactory> factory)
-        {
-            this->factorization = std::move(factory);
-            return *this;
-        }
+        /** The factorization factory to use for generating the factors. */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            factorization, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

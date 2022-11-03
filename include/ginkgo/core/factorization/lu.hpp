@@ -46,6 +46,16 @@ namespace experimental {
 namespace factorization {
 
 
+/**
+ * Computes an LU factorization of a sparse matrix. This LinOpFactory returns a
+ * Factorization storing the L and U factors for the provided system matrix in
+ * matrix::Csr format. If no symbolic factorization is provided, it will be
+ * computed first.
+ *
+ * @tparam ValueType  the type used to store values of the system matrix
+ * @tparam IndexType  the type used to store sparsity pattern indices of the
+ *                    system matrix
+ */
 template <typename ValueType, typename IndexType>
 class Lu
     : public EnablePolymorphicObject<Lu<ValueType, IndexType>, LinOpFactory>,
@@ -53,7 +63,6 @@ class Lu
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<Lu, LinOpFactory>;
-    friend struct polymorphic_object_traits<Lu>;
     friend class enable_parameters_type<parameters_type, Lu>;
 
     using value_type = ValueType;
@@ -72,8 +81,8 @@ public:
          * @note Currently, the symbolic factorization needs to be provided if
          *       the system matrix does not have a symmetric sparsity pattern.
          */
-        std::shared_ptr<const sparsity_pattern_type> symbolic_factorization{
-            nullptr};
+        std::shared_ptr<const sparsity_pattern_type>
+            GKO_FACTORY_PARAMETER_SCALAR(symbolic_factorization, nullptr);
 
         /**
          * If the system matrix has a symmetric sparsity pattern, set this flag
@@ -81,7 +90,7 @@ public:
          * symbolic LU factorization to determine the sparsity pattern of L & U.
          * This will most likely significantly reduce the generation runtime.
          */
-        bool symmetric_sparsity{false};
+        bool GKO_FACTORY_PARAMETER_SCALAR(symmetric_sparsity, false);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
@@ -93,29 +102,7 @@ public:
          * it must remain `false`, otherwise, the algorithm may produce
          * incorrect results or crash.
          */
-        bool skip_sorting{false};
-
-        /** @copydoc symbolic_factorization */
-        parameters_type& with_symbolic_factorization(
-            std::shared_ptr<const sparsity_pattern_type> symbolic_factors)
-        {
-            this->symbolic_factorization = std::move(symbolic_factors);
-            return *this;
-        }
-
-        /** @copydoc symmetric_sparsity */
-        parameters_type& with_symmetric_sparsity(bool symmetric)
-        {
-            this->symmetric_sparsity = symmetric;
-            return *this;
-        }
-
-        /** @copydoc skip_sorting */
-        parameters_type& with_skip_sorting(bool skip)
-        {
-            this->skip_sorting = skip;
-            return *this;
-        }
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
 
     /**

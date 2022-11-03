@@ -103,7 +103,6 @@ enum class storage_type {
 template <typename ValueType, typename IndexType>
 class Factorization : public EnableLinOp<Factorization<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Factorization, LinOp>;
-    friend struct polymorphic_object_traits<Factorization>;
 
 public:
     using value_type = ValueType;
