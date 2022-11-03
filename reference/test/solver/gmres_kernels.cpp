@@ -224,7 +224,8 @@ TYPED_TEST(Gmres, KernelRestart)
         for (int j = 0; j < small_size[1]; ++j) {
             expected_krylov
                 ->get_values()[(0 * small_size[0] + i) * small_size[1] + j] =
-                this->small_residual->get_values()[i * small_size[1] + j] /
+                this->small_residual
+                    ->get_const_values()[i * small_size[1] + j] /
                 this->small_residual_norm->get_const_values()[j];
         }
     }
@@ -246,7 +247,7 @@ TYPED_TEST(Gmres, KernelRestart)
 }
 
 
-TYPED_TEST(Gmres, KernelHessenbergQr)
+TYPED_TEST(Gmres, KernelHessenbergQrIter0)
 {
     using T = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
@@ -259,9 +260,54 @@ TYPED_TEST(Gmres, KernelHessenbergQr)
         gko::initialize<Mtx>({I<T>{1., 0.}, I<T>{-72., 73.}}, this->exec);
     this->small_residual_norm->fill(nan);
     this->small_residual_norm_collection = gko::initialize<Mtx>(
-        {I<T>{1.25, 1.5}, I<T>{1., 1.25}, I<T>{95., 94.}}, this->exec);
+        {I<T>{1.25, 1.5}, I<T>{nan, nan}, I<T>{95., 94.}}, this->exec);
     this->small_hessenberg = gko::initialize<Mtx>(
         {I<T>{0.5, -0.75}, I<T>{-0.5, 1}, I<T>{97., 96.}}, this->exec);
+    this->small_final_iter_nums.get_data()[0] = 0;
+    this->small_final_iter_nums.get_data()[1] = 0;
+
+    gko::kernels::reference::common_gmres::hessenberg_qr(
+        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
+        this->small_residual_norm.get(),
+        this->small_residual_norm_collection.get(),
+        this->small_hessenberg.get(), iteration,
+        this->small_final_iter_nums.get_data(),
+        this->small_stop.get_const_data());
+
+    ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 1);
+    ASSERT_EQ(this->small_final_iter_nums.get_data()[1], 1);
+    GKO_EXPECT_MTX_NEAR(this->small_givens_cos,
+                        l({{0.5 * sqrt(2.), -0.6}, {70., -71.}}), r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_givens_sin,
+                        l({{-0.5 * sqrt(2.), 0.8}, {-72., 73.}}), r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_hessenberg,
+                        l({{0.5 * sqrt(2.), 1.25}, {0., 0.}, {97., 96.}}),
+                        r<T>::value);
+    GKO_EXPECT_MTX_NEAR(
+        this->small_residual_norm_collection,
+        l({{0.625 * sqrt(2.), -0.9}, {0.625 * sqrt(2.), -1.2}, {95., 94.}}),
+        r<T>::value);
+    GKO_EXPECT_MTX_NEAR(this->small_residual_norm, l({{0.625 * sqrt(2.), 1.2}}),
+                        r<T>::value);
+}
+
+
+TYPED_TEST(Gmres, KernelHessenbergQrIter1)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using std::sqrt;
+    const auto nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const gko::size_type iteration{1};
+    this->small_givens_cos =
+        gko::initialize<Mtx>({I<T>{1., 0.5}, I<T>{-0.5, 1.}}, this->exec);
+    this->small_givens_sin =
+        gko::initialize<Mtx>({I<T>{0.5, 0.25}, I<T>{1., 0.}}, this->exec);
+    this->small_residual_norm->fill(nan);
+    this->small_residual_norm_collection = gko::initialize<Mtx>(
+        {I<T>{95., 94.}, I<T>{1.25, 1.5}, I<T>{nan, nan}}, this->exec);
+    this->small_hessenberg = gko::initialize<Mtx>(
+        {I<T>{-0.5, 4}, I<T>{0.25, 0.5}, I<T>{-0.5, 1}}, this->exec);
     this->small_final_iter_nums.get_data()[0] = 1;
     this->small_final_iter_nums.get_data()[1] = 1;
 
@@ -276,15 +322,15 @@ TYPED_TEST(Gmres, KernelHessenbergQr)
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
     ASSERT_EQ(this->small_final_iter_nums.get_data()[1], 2);
     GKO_EXPECT_MTX_NEAR(this->small_givens_cos,
-                        l({{0.5 * sqrt(2.), -0.6}, {70., -71.}}), r<T>::value);
+                        l({{1., 0.5}, {0.5 * sqrt(2.), -0.6}}), r<T>::value);
     GKO_EXPECT_MTX_NEAR(this->small_givens_sin,
-                        l({{-0.5 * sqrt(2.), 0.8}, {-72., 73.}}), r<T>::value);
+                        l({{0.5, 0.25}, {-0.5 * sqrt(2.), 0.8}}), r<T>::value);
     GKO_EXPECT_MTX_NEAR(this->small_hessenberg,
-                        l({{0.5 * sqrt(2.), 1.25}, {0., 0.}, {97., 96.}}),
+                        l({{-0.375, 2.125}, {0.5 * sqrt(2.), 1.25}, {0., 0.}}),
                         r<T>::value);
     GKO_EXPECT_MTX_NEAR(
         this->small_residual_norm_collection,
-        l({{0.625 * sqrt(2.), -0.9}, {0.625 * sqrt(2.), -1.2}, {95., 94.}}),
+        l({{95., 94.}, {0.625 * sqrt(2.), -0.9}, {0.625 * sqrt(2.), -1.2}}),
         r<T>::value);
     GKO_EXPECT_MTX_NEAR(this->small_residual_norm, l({{0.625 * sqrt(2.), 1.2}}),
                         r<T>::value);

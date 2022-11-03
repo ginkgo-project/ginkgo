@@ -333,7 +333,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // next_hess = hessenberg(restart_iter+1)
         // hypotenuse = ||(this_hess, next_hess)||
         // cos(restart_iter) = conj(this_hess) / hypotenuse
-        // sin(restart_iter) = conj(next_hess) / this_hess
+        // sin(restart_iter) = conj(next_hess) / hypotenuse
         // update Krylov approximation of b, apply new Givens rotation
         // this_rnc = residual_norm_collection(restart_iter)
         // residual_norm = abs(-conj(sin(restart_iter)) * this_rnc)
