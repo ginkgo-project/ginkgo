@@ -601,8 +601,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     std::sort(entries, entries + nnz,
               [&](entry a, entry b) { return to_block(a) < to_block(b); });
     // set row pointers by jumps in block row index
-    gko::vector<IndexType> col_idx_vec{{exec}};
-    gko::vector<ValueType> value_vec{{exec}};
+    gko::vector<IndexType> col_idx_vec{exec};
+    gko::vector<ValueType> value_vec{exec};
     int64 block_row = -1;
     int64 block_col = -1;
     for (size_type i = 0; i < nnz; i++) {
