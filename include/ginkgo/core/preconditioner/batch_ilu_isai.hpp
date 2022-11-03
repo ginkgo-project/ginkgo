@@ -126,12 +126,29 @@ public:
 
         /**
          * @brief Batch ilu-isai apply type.
+         *
+         * There are 4 ways to apply the preconditioner (z = precond* r):
+         * 1. batch_ilu_isai_apply::spmv_isai_simple -> z = (U_left_isai *
+         * (L_left_isai * r)) using 2 spmvs
+         * 2. batch_ilu_isai_apply::spmv_isai_with_spgemm -> z = ((U_left_isai *
+         * L_left_isai) * r)  using an spgemm and an spmv
+         * 3. batch_ilu_isai_apply::spmv_isai_simple -> solving L * y = r and
+         * then U * z = y using isai-relaxation steps method i.e y_updated =
+         * L_left_isai * r + (I - L_left_isai * L) * y_old  (iterate)  Once y is
+         * obtained, z_updated = U_left_isai * y + (I - U_left_isai * U) * z_old
+         * 4. batch_ilu_isai_apply::spmv_isai_with_spgemm -> solving L * y = r
+         * and then U * z = y using isai-relaxation steps method with
+         * pre-computed iteration-matrices (which makes use of spgemm)
+         *
          */
         batch_ilu_isai_apply GKO_FACTORY_PARAMETER_SCALAR(
             apply_type, batch_ilu_isai_apply::spmv_isai_simple);
 
         /**
-         * @brief Number of relaxtion steps
+         * @brief Number of relaxtion steps.
+         *
+         * This parameter is only used in case of apply_type =
+         * relaxation_steps_isai_simple or relaxation_steps_isai_with_spgemm
          *
          */
         int GKO_FACTORY_PARAMETER_SCALAR(num_relaxation_steps, 3);
@@ -206,24 +223,32 @@ public:
         return parameters_.num_relaxation_steps;
     }
 
-
-    // Note: Will return null shared_ptr if apply_type != spmv_isai_with_spgemm
+    /**
+     * Note: Will return null shared_ptr if apply_type != spmv_isai_with_spgemm
+     *
+     */
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
     get_const_mult_inv() const
     {
         return mult_inv_;
     }
 
-    // Note: Will return null shared_ptr if apply_type !=
-    // relaxtion_steps_isai_with_spgemm
+    /**
+     * Note: Will return null shared_ptr if apply_type !=
+     * relaxtion_steps_isai_with_spgemm
+     *
+     */
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
     get_const_iteration_matrix_lower_solve() const
     {
         return iter_mat_lower_solve_;
     }
 
-    // Note: Will return null shared_ptr if apply_type !=
-    // relaxtion_steps_isai_with_spgemm
+    /**
+     * Note: Will return null shared_ptr if apply_type !=
+     * relaxtion_steps_isai_with_spgemm
+     *
+     */
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
     get_const_iteration_matrix_upper_solve() const
     {
