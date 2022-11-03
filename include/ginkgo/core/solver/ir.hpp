@@ -108,9 +108,11 @@ template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
+           public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
+    friend class EnableApplyWithInitialGuess<Ir>;
 
 public:
     using value_type = ValueType;
@@ -125,7 +127,11 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override
+    {
+        return this->get_default_initial_guess() ==
+               initial_guess_mode::provided;
+    }
 
     /**
      * Returns the solver operator used as the inner solver.
@@ -197,6 +203,13 @@ public:
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor,
                                                value_type{1});
+
+        /**
+         * Default initial guess mode. The available options are under
+         * initial_guess_mode.
+         */
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            default_initial_guess, initial_guess_mode::provided);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -205,10 +218,18 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x) const;
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          initial_guess_mode guess) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       initial_guess_mode guess) const override;
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
@@ -235,6 +256,7 @@ protected:
             this->set_solver(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()));
         }
+        this->set_default_initial_guess(parameters_.default_initial_guess);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
     }

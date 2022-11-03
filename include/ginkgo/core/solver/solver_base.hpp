@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
@@ -48,6 +49,184 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
+
+
+/**
+ * Give a initial guess mode about the input of the apply method.
+ */
+enum class initial_guess_mode {
+    /**
+     * the input is zero
+     */
+    zero,
+    /**
+     * the input is right hand side
+     */
+    rhs,
+    /**
+     * the input is provided
+     */
+    provided
+};
+
+
+class MultigridState;
+
+
+/**
+ * ApplyWithInitialGuess provides a way to give the input guess for apply
+ * function. All functionalities have the protected access specifier. It should
+ * only be used internally.
+ */
+class ApplyWithInitialGuess {
+protected:
+    friend class MultigridState;
+
+    /**
+     * Applies a linear operator to a vector (or a sequence of vectors) with
+     * initial guess statement.
+     *
+     * Performs the operation x = op(b) with a initial guess statement, where op
+     * is this linear operator and the initial guess parameter will modify the
+     * input vector to the requested the initial guess mode (See @enum
+     * initial_guess_mode) .
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     * @param guess  the input guess to handle the input vector(s)
+     */
+    virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                          initial_guess_mode guess) const = 0;
+
+    /**
+     * Performs the operation x = alpha * op(b) + beta * x with a initial guess
+     * statement, where op is this linear operator and the initial guess
+     * parameter will modify the input vector to the requested the initial guess
+     * mode (See @enum initial_guess_mode) .
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     * @param guess  the input guess to handle the input vector(s)
+     */
+    virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                          const LinOp* beta, LinOp* x,
+                                          initial_guess_mode guess) const = 0;
+
+    /**
+     * Get the default initial guess
+     *
+     * @return default initial guess
+     */
+    initial_guess_mode get_default_initial_guess() const { return guess_; }
+
+    /**
+     * ApplyWithInitialGuess constructor.
+     *
+     * @param guess  the input guess whose default is
+     * initial_guess_mode::provided
+     */
+    explicit ApplyWithInitialGuess(
+        initial_guess_mode guess = initial_guess_mode::provided)
+        : guess_(guess)
+    {}
+
+    /**
+     * set the default initial guess
+     *
+     * @param guess  the initial guess
+     */
+    void set_default_initial_guess(initial_guess_mode guess) { guess_ = guess; }
+
+private:
+    initial_guess_mode guess_;
+};
+
+
+/**
+ * EnableApplyWithInitialGuess providing default operation for
+ * ApplyWithInitialGuess with correct validation and log. It ensures that
+ * vectors of apply_with_initial_guess will always have the same executor as the
+ * object this mixin is used in, creating a clone on the correct executor if
+ * necessary.
+ *
+ * @tparam DerivedType  The type that this Mixin is used in. It must provide
+ *                      get_size() and get_executor() functions that return
+ *                      correctly initialized values and the logger
+ *                      functionality.
+ */
+template <typename DerivedType>
+class EnableApplyWithInitialGuess : public ApplyWithInitialGuess {
+protected:
+    friend class MultigridState;
+
+    explicit EnableApplyWithInitialGuess(
+        initial_guess_mode guess = initial_guess_mode::provided)
+        : ApplyWithInitialGuess(guess)
+    {}
+
+    /**
+     * @copydoc apply_with_initial_guess(const LinOp*, LinOp*,
+     *          initial_guess_mode)
+     */
+    void apply_with_initial_guess(const LinOp* b, LinOp* x,
+                                  initial_guess_mode guess) const override
+    {
+        self()->template log<log::Logger::linop_apply_started>(self(), b, x);
+        auto exec = self()->get_executor();
+        GKO_ASSERT_CONFORMANT(self(), b);
+        GKO_ASSERT_EQUAL_ROWS(self(), x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+        this->apply_with_initial_guess_impl(make_temporary_clone(exec, b).get(),
+                                            make_temporary_clone(exec, x).get(),
+                                            guess);
+        self()->template log<log::Logger::linop_apply_completed>(self(), b, x);
+    }
+
+    /**
+     * @copydoc apply_with_initial_guess(const LinOp*,const LinOp*,const LinOp*,
+     *          LinOp*, initial_guess_mode)
+     */
+    void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
+                                  const LinOp* beta, LinOp* x,
+                                  initial_guess_mode guess) const override
+    {
+        self()->template log<log::Logger::linop_advanced_apply_started>(
+            self(), alpha, b, beta, x);
+        auto exec = self()->get_executor();
+        GKO_ASSERT_CONFORMANT(self(), b);
+        GKO_ASSERT_EQUAL_ROWS(self(), x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+        this->apply_with_initial_guess_impl(
+            make_temporary_clone(exec, alpha).get(),
+            make_temporary_clone(exec, b).get(),
+            make_temporary_clone(exec, beta).get(),
+            make_temporary_clone(exec, x).get(), guess);
+        self()->template log<log::Logger::linop_advanced_apply_completed>(
+            self(), alpha, b, beta, x);
+    }
+
+    // TODO: should we provide the defaule implementation?
+    /**
+     * The class should override this method and must modify the input vectors
+     * according to the initial_guess_mode
+     */
+    virtual void apply_with_initial_guess_impl(
+        const LinOp* b, LinOp* x, initial_guess_mode guess) const = 0;
+
+    /**
+     * The class should override this method and must modify the input vectors
+     * according to the initial_guess_mode
+     */
+    virtual void apply_with_initial_guess_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        initial_guess_mode guess) const = 0;
+
+    GKO_ENABLE_SELF(DerivedType);
+};
 
 
 /**
@@ -458,7 +637,8 @@ private:
 
 
 /**
- * A LinOp deriving from this CRTP class stores a stopping criterion factory.
+ * A LinOp deriving from this CRTP class stores a stopping criterion factory and
+ * allows applying with a guess.
  *
  * @tparam DerivedType  the CRTP type that derives from this
  *

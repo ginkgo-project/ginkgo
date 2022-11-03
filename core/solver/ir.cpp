@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
@@ -162,12 +163,21 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* b, LinOp* x, initial_guess_mode guess) const
+{
     if (!this->get_system_matrix()) {
         return;
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+        [this, guess](auto dense_b, auto dense_x) {
+            prepare_initial_guess(dense_b, dense_x, guess);
+            this->apply_dense_impl(dense_b, dense_x, guess);
         },
         b, x);
 }
@@ -176,7 +186,8 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 template <typename ValueType>
 template <typename VectorType>
 void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                     VectorType* dense_x) const
+                                     VectorType* dense_x,
+                                     initial_guess_mode guess) const
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
@@ -194,52 +205,72 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
-
-    residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    if (guess != initial_guess_mode::zero) {
+        residual->copy_from(dense_b);
+        this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    }
+    // zero input the residual is dense_b
+    const VectorType* residual_ptr =
+        guess == initial_guess_mode::zero ? dense_b : residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        lend(residual));
+        residual_ptr);
 
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            residual, dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, residual_ptr, dense_x);
 
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(residual)
-                .solution(dense_x)
-                .check(relative_stopping_id, true, &stop_status,
-                       &one_changed)) {
-            break;
+        if (iter == 0) {
+            // In iter 0, the iteration and residual are updated.
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .residual(residual_ptr)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, true, &stop_status,
+                           &one_changed)) {
+                break;
+            }
+        } else {
+            // In the other iterations, the residual can be updated separately.
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, false, &stop_status,
+                           &one_changed)) {
+                break;
+            }
+            residual_ptr = residual;
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
+                                             lend(one_op), lend(residual));
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .residual(residual_ptr)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, true, &stop_status,
+                           &one_changed)) {
+                break;
+            }
         }
 
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(residual);
-            solver_->apply(residual, inner_solution);
+            inner_solution->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(relaxation_factor_.get(), inner_solution);
-
-            // residual = b - A * x
-            residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
-                                             residual);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(relaxation_factor_.get(), residual, one_op, dense_x);
-
-            // residual = b - A * x
-            residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
-                                             residual);
+            solver_->apply(relaxation_factor_.get(), residual_ptr, one_op,
+                           dense_x);
         }
     }
 }
@@ -249,13 +280,24 @@ template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
 {
+    this->apply_with_initial_guess(alpha, b, beta, x,
+                                   this->get_default_initial_guess());
+}
+
+template <typename ValueType>
+void Ir<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    initial_guess_mode guess) const
+{
     if (!this->get_system_matrix()) {
         return;
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+        [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            prepare_initial_guess(dense_b, dense_x, guess);
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
