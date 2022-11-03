@@ -531,7 +531,7 @@ template <typename ValueType>
 struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
-        experimental::distributed::Vector<gko::previous_precision<ValueType>>;
+        experimental::distributed::Vector<previous_precision<ValueType>>;
 
     static std::unique_ptr<target_type> create_empty(const source_type* source)
     {

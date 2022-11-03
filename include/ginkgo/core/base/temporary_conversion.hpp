@@ -120,11 +120,14 @@ template <typename TargetType>
 struct conversion_target_helper {
     /**
      * Creates an empty object on the same executor as source.
+     * *
      * @tparam SourceType  The type of the source object for the conversion
      * @param source  The source object for the conversion
      * @return  An unique_ptr of TargetType on the same executor as source.
      */
-    template <typename SourceType>
+    template <typename SourceType,
+              typename = std::enable_if_t<std::is_base_of<
+                  ConvertibleTo<TargetType>, SourceType>::value>>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
     {
         return TargetType::create(source->get_executor());
