@@ -517,16 +517,25 @@ template <typename TargetType>
 struct conversion_target_helper;
 
 
+/**
+ * @internal
+ *
+ * Specialization of conversion_target_helper for distributed vectors.
+ * This is necessary, since Vector needs to be created from both an executor and
+ * a communicator.
+ *
+ * @see conversion_target_helper
+ */
 template <typename ValueType>
 struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
         experimental::distributed::Vector<gko::previous_precision<ValueType>>;
 
-    static std::unique_ptr<target_type> create(
-        const source_type* source, std::shared_ptr<const Executor> exec)
+    static std::unique_ptr<target_type> create_empty(const source_type* source)
     {
-        return target_type::create(exec, source->get_communicator());
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
     }
 };
 
