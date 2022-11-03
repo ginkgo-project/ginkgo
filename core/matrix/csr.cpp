@@ -119,7 +119,7 @@ GKO_REGISTER_OPERATION(check_diagonal_entries,
 }  // anonymous namespace
 }  // namespace csr
 
-
+namespace detail {
 /**
  *
  * Helper function that extends the sparsity pattern of the matrix M to M^n
@@ -165,6 +165,8 @@ std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> extend_sparsity(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTEND_SPARSITY);
+
+}  // namespace detail
 
 
 template <typename ValueType, typename IndexType>

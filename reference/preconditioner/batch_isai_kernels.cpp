@@ -81,21 +81,6 @@ void extract_dense_linear_sys_pattern(
             row_idx, static_cast<int>(num_rows), A_row_ptrs, A_col_idxs,
             aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes);
     }
-
-    // std::cout << "Refernece version: " << std::endl;
-    // using gko::preconditioner::batch_isai::row_size_limit;
-    // for(int row = 0; row < 3; row++)
-    // {   std::cout << "corr to row: " << row << std::endl;
-    //     for(int r = 0; r < sizes[row]; r++)
-    //     {   std::cout << std::endl;
-    //         for(int c = 0; c < sizes[row] ;c++)
-    //         {
-    //             std::cout << "dense(" << r << "," << c << ") : " <<
-    //             dense_mat_pattern[row* row_size_limit* row_size_limit  + r *
-    //             row_size_limit + c] << "\n";
-    //         }
-    //     }
-    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -124,21 +109,6 @@ void fill_values_dense_mat_and_solve(
             A_entry, aiA_entry, dense_mat_pattern, rhs_one_idxs, sizes,
             input_matrix_type_isai);
     }
-
-    // for (int i = 0; i < aiA_batch.num_rows + 1; i++) {
-    //     std::cout << "row_ptrs[" << i << "]: " << aiA_batch.row_ptrs[i]
-    //               << std::endl;
-    // }
-
-    // for (int i = 0; i < aiA_batch.num_nnz; i++) {
-    //     std::cout << "col_idxs[" << i << "]: " << aiA_batch.col_idxs[i]
-    //               << "   values[" << i << "]: " << aiA_batch.values[i]
-    //               << std::endl;
-    // }
-
-    // auto vec_inv = inv->unbatch();
-    // std::cout << "batch isai:" << std::endl;
-    // gko::write( std::cout, vec_inv[0].get(), gko::layout_type::coordinate);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

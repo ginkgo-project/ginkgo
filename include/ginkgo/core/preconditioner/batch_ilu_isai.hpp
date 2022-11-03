@@ -124,7 +124,9 @@ public:
          */
         int GKO_FACTORY_PARAMETER_SCALAR(upper_factor_isai_sparsity_power, 1);
 
-
+        /**
+         * @brief Batch ilu-isai apply type.
+         */
         batch_ilu_isai_apply GKO_FACTORY_PARAMETER_SCALAR(
             apply_type, batch_ilu_isai_apply::spmv_isai_simple);
 

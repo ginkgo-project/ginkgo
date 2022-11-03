@@ -139,7 +139,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto num_rows = to_invert->get_size()[0];
     std::shared_ptr<Csr> inverted;
     if (!is_spd) {
-        inverted = gko::matrix::extend_sparsity(exec, to_invert, power);
+        inverted = gko::matrix::detail::extend_sparsity(exec, to_invert, power);
     } else {
         // Extract lower triangular part: compute non-zeros
         array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
@@ -166,7 +166,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 inverted_base;  // workaround to deal with argument type
                                 // deduction failure
         inverted = power == 1 ? std::move(inverted_base)
-                              : gko::matrix::extend_sparsity(
+                              : gko::matrix::detail::extend_sparsity(
                                     exec, inverted_base_const, power);
     }
 

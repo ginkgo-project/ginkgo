@@ -30,31 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// NOTE: Both the arrays must be sorted - in ascending order; starts:inclusive,
-// ends: exclusive
-template <int subwarp_size, typename Group, typename Callback>
-__device__ __forceinline__ void group_match_1(
-    const int* const __restrict__ arr1, const int arr1_st, const int arr1_end,
-    const int* const __restrict__ arr2, const int arr2_st, const int arr2_end,
-    Group subwarpgrp, Callback do_this_on_match)
-{
-    // TODO: replace by an efficient warp/subwarp parallel implementation
-    // (something like- a parallel version of merge sort trick)
-    const int id_in_subwarp_grp = subwarpgrp.thread_rank();
-
-    for (int i = id_in_subwarp_grp + arr2_st; i < arr2_end; i += subwarp_size) {
-        int arr2_val = arr2[i];
-
-        for (int v = arr1_st; v < arr1_end; v++) {
-            if (arr1[v] == arr2_val) {
-                do_this_on_match(v, i);
-                break;
-            }
-        }
-    }
-}
-
-
 template <int subwarp_size>
 __global__
     __launch_bounds__(default_block_size) void extract_dense_linear_sys_pattern_kernel(
@@ -65,7 +40,7 @@ __global__
         int* const dense_mat_pattern, int* const rhs_one_idxs, int* const sizes)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
-    // assert(subwarp_size >= row_size_limit); Not required here
+    // assert(subwarp_size >= row_size_limit); //Not required here
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int subgrpwarp_id_in_grid =
@@ -90,11 +65,6 @@ __global__
             const int i_size = aiA_row_end - aiA_row_st;
 
             if (aiA_nz_id == aiA_row_st && subwarpgrp.thread_rank() == 0) {
-                // printf("\n writing size: %d for row: %d,
-                // ele_id_assigned_to_subwarp: %d, aiA_nz_id: %d, aiA_row_st:
-                // %d",
-                //  i_size, aiA_row,  ele_id_assigned_to_subwarpgrp, aiA_nz_id,
-                //  aiA_row_st);
                 sizes[aiA_row] = i_size;
             }
 
@@ -114,34 +84,13 @@ __global__
             int* const dense_ptr_for_this_row =
                 dense_mat_ptr + dense_sys_row * row_size_limit;
 
-
-            // auto do_this_on_match_1 = [dense_ptr_for_this_row, aiA_row_st](
-            //                               int idx_match_arr1,
-            //                               int idx_match_arr2) {
-            //     dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
-            //         idx_match_arr2;
-            // };
-
-            // group_match_1<subwarp_size>(aiA_col_idxs, aiA_row_st,
-            // aiA_row_end,
-            //                             A_col_idxs, A_row_st, A_row_end,
-            //                             subwarpgrp, do_this_on_match_1);
-
             auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st,
                                      A_row_st](
                                         int, int aiA_idx_match, int A_idx_match,
                                         config::lane_mask_type, bool valid) {
                 if (valid) {
-                    // printf("\n match found for ele nz id: to write idx: %d,
-                    // and to write at place: %d with starting address: %x ",
-                    // A_idx_match, aiA_idx_match - aiA_row_st,
-                    // dense_ptr_for_this_row);
                     dense_ptr_for_this_row[aiA_idx_match] =
                         A_idx_match + A_row_st;
-                    // printf("\n match found for ele nz id: to write idx: %d,
-                    // and to write at place: %d with starting address: %x ",
-                    // A_idx_match + A_row_st, aiA_idx_match,
-                    // dense_ptr_for_this_row);
                 }
             };
 
@@ -214,25 +163,6 @@ solve_upper_tri_dense_system(Group subwarpgrp, const int size,
     return sol;
 }
 
-
-// template<typename Group, typename ValueType>
-// __device__ __forceinline__ int choose_pivot_row_1(Group subwarpgrp, const int
-// diag_pos, const int size, const ValueType* const local_row)
-// {
-//     int piv_row_idx = diag_pos;
-//     ValueType piv_ele = subwarpgrp.shfl(local_row[diag_pos], diag_pos);
-
-//     for(int row_idx = diag_pos + 1; row_idx < size; row_idx++)
-//     {
-//         const ValueType ele = subwarpgrp.shfl(local_row[diag_pos], row_idx);
-//         if(abs(ele) > abs(piv_ele))
-//         {
-//             piv_ele = ele;
-//             piv_row_idx = row_idx;
-//         }
-//     }
-//     return piv_row_idx;
-// }
 
 template <typename Group, typename ValueType>
 __device__ __forceinline__ int choose_pivot_row(
@@ -309,7 +239,9 @@ __device__ __forceinline__ void row_transformation(Group subwarpgrp,
 {
     const int local_id = subwarpgrp.thread_rank();
     const ValueType diag_ele = subwarpgrp.shfl(local_row[diag_pos], diag_pos);
-    assert(diag_ele != zero<ValueType>());
+    // assert(diag_ele != zero<ValueType>());
+    assert(abs(diag_ele) !=
+           abs(zero<ValueType>()));  // temporary work-around for rocm-4.0
     const ValueType multiplier = local_row[diag_pos] / diag_ele;
 
     for (int col = 0; col < size; col++) {
@@ -409,16 +341,6 @@ __global__
         }
         // Now the 0th thread of the subwarp contains the 0th row of the dense
         // system, the 1st thread, the 1st row and so on...
-
-        // for(int col = 0; col < size; col++)
-        // {
-        //     if(local_id < size)
-        //     {
-        //         printf("\n row: %d, dense_sys[%d, %d]: %g   rhs_one_idx: %d
-        //         size: %d\n", row, local_id, col, local_row[col], rhs_one_idx,
-        //         size);
-        //     }
-        // }
 
         subwarpgrp.sync();
         ValueType sol;
