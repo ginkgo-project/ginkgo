@@ -29,7 +29,7 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
-    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+    - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
       fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
@@ -70,7 +70,7 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
-    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+    - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
       fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
