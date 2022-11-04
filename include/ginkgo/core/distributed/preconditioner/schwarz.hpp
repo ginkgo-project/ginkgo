@@ -35,8 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/polymorphic_object.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 
@@ -69,7 +70,7 @@ namespace preconditioner {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>> {
     friend class EnableLinOp<Schwarz>;
-    friend class polymorphic_object_traits<Schwarz>;
+    friend class EnablePolymorphicObject<Schwarz, LinOp>;
 
 public:
     using EnableLinOp<Schwarz>::convert_to;
@@ -77,6 +78,8 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using dist_mat_type =
+        experimental::distributed::Matrix<ValueType, IndexType>;
 
     /**
      * Returns the number of blocks of the operator.
@@ -137,9 +140,7 @@ protected:
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           local_system_matrix_{std::move(
-              as<experimental::distributed::Matrix<ValueType, IndexType>>(
-                  system_matrix.get())
-                  ->get_local_matrix())},
+              as<dist_mat_type>(system_matrix.get())->get_local_matrix())},
           coarse_solvers_{parameters_.coarse_solvers}
     {
         this->generate();

@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/distributed/coarse_gen_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/pgm_kernels.hpp"
 
 
 namespace gko {
@@ -63,9 +63,9 @@ namespace coarse_gen {
 namespace {
 
 
-GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
-GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
-GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
+GKO_REGISTER_OPERATION(match_edge, pgm::match_edge);
+GKO_REGISTER_OPERATION(count_unagg, pgm::count_unagg);
+GKO_REGISTER_OPERATION(renumber, pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        coarse_gen::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
@@ -88,25 +88,28 @@ void CoarseGen<ValueType, LocalIndexType,
 
 template <typename LocalIndexType, typename GlobalIndexType>
 void fill_coarse_partition(
-    std::shared_ptr<
-        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>>
+    std::shared_ptr<const gko::experimental::distributed::Partition<
+        LocalIndexType, GlobalIndexType>>
         fine_row_partition,
     const array<GlobalIndexType>& coarse_indices_map,
-    std::shared_ptr<
-        gko::distributed::Partition<LocalIndexType, GlobalIndexType>>
+    std::shared_ptr<gko::experimental::distributed::Partition<LocalIndexType,
+                                                              GlobalIndexType>>
         coarse_row_partition)
 {
-    auto coarse_part_map = array<gko::distributed::comm_index_type>(
-        coarse_indices_map.get_executor()->get_master(),
-        coarse_indices_map.get_num_elems());
-    coarse_part_map.fill(zero<gko::distributed::comm_index_type>());
+    auto coarse_part_map =
+        array<gko::experimental::distributed::comm_index_type>(
+            coarse_indices_map.get_executor()->get_master(),
+            coarse_indices_map.get_num_elems());
+    coarse_part_map.fill(
+        zero<gko::experimental::distributed::comm_index_type>());
     auto coarse_map_host =
         array<GlobalIndexType>(coarse_indices_map.get_executor()->get_master());
     coarse_map_host = coarse_indices_map;
-    auto fine_part_host = gko::share(
-        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
-            fine_row_partition->get_executor()->get_master(),
-            fine_row_partition->get_num_parts()));
+    auto fine_part_host =
+        gko::share(gko::experimental::distributed::
+                       Partition<LocalIndexType, GlobalIndexType>::create(
+                           fine_row_partition->get_executor()->get_master(),
+                           fine_row_partition->get_num_parts()));
     fine_part_host->copy_from(fine_row_partition.get());
     for (auto i = 0; i < coarse_map_host.get_num_elems(); ++i) {
         auto idx = std::upper_bound(fine_part_host->get_range_bounds(),
@@ -117,7 +120,7 @@ void fill_coarse_partition(
             fine_part_host->get_part_ids()[*(idx - 1)];
     }
     GKO_ASSERT(fine_row_partition->get_executor() != nullptr);
-    auto coarse_row_partition_1 = gko::distributed::
+    auto coarse_row_partition_1 = gko::experimental::distributed::
         Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
             fine_row_partition->get_executor(), coarse_part_map,
             fine_part_host->get_num_parts());
@@ -175,9 +178,10 @@ void CoarseGen<ValueType, LocalIndexType,
         fine_mat_data.get_const_row_idxs(), fine_mat_data.get_num_elems(),
         local_size[0], fine_row_ptrs.get_data()));
 
-    auto coarse_row_partition = gko::share(
-        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
-            exec, fine_row_partition->get_num_parts()));
+    auto coarse_row_partition =
+        gko::share(gko::experimental::distributed::
+                       Partition<LocalIndexType, GlobalIndexType>::create(
+                           exec, fine_row_partition->get_num_parts()));
 
     exec->run(coarse_gen::make_fill_coarse(fine_mat_data, fine_row_ptrs,
                                            coarse_data, restrict_data,
@@ -185,11 +189,11 @@ void CoarseGen<ValueType, LocalIndexType,
 
     fill_coarse_partition(fine_row_partition, coarse_indices_map_,
                           coarse_row_partition);
-    auto r_p_part_map = array<gko::distributed::comm_index_type>(
+    auto r_p_part_map = array<gko::experimental::distributed::comm_index_type>(
         coarse_indices_map_.get_executor()->get_master(),
         fine_mat_data.get_size()[0]);
-    r_p_part_map.fill(zero<gko::distributed::comm_index_type>());
-    auto r_p_partition = gko::distributed::
+    r_p_part_map.fill(zero<gko::experimental::distributed::comm_index_type>());
+    auto r_p_partition = gko::experimental::distributed::
         Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
             fine_row_partition->get_executor(), r_p_part_map, 1);
 
