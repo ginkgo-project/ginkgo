@@ -370,14 +370,14 @@ set(GINKGO_TEST_INSTALL_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_install/")
 set(GINKGO_TEST_INSTALL_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_install/")
 set(GINKGO_TEST_EXPORTBUILD_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_exportbuild/")
 set(GINKGO_TEST_EXPORTBUILD_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_exportbuild/")
-set(GINKGO_TEST_EXPORTBUILD_PKGCONFIG_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_exportbuild_pkgconfig/")
-set(GINKGO_TEST_EXPORTBUILD_PKGCONFIG_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_exportbuild_pkgconfig/")
+set(GINKGO_TEST_PKGCONFIG_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_pkgconfig/")
+set(GINKGO_TEST_PKGCONFIG_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_pkgconfig/")
 get_property(GINKGO_USE_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 # GINKGO_CONFIG_PREFIX contains / in the end.
 set(GINKGO_CONFIG_PREFIX "$<$<BOOL:${GINKGO_USE_MULTI_CONFIG}>:$<CONFIG>/>")
 set(GINKGO_TEST_INSTALL_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_install)
 set(GINKGO_TEST_EXPORTBUILD_CMD ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_exportbuild)
-set(GINKGO_TEST_EXPORTBUILD_PKGCONFIG_CMD ${GINKGO_TEST_EXPORTBUILD_PKGCONFIG_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_exportbuild_pkgconfig)
+set(GINKGO_TEST_PKGCONFIG_CMD ${GINKGO_TEST_PKGCONFIG_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_pkgconfig)
 if(GINKGO_BUILD_CUDA)
     set(GINKGO_TEST_INSTALL_CUDA_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_install_cuda)
 endif()
@@ -432,10 +432,10 @@ add_custom_target(test_exportbuild
     COMMENT "Running a test on Ginkgo's exported build directory. "
     "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
 
-add_custom_target(test_exportbuild_pkgconfig
+add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_EXPORTBUILD_PKGCONFIG_SRC_DIR}
-    -B${GINKGO_TEST_EXPORTBUILD_PKGCONFIG_BIN_DIR}
+    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
@@ -444,9 +444,9 @@ add_custom_target(test_exportbuild_pkgconfig
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
     COMMAND ${CMAKE_COMMAND}
-    --build ${GINKGO_TEST_EXPORTBUILD_PKGCONFIG_BIN_DIR}
+    --build ${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     --config $<CONFIG>
-    COMMAND ${GINKGO_TEST_EXPORTBUILD_PKGCONFIG_CMD}
+    COMMAND ${GINKGO_TEST_PKGCONFIG_CMD}
     COMMENT "Running a test on Ginkgo's PkgConfig"
     "This requires installing Ginkgo first")
 
