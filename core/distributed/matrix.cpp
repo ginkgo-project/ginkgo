@@ -156,7 +156,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const Partition<local_index_type, global_index_type>* col_partition)
 {
     using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
     GKO_ASSERT_EQ(data.get_size()[1], col_partition->get_size());

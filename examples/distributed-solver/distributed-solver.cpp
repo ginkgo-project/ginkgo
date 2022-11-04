@@ -66,7 +66,8 @@ int main(int argc, char* argv[])
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =
-        gko::distributed::Partition<LocalIndexType, GlobalIndexType>;
+        gko::experimental::distributed::Partition<LocalIndexType,
+                                                  GlobalIndexType>;
     // We can use here the same solver type as you would use in a
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
@@ -81,10 +82,10 @@ int main(int argc, char* argv[])
     using mg = gko::solver::Multigrid;
     using ic = gko::preconditioner::Ic<>;
 
-    const gko::mpi::environment env(argc, argv);
+    const gko::experimental::mpi::environment env(argc, argv);
 
     // Create a MPI communicator wrapper and get the rank.
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
     if (rank == 0) {
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    ValueType t_init = gko::mpi::get_walltime();
+    ValueType t_init = gko::experimental::mpi::get_walltime();
 
     // User input settings:
     // - The executor, defaults to reference.
@@ -194,7 +195,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_init_end = gko::mpi::get_walltime();
+    ValueType t_init_end = gko::experimental::mpi::get_walltime();
 
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
@@ -216,7 +217,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_read_setup_end = gko::mpi::get_walltime();
+    ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
     const gko::remove_complex<ValueType> reduction_factor{1e-16};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
@@ -264,7 +265,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_generate_end = gko::mpi::get_walltime();
+    ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
@@ -272,7 +273,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_apply_end = gko::mpi::get_walltime();
+    ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
 
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
@@ -286,7 +287,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_end = gko::mpi::get_walltime();
+    ValueType t_end = gko::experimental::mpi::get_walltime();
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.

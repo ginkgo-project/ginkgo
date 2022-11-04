@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -73,7 +73,7 @@ class CoarseGen
     : public EnableLinOp<CoarseGen<ValueType, LocalIndexType, GlobalIndexType>>,
       public multigrid::EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<CoarseGen>;
-    friend class polymorphic_object_traits<CoarseGen>;
+    friend class EnablePolymorphicObject<CoarseGen, LinOp>;
 
 public:
     using value_type = ValueType;
