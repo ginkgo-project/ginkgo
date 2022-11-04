@@ -313,13 +313,6 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     auto b_workspace = b_list.at(level);
     LinOp* x_ptr = x;
     const LinOp* b_ptr = b;
-    // if (x_workspace) {
-    //     // the value_type is change
-    //     x_workspace->copy_from(x);
-    //     b_workspace->copy_from(b);
-    //     x_ptr = x_workspace.get();
-    //     b_ptr = b_workspace.get();
-    // }
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -393,6 +386,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                     cycle == multigrid::cycle::kgcr) &&
                    level % multigrid->get_parameters().kcycle_base == 0) {
             // kcycle_state.kstep<VT>(cycle, level, g, e);
+            GKO_NOT_SUPPORTED(cycle);
         }
     }
     // prolong
@@ -414,9 +408,6 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     if (use_mid && mid_smoother) {
         mid_smoother->apply(b_ptr, x_ptr);
     }
-    // if (x_workspace) {
-    //     x->copy_from(x_ptr);
-    // }
 }
 
 void MultigridState::KCycleMultiGridState::reserve_space(
@@ -557,12 +548,10 @@ void Multigrid::generate()
     size_type level = 0;
     auto matrix = system_matrix_;
     auto exec = this->get_executor();
-    std::cout << "generate" << std::endl;
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
         auto index = level_selector_(level, lend(matrix));
-        std::cout << "level " << level << " index " << index << std::endl;
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
@@ -643,7 +632,6 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
     if (state.nrhs != b->get_size()[1]) {
         state.generate(system_matrix_.get(), this, b->get_size()[1]);
     }
-    // nvtxRangePushA("Multigrid apply");
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         using value_type = typename std::decay_t<
             gko::detail::pointee<decltype(mg_level)>>::value_type;
@@ -706,7 +694,6 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
     run<gko::multigrid::EnableMultigridLevel, float, double,
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);
-    // nvtxRangePop();
 }
 
 

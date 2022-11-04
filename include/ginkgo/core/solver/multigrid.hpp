@@ -608,7 +608,7 @@ private:
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
     mutable multigrid::MultigridState state;
-    mutable Array<stopping_status> stop_status;
+    mutable array<stopping_status> stop_status;
 };
 
 
