@@ -59,6 +59,9 @@ protected:
               500, 100, std::normal_distribution<real_type>(50, 5),
               std::normal_distribution<real_type>(20.0, 5.0),
               std::default_random_engine(42), exec)),
+          dense_mtx(gko::test::generate_random_dense_matrix<value_type>(
+              500, 100, std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(41), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
               4, true, std::normal_distribution<real_type>(50, 5),
               std::normal_distribution<real_type>(20.0, 5.0),
@@ -88,6 +91,14 @@ protected:
             }
         }
 
+        // collect samples of nnz/row and values from the dense matrix
+        for (int row = 0; row < dense_mtx->get_size()[0]; ++row) {
+            for (int col = 0; col < dense_mtx->get_size()[1]; ++col) {
+                auto val = dense_mtx->at(row, col);
+                dense_values_sample.push_back(val);
+            }
+        }
+
         // collect samples of values from the band matrix
         for (int row = 0; row < band_mtx->get_size()[0]; ++row) {
             for (int col = 0; col < band_mtx->get_size()[1]; ++col) {
@@ -104,11 +115,13 @@ protected:
     int lower_bandwidth;
     int upper_bandwidth;
     std::unique_ptr<mtx_type> mtx;
+    std::unique_ptr<mtx_type> dense_mtx;
     std::unique_ptr<mtx_type> l_mtx;
     std::unique_ptr<mtx_type> u_mtx;
     std::unique_ptr<mtx_type> band_mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<T> values_sample;
+    std::vector<T> dense_values_sample;
     std::vector<T> band_values_sample;
 
 
@@ -176,6 +189,22 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
         this->template check_average_and_deviation<T>(
             begin(this->values_sample), end(this->values_sample), 20.0, 5.0,
             [](T& val) { return gko::imag(val); });
+    }
+}
+
+
+TYPED_TEST(MatrixGenerator, DenseOutputHasCorrectValuesAverageAndDeviation)
+{
+    using T = typename TestFixture::value_type;
+    // check the real part
+    this->template check_average_and_deviation<T>(
+        begin(this->dense_values_sample), end(this->dense_values_sample), 20.0,
+        5.0, [](T& val) { return gko::real(val); });
+    // check the imag part when the type is complex
+    if (!std::is_same<T, gko::remove_complex<T>>::value) {
+        this->template check_average_and_deviation<T>(
+            begin(this->dense_values_sample), end(this->dense_values_sample),
+            20.0, 5.0, [](T& val) { return gko::imag(val); });
     }
 }
 
