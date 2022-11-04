@@ -56,17 +56,11 @@ function(ginkgo_add_test test_name test_target_name)
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
     if (add_test_MPI_SIZE)
-        if("${GINKGO_MPI_EXEC_SUFFIX}" MATCHES ".openmpi" AND MPI_RUN_AS_ROOT)
-            set(OPENMPI_RUN_AS_ROOT_FLAG "--allow-run-as-root")
-        else()
-            set(OPENMPI_RUN_AS_ROOT_FLAG "")
-        endif()
         add_test(NAME ${REL_BINARY_DIR}/${test_name}
                  COMMAND
                      ${MPIEXEC_EXECUTABLE}
                      ${MPIEXEC_NUMPROC_FLAG}
                      ${add_test_MPI_SIZE}
-                     ${OPENMPI_RUN_AS_ROOT_FLAG}
                      "$<TARGET_FILE:${test_target_name}>"
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     else()
