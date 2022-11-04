@@ -47,7 +47,6 @@ __global__
         return;
     }
 
-    const auto bs_sq = block_size * block_size;
     const auto num_cols = num_block_cols * block_size;
     auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -385,15 +384,14 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     size_type num_rows, size_type num_cols, size_type slice_size,
     size_type stride, const ValueType* __restrict__ source,
-    size_type* __restrict__ slice_lengths, size_type* __restrict__ slice_sets,
-    IndexType* __restrict__ col_idxs, ValueType* __restrict__ values)
+    size_type* __restrict__ slice_sets, IndexType* __restrict__ col_idxs,
+    ValueType* __restrict__ values)
 {
     const auto row = thread::get_subwarp_id_flat<config::warp_size>();
     const auto local_row = row % slice_size;
     const auto slice = row / slice_size;
 
     if (row < num_rows) {
-        const auto slice_length = slice_lengths[slice];
         auto warp = group::tiled_partition<config::warp_size>(
             group::this_thread_block());
         const auto lane = warp.thread_rank();

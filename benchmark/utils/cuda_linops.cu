@@ -349,6 +349,9 @@ private:
 #endif  // CUDA_VERSION < 11000
 
 
+#if CUDA_VERSION < 11021
+
+
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class CusparseCsrEx
@@ -446,6 +449,9 @@ private:
     cusparseAlgMode_t algmode_;
     mutable gko::array<char> buffer_;
 };
+
+
+#endif  // CUDA_VERSION < 11021
 
 
 #if CUDA_VERSION < 11000
@@ -784,8 +790,12 @@ private:
 }  // namespace detail
 
 
+#if CUDA_VERSION < 11021
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_csrex,
                             detail::CusparseCsrEx<etype, itype>);
+#else
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csrex);
+#endif
 
 #if CUDA_VERSION < 11000
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_csr, detail::CusparseCsr<etype, itype>);
@@ -805,9 +815,13 @@ STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmm);
     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__)))
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcsr,
                             detail::CusparseGenericCsr<etype, itype>);
-IMPL_CREATE_SPARSELIB_LINOP(
-    cusparse_gcsr2,
-    detail::CusparseGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>);
+#if CUDA_VERSION >= 11021
+constexpr auto csr_algo = CUSPARSE_SPMV_CSR_ALG2;
+#else
+constexpr auto csr_algo = CUSPARSE_CSRMV_ALG2;
+#endif
+IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcsr2,
+                            detail::CusparseGenericCsr<etype, itype, csr_algo>);
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcoo,
                             detail::CusparseGenericCoo<etype, itype>);
 #else
