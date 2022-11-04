@@ -58,21 +58,18 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : EnableLinOp<Direct>{other},
-      gko::solver::EnableSolverBase<Direct, factorization_type>{other},
-      lower_solver_{other.lower_solver_->clone()},
-      upper_solver_{other.upper_solver_->clone()}
-{}
+    : EnableLinOp<Direct>{other.get_executor()}
+{
+    *this = other;
+}
 
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(Direct&& other)
-    : EnableLinOp<Direct>{std::move(other)},
-      gko::solver::EnableSolverBase<Direct, factorization_type>{
-          std::move(other)},
-      lower_solver_{std::move(other.lower_solver_)},
-      upper_solver_{std::move(other.upper_solver_)}
-{}
+    : EnableLinOp<Direct>{other.get_executor()}
+{
+    *this = std::move(other);
+}
 
 
 template <typename ValueType, typename IndexType>
