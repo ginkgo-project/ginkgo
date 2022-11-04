@@ -363,7 +363,11 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
     if (b->get_stride() == 1 && c->get_stride() == 1) {
         auto vecb = cusparse::create_dnvec(b->get_size()[0], b_val);
         auto vecc = cusparse::create_dnvec(c->get_size()[0], c_val);
-        cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
+#if CUDA_VERSION >= 11021
+        constexpr auto alg = CUSPARSE_SPMV_CSR_ALG1;
+#else
+        constexpr auto alg = CUSPARSE_CSRMV_ALG1;
+#endif
         size_type buffer_size = 0;
         cusparse::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
                                              beta, vecc, alg, &buffer_size);
