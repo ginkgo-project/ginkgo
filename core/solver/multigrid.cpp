@@ -240,7 +240,7 @@ struct MultigridState {
      * @param current_nrows  the number of rows of current fine matrix
      * @param next_nrows  the number of rows of next coarse matrix
      */
-    template <typename ValueType>
+    template <typename VectorType>
     void allocate_memory(int level, multigrid::cycle cycle,
                          size_type current_nrows, size_type next_nrows);
 
@@ -315,8 +315,7 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
                 using vec = matrix::Dense<value_type>;
-                this->allocate_memory<value_type>(i, cycle, current_nrows,
-                                                  next_nrows);
+                this->allocate_memory<vec>(i, cycle, current_nrows, next_nrows);
                 auto exec = as<LinOp>(multigrid->get_mg_level_list().at(i))
                                 ->get_executor();
             },
@@ -327,31 +326,61 @@ void MultigridState::generate(const LinOp* system_matrix_in,
 }
 
 
-template <typename ValueType>
+// template <class VectorType>
+// void allocate_memory(int level, multigrid::cycle cycle, size_type
+// current_nrows,
+//                      size_type next_nrows)
+// {
+//     using value_type = typename VectorType::value_type;
+//     // using vec = matrix::Dense<VT>;
+//     using norm_vec = remove_complex<VectorType>;
+//     auto scalar_size = dim<2>{1, mg_state->nrhs};
+//     auto vector_size = dim<2>{next_nrows, mg_state->nrhs};
+//     auto exec = as<LinOp>(mg_state->multigrid->get_mg_level_list().at(level))
+//                     ->get_executor();
+//     // 1 x nrhs
+//     alpha_list.emplace_back(VectorType::create(exec, scalar_size));
+//     beta_list.emplace_back(VectorType::create(exec, scalar_size));
+//     gamma_list.emplace_back(VectorType::create(exec, scalar_size));
+//     rho_list.emplace_back(VectorType::create(exec, scalar_size));
+//     zeta_list.emplace_back(VectorType::create(exec, scalar_size));
+//     // next level's nrows x nrhs
+//     v_list.emplace_back(VectorType::create(exec, vector_size));
+//     w_list.emplace_back(VectorType::create(exec, vector_size));
+//     d_list.emplace_back(VectorType::create(exec, vector_size));
+//     // 1 x nrhs norm_vec
+//     old_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
+//     new_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
+// }
+
+template <class VectorType>
 void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
                                      size_type current_nrows,
                                      size_type next_nrows)
 {
-    using vec = matrix::Dense<ValueType>;
-    using norm_vec = matrix::Dense<remove_complex<ValueType>>;
+    using value_type = typename VectorType::value_type;
+    using vec = matrix::Dense<value_type>;
+    using norm_vec = remove_complex<VectorType>;
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+    r_list.emplace_back(VectorType::create(exec, dim<2>{current_nrows, nrhs}));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        g_list.emplace_back(
+            VectorType::create(exec, dim<2>{current_nrows, nrhs}));
+        e_list.emplace_back(
+            VectorType::create(exec, dim<2>{current_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
         g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
         e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
-    one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<ValueType>()}, exec));
+    one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
+    neg_one_list.emplace_back(initialize<vec>({-one<value_type>()}, exec));
 }
 
 
