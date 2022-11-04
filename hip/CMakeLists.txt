@@ -111,8 +111,6 @@ if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
 endif()
 
-target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
-
 if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     find_package(hip REQUIRED)
     # To save a bit of pain, we directly link against the `library` instead of

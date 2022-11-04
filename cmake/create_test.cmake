@@ -40,7 +40,6 @@ function(ginkgo_set_test_target_properties test_target_name)
         set(gtest_main GTest::Main)
     endif()
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
-    target_compile_options(${test_target_name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})
     target_link_libraries(${test_target_name} PRIVATE ginkgo ${gtest_main} GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
@@ -112,8 +111,7 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA)
     target_compile_options(${test_target_name}
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>
-            $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
+            $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>)
     if(MSVC)
         target_compile_options(${test_target_name}
             PRIVATE
