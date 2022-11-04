@@ -49,9 +49,9 @@ namespace detail {
 
 
 template <typename T, typename F>
-void mpi_sequential_region(const mpi::window<T>& window, F&& f)
+void mpi_sequential_region(const experimental::mpi::window<T>& window, F&& f)
 {
-    window.lock(0, mpi::window<T>::lock_type::exclusive);
+    window.lock(0, experimental::mpi::window<T>::lock_type::exclusive);
     f();
     window.unlock(0);
 }
@@ -204,7 +204,8 @@ public:
      * shouldn't be a problem.
      */
     static std::unique_ptr<DistributedStream> create(
-        mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
+        experimental::mpi::communicator comm =
+            experimental::mpi::communicator(MPI_COMM_WORLD),
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
         std::ostream& os = std::cerr, bool verbose = false,
         bool uses_separate_streams = false)
@@ -226,7 +227,7 @@ protected:
      *                               separate stream. This can be the case, if
      *                               each rank uses different output files.
      */
-    explicit DistributedStream(const mpi::communicator& comm,
+    explicit DistributedStream(const experimental::mpi::communicator& comm,
                                const Logger::mask_type& enabled_events,
                                std::ostream& os, bool verbose,
                                bool uses_separate_streams)
@@ -248,7 +249,7 @@ protected:
 
 private:
     std::unique_ptr<Stream<ValueType>> local_logger_;
-    mpi::window<int> window_;
+    experimental::mpi::window<int> window_;
     std::function<void(std::function<void()>)> region_wrapper_;
 };
 
