@@ -476,7 +476,7 @@ build/amd/openmpi/clang/rocm40/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-rocm40-openmpi-gnu8-llvm50
   variables:
     C_COMPILER: "clang"
