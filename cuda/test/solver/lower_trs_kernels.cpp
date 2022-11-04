@@ -213,4 +213,14 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 }
 
 
+TEST_F(LowerTrs, CudaApplyThrowsWithWrongNumRHS)
+{
+    initialize_data(50, 3);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+
+    ASSERT_THROW(d_solver->apply(d_b2.get(), d_x.get()), gko::ValueMismatch);
+}
+
+
 }  // namespace
