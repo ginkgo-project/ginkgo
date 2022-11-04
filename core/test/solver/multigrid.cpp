@@ -297,7 +297,7 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsFalseWhenZeroGuess)
             .with_pre_smoother(this->lo_factory)
             .with_mg_level(this->rp_factory)
             .with_min_coarse_rows(2u)
-            .with_zero_guess(true)
+            .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
             .on(this->exec);
 
     auto solver = multigrid_factory->generate(this->mtx);

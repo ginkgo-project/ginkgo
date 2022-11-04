@@ -44,11 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -188,9 +190,13 @@ struct MultigridState {
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid> {
+class Multigrid : public EnableLinOp<Multigrid>,
+                  public EnableSolverBase<Multigrid>,
+                  public EnableIterativeBase<Multigrid>,
+                  public EnableApplyWithInitialGuess<Multigrid> {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
+    friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:
     /**
@@ -201,39 +207,8 @@ public:
      */
     bool apply_uses_initial_guess() const override
     {
-        return !parameters_.zero_guess;
-    }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
-
-    /**
-     * Gets the system operator of the linear system.
-     *
-     * @return the system operator
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
+        return this->get_default_initial_guess() ==
+               initial_guess_mode::provided;
     }
 
     /**
@@ -478,11 +453,11 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
 
         /**
-         * zero_guess is to set the initial guess as zero or not. If it's true,
-         * the initial guess will always be zeros. Otherwise, it will use given
-         * input as initial guess.
+         * Default initial guess mode. The available options are under
+         * initial_guess_mode.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(zero_guess, false);
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            default_initial_guess, initial_guess_mode::provided);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -492,6 +467,17 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          initial_guess_mode guess) const;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -507,14 +493,11 @@ protected:
                        std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          stop_status(factory->get_executor())
+          EnableSolverBase<Multigrid>{std::move(system_matrix)},
+          EnableIterativeBase<Multigrid>{
+              stop::combine(factory->get_parameters().criteria)},
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
         if (!parameters_.level_selector) {
             if (parameters_.mg_level.size() == 1) {
                 level_selector_ = [](const size_type, const LinOp*) {
@@ -539,8 +522,8 @@ protected:
         }
 
         this->validate();
-
-        if (system_matrix_->get_size()[0] != 0) {
+        this->set_default_initial_guess(parameters_.default_initial_guess);
+        if (this->get_system_matrix()->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();
         }
@@ -597,8 +580,6 @@ protected:
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
     std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};
@@ -608,7 +589,26 @@ private:
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
     mutable multigrid::MultigridState state;
-    mutable array<stopping_status> stop_status;
+};
+
+template <>
+struct workspace_traits<Multigrid> {
+    using Solver = Multigrid;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // stopping status array
+    constexpr static int stop = 0;
 };
 
 

@@ -52,7 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
-// #include "nvToolsExt.h"
+#include "core/solver/solver_base.hpp"
+
 
 namespace gko {
 namespace solver {
@@ -544,9 +545,9 @@ void MultigridState::KCycleMultiGridState::kstep(
 void Multigrid::generate()
 {
     // generate coarse matrix until reaching max_level or min_coarse_rows
-    auto num_rows = system_matrix_->get_size()[0];
+    auto num_rows = this->get_system_matrix()->get_size()[0];
     size_type level = 0;
-    auto matrix = system_matrix_;
+    auto matrix = this->get_system_matrix();
     auto exec = this->get_executor();
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
@@ -629,8 +630,81 @@ void Multigrid::generate()
 
 void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 {
+    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
+}
+
+
+void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                              initial_guess_mode guess) const
+{
+    if (!this->get_system_matrix()) {
+        return;
+    }
+
+    auto lambda = [this, guess](auto mg_level, auto b, auto x) {
+        using value_type = typename std::decay_t<
+            gko::detail::pointee<decltype(mg_level)>>::value_type;
+        experimental::precision_dispatch_real_complex_distributed<value_type>(
+            [this, guess](auto dense_b, auto dense_x) {
+                prepare_initial_guess(dense_b, dense_x, guess);
+                this->apply_dense_impl(dense_b, dense_x, guess);
+            },
+            b, x);
+    };
+    auto first_mg_level = this->get_mg_level_list().front();
+    run<gko::multigrid::EnableMultigridLevel, float, double,
+        std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
+                                                   x);
+}
+
+
+void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
+                           const LinOp* beta, LinOp* x) const
+{
+    this->apply_with_initial_guess(alpha, b, beta, x,
+                                   this->get_default_initial_guess());
+}
+
+
+void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
+                                              const LinOp* b, const LinOp* beta,
+                                              LinOp* x,
+                                              initial_guess_mode guess) const
+{
+    if (!this->get_system_matrix()) {
+        return;
+    }
+
+    auto lambda = [this, guess](auto mg_level, auto alpha, auto b, auto beta,
+                                auto x) {
+        using value_type = typename std::decay_t<
+            gko::detail::pointee<decltype(mg_level)>>::value_type;
+        experimental::precision_dispatch_real_complex_distributed<value_type>(
+            [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
+                          auto dense_x) {
+                prepare_initial_guess(dense_b, dense_x, guess);
+                auto x_clone = dense_x->clone();
+                this->apply_dense_impl(dense_b, x_clone.get(), guess);
+                dense_x->scale(dense_beta);
+                dense_x->add_scaled(dense_alpha, x_clone.get());
+            },
+            alpha, b, beta, x);
+    };
+    auto first_mg_level = this->get_mg_level_list().front();
+    run<gko::multigrid::EnableMultigridLevel, float, double,
+        std::complex<float>, std::complex<double>>(first_mg_level, lambda,
+                                                   alpha, b, beta, x);
+}
+
+
+template <typename VectorType>
+void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
+                                 initial_guess_mode guess) const
+{
+    using ws = workspace_traits<Multigrid>;
+    this->setup_workspace();
     if (state.nrhs != b->get_size()[1]) {
-        state.generate(system_matrix_.get(), this, b->get_size()[1]);
+        state.generate(this->get_system_matrix().get(), this, b->get_size()[1]);
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         using value_type = typename std::decay_t<
@@ -641,30 +715,17 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
         static auto one_op =
             initialize<matrix::Dense<value_type>>({one<value_type>()}, exec);
         constexpr uint8 RelativeStoppingId{1};
-        stop_status.resize_and_reset(b->get_size()[1]);
+        auto& stop_status =
+            this->template create_workspace_array<stopping_status>(
+                ws::stop, b->get_size()[1]);
         bool one_changed{};
         exec->run(multigrid::make_initialize(&stop_status));
         // compute the residual at the r_list(0);
         // auto r = state.r_list.at(0);
-        // r->copy_from(b);
-        if (parameters_.zero_guess) {
-            using matrix::Dense;
-            using std::complex;
-            if (auto dense = dynamic_cast<Dense<float>*>(x)) {
-                dense->fill(zero<float>());
-            } else if (auto dense = dynamic_cast<Dense<double>*>(x)) {
-                dense->fill(zero<double>());
-            } else if (auto dense = dynamic_cast<Dense<complex<float>>*>(x)) {
-                dense->fill(zero<complex<float>>());
-            } else if (auto dense = dynamic_cast<Dense<complex<double>>*>(x)) {
-                dense->fill(zero<complex<double>>());
-            } else {
-                GKO_NOT_SUPPORTED(x);
-            }
-        }
-        // system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
-        auto stop_criterion = stop_criterion_factory_->generate(
-            system_matrix_,
+        // r->copy_from(b)
+        // system_matrix->apply(lend(neg_one_op), x, lend(one_op), r.get());
+        auto stop_criterion = this->get_stop_criterion_factory()->generate(
+            this->get_system_matrix(),
             std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
             nullptr);
         int iter = -1;
@@ -681,10 +742,11 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
                 break;
             }
 
-            state.run_cycle(this->get_parameters().cycle, 0, system_matrix_, b,
-                            x, parameters_.zero_guess);
+            state.run_cycle(this->get_parameters().cycle, 0,
+                            this->get_system_matrix(), b, x,
+                            guess == initial_guess_mode::zero);
             // r->copy_from(b);
-            // system_matrix_->apply(lend(neg_one_op), x, lend(one_op),
+            // system_matrix->apply(lend(neg_one_op), x, lend(one_op),
             // r.get());
         }
     };
@@ -697,23 +759,33 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
-void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
-                           const LinOp* beta, LinOp* x) const
-{
-    auto lambda = [this](auto mg_level, auto alpha, auto b, auto beta, auto x) {
-        using value_type = typename std::decay_t<
-            gko::detail::pointee<decltype(mg_level)>>::value_type;
-        auto dense_x = as<matrix::Dense<value_type>>(x);
-        auto x_clone = dense_x->clone();
-        this->apply(b, x_clone.get());
-        dense_x->scale(beta);
-        dense_x->add_scaled(alpha, x_clone.get());
-    };
-    auto first_mg_level = this->get_mg_level_list().front();
+int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }
 
-    run<gko::multigrid::EnableMultigridLevel, float, double,
-        std::complex<float>, std::complex<double>>(first_mg_level, lambda,
-                                                   alpha, b, beta, x);
+
+int workspace_traits<Multigrid>::num_vectors(const Solver&) { return 0; }
+
+
+std::vector<std::string> workspace_traits<Multigrid>::op_names(const Solver&)
+{
+    return {};
+}
+
+
+std::vector<std::string> workspace_traits<Multigrid>::array_names(const Solver&)
+{
+    return {"stop"};
+}
+
+
+std::vector<int> workspace_traits<Multigrid>::scalars(const Solver&)
+{
+    return {};
+}
+
+
+std::vector<int> workspace_traits<Multigrid>::vectors(const Solver&)
+{
+    return {};
 }
 
 

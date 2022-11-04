@@ -189,7 +189,8 @@ int main(int argc, char* argv[])
                     return level >= 1 ? 1 : 0;
                 })
                 .with_coarsest_solver(coarsest_gen_f)
-                .with_zero_guess(true)
+                .with_default_initial_guess(
+                    gko::solver::initial_guess_mode::zero)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
                 .on(exec);
@@ -202,7 +203,8 @@ int main(int argc, char* argv[])
                 .with_post_uses_pre(true)
                 .with_mg_level(mg_level_gen)
                 .with_coarsest_solver(coarsest_gen)
-                .with_zero_guess(true)
+                .with_default_initial_guess(
+                    gko::solver::initial_guess_mode::zero)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
                 .on(exec);
