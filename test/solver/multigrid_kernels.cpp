@@ -166,56 +166,56 @@ protected:
 };
 
 
-TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
-{
-    initialize_data();
+// TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
+// {
+//     initialize_data();
 
-    gko::kernels::reference::multigrid::kcycle_step_1(
-        ref, alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get());
-    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_1(
-        exec, d_alpha.get(), d_rho.get(), d_v.get(), d_g.get(), d_d.get(),
-        d_e.get());
+//     gko::kernels::reference::multigrid::kcycle_step_1(
+//         ref, alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get());
+//     gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_1(
+//         exec, d_alpha.get(), d_rho.get(), d_v.get(), d_g.get(), d_d.get(),
+//         d_e.get());
 
-    GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_d, d, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
-}
-
-
-TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
-{
-    initialize_data();
-
-    gko::kernels::reference::multigrid::kcycle_step_2(
-        ref, alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
-        d.get(), e.get());
-    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_2(
-        exec, d_alpha.get(), d_rho.get(), d_gamma.get(), d_beta.get(),
-        d_zeta.get(), d_d.get(), d_e.get());
-
-    GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_d, d, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
+// }
 
 
-TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
-{
-    initialize_data();
-    bool is_stop_10;
-    bool d_is_stop_10;
-    bool is_stop_5;
-    bool d_is_stop_5;
+// TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
+// {
+//     initialize_data();
 
-    gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 1.0, is_stop_10);
-    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 1.0, d_is_stop_10);
-    gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 0.5, is_stop_5);
-    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 0.5, d_is_stop_5);
+//     gko::kernels::reference::multigrid::kcycle_step_2(
+//         ref, alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
+//         d.get(), e.get());
+//     gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_2(
+//         exec, d_alpha.get(), d_rho.get(), d_gamma.get(), d_beta.get(),
+//         d_zeta.get(), d_d.get(), d_e.get());
 
-    GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
-    GKO_ASSERT_EQ(d_is_stop_10, true);
-    GKO_ASSERT_EQ(d_is_stop_5, is_stop_5);
-    GKO_ASSERT_EQ(d_is_stop_5, false);
-}
+//     GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
+// }
+
+
+// TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
+// {
+//     initialize_data();
+//     bool is_stop_10;
+//     bool d_is_stop_10;
+//     bool is_stop_5;
+//     bool d_is_stop_5;
+
+//     gko::kernels::reference::multigrid::kcycle_check_stop(
+//         ref, old_norm.get(), new_norm.get(), 1.0, is_stop_10);
+//     gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+//         exec, d_old_norm.get(), d_new_norm.get(), 1.0, d_is_stop_10);
+//     gko::kernels::reference::multigrid::kcycle_check_stop(
+//         ref, old_norm.get(), new_norm.get(), 0.5, is_stop_5);
+//     gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+//         exec, d_old_norm.get(), d_new_norm.get(), 0.5, d_is_stop_5);
+
+//     GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
+//     GKO_ASSERT_EQ(d_is_stop_10, true);
+//     GKO_ASSERT_EQ(d_is_stop_5, is_stop_5);
+//     GKO_ASSERT_EQ(d_is_stop_5, false);
+// }
