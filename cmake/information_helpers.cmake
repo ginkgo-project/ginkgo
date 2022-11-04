@@ -62,6 +62,8 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
             # Keep recursing through the libraries
             get_target_property(GINKGO_LIBS_INTERFACE_LIBS "${_libs}"
                 INTERFACE_LINK_LIBRARIES)
+            # removing $<LINK_ONLY:>
+            list(TRANSFORM GINKGO_LIBS_INTERFACE_LIBS REPLACE "\\$<LINK_ONLY:(.*)>" "\\1")
             ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
         elseif(EXISTS "${_libs}")
             if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
