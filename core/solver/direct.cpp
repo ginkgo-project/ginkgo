@@ -151,10 +151,15 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     if (separate_diag) {
         GKO_NOT_SUPPORTED(type);
     }
-    const auto lower_factory =
-        lower_type::build().with_unit_diagonal(lower_unit_diag).on(exec);
-    const auto upper_factory =
-        upper_type::build().with_unit_diagonal(upper_unit_diag).on(exec);
+    const auto num_rhs = factory->get_parameters().num_rhs;
+    const auto lower_factory = lower_type::build()
+                                   .with_num_rhs(num_rhs)
+                                   .with_unit_diagonal(lower_unit_diag)
+                                   .on(exec);
+    const auto upper_factory = upper_type::build()
+                                   .with_num_rhs(num_rhs)
+                                   .with_unit_diagonal(upper_unit_diag)
+                                   .on(exec);
     switch (type) {
     case storage_type::empty:
         // remove the factor storage entirely
