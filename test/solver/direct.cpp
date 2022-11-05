@@ -97,6 +97,7 @@ protected:
                       .with_factorization(factorization_type::build()
                                               .with_symmetric_sparsity(true)
                                               .on(ref))
+                      .with_num_rhs(static_cast<gko::size_type>(nrhs))
                       .on(ref);
         alpha = gen_mtx(1, 1);
         beta = gen_mtx(1, 1);
@@ -106,6 +107,7 @@ protected:
                        .with_factorization(factorization_type::build()
                                                .with_symmetric_sparsity(true)
                                                .on(exec))
+                       .with_num_rhs(static_cast<gko::size_type>(nrhs))
                        .on(exec);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);

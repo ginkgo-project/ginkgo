@@ -239,8 +239,8 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 TEST_F(LowerTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(4u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(4u).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -255,9 +255,9 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 5, 50);
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(5u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(5u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -271,8 +271,8 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(LowerTrs, ApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 6, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(6u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(6u).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -287,9 +287,9 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 7, 5);
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(7u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(7u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -303,8 +303,8 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(LowerTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(8u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(8u).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -319,9 +319,9 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 9, 50);
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(9u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(9u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -335,8 +335,8 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(LowerTrs, ApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 10, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(10u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(10u).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -351,9 +351,10 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 11, 5);
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(11u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(11u).with_unit_diagonal(true).on(
+            exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -507,8 +508,8 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
     dmtx->set_strategy(std::make_shared<mtx_type::classical>());
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(4u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(4u).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -524,9 +525,9 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     initialize_data(50, 5, 50);
     dmtx->set_strategy(std::make_shared<mtx_type::classical>());
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(5u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(5u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -541,8 +542,8 @@ TEST_F(LowerTrs, ClassicalApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 6, 5);
     dmtx->set_strategy(std::make_shared<mtx_type::classical>());
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(6u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(6u).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -559,9 +560,9 @@ TEST_F(LowerTrs,
     initialize_data(50, 7, 5);
     dmtx->set_strategy(std::make_shared<mtx_type::classical>());
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(7u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(7u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
@@ -576,8 +577,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
     dmtx_l->set_strategy(std::make_shared<mtx_type::classical>());
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(8u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(8u).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -594,9 +595,9 @@ TEST_F(LowerTrs,
     initialize_data(50, 9, 50);
     dmtx_l->set_strategy(std::make_shared<mtx_type::classical>());
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(9u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(9u).with_unit_diagonal(true).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -611,8 +612,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 10, 5);
     dmtx_l->set_strategy(std::make_shared<mtx_type::classical>());
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
+    auto lower_trs_factory = solver_type::build().with_num_rhs(10u).on(ref);
+    auto d_lower_trs_factory = solver_type::build().with_num_rhs(10u).on(exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
@@ -629,9 +630,10 @@ TEST_F(LowerTrs,
     initialize_data(50, 11, 5);
     dmtx_l->set_strategy(std::make_shared<mtx_type::classical>());
     auto lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(ref);
+        solver_type::build().with_num_rhs(11u).with_unit_diagonal(true).on(ref);
     auto d_lower_trs_factory =
-        solver_type::build().with_unit_diagonal(true).on(exec);
+        solver_type::build().with_num_rhs(11u).with_unit_diagonal(true).on(
+            exec);
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
