@@ -35,6 +35,16 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                 filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
                     GINKGO_INTERFACE_LIB_NAME)
             endif()
+            # Get the imported library
+            get_target_property(_libs_type "${_libs}" TYPE)
+            get_target_property(_libs_imported "${_libs}" IMPORTED)
+            if (_libs_imported AND NOT ${_libs_type} STREQUAL "INTERFACE_LIBRARY")
+                # only get the value from release for HIP related target
+                get_target_property(GINKGO_LIBS_IMPORTED_LIBS "${_libs}" IMPORTED_LOCATION_RELEASE)
+                if (GINKGO_LIBS_IMPORTED_LIBS)
+                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_LIBS_IMPORTED_LIBS}")
+                endif()
+            endif()
             # Populate the include directories
             get_target_property(GINKGO_LIBS_INTERFACE_INCS "${_libs}"
                 INTERFACE_INCLUDE_DIRECTORIES)
@@ -88,7 +98,6 @@ macro(ginkgo_interface_information)
     # Call the recursive interface libraries macro
     get_target_property(GINKGO_INTERFACE_LINK_LIBRARIES ginkgo INTERFACE_LINK_LIBRARIES)
     ginkgo_interface_libraries_recursively("${GINKGO_INTERFACE_LINK_LIBRARIES}")
-
     # Format and store the interface libraries found
     # remove duplicates on the reversed list to keep the dependecy in the end of list.
     list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
