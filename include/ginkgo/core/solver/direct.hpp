@@ -76,6 +76,15 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * Number of right hand sides.
+         *
+         * @note This value is currently only required for the CUDA executor,
+         *       which will throw an exception if a different number of rhs is
+         *       passed to Direct::apply.
+         */
+        gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
+
         /** The factorization factory to use for generating the factors. */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             factorization, nullptr);

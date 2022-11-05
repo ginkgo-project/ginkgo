@@ -111,11 +111,8 @@ public:
         /**
          * Number of right hand sides.
          *
-         * @note This value is currently a dummy value which is not used by the
-         *       analysis step. It is possible that future algorithms (cusparse
-         *       csrsm2) make use of the number of right hand sides for a more
-         *       sophisticated implementation. Hence this parameter is left
-         *       here. But currently, there is no need to use it.
+         * @note This value is currently only required for the CUDA
+         *       trisolve_algorithm::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
@@ -264,11 +261,8 @@ public:
         /**
          * Number of right hand sides.
          *
-         * @note This value is currently a dummy value which is not used by the
-         *       analysis step. It is possible that future algorithms (cusparse
-         *       csrsm2) make use of the number of right hand sides for a more
-         *       sophisticated implementation. Hence this parameter is left
-         *       here. But currently, there is no need to use it.
+         * @note This value is currently only required for the CUDA
+         *       trisolve_algorithm::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
