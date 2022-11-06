@@ -118,6 +118,7 @@ if(PAPI_FOUND)
         if(EXISTS "${PAPI_LIBRARIES}")
             set_target_properties(PAPI::PAPI PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES "${PAPI_LIBRARIES}"
                 IMPORTED_LOCATION "${PAPI_LIBRARIES}")
         endif()
         if(PAPI_LIBRARY_RELEASE)
@@ -125,6 +126,7 @@ if(PAPI_FOUND)
                 IMPORTED_CONFIGURATIONS RELEASE)
             set_target_properties(PAPI::PAPI PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES_RELEASE "${PAPI_LIBRARY_RELEASE}"
                 IMPORTED_LOCATION_RELEASE "${PAPI_LIBRARY_RELEASE}")
             unset(PAPI_LIBRARY_RELEASE)
         endif()
@@ -133,6 +135,7 @@ if(PAPI_FOUND)
                 IMPORTED_CONFIGURATIONS DEBUG)
             set_target_properties(PAPI::PAPI PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES_DEBUG "${PAPI_LIBRARY_DEBUG}"
                 IMPORTED_LOCATION_DEBUG "${PAPI_LIBRARY_DEBUG}")
             unset(PAPI_LIBRARY_DEBUG)
         endif()
