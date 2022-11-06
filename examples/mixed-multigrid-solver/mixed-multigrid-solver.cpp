@@ -45,19 +45,19 @@ int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
-    using ValueType2 = float;
+    using MixedType = float;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using fcg = gko::solver::Fcg<ValueType>;
-    using cg = gko::solver::Cg<ValueType2>;
+    using cg = gko::solver::Cg<MixedType>;
     using ir = gko::solver::Ir<ValueType>;
-    using ir2 = gko::solver::Ir<ValueType2>;
+    using ir2 = gko::solver::Ir<MixedType>;
     using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using bj2 = gko::preconditioner::Jacobi<ValueType2, IndexType>;
+    using bj2 = gko::preconditioner::Jacobi<MixedType, IndexType>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
-    using pgm2 = gko::multigrid::Pgm<ValueType2, IndexType>;
+    using pgm2 = gko::multigrid::Pgm<MixedType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const bool use_mixed = argc >= 5;
-    std::cout << "Use Mixed: " << use_mixed << std::endl;
+    std::cout << "Using mixed precision? " << use_mixed << std::endl;
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream(argv[2]), exec));
     // Create RHS as 1 and initial guess as 0
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
     auto smoother_gen2 = gko::share(
         ir2::build()
             .with_solver(bj2::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(static_cast<ValueType2>(0.9))
+            .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
@@ -160,14 +160,13 @@ int main(int argc, char* argv[])
     auto coarsest_solver_gen2 = gko::share(
         ir2::build()
             .with_solver(bj2::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(static_cast<ValueType2>(0.9))
+            .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     if (use_mixed) {
-        std::cout << "USE" << std::endl;
         multigrid_gen =
             mg::build()
                 .with_max_levels(10u)
@@ -177,7 +176,12 @@ int main(int argc, char* argv[])
                 .with_mg_level(mg_level_gen, mg_level_gen2)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
-                    std::cout << "level " << level << std::endl;
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
                     return level >= 1 ? 1 : 0;
                 })
                 .with_coarsest_solver(coarsest_solver_gen2)

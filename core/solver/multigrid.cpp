@@ -160,6 +160,14 @@ void handle_list(
 }
 
 
+template <typename Vec>
+void clear_and_reserve(Vec& vec, size_type size)
+{
+    vec.clear();
+    vec.reserve(size);
+}
+
+
 }  // namespace
 
 
@@ -178,20 +186,12 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     auto mg_level_list = multigrid->get_mg_level_list();
     auto list_size = mg_level_list.size();
     auto cycle = multigrid->get_cycle();
-    r_list.clear();
-    g_list.clear();
-    e_list.clear();
-    b_list.clear();
-    x_list.clear();
-    next_one_list.clear();
-    one_list.clear();
-    neg_one_list.clear();
-    r_list.reserve(list_size);
-    g_list.reserve(list_size);
-    e_list.reserve(list_size);
-    one_list.reserve(list_size);
-    next_one_list.reserve(list_size);
-    neg_one_list.reserve(list_size);
+    clear_and_reserve(r_list, list_size);
+    clear_and_reserve(g_list, list_size);
+    clear_and_reserve(e_list, list_size);
+    clear_and_reserve(one_list, list_size);
+    clear_and_reserve(next_one_list, list_size);
+    clear_and_reserve(neg_one_list, list_size);
     // Allocate memory first such that reusing allocation in each iter.
     for (int i = 0; i < mg_level_list.size(); i++) {
         auto next_nrows = mg_level_list.at(i)->get_coarse_op()->get_size()[0];
