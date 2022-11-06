@@ -372,9 +372,8 @@ TYPED_TEST(Multigrid, DefaultBehavior)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(pre_smoother.at(0), nullptr);
-    // the default mid behavior, which uses origin, uses the post smoother of
-    // previous cycle and the pre smoother of next cycle in the same level.
-    ASSERT_EQ(mid_smoother.size(), 0);
+    // the default mid behavior, which uses standalone with the nullptr.
+    ASSERT_EQ(mid_smoother.at(0), nullptr);
     ASSERT_EQ(post_smoother.at(0), nullptr);
     ASSERT_NE(identity, nullptr);
 }
@@ -409,7 +408,7 @@ TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(pre_smoother.at(0), nullptr);
-    ASSERT_EQ(mid_smoother.size(), 0);
+    ASSERT_EQ(mid_smoother.at(0), nullptr);
     ASSERT_EQ(post_smoother.at(0), nullptr);
     ASSERT_NE(identity, nullptr);
 }

@@ -71,12 +71,14 @@ enum class initial_guess_mode {
 
 
 namespace multigrid {
+namespace experimental {
 
 
 class MultigridState;
 
 
-}
+}  // namespace experimental
+}  // namespace multigrid
 
 
 /**
@@ -86,7 +88,7 @@ class MultigridState;
  */
 class ApplyWithInitialGuess {
 protected:
-    friend class multigrid::MultigridState;
+    friend class multigrid::experimental::MultigridState;
 
     /**
      * Applies a linear operator to a vector (or a sequence of vectors) with
@@ -165,7 +167,7 @@ private:
 template <typename DerivedType>
 class EnableApplyWithInitialGuess : public ApplyWithInitialGuess {
 protected:
-    friend class multigrid::MultigridState;
+    friend class multigrid::experimental::MultigridState;
 
     explicit EnableApplyWithInitialGuess(
         initial_guess_mode guess = initial_guess_mode::provided)

@@ -72,16 +72,14 @@ namespace multigrid {
 
 /**
  * cycle defines which kind of multigrid cycle can be used.
- * It contains V, W, F, and K (KFCG/KGCR) cycle.
+ * It contains V, W, and F cycle.
  * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
  *   multigrid tutorial 2nd Edition.
  * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
  *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
  *   second uses the V-cycle call such that F-cycle is between V and W cycle.
- * - K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
- *   An aggregation-based algebraic multigrid method
  */
-enum class cycle { v, f, w, kfcg, kgcr };
+enum class cycle { v, f, w };
 
 
 /**
@@ -100,52 +98,68 @@ enum class cycle { v, f, w, kfcg, kgcr };
 enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
 
 
+namespace experimental {
+
+
+/**
+ * MultigridState is to store the necessary cache and run the operation of all
+ * levels.
+ *
+ * @note it should only be used internally
+ */
 struct MultigridState {
     MultigridState() : nrhs{0} {}
 
+    /**
+     * Generate the cache for later usage.
+     *
+     * @param system_matrix_in  the system matrix
+     * @param multigrid_in  the multigrid information
+     * @param nrhs_in  the number of right hand side
+     */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
                   const size_type nrhs_in);
 
+    /**
+     * allocate_memory is a helper function to allocate the memory of one level
+     *
+     * @tparam VT  the value type of memory
+     *
+     * @param level  the current level index
+     * @param cycle  the multigrid cycle
+     * @param current_nrows  the number of rows of current fine matrix
+     * @param next_nrows  the number of rows of next coarse matrix
+     */
     template <typename VT>
     void allocate_memory(int level, multigrid::cycle cycle,
                          size_type current_nrows, size_type next_nrows);
 
+    /**
+     * run the cycle of the level
+     *
+     * @param cycle  the multigrid cycle
+     * @param level  the current level index
+     * @param matrix  the system matrix of current level
+     * @param b  the right hand side
+     * @param x  the input vectors
+     */
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, bool x_is_zero = false, bool is_first = true,
                    bool is_end = true);
 
+    /**
+     * @copydoc run_cycle
+     *
+     * @tparam VT  the value type
+     *
+     * @note it is the version with known ValueType
+     */
     template <typename VT>
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, bool x_is_zero, bool is_first, bool is_end);
 
-    struct KCycleMultiGridState {
-        void reserve_space(MultigridState* mg_state_in);
-
-        template <typename VT>
-        void allocate_memory(int level, multigrid::cycle cycle,
-                             size_type current_nrows, size_type next_nrows);
-
-        template <typename VT>
-        void kstep(multigrid::cycle cycle, size_type level,
-                   const std::shared_ptr<matrix::Dense<VT>>& g,
-                   const std::shared_ptr<matrix::Dense<VT>>& e);
-
-        MultigridState* mg_state;
-        // 1 x nrhs
-        std::vector<std::shared_ptr<LinOp>> alpha_list;
-        std::vector<std::shared_ptr<LinOp>> beta_list;
-        std::vector<std::shared_ptr<LinOp>> gamma_list;
-        std::vector<std::shared_ptr<LinOp>> rho_list;
-        std::vector<std::shared_ptr<LinOp>> zeta_list;
-        std::vector<std::shared_ptr<LinOp>> old_norm_list;
-        std::vector<std::shared_ptr<LinOp>> new_norm_list;
-        // next level's nrows x nrhs
-        std::vector<std::shared_ptr<LinOp>> v_list;
-        std::vector<std::shared_ptr<LinOp>> w_list;
-        std::vector<std::shared_ptr<LinOp>> d_list;
-    };
     // current level's nrows x nrhs
     std::vector<std::shared_ptr<LinOp>> r_list;
     std::vector<std::shared_ptr<LinOp>> x_list;
@@ -159,9 +173,9 @@ struct MultigridState {
     std::vector<std::shared_ptr<const LinOp>> neg_one_list;
     const LinOp* system_matrix;
     const Multigrid* multigrid;
-    KCycleMultiGridState kcycle_state;
     size_type nrhs;
 };
+}  // namespace experimental
 
 
 }  // namespace multigrid
@@ -359,12 +373,12 @@ public:
         /**
          * Choose the behavior of mid smoother between two cycles close to each
          * other in the same level. The default is
-         * multigrid::mid_smooth_type::both.
+         * multigrid::mid_smooth_type::standalone.
          *
          * @see enum multigrid::mid_smooth_type
          */
         multigrid::mid_smooth_type GKO_FACTORY_PARAMETER_SCALAR(
-            mid_case, multigrid::mid_smooth_type::both);
+            mid_case, multigrid::mid_smooth_type::standalone);
 
         /**
          * The maximum number of mg_level (without coarsest solver level) that
@@ -588,7 +602,7 @@ private:
     std::shared_ptr<const LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
-    mutable multigrid::MultigridState state;
+    mutable multigrid::experimental::MultigridState state;
 };
 
 template <>
