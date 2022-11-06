@@ -254,6 +254,7 @@ struct MultigridState {
      * @param x  the input vectors
      * @param mode  the mode of cycle (See cycle_mode)
      */
+    template <typename VectorType>
     void run_mg_cycle(multigrid::cycle cycle, size_type level,
                       const std::shared_ptr<const LinOp>& matrix,
                       const LinOp* b, LinOp* x, cycle_mode mode);
@@ -265,7 +266,7 @@ struct MultigridState {
      *
      * @note it is the version with known ValueType
      */
-    template <typename ValueType>
+    template <typename VectorType>
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, cycle_mode mode);
@@ -384,6 +385,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 }
 
 
+template <typename VectorType>
 void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
                                   const std::shared_ptr<const LinOp>& matrix,
                                   const LinOp* b, LinOp* x, cycle_mode mode)
@@ -398,21 +400,22 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
         mg_level, [&, this](auto mg_level) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
-            this->run_cycle<value_type>(cycle, level, matrix, b, x, mode);
+            this->run_cycle<VectorType>(cycle, level, matrix, b, x, mode);
         });
 }
 
 
-template <typename ValueType>
+template <typename VectorType>
 void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                                const std::shared_ptr<const LinOp>& matrix,
                                const LinOp* b, LinOp* x, cycle_mode mode)
 {
+    using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
 
-    auto r = r_list.at(level);
-    auto g = g_list.at(level);
-    auto e = e_list.at(level);
+    auto r = as_vec<value_type>(r_list.at(level));
+    auto g = as_vec<value_type>(g_list.at(level));
+    auto e = as_vec<value_type>(e_list.at(level));
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -442,8 +445,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
             } else {
                 // x in first level is already filled by zero outside.
                 if (level != 0) {
-                    dynamic_cast<matrix::Dense<ValueType>*>(x)->fill(
-                        zero<ValueType>());
+                    dynamic_cast<VectorType*>(x)->fill(zero<value_type>());
                 }
                 pre_smoother->apply(b, x);
             }
@@ -464,7 +466,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
-        as_vec<ValueType>(e)->fill(zero<ValueType>());
+        e->fill(zero<value_type>());
     }
     auto next_level_matrix =
         (level + 1 < total_level)
@@ -721,8 +723,9 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             if (iter == 0 && guess == initial_guess_mode::zero) {
                 mode = mode | multigrid::cycle_mode::x_is_zero;
             }
-            cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
-                                       this->get_system_matrix(), b, x, mode);
+            cache_.state->run_mg_cycle<matrix::Dense<value_type>>(
+                this->get_parameters().cycle, 0, this->get_system_matrix(), b,
+                x, mode);
         }
     };
 
