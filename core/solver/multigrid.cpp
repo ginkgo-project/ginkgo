@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -101,26 +102,6 @@ std::enable_if_t<!is_complex_s<ValueType>::value && is_complex_s<T>::value,
 casting(const T& x)
 {
     return static_cast<ValueType>(real(x));
-}
-
-/**
- * as_vec gives a shortcut for casting pointer to dense.
- */
-template <typename ValueType>
-auto as_vec(std::shared_ptr<LinOp> x)
-{
-    return std::static_pointer_cast<matrix::Dense<ValueType>>(x);
-}
-
-
-/**
- * as_real_vec gives a shortcut for casting pointer to dense with real type.
- */
-template <typename ValueType>
-auto as_real_vec(std::shared_ptr<LinOp> x)
-{
-    return std::static_pointer_cast<matrix::Dense<remove_complex<ValueType>>>(
-        x);
 }
 
 
