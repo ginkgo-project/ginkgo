@@ -86,16 +86,15 @@ int main(int argc, char* argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const bool use_mixed = argc >= 5;
+    const int mixed_int = argc >= 3 ? std::atoi(argv[2]) : 1;
+    const bool use_mixed = mixed_int != 0;  // nonzero uses mixed
     std::cout << "Using mixed precision? " << use_mixed << std::endl;
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream(argv[2]), exec));
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
     auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    // auto host_b =
-    //     share(gko::read<vec>(std::ifstream(argv[3]), exec->get_master()));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
         host_b->at(i, 0) = 1.;
@@ -146,9 +145,9 @@ int main(int argc, char* argv[])
             .on(exec));
     // Create RestrictProlong factory
     auto mg_level_gen =
-        gko::share(pgm::build().with_deterministic(false).on(exec));
+        gko::share(pgm::build().with_deterministic(true).on(exec));
     auto mg_level_gen2 =
-        gko::share(pgm2::build().with_deterministic(false).on(exec));
+        gko::share(pgm2::build().with_deterministic(true).on(exec));
     // Create CoarsesSolver factory
     auto coarsest_solver_gen = gko::share(
         ir::build()
@@ -226,15 +225,6 @@ int main(int argc, char* argv[])
     write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r): \n";
     write(std::cout, lend(res));
-
-    // auto mg_level_list = solver->get_mg_level_list();
-    // auto smoother_list = solver->get_pre_smoother_list();
-    // // Check the MultigridLevel and smoother.
-    // // throw error if there is mismatch
-    // auto level0 = gko::as<pgm>(mg_level_list.at(0));
-    // auto level1 = gko::as<pgm2>(mg_level_list.at(1));
-    // auto smoother0 = gko::as<ir>(smoother_list.at(0));
-    // auto smoother1 = gko::as<ir2>(smoother_list.at(1));
 
     // Print solver statistics
     std::cout << "Multigrid iteration count:     "
