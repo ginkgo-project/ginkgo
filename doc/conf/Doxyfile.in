@@ -82,8 +82,7 @@ ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
 
 # Graph generation
-CLASS_DIAGRAMS         = YES
-CLASS_GRAPH            = NO
+CLASS_GRAPH            = YES
 COLLABORATION_GRAPH    = YES
 GROUP_GRAPHS           = YES
 GRAPHICAL_HIERARCHY    = YES

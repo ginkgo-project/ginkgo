@@ -24,7 +24,6 @@ LATEX_TIMESTAMP        = NO
 PREDEFINED = @default_predefined_macros@ protected=private
 
 # hide all unnecessary graphs
-CLASS_DIAGRAMS         = NO
 CLASS_GRAPH            = NO
 COLLABORATION_GRAPH    = NO
 GROUP_GRAPHS           = NO
