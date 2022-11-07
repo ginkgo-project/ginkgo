@@ -89,20 +89,18 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // const auto fileA = argc >= 3 ? argv[2] : "data/A.mtx";
-    const bool use_mixed = argc >= 4;
-    std::cout << "Use Mixed: " << use_mixed << std::endl;
+    const int mixed_int = argc >= 3 ? std::atoi(argv[2]) : 1;
+    const bool use_mixed = mixed_int != 0;  // nonzero uses mixed
+    std::cout << "Using mixed precision? " << use_mixed << std::endl;
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream(argv[2]), exec));
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    auto host_b =
-        share(gko::read<vec>(std::ifstream(argv[3]), exec->get_master()));
+    auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
-        // host_b->at(i, 0) = 1.;
+        host_b->at(i, 0) = 1.;
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
@@ -156,7 +154,7 @@ int main(int argc, char* argv[])
     auto mg_level_gen =
         gko::share(pgm::build().with_deterministic(true).on(exec));
     auto mg_level_gen_f =
-        gko::share(pgm_f::build().with_deterministic(false).on(exec));
+        gko::share(pgm_f::build().with_deterministic(true).on(exec));
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()
@@ -175,7 +173,6 @@ int main(int argc, char* argv[])
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     if (use_mixed) {
-        std::cout << "USE" << std::endl;
         multigrid_gen =
             mg::build()
                 .with_max_levels(10u)
@@ -185,7 +182,12 @@ int main(int argc, char* argv[])
                 .with_mg_level(mg_level_gen, mg_level_gen_f)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
-                    std::cout << "level " << level << std::endl;
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
                     return level >= 1 ? 1 : 0;
                 })
                 .with_coarsest_solver(coarsest_gen_f)
@@ -209,7 +211,6 @@ int main(int argc, char* argv[])
                     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
                 .on(exec);
     }
-    std::cout << "multigrid_gen " << multigrid_gen.get() << std::endl;
     // Create solver factory
     auto solver_gen = cg::build()
                           .with_criteria(iter_stop, tol_stop)

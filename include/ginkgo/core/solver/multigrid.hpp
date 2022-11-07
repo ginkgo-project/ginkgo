@@ -59,9 +59,6 @@ namespace gko {
 namespace solver {
 
 
-class Multigrid;
-
-
 /**
  * @brief The solver multigrid namespace.
  *
@@ -98,9 +95,14 @@ enum class cycle { v, f, w };
 enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
 
 
+namespace detail {
+
+
+// It should only be used internally
 class MultigridState;
 
 
+}  // namespace detail
 }  // namespace multigrid
 
 
@@ -469,31 +471,7 @@ protected:
     /**
      * validate checks the given parameters are valid or not.
      */
-    void validate()
-    {
-        const auto mg_level_len = parameters_.mg_level.size();
-        if (mg_level_len == 0) {
-            GKO_NOT_SUPPORTED(mg_level_len);
-        } else {
-            // each mg_level can not be nullptr
-            for (size_type i = 0; i < mg_level_len; i++) {
-                if (parameters_.mg_level.at(i) == nullptr) {
-                    GKO_NOT_SUPPORTED(parameters_.mg_level.at(i));
-                }
-            }
-        }
-        // verify pre-related parameters
-        this->verify_legal_length(true, parameters_.pre_smoother.size(),
-                                  mg_level_len);
-        // verify post-related parameters when post does not use pre
-        this->verify_legal_length(!parameters_.post_uses_pre,
-                                  parameters_.post_smoother.size(),
-                                  mg_level_len);
-        // verify mid-related parameters when mid is standalone smoother.
-        this->verify_legal_length(
-            parameters_.mid_case == multigrid::mid_smooth_type::standalone,
-            parameters_.mid_smoother.size(), mg_level_len);
-    }
+    void validate();
 
     /**
      * verify_legal_length is to check whether the given len is legal for
@@ -504,17 +482,7 @@ protected:
      * @param len  the length of input
      * @param ref_len  the length of reference
      */
-    void verify_legal_length(bool checked, size_type len, size_type ref_len)
-    {
-        if (checked) {
-            // len = 0 uses default behaviour
-            // len = 1 uses the first one
-            // len > 1 : must contain the same len as ref(mg_level)
-            if (len > 1 && len != ref_len) {
-                GKO_NOT_SUPPORTED(this);
-            }
-        }
-    }
+    void verify_legal_length(bool checked, size_type len, size_type ref_len);
 
     void create_state() const;
 
@@ -529,7 +497,7 @@ private:
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
 
     /**
-     * Manages three vectors as a cache, so there is no need to allocate them
+     * Manages MultigridState as a cache, so there is no need to allocate them
      * every time an intermediate vector is required. Copying an instance
      * will only yield an empty object since copying the cached vector would
      * not make sense.
@@ -551,7 +519,9 @@ private:
 
         cache_struct& operator=(cache_struct&&) { return *this; }
 
-        std::shared_ptr<multigrid::MultigridState> state;
+        // unique_ptr with default destructor does not work with the incomplete
+        // type.
+        std::shared_ptr<multigrid::detail::MultigridState> state{};
     } cache_;
 };
 

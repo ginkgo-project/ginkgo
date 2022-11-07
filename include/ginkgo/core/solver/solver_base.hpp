@@ -71,11 +71,13 @@ enum class initial_guess_mode {
 
 
 namespace multigrid {
+namespace detail {
 
 
 class MultigridState;
 
 
+}  // namespace detail
 }  // namespace multigrid
 
 
@@ -86,7 +88,7 @@ class MultigridState;
  */
 class ApplyWithInitialGuess {
 protected:
-    friend class multigrid::MultigridState;
+    friend class multigrid::detail::MultigridState;
 
     /**
      * Applies a linear operator to a vector (or a sequence of vectors) with
@@ -94,8 +96,8 @@ protected:
      *
      * Performs the operation x = op(b) with a initial guess statement, where op
      * is this linear operator and the initial guess parameter will modify the
-     * input vector to the requested the initial guess mode (See @enum
-     * initial_guess_mode) .
+     * input vector to the requested the initial guess mode (See
+     * initial_guess_mode).
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
@@ -108,7 +110,7 @@ protected:
      * Performs the operation x = alpha * op(b) + beta * x with a initial guess
      * statement, where op is this linear operator and the initial guess
      * parameter will modify the input vector to the requested the initial guess
-     * mode (See @enum initial_guess_mode) .
+     * mode (See initial_guess_mode) .
      *
      * @param alpha  scaling of the result of op(b)
      * @param b  vector(s) on which the operator is applied
@@ -165,7 +167,7 @@ private:
 template <typename DerivedType>
 class EnableApplyWithInitialGuess : public ApplyWithInitialGuess {
 protected:
-    friend class multigrid::MultigridState;
+    friend class multigrid::detail::MultigridState;
 
     explicit EnableApplyWithInitialGuess(
         initial_guess_mode guess = initial_guess_mode::provided)
