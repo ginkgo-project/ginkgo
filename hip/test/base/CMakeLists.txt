@@ -1,5 +1,5 @@
 ginkgo_create_hip_test(hip_executor)
-ginkgo_create_hip_test(index_set)
+ginkgo_create_test(index_set)
 ginkgo_create_test(hip_executor_reset ADDITIONAL_LIBRARIES Threads::Threads)
 if(GINKGO_HAVE_HWLOC)
     find_package(NUMA REQUIRED)
