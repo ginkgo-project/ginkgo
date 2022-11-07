@@ -172,7 +172,78 @@ void clear_and_reserve(Vec& vec, size_type size)
 
 
 namespace multigrid {
-namespace experimental {
+/**
+ * MultigridState is to store the necessary cache and run the operation of all
+ * levels.
+ *
+ * @note it should only be used internally
+ */
+struct MultigridState {
+    MultigridState() : nrhs{0} {}
+
+    /**
+     * Generate the cache for later usage.
+     *
+     * @param system_matrix_in  the system matrix
+     * @param multigrid_in  the multigrid information
+     * @param nrhs_in  the number of right hand side
+     */
+    void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
+                  const size_type nrhs_in);
+
+    /**
+     * allocate_memory is a helper function to allocate the memory of one level
+     *
+     * @tparam VT  the value type of memory
+     *
+     * @param level  the current level index
+     * @param cycle  the multigrid cycle
+     * @param current_nrows  the number of rows of current fine matrix
+     * @param next_nrows  the number of rows of next coarse matrix
+     */
+    template <typename VT>
+    void allocate_memory(int level, multigrid::cycle cycle,
+                         size_type current_nrows, size_type next_nrows);
+
+    /**
+     * run the cycle of the level
+     *
+     * @param cycle  the multigrid cycle
+     * @param level  the current level index
+     * @param matrix  the system matrix of current level
+     * @param b  the right hand side
+     * @param x  the input vectors
+     */
+    void run_cycle(multigrid::cycle cycle, size_type level,
+                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
+                   LinOp* x, bool x_is_zero = false, bool is_first = true,
+                   bool is_end = true);
+
+    /**
+     * @copydoc run_cycle
+     *
+     * @tparam VT  the value type
+     *
+     * @note it is the version with known ValueType
+     */
+    template <typename VT>
+    void run_cycle(multigrid::cycle cycle, size_type level,
+                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
+                   LinOp* x, bool x_is_zero, bool is_first, bool is_end);
+
+    // current level's nrows x nrhs
+    std::vector<std::shared_ptr<LinOp>> r_list;
+    // next level's nrows x nrhs
+    std::vector<std::shared_ptr<LinOp>> g_list;
+    std::vector<std::shared_ptr<LinOp>> e_list;
+    // constant 1 x 1
+    std::vector<std::shared_ptr<const LinOp>> one_list;
+    std::vector<std::shared_ptr<const LinOp>> next_one_list;
+    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
+    const LinOp* system_matrix;
+    const Multigrid* multigrid;
+    size_type nrhs;
+};
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
@@ -368,7 +439,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     }
 }
 
-}  // namespace experimental
+
 }  // namespace multigrid
 
 
@@ -533,8 +604,10 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
 {
     using ws = workspace_traits<Multigrid>;
     this->setup_workspace();
-    if (state.nrhs != b->get_size()[1]) {
-        state.generate(this->get_system_matrix().get(), this, b->get_size()[1]);
+    this->create_state();
+    if (cache_.state->nrhs != b->get_size()[1]) {
+        cache_.state->generate(this->get_system_matrix().get(), this,
+                               b->get_size()[1]);
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         using value_type = typename std::decay_t<
@@ -551,7 +624,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
         bool one_changed{};
         exec->run(multigrid::make_initialize(&stop_status));
         // compute the residual at the r_list(0);
-        // auto r = state.r_list.at(0);
+        // auto r = state->r_list.at(0);
         // r->copy_from(b)
         // system_matrix->apply(lend(neg_one_op), x, lend(one_op), r.get());
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -572,9 +645,9 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                 break;
             }
 
-            state.run_cycle(this->get_parameters().cycle, 0,
-                            this->get_system_matrix(), b, x,
-                            guess == initial_guess_mode::zero);
+            cache_.state->run_cycle(this->get_parameters().cycle, 0,
+                                    this->get_system_matrix(), b, x,
+                                    guess == initial_guess_mode::zero);
             // r->copy_from(b);
             // system_matrix->apply(lend(neg_one_op), x, lend(one_op),
             // r.get());
@@ -586,6 +659,14 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
     run<gko::multigrid::EnableMultigridLevel, float, double,
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);
+}
+
+
+void Multigrid::create_state() const
+{
+    if (cache_.state == nullptr) {
+        cache_.state = std::make_unique<multigrid::MultigridState>();
+    }
 }
 
 

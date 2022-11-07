@@ -98,82 +98,7 @@ enum class cycle { v, f, w };
 enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
 
 
-namespace experimental {
-
-
-/**
- * MultigridState is to store the necessary cache and run the operation of all
- * levels.
- *
- * @note it should only be used internally
- */
-struct MultigridState {
-    MultigridState() : nrhs{0} {}
-
-    /**
-     * Generate the cache for later usage.
-     *
-     * @param system_matrix_in  the system matrix
-     * @param multigrid_in  the multigrid information
-     * @param nrhs_in  the number of right hand side
-     */
-    void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
-                  const size_type nrhs_in);
-
-    /**
-     * allocate_memory is a helper function to allocate the memory of one level
-     *
-     * @tparam VT  the value type of memory
-     *
-     * @param level  the current level index
-     * @param cycle  the multigrid cycle
-     * @param current_nrows  the number of rows of current fine matrix
-     * @param next_nrows  the number of rows of next coarse matrix
-     */
-    template <typename VT>
-    void allocate_memory(int level, multigrid::cycle cycle,
-                         size_type current_nrows, size_type next_nrows);
-
-    /**
-     * run the cycle of the level
-     *
-     * @param cycle  the multigrid cycle
-     * @param level  the current level index
-     * @param matrix  the system matrix of current level
-     * @param b  the right hand side
-     * @param x  the input vectors
-     */
-    void run_cycle(multigrid::cycle cycle, size_type level,
-                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
-                   LinOp* x, bool x_is_zero = false, bool is_first = true,
-                   bool is_end = true);
-
-    /**
-     * @copydoc run_cycle
-     *
-     * @tparam VT  the value type
-     *
-     * @note it is the version with known ValueType
-     */
-    template <typename VT>
-    void run_cycle(multigrid::cycle cycle, size_type level,
-                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
-                   LinOp* x, bool x_is_zero, bool is_first, bool is_end);
-
-    // current level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> r_list;
-    // next level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> g_list;
-    std::vector<std::shared_ptr<LinOp>> e_list;
-    // constant 1 x 1
-    std::vector<std::shared_ptr<const LinOp>> one_list;
-    std::vector<std::shared_ptr<const LinOp>> next_one_list;
-    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
-    const LinOp* system_matrix;
-    const Multigrid* multigrid;
-    size_type nrhs;
-};
-}  // namespace experimental
+class MultigridState;
 
 
 }  // namespace multigrid
@@ -591,6 +516,8 @@ protected:
         }
     }
 
+    void create_state() const;
+
 private:
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
@@ -600,7 +527,32 @@ private:
     std::shared_ptr<const LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
-    mutable multigrid::experimental::MultigridState state;
+
+    /**
+     * Manages three vectors as a cache, so there is no need to allocate them
+     * every time an intermediate vector is required. Copying an instance
+     * will only yield an empty object since copying the cached vector would
+     * not make sense.
+     *
+     * @internal  The struct is present so the whole class can be copyable
+     *            (could also be done with writing `operator=` and copy
+     *            constructor of the enclosing class by hand)
+     */
+    mutable struct cache_struct {
+        cache_struct() = default;
+
+        ~cache_struct() = default;
+
+        cache_struct(const cache_struct&) {}
+
+        cache_struct(cache_struct&&) {}
+
+        cache_struct& operator=(const cache_struct&) { return *this; }
+
+        cache_struct& operator=(cache_struct&&) { return *this; }
+
+        std::shared_ptr<multigrid::MultigridState> state;
+    } cache_;
 };
 
 template <>
