@@ -248,7 +248,6 @@ int main(int argc, char* argv[])
             .with_max_levels(1u)
             .with_mg_level(coarse_gen_fac)
             .with_coarsest_solver(mg_coarsest_solver)
-            .with_zero_guess(true)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
