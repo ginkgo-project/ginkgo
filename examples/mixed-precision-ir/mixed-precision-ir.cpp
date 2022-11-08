@@ -86,8 +86,8 @@ int main(int argc, char* argv[])
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 

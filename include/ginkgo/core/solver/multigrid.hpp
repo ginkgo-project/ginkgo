@@ -44,17 +44,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
 namespace solver {
+
+
 /**
  * @brief The solver multigrid namespace.
  *
@@ -65,16 +69,14 @@ namespace multigrid {
 
 /**
  * cycle defines which kind of multigrid cycle can be used.
- * It contains V, W, F, and K (KFCG/KGCR) cycle.
+ * It contains V, W, and F cycle.
  * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
  *   multigrid tutorial 2nd Edition.
  * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
  *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
  *   second uses the V-cycle call such that F-cycle is between V and W cycle.
- * - K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
- *   An aggregation-based algebraic multigrid method
  */
-enum class cycle { v, f, w, kfcg, kgcr };
+enum class cycle { v, f, w };
 
 
 /**
@@ -93,6 +95,14 @@ enum class cycle { v, f, w, kfcg, kgcr };
 enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
 
 
+namespace detail {
+
+
+// It should only be used internally
+class MultigridState;
+
+
+}  // namespace detail
 }  // namespace multigrid
 
 
@@ -119,9 +129,13 @@ enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid> {
+class Multigrid : public EnableLinOp<Multigrid>,
+                  public EnableSolverBase<Multigrid>,
+                  public EnableIterativeBase<Multigrid>,
+                  public EnableApplyWithInitialGuess<Multigrid> {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
+    friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:
     /**
@@ -132,39 +146,8 @@ public:
      */
     bool apply_uses_initial_guess() const override
     {
-        return !parameters_.zero_guess;
-    }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
-
-    /**
-     * Gets the system operator of the linear system.
-     *
-     * @return the system operator
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
+        return this->get_default_initial_guess() ==
+               initial_guess_mode::provided;
     }
 
     /**
@@ -315,12 +298,12 @@ public:
         /**
          * Choose the behavior of mid smoother between two cycles close to each
          * other in the same level. The default is
-         * multigrid::mid_smooth_type::both.
+         * multigrid::mid_smooth_type::standalone.
          *
          * @see enum multigrid::mid_smooth_type
          */
         multigrid::mid_smooth_type GKO_FACTORY_PARAMETER_SCALAR(
-            mid_case, multigrid::mid_smooth_type::both);
+            mid_case, multigrid::mid_smooth_type::standalone);
 
         /**
          * The maximum number of mg_level (without coarsest solver level) that
@@ -409,11 +392,11 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
 
         /**
-         * zero_guess is to set the initial guess as zero or not. If it's true,
-         * the initial guess will always be zeros. Otherwise, it will use given
-         * input as initial guess.
+         * Default initial guess mode. The available options are under
+         * initial_guess_mode.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(zero_guess, false);
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            default_initial_guess, initial_guess_mode::provided);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -423,6 +406,17 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          initial_guess_mode guess) const;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -438,13 +432,11 @@ protected:
                        std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          EnableSolverBase<Multigrid>{std::move(system_matrix)},
+          EnableIterativeBase<Multigrid>{
+              stop::combine(factory->get_parameters().criteria)},
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
         if (!parameters_.level_selector) {
             if (parameters_.mg_level.size() == 1) {
                 level_selector_ = [](const size_type, const LinOp*) {
@@ -469,8 +461,8 @@ protected:
         }
 
         this->validate();
-
-        if (system_matrix_->get_size()[0] != 0) {
+        this->set_default_initial_guess(parameters_.default_initial_guess);
+        if (this->get_system_matrix()->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();
         }
@@ -479,31 +471,7 @@ protected:
     /**
      * validate checks the given parameters are valid or not.
      */
-    void validate()
-    {
-        const auto mg_level_len = parameters_.mg_level.size();
-        if (mg_level_len == 0) {
-            GKO_NOT_SUPPORTED(mg_level_len);
-        } else {
-            // each mg_level can not be nullptr
-            for (size_type i = 0; i < mg_level_len; i++) {
-                if (parameters_.mg_level.at(i) == nullptr) {
-                    GKO_NOT_SUPPORTED(parameters_.mg_level.at(i));
-                }
-            }
-        }
-        // verify pre-related parameters
-        this->verify_legal_length(true, parameters_.pre_smoother.size(),
-                                  mg_level_len);
-        // verify post-related parameters when post does not use pre
-        this->verify_legal_length(!parameters_.post_uses_pre,
-                                  parameters_.post_smoother.size(),
-                                  mg_level_len);
-        // verify mid-related parameters when mid is standalone smoother.
-        this->verify_legal_length(
-            parameters_.mid_case == multigrid::mid_smooth_type::standalone,
-            parameters_.mid_smoother.size(), mg_level_len);
-    }
+    void validate();
 
     /**
      * verify_legal_length is to check whether the given len is legal for
@@ -514,21 +482,11 @@ protected:
      * @param len  the length of input
      * @param ref_len  the length of reference
      */
-    void verify_legal_length(bool checked, size_type len, size_type ref_len)
-    {
-        if (checked) {
-            // len = 0 uses default behaviour
-            // len = 1 uses the first one
-            // len > 1 : must contain the same len as ref(mg_level)
-            if (len > 1 && len != ref_len) {
-                GKO_NOT_SUPPORTED(this);
-            }
-        }
-    }
+    void verify_legal_length(bool checked, size_type len, size_type ref_len);
+
+    void create_state() const;
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
     std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};
@@ -537,6 +495,54 @@ private:
     std::shared_ptr<const LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
+
+    /**
+     * Manages MultigridState as a cache, so there is no need to allocate them
+     * every time an intermediate vector is required. Copying an instance
+     * will only yield an empty object since copying the cached vector would
+     * not make sense.
+     *
+     * @internal  The struct is present so the whole class can be copyable
+     *            (could also be done with writing `operator=` and copy
+     *            constructor of the enclosing class by hand)
+     */
+    mutable struct cache_struct {
+        cache_struct() = default;
+
+        ~cache_struct() = default;
+
+        cache_struct(const cache_struct&) {}
+
+        cache_struct(cache_struct&&) {}
+
+        cache_struct& operator=(const cache_struct&) { return *this; }
+
+        cache_struct& operator=(cache_struct&&) { return *this; }
+
+        // unique_ptr with default destructor does not work with the incomplete
+        // type.
+        std::shared_ptr<multigrid::detail::MultigridState> state{};
+    } cache_;
+};
+
+template <>
+struct workspace_traits<Multigrid> {
+    using Solver = Multigrid;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // stopping status array
+    constexpr static int stop = 0;
 };
 
 
