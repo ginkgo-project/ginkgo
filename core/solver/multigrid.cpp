@@ -312,8 +312,8 @@ void MultigridState::generate(const LinOp* system_matrix_in,
             mg_level,
             [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
                       auto next_nrows) {
-                using value_type = typename std::decay_t<
-                    gko::detail::pointee<decltype(mg_level)>>::value_type;
+                using value_type =
+                    typename std::decay_t<decltype(*mg_level)>::value_type;
                 using vec = matrix::Dense<value_type>;
                 this->allocate_memory<value_type>(i, cycle, current_nrows,
                                                   next_nrows);
@@ -367,8 +367,8 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
     run<gko::multigrid::EnableMultigridLevel, float, double,
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
-            using value_type = typename std::decay_t<
-                gko::detail::pointee<decltype(mg_level)>>::value_type;
+            using value_type =
+                typename std::decay_t<decltype(*mg_level)>::value_type;
             this->run_cycle<value_type>(cycle, level, matrix, b, x, mode);
         });
 }
@@ -513,8 +513,8 @@ void Multigrid::generate()
             std::complex<float>, std::complex<double>>(
             mg_level,
             [this](auto mg_level, auto index, auto matrix) {
-                using value_type = typename std::decay_t<
-                    gko::detail::pointee<decltype(mg_level)>>::value_type;
+                using value_type =
+                    typename std::decay_t<decltype(*mg_level)>::value_type;
                 handle_list<value_type>(
                     index, matrix, parameters_.pre_smoother, pre_smoother_list_,
                     parameters_.smoother_iters, parameters_.smoother_relax);
@@ -551,8 +551,8 @@ void Multigrid::generate()
         std::complex<float>, std::complex<double>>(
         last_mg_level,
         [this](auto mg_level, auto level, auto matrix) {
-            using value_type = typename std::decay_t<
-                gko::detail::pointee<decltype(mg_level)>>::value_type;
+            using value_type =
+                typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
             if (parameters_.coarsest_solver.size() == 0) {
                 coarsest_solver_ = matrix::Identity<value_type>::create(
@@ -588,8 +588,8 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
     }
 
     auto lambda = [this, guess](auto mg_level, auto b, auto x) {
-        using value_type = typename std::decay_t<
-            gko::detail::pointee<decltype(mg_level)>>::value_type;
+        using value_type =
+            typename std::decay_t<decltype(*mg_level)>::value_type;
         experimental::precision_dispatch_real_complex_distributed<value_type>(
             [this, guess](auto dense_b, auto dense_x) {
                 prepare_initial_guess(dense_b, dense_x, guess);
@@ -623,8 +623,8 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
 
     auto lambda = [this, guess](auto mg_level, auto alpha, auto b, auto beta,
                                 auto x) {
-        using value_type = typename std::decay_t<
-            gko::detail::pointee<decltype(mg_level)>>::value_type;
+        using value_type =
+            typename std::decay_t<decltype(*mg_level)>::value_type;
         experimental::precision_dispatch_real_complex_distributed<value_type>(
             [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
                           auto dense_x) {
@@ -655,8 +655,8 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                b->get_size()[1]);
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
-        using value_type = typename std::decay_t<
-            gko::detail::pointee<decltype(mg_level)>>::value_type;
+        using value_type =
+            typename std::decay_t<decltype(*mg_level)>::value_type;
         auto exec = this->get_executor();
         auto neg_one_op = cache_.state->neg_one_list.at(0);
         auto one_op = cache_.state->one_list.at(0);
