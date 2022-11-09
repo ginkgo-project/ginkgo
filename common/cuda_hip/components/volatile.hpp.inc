@@ -32,8 +32,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__
-    std::enable_if_t<!is_complex_s<ValueType>::value, ValueType>
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
     load(const ValueType* values, IndexType index)
+{
+    const volatile ValueType* val = values + index;
+    return *val;
+}
+
+template <typename ValueType>
+__device__ __forceinline__
+    std::enable_if_t<std::is_integral<ValueType>::value, ValueType>
+    load(const ValueType* values, int index)
 {
     const volatile ValueType* val = values + index;
     return *val;
@@ -50,9 +59,18 @@ load(const thrust::complex<ValueType>* values, IndexType index)
 }
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__
-    std::enable_if_t<!is_complex_s<ValueType>::value, void>
-    store(ValueType* values, IndexType index, ValueType value)
+__device__ __forceinline__ void store(
+    ValueType* values, IndexType index,
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
+{
+    volatile ValueType* val = values + index;
+    *val = value;
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void store(
+    ValueType* values, int index,
+    std::enable_if_t<std::is_integral<ValueType>::value, ValueType> value)
 {
     volatile ValueType* val = values + index;
     *val = value;
