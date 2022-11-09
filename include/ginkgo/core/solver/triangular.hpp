@@ -55,16 +55,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
-
-struct SolveStruct;
-
+enum class trisolve_type {
+    sparselib,
+    syncfree,
+    thinned,
+    block,
+    winv,
+    wvar,
+    level
+};
 
 /**
  * A helper for algorithm selection in the triangular solvers.
- * It currently only matters for the Cuda executor as there,
- * we have a choice between the Ginkgo syncfree and cuSPARSE implementations.
+ * It currently only matters for the Cuda executor,
+ * as we only there have different options.
  */
-enum class trisolve_algorithm { sparselib, syncfree };
+struct trisolve_strategy {
+    trisolve_type type;
+    uint8 thinned_m;
+    std::shared_ptr<std::vector<std::shared_ptr<trisolve_strategy>>>
+        block_inner;
+
+    trisolve_strategy(trisolve_type type) : type{type} {}
+    trisolve_strategy(trisolve_type type, uint8 thinned_m)
+        : type{type}, thinned_m{thinned_m}
+    {}
+    trisolve_strategy(
+        trisolve_type type,
+        std::shared_ptr<std::vector<std::shared_ptr<trisolve_strategy>>>
+            block_inner)
+        : type{type}, block_inner{block_inner}
+    {}
+
+    static std::shared_ptr<trisolve_strategy> sparselib()
+    {
+        return std::make_shared<trisolve_strategy>(trisolve_type::sparselib);
+    }
+    static std::shared_ptr<trisolve_strategy> syncfree()
+    {
+        return std::make_shared<trisolve_strategy>(trisolve_type::syncfree);
+    }
+};
+
+
+struct SolveStruct {
+    virtual ~SolveStruct() = default;
+
+    template <typename ValueType, typename IndexType>
+    void solve(std::shared_ptr<const CudaExecutor> exec,
+               const matrix::Csr<ValueType, IndexType>* matrix,
+               matrix::Dense<ValueType>* trans_b,
+               matrix::Dense<ValueType>* trans_x,
+               const matrix::Dense<ValueType>* b,
+               matrix::Dense<ValueType>* x) const;
+
+    template <typename ValueType, typename IndexType>
+    static void generate(std::shared_ptr<const CudaExecutor> exec,
+                         const matrix::Csr<ValueType, IndexType>* matrix,
+                         std::shared_ptr<solver::SolveStruct>& solve_struct,
+                         const gko::size_type num_rhs,
+                         const trisolve_strategy* strategy, bool is_upper,
+                         bool unit_diag);
+};
 
 
 template <typename ValueType, typename IndexType>
@@ -112,7 +164,7 @@ public:
          * Number of right hand sides.
          *
          * @note This value is currently only required for the CUDA
-         *       trisolve_algorithm::sparselib algorithm.
+         *       trisolve_strategy::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
@@ -128,8 +180,8 @@ public:
          * executor where the choice is between the Ginkgo (syncfree) and the
          * cuSPARSE (sparselib) implementation. Default is sparselib.
          */
-        trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            algorithm, trisolve_algorithm::sparselib);
+        std::shared_ptr<trisolve_strategy> GKO_FACTORY_PARAMETER_VECTOR(
+            strategy, trisolve_strategy::sparselib());
     };
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -262,7 +314,7 @@ public:
          * Number of right hand sides.
          *
          * @note This value is currently only required for the CUDA
-         *       trisolve_algorithm::sparselib algorithm.
+         *       trisolve_strategy::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
@@ -278,8 +330,8 @@ public:
          * executor where the choice is between the Ginkgo (syncfree) and the
          * cuSPARSE (sparselib) implementation. Default is sparselib.
          */
-        trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            algorithm, trisolve_algorithm::sparselib);
+        std::shared_ptr<trisolve_strategy> GKO_FACTORY_PARAMETER_VECTOR(
+            strategy, trisolve_strategy::sparselib());
     };
     GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

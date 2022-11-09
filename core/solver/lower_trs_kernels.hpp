@@ -56,11 +56,11 @@ namespace lower_trs {
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)                 \
-    void generate(std::shared_ptr<const DefaultExecutor> exec,                \
-                  const matrix::Csr<_vtype, _itype>* matrix,                  \
-                  std::shared_ptr<solver::SolveStruct>& solve_struct,         \
-                  bool unit_diag, const solver::trisolve_algorithm algorithm, \
+#define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)                \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,               \
+                  const matrix::Csr<_vtype, _itype>* matrix,                 \
+                  std::shared_ptr<solver::SolveStruct>& solve_struct,        \
+                  bool unit_diag, const solver::trisolve_strategy* strategy, \
                   const size_type num_rhs)
 
 
@@ -68,7 +68,6 @@ namespace lower_trs {
     void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
                const matrix::Csr<_vtype, _itype>* matrix,                      \
                const solver::SolveStruct* solve_struct, bool unit_diag,        \
-               const solver::trisolve_algorithm algorithm,                     \
                matrix::Dense<_vtype>* trans_b, matrix::Dense<_vtype>* trans_x, \
                const matrix::Dense<_vtype>* b, matrix::Dense<_vtype>* x)
 

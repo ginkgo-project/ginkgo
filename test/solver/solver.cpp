@@ -298,7 +298,7 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
         std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_strategy(gko::solver::trisolve_strategy::sparselib())
             .with_num_rhs(num_rhs);
     }
 
@@ -348,7 +348,7 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
         std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_strategy(gko::solver::trisolve_strategy::sparselib())
             .with_num_rhs(num_rhs);
     }
 
@@ -379,7 +379,7 @@ struct LowerTrsUnitdiag : LowerTrs {
         std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_strategy(gko::solver::trisolve_strategy::sparselib())
             .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
@@ -391,7 +391,7 @@ struct UpperTrsUnitdiag : UpperTrs {
         std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_strategy(gko::solver::trisolve_strategy::sparselib())
             .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
@@ -405,8 +405,8 @@ struct LowerTrsSyncfree : LowerTrs {
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build().with_algorithm(
-            gko::solver::trisolve_algorithm::syncfree);
+        return solver_type::build().with_strategy(
+            gko::solver::trisolve_strategy::syncfree());
     }
 };
 
@@ -418,8 +418,8 @@ struct UpperTrsSyncfree : UpperTrs {
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build().with_algorithm(
-            gko::solver::trisolve_algorithm::syncfree);
+        return solver_type::build().with_strategy(
+            gko::solver::trisolve_strategy::syncfree());
     }
 };
 
@@ -432,7 +432,7 @@ struct LowerTrsSyncfreeUnitdiag : LowerTrs {
         gko::size_type iteration_count)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .with_unit_diagonal(true);
     }
 };
@@ -446,7 +446,7 @@ struct UpperTrsSyncfreeUnitdiag : UpperTrs {
         gko::size_type iteration_count)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .with_unit_diagonal(true);
     }
 };
