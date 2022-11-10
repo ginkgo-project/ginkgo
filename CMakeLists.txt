@@ -116,6 +116,13 @@ if(MINGW OR CYGWIN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
 
+# For now, PGI/NVHPC nvc++ compiler doesn't seem to support
+# `#pragma omp declare reduction`
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
+    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
+    set(GINKGO_BUILD_OMP OFF)
+endif()
+
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 # Use ccache as compilation launcher
