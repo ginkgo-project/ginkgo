@@ -76,6 +76,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
         }
 #pragma omp barrier
         // exclusive prefix sum over local sizes
+        // FIXME: PGI/NVHPC(22.7) doesn't like reduction with references
 #pragma omp for reduction(+ : num_empty_parts)
         for (comm_index_type part = 0; part < num_parts; ++part) {
             LocalIndexType size{};
