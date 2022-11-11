@@ -21,9 +21,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
-option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
+option(GINKGO_BUILD_TESTS "Generate build files for unit tests" OFF)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
-option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
+option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" OFF)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
@@ -81,7 +81,7 @@ set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
-option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" OFF)
 if(MSVC OR WIN32 OR CYGWIN OR APPLE)
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
 else()

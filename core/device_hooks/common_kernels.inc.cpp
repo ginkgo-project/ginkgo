@@ -76,6 +76,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+#include "core/solver/gcr_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -437,6 +438,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 
 }  // namespace cgs
 
+namespace gcr {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);
+
+
+}  // namespace gcr
 
 namespace common_gmres {
 
