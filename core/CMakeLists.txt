@@ -62,6 +62,7 @@ target_sources(ginkgo
     solver/cgs.cpp
     solver/direct.cpp
     solver/fcg.cpp
+    solver/gcr.cpp
     solver/gmres.cpp
     solver/idr.cpp
     solver/ir.cpp

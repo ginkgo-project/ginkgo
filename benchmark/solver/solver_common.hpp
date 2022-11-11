@@ -71,8 +71,11 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+DEFINE_uint32(gcr_restart, 100,
+              "Maximum dimension of the Krylov space to use in GCR");
+
 DEFINE_uint32(gmres_restart, 100,
-              "What maximum dimension of the Krylov space to use in GMRES");
+              "Maximum dimension of the Krylov space to use in GMRES");
 
 DEFINE_uint32(idr_subspace_dim, 2,
               "What dimension of the subspace to use in IDR");
