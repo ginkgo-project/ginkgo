@@ -13,14 +13,14 @@ The Ginkgo team is proud to announce the new Ginkgo minor release 1.5.0. This re
 - MPI-based multi-node support for all matrix formats and most solvers;
 - full DPC++/SYCL support,
 - functionality and interface for GPU-resident sparse direct solvers,
-- a ScaleReordered interface,
-- a new algebraic Multigrid solver,
+- an interface for wrapping solvers with scaling and reordering applied,
+- a new algebraic Multigrid solver/preconditioner,
 - improved mixed-precision support,
 - support for device matrix assembly,
 
 and much more.
 
-If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not find a solution [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose).
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
 
 Supported systems and requirements:
 + For all platforms, CMake 3.13+
@@ -43,30 +43,30 @@ Supported systems and requirements:
 
 
 Algorithm and important feature additions:
-+ Add MPI-based multi-node support, with all matrix formats and all solvers but GMRES and IDR supported. ([#676](https://github.com/ginkgo-project/ginkgo/pull/676), [#908](https://github.com/ginkgo-project/ginkgo/pull/908), [#909](https://github.com/ginkgo-project/ginkgo/pull/909), [#932](https://github.com/ginkgo-project/ginkgo/pull/932), [#951](https://github.com/ginkgo-project/ginkgo/pull/951), [#961](https://github.com/ginkgo-project/ginkgo/pull/961), [#971](https://github.com/ginkgo-project/ginkgo/pull/971), [#976](https://github.com/ginkgo-project/ginkgo/pull/976), [#985](https://github.com/ginkgo-project/ginkgo/pull/985), [#1007](https://github.com/ginkgo-project/ginkgo/pull/1007), [#1030](https://github.com/ginkgo-project/ginkgo/pull/1030), [#1054](https://github.com/ginkgo-project/ginkgo/pull/1054), [#1100](https://github.com/ginkgo-project/ginkgo/pull/1100), [#1148](https://github.com/ginkgo-project/ginkgo/pull/1148))
-+ Porting the remaining algorithms (preconditioners like ISAI, Jacobi, Multigrid, ParILU(T) and ParIC(T)) to DPC++/SYCL, update to SYCL 2020, and improve support and performance ([#896](https://github.com/ginkgo-project/ginkgo/pull/896), [#924](https://github.com/ginkgo-project/ginkgo/pull/924), [#928](https://github.com/ginkgo-project/ginkgo/pull/928), [#929](https://github.com/ginkgo-project/ginkgo/pull/929), [#933](https://github.com/ginkgo-project/ginkgo/pull/933), [#943](https://github.com/ginkgo-project/ginkgo/pull/943), [#960](https://github.com/ginkgo-project/ginkgo/pull/960), [#1057](https://github.com/ginkgo-project/ginkgo/pull/1057), [#1110](https://github.com/ginkgo-project/ginkgo/pull/1110),  [#1142](https://github.com/ginkgo-project/ginkgo/pull/1142)).
++ Add MPI-based multi-node for all matrix formats and solvers (except GMRES and IDR). ([#676](https://github.com/ginkgo-project/ginkgo/pull/676), [#908](https://github.com/ginkgo-project/ginkgo/pull/908), [#909](https://github.com/ginkgo-project/ginkgo/pull/909), [#932](https://github.com/ginkgo-project/ginkgo/pull/932), [#951](https://github.com/ginkgo-project/ginkgo/pull/951), [#961](https://github.com/ginkgo-project/ginkgo/pull/961), [#971](https://github.com/ginkgo-project/ginkgo/pull/971), [#976](https://github.com/ginkgo-project/ginkgo/pull/976), [#985](https://github.com/ginkgo-project/ginkgo/pull/985), [#1007](https://github.com/ginkgo-project/ginkgo/pull/1007), [#1030](https://github.com/ginkgo-project/ginkgo/pull/1030), [#1054](https://github.com/ginkgo-project/ginkgo/pull/1054), [#1100](https://github.com/ginkgo-project/ginkgo/pull/1100), [#1148](https://github.com/ginkgo-project/ginkgo/pull/1148))
++ Porting the remaining algorithms (preconditioners like ISAI, Jacobi, Multigrid, ParILU(T) and ParIC(T)) to DPC++/SYCL, update to SYCL 2020, and improve support and performance ([#896](https://github.com/ginkgo-project/ginkgo/pull/896), [#924](https://github.com/ginkgo-project/ginkgo/pull/924), [#928](https://github.com/ginkgo-project/ginkgo/pull/928), [#929](https://github.com/ginkgo-project/ginkgo/pull/929), [#933](https://github.com/ginkgo-project/ginkgo/pull/933), [#943](https://github.com/ginkgo-project/ginkgo/pull/943), [#960](https://github.com/ginkgo-project/ginkgo/pull/960), [#1057](https://github.com/ginkgo-project/ginkgo/pull/1057), [#1110](https://github.com/ginkgo-project/ginkgo/pull/1110),  [#1142](https://github.com/ginkgo-project/ginkgo/pull/1142))
 + Add a Sparse Direct interface supporting GPU-resident numerical LU factorization, symbolic Cholesky factorization, improved triangular solvers, and more ([#957](https://github.com/ginkgo-project/ginkgo/pull/957), [#1058](https://github.com/ginkgo-project/ginkgo/pull/1058), [#1072](https://github.com/ginkgo-project/ginkgo/pull/1072), [#1082](https://github.com/ginkgo-project/ginkgo/pull/1082))
-+ Add a ScaleReordered interface for reorderings ([#1059](https://github.com/ginkgo-project/ginkgo/pull/1059))
-+ Add a Multigrid solver and improve the Pgm coarsening scheme ([#542](https://github.com/ginkgo-project/ginkgo/pull/542), [#913](https://github.com/ginkgo-project/ginkgo/pull/913), [#980](https://github.com/ginkgo-project/ginkgo/pull/980), [#982](https://github.com/ginkgo-project/ginkgo/pull/982),  [#986](https://github.com/ginkgo-project/ginkgo/pull/986))
-+ Add infrastructure for unified, lambda-based kernels and use it for simple or non-performance critical kernels ([#833](https://github.com/ginkgo-project/ginkgo/pull/833), [#910](https://github.com/ginkgo-project/ginkgo/pull/910), [#926](https://github.com/ginkgo-project/ginkgo/pull/926))
++ Add a ScaleReordered interface that can wrap solvers and automatically apply reorderings and scalings ([#1059](https://github.com/ginkgo-project/ginkgo/pull/1059))
++ Add a Multigrid solver and improve the aggregation based PGM coarsening scheme ([#542](https://github.com/ginkgo-project/ginkgo/pull/542), [#913](https://github.com/ginkgo-project/ginkgo/pull/913), [#980](https://github.com/ginkgo-project/ginkgo/pull/980), [#982](https://github.com/ginkgo-project/ginkgo/pull/982),  [#986](https://github.com/ginkgo-project/ginkgo/pull/986))
++ Add infrastructure for unified, lambda-based, backend agnostic, kernels and utilize it for some simple kernels ([#833](https://github.com/ginkgo-project/ginkgo/pull/833), [#910](https://github.com/ginkgo-project/ginkgo/pull/910), [#926](https://github.com/ginkgo-project/ginkgo/pull/926))
 + Merge different CUDA, HIP, DPC++ and OpenMP tests under a common interface ([#904](https://github.com/ginkgo-project/ginkgo/pull/904), [#973](https://github.com/ginkgo-project/ginkgo/pull/973), [#1044](https://github.com/ginkgo-project/ginkgo/pull/1044), [#1117](https://github.com/ginkgo-project/ginkgo/pull/1117))
-+ Adds a device_matrix_data type for device-side matrix assembly ([#886](https://github.com/ginkgo-project/ginkgo/pull/886), [#963](https://github.com/ginkgo-project/ginkgo/pull/963), [#965](https://github.com/ginkgo-project/ginkgo/pull/965))
++ Add a device_matrix_data type for device-side matrix assembly ([#886](https://github.com/ginkgo-project/ginkgo/pull/886), [#963](https://github.com/ginkgo-project/ginkgo/pull/963), [#965](https://github.com/ginkgo-project/ginkgo/pull/965))
 + Add support for mixed real/complex BLAS operations ([#864](https://github.com/ginkgo-project/ginkgo/pull/864))
-+ Add an FFT LinOp for all but DPC++/SYCL ([#701](https://github.com/ginkgo-project/ginkgo/pull/701))
++ Add a FFT LinOp for all but DPC++/SYCL ([#701](https://github.com/ginkgo-project/ginkgo/pull/701))
 + Add FBCSR support for NVIDIA and AMD GPUs and CPUs with OpenMP ([#775](https://github.com/ginkgo-project/ginkgo/pull/775))
 + Add CSR scaling ([#848](https://github.com/ginkgo-project/ginkgo/pull/848))
 + Add array::const_view and equivalent to create constant matrices from non-const data ([#890](https://github.com/ginkgo-project/ginkgo/pull/890))
 + Add a RowGatherer LinOp supporting mixed precision to gather dense matrix rows ([#901](https://github.com/ginkgo-project/ginkgo/pull/901))
 + Add mixed precision SparsityCsr SpMV support ([#970](https://github.com/ginkgo-project/ginkgo/pull/970))
 + Allow creating CSR submatrix including from (possibly discontinuous) index sets ([#885](https://github.com/ginkgo-project/ginkgo/pull/885), [#964](https://github.com/ginkgo-project/ginkgo/pull/964))
-+ Add a scaled identity (M <- aI + bM) feature interface and impls for Csr and Dense ([#942](https://github.com/ginkgo-project/ginkgo/pull/942))
++ Add a scaled identity addition (M <- aI + bM) feature interface and impls for Csr and Dense ([#942](https://github.com/ginkgo-project/ginkgo/pull/942))
 
 
 Deprecations and important changes:
-+ Deprecate AmgxPgm and prefer the new Pgm name ([#1149](https://github.com/ginkgo-project/ginkgo/pull/1149)).
++ Deprecate AmgxPgm in favor of the new Pgm name. ([#1149](https://github.com/ginkgo-project/ginkgo/pull/1149)).
 + Deprecate specialized residual norm classes in favor of a common `ResidualNorm` class ([#1101](https://github.com/ginkgo-project/ginkgo/pull/1101))
 + Deprecate CamelCase non-polymorphic types in favor of snake_case versions (like array, machine_topology, uninitialized_array, index_set) ([#1031](https://github.com/ginkgo-project/ginkgo/pull/1031), [#1052](https://github.com/ginkgo-project/ginkgo/pull/1052))
-+ Bug fix: restrict gko::share to rvalue references (possible interface break) ([#1020](https://github.com/ginkgo-project/ginkgo/pull/1020))
++ Bug fix: restrict gko::share to rvalue references (*possible interface break*) ([#1020](https://github.com/ginkgo-project/ginkgo/pull/1020))
 + Bug fix: when using cuSPARSE's triangular solvers, specifying the factory parameter `num_rhs` is now required when solving for more than one right-hand side, otherwise an exception is thrown ([#1184](https://github.com/ginkgo-project/ginkgo/pull/1184)).
 + Drop official support for old CUDA < 9.2 ([#887](https://github.com/ginkgo-project/ginkgo/pull/887))
 
@@ -105,23 +105,23 @@ Other additions:
 + Improvements to the generic accessor for mixed-precision ([#727](https://github.com/ginkgo-project/ginkgo/pull/727))
 + Add a naive lower triangular solver implementation for CUDA ([#764](https://github.com/ginkgo-project/ginkgo/pull/764))
 + Add support for int64 indices from CUDA 11 onward with SpMV and SpGEMM ([#897](https://github.com/ginkgo-project/ginkgo/pull/897))
-+ Add an L1 norm implementation ([#900](https://github.com/ginkgo-project/ginkgo/pull/900))
++ Add a L1 norm implementation ([#900](https://github.com/ginkgo-project/ginkgo/pull/900))
 + Add reduce_add for arrays ([#831](https://github.com/ginkgo-project/ginkgo/pull/831))
-+ Utility to simplify Dense View creation from an existing Dense vector ([#1136](https://github.com/ginkgo-project/ginkgo/pull/1136)).
-+ Adds a custom transpose implementation for Fbcsr and Csr transpose for vendor-unsupported types. ([#1123](https://github.com/ginkgo-project/ginkgo/pull/1123))
-+ Deterministic IDR random init ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
-+ Moves the algorithm choice for triangular solvers from Csr::strategy_type to a factory parameter. ([#1088](https://github.com/ginkgo-project/ginkgo/pull/1088))
++ Add utility to simplify Dense View creation from an existing Dense vector ([#1136](https://github.com/ginkgo-project/ginkgo/pull/1136)).
++ Add a custom transpose implementation for Fbcsr and Csr transpose for unsupported vendor types ([#1123](https://github.com/ginkgo-project/ginkgo/pull/1123))
++ Make IDR random initilization deterministic ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
++ Move the algorithm choice for triangular solvers from Csr::strategy_type to a factory parameter ([#1088](https://github.com/ginkgo-project/ginkgo/pull/1088))
 + Update CUDA archCoresPerSM ([#1175](https://github.com/ginkgo-project/ginkgo/pull/1116))
 + Add kernels for Csr sparsity pattern lookup ([#994](https://github.com/ginkgo-project/ginkgo/pull/994))
 + Differentiate between structural and numerical zeros in Ell/Sellp ([#1027](https://github.com/ginkgo-project/ginkgo/pull/1027))
-+ Adds a binary IO format for matrix data ([#984](https://github.com/ginkgo-project/ginkgo/pull/984))
++ Add a binary IO format for matrix data ([#984](https://github.com/ginkgo-project/ginkgo/pull/984))
 + Add a tuple zip_iterator implementation ([#966](https://github.com/ginkgo-project/ginkgo/pull/966))
 + Simplify kernel stubs and declarations ([#888](https://github.com/ginkgo-project/ginkgo/pull/888))
 + Simplify GKO_REGISTER_OPERATION with lambdas ([#859](https://github.com/ginkgo-project/ginkgo/pull/859))
 + Simplify copy to device in tests and examples ([#863](https://github.com/ginkgo-project/ginkgo/pull/863))
 + More verbose output to array assertions ([#858](https://github.com/ginkgo-project/ginkgo/pull/858))
-+ Parallel Jacobi compilation ([#871](https://github.com/ginkgo-project/ginkgo/pull/871))
-+ Clang-format pointer alignment change to Left ([#872](https://github.com/ginkgo-project/ginkgo/pull/872))
++ Allow parallel compilation for Jacobi kernels ([#871](https://github.com/ginkgo-project/ginkgo/pull/871))
++ Change clang-format pointer alignment to left ([#872](https://github.com/ginkgo-project/ginkgo/pull/872))
 + Various improvements and fixes to the benchmarking framework ([#750](https://github.com/ginkgo-project/ginkgo/pull/750), [#759](https://github.com/ginkgo-project/ginkgo/pull/759), [#870](https://github.com/ginkgo-project/ginkgo/pull/870), [#911](https://github.com/ginkgo-project/ginkgo/pull/911), [#1033](https://github.com/ginkgo-project/ginkgo/pull/1033), [#1137](https://github.com/ginkgo-project/ginkgo/pull/1137))
 + Various documentation improvements ([#892](https://github.com/ginkgo-project/ginkgo/pull/892), [#921](https://github.com/ginkgo-project/ginkgo/pull/921), [#950](https://github.com/ginkgo-project/ginkgo/pull/950), [#977](https://github.com/ginkgo-project/ginkgo/pull/977), [#1021](https://github.com/ginkgo-project/ginkgo/pull/1021), [#1068](https://github.com/ginkgo-project/ginkgo/pull/1068), [#1069](https://github.com/ginkgo-project/ginkgo/pull/1069), [#1080](https://github.com/ginkgo-project/ginkgo/pull/1080), [#1081](https://github.com/ginkgo-project/ginkgo/pull/1081), [#1108](https://github.com/ginkgo-project/ginkgo/pull/1108), [#1153](https://github.com/ginkgo-project/ginkgo/pull/1153), [#1154](https://github.com/ginkgo-project/ginkgo/pull/1154))
 + Various CI improvements ([#868](https://github.com/ginkgo-project/ginkgo/pull/868), [#874](https://github.com/ginkgo-project/ginkgo/pull/874), [#884](https://github.com/ginkgo-project/ginkgo/pull/884), [#889](https://github.com/ginkgo-project/ginkgo/pull/889), [#899](https://github.com/ginkgo-project/ginkgo/pull/899), [#903](https://github.com/ginkgo-project/ginkgo/pull/903),  [#922](https://github.com/ginkgo-project/ginkgo/pull/922), [#925](https://github.com/ginkgo-project/ginkgo/pull/925), [#930](https://github.com/ginkgo-project/ginkgo/pull/930), [#936](https://github.com/ginkgo-project/ginkgo/pull/936), [#937](https://github.com/ginkgo-project/ginkgo/pull/937), [#958](https://github.com/ginkgo-project/ginkgo/pull/958), [#882](https://github.com/ginkgo-project/ginkgo/pull/882), [#1011](https://github.com/ginkgo-project/ginkgo/pull/1011), [#1015](https://github.com/ginkgo-project/ginkgo/pull/1015), [#989](https://github.com/ginkgo-project/ginkgo/pull/989), [#1039](https://github.com/ginkgo-project/ginkgo/pull/1039), [#1042](https://github.com/ginkgo-project/ginkgo/pull/1042), [#1067](https://github.com/ginkgo-project/ginkgo/pull/1067), [#1073](https://github.com/ginkgo-project/ginkgo/pull/1073), [#1075](https://github.com/ginkgo-project/ginkgo/pull/1075), [#1083](https://github.com/ginkgo-project/ginkgo/pull/1083), [#1084](https://github.com/ginkgo-project/ginkgo/pull/1084), [#1085](https://github.com/ginkgo-project/ginkgo/pull/1085), [#1139](https://github.com/ginkgo-project/ginkgo/pull/1139), [#1178](https://github.com/ginkgo-project/ginkgo/pull/1178), [#1187](https://github.com/ginkgo-project/ginkgo/pull/1187))
