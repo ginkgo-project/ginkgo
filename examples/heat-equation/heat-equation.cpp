@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ setting.
 
 // This function implements a simple Ginkgo-themed clamped color mapping for
 // values in the range [0,5].
-void set_val(unsigned char *data, double value)
+void set_val(unsigned char* data, double value)
 {
     // RGB values for the 6 colors used for values 0, 1, ..., 5
     // We will interpolate linearly between these values.
@@ -108,8 +108,8 @@ std::pair<cv::VideoWriter, cv::Mat> build_output(int n, double fps)
 
 
 // Write the current frame to video output using the above color mapping
-void output_timestep(std::pair<cv::VideoWriter, cv::Mat> &output, int n,
-                     const double *data)
+void output_timestep(std::pair<cv::VideoWriter, cv::Mat>& output, int n,
+                     const double* data)
 {
     for (int i = 0; i < n; i++) {
         auto row = output.second.ptr(i);
@@ -121,7 +121,7 @@ void output_timestep(std::pair<cv::VideoWriter, cv::Mat> &output, int n,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using mtx = gko::matrix::Csr<>;
     using vec = gko::matrix::Dense<>;
@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
     // create a CUDA executor with an associated OpenMP host executor
     auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // load heat source and initial state vectors
-    std::ifstream source_stream("data/source.mtx");
-    std::ifstream initial_stream("data/initial.mtx");
+    std::ifstream initial_stream("data/gko_logo_2d.mtx");
+    std::ifstream source_stream("data/gko_text_2d.mtx");
     auto source = gko::read<vec>(source_stream, exec);
     auto in_vector = gko::read<vec>(initial_stream, exec);
     // create output vector with initial guess for
@@ -193,8 +193,9 @@ int main(int argc, char *argv[])
     auto solver =
         gko::solver::Cg<>::build()
             .with_preconditioner(gko::preconditioner::Ic<>::build().on(exec))
-            .with_criteria(gko::stop::RelativeResidualNorm<>::build()
-                               .with_tolerance(1e-10)
+            .with_criteria(gko::stop::ResidualNorm<>::build()
+                               .with_baseline(gko::stop::mode::rhs_norm)
+                               .with_reduction_factor(1e-10)
                                .on(exec))
             .on(exec)
             ->generate(stencil_matrix);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,107 +41,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                        \
-    void initialize_1(                                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Dense<_type> *b, matrix::Dense<_type> *residual,      \
-        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos, \
-        Array<stopping_status> *stop_status, size_type krylov_dim)
+#define GKO_DECLARE_GMRES_RESTART_KERNEL(_type)                             \
+    void restart(std::shared_ptr<const DefaultExecutor> exec,               \
+                 const matrix::Dense<_type>* residual,                      \
+                 const matrix::Dense<remove_complex<_type>>* residual_norm, \
+                 matrix::Dense<_type>* residual_norm_collection,            \
+                 matrix::Dense<_type>* krylov_bases,                        \
+                 size_type* final_iter_nums)
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)                       \
-    void initialize_2(std::shared_ptr<const DefaultExecutor> exec,         \
-                      const matrix::Dense<_type> *residual,                \
-                      matrix::Dense<remove_complex<_type>> *residual_norm, \
-                      matrix::Dense<_type> *residual_norm_collection,      \
-                      matrix::Dense<_type> *krylov_bases,                  \
-                      Array<size_type> *final_iter_nums, size_type krylov_dim)
+#define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)               \
+    void multi_axpy(std::shared_ptr<const DefaultExecutor> exec, \
+                    const matrix::Dense<_type>* krylov_bases,    \
+                    const matrix::Dense<_type>* y,               \
+                    matrix::Dense<_type>* before_preconditioner, \
+                    const size_type* final_iter_nums,            \
+                    stopping_status* stop_status)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                         \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,           \
-                size_type num_rows, matrix::Dense<_type> *givens_sin,  \
-                matrix::Dense<_type> *givens_cos,                      \
-                matrix::Dense<remove_complex<_type>> *residual_norm,   \
-                matrix::Dense<_type> *residual_norm_collection,        \
-                matrix::Dense<_type> *krylov_bases,                    \
-                matrix::Dense<_type> *hessenberg_iter, size_type iter, \
-                Array<size_type> *final_iter_nums,                     \
-                const Array<stopping_status> *stop_status)
-
-
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                        \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,          \
-                const matrix::Dense<_type> *residual_norm_collection, \
-                const matrix::Dense<_type> *krylov_bases,             \
-                const matrix::Dense<_type> *hessenberg,               \
-                matrix::Dense<_type> *y,                              \
-                matrix::Dense<_type> *before_preconditioner,          \
-                const Array<size_type> *final_iter_nums)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);       \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES             \
+    template <typename ValueType>                \
+    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType); \
+    template <typename ValueType>                \
+    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType)
 
 
 }  // namespace gmres
 
 
-namespace omp {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace omp
-
-
-namespace cuda {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace cuda
-
-
-namespace reference {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace reference
-
-
-namespace hip {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(gmres, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

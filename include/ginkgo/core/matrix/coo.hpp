@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,13 +50,14 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
-
 template <typename ValueType>
 class Dense;
 
-
 template <typename ValueType, typename IndexType>
 class CooBuilder;
+
+template <typename ValueType, typename IndexType>
+class Hybrid;
 
 
 /**
@@ -90,6 +91,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
     friend class Coo<to_complex<ValueType>, IndexType>;
+    friend class Hybrid<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
@@ -99,26 +101,31 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Coo<next_precision<ValueType>, IndexType> *result) const override;
+        Coo<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void read(const device_mat_data& data) override;
+
+    void read(device_mat_data&& data) override;
+
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -131,7 +138,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Csr::get_values()
@@ -140,7 +147,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -150,7 +157,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -159,7 +166,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -169,7 +176,7 @@ public:
      *
      * @return the row indexes of the matrix.
      */
-    index_type *get_row_idxs() noexcept { return row_idxs_.get_data(); }
+    index_type* get_row_idxs() noexcept { return row_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_row_idxs()
@@ -178,7 +185,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_idxs() const noexcept
+    const index_type* get_const_row_idxs() const noexcept
     {
         return row_idxs_.get_const_data();
     }
@@ -203,7 +210,7 @@ public:
      *
      * @return this
      */
-    LinOp *apply2(const LinOp *b, LinOp *x)
+    LinOp* apply2(const LinOp* b, LinOp* x)
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -215,7 +222,7 @@ public:
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp *apply2(const LinOp *b, LinOp *x) const
+    const LinOp* apply2(const LinOp* b, LinOp* x) const
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -233,7 +240,7 @@ public:
      *
      * @return this
      */
-    LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x)
+    LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x)
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -247,7 +254,7 @@ public:
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x) const
+    const LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -258,6 +265,32 @@ public:
         return this;
     }
 
+    /**
+     * Creates a constant (immutable) Coo matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param row_ptrs  the row index array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          these arrays on the correct executor.
+     */
+    static std::unique_ptr<const Coo> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_idxs)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Coo>(new Coo{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            gko::detail::array_const_cast(std::move(row_idxs))});
+    }
+
 protected:
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -266,7 +299,7 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Coo>(exec, size),
           values_(exec, num_nonzeros),
@@ -296,8 +329,8 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowIdxsArray>
-    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size,
-        ValuesArray &&values, ColIdxsArray &&col_idxs, RowIdxsArray &&row_idxs)
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs, RowIdxsArray&& row_idxs)
         : EnableLinOp<Coo>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -307,19 +340,28 @@ protected:
         GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    /**
+     * Resizes the matrix and associated storage to the given sizes.
+     * Internal storage may be reallocated if they don't match the old values.
+     *
+     * @param new_size  the new matrix dimensions.
+     * @param nnz  the new number of nonzeros.
+     */
+    void resize(dim<2> new_size, size_type nnz);
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply2_impl(const LinOp *b, LinOp *x) const;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
-    void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
+    void apply2_impl(const LinOp* b, LinOp* x) const;
+
+    void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_idxs_;
 };
 
 

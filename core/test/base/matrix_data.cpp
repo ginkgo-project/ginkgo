@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,11 +83,11 @@ TEST(MatrixData, InitializesWithRandomValues)
 
     gko::matrix_data<double, int> m(
         gko::dim<2>{2, 3}, std::uniform_real_distribution<double>(-1, 1),
-        std::ranlux48(19));
+        std::default_random_engine(19));
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
     ASSERT_LE(m.nonzeros.size(), 6);
-    for (const auto &elem : m.nonzeros) {
+    for (const auto& elem : m.nonzeros) {
         EXPECT_TRUE(-1 <= elem.value && elem.value <= 1);
     }
 }
@@ -262,7 +262,7 @@ TEST(MatrixData, InitializesDiagonalWithConditionNumber)
 
     const auto m =
         data::cond(3, 100.0, std::uniform_real_distribution<double>(-1, 1),
-                   std::ranlux48(42), 0);
+                   std::default_random_engine(42), 0);
 
     ASSERT_EQ(m.size, gko::dim<2>(3, 3));
     ASSERT_NEAR(m.nonzeros[0].value / m.nonzeros[2].value, 100.0, 1e-16);
@@ -288,7 +288,7 @@ TEST(MatrixData, InitializesBlockDiagonalMatrixFromBlockList)
 
 struct dummy_distribution {
     template <typename RandomEngine>
-    double operator()(RandomEngine &&) const
+    double operator()(RandomEngine&&) const
     {
         if (last >= 2.0) {
             last = 0.0;
@@ -322,7 +322,8 @@ TEST(MatrixData, InitializesGeneralMatrixWithConditionNumber)
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
 
-    const auto m = data::cond(2, 4.0, dummy_distribution{}, std::ranlux48(42));
+    const auto m = data::cond(2, 4.0, dummy_distribution{},
+                              std::default_random_engine(42));
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 2));
     ASSERT_EQ(m.nonzeros.size(), 4);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ namespace kernels {
 namespace hip {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_reduce_block_size = 512;
 
 
 #include "common/cuda_hip/components/reduction.hpp.inc"
@@ -72,28 +72,29 @@ constexpr int default_block_size = 512;
  */
 template <typename ValueType>
 __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
-                                    size_type size, const ValueType *source)
+                                    size_type size, const ValueType* source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;
-    auto block_results = Array<ValueType>(exec);
-    if (size > default_block_size) {
-        const auto n = ceildiv(size, default_block_size);
-        grid_dim = (n <= default_block_size) ? n : default_block_size;
+    auto block_results = array<ValueType>(exec);
+    if (size > default_reduce_block_size) {
+        const auto n = ceildiv(size, default_reduce_block_size);
+        grid_dim =
+            (n <= default_reduce_block_size) ? n : default_reduce_block_size;
 
         block_results.resize_and_reset(grid_dim);
 
         hipLaunchKernelGGL(
-            reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,
-            size, as_hip_type(source), as_hip_type(block_results.get_data()));
+            reduce_add_array, grid_dim, default_reduce_block_size, 0, 0, size,
+            as_hip_type(source), as_hip_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
     }
 
-    auto d_result = Array<ValueType>(exec, 1);
+    auto d_result = array<ValueType>(exec, 1);
 
-    hipLaunchKernelGGL(reduce_add_array, dim3(1), dim3(default_block_size), 0,
-                       0, grid_dim, as_hip_type(block_results_val),
+    hipLaunchKernelGGL(reduce_add_array, 1, default_reduce_block_size, 0, 0,
+                       grid_dim, as_hip_type(block_results_val),
                        as_hip_type(d_result.get_data()));
     auto answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;

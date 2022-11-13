@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -75,10 +75,10 @@ protected:
         this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
     }
 
-    void create_mtx(Mtx *m)
+    void create_mtx(Mtx* m)
     {
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
         /*
          * 1   1   1
          * 0   1   0
@@ -92,10 +92,10 @@ protected:
         c[3] = 1;
     }
 
-    void create_mtx2(Mtx *m)
+    void create_mtx2(Mtx* m)
     {
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
         // It keeps an explict zero
         /*
          *  1    1   1
@@ -111,7 +111,7 @@ protected:
         c[4] = 1;
     }
 
-    void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    void create_mtx3(Mtx* sorted, Mtx* unsorted)
     {
         auto cols_s = sorted->get_col_idxs();
         auto rows_s = sorted->get_row_ptrs();
@@ -157,7 +157,8 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(SparsityCsr, AppliesToDenseVector)
@@ -368,7 +369,7 @@ TYPED_TEST(SparsityCsr, SquareMtxIsTransposable)
     // clang-format on
 
     auto trans = mtx2->transpose();
-    auto trans_as_sparsity = static_cast<Mtx *>(trans.get());
+    auto trans_as_sparsity = static_cast<Mtx*>(trans.get());
 
     // clang-format off
    GKO_ASSERT_MTX_NEAR(trans_as_sparsity,
@@ -383,7 +384,7 @@ TYPED_TEST(SparsityCsr, NonSquareMtxIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx->transpose();
-    auto trans_as_sparsity = static_cast<Mtx *>(trans.get());
+    auto trans_as_sparsity = static_cast<Mtx*>(trans.get());
 
     // clang-format off
    GKO_ASSERT_MTX_NEAR(trans_as_sparsity,

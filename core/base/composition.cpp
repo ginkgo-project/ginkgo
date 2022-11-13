@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,23 +41,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
 
 
 namespace gko {
 namespace composition {
+namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
+}  // anonymous namespace
 }  // namespace composition
 
 
 template <typename ValueType>
 std::unique_ptr<LinOp> apply_inner_operators(
-    const std::vector<std::shared_ptr<const LinOp>> &operators,
-    Array<ValueType> &storage, const LinOp *rhs)
+    const std::vector<std::shared_ptr<const LinOp>>& operators,
+    array<ValueType>& storage, const LinOp* rhs)
 {
     using Dense = matrix::Dense<ValueType>;
     // determine amount of necessary storage:
@@ -80,8 +82,8 @@ std::unique_ptr<LinOp> apply_inner_operators(
     auto op_size = operators.back()->get_size();
     auto out_dim = gko::dim<2>{op_size[0], num_rhs};
     auto out_size = out_dim[0] * num_rhs;
-    auto out = Dense::create(
-        exec, out_dim, Array<ValueType>::view(exec, out_size, data), num_rhs);
+    auto out = Dense::create(exec, out_dim,
+                             make_array_view(exec, out_size, data), num_rhs);
     // for operators with initial guess: set initial guess
     if (operators.back()->apply_uses_initial_guess()) {
         if (op_size[0] == op_size[1]) {
@@ -109,8 +111,7 @@ std::unique_ptr<LinOp> apply_inner_operators(
             data + (reversed_storage ? storage_size - out_size : size_type{});
         reversed_storage = !reversed_storage;
         out = Dense::create(exec, out_dim,
-                            Array<ValueType>::view(exec, out_size, out_data),
-                            num_rhs);
+                            make_array_view(exec, out_size, out_data), num_rhs);
         // for operators with initial guess: set initial guess
         if (operators[i]->apply_uses_initial_guess()) {
             if (op_size[0] == op_size[1]) {
@@ -131,6 +132,59 @@ std::unique_ptr<LinOp> apply_inner_operators(
 
 
 template <typename ValueType>
+Composition<ValueType>& Composition<ValueType>::operator=(
+    const Composition& other)
+{
+    if (&other != this) {
+        EnableLinOp<Composition>::operator=(other);
+        auto exec = this->get_executor();
+        operators_ = other.operators_;
+        // if the operators are on the wrong executor, copy them over
+        if (other.get_executor() != exec) {
+            for (auto& op : operators_) {
+                op = gko::clone(exec, op);
+            }
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Composition<ValueType>& Composition<ValueType>::operator=(Composition&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Composition>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        operators_ = std::move(other.operators_);
+        // if the operators are on the wrong executor, copy them over
+        if (other.get_executor() != exec) {
+            for (auto& op : operators_) {
+                op = gko::clone(exec, op);
+            }
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Composition<ValueType>::Composition(const Composition& other)
+    : Composition(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Composition<ValueType>::Composition(Composition&& other)
+    : Composition(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
 {
     auto transposed = Composition<ValueType>::create(this->get_executor());
@@ -138,7 +192,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
     // transpose and reverse operators
     std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
                    std::back_inserter(transposed->operators_),
-                   [](const std::shared_ptr<const LinOp> &op) {
+                   [](const std::shared_ptr<const LinOp>& op) {
                        return share(as<Transposable>(op)->transpose());
                    });
 
@@ -154,7 +208,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
     // conjugate-transpose and reverse operators
     std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
                    std::back_inserter(transposed->operators_),
-                   [](const std::shared_ptr<const LinOp> &op) {
+                   [](const std::shared_ptr<const LinOp>& op) {
                        return share(as<Transposable>(op)->conj_transpose());
                    });
 
@@ -163,7 +217,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -180,8 +234,8 @@ void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                        const LinOp *beta, LinOp *x) const
+void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                        const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

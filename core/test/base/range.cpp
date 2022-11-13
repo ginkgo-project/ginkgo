@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -155,7 +155,7 @@ struct dummy_accessor {
 
     int operator()(int a, int b, int c) const { return x * a + y * b + c; }
 
-    void copy_from(const dummy_accessor &other) const
+    void copy_from(const dummy_accessor& other) const
     {
         x = other.x;
         y = other.y;

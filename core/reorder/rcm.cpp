@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,23 +54,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace reorder {
 namespace rcm {
+namespace {
 
 
 GKO_REGISTER_OPERATION(get_permutation, rcm::get_permutation);
 GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 
+}  // anonymous namespace
 }  // namespace rcm
 
 
 template <typename ValueType, typename IndexType>
 void Rcm<ValueType, IndexType>::generate(
-    std::shared_ptr<const Executor> &exec,
+    std::shared_ptr<const Executor>& exec,
     std::unique_ptr<SparsityMatrix> adjacency_matrix) const
 {
     const IndexType num_rows = adjacency_matrix->get_size()[0];
     const auto mtx = adjacency_matrix.get();
-    auto degrees = Array<IndexType>(exec, num_rows);
+    auto degrees = array<IndexType>(exec, num_rows);
     // RCM is only valid for symmetric matrices. Need to add an expensive check
     // for symmetricity here ?
     exec->run(rcm::make_get_degree_of_nodes(num_rows, mtx->get_const_row_ptrs(),

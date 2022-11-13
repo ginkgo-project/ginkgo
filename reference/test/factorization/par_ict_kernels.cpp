@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,10 +64,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -169,7 +169,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIct, KernelInitializeRowPtrsL)
@@ -240,20 +240,18 @@ TYPED_TEST(ParIct, KernelComputeLU)
 
 TYPED_TEST(ParIct, ThrowNotSupportedForWrongLinOp)
 {
-    auto lin_op = DummyLinOp::create(this->ref);
+    auto lin_op = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(lin_op)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->fact_fact->generate(lin_op), gko::NotSupported);
 }
 
 
 TYPED_TEST(ParIct, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
-    auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
+    auto matrix = gko::share(Csr::create(this->ref, gko::dim<2>{2, 3}, 4));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(matrix)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->fact_fact->generate(matrix), gko::DimensionMismatch);
 }
 
 
@@ -284,9 +282,9 @@ TYPED_TEST(ParIct, IsConsistentWithComposition)
     auto fact = this->fact_fact->generate(this->mtx_system);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_l_factor()));
     auto lin_op_lt_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_lt_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_lt_factor()));
     auto first_operator = gko::lend(fact->get_operators()[0]);
     auto second_operator = gko::lend(fact->get_operators()[1]);
 
@@ -307,9 +305,10 @@ TYPED_TEST(ParIct, GenerateIdentity)
 TYPED_TEST(ParIct, GenerateDenseIdentity)
 {
     using Dense = typename TestFixture::Dense;
-    auto dense_id = Dense::create(this->exec, this->identity->get_size());
+    auto dense_id =
+        gko::share(Dense::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id.get());
-    auto fact = this->fact_fact->generate(gko::share(dense_id));
+    auto fact = this->fact_fact->generate(dense_id);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
     GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), this->identity, this->tol);

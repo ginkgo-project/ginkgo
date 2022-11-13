@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,8 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
@@ -100,7 +101,8 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
@@ -182,7 +184,7 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_r2>,
                      std::tuple<std::complex<float>, st_keep>>;
 
-TYPED_TEST_SUITE(CbGmres, TestTypes);
+TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(CbGmres, SolvesStencilSystem)
@@ -275,7 +277,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
                 gko::stop::Time::build()
                     .with_time_limit(std::chrono::seconds(6))
                     .on(this->exec),
-                gko::stop::ResidualNormReduction<T>::build()
+                gko::stop::ResidualNorm<T>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
@@ -446,7 +449,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
 
 
 template <typename T>
-gko::remove_complex<T> inf_norm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> inf_norm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     auto host_data = clone(mat->get_executor()->get_master(), mat);
@@ -541,7 +544,8 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
@@ -568,7 +572,8 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .with_preconditioner(

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,14 +36,14 @@ namespace kernel {
 template <int max_block_size, typename ReducedType, typename Group,
           typename ValueType, typename IndexType>
 __device__ __forceinline__ bool validate_precision_reduction_feasibility(
-    Group &__restrict__ group, IndexType block_size,
-    ValueType *__restrict__ row, ValueType *__restrict__ work, size_type stride)
+    Group& __restrict__ group, IndexType block_size,
+    ValueType* __restrict__ row, ValueType* __restrict__ work, size_type stride)
 {
     using gko::detail::float_traits;
     // save original data and reduce precision
     if (group.thread_rank() < block_size) {
 #pragma unroll
-        for (auto i = 0u; i < max_block_size; ++i) {
+        for (int i = 0; i < max_block_size; ++i) {
             if (i < block_size) {
                 work[i * stride + group.thread_rank()] = row[i];
                 row[i] =
@@ -65,7 +65,7 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     // restore original data
     if (group.thread_rank() < block_size) {
 #pragma unroll
-        for (auto i = 0u; i < max_block_size; ++i) {
+        for (int i = 0; i < max_block_size; ++i) {
             if (i < block_size) {
                 row[i] = work[i * stride + group.thread_rank()];
             }
@@ -73,24 +73,26 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     }
 
     return succeeded && block_cond >= 1.0 &&
-           block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+           block_cond * static_cast<remove_complex<ValueType>>(
+                            float_traits<remove_complex<ValueType>>::eps) <
+               remove_complex<ValueType>{1e-3};
 }
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, ValueType *__restrict__ block_data,
+__global__ void __launch_bounds__(warps_per_block* config::warp_size) generate(
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
     ValueType row[max_block_size];
-    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
@@ -114,22 +116,22 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void
-__launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, remove_complex<ValueType> accuracy,
-    ValueType *__restrict__ block_data,
+__launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, remove_complex<ValueType> accuracy,
+    ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    remove_complex<ValueType> *__restrict__ conditioning,
-    precision_reduction *__restrict__ block_precisions,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+    remove_complex<ValueType>* __restrict__ conditioning,
+    precision_reduction* __restrict__ block_precisions,
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
     // extract blocks
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
     ValueType row[max_block_size];
-    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
@@ -197,7 +199,7 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
             ValueType, prec,
             copy_matrix<max_block_size, and_transpose>(
                 subwarp, block_size, row, 1, perm, trans_perm,
-                reinterpret_cast<resolved_precision *>(
+                reinterpret_cast<resolved_precision*>(
                     block_data + storage_scheme.get_group_offset(block_id)) +
                     storage_scheme.get_block_offset(block_id),
                 storage_scheme.get_stride()));

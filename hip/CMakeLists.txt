@@ -1,158 +1,19 @@
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
-    AND GINKGO_BUILD_CUDA AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
-    message(FATAL_ERROR "Ginkgo HIP backend requires CUDA >= 9.2.")
-endif()
-
-if(NOT DEFINED ROCM_PATH)
-    if(DEFINED ENV{ROCM_PATH})
-        set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "Path to which ROCM has been installed")
-    elseif(DEFINED ENV{HIP_PATH})
-        set(ROCM_PATH "$ENV{HIP_PATH}/.." CACHE PATH "Path to which ROCM has been installed")
-    else()
-        set(ROCM_PATH "/opt/rocm" CACHE PATH "Path to which ROCM has been installed")
-    endif()
-endif()
-
-if(NOT DEFINED HIPBLAS_PATH)
-    if(DEFINED ENV{HIPBLAS_PATH})
-        set(HIPBLAS_PATH $ENV{HIPBLAS_PATH} CACHE PATH "Path to which HIPBLAS has been installed")
-    else()
-        set(HIPBLAS_PATH "${ROCM_PATH}/hipblas" CACHE PATH "Path to which HIPBLAS has been installed")
-    endif()
-endif()
-
-if(NOT DEFINED HIPRAND_PATH)
-    if(DEFINED ENV{HIPRAND_PATH})
-        set(HIPRAND_PATH $ENV{HIPRAND_PATH} CACHE PATH "Path to which HIPRAND has been installed")
-    else()
-        set(HIPRAND_PATH "${ROCM_PATH}/hiprand" CACHE PATH "Path to which HIPRAND has been installed")
-    endif()
-endif()
-
-if(NOT DEFINED ROCRAND_PATH)
-    if(DEFINED ENV{ROCRAND_PATH})
-        set(ROCRAND_PATH $ENV{ROCRAND_PATH} CACHE PATH "Path to which ROCRAND has been installed")
-    else()
-        set(ROCRAND_PATH "${ROCM_PATH}/rocrand" CACHE PATH "Path to which ROCRAND has been installed")
-    endif()
-endif()
-
-if(NOT DEFINED HIPSPARSE_PATH)
-    if(DEFINED ENV{HIPSPARSE_PATH})
-        set(HIPSPARSE_PATH $ENV{HIPSPARSE_PATH} CACHE PATH "Path to which HIPSPARSE has been installed")
-    else()
-        set(HIPSPARSE_PATH "${ROCM_PATH}/hipsparse" CACHE PATH "Path to which HIPSPARSE has been installed")
-    endif()
-endif()
-
-if(NOT DEFINED HIP_CLANG_PATH)
-    if(NOT DEFINED ENV{HIP_CLANG_PATH})
-        set(HIP_CLANG_PATH "${ROCM_PATH}/llvm/bin" CACHE PATH "Path to which HIP compatible clang binaries have been installed")
-    else()
-        set(HIP_CLANG_PATH $ENV{HIP_CLANG_PATH} CACHE PATH "Path to which HIP compatible clang binaries have been installed")
-    endif()
-endif()
-
-# Find HIPCC_CMAKE_LINKER_HELPER executable
-find_program(
-    HIP_HIPCC_CMAKE_LINKER_HELPER
-    NAMES hipcc_cmake_linker_helper
-    PATHS
-    "${HIP_ROOT_DIR}"
-    ENV ROCM_PATH
-    ENV HIP_PATH
-    /opt/rocm
-    /opt/rocm/hip
-    PATH_SUFFIXES bin
-    NO_DEFAULT_PATH
-)
-if(NOT HIP_HIPCC_CMAKE_LINKER_HELPER)
-    # Now search in default paths
-    find_program(HIP_HIPCC_CMAKE_LINKER_HELPER hipcc_cmake_linker_helper)
-endif()
-
-find_program(
-    HIP_HIPCONFIG_EXECUTABLE
-    NAMES hipconfig
-    PATHS
-    "${HIP_ROOT_DIR}"
-    ENV ROCM_PATH
-    ENV HIP_PATH
-    /opt/rocm
-    /opt/rocm/hip
-    PATH_SUFFIXES bin
-    NO_DEFAULT_PATH
-)
-if(NOT HIP_HIPCONFIG_EXECUTABLE)
-    # Now search in default paths
-    find_program(HIP_HIPCONFIG_EXECUTABLE hipconfig)
-endif()
-
-execute_process(
-            COMMAND ${HIP_HIPCONFIG_EXECUTABLE} --version
-            OUTPUT_VARIABLE GINKGO_HIP_VERSION
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_STRIP_TRAILING_WHITESPACE
-            )
-set(GINKGO_HIP_VERSION ${GINKGO_HIP_VERSION} PARENT_SCOPE)
-
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    # ensure ENV{CUDA_PATH} is set by the user
-    if (NOT DEFINED ENV{CUDA_PATH})
-        find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
-        if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
-            message(FATAL_ERROR "HIP nvidia backend was requested but CUDA could not be "
-                "located. Set and export the environment variable CUDA_PATH.")
-         endif()
-     endif()
-endif()
-
-## Setup all CMAKE variables to find HIP and its dependencies
-list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}/lib/cmake")
-endif()
-list(APPEND CMAKE_PREFIX_PATH
-    "${HIPBLAS_PATH}/lib/cmake"
-    "${HIPRAND_PATH}/lib/cmake"
-    "${HIPSPARSE_PATH}/lib/cmake"
-    "${ROCRAND_PATH}/lib/cmake"
-)
-# Set CMAKE_MODULE_PATH and CMAKE_PREFIX_PATH as PARENT_SCOPE to easily find HIP again
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
-
-# NOTE: without this, HIP jacobi build takes a *very* long time. The reason for
-# that is that these variables are seemingly empty by default, thus there is no
-# proper optimization applied to the HIP builds otherwise.
-set(HIP_HIPCC_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Flags used by the HIPCC compiler during DEBUG builds")
-set(HIP_HIPCC_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}" CACHE STRING "Flags used by the HIPCC compiler during MINSIZEREL builds")
-set(HIP_HIPCC_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "Flags used by the HIPCC compiler during RELEASE builds")
-set(HIP_HIPCC_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" CACHE STRING "Flags used by the HIPCC compiler during RELWITHDEBINFO builds")
-
-find_package(HIP REQUIRED)
-find_package(hipblas REQUIRED)
-find_package(hiprand REQUIRED)
-find_package(hipsparse REQUIRED)
-# At the moment, for hiprand to work also rocrand is required.
-find_package(rocrand REQUIRED)
-find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
-    PATHS "${HIP_PATH}/../include"
-    ENV HIP_THRUST_PATH)
-if (NOT GINKGO_HIP_THRUST_PATH)
-    message(FATAL_ERROR "Could not find the ROCm header thrust/complex.h which is required by Ginkgo HIP.")
-endif()
-
 set(GINKGO_HIP_SOURCES
+    base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
+    base/index_set_kernels.hip.cpp
+    base/scoped_device_id.hip.cpp
     base/version.hip.cpp
-    components/absolute_array.hip.cpp
-    components/fill_array.hip.cpp
-    components/prefix_sum.hip.cpp
+    components/prefix_sum_kernels.hip.cpp
+    distributed/matrix_kernels.hip.cpp
+    distributed/partition_kernels.hip.cpp
+    distributed/vector_kernels.hip.cpp
+    factorization/cholesky_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
+    factorization/lu_kernels.hip.cpp
     factorization/par_ic_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
@@ -168,79 +29,62 @@ set(GINKGO_HIP_SOURCES
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
     matrix/fbcsr_kernels.hip.cpp
-    matrix/hybrid_kernels.hip.cpp
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
-    multigrid/amgx_pgm_kernels.hip.cpp
+    multigrid/pgm_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
-    solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
+    solver/multigrid_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
-    ../common/unified/components/precision_conversion.cpp
-    ../common/unified/matrix/coo_kernels.cpp
-    ../common/unified/matrix/csr_kernels.cpp
-    ../common/unified/matrix/dense_kernels.cpp
-    ../common/unified/matrix/diagonal_kernels.cpp
-    ../common/unified/preconditioner/jacobi_kernels.cpp
-    ../common/unified/solver/bicg_kernels.cpp
-    ../common/unified/solver/bicgstab_kernels.cpp
-    ../common/unified/solver/cg_kernels.cpp
-    ../common/unified/solver/cgs_kernels.cpp
-    ../common/unified/solver/fcg_kernels.cpp
-    ../common/unified/solver/ir_kernels.cpp
+    ${GKO_UNIFIED_COMMON_SOURCES}
     )
 
-set(GINKGO_HIP_NVCC_ARCH "")
+if(hipfft_FOUND)
+    list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels.hip.cpp)
+else()
+    list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels_stub.hip.cpp)
+endif()
+
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
-        set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE STRING "" FORCE)
-    elseif(GINKGO_CUDA_DEFAULT_HOST_COMPILER)
-        unset(CMAKE_CUDA_HOST_COMPILER CACHE)
-    endif()
-    if (CMAKE_CUDA_HOST_COMPILER)
-        list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
-    endif()
-
-    # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
-
-    if (GINKGO_HIP_PLATFROM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
-            AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
-            AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
-        ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
-
-        if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
-            message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
-                "Consider using a different CUDA host compiler or CUDA version.")
-        endif()
-    endif()
-    # add gpu architecture flags
-    include(CudaArchitectureSelector)
-    cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH
-        ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
-        UNSUPPORTED "20" "21")
+    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 32)
+else()
+    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 64)
 endif()
-
-# `target_compile_options` do not work with hip_add_library
-# Thus, we need to pass the flags to `hip_add_library` itself
-if(GINKGO_HIP_AMDGPU)
-    foreach(target ${GINKGO_HIP_AMDGPU})
-        list(APPEND GINKGO_AMD_ARCH_FLAGS --amdgpu-target=${target})
+if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
+    set(GKO_HIP_JACOBI_BLOCK_SIZES)
+    foreach(blocksize RANGE 1 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
+        list(APPEND GKO_HIP_JACOBI_BLOCK_SIZES ${blocksize})
     endforeach()
+else()
+    set(GKO_HIP_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
+    list(REMOVE_DUPLICATES GKO_HIP_JACOBI_BLOCK_SIZES)
 endif()
-
-set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP")
-set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
-set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
+foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
+    configure_file(
+        preconditioner/jacobi_generate_instantiate.inc.hip.cpp
+        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    configure_file(
+        preconditioner/jacobi_simple_apply_instantiate.inc.hip.cpp
+        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    configure_file(
+        preconditioner/jacobi_advanced_apply_instantiate.inc.hip.cpp
+        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    list(APPEND GINKGO_HIP_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+endforeach()
+string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
+configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
@@ -253,14 +97,19 @@ target_include_directories(ginkgo_hip
     PUBLIC
         ${HIP_INCLUDE_DIRS}
     PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/.. # for generated headers like jacobi_common.hip.hpp
         ${GINKGO_HIP_THRUST_PATH}
         ${HIPBLAS_INCLUDE_DIRS}
+        ${HIPFFT_INCLUDE_DIRS}
         ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
+if (hipfft_FOUND)
+    target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
+endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 

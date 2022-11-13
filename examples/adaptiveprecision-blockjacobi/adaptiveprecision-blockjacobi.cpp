@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -94,10 +94,8 @@ int main(int argc, char *argv[])
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = vec::create(exec);
-    auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
+    auto x = gko::clone(exec, host_x);
+    auto b = gko::clone(exec, host_x);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -109,21 +107,21 @@ int main(int argc, char *argv[])
     // copy b again
     b->copy_from(host_x.get());
     const RealValueType reduction_factor = 1e-7;
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(10000u).on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_reduction_factor(reduction_factor)
+                                   .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create(exec);
+        gko::log::Convergence<ValueType>::create();
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
     // Create solver factory
     auto solver_gen =
         cg::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(iter_stop, tol_stop)
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_preconditioner(bj::build()

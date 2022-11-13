@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,14 +82,14 @@ namespace gko {
  * (https://www.open-mpi.org/projects/hwloc/doc/) for more detailed
  * information on topology detection and binding interfaces.
  *
- * @note A global object of MachineTopology type is created in a thread safe
+ * @note A global object of machine_topology type is created in a thread safe
  *       manner and only destroyed at the end of the program. This means that
  *       any subsequent queries will be from the same global object and hence
  *       use an extra atomic read.
  */
-class MachineTopology {
+class machine_topology {
     template <typename T>
-    using hwloc_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using hwloc_manager = std::unique_ptr<T, std::function<void(T*)>>;
 
     /**
      * This struct holds the attributes for a normal non-IO object.
@@ -204,13 +204,13 @@ class MachineTopology {
 
 public:
     /**
-     * Returns an instance of the MachineTopology object.
+     * Returns an instance of the machine_topology object.
      *
-     * @return  the MachineTopology instance
+     * @return  the machine_topology instance
      */
-    static MachineTopology *get_instance()
+    static machine_topology* get_instance()
     {
-        static MachineTopology instance;
+        static machine_topology instance;
         return &instance;
     }
 
@@ -226,7 +226,7 @@ public:
      *                  See hwloc doc for
      *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_cores(const std::vector<int> &ids,
+    void bind_to_cores(const std::vector<int>& ids,
                        const bool singlify = true) const
     {
         hwloc_binding_helper(this->cores_, ids, singlify);
@@ -237,9 +237,9 @@ public:
      *
      * @param ids  The ids of the core to be bound to the calling process.
      */
-    void bind_to_core(const int &id) const
+    void bind_to_core(const int& id) const
     {
-        MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
+        machine_topology::get_instance()->bind_to_cores(std::vector<int>{id});
     }
 
     /**
@@ -254,7 +254,7 @@ public:
      *                  See hwloc doc for
      *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_pus(const std::vector<int> &ids,
+    void bind_to_pus(const std::vector<int>& ids,
                      const bool singlify = true) const
     {
         hwloc_binding_helper(this->pus_, ids, singlify);
@@ -265,9 +265,9 @@ public:
      *
      * @param ids  The ids of PUs to be bound to the calling process.
      */
-    void bind_to_pu(const int &id) const
+    void bind_to_pu(const int& id) const
     {
-        MachineTopology::get_instance()->bind_to_pus(std::vector<int>{id});
+        machine_topology::get_instance()->bind_to_pus(std::vector<int>{id});
     }
 
     /**
@@ -276,7 +276,7 @@ public:
      * @param id  The id of the PU
      * @return  the PU object struct.
      */
-    const normal_obj_info *get_pu(size_type id) const
+    const normal_obj_info* get_pu(size_type id) const
     {
         GKO_ENSURE_IN_BOUNDS(id, this->pus_.size());
         return &this->pus_[id];
@@ -288,7 +288,7 @@ public:
      * @param id  The id of the core
      * @return  the core object struct.
      */
-    const normal_obj_info *get_core(size_type id) const
+    const normal_obj_info* get_core(size_type id) const
     {
         GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
         return &this->cores_[id];
@@ -300,7 +300,7 @@ public:
      * @param id  The id of the pci device
      * @return  the PCI object struct.
      */
-    const io_obj_info *get_pci_device(size_type id) const
+    const io_obj_info* get_pci_device(size_type id) const
     {
         GKO_ENSURE_IN_BOUNDS(id, this->pci_devices_.size());
         return &this->pci_devices_[id];
@@ -312,7 +312,7 @@ public:
      * @param pci_bus_id  The PCI bus id of the pci device
      * @return  the PCI object struct.
      */
-    const io_obj_info *get_pci_device(const std::string &pci_bus_id) const;
+    const io_obj_info* get_pci_device(const std::string& pci_bus_id) const;
 
     /**
      * Get the number of PU objects stored in this Topology tree.
@@ -349,8 +349,8 @@ public:
      * object .
      */
     void hwloc_binding_helper(
-        const std::vector<MachineTopology::normal_obj_info> &obj,
-        const std::vector<int> &ids, const bool singlify = true) const;
+        const std::vector<machine_topology::normal_obj_info>& obj,
+        const std::vector<int>& ids, const bool singlify = true) const;
 
     /**
      * @internal
@@ -361,7 +361,7 @@ public:
      * logical index with these functions
      */
     void load_objects(hwloc_obj_type_t type,
-                      std::vector<normal_obj_info> &objects) const;
+                      std::vector<normal_obj_info>& objects) const;
 
     /**
      * @internal
@@ -372,7 +372,7 @@ public:
      * logical index with these functions
      */
     void load_objects(hwloc_obj_type_t type,
-                      std::vector<io_obj_info> &vector) const;
+                      std::vector<io_obj_info>& vector) const;
 
     /**
      *
@@ -380,7 +380,7 @@ public:
      *
      * Get object id from the os index
      */
-    int get_obj_id_by_os_index(const std::vector<normal_obj_info> &objects,
+    int get_obj_id_by_os_index(const std::vector<normal_obj_info>& objects,
                                size_type os_index) const;
 
     /**
@@ -389,20 +389,20 @@ public:
      *
      * Get object id from the hwloc index
      */
-    int get_obj_id_by_gp_index(const std::vector<normal_obj_info> &objects,
+    int get_obj_id_by_gp_index(const std::vector<normal_obj_info>& objects,
                                size_type gp_index) const;
 
 private:
     /**
-     * Do not allow the MachineTopology object to be copied/moved. There should
+     * Do not allow the machine_topology object to be copied/moved. There should
      * be only one global object per execution.
      */
-    MachineTopology();
-    MachineTopology(MachineTopology &) = delete;
-    MachineTopology(MachineTopology &&) = delete;
-    MachineTopology &operator=(MachineTopology &) = delete;
-    MachineTopology &operator=(MachineTopology &&) = delete;
-    ~MachineTopology() = default;
+    machine_topology();
+    machine_topology(machine_topology&) = delete;
+    machine_topology(machine_topology&&) = delete;
+    machine_topology& operator=(machine_topology&) = delete;
+    machine_topology& operator=(machine_topology&&) = delete;
+    ~machine_topology() = default;
 
     std::vector<normal_obj_info> pus_;
     std::vector<normal_obj_info> cores_;
@@ -413,6 +413,10 @@ private:
 
     hwloc_manager<hwloc_topology> topo_;
 };
+
+
+using MachineTopology [[deprecated("please use machine_topology")]] =
+    machine_topology;
 
 
 }  // namespace gko

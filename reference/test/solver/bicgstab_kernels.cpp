@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -123,7 +123,7 @@ protected:
         small_z = small_zero->clone();
         small_y = small_zero->clone();
         small_p = small_zero->clone();
-        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
         stopped.stop(1, false);
         finalized.stop(1, true);
         non_stopped.reset();
@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<Mtx> small_z;
     std::unique_ptr<Mtx> small_y;
     std::unique_ptr<Mtx> small_p;
-    gko::Array<gko::stopping_status> small_stop;
+    gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status finalized;
     gko::stopping_status non_stopped;
@@ -160,7 +160,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> bicgstab_factory_precision;
 };
 
-TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Bicgstab, KernelInitialize)
@@ -677,7 +677,7 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     using no_cpx_t = gko::remove_complex<T>;

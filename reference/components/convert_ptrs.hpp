@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,8 @@ namespace csr {
 
 
 template <typename IndexType>
-inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
-                                 IndexType *idxs)
+inline void convert_ptrs_to_idxs(const IndexType* ptrs, size_type num_rows,
+                                 IndexType* idxs)
 {
     size_type ind = 0;
 

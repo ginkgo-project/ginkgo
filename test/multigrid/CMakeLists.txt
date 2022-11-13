@@ -1,0 +1,2 @@
+ginkgo_create_common_test(pgm_kernels)
+ginkgo_create_common_test(fixed_coarsening_kernels)

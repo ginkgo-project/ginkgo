@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,10 +65,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -212,7 +212,7 @@ protected:
     std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_sort;
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
@@ -434,7 +434,7 @@ TYPED_TEST(ParIlu, KernelComputeLU)
     // The expected result of U also needs to be transposed
     auto u_expected_lin_op = this->small_u_expected->transpose();
     auto u_expected = std::unique_ptr<Dense>(
-        static_cast<Dense *>(u_expected_lin_op.release()));
+        static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
         this->ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
@@ -447,28 +447,26 @@ TYPED_TEST(ParIlu, KernelComputeLU)
 
 TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp1)
 {
-    auto linOp = DummyLinOp::create(this->ref);
+    auto linOp = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->ilu_factory_skip->generate(gko::share(linOp)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->ilu_factory_skip->generate(linOp), gko::NotSupported);
 }
 
 
 TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp2)
 {
-    auto linOp = DummyLinOp::create(this->ref);
+    auto linOp = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->ilu_factory_sort->generate(gko::share(linOp)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->ilu_factory_sort->generate(linOp), gko::NotSupported);
 }
 
 
 TYPED_TEST(ParIlu, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
-    auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
+    auto matrix = gko::share(Csr::create(this->ref, gko::dim<2>{2, 3}, 4));
 
-    ASSERT_THROW(this->ilu_factory_sort->generate(gko::share(matrix)),
+    ASSERT_THROW(this->ilu_factory_sort->generate(matrix),
                  gko::DimensionMismatch);
 }
 
@@ -510,9 +508,9 @@ TYPED_TEST(ParIlu, LUFactorFunctionsSetProperly)
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_u_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_u_factor()));
     auto first_operator = gko::lend(factors->get_operators()[0]);
     auto second_operator = gko::lend(factors->get_operators()[1]);
 
@@ -730,8 +728,7 @@ TYPED_TEST(ParIlu, GenerateForReverseCsrSmall)
     using Csr = typename TestFixture::Csr;
     const auto size = this->mtx_csr_small->get_size();
     const auto nnz = size[0] * size[1];
-    auto reverse_csr = gko::share(Csr::create(this->exec));
-    reverse_csr->copy_from(gko::lend(this->mtx_csr_small));
+    auto reverse_csr = gko::share(gko::clone(this->exec, this->mtx_csr_small));
     // Fill the Csr matrix rows in reverse order
     for (size_t i = 0; i < size[0]; ++i) {
         const auto row_start = reverse_csr->get_row_ptrs()[i];

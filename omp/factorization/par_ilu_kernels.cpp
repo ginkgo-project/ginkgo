@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The parallel ILU factorization namespace.
+ * @brief The parallel ilu factorization namespace.
  *
  * @ingroup factor
  */
@@ -55,9 +55,9 @@ namespace par_ilu_factorization {
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
                          size_type iterations,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
+                         const matrix::Coo<ValueType, IndexType>* system_matrix,
+                         matrix::Csr<ValueType, IndexType>* l_factor,
+                         matrix::Csr<ValueType, IndexType>* u_factor)
 {
     // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
     // experiements indicate this works well for many problems.

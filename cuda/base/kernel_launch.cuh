@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include "cuda/base/device_guard.hpp"
+#include <thrust/tuple.h>
+
+
+#include "accessor/cuda_helper.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
@@ -46,56 +49,34 @@ namespace kernels {
 namespace cuda {
 
 
+template <typename AccessorType>
+struct to_device_type_impl<gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(gko::acc::as_cuda_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_cuda_range(range);
+    }
+};
+
+template <typename AccessorType>
+struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(gko::acc::as_cuda_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(const gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_cuda_range(range);
+    }
+};
+
+
+namespace device_std = thrust;
+
+
 constexpr int default_block_size = 512;
 
 
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
-    size_type size, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    if (tidx >= size) {
-        return;
-    }
-    fn(tidx, args...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
-    size_type rows, size_type cols, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    auto col = tidx % cols;
-    auto row = tidx / cols;
-    if (row >= rows) {
-        return;
-    }
-    fn(row, col, args...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
-{
-    gko::cuda::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = default_block_size;
-    auto num_blocks = ceildiv(size, block_size);
-    generic_kernel_1d<<<num_blocks, block_size>>>(size, fn,
-                                                  map_to_device(args)...);
-}
-
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
-{
-    gko::cuda::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = default_block_size;
-    auto num_blocks = ceildiv(size[0] * size[1], block_size);
-    generic_kernel_2d<<<num_blocks, block_size>>>(size[0], size[1], fn,
-                                                  map_to_device(args)...);
-}
+#include "common/cuda_hip/base/kernel_launch.hpp.inc"
 
 
 }  // namespace cuda

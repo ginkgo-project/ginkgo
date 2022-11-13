@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -58,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace preconditioner {
 namespace isai {
+namespace {
 
 
 GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
@@ -71,6 +71,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
+}  // anonymous namespace
 }  // namespace isai
 
 
@@ -84,7 +85,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
  * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
-std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
+std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
                                      std::shared_ptr<const Csr> mtx, int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);
@@ -139,7 +140,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         inverted = extend_sparsity(exec, to_invert, power);
     } else {
         // Extract lower triangular part: compute non-zeros
-        Array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
+        array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
         exec->run(isai::make_initialize_row_ptrs_l(
             to_invert.get(), inverted_row_ptrs.get_data()));
 
@@ -148,8 +149,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             exec->copy_val_to_host(inverted_row_ptrs.get_data() + num_rows));
 
         // Init arrays
-        Array<IndexType> inverted_col_idxs{exec, inverted_nnz};
-        Array<ValueType> inverted_vals{exec, inverted_nnz};
+        array<IndexType> inverted_col_idxs{exec, inverted_nnz};
+        array<ValueType> inverted_vals{exec, inverted_nnz};
         auto inverted_base = share(Csr::create(
             exec, dim<2>{num_rows, num_rows}, std::move(inverted_vals),
             std::move(inverted_col_idxs), std::move(inverted_row_ptrs)));
@@ -165,10 +166,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     // This stores the beginning of the RHS for the sparse block associated with
     // each row of inverted_l
-    Array<IndexType> excess_block_ptrs{exec, num_rows + 1};
+    array<IndexType> excess_block_ptrs{exec, num_rows + 1};
     // This stores the beginning of the non-zeros belonging to each row in the
     // system of excess blocks
-    Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
+    array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
     if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
@@ -181,10 +182,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     }
 
     auto host_excess_block_ptrs_array =
-        Array<IndexType>(exec->get_master(), excess_block_ptrs);
+        array<IndexType>(exec->get_master(), excess_block_ptrs);
     auto host_excess_block_ptrs = host_excess_block_ptrs_array.get_const_data();
     auto host_excess_row_ptrs_full_array =
-        Array<IndexType>(exec->get_master(), excess_row_ptrs_full);
+        array<IndexType>(exec->get_master(), excess_row_ptrs_full);
     auto host_excess_row_ptrs_full =
         host_excess_row_ptrs_full_array.get_const_data();
     auto total_excess_dim = host_excess_block_ptrs[num_rows];
@@ -219,14 +220,11 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_row_ptrs_full.get_const_data(), lend(excess_system),
                 lend(excess_rhs), excess_start, block));
             // solve it after transposing
-            auto system_copy = Csr::create(exec->get_master());
-            system_copy->copy_from(excess_system.get());
-            auto rhs_copy = Dense::create(exec->get_master());
-            rhs_copy->copy_from(excess_rhs.get());
+            auto system_copy = gko::clone(exec->get_master(), excess_system);
+            auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
             std::shared_ptr<LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
-                excess_solver_factory =
-                    share(parameters_.excess_solver_factory);
+                excess_solver_factory = parameters_.excess_solver_factory;
                 excess_solution->copy_from(excess_rhs.get());
             } else if (is_general || is_spd) {
                 excess_solver_factory =
@@ -237,8 +235,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                             gko::stop::Iteration::build()
                                 .with_max_iters(excess_dim)
                                 .on(exec),
-                            gko::stop::RelativeResidualNorm<ValueType>::build()
-                                .with_tolerance(remove_complex<ValueType>{1e-6})
+                            gko::stop::ResidualNorm<ValueType>::build()
+                                .with_baseline(gko::stop::mode::rhs_norm)
+                                .with_reduction_factor(
+                                    remove_complex<ValueType>{1e-6})
                                 .on(exec))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs.get());
@@ -262,6 +262,58 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     }
 
     approximate_inverse_ = std::move(inverted);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>&
+Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
+{
+    if (&other != this) {
+        EnableLinOp<Isai>::operator=(other);
+        auto exec = this->get_executor();
+        approximate_inverse_ = other.approximate_inverse_;
+        parameters_ = other.parameters_;
+        if (approximate_inverse_ &&
+            other.approximate_inverse_->get_executor() != exec) {
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+        }
+    }
+    return *this;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>&
+Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Isai>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        approximate_inverse_ = std::move(other.approximate_inverse_);
+        parameters_ = std::exchange(other.parameters_, parameters_type{});
+        if (approximate_inverse_ &&
+            other.approximate_inverse_->get_executor() != exec) {
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+        }
+    }
+    return *this;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(const Isai& other)
+    : Isai{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(Isai&& other)
+    : Isai{other.get_executor()}
+{
+    *this = std::move(other);
 }
 
 

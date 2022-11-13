@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,10 +57,10 @@ protected:
               exec, gko::dim<2>{2, 3}, 4,
               std::make_shared<typename Mtx::load_balance>(2)))
     {
-        value_type *v = mtx->get_values();
-        index_type *c = mtx->get_col_idxs();
-        index_type *r = mtx->get_row_ptrs();
-        index_type *s = mtx->get_srow();
+        value_type* v = mtx->get_values();
+        index_type* c = mtx->get_col_idxs();
+        index_type* r = mtx->get_row_ptrs();
+        index_type* s = mtx->get_srow();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -78,7 +78,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx *m)
+    void assert_equal_to_original_mtx(const Mtx* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -100,7 +100,7 @@ protected:
         EXPECT_EQ(s[0], 0);
     }
 
-    void assert_empty(const Mtx *m)
+    void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -111,7 +111,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, KnowsItsSize)
@@ -147,9 +147,33 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::Csr<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 4, values),
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs),
+        gko::make_array_view(this->exec, 4, values),
+        gko::make_array_view(this->exec, 4, col_idxs),
+        gko::make_array_view(this->exec, 4, row_ptrs),
+        std::make_shared<typename Mtx::load_balance>(2));
+
+    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_srow()[0], 0);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = gko::matrix::Csr<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::array<value_type>::const_view(this->exec, 4, values),
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::array<index_type>::const_view(this->exec, 4, row_ptrs),
         std::make_shared<typename Mtx::load_balance>(2));
 
     ASSERT_EQ(mtx->get_num_srow_elements(), 1);
@@ -191,7 +215,7 @@ TYPED_TEST(Csr, CanBeCloned)
 
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
 
 
@@ -209,13 +233,7 @@ TYPED_TEST(Csr, CanBeReadFromMatrixData)
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::load_balance>(2));
 
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -232,9 +250,7 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 

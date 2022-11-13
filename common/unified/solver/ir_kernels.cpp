@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ namespace ir {
 
 
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                Array<stopping_status> *stop_status)
+                array<stopping_status>* stop_status)
 {
     run_kernel(
         exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,10 +51,10 @@ struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
         : gko::EnableLinOp<DummyOperator>(exec, size)
     {}
 
-    void apply_impl(const LinOp *b, LinOp *x) const override {}
+    void apply_impl(const LinOp* b, LinOp* x) const override {}
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {}
 };
 
@@ -72,7 +72,7 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
-TYPED_TEST_SUITE(Composition, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Composition, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Composition, CanBeEmpty)

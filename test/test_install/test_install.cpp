@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -45,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-void assert_similar_matrices(const gko::matrix::Dense<> *m1,
-                             const gko::matrix::Dense<> *m2, double prec)
+void assert_similar_matrices(const gko::matrix::Dense<>* m1,
+                             const gko::matrix::Dense<>* m2, double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
     assert(m1->get_size()[1] == m2->get_size()[1]);
@@ -60,8 +61,8 @@ void assert_similar_matrices(const gko::matrix::Dense<> *m1,
 
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
-                const gko::matrix_data<double> &A_raw,
-                const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+                const gko::matrix_data<double>& A_raw,
+                const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
@@ -89,12 +90,11 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
-                  const gko::matrix_data<double> &A_raw,
-                  const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+                  const gko::matrix_data<double>& A_raw,
+                  const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
 {
     using Mtx = gko::matrix::Csr<>;
-    auto A =
-        gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
+    auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
 
     auto num_iters = 20u;
     double reduction_factor = 1e-7;
@@ -117,8 +117,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 #if defined(HAS_HIP) || defined(HAS_CUDA)
     // If we are on a device, we need to run a reference test to compare against
     auto exec_ref = exec->get_master();
-    auto A_ref = gko::share(
-        Mtx::create(exec_ref, std::make_shared<Mtx::load_balance>()));
+    auto A_ref =
+        gko::share(Mtx::create(exec_ref, std::make_shared<Mtx::classical>()));
     A_ref->read(A_raw);
     auto solver_gen_ref =
         Solver::build()
@@ -147,12 +147,34 @@ class PolymorphicObjectTest : public gko::PolymorphicObject {};
 int main()
 {
 #if defined(HAS_CUDA)
-    auto exec = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
+    auto extra_info = "(CUDA)";
+    using exec_type = gko::CudaExecutor;
 #elif defined(HAS_HIP)
-    auto exec = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
+    auto extra_info = "(HIP)";
+    using exec_type = gko::HipExecutor;
 #else
-    auto exec = gko::ReferenceExecutor::create();
+    auto extra_info = "(REFERENCE)";
+    using exec_type = gko::ReferenceExecutor;
 #endif
+
+    std::shared_ptr<exec_type> exec;
+    try {
+#if defined(HAS_CUDA) || defined(HAS_HIP)
+        exec = exec_type::create(0, gko::ReferenceExecutor::create());
+#else
+        exec = exec_type::create();
+#endif
+        // We also try to to synchronize to ensure we really have an available
+        // device
+        exec->synchronize();
+    } catch (gko::Error& e) {
+        // Exit gracefully to not trigger CI errors. We only skip the tests in
+        // this setting
+        std::cerr
+            << "test_install" << extra_info
+            << ": a compatible device could not be found. Skipping test.\n";
+        std::exit(0);
+    }
 
     using vec = gko::matrix::Dense<>;
 #if HAS_REFERENCE
@@ -181,8 +203,8 @@ int main()
     // core/base/array.hpp
     {
         using type1 = int;
-        using ArrayType = gko::Array<type1>;
-        ArrayType test;
+        using array_type = gko::array<type1>;
+        array_type test;
     }
 
     // core/base/combination.hpp
@@ -205,6 +227,12 @@ int main()
     {
         using type1 = int;
         auto test = gko::dim<3, type1>{4, 4, 4};
+    }
+
+    // core/base/device_matrix_data.hpp
+    {
+        auto test =
+            gko::device_matrix_data<float, int>{exec, gko::dim<2>{1, 1}, 1};
     }
 
     // core/base/exception.hpp
@@ -300,7 +328,7 @@ int main()
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(exec);
+        auto test = gko::log::Convergence<>::create();
     }
 
     // core/log/record.hpp
@@ -310,13 +338,13 @@ int main()
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(exec);
+        auto test = gko::log::Stream<>::create();
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        auto test = gko::log::Papi<>::create(exec);
+        auto test = gko::log::Papi<>::create();
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
@@ -329,7 +357,7 @@ int main()
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(exec, std::make_shared<Mtx::load_balance>());
+        auto test = Mtx::create(exec, std::make_shared<Mtx::classical>());
     }
 
     // core/matrix/dense.hpp
@@ -362,6 +390,12 @@ int main()
         auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
+    // core/matrix/row_gatherer.hpp
+    {
+        using Mtx = gko::matrix::RowGatherer<>;
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
+    }
+
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
@@ -374,9 +408,9 @@ int main()
         auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
-    // core/multigrid/amgx_pgm.hpp
+    // core/multigrid/pgm.hpp
     {
-        auto test = gko::multigrid::AmgxPgm<>::build().on(exec);
+        auto test = gko::multigrid::Pgm<>::build().on(exec);
     }
 
     // core/preconditioner/ilu.hpp
@@ -470,18 +504,6 @@ int main()
                                 .with_baseline(gko::stop::mode::absolute)
                                 .on(exec);
 
-        auto res_red = gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(1e-10)
-                           .on(exec);
-
-        auto rel_res =
-            gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
-                exec);
-
-        auto abs_res =
-            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
-                exec);
-
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};
 
@@ -491,13 +513,6 @@ int main()
                 .with_criteria(std::move(time), std::move(iteration))
                 .on(exec);
     }
-#if defined(HAS_CUDA)
-    auto extra_info = "(CUDA)";
-#elif defined(HAS_HIP)
-    auto extra_info = "(HIP)";
-#else
-    auto extra_info = "(REFERENCE)";
-#endif
     std::cout << "test_install" << extra_info
               << ": the Ginkgo installation was correctly detected "
                  "and is complete."

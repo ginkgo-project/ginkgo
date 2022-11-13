@@ -167,6 +167,8 @@ imposed by the `HIP` tool suite. The variables are the following:
   `hipBLAS` installation path. The default value is `${ROCM_PATH}/hipblas`.
 + CMake `-DHIPSPARSE_PATH=` or environment `export HIPSPARSE_PATH=`: sets the
   `hipSPARSE` installation path. The default value is `${ROCM_PATH}/hipsparse`.
++ CMake `-DHIPFFT_PATH=` or environment `export HIPFFT_PATH=`: sets the
+  `hipFFT` installation path. The default value is `${ROCM_PATH}/hipfft`.
 + CMake `-DROCRAND_PATH=` or environment `export ROCRAND_PATH=`: sets the
   `rocRAND` installation path. The default value is `${ROCM_PATH}/rocrand`.
 + CMake `-DHIPRAND_PATH=` or environment `export HIPRAND_PATH=`: sets the
@@ -210,6 +212,14 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_HWLOC=ON:
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
++ GINKGO_BUILD_HWLOC=ON and GINKGO_BUILD_TESTS=ON:
+  [libnuma](https://www.man7.org/linux/man-pages/man3/numa.3.html) is required
+  when testing the functions provided through MachineTopology.
++ GINKGO_BUILD_EXAMPLES=ON:
+  [OpenCV](https://opencv.org/) is required for some examples, they are disabled when OpenCV is not available.
++ GINKGO_BUILD_DOC=ON:
+  [doxygen](https://www.doxygen.nl/) is required to build the documentation and
+  additionally [graphviz](https://graphviz.org/) is required to build the class hierarchy graphs.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
@@ -240,4 +250,4 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`test_install`](test_install/CMakeLists.txt).
+An example can be found in the [`test_install`](test/test_install/CMakeLists.txt).

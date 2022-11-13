@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 template <typename ValueType, typename IndexType>
-void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType> *matrix)
+void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
 {
     const auto discretization_points = matrix->get_size()[0];
     auto row_ptrs = matrix->get_row_ptrs();
@@ -65,7 +65,7 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType> *matrix)
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ValueType>
 void generate_rhs(Closure f, ValueType u0, ValueType u1,
-                  gko::matrix::Dense<ValueType> *rhs)
+                  gko::matrix::Dense<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
@@ -82,7 +82,7 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
 // Prints the solution `u`.
 template <typename Closure, typename ValueType>
 void print_solution(ValueType u0, ValueType u1,
-                    const gko::matrix::Dense<ValueType> *u)
+                    const gko::matrix::Dense<ValueType>* u)
 {
     std::cout << u0 << '\n';
     for (int i = 0; i < u->get_size()[0]; ++i) {
@@ -96,7 +96,7 @@ void print_solution(ValueType u0, ValueType u1,
 // solution function `correct_u`.
 template <typename Closure, typename ValueType>
 gko::remove_complex<ValueType> calculate_error(
-    int discretization_points, const gko::matrix::Dense<ValueType> *u,
+    int discretization_points, const gko::matrix::Dense<ValueType>* u,
     Closure correct_u)
 {
     const ValueType h = 1.0 / static_cast<ValueType>(discretization_points + 1);
@@ -111,7 +111,7 @@ gko::remove_complex<ValueType> calculate_error(
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -132,9 +132,11 @@ int main(int argc, char *argv[])
     }
 
     // Get number of discretization points
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
         argc >= 3 ? std::atoi(argv[2]) : 100;
+
+    // Get the executor string
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -162,7 +164,8 @@ int main(int argc, char *argv[])
     // executor used by the application
     const auto app_exec = exec->get_master();
 
-    // problem:
+    // Set up the problem: define the exact solution, the right hand side and
+    // the Dirichlet boundary condition.
     auto correct_u = [](ValueType x) { return x * x * x; };
     auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);

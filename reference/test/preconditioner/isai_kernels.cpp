@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -86,8 +86,10 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(1000u).on(
                           exec),
-                      gko::stop::RelativeResidualNorm<value_type>::build()
-                          .with_tolerance(gko::remove_complex<value_type>{1e-6})
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::rhs_norm)
+                          .with_reduction_factor(
+                              gko::remove_complex<value_type>{1e-6})
                           .on(exec))
                   .on(exec)),
           a_dense{gko::initialize<Dense>({{2, 1, 2}, {1, -2, 3}, {-1, 1, 1}},
@@ -232,14 +234,14 @@ protected:
     }
 
     template <typename ReadMtx>
-    std::unique_ptr<ReadMtx> read(const char *name)
+    std::unique_ptr<ReadMtx> read(const char* name)
     {
         std::ifstream mtxstream{std::string{gko::matrices::location_isai_mtxs} +
                                 name};
         auto result = gko::read<ReadMtx>(mtxstream, exec);
         // to avoid removing 0s, the matrices store 12345 instead
         for (gko::size_type i = 0; i < result->get_num_stored_elements(); ++i) {
-            auto &val = result->get_values()[i];
+            auto& val = result->get_values()[i];
             if (val == static_cast<value_type>(12345.0)) {
                 val = 0;
             }
@@ -247,7 +249,7 @@ protected:
         return std::move(result);
     }
 
-    std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
+    std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
     {
         const auto num_elems = csr_mtx->get_num_stored_elements();
         auto sparsity = csr_mtx->clone();
@@ -257,7 +259,7 @@ protected:
         return sparsity;
     }
 
-    std::unique_ptr<Csr> transpose(const Csr *mtx)
+    std::unique_ptr<Csr> transpose(const Csr* mtx)
     {
         return gko::as<Csr>(mtx->transpose());
     }
@@ -323,7 +325,7 @@ protected:
     std::shared_ptr<Csr> spd_sparse_inv;
 };
 
-TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Isai, KernelGenerateA)
@@ -333,10 +335,10 @@ TYPED_TEST(Isai, KernelGenerateA)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->a_csr));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -359,10 +361,10 @@ TYPED_TEST(Isai, KernelGenerateA2)
     auto a_transpose = this->transpose(lend(this->a_csr));
     auto result = this->clone_allocations(lend(a_transpose));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -385,10 +387,10 @@ TYPED_TEST(Isai, KernelGenerateAsparse)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->a_sparse));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -410,10 +412,10 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->a_csr_longrow));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1_expect = zeros;
@@ -442,7 +444,7 @@ TYPED_TEST(Isai, KernelGenerateExcessALongrow)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto num_rows = this->a_csr_longrow->get_size()[0];
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1 = zeros;
@@ -472,10 +474,10 @@ TYPED_TEST(Isai, KernelGenerateL1)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_csr));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -498,10 +500,10 @@ TYPED_TEST(Isai, KernelGenerateL2)
     const auto l_mtx = this->transpose(lend(this->u_csr));
     auto result = this->clone_allocations(lend(l_mtx));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -524,10 +526,10 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_sparse));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -549,10 +551,10 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_sparse2));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -575,10 +577,10 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     const auto l_mtx = this->transpose(lend(this->u_sparse));
     auto result = this->clone_allocations(lend(l_mtx));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -607,10 +609,10 @@ TYPED_TEST(Isai, KernelGenerateLLongrow)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_csr_longrow));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1_expect = zeros;
@@ -641,7 +643,7 @@ TYPED_TEST(Isai, KernelGenerateExcessLLongrow)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto num_rows = this->l_csr_longrow->get_size()[0];
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1 = zeros;
@@ -674,10 +676,10 @@ TYPED_TEST(Isai, KernelGenerateU1)
     const auto u_mtx = this->transpose(lend(this->l_csr));
     auto result = this->clone_allocations(lend(u_mtx));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -700,10 +702,10 @@ TYPED_TEST(Isai, KernelGenerateU2)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->u_csr));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -726,10 +728,10 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     const auto u_mtx = this->transpose(lend(this->l_sparse));
     auto result = this->clone_allocations(lend(u_mtx));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -753,10 +755,10 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     const auto u_mtx = this->transpose(this->l_sparse2.get());
     auto result = this->clone_allocations(lend(u_mtx));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -785,10 +787,10 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->u_sparse));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -810,10 +812,10 @@ TYPED_TEST(Isai, KernelGenerateULongrow)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->u_csr_longrow));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1_expect = zeros;
@@ -840,7 +842,7 @@ TYPED_TEST(Isai, KernelGenerateExcessULongrow)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto num_rows = this->u_csr_longrow->get_size()[0];
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 32nd row has some excess storage
     auto a1 = zeros;
@@ -868,10 +870,10 @@ TYPED_TEST(Isai, KernelGenerateSpd)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->spd_csr_inv));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -893,10 +895,10 @@ TYPED_TEST(Isai, KernelGenerateSpdsparse)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->spd_sparse_inv));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -918,10 +920,10 @@ TYPED_TEST(Isai, KernelGenerateSpdLongrow)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->spd_csr_longrow_inv));
     auto num_rows = result->get_size()[0];
-    gko::Array<index_type> a1(this->exec, num_rows + 1);
-    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    gko::array<index_type> a1(this->exec, num_rows + 1);
+    gko::array<index_type> a2(this->exec, num_rows + 1);
     // zero-filled array
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 36th row has some excess storage
     auto a1_expect = zeros;
@@ -948,7 +950,7 @@ TYPED_TEST(Isai, KernelGenerateExcessSpdLongrow)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto num_rows = this->spd_csr_longrow->get_size()[0];
-    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    gko::array<index_type> zeros(this->exec, num_rows + 1);
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
     // only the 36th row has some excess storage
     auto a1 = zeros;
@@ -975,7 +977,7 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> ptrs{this->exec, I<index_type>{0, 0, 2, 2, 5, 7, 7}};
+    gko::array<index_type> ptrs{this->exec, I<index_type>{0, 0, 2, 2, 5, 7, 7}};
     auto mtx = Csr::create(this->exec, gko::dim<2>{6, 6},
                            I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
                            I<index_type>{0, 0, 1, 0, 0, 1, 2, 0, 1, 0},

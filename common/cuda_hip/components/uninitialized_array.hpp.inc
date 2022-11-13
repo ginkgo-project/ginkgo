@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,26 +41,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @tparam size the size of the array
  */
 template <typename ValueType, size_type size>
-class UninitializedArray {
+class uninitialized_array {
 public:
     /**
-     * Operator for casting an UninitializedArray into its constexpr value
+     * Operator for casting an uninitialized_array into its constexpr value
      * pointer.
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr GKO_ATTRIBUTES operator const ValueType *() const noexcept
+    constexpr GKO_ATTRIBUTES operator const ValueType*() const noexcept
     {
         return &(*this)[0];
     }
 
     /**
-     * Operator for casting an UninitializedArray into its non-const value
+     * Operator for casting an uninitialized_array into its non-const value
      * pointer.
      *
      * @return the non-const pointer to the first entry of the array.
      */
-    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
+    GKO_ATTRIBUTES operator ValueType*() noexcept { return &(*this)[0]; }
 
     /**
      * constexpr array access operator.
@@ -70,10 +70,10 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES const ValueType &operator[](size_type pos) const
+    constexpr GKO_ATTRIBUTES const ValueType& operator[](size_type pos) const
         noexcept
     {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
+        return reinterpret_cast<const ValueType*>(data_)[pos];
     }
 
     /**
@@ -84,9 +84,9 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
+    GKO_ATTRIBUTES ValueType& operator[](size_type pos) noexcept
     {
-        return reinterpret_cast<ValueType *>(data_)[pos];
+        return reinterpret_cast<ValueType*>(data_)[pos];
     }
 
 private:

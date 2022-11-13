@@ -71,7 +71,9 @@ endfunction()
 
 function(ginkgo_install)
     # pkg-config file
-    install(FILES "${Ginkgo_BINARY_DIR}/ginkgo.pc" DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}")
+    install(FILES ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
+        DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}"
+        RENAME ginkgo.pc)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
@@ -103,7 +105,7 @@ function(ginkgo_install)
     endif()
 
     # Install CMake modules
-    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules"
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules/"
         DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
         FILES_MATCHING PATTERN "*.cmake"
         )

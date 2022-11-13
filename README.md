@@ -1,22 +1,22 @@
 ![Ginkgo](/assets/logo.png)
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
-[![OSX-build](https://github.com/ginkgo-project/ginkgo/workflows/OSX-build/badge.svg?branch=master)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AOSX-build+branch%3Amaster)
-[![Windows-build](https://github.com/ginkgo-project/ginkgo/workflows/windows-build/badge.svg?branch=master)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AWindows-build+branch%3Amaster)
-[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master)
+[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)
+[![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)
+[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
-[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
+[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/master/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
-focus on sparse solution of linear systems. It is implemented using modern C++
-(you will need at least C++14 compliant compiler to build it), with GPU kernels
-implemented in CUDA and HIP.
+focus on the solution of sparse linear systems. It is implemented using modern C++
+(you will need an at least C++14 compliant compiler to build it), with GPU kernels
+implemented in CUDA, HIP, and DPC++.
 
 
 Performance
@@ -42,10 +42,12 @@ For Ginkgo core library:
     *   _clang 3.9+_
     *   _Intel compiler 2018+_
     *   _Apple LLVM 8.0+_
+    *   _Cray Compiler 14.0.1+_
+    *   _NVHPC Compiler 22.7+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.0+_
+*   _CUDA 9.2+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
@@ -53,16 +55,17 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
-* _ROCm 3.5+_
+* _ROCm 4.0+_
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
     * _9.2 <= CUDA < 11_ backend
+* if the hipFFT package is available, it is used to implement the FFT LinOps.
 
 The Ginkgo DPC++ module has the following __additional__ requirements:
 
 * _OneAPI 2021.3+_
 * Set `dpcpp` as the `CMAKE_CXX_COMPILER`
-* `c++17` is used to compile this module, while the rest of Ginkgo is compiled using `c++14`.
+* `c++17` is used to compile Ginkgo
 * The following oneAPI packages should be available:
     * oneMKL
     * oneDPL
@@ -86,7 +89,7 @@ __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.0+_
+*   _CUDA 9.2+_
 *   _Microsoft Visual Studio_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
@@ -123,11 +126,11 @@ run the examples with these executors. Please refer to the [Installation
 page](./INSTALL.md) for more details.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`test_install`](test_install/CMakeLists.txt).
+An example can be found in the [`test_install`](test/test_install/CMakeLists.txt).
 
 ### Ginkgo Examples
 
-Various examples are available for you to understand and play with Ginkgo within the `examples/` directory. They can be compiled by passing the `-DGINKGO_BUILD_EXAMPLES=ON` to the cmake command. Documentation for the examples is available within the `doc/` folder in each of the example directory and a commented code with explanations can found in the [online documentation](https://ginkgo-project.github.io/ginkgo/doc/master/Examples.html).
+Various examples are available for you to understand and play with Ginkgo within the `examples/` directory. They can be compiled by passing the `-DGINKGO_BUILD_EXAMPLES=ON` to the cmake command. Documentation for the examples is available within the `doc/` folder in each of the example directory and a commented code with explanations can found in the [online documentation](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/master/Examples.html).
 
 ### Ginkgo Testing
 
@@ -186,13 +189,22 @@ The main Ginkgo paper describing Ginkgo's purpose, design and interface is
 available through the following reference:
 
 ``` bibtex
-@misc{anzt2020ginkgo,
-    title={Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing},
-    author={Hartwig Anzt and Terry Cojean and Goran Flegar and Fritz Göbel and Thomas Grützmacher and Pratik Nayak and Tobias Ribizel and Yuhsiang Mike Tsai and Enrique S. Quintana-Ortí},
-    year={2020},
-    eprint={2006.16852},
-    archivePrefix={arXiv},
-    primaryClass={cs.MS}
+@article{ginkgo-toms-2022,
+title = {{Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing}},
+volume = {48},
+copyright = {All rights reserved},
+issn = {0098-3500},
+shorttitle = {Ginkgo},
+url = {https://doi.org/10.1145/3480935},
+doi = {10.1145/3480935},
+number = {1},
+urldate = {2022-02-17},
+journal = {ACM Transactions on Mathematical Software},
+author = {Anzt, Hartwig and Cojean, Terry and Flegar, Goran and Göbel, Fritz and Grützmacher, Thomas and Nayak, Pratik and Ribizel, Tobias and Tsai, Yuhsiang Mike and Quintana-Ortí, Enrique S.},
+month = feb,
+year = {2022},
+keywords = {ginkgo, healthy software lifecycle, High performance computing, multi-core and manycore architectures},
+pages = {2:1--2:33}
 }
 ```
 

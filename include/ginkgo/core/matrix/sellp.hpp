@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,9 @@ class Csr;
  * SELL-P format divides rows into smaller slices and store each slice with ELL
  * format.
  *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -89,26 +92,31 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Sellp>;
 
     friend class Sellp<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Sellp<next_precision<ValueType>, IndexType> *result) const override;
+        Sellp<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Sellp<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void read(const device_mat_data& data) override;
+
+    void read(device_mat_data&& data) override;
+
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -121,7 +129,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Sellp::get_values()
@@ -130,7 +138,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -140,7 +148,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Sellp::get_col_idxs()
@@ -149,7 +157,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -159,7 +167,7 @@ public:
      *
      * @return the lengths(columns) of slices.
      */
-    size_type *get_slice_lengths() noexcept
+    size_type* get_slice_lengths() noexcept
     {
         return slice_lengths_.get_data();
     }
@@ -171,7 +179,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const size_type *get_const_slice_lengths() const noexcept
+    const size_type* get_const_slice_lengths() const noexcept
     {
         return slice_lengths_.get_const_data();
     }
@@ -181,7 +189,7 @@ public:
      *
      * @return the offsets of slices.
      */
-    size_type *get_slice_sets() noexcept { return slice_sets_.get_data(); }
+    size_type* get_slice_sets() noexcept { return slice_sets_.get_data(); }
 
     /**
      * @copydoc Sellp::get_slice_sets()
@@ -190,7 +198,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const size_type *get_const_slice_sets() const noexcept
+    const size_type* get_const_slice_sets() const noexcept
     {
         return slice_sets_.get_const_data();
     }
@@ -214,7 +222,10 @@ public:
      *
      * @return the total column number.
      */
-    size_type get_total_cols() const noexcept { return total_cols_; }
+    size_type get_total_cols() const noexcept
+    {
+        return values_.get_num_elems() / slice_size_;
+    }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -238,7 +249,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    value_type &val_at(size_type row, size_type slice_set,
+    value_type& val_at(size_type row, size_type slice_set,
                        size_type idx) noexcept
     {
         return values_.get_data()[this->linearize_index(row, slice_set, idx)];
@@ -266,7 +277,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    index_type &col_at(size_type row, size_type slice_set,
+    index_type& col_at(size_type row, size_type slice_set,
                        size_type idx) noexcept
     {
         return this->get_col_idxs()[this->linearize_index(row, slice_set, idx)];
@@ -282,6 +293,32 @@ public:
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
 
+    /**
+     * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
+     * parameters.
+     */
+    Sellp& operator=(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Preserves the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp& operator=(Sellp&&);
+
+    /**
+     * Copy-assigns a Sellp matrix. Inherits the executor, copies the data and
+     * parameters.
+     */
+    Sellp(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Inherits the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp(Sellp&&);
+
 protected:
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
@@ -291,7 +328,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
         : Sellp(std::move(exec), size,
                 ceildiv(size[0], default_slice_size) * size[1])
     {}
@@ -304,7 +341,7 @@ protected:
      * @param size  size of the matrix
      * @param total_cols   number of the sum of all cols in every slice.
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type total_cols)
         : Sellp(std::move(exec), size, default_slice_size,
                 default_stride_factor, total_cols)
@@ -320,7 +357,7 @@ protected:
      *                        should be multiples of the stride_factor)
      * @param total_cols   number of the sum of all cols in every slice.
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type slice_size, size_type stride_factor, size_type total_cols)
         : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * total_cols),
@@ -328,14 +365,16 @@ protected:
           slice_lengths_(exec, ceildiv(size[0], slice_size)),
           slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
-          stride_factor_(stride_factor),
-          total_cols_(total_cols)
-    {}
+          stride_factor_(stride_factor)
+    {
+        slice_sets_.fill(0);
+        slice_lengths_.fill(0);
+    }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type slice_set,
                               size_type col) const noexcept
@@ -344,13 +383,12 @@ protected:
     }
 
 private:
-    Array<value_type> values_{0};
-    Array<index_type> col_idxs_{0};
-    Array<size_type> slice_lengths_{0};
-    Array<size_type> slice_sets_{0};
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<size_type> slice_lengths_;
+    array<size_type> slice_sets_;
     size_type slice_size_;
     size_type stride_factor_;
-    size_type total_cols_{0};
 };
 
 

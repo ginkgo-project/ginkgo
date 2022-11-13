@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,15 +35,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <cinttypes>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
 
 #include "accessor_helper.hpp"
-#include "accessor_references.hpp"
 #include "index_span.hpp"
 #include "range.hpp"
+#include "reduced_row_major_reference.hpp"
 #include "utils.hpp"
 
 
@@ -74,12 +75,13 @@ namespace acc {
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType>
+template <std::size_t Dimensionality, typename ArithmeticType,
+          typename StorageType>
 class reduced_row_major {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
+    static constexpr auto dimensionality = Dimensionality;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using const_accessor =
         reduced_row_major<dimensionality, arithmetic_type, const storage_type>;
@@ -95,6 +97,10 @@ protected:
     using reference_type =
         reference_class::reduced_storage<arithmetic_type, storage_type>;
 
+private:
+    using index_type = std::int64_t;
+
+protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -105,7 +111,7 @@ protected:
      * @param stride  stride array used for memory accesses
      */
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage,
+                                                   storage_type* storage,
                                                    storage_stride_type stride)
         : size_(size), storage_{storage}, stride_(stride)
     {}
@@ -121,8 +127,8 @@ protected:
      */
     template <typename... Strides>
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage,
-                                                   Strides &&... strides)
+                                                   storage_type* storage,
+                                                   Strides&&... strides)
         : reduced_row_major{
               size, storage,
               storage_stride_type{{std::forward<Strides>(strides)...}}}
@@ -139,10 +145,10 @@ protected:
      * @param size  multidimensional size of the memory
      */
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage)
+                                                   storage_type* storage)
         : reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<size_type>(size)}
+              helper::compute_default_row_major_stride_array(size)}
     {}
 
     /**
@@ -189,7 +195,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
+    operator()(Indices&&... indices) const
     {
         return reference_type{storage_ +
                               compute_index(std::forward<Indices>(indices)...)};
@@ -229,14 +235,14 @@ public:
      * @returns returns a pointer to a stride array of size dimensionality - 1
      */
     GKO_ACC_ATTRIBUTES
-    constexpr const storage_stride_type &get_stride() const { return stride_; }
+    constexpr const storage_stride_type& get_stride() const { return stride_; }
 
     /**
      * Returns the pointer to the storage data
      *
      * @returns the pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES storage_type *get_stored_data() const
+    constexpr GKO_ACC_ATTRIBUTES storage_type* get_stored_data() const
     {
         return storage_;
     }
@@ -246,25 +252,25 @@ public:
      *
      * @returns a const pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES const storage_type *get_const_storage() const
+    constexpr GKO_ACC_ATTRIBUTES const storage_type* get_const_storage() const
     {
         return storage_;
     }
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
-    compute_index(Indices &&... indices) const
+    constexpr GKO_ACC_ATTRIBUTES index_type
+    compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_row_major_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<index_type, dimensionality>(
             size_, stride_, std::forward<Indices>(indices)...);
     }
 
 private:
     const dim_type size_;
-    storage_type *const storage_;
+    storage_type* const storage_;
     const storage_stride_type stride_;
 };
 

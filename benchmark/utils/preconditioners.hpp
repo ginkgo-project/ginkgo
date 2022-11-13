@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,7 @@ DEFINE_uint32(jacobi_max_block_size, 32,
 
 
 // parses the Jacobi storage optimization command line argument
-gko::precision_reduction parse_storage_optimization(const std::string &flag)
+gko::precision_reduction parse_storage_optimization(const std::string& flag)
 {
     if (flag == "autodetect") {
         return gko::precision_reduction::autodetect();

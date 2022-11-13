@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Utility function which returns the first element (position [0, 0]) from a
 // given gko::matrix::Dense matrix / vector.
 template <typename ValueType>
-ValueType get_first_element(const gko::matrix::Dense<ValueType> *mtx)
+ValueType get_first_element(const gko::matrix::Dense<ValueType>* mtx)
 {
     // Copy the matrix / vector to the host device before accessing the value in
     // case it is stored in a GPU.
@@ -66,7 +66,7 @@ ValueType get_first_element(const gko::matrix::Dense<ValueType> *mtx)
 // vector.
 template <typename ValueType>
 gko::remove_complex<ValueType> compute_norm(
-    const gko::matrix::Dense<ValueType> *b)
+    const gko::matrix::Dense<ValueType>* b)
 {
     // Get the executor of the vector
     auto exec = b->get_executor();
@@ -122,11 +122,11 @@ struct ResidualLogger : gko::log::Logger {
     using gko_real_dense = gko::matrix::Dense<RealValueType>;
 
     // This overload is necessary to avoid interface breaks for Ginkgo 2.0
-    void on_iteration_complete(const gko::LinOp *solver,
-                               const gko::size_type &iteration,
-                               const gko::LinOp *residual,
-                               const gko::LinOp *solution,
-                               const gko::LinOp *residual_norm) const override
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::size_type& iteration,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* solution,
+                               const gko::LinOp* residual_norm) const override
     {
         this->on_iteration_complete(solver, iteration, residual, solution,
                                     residual_norm, nullptr);
@@ -135,10 +135,10 @@ struct ResidualLogger : gko::log::Logger {
     // Customize the logging hook which is called everytime an iteration is
     // completed
     void on_iteration_complete(
-        const gko::LinOp *, const gko::size_type &iteration,
-        const gko::LinOp *residual, const gko::LinOp *solution,
-        const gko::LinOp *residual_norm,
-        const gko::LinOp *implicit_sq_residual_norm) const override
+        const gko::LinOp*, const gko::size_type& iteration,
+        const gko::LinOp* residual, const gko::LinOp* solution,
+        const gko::LinOp* residual_norm,
+        const gko::LinOp* implicit_sq_residual_norm) const override
     {
         // If the solver shares a residual norm, log its value
         if (residual_norm) {
@@ -195,18 +195,17 @@ struct ResidualLogger : gko::log::Logger {
     }
 
     // Construct the logger and store the system matrix and b vectors
-    ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp *matrix, const gko_dense *b)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+    ResidualLogger(const gko::LinOp* matrix, const gko_dense* b)
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b}
     {}
 
 private:
     // Pointer to the system matrix
-    const gko::LinOp *matrix;
+    const gko::LinOp* matrix;
     // Pointer to the right hand sides
-    const gko_dense *b;
+    const gko_dense* b;
     // Vector which stores all the recurrent residual norms
     mutable std::vector<RealValueType> recurrent_norms{};
     // Vector which stores all the real residual norms
@@ -218,7 +217,7 @@ private:
 };
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a
     // gko::matrix::Dense with one column/one row. The advantage of this
@@ -312,8 +311,8 @@ int main(int argc, char *argv[])
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger = std::make_shared<ResidualLogger<ValueType>>(
-        exec, gko::lend(A), gko::lend(b));
+    auto logger =
+        std::make_shared<ResidualLogger<ValueType>>(gko::lend(A), gko::lend(b));
 
     // Add the previously created logger to the solver factory. The logger
     // will be automatically propagated to all solvers created from this

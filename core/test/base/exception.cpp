@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,14 @@ TEST(ExceptionClasses, CusparseErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, CufftErrorReturnsCorrectWhatMessage)
+{
+    gko::CufftError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, HipErrorReturnsCorrectWhatMessage)
 {
     gko::HipError error("test_file.cpp", 123, "test_func", 1);
@@ -133,6 +141,14 @@ TEST(ExceptionClasses, HiprandErrorReturnsCorrectWhatMessage)
 TEST(ExceptionClasses, HipsparseErrorReturnsCorrectWhatMessage)
 {
     gko::HipsparseError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
+TEST(ExceptionClasses, HipfftErrorReturnsCorrectWhatMessage)
+{
+    gko::HipfftError error("test_file.cpp", 123, "test_func", 1);
     std::string expected = "test_file.cpp:123: test_func: ";
     ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
 }

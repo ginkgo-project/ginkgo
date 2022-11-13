@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -74,25 +75,17 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
-                 public Preconditionable,
-                 public Transposable {
+class Bicgstab
+    : public EnableLinOp<Bicgstab<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType,
+                                                 Bicgstab<ValueType>>,
+      public Transposable {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 
 public:
     using value_type = ValueType;
     using transposed_type = Bicgstab<ValueType>;
-
-    /**
-     * Gets the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -104,28 +97,6 @@ public:
      * @return true as iterative solvers use the data in x as an initial guess.
      */
     bool apply_uses_initial_guess() const override { return true; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -152,44 +123,82 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *x) const;
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x) const;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bicgstab>(std::move(exec))
     {}
 
-    explicit Bicgstab(const Factory *factory,
+    explicit Bicgstab(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Bicgstab>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
-    {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
-                                        this);
-            set_preconditioner(parameters_.generated_preconditioner);
-        } else if (parameters_.preconditioner) {
-            set_preconditioner(
-                parameters_.preconditioner->generate(system_matrix_));
-        } else {
-            set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
-        }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
-    }
+          EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
+              std::move(system_matrix), factory->get_parameters()},
+          parameters_{factory->get_parameters()}
+    {}
+};
 
-private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
+
+template <typename ValueType>
+struct workspace_traits<Bicgstab<ValueType>> {
+    using Solver = Bicgstab<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // preconditioned residual vector
+    constexpr static int z = 1;
+    // y vector
+    constexpr static int y = 2;
+    // v vector
+    constexpr static int v = 3;
+    // s vector
+    constexpr static int s = 4;
+    // t vector
+    constexpr static int t = 5;
+    // p vector
+    constexpr static int p = 6;
+    // rr vector
+    constexpr static int rr = 7;
+    // alpha scalar
+    constexpr static int alpha = 8;
+    // beta scalar
+    constexpr static int beta = 9;
+    // gamma scalar
+    constexpr static int gamma = 10;
+    // previous rho scalar
+    constexpr static int prev_rho = 11;
+    // current rho scalar
+    constexpr static int rho = 12;
+    // omega scalar
+    constexpr static int omega = 13;
+    // constant 1.0 scalar
+    constexpr static int one = 14;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 15;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
 };
 
 

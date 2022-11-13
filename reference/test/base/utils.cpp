@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,7 @@ TEST_F(ConvertToWithSorting, DontSortWithUniquePtr)
 
 TEST_F(ConvertToWithSorting, SortWithSharedPtr)
 {
-    std::shared_ptr<Csr> shared = gko::share(unsorted_csr);
+    std::shared_ptr<Csr> shared = gko::share(unsorted_csr->clone());
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, false);
 
@@ -114,7 +114,7 @@ TEST_F(ConvertToWithSorting, SortWithSharedPtr)
 
 TEST_F(ConvertToWithSorting, DontSortWithSharedPtr)
 {
-    std::shared_ptr<Csr> shared = gko::share(unsorted_csr);
+    std::shared_ptr<Csr> shared = gko::share(unsorted_csr->clone());
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, true);
 
@@ -125,7 +125,7 @@ TEST_F(ConvertToWithSorting, DontSortWithSharedPtr)
 
 TEST_F(ConvertToWithSorting, SortWithSharedConstPtr)
 {
-    std::shared_ptr<const Coo> shared = gko::share(unsorted_coo);
+    std::shared_ptr<const Coo> shared = gko::share(unsorted_coo->clone());
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, false);
 
@@ -136,7 +136,7 @@ TEST_F(ConvertToWithSorting, SortWithSharedConstPtr)
 
 TEST_F(ConvertToWithSorting, DontSortWithSharedConstPtr)
 {
-    std::shared_ptr<const Coo> shared = gko::share(unsorted_coo);
+    std::shared_ptr<const Coo> shared = gko::share(unsorted_coo->clone());
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, true);
 
@@ -165,7 +165,7 @@ TEST_F(ConvertToWithSorting, DontSortWithRawPtr)
 
 TEST_F(ConvertToWithSorting, SortWithConstRawPtr)
 {
-    const Coo *cptr = unsorted_coo.get();
+    const Coo* cptr = unsorted_coo.get();
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, cptr, false);
 

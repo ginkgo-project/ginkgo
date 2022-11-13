@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -105,14 +105,14 @@ protected:
     }
 
     template <typename T>
-    void init_array(T *arr, std::initializer_list<T> vals)
+    void init_array(T* arr, std::initializer_list<T> vals)
     {
         std::copy(std::begin(vals), std::end(vals), arr);
     }
 
     template <typename ValueType>
-    void assert_same_block(gko::size_type block_size, const ValueType *ptr_a,
-                           gko::size_type stride_a, const ValueType *ptr_b,
+    void assert_same_block(gko::size_type block_size, const ValueType* ptr_a,
+                           gko::size_type stride_a, const ValueType* ptr_b,
                            gko::size_type stride_b)
     {
         for (int i = 0; i < block_size; ++i) {
@@ -124,7 +124,7 @@ protected:
         }
     }
 
-    void assert_same_precond(const Bj *a, const Bj *b)
+    void assert_same_precond(const Bj* a, const Bj* b)
     {
         ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
         ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
@@ -154,11 +154,11 @@ protected:
                 value_type, prec_a,
                 assert_same_block(
                     b_ptr_a[i + 1] - b_ptr_a[i],
-                    reinterpret_cast<const resolved_precision *>(
+                    reinterpret_cast<const resolved_precision*>(
                         a->get_blocks() + scheme.get_group_offset(i)) +
                         scheme.get_block_offset(i),
                     scheme.get_stride(),
-                    reinterpret_cast<const resolved_precision *>(
+                    reinterpret_cast<const resolved_precision*>(
                         a->get_blocks() + scheme.get_group_offset(i)) +
                         scheme.get_block_offset(i),
                     scheme.get_stride()));
@@ -169,14 +169,14 @@ protected:
     std::unique_ptr<typename Bj::Factory> bj_factory;
     std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
+    gko::array<index_type> block_pointers;
+    gko::array<gko::precision_reduction> block_precisions;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<Bj> bj;
     std::unique_ptr<Bj> adaptive_bj;
 };
 
-TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
@@ -209,7 +209,7 @@ TYPED_TEST(Jacobi, CanBeCopied)
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -227,7 +227,7 @@ TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -246,7 +246,7 @@ TYPED_TEST(Jacobi, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto tmp = clone(this->bj);
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -265,7 +265,7 @@ TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto tmp = clone(this->adaptive_bj);
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -366,7 +366,7 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
 
 
 template <typename T>
-void init_array(T *arr, std::initializer_list<T> vals)
+void init_array(T* arr, std::initializer_list<T> vals)
 {
     std::copy(std::begin(vals), std::end(vals), arr);
 }

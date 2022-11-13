@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ValueGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ValueGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)
@@ -96,7 +96,7 @@ TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)
     int num = 500;
     std::vector<T> values(num);
     auto dist = std::normal_distribution<double>(20.0, 5.0);
-    auto engine = std::ranlux48(42);
+    auto engine = std::default_random_engine(42);
 
     for (int i = 0; i < num; i++) {
         values.at(i) = gko::test::detail::get_rand_value<T>(dist, engine);
@@ -105,12 +105,12 @@ TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)
     // check the real part
     this->template check_average_and_deviation<T>(
         begin(values), end(values), 20.0, 5.0,
-        [](T &val) { return gko::real(val); });
+        [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             begin(values), end(values), 20.0, 5.0,
-            [](T &val) { return gko::imag(val); });
+            [](T& val) { return gko::imag(val); });
     }
 }
 

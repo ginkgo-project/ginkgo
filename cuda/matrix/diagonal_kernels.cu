@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,9 +62,9 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Diagonal<ValueType> *a,
-                  const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c)
+                  const matrix::Diagonal<ValueType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
 {
     const auto num_rows = b->get_size()[0];
     const auto diag_values = a->get_const_values();
@@ -74,9 +74,11 @@ void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);
-    kernel::apply_to_csr<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(diag_values), as_cuda_type(csr_row_ptrs),
-        as_cuda_type(csr_values));
+    if (grid_dim > 0) {
+        kernel::apply_to_csr<<<grid_dim, default_block_size>>>(
+            num_rows, as_cuda_type(diag_values), as_cuda_type(csr_row_ptrs),
+            as_cuda_type(csr_values), inverse);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,16 +52,18 @@ namespace diagonal {
 
 template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
+                    const matrix::Diagonal<ValueType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c, bool inverse)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
-            result(row, col) = source(row, col) * diag[row];
+        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result,
+                      bool inverse) {
+            result(row, col) = inverse ? source(row, col) / diag[row]
+                                       : source(row, col) * diag[row];
         },
-        b->get_size(), a->get_const_values(), b, c);
+        b->get_size(), a->get_const_values(), b, c, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
@@ -69,9 +71,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
 template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Diagonal<ValueType> *a,
-                          const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c)
+                          const matrix::Diagonal<ValueType>* a,
+                          const matrix::Dense<ValueType>* b,
+                          matrix::Dense<ValueType>* c)
 {
     run_kernel(
         exec,
@@ -87,9 +89,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Diagonal<ValueType> *a,
-                        const matrix::Csr<ValueType, IndexType> *b,
-                        matrix::Csr<ValueType, IndexType> *c)
+                        const matrix::Diagonal<ValueType>* a,
+                        const matrix::Csr<ValueType, IndexType>* b,
+                        matrix::Csr<ValueType, IndexType>* c)
 {
     // TODO: combine copy and diag apply together
     c->copy_from(b);
@@ -107,9 +109,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         matrix::Diagonal<ValueType>* output)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
+            if (row[i] == col[i]) {
+                output[row[i]] = val[i];
+            }
+        },
+        data.get_num_elems(), data.get_const_row_idxs(),
+        data.get_const_col_idxs(), data.get_const_values(),
+        output->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Diagonal<ValueType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     run_kernel(
         exec,
@@ -133,8 +156,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *orig,
-                    matrix::Diagonal<ValueType> *trans)
+                    const matrix::Diagonal<ValueType>* orig,
+                    matrix::Diagonal<ValueType>* trans)
 {
     run_kernel(
         exec,

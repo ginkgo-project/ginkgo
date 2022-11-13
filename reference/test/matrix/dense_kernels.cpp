@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,8 +97,8 @@ protected:
     std::unique_ptr<Mtx> mtx6;
     std::unique_ptr<Mtx> mtx7;
     std::unique_ptr<Mtx> mtx8;
-
-    std::ranlux48 rand_engine;
+    gko::int32 invalid_index = gko::invalid_index<gko::int32>();
+    std::default_random_engine rand_engine;
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
@@ -112,7 +112,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CopyRespectsStride)
@@ -177,13 +177,15 @@ TYPED_TEST(Dense, CanBeFilledWithValueForStridedMatrices)
     using T = value_type;
     auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
-    auto in_stride = m->get_values()[3];
+    T in_stride{-1.0};
+    m->get_values()[3] = in_stride;
+
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 12);
     EXPECT_EQ(m->at(0), value_type{1.0});
     EXPECT_EQ(m->at(1), value_type{2.0});
     EXPECT_EQ(m->at(2), value_type{3.0});
-    ASSERT_EQ(m->at(3), value_type{4.0});
+    EXPECT_EQ(m->at(3), value_type{4.0});
     EXPECT_EQ(m->at(4), value_type{5.0});
     EXPECT_EQ(m->at(5), value_type{6.0});
 
@@ -194,16 +196,19 @@ TYPED_TEST(Dense, CanBeFilledWithValueForStridedMatrices)
     EXPECT_EQ(m->at(0), value_type{42.0});
     EXPECT_EQ(m->at(1), value_type{42.0});
     EXPECT_EQ(m->at(2), value_type{42.0});
-    ASSERT_EQ(m->at(3), value_type{42.0});
+    EXPECT_EQ(m->at(3), value_type{42.0});
     EXPECT_EQ(m->at(4), value_type{42.0});
     EXPECT_EQ(m->at(5), value_type{42.0});
-    EXPECT_EQ(m->get_values()[3], in_stride);
+    ASSERT_EQ(m->get_values()[3], in_stride);
 }
 
 
 TYPED_TEST(Dense, AppliesToDense)
 {
     using T = typename TestFixture::value_type;
+    T in_stride{-1};
+    this->mtx3->get_values()[3] = in_stride;
+
     this->mtx2->apply(this->mtx1.get(), this->mtx3.get());
 
     EXPECT_EQ(this->mtx3->at(0, 0), T{-0.5});
@@ -211,7 +216,8 @@ TYPED_TEST(Dense, AppliesToDense)
     EXPECT_EQ(this->mtx3->at(0, 2), T{-0.5});
     EXPECT_EQ(this->mtx3->at(1, 0), T{1.0});
     EXPECT_EQ(this->mtx3->at(1, 1), T{1.0});
-    ASSERT_EQ(this->mtx3->at(1, 2), T{1.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{1.0});
+    ASSERT_EQ(this->mtx3->get_values()[3], in_stride);
 }
 
 
@@ -241,6 +247,8 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
     auto beta = gko::initialize<Mtx>({2.0}, this->exec);
+    T in_stride{-1};
+    this->mtx3->get_values()[3] = in_stride;
 
     this->mtx2->apply(alpha.get(), this->mtx1.get(), beta.get(),
                       this->mtx3.get());
@@ -250,7 +258,8 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
     EXPECT_EQ(this->mtx3->at(0, 2), T{6.5});
     EXPECT_EQ(this->mtx3->at(1, 0), T{0.0});
     EXPECT_EQ(this->mtx3->at(1, 1), T{2.0});
-    ASSERT_EQ(this->mtx3->at(1, 2), T{4.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{4.0});
+    ASSERT_EQ(this->mtx3->get_values()[3], in_stride);
 }
 
 
@@ -387,6 +396,8 @@ TYPED_TEST(Dense, ScalesDataWithStride)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{-1.0, 1.0, 2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->scale(alpha.get());
 
@@ -395,7 +406,8 @@ TYPED_TEST(Dense, ScalesDataWithStride)
     EXPECT_EQ(this->mtx1->at(0, 2), T{6.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{-1.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{2.5});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{7.0});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{7.0});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -404,6 +416,8 @@ TYPED_TEST(Dense, AddsScaled)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{2.0, 1.0, -2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -412,7 +426,8 @@ TYPED_TEST(Dense, AddsScaled)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -423,6 +438,8 @@ TYPED_TEST(Dense, AddsScaledMixed)
     auto mmtx3 = MixedMtx::create(this->exec);
     this->mtx3->convert_to(mmtx3.get());
     auto alpha = gko::initialize<MixedMtx>({{2.0, 1.0, -2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -431,7 +448,8 @@ TYPED_TEST(Dense, AddsScaledMixed)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -440,6 +458,8 @@ TYPED_TEST(Dense, SubtractsScaled)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{-2.0, -1.0, 2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->sub_scaled(alpha.get(), this->mtx3.get());
 
@@ -448,7 +468,8 @@ TYPED_TEST(Dense, SubtractsScaled)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -457,6 +478,8 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -465,7 +488,8 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     EXPECT_EQ(this->mtx1->at(0, 2), T{9.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{5.5});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{8.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{8.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -590,19 +614,93 @@ TYPED_TEST(Dense, ComputesNorm2)
 
 TYPED_TEST(Dense, ComputesNorm2Mixed)
 {
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
     using MixedMtx = typename TestFixture::MixedMtx;
     using MixedT = typename MixedMtx::value_type;
     using MixedT_nc = gko::remove_complex<MixedT>;
     using MixedNormVector = gko::matrix::Dense<MixedT_nc>;
-    auto mtx(gko::initialize<MixedMtx>(
-        {I<MixedT>{1.0, 0.0}, I<MixedT>{2.0, 3.0}, I<MixedT>{2.0, 4.0}},
-        this->exec));
+    auto mtx(gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
 
     mtx->compute_norm2(result.get());
 
     EXPECT_EQ(result->at(0, 0), MixedT_nc{3.0});
     EXPECT_EQ(result->at(0, 1), MixedT_nc{5.0});
+}
+
+
+TYPED_TEST(Dense, ComputesNorm2Squared)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::matrix::Dense<T_nc>;
+    gko::array<char> tmp{this->exec};
+    auto mtx(gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
+    auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
+
+    gko::kernels::reference::dense::compute_squared_norm2(
+        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get(),
+        tmp);
+
+    EXPECT_EQ(result->at(0, 0), T_nc{9.0});
+    EXPECT_EQ(result->at(0, 1), T_nc{25.0});
+}
+
+
+TYPED_TEST(Dense, ComputesSqrt)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::matrix::Dense<T_nc>;
+    auto mtx(gko::initialize<NormVector>(I<I<T_nc>>{{9.0, 25.0}}, this->exec));
+
+    gko::kernels::reference::dense::compute_sqrt(
+        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get());
+
+    EXPECT_EQ(mtx->at(0, 0), T_nc{3.0});
+    EXPECT_EQ(mtx->at(0, 1), T_nc{5.0});
+}
+
+
+TYPED_TEST(Dense, ComputesNorm1)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::matrix::Dense<T_nc>;
+    auto mtx(gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}, I<T>{-1.0, -1.0}},
+        this->exec));
+    auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
+
+    mtx->compute_norm1(result.get());
+
+    EXPECT_EQ(result->at(0, 0), T_nc{6.0});
+    EXPECT_EQ(result->at(0, 1), T_nc{8.0});
+}
+
+
+TYPED_TEST(Dense, ComputesNorm1Mixed)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using MixedT = typename MixedMtx::value_type;
+    using MixedT_nc = gko::remove_complex<MixedT>;
+    using MixedNormVector = gko::matrix::Dense<MixedT_nc>;
+    auto mtx(
+        gko::initialize<MixedMtx>({I<MixedT>{1.0, 0.0}, I<MixedT>{2.0, 3.0},
+                                   I<MixedT>{2.0, 4.0}, I<MixedT>{-1.0, -1.0}},
+                                  this->exec));
+    auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
+
+    mtx->compute_norm1(result.get());
+
+    EXPECT_EQ(result->at(0, 0), MixedT_nc{6.0});
+    EXPECT_EQ(result->at(0, 1), MixedT_nc{8.0});
 }
 
 
@@ -1049,7 +1147,7 @@ TYPED_TEST(Dense, ConvertsToEll32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1074,7 +1172,7 @@ TYPED_TEST(Dense, MovesToEll32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1099,7 +1197,7 @@ TYPED_TEST(Dense, ConvertsToEll64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1124,7 +1222,7 @@ TYPED_TEST(Dense, MovesToEll64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1136,7 +1234,8 @@ TYPED_TEST(Dense, ConvertsToEllWithStride)
 {
     using T = typename TestFixture::value_type;
     using Ell = typename gko::matrix::Ell<T, gko::int32>;
-    auto ell_mtx = Ell::create(this->mtx6->get_executor(), gko::dim<2>{}, 0, 3);
+    auto ell_mtx =
+        Ell::create(this->mtx6->get_executor(), gko::dim<2>{2, 3}, 2, 3);
 
     this->mtx6->convert_to(ell_mtx.get());
     auto v = ell_mtx->get_const_values();
@@ -1148,10 +1247,10 @@ TYPED_TEST(Dense, ConvertsToEllWithStride)
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{0.0});
@@ -1165,7 +1264,8 @@ TYPED_TEST(Dense, MovesToEllWithStride)
 {
     using T = typename TestFixture::value_type;
     using Ell = typename gko::matrix::Ell<T, gko::int32>;
-    auto ell_mtx = Ell::create(this->mtx6->get_executor(), gko::dim<2>{}, 0, 3);
+    auto ell_mtx =
+        Ell::create(this->mtx6->get_executor(), gko::dim<2>{2, 3}, 2, 3);
 
     this->mtx6->move_to(ell_mtx.get());
     auto v = ell_mtx->get_const_values();
@@ -1177,10 +1277,10 @@ TYPED_TEST(Dense, MovesToEllWithStride)
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{0.0});
@@ -1327,7 +1427,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAutomatically)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3);
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
 
     this->mtx4->move_to(hybrid_mtx.get());
     auto v = hybrid_mtx->get_const_coo_values();
@@ -1361,7 +1461,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAutomatically)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3);
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
 
     this->mtx4->convert_to(hybrid_mtx.get());
     auto v = hybrid_mtx->get_const_coo_values();
@@ -1395,7 +1495,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
     this->mtx4->move_to(hybrid_mtx.get());
@@ -1406,15 +1506,15 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
 
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 3);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 1);
     EXPECT_EQ(n, 2);
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1422,14 +1522,8 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
     EXPECT_EQ(v[4], T{0.0});
     EXPECT_EQ(v[5], T{0.0});
     EXPECT_EQ(hybrid_mtx->get_const_coo_values()[0], T{2.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[1], T{0.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[2], T{0.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[0], 2);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[1], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[2], 0);
     EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[0], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[1], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[2], 0);
+    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[0], 2);
 }
 
 
@@ -1438,7 +1532,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
     this->mtx4->convert_to(hybrid_mtx.get());
@@ -1449,30 +1543,24 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
 
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 3);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 1);
     EXPECT_EQ(n, 2);
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
     EXPECT_EQ(v[3], T{3.0});
     EXPECT_EQ(v[4], T{0.0});
     EXPECT_EQ(v[5], T{0.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[0], T{2.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[1], T{0.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[2], T{0.0});
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[0], 2);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[1], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[2], 0);
     EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[0], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[1], 0);
-    EXPECT_EQ(hybrid_mtx->get_const_coo_row_idxs()[2], 0);
+    EXPECT_EQ(hybrid_mtx->get_const_coo_col_idxs()[0], 2);
+    EXPECT_EQ(hybrid_mtx->get_const_coo_values()[0], T{2.0});
 }
 
 
@@ -1481,7 +1569,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideByPercent40)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
     this->mtx4->move_to(hybrid_mtx.get());
@@ -1499,7 +1587,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideByPercent40)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1518,7 +1606,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideByPercent40)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{}, 0, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
     this->mtx4->convert_to(hybrid_mtx.get());
@@ -1536,7 +1624,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideByPercent40)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1572,9 +1660,9 @@ TYPED_TEST(Dense, ConvertsToSellp32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1609,9 +1697,9 @@ TYPED_TEST(Dense, MovesToSellp32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1646,9 +1734,9 @@ TYPED_TEST(Dense, ConvertsToSellp64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1683,9 +1771,9 @@ TYPED_TEST(Dense, MovesToSellp64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1719,11 +1807,11 @@ TYPED_TEST(Dense, ConvertsToSellpWithSliceSizeAndStrideFactor)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 0);
-    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(c[5], this->invalid_index);
+    EXPECT_EQ(c[6], this->invalid_index);
+    EXPECT_EQ(c[7], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1759,11 +1847,11 @@ TYPED_TEST(Dense, MovesToSellpWithSliceSizeAndStrideFactor)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 0);
-    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(c[5], this->invalid_index);
+    EXPECT_EQ(c[6], this->invalid_index);
+    EXPECT_EQ(c[7], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -2105,62 +2193,88 @@ TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRows)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
 
-    auto row_gathered = this->mtx5->row_gather(&permute_idxs);
+    auto row_collection = this->mtx5->row_gather(&permute_idxs);
 
-    GKO_ASSERT_MTX_NEAR(row_gathered,
+    GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
 }
 
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
-    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 3});
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
+    auto row_collection = Mtx::create(exec, gko::dim<2>{2, 3});
 
-    this->mtx5->row_gather(&permute_idxs, row_gathered.get());
+    this->mtx5->row_gather(&permute_idxs, row_collection.get());
 
-    GKO_ASSERT_MTX_NEAR(row_gathered,
+    GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
 }
 
 
 TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
-    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
+    auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {1, 3})
-        ->row_gather(&permute_idxs, row_gathered.get());
+        ->row_gather(&permute_idxs, row_collection.get());
 
-    GKO_ASSERT_MTX_NEAR(row_gathered, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
-    ASSERT_EQ(row_gathered->get_stride(), 4);
+    GKO_ASSERT_MTX_NEAR(row_collection, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
+    ASSERT_EQ(row_collection->get_stride(), 4);
+}
+
+
+TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx4->get_executor();
+    gko::array<gko::int32> gather_index{exec, {1, 0, 1}};
+    auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
+
+    this->mtx4->row_gather(&gather_index, row_collection.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        row_collection,
+        l<typename MixedMtx::value_type>(
+            {{0.0, 5.0, 0.0}, {1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, NonSquareSubmatrixCanAdvancedGatherRowsIntoMixedDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx4->get_executor();
+    gko::array<gko::int32> gather_index{exec, {1, 0, 1}};
+    auto row_collection = gko::initialize<MixedMtx>(
+        {{1.0, 0.5, -1.0}, {-1.5, 0.5, 1.0}, {2.0, -3.0, 1.0}}, exec);
+    auto alpha = gko::initialize<MixedMtx>({1.0}, exec);
+    auto beta = gko::initialize<Mtx>({2.0}, exec);
+
+    this->mtx4->row_gather(alpha.get(), &gather_index, beta.get(),
+                           row_collection.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        row_collection,
+        l<typename MixedMtx::value_type>(
+            {{2.0, 6.0, -2.0}, {-2.0, 4.0, 4.0}, {4.0, -1.0, 2.0}}),
+        0.0);
 }
 
 
@@ -2169,7 +2283,7 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
 
     ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec).get()),
                  gko::DimensionMismatch);
@@ -2178,62 +2292,65 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRows64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
 
-    auto row_gathered = this->mtx5->row_gather(&permute_idxs);
+    auto row_collection = this->mtx5->row_gather(&permute_idxs);
 
-    GKO_ASSERT_MTX_NEAR(row_gathered,
+    GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
 }
 
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
-    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 3});
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
+    auto row_collection = Mtx::create(exec, gko::dim<2>{2, 3});
 
-    this->mtx5->row_gather(&permute_idxs, row_gathered.get());
+    this->mtx5->row_gather(&permute_idxs, row_collection.get());
 
-    GKO_ASSERT_MTX_NEAR(row_gathered,
+    GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
 }
 
 
 TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
-    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
+    auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {1, 3})
-        ->row_gather(&permute_idxs, row_gathered.get());
+        ->row_gather(&permute_idxs, row_collection.get());
 
-    GKO_ASSERT_MTX_NEAR(row_gathered, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
-    ASSERT_EQ(row_gathered->get_stride(), 4);
+    GKO_ASSERT_MTX_NEAR(row_collection, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
+    ASSERT_EQ(row_collection->get_stride(), 4);
+}
+
+
+TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense64)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx4->get_executor();
+    gko::array<gko::int64> gather_index{exec, {1, 0, 1}};
+    auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
+
+    this->mtx4->row_gather(&gather_index, row_collection.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        row_collection,
+        l<typename MixedMtx::value_type>(
+            {{0.0, 5.0, 0.0}, {1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}),
+        0.0);
 }
 
 
@@ -2242,7 +2359,7 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions64)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
 
     ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec).get()),
                  gko::DimensionMismatch);
@@ -2251,14 +2368,9 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
@@ -2271,14 +2383,9 @@ TYPED_TEST(Dense, SquareMatrixIsPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     auto ref_permuted =
@@ -2292,14 +2399,9 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
     auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
 
@@ -2317,7 +2419,7 @@ TYPED_TEST(Dense, NonSquareMatrixPermuteIntoDenseFails)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone().get()),
                  gko::DimensionMismatch);
@@ -2328,7 +2430,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongPermutationSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone().get()),
                  gko::ValueMismatch);
@@ -2339,7 +2441,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec).get()),
                  gko::DimensionMismatch);
@@ -2348,14 +2450,9 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     auto ref_permuted = gko::as<Mtx>(
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
@@ -2368,14 +2465,9 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     auto ref_permuted = gko::as<Mtx>(
@@ -2389,14 +2481,9 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
     auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
 
@@ -2414,7 +2501,7 @@ TYPED_TEST(Dense, NonSquareMatrixInversePermuteIntoDenseFails)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone().get()),
@@ -2427,7 +2514,7 @@ TYPED_TEST(Dense,
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {0, 1}};
+    gko::array<gko::int32> permute_idxs{exec, {0, 1}};
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone().get()),
@@ -2439,7 +2526,7 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -2449,14 +2536,9 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
@@ -2469,14 +2551,9 @@ TYPED_TEST(Dense, SquareMatrixIsPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     auto ref_permuted =
@@ -2490,14 +2567,9 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
     auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
 
@@ -2515,7 +2587,7 @@ TYPED_TEST(Dense, NonSquareMatrixPermuteIntoDenseFails64)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone().get()),
                  gko::DimensionMismatch);
@@ -2526,7 +2598,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongPermutationSize64)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone().get()),
                  gko::ValueMismatch);
@@ -2537,7 +2609,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions64)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec).get()),
                  gko::DimensionMismatch);
@@ -2546,14 +2618,9 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     auto ref_permuted = gko::as<Mtx>(
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
@@ -2566,14 +2633,9 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     auto ref_permuted = gko::as<Mtx>(
@@ -2587,14 +2649,9 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
     auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
 
@@ -2612,7 +2669,7 @@ TYPED_TEST(Dense, NonSquareMatrixInversePermuteIntoDenseFails64)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone().get()),
@@ -2625,7 +2682,7 @@ TYPED_TEST(Dense,
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone().get()),
@@ -2637,7 +2694,7 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions64)
 {
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -2647,15 +2704,10 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     auto row_permute = gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs));
 
@@ -2667,14 +2719,10 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
 
     auto row_permute = gko::as<Mtx>(this->mtx4->row_permute(&permute_idxs));
 
@@ -2685,15 +2733,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->row_permute(&permute_idxs, row_permute.get());
@@ -2706,15 +2749,10 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -2730,7 +2768,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongPermutationSize)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute.get()),
@@ -2743,7 +2781,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->row_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -2753,15 +2791,10 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     auto c_permute = gko::as<Mtx>(this->mtx5->column_permute(&permute_idxs));
 
@@ -2773,14 +2806,10 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsColPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     auto c_permute = gko::as<Mtx>(this->mtx4->column_permute(&permute_idxs));
 
@@ -2791,15 +2820,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->column_permute(&permute_idxs, c_permute.get());
@@ -2812,15 +2836,10 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -2836,7 +2855,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongPermutationSize)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute.get()),
@@ -2849,7 +2868,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->column_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -2859,15 +2878,10 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_row_permute =
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&inverse_permute_idxs));
@@ -2880,14 +2894,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> inverse_permute_idxs{exec, {1, 0}};
 
     auto inverse_row_permute =
         gko::as<Mtx>(this->mtx4->inverse_row_permute(&inverse_permute_idxs));
@@ -2899,15 +2909,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get());
@@ -2920,15 +2925,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -2945,7 +2945,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(
@@ -2959,7 +2959,7 @@ TYPED_TEST(Dense, SquareMatrixInverseRowPermuteIntoDenseFailsForWrongDimensions)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -2969,15 +2969,10 @@ TYPED_TEST(Dense, SquareMatrixInverseRowPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_c_permute =
         gko::as<Mtx>(this->mtx5->inverse_column_permute(&inverse_permute_idxs));
@@ -2990,14 +2985,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_c_permute =
         gko::as<Mtx>(this->mtx4->inverse_column_permute(&inverse_permute_idxs));
@@ -3009,15 +3000,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->inverse_column_permute(&permute_idxs, c_permute.get());
@@ -3030,15 +3016,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -3055,7 +3036,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(
@@ -3069,7 +3050,7 @@ TYPED_TEST(Dense, SquareMatrixInverseColPermuteIntoDenseFailsForWrongDimensions)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs,
                                                     Mtx::create(exec).get()),
@@ -3079,15 +3060,10 @@ TYPED_TEST(Dense, SquareMatrixInverseColPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     auto row_permute = gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs));
 
@@ -3099,14 +3075,10 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
 
     auto row_permute = gko::as<Mtx>(this->mtx4->row_permute(&permute_idxs));
 
@@ -3117,15 +3089,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->row_permute(&permute_idxs, row_permute.get());
@@ -3138,15 +3105,10 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -3162,7 +3124,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongPermutationSize64)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute.get()),
@@ -3175,7 +3137,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions64)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->row_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -3185,15 +3147,10 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     auto c_permute = gko::as<Mtx>(this->mtx5->column_permute(&permute_idxs));
 
@@ -3205,14 +3162,10 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsColPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     auto c_permute = gko::as<Mtx>(this->mtx4->column_permute(&permute_idxs));
 
@@ -3223,15 +3176,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->column_permute(&permute_idxs, c_permute.get());
@@ -3244,15 +3192,10 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -3268,7 +3211,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongPermutationSize64)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute.get()),
@@ -3281,7 +3224,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions64)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->column_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -3291,15 +3234,10 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_row_permute =
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&inverse_permute_idxs));
@@ -3312,14 +3250,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> inverse_permute_idxs{exec, {1, 0}};
 
     auto inverse_row_permute =
         gko::as<Mtx>(this->mtx4->inverse_row_permute(&inverse_permute_idxs));
@@ -3331,15 +3265,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get());
@@ -3352,15 +3281,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -3377,7 +3301,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(
@@ -3392,7 +3316,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
         this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec).get()),
@@ -3402,15 +3326,10 @@ TYPED_TEST(Dense,
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_c_permute =
         gko::as<Mtx>(this->mtx5->inverse_column_permute(&inverse_permute_idxs));
@@ -3423,14 +3342,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
 
     auto inverse_c_permute =
         gko::as<Mtx>(this->mtx4->inverse_column_permute(&inverse_permute_idxs));
@@ -3442,15 +3357,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
     this->mtx5->inverse_column_permute(&permute_idxs, c_permute.get());
@@ -3463,15 +3373,10 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
@@ -3488,7 +3393,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(
@@ -3503,7 +3408,7 @@ TYPED_TEST(Dense,
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
-    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+    gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs,
                                                     Mtx::create(exec).get()),
@@ -3515,11 +3420,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto diag = this->mtx5->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 3);
@@ -3534,10 +3434,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     auto diag = this->mtx4->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 2);
@@ -3551,11 +3447,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // { 1.0, -1.0},
-    // {-2.0,  2.0},
-    // {-3.0,  3.0}
-    // clang-format on
     auto diag = this->mtx8->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 2);
@@ -3568,12 +3459,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
 TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
 
     this->mtx5->extract_diagonal(diag.get());
@@ -3589,11 +3474,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
 TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
     this->mtx4->extract_diagonal(diag.get());
@@ -3608,12 +3488,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
 TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // { 1.0, -1.0},
-    // {-2.0,  2.0},
-    // {-3.0,  3.0}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
     this->mtx8->extract_diagonal(diag.get());
@@ -3628,11 +3502,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
 TYPED_TEST(Dense, InplaceAbsolute)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     this->mtx5->compute_absolute_inplace();
 
@@ -3645,12 +3514,6 @@ TYPED_TEST(Dense, InplaceAbsolute)
 TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-    // mtx takes the left top corner 2 x 2 matrix
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
 
     mtx->compute_absolute_inplace();
@@ -3664,11 +3527,6 @@ TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 TYPED_TEST(Dense, OutplaceAbsolute)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto abs_mtx = this->mtx5->compute_absolute();
 
@@ -3682,11 +3540,6 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, this->mtx5->get_size());
 
@@ -3701,12 +3554,6 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
 TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-    // mtx takes the left top corner 2 x 2 matrix
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
 
     auto abs_mtx = mtx->compute_absolute();
@@ -3720,11 +3567,6 @@ TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
@@ -3742,7 +3584,6 @@ TYPED_TEST(Dense, AppliesToComplex)
     using complex_type = gko::to_complex<value_type>;
     using Vec = gko::matrix::Dense<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
-
     auto b =
         gko::initialize<Vec>({{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
                               {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
@@ -3767,7 +3608,6 @@ TYPED_TEST(Dense, AppliesToMixedComplex)
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
-
     auto b = gko::initialize<Vec>(
         {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
          {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
@@ -3850,11 +3690,6 @@ TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
 TYPED_TEST(Dense, MakeComplex)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = this->mtx5->make_complex();
 
@@ -3867,11 +3702,6 @@ TYPED_TEST(Dense, MakeComplexIntoDense)
     using T = typename TestFixture::value_type;
     using ComplexMtx = typename TestFixture::ComplexMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
     this->mtx5->make_complex(complex_mtx.get());
@@ -3885,11 +3715,6 @@ TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using ComplexMtx = typename TestFixture::ComplexMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = ComplexMtx::create(exec);
 
@@ -3901,11 +3726,6 @@ TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
 TYPED_TEST(Dense, GetReal)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = this->mtx5->get_real();
 
@@ -3918,11 +3738,6 @@ TYPED_TEST(Dense, GetRealIntoDense)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
     this->mtx5->get_real(real_mtx.get());
@@ -3936,11 +3751,6 @@ TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = RealMtx::create(exec);
     ASSERT_THROW(this->mtx5->get_real(real_mtx.get()), gko::DimensionMismatch);
@@ -3950,11 +3760,6 @@ TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
 TYPED_TEST(Dense, GetImag)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = this->mtx5->get_imag();
 
@@ -3969,11 +3774,6 @@ TYPED_TEST(Dense, GetImagIntoDense)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
     this->mtx5->get_imag(imag_mtx.get());
@@ -3989,11 +3789,6 @@ TYPED_TEST(Dense, GetImagIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = RealMtx::create(exec);
     ASSERT_THROW(this->mtx5->get_imag(imag_mtx.get()), gko::DimensionMismatch);
@@ -4036,11 +3831,27 @@ TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
 
     {
         auto conversion = gko::make_temporary_conversion<T>(
-            static_cast<const MixedMtx *>(alpha.get()));
+            static_cast<const MixedMtx*>(alpha.get()));
         alpha->at(0, 0) = MixedT{7.0};
     }
 
     ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
+}
+
+
+TYPED_TEST(Dense, ScaleAddIdentityRectangular)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Mtx;
+    using MixedVec = typename TestFixture::MixedMtx;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
+
+    b->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
 }
 
 
@@ -4053,7 +3864,208 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes,
+                 TypenameNameGenerator);
+
+
+TYPED_TEST(DenseComplex, ScalesWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
+
+    mtx->scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
+                              {T{4.0, -3.0}, T{-9.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, -2.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, ScalesWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
+
+    mtx->scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
+                              {T{4.0, -3.0}, T{18.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, 4.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, InvScalesWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-0.5}}, exec);
+
+    mtx->inv_scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
+                              {T{4.0, -3.0}, T{-9.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, -2.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, InvScalesWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-0.5}, RealT{0.25}}}, exec);
+
+    mtx->inv_scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
+                              {T{4.0, -3.0}, T{18.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, 4.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, AddsScaledWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
+
+    mtx->add_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
+                              {T{-8.0, -0.5}, T{4.5, -4.0}},
+                              {T{3.0, -2.0}, T{-1.0, 5.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, AddsScaledWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
+
+    mtx->add_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
+                              {T{-8.0, -0.5}, T{4.5, 8.0}},
+                              {T{3.0, -2.0}, T{2.0, -7.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, SubtractsScaledWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{2.0}}, exec);
+
+    mtx->sub_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
+                              {T{-8.0, -0.5}, T{4.5, -4.0}},
+                              {T{3.0, -2.0}, T{-1.0, 5.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, SubtractsScaledWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{2.0}, RealT{-4.0}}}, exec);
+
+    mtx->sub_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
+                              {T{-8.0, -0.5}, T{4.5, 8.0}},
+                              {T{3.0, -2.0}, T{2.0, -7.0}}}),
+                        0.0);
+}
 
 
 TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)

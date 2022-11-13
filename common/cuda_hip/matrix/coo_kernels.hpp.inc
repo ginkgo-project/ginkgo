@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,11 @@ namespace {
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
-                            const ValueType *__restrict__ val,
-                            const IndexType *__restrict__ col,
-                            const IndexType *__restrict__ row,
-                            const ValueType *__restrict__ b,
-                            const size_type b_stride, ValueType *__restrict__ c,
+                            const ValueType* __restrict__ val,
+                            const IndexType* __restrict__ col,
+                            const IndexType* __restrict__ row,
+                            const ValueType* __restrict__ b,
+                            const size_type b_stride, ValueType* __restrict__ c,
                             const size_type c_stride, Closure scale)
 {
     ValueType temp_val = zero<ValueType>();
@@ -82,8 +82,9 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
             (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
-            bool is_first_in_segment =
-                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+            bool is_first_in_segment = segment_scan<subwarp_size>(
+                tile_block, curr_row, temp_val,
+                [](ValueType a, ValueType b) { return a + b; });
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
@@ -97,8 +98,9 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
                                 : zero<ValueType>();
         // segmented scan
-        bool is_first_in_segment =
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+        bool is_first_in_segment = segment_scan<subwarp_size>(
+            tile_block, curr_row, temp_val,
+            [](ValueType a, ValueType b) { return a + b; });
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }
@@ -109,28 +111,28 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const size_type nnz, const size_type num_lines,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const IndexType *__restrict__ row, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, const ValueType* __restrict__ b,
+    const size_type b_stride, ValueType* __restrict__ c,
     const size_type c_stride)
 {
     spmv_kernel(nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-                [](const ValueType &x) { return x; });
+                [](const ValueType& x) { return x; });
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const size_type nnz, const size_type num_lines,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const IndexType *__restrict__ row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
 {
     ValueType scale_factor = alpha[0];
     spmv_kernel(
         nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; });
+        [&scale_factor](const ValueType& x) { return scale_factor * x; });
 }
 
 
@@ -155,12 +157,12 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  */
 template <typename ValueType, typename IndexType, typename Closure>
 __device__ void spmm_kernel(const size_type nnz, const size_type num_elems,
-                            const ValueType *__restrict__ val,
-                            const IndexType *__restrict__ col,
-                            const IndexType *__restrict__ row,
+                            const ValueType* __restrict__ val,
+                            const IndexType* __restrict__ col,
+                            const IndexType* __restrict__ row,
                             const size_type num_cols,
-                            const ValueType *__restrict__ b,
-                            const size_type b_stride, ValueType *__restrict__ c,
+                            const ValueType* __restrict__ b,
+                            const size_type b_stride, ValueType* __restrict__ c,
                             const size_type c_stride, Closure scale)
 {
     ValueType temp = zero<ValueType>();
@@ -191,85 +193,30 @@ __device__ void spmm_kernel(const size_type nnz, const size_type num_elems,
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmm(
     const size_type nnz, const size_type num_elems,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const IndexType *__restrict__ row, const size_type num_cols,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, const size_type num_cols,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
 {
     spmm_kernel(nnz, num_elems, val, col, row, num_cols, b, b_stride, c,
-                c_stride, [](const ValueType &x) { return x; });
+                c_stride, [](const ValueType& x) { return x; });
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmm(
     const size_type nnz, const size_type num_elems,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const IndexType *__restrict__ row,
-    const size_type num_cols, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    const size_type num_cols, const ValueType* __restrict__ b,
+    const size_type b_stride, ValueType* __restrict__ c,
     const size_type c_stride)
 {
     ValueType scale_factor = alpha[0];
     spmm_kernel(
         nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; });
+        [&scale_factor](const ValueType& x) { return scale_factor * x; });
 }
 
 
 }  // namespace
-
-
-namespace kernel {
-
-
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
-    const IndexType *__restrict__ idxs, size_type num_nonzeros,
-    IndexType *__restrict__ ptrs, size_type length)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx == 0) {
-        ptrs[0] = 0;
-        ptrs[length - 1] = num_nonzeros;
-    }
-
-    if (0 < tidx && tidx < num_nonzeros) {
-        if (idxs[tidx - 1] < idxs[tidx]) {
-            for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
-                ptrs[i] = tidx;
-            }
-        }
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(
-    size_type nnz, const IndexType *__restrict__ row_idxs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, size_type stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < nnz) {
-        result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
-    }
-}
-
-
-}  // namespace kernel

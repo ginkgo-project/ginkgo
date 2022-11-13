@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,8 +64,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
     {
-        i_type *c = mtx->get_col_idxs();
-        i_type *r = mtx->get_row_ptrs();
+        i_type* c = mtx->get_col_idxs();
+        i_type* r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -79,7 +79,8 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)

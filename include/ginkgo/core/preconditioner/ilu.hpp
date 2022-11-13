@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,9 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -206,8 +205,64 @@ public:
         return std::move(transposed);
     }
 
+    /**
+     * Copy-assigns an ILU preconditioner. Preserves the executor,
+     * shallow-copies the solvers and parameters. Creates a clone of the solvers
+     * if they are on the wrong executor.
+     */
+    Ilu& operator=(const Ilu& other)
+    {
+        if (&other != this) {
+            EnableLinOp<Ilu>::operator=(other);
+            auto exec = this->get_executor();
+            l_solver_ = other.l_solver_;
+            u_solver_ = other.u_solver_;
+            parameters_ = other.parameters_;
+            if (other.get_executor() != exec) {
+                l_solver_ = gko::clone(exec, l_solver_);
+                u_solver_ = gko::clone(exec, u_solver_);
+            }
+        }
+        return *this;
+    }
+
+    /**
+     * Move-assigns an ILU preconditioner. Preserves the executor,
+     * moves the solvers and parameters. Creates a clone of the solvers
+     * if they are on the wrong executor. The moved-from object is empty (0x0
+     * with nullptr solvers and default parameters)
+     */
+    Ilu& operator=(Ilu&& other)
+    {
+        if (&other != this) {
+            EnableLinOp<Ilu>::operator=(other);
+            auto exec = this->get_executor();
+            l_solver_ = std::move(other.l_solver_);
+            u_solver_ = std::move(other.u_solver_);
+            parameters_ = std::exchange(other.parameters_, parameters_type{});
+            if (other.get_executor() != exec) {
+                l_solver_ = gko::clone(exec, l_solver_);
+                u_solver_ = gko::clone(exec, u_solver_);
+            }
+        }
+        return *this;
+    }
+
+    /**
+     * Copy-constructs an ILU preconditioner. Inherits the executor,
+     * shallow-copies the solvers and parameters.
+     */
+    Ilu(const Ilu& other) : Ilu{other.get_executor()} { *this = other; }
+
+    /**
+     * Move-constructs an ILU preconditioner. Inherits the executor,
+     * moves the solvers and parameters. The moved-from object is empty (0x0
+     * with nullptr solvers and default parameters)
+     */
+    Ilu(Ilu&& other) : Ilu{other.get_executor()} { *this = std::move(other); }
+
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         // take care of real-to-complex apply
         precision_dispatch_real_complex<value_type>(
@@ -230,8 +285,8 @@ protected:
             b, x);
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         precision_dispatch_real_complex<value_type>(
             [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -253,7 +308,7 @@ protected:
         : EnableLinOp<Ilu>(std::move(exec))
     {}
 
-    explicit Ilu(const Factory *factory, std::shared_ptr<const LinOp> lin_op)
+    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
         : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
@@ -309,7 +364,7 @@ protected:
      * @param b  Right hand side of the first solve. Also acts as the initial
      *           guess, meaning the intermediate value will be a copy of b
      */
-    void set_cache_to(const LinOp *b) const
+    void set_cache_to(const LinOp* b) const
     {
         if (cache_.intermediate == nullptr) {
             cache_.intermediate =
@@ -330,8 +385,8 @@ protected:
     template <typename SolverType>
     static std::enable_if_t<solver::has_with_criteria<SolverType>::value,
                             std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor> &exec,
-                            const std::shared_ptr<const LinOp> &mtx)
+    generate_default_solver(const std::shared_ptr<const Executor>& exec,
+                            const std::shared_ptr<const LinOp>& mtx)
     {
         constexpr gko::remove_complex<value_type> default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
@@ -354,8 +409,8 @@ protected:
     template <typename SolverType>
     static std::enable_if_t<!solver::has_with_criteria<SolverType>::value,
                             std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor> &exec,
-                            const std::shared_ptr<const LinOp> &mtx)
+    generate_default_solver(const std::shared_ptr<const Executor>& exec,
+                            const std::shared_ptr<const LinOp>& mtx)
     {
         return SolverType::build().on(exec)->generate(mtx);
     }
@@ -376,10 +431,10 @@ private:
     mutable struct cache_struct {
         cache_struct() = default;
         ~cache_struct() = default;
-        cache_struct(const cache_struct &) {}
-        cache_struct(cache_struct &&) {}
-        cache_struct &operator=(const cache_struct &) { return *this; }
-        cache_struct &operator=(cache_struct &&) { return *this; }
+        cache_struct(const cache_struct&) {}
+        cache_struct(cache_struct&&) {}
+        cache_struct& operator=(const cache_struct&) { return *this; }
+        cache_struct& operator=(cache_struct&&) { return *this; }
         std::unique_ptr<LinOp> intermediate{};
     } cache_;
 };

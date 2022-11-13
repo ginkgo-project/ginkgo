@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,7 @@ public:
      *
      * @return the pointer to the row permutation array.
      */
-    index_type *get_permutation() noexcept { return permutation_.get_data(); }
+    index_type* get_permutation() noexcept { return permutation_.get_data(); }
 
     /**
      * @copydoc get_permutation()
@@ -98,7 +98,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_permutation() const noexcept
+    const index_type* get_const_permutation() const noexcept
     {
         return permutation_.get_const_data();
     }
@@ -132,10 +132,32 @@ public:
         enabled_permute_ = permute_mask;
     }
 
+    /**
+     * Creates a constant (immutable) Permutation matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param perm_idxs  the permutation index array of the matrix
+     * @param enabled_permute  the mask describing the type of permutation
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Permutation> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::const_array_view<IndexType>&& perm_idxs,
+        mask_type enabled_permute = row_permute)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Permutation>(new Permutation{
+            exec, size, gko::detail::array_const_cast(std::move(perm_idxs)),
+            enabled_permute});
+    }
 
 protected:
     /**
-     * Creates an uninitialized Permutation arrays on the specified executor..
+     * Creates an uninitialized Permutation arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
      */
@@ -150,8 +172,8 @@ protected:
      * @param size  size of the permutable matrix
      * @param enabled_permute  mask for the type of permutation to apply.
      */
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                const mask_type &enabled_permute = row_permute)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_(exec, size[0]),
           row_size_(size[0]),
@@ -175,9 +197,9 @@ protected:
      * and the original array data will not be used in the matrix.
      */
     template <typename IndicesArray>
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                IndicesArray &&permutation_indices,
-                const mask_type &enabled_permute = row_permute)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                IndicesArray&& permutation_indices,
+                const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_{exec, std::forward<IndicesArray>(permutation_indices)},
           row_size_(size[0]),
@@ -192,7 +214,7 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp *in, LinOp *out) const
+    void apply_impl(const LinOp* in, LinOp* out) const
     {
         auto perm = as<Permutable<index_type>>(in);
         std::unique_ptr<gko::LinOp> tmp{};
@@ -225,8 +247,8 @@ protected:
     }
 
 
-    void apply_impl(const LinOp *, const LinOp *in, const LinOp *,
-                    LinOp *out) const
+    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
+                    LinOp* out) const
     {
         // Ignores alpha and beta and just performs a normal permutation as an
         // advanced apply does not really make sense here.
@@ -235,7 +257,7 @@ protected:
 
 
 private:
-    Array<index_type> permutation_;
+    array<index_type> permutation_;
     size_type row_size_;
     size_type col_size_;
     mask_type enabled_permute_;

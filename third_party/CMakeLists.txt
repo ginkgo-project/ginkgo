@@ -1,14 +1,3 @@
-if(GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP AND
-        GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"))
-    enable_language(CUDA)
-    if (GINKGO_USE_EXTERNAL_CAS)
-        include(CudaArchitectureSelector RESULT_VARIABLE GINKGO_CAS_FILE)
-    endif()
-    if (NOT GINKGO_CAS_FILE)
-        add_subdirectory(CudaArchitectureSelector)
-    endif()
-endif()
-
 # For each external package, check if they are already available, otherwise use ours
 if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)

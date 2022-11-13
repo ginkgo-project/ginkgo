@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <typename ValueType>
 struct default_stride_dense_wrapper {
-    ValueType *data;
+    ValueType* data;
 };
 
 
@@ -63,7 +63,7 @@ struct default_stride_dense_wrapper {
 template <typename T>
 struct device_unpack_solver_impl {
     using type = T;
-    static GKO_INLINE GKO_ATTRIBUTES type unpack(T param, size_type)
+    static GKO_INLINE GKO_ATTRIBUTES type unpack(T param, int64)
     {
         return param;
     }
@@ -72,8 +72,8 @@ struct device_unpack_solver_impl {
 template <typename ValueType>
 struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
     using type = matrix_accessor<ValueType>;
-    static GKO_INLINE GKO_ATTRIBUTES type unpack(
-        default_stride_dense_wrapper<ValueType> param, size_type default_stride)
+    static GKO_INLINE GKO_ATTRIBUTES type
+    unpack(default_stride_dense_wrapper<ValueType> param, int64 default_stride)
     {
         return {param.data, default_stride};
     }
@@ -88,7 +88,7 @@ struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
  */
 template <typename ValueType>
 default_stride_dense_wrapper<device_type<ValueType>> default_stride(
-    matrix::Dense<ValueType> *mtx)
+    matrix::Dense<ValueType>* mtx)
 {
     return {as_device_type(mtx->get_values())};
 }
@@ -99,7 +99,7 @@ default_stride_dense_wrapper<device_type<ValueType>> default_stride(
  */
 template <typename ValueType>
 default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
-    const matrix::Dense<ValueType> *mtx)
+    const matrix::Dense<ValueType>* mtx)
 {
     return {as_device_type(mtx->get_const_values())};
 }
@@ -112,7 +112,7 @@ default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
  * pointer.
  */
 template <typename ValueType>
-device_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
+device_type<ValueType>* row_vector(matrix::Dense<ValueType>* mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);
     return as_device_type(mtx->get_values());
@@ -123,7 +123,7 @@ device_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
  * @copydoc row_vector(matrix::Dense<ValueType>*)
  */
 template <typename ValueType>
-const device_type<ValueType> *row_vector(const matrix::Dense<ValueType> *mtx)
+const device_type<ValueType>* row_vector(const matrix::Dense<ValueType>* mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);
     return as_device_type(mtx->get_const_values());

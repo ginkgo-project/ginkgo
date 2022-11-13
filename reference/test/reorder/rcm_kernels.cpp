@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ protected:
     std::shared_ptr<CsrMtx> p_mtx_1;
     std::unique_ptr<reorder_type> reorder_op_1;
 
-    static bool is_permutation(const perm_type *input_perm)
+    static bool is_permutation(const perm_type* input_perm)
     {
         const auto perm_size = input_perm->get_permutation_size();
         auto perm_sorted = std::vector<i_type>(perm_size);
@@ -112,7 +112,7 @@ protected:
 
 TEST_F(Rcm, CreatesAPermutation)
 {
-    auto p = reorder_op_0->get_permutation();
+    auto p = gko::as<perm_type>(reorder_op_0->get_permutation());
 
     ASSERT_PRED1(is_permutation, p.get());
 }
@@ -122,7 +122,8 @@ TEST_F(Rcm, CreatesCorrectPermutation)
 {
     std::vector<i_type> correct = {2, 3, 1, 0, 4};
 
-    auto p = reorder_op_0->get_permutation()->get_const_permutation();
+    auto p = gko::as<perm_type>(reorder_op_0->get_permutation())
+                 ->get_const_permutation();
 
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
@@ -132,7 +133,8 @@ TEST_F(Rcm, PermutesPerfectFullBand)
 {
     std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
 
-    auto p = reorder_op_1->get_permutation()->get_const_permutation();
+    auto p = gko::as<perm_type>(reorder_op_1->get_permutation())
+                 ->get_const_permutation();
 
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }

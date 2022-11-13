@@ -15,7 +15,7 @@ fi
 
 ORIGIN_FILE=$1
 echo "CUDA: ${ORIGIN_FILE}"
-NEW_FILE=$(echo ${ORIGIN_FILE} | sed -E "s/^cuda/hip/g;s/(cuh|hpp)$/hip\.hpp/g;s/(cpp|cu)$/hip\.cpp/g")
+NEW_FILE=$(echo "${ORIGIN_FILE}" | sed -E "s/^cuda/hip/g;s/(cuh|hpp)$/hip\.hpp/g;s/(cpp|cu)$/hip\.cpp/g")
 echo "HIP: ${NEW_FILE}"
 ${HIPIFY} "${ORIGIN_FILE}" > "${NEW_FILE}"
 

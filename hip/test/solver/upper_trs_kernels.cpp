@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/upper_trs.hpp>
-
-
 #include <memory>
 #include <random>
 
@@ -44,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/solver/upper_trs_kernels.hpp"
@@ -82,28 +80,25 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::unique_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_u_mtx(int size)
     {
         return gko::test::generate_random_upper_triangular_matrix<Mtx>(
-            num_rows, num_cols, false,
-            std::uniform_int_distribution<>(num_cols, num_cols),
+            size, false, std::uniform_int_distribution<>(size, size),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(int m, int n)
     {
-        mtx = gen_u_mtx(m, m);
+        mtx = gen_u_mtx(m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx.get());
         d_csr_mtx = CsrMtx::create(hip);
-        d_x = Mtx::create(hip);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(hip, x);
         d_csr_mtx->copy_from(csr_mtx.get());
         b2 = Mtx::create(ref);
-        d_b2 = Mtx::create(hip);
-        d_b2->copy_from(b.get());
+        d_b2 = gko::clone(hip, b);
         b2->copy_from(b.get());
     }
 
@@ -118,7 +113,7 @@ protected:
     std::shared_ptr<CsrMtx> d_csr_mtx;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 

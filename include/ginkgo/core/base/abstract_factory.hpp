@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,9 +89,10 @@ public:
      * @return an instance of AbstractProductType
      */
     template <typename... Args>
-    std::unique_ptr<AbstractProductType> generate(Args &&... args) const
+    std::unique_ptr<abstract_product_type> generate(Args&&... args) const
     {
-        auto product = this->generate_impl({std::forward<Args>(args)...});
+        auto product =
+            this->generate_impl(components_type{std::forward<Args>(args)...});
         for (auto logger : this->loggers_) {
             product->add_logger(logger);
         }
@@ -115,7 +116,7 @@ protected:
      *
      * @return an instance of AbstractProductType
      */
-    virtual std::unique_ptr<AbstractProductType> generate_impl(
+    virtual std::unique_ptr<abstract_product_type> generate_impl(
         ComponentsType args) const = 0;
 };
 
@@ -159,11 +160,11 @@ public:
     using components_type = typename PolymorphicBase::components_type;
 
     template <typename... Args>
-    std::unique_ptr<ProductType> generate(Args &&... args) const
+    std::unique_ptr<product_type> generate(Args&&... args) const
     {
-        auto product = std::unique_ptr<ProductType>(static_cast<ProductType *>(
-            this->generate_impl({std::forward<Args>(args)...}).release()));
-        propagate_loggers<ConcreteFactory, ProductType>(product.get());
+        auto product = std::unique_ptr<product_type>(static_cast<product_type*>(
+            this->polymorphic_base::generate(std::forward<Args>(args)...)
+                .release()));
         return product;
     }
 
@@ -172,7 +173,7 @@ public:
      *
      * @return the parameters of the factory
      */
-    const parameters_type &get_parameters() const noexcept
+    const parameters_type& get_parameters() const noexcept
     {
         return parameters_;
     };
@@ -193,47 +194,13 @@ public:
 
 protected:
     /**
-     * Automatically propagate loggers from the factory to the product. Use
-     * `std::enable_if(...)` to ensure both TheType and TheFactory have logging
-     * facilities in this case.
-     *
-     * @param product  the product to add loggers to
-     */
-    template <typename TheFactory, typename TheType>
-    typename std::enable_if<
-        std::is_base_of<log::Loggable, TheType>::value &&
-            std::is_base_of<log::Loggable, TheFactory>::value,
-        void>::type
-    propagate_loggers(TheType *product) const
-    {
-        for (auto logger : this->loggers_) {
-            product->add_logger(logger);
-        }
-    }
-
-    /**
-     * Automatically propagate loggers from the factory to the product. Use
-     * `std::enable_if(...)` to ensure either TheType or TheFactory do not have
-     * logging facilities in this case.
-     *
-     * @param product  the product to *not* add loggers to
-     */
-    template <typename TheFactory, typename TheType>
-    typename std::enable_if<
-        !std::is_base_of<log::Loggable, TheType>::value ||
-            !std::is_base_of<log::Loggable, TheFactory>::value,
-        void>::type
-    propagate_loggers(TheType *product) const
-    {}
-
-    /**
      * Creates a new factory using the specified executor and parameters.
      *
      * @param exec  the executor where the factory will be constructed
      * @param parameters  the parameters structure for the factory
      */
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
-                                  const parameters_type &parameters = {})
+                                  const parameters_type& parameters = {})
         : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
               std::move(exec)),
           parameters_{parameters}
@@ -243,7 +210,7 @@ protected:
         components_type args) const override
     {
         return std::unique_ptr<abstract_product_type>(
-            new ProductType(self(), args));
+            new product_type(self(), args));
     }
 
 private:

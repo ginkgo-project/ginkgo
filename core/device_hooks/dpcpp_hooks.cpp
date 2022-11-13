@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,25 +52,26 @@ version version_info::get_dpcpp_version() noexcept
 
 
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, std::string device_type)
+    int device_id, std::shared_ptr<Executor> master, std::string device_type,
+    dpcpp_queue_property property)
 {
     return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type));
+        new DpcppExecutor(device_id, std::move(master), device_type, property));
 }
 
 
-void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     // Dummy check
     auto dev_type = dest_exec->get_device_type();
@@ -78,7 +79,7 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 }
 
 
-void DpcppExecutor::raw_free(void *ptr) const noexcept
+void DpcppExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -86,59 +87,68 @@ void DpcppExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *DpcppExecutor::raw_alloc(size_type num_bytes) const
+void* DpcppExecutor::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
 void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::run(const Operation &op) const
+void DpcppExecutor::run(const Operation& op) const
 {
     op.run(std::static_pointer_cast<const DpcppExecutor>(
         this->shared_from_this()));
 }
 
 
+scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
+    GKO_NOT_COMPILED(dpcpp);
+
+
 int DpcppExecutor::get_num_devices(std::string) { return 0; }
 
 
-void DpcppExecutor::set_device_property() {}
+void DpcppExecutor::set_device_property(dpcpp_queue_property property) {}
 
 
-bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
+bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     // Dummy check
     return this->get_device_type() == "cpu" ||
            this->get_device_type() == "host";
 }
 
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     // Dummy check
     return dest_exec->get_device_type() == this->get_device_type() &&
            dest_exec->get_device_id() == this->get_device_id();
 }
+
+
+scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
+                                               int device_id)
+    GKO_NOT_COMPILED(dpcpp);
 
 
 }  // namespace gko

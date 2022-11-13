@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,11 +54,11 @@ protected:
     {
         array = gko::test::generate_random_array<T>(
             500, std::normal_distribution<gko::remove_complex<T>>(20.0, 5.0),
-            std::ranlux48(42), exec);
+            std::default_random_engine(42), exec);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> array;
+    gko::array<T> array;
 
     template <typename InputIterator, typename ValueType, typename Closure>
     ValueType get_nth_moment(int n, ValueType c, InputIterator sample_start,
@@ -93,7 +93,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ArrayGenerator, OutputHasCorrectSize)
@@ -111,13 +111,13 @@ TYPED_TEST(ArrayGenerator, OutputHasCorrectAverageAndDeviation)
     this->template check_average_and_deviation<T>(
         this->array.get_const_data(),
         this->array.get_const_data() + this->array.get_num_elems(), 20.0, 5.0,
-        [](T &val) { return gko::real(val); });
+        [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             this->array.get_const_data(),
             this->array.get_const_data() + this->array.get_num_elems(), 20.0,
-            5.0, [](T &val) { return gko::imag(val); });
+            5.0, [](T& val) { return gko::imag(val); });
     }
 }
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,8 +68,8 @@ namespace detail {
 template <typename CopyType, typename OrigType>
 class convert_back_deleter {
 public:
-    using pointer = CopyType *;
-    using original_pointer = OrigType *;
+    using pointer = CopyType*;
+    using original_pointer = OrigType*;
 
     /**
      * Creates a new deleter object.
@@ -99,11 +99,39 @@ private:
 template <typename CopyType, typename OrigType>
 class convert_back_deleter<const CopyType, const OrigType> {
 public:
-    using pointer = const CopyType *;
-    using original_pointer = const OrigType *;
+    using pointer = const CopyType*;
+    using original_pointer = const OrigType*;
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
+};
+
+
+/**
+ * @internal
+ *
+ * Helper type to create an empty object of TargetType that will be used
+ * as the target object of a convert_to call. This can be specialized to
+ * gain more control on how a TargetType object has to be created.
+ *
+ * @tparam TargetType  The type an object shall be converted to
+ */
+template <typename TargetType>
+struct conversion_target_helper {
+    /**
+     * Creates an empty object on the same executor as source.
+     * *
+     * @tparam SourceType  The type of the source object for the conversion
+     * @param source  The source object for the conversion
+     * @return  An unique_ptr of TargetType on the same executor as source.
+     */
+    template <typename SourceType,
+              typename = std::enable_if_t<std::is_base_of<
+                  ConvertibleTo<TargetType>, SourceType>::value>>
+    static std::unique_ptr<TargetType> create_empty(const SourceType* source)
+    {
+        return TargetType::create(source->get_executor());
+    }
 };
 
 
@@ -121,8 +149,8 @@ template <typename... ConversionCandidates>
 struct conversion_helper {
     /** Dispatch convert_impl with the ConversionCandidates list */
     template <typename TargetType, typename MaybeConstLinOp>
-    static std::unique_ptr<TargetType, std::function<void(TargetType *)>>
-    convert(MaybeConstLinOp *obj)
+    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
+    convert(MaybeConstLinOp* obj)
     {
         return convert_impl<TargetType, MaybeConstLinOp,
                             ConversionCandidates...>(obj);
@@ -135,18 +163,19 @@ struct conversion_helper {
      */
     template <typename TargetType, typename MaybeConstLinOp,
               typename FirstCandidate, typename... TrailingCandidates>
-    static std::unique_ptr<TargetType, std::function<void(TargetType *)>>
-    convert_impl(MaybeConstLinOp *obj)
+    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
+    convert_impl(MaybeConstLinOp* obj)
     {
         // make candidate_type conditionally const based on whether obj is const
         using candidate_type =
             std::conditional_t<std::is_const<MaybeConstLinOp>::value,
                                const FirstCandidate, FirstCandidate>;
-        candidate_type *cast_obj{};
-        if ((cast_obj = dynamic_cast<candidate_type *>(obj))) {
+        candidate_type* cast_obj{};
+        if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
-            auto converted = TargetType::create(obj->get_executor());
+            auto converted = conversion_target_helper<
+                std::remove_cv_t<TargetType>>::create_empty(cast_obj);
             cast_obj->convert_to(converted.get());
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
@@ -169,8 +198,8 @@ struct conversion_helper {
 template <>
 struct conversion_helper<> {
     template <typename T, typename MaybeConstLinOp>
-    static std::unique_ptr<T, std::function<void(T *)>> convert(
-        MaybeConstLinOp *obj)
+    static std::unique_ptr<T, std::function<void(T*)>> convert(
+        MaybeConstLinOp* obj)
     {
         // return nullptr if no previous candidates matched
         return {nullptr, null_deleter<T>{}};
@@ -194,7 +223,7 @@ template <typename T>
 class temporary_conversion {
 public:
     using value_type = T;
-    using pointer = T *;
+    using pointer = T*;
     using lin_op_type =
         std::conditional_t<std::is_const<T>::value, const LinOp, LinOp>;
 
@@ -205,10 +234,10 @@ public:
      *                               try out for converting ptr to type T.
      */
     template <typename... ConversionCandidates>
-    static temporary_conversion create(lin_op_type *ptr)
+    static temporary_conversion create(lin_op_type* ptr)
     {
-        T *cast_ptr{};
-        if ((cast_ptr = dynamic_cast<T *>(ptr))) {
+        T* cast_ptr{};
+        if ((cast_ptr = dynamic_cast<T*>(ptr))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
             return conversion_helper<ConversionCandidates...>::template convert<
@@ -221,14 +250,14 @@ public:
      *
      * @return the object held by temporary_conversion
      */
-    T *get() const { return handle_.get(); }
+    T* get() const { return handle_.get(); }
 
     /**
      * Calls a method on the underlying object.
      *
      * @return the underlying object
      */
-    T *operator->() const { return handle_.get(); }
+    T* operator->() const { return handle_.get(); }
 
     /**
      * Returns if the conversion was successful.
@@ -238,7 +267,7 @@ public:
 private:
     // std::function deleter allows to decide the (type of) deleter at
     // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
 
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
 

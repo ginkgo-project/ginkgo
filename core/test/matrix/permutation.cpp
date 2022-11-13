@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,12 +60,12 @@ protected:
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Permutation<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 3}}))
+              exec, gko::dim<2>{4, 3}, gko::array<i_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
     static void assert_equal_to_original_mtx(
-        gko::matrix::Permutation<i_type> *m)
+        gko::matrix::Permutation<i_type>* m)
     {
         auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
@@ -76,7 +76,7 @@ protected:
         ASSERT_EQ(perm[3], 3);
     }
 
-    static void assert_empty(gko::matrix::Permutation<i_type> *m)
+    static void assert_empty(gko::matrix::Permutation<i_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_permutation_size(), 0);
@@ -86,7 +86,8 @@ protected:
     std::unique_ptr<gko::matrix::Permutation<i_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Permutation, CanBeEmpty)
@@ -131,12 +132,24 @@ TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 {
     using i_type = typename TestFixture::i_type;
-    using i_type = typename TestFixture::i_type;
     i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
+
+    ASSERT_EQ(m->get_const_permutation(), data);
+}
+
+
+TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
+{
+    using i_type = typename TestFixture::i_type;
+    using i_type = typename TestFixture::i_type;
+    const i_type data[] = {1, 0, 2};
+
+    auto m = gko::matrix::Permutation<i_type>::create_const(
+        this->exec, 3, gko::array<i_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -178,7 +191,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{4, 2},
-                     gko::Array<i_type>::view(this->exec, 3, data)),
+                     gko::make_array_view(this->exec, 3, data)),
                  gko::ValueMismatch);
 }
 
@@ -190,7 +203,7 @@ TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     auto mask = m->get_permute_mask();
     ASSERT_EQ(m->get_const_permutation(), data);
@@ -212,7 +225,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{3, 4},
-                     gko::Array<i_type>::view(this->exec, 3, data),
+                     gko::make_array_view(this->exec, 3, data),
                      gko::matrix::column_permute),
                  gko::ValueMismatch);
 }

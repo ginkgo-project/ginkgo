@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
 template <size_type block_size, typename ValueType>
-void initialize_1_kernel(
+void initialize_kernel(
     size_type num_rows, size_type num_cols, size_type krylov_dim,
     const ValueType *__restrict__ b, size_type stride_b,
     ValueType *__restrict__ residual, size_type stride_residual,
@@ -66,7 +66,7 @@ void initialize_1_kernel(
 }
 
 template <size_type block_size, typename ValueType>
-void initialize_1_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+void initialize_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          sycl::queue *queue, size_type num_rows,
                          size_type num_cols, size_type krylov_dim,
                          const ValueType *b, size_type stride_b,
@@ -78,7 +78,7 @@ void initialize_1_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                initialize_1_kernel<block_size>(
+                initialize_kernel<block_size>(
                     num_rows, num_cols, krylov_dim, b, stride_b, residual,
                     stride_residual, givens_sin, stride_sin, givens_cos,
                     stride_cos, stop_status, item_ct1);
@@ -96,7 +96,7 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
                                   ValueType &register_sin,
                                   ValueType &register_cos)
 {
-    if (this_hess == zero<ValueType>()) {
+    if (is_zero(this_hess)) {
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
     } else {

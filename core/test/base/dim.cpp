@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,15 +82,15 @@ TEST(Dim, ConstructsNullObject)
 class dim_manager {
 public:
     using dim = gko::dim<3>;
-    const dim &get_size() const { return size_; }
+    const dim& get_size() const { return size_; }
 
-    static std::unique_ptr<dim_manager> create(const dim &size)
+    static std::unique_ptr<dim_manager> create(const dim& size)
     {
         return std::unique_ptr<dim_manager>{new dim_manager{size}};
     }
 
 private:
-    dim_manager(const dim &size) : size_{size} {}
+    dim_manager(const dim& size) : size_{size} {}
     dim size_;
 };
 

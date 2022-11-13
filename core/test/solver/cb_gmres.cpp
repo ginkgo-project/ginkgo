@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,8 @@ protected:
                   .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
@@ -85,7 +86,8 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
@@ -100,7 +102,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> cb_gmres_big_factory;
     std::unique_ptr<Solver> big_solver;
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
@@ -143,7 +145,7 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_r2>,
                      std::tuple<std::complex<float>, st_keep>>;
 
-TYPED_TEST_SUITE(CbGmres, TestTypes);
+TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(CbGmres, CbGmresFactoryKnowsItsExecutor)
@@ -157,7 +159,7 @@ TYPED_TEST(CbGmres, CbGmresFactoryCreatesCorrectSolver)
     using Solver = typename TestFixture::Solver;
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto cb_gmres_solver = static_cast<Solver *>(this->solver.get());
+    auto cb_gmres_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(cb_gmres_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(cb_gmres_solver->get_system_matrix(), this->mtx);
     ASSERT_EQ(cb_gmres_solver->get_krylov_dim(), 100u);
@@ -171,13 +173,13 @@ TYPED_TEST(CbGmres, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
-    auto r_copy = static_cast<Solver *>(copy.get());
+    auto r_copy = static_cast<Solver*>(copy.get());
 
     copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
     ASSERT_EQ(r_copy->get_storage_precision(),
               this->solver->get_storage_precision());
@@ -190,13 +192,13 @@ TYPED_TEST(CbGmres, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
-    auto r_copy = static_cast<Solver *>(copy.get());
+    auto r_copy = static_cast<Solver*>(copy.get());
 
     copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
     ASSERT_EQ(r_copy->get_storage_precision(), this->storage_precision);
     ASSERT_EQ(r_copy->get_krylov_dim(), 100u);
@@ -208,11 +210,11 @@ TYPED_TEST(CbGmres, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     auto clone = this->solver->clone();
-    auto r_clone = static_cast<Solver *>(clone.get());
+    auto r_clone = static_cast<Solver*>(clone.get());
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = r_clone->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
     ASSERT_EQ(r_clone->get_storage_precision(),
               this->solver->get_storage_precision());
@@ -227,7 +229,7 @@ TYPED_TEST(CbGmres, CanBeCleared)
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -241,7 +243,8 @@ TYPED_TEST(CbGmres, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(nc_value_type{1e-6})
                     .on(this->exec))
             .with_preconditioner(
@@ -253,7 +256,7 @@ TYPED_TEST(CbGmres, CanSetPreconditionerGenerator)
             .on(this->exec);
     auto solver = cb_gmres_factory->generate(this->mtx);
     auto precond =
-        static_cast<const Solver *>(solver.get()->get_preconditioner().get());
+        static_cast<const Solver*>(solver.get()->get_preconditioner().get());
 
     ASSERT_NE(precond, nullptr);
     ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
@@ -334,7 +337,7 @@ TYPED_TEST(CbGmres, ThrowsOnWrongPreconditionerInFactory)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::create(this->exec, gko::dim<2>{1, 3});
+        Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(

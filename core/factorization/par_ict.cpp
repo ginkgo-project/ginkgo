@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -57,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace par_ict_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(threshold_select,
@@ -73,16 +75,17 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 GKO_REGISTER_OPERATION(csr_conj_transpose, csr::conj_transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
+}  // namespace
 }  // namespace par_ict_factorization
 
 
 using par_ict_factorization::make_add_candidates;
 using par_ict_factorization::make_compute_factor;
-using par_ict_factorization::make_convert_to_coo;
+using par_ict_factorization::make_convert_ptrs_to_idxs;
 using par_ict_factorization::make_csr_conj_transpose;
 using par_ict_factorization::make_initialize_l;
 using par_ict_factorization::make_initialize_row_ptrs_l;
@@ -90,6 +93,9 @@ using par_ict_factorization::make_spgemm;
 using par_ict_factorization::make_threshold_filter;
 using par_ict_factorization::make_threshold_filter_approx;
 using par_ict_factorization::make_threshold_select;
+
+
+namespace {
 
 
 template <typename ValueType, typename IndexType>
@@ -106,7 +112,7 @@ struct ParIctState {
     // use the approximate selection/filter kernels?
     bool use_approx_select;
     // system matrix A
-    const CsrMatrix *system_matrix;
+    const CsrMatrix* system_matrix;
     // current lower factor L
     std::unique_ptr<CsrMatrix> l;
     // current upper factor L^H
@@ -118,16 +124,16 @@ struct ParIctState {
     // lower factor L currently being updated with asynchronous iterations
     std::unique_ptr<CooMatrix> l_coo;
     // temporary array for threshold selection
-    Array<ValueType> selection_tmp;
+    array<ValueType> selection_tmp;
     // temporary array for threshold selection
-    Array<remove_complex<ValueType>> selection_tmp2;
+    array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
     std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
     // strategy to be used by the upper factor
     std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy;
 
     ParIctState(std::shared_ptr<const Executor> exec_in,
-                const CsrMatrix *system_matrix_in,
+                const CsrMatrix* system_matrix_in,
                 std::unique_ptr<CsrMatrix> l_in, IndexType l_nnz_limit,
                 bool use_approx_select,
                 std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
@@ -162,10 +168,13 @@ struct ParIctState {
 };
 
 
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIct<ValueType, IndexType>::generate_l_lt(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp>& system_matrix) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -181,7 +190,7 @@ ParIct<ValueType, IndexType>::generate_l_lt(
 
     // initialize the L matrix data structures
     const auto num_rows = csr_system_matrix->get_size()[0];
-    Array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
+    array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     exec->run(make_initialize_row_ptrs_l(csr_system_matrix.get(), l_row_ptrs));
 
@@ -189,8 +198,8 @@ ParIct<ValueType, IndexType>::generate_l_lt(
         static_cast<size_type>(exec->copy_val_to_host(l_row_ptrs + num_rows));
 
     auto mtx_size = csr_system_matrix->get_size();
-    auto l = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, l_nnz},
-                               Array<IndexType>{exec, l_nnz},
+    auto l = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, l_nnz},
+                               array<IndexType>{exec, l_nnz},
                                std::move(l_row_ptrs_array));
 
     // initialize L
@@ -234,13 +243,15 @@ void ParIctState<ValueType, IndexType>::iterate()
         l_builder.get_row_idx_array().resize_and_reset(l_nnz);
         // update arrays that will be aliased
         l_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, l_nnz, l_new->get_col_idxs());
+            make_array_view(exec, l_nnz, l_new->get_col_idxs());
         l_builder.get_value_array() =
-            Array<ValueType>::view(exec, l_nnz, l_new->get_values());
+            make_array_view(exec, l_nnz, l_new->get_values());
     }
 
     // convert L into COO format
-    exec->run(make_convert_to_coo(l_new.get(), l_coo.get()));
+    exec->run(make_convert_ptrs_to_idxs(l_new->get_const_row_ptrs(),
+                                        l_new->get_size()[0],
+                                        l_coo->get_row_idxs()));
 
     // execute asynchronous iteration
     exec->run(make_compute_factor(system_matrix, l_new.get(), l_coo.get()));

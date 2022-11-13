@@ -1,7 +1,6 @@
 on:
   pull_request_target:
     types: [opened]
-
 name: OnNewPR
 jobs:
   label:

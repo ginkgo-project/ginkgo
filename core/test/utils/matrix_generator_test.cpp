@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,22 +57,25 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix<mtx_type>(
               500, 100, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
+          dense_mtx(gko::test::generate_random_dense_matrix<value_type>(
+              500, 100, std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(41), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
-              4, 3, true, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              4, true, std::normal_distribution<real_type>(50, 5),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
           u_mtx(gko::test::generate_random_upper_triangular_matrix<mtx_type>(
-              3, 4, true, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              4, true, std::normal_distribution<real_type>(50, 5),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
           lower_bandwidth(2),
           upper_bandwidth(3),
           band_mtx(gko::test::generate_random_band_matrix<mtx_type>(
               100, lower_bandwidth, upper_bandwidth,
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
           nnz_per_row_sample(500, 0),
           values_sample(0),
           band_values_sample(0)
@@ -85,6 +88,14 @@ protected:
                     ++nnz_per_row_sample[row];
                     values_sample.push_back(val);
                 }
+            }
+        }
+
+        // collect samples of nnz/row and values from the dense matrix
+        for (int row = 0; row < dense_mtx->get_size()[0]; ++row) {
+            for (int col = 0; col < dense_mtx->get_size()[1]; ++col) {
+                auto val = dense_mtx->at(row, col);
+                dense_values_sample.push_back(val);
             }
         }
 
@@ -104,11 +115,13 @@ protected:
     int lower_bandwidth;
     int upper_bandwidth;
     std::unique_ptr<mtx_type> mtx;
+    std::unique_ptr<mtx_type> dense_mtx;
     std::unique_ptr<mtx_type> l_mtx;
     std::unique_ptr<mtx_type> u_mtx;
     std::unique_ptr<mtx_type> band_mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<T> values_sample;
+    std::vector<T> dense_values_sample;
     std::vector<T> band_values_sample;
 
 
@@ -145,7 +158,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(MatrixGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MatrixGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MatrixGenerator, OutputHasCorrectSize)
@@ -170,12 +183,28 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
     // check the real part
     this->template check_average_and_deviation<T>(
         begin(this->values_sample), end(this->values_sample), 20.0, 5.0,
-        [](T &val) { return gko::real(val); });
+        [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             begin(this->values_sample), end(this->values_sample), 20.0, 5.0,
-            [](T &val) { return gko::imag(val); });
+            [](T& val) { return gko::imag(val); });
+    }
+}
+
+
+TYPED_TEST(MatrixGenerator, DenseOutputHasCorrectValuesAverageAndDeviation)
+{
+    using T = typename TestFixture::value_type;
+    // check the real part
+    this->template check_average_and_deviation<T>(
+        begin(this->dense_values_sample), end(this->dense_values_sample), 20.0,
+        5.0, [](T& val) { return gko::real(val); });
+    // check the imag part when the type is complex
+    if (!std::is_same<T, gko::remove_complex<T>>::value) {
+        this->template check_average_and_deviation<T>(
+            begin(this->dense_values_sample), end(this->dense_values_sample),
+            20.0, 5.0, [](T& val) { return gko::imag(val); });
     }
 }
 
@@ -231,12 +260,12 @@ TYPED_TEST(MatrixGenerator, CanGenerateBandMatrix)
     // check the real part of elements in band
     this->template check_average_and_deviation<T>(
         begin(this->band_values_sample), end(this->band_values_sample), 20.0,
-        5.0, [](T &val) { return gko::real(val); });
+        5.0, [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             begin(this->band_values_sample), end(this->band_values_sample),
-            20.0, 5.0, [](T &val) { return gko::imag(val); });
+            20.0, 5.0, [](T& val) { return gko::imag(val); });
     }
 }
 

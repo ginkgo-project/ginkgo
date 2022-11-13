@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/upper_trs.hpp>
-
-
 #include <memory>
 #include <random>
 
@@ -47,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/solver/upper_trs_kernels.hpp"
@@ -85,28 +83,25 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::unique_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_u_mtx(int size)
     {
         return gko::test::generate_random_upper_triangular_matrix<Mtx>(
-            num_rows, num_cols, false,
-            std::uniform_int_distribution<>(num_cols, num_cols),
+            size, false, std::uniform_int_distribution<>(size, size),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(int m, int n)
     {
-        mtx = gen_u_mtx(m, m);
+        mtx = gen_u_mtx(m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx.get());
         d_csr_mtx = CsrMtx::create(cuda);
-        d_x = Mtx::create(cuda);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(cuda, x);
         d_csr_mtx->copy_from(csr_mtx.get());
         b2 = Mtx::create(ref);
-        d_b2 = Mtx::create(cuda);
-        d_b2->copy_from(b.get());
+        d_b2 = gko::clone(cuda, b);
         b2->copy_from(b.get());
     }
 
@@ -121,7 +116,7 @@ protected:
     std::shared_ptr<CsrMtx> d_csr_mtx;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 
@@ -130,12 +125,27 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
     bool trans_flag = true;
     bool expected_flag = false;
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-    expected_flag = true;
-#endif  // (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
     gko::kernels::cuda::upper_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
+}
+
+
+TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
+{
+    initialize_data(50, 1);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(cuda);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
@@ -154,6 +164,29 @@ TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
+TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_num_rhs(3u)
+            .on(cuda);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(db2_strided.get(), dx_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
 TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 3);
@@ -163,11 +196,30 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
+    // so the input and output stride need to match
+#if CUDA_VERSION >= 11030
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
+#else
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+#endif
 
     solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    d_solver->apply(db2_strided.get(), dx_strided.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, CudaApplyThrowsWithWrongNumRHS)
+{
+    initialize_data(50, 3);
+    auto d_lower_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+
+    ASSERT_THROW(d_solver->apply(d_b2.get(), d_x.get()), gko::ValueMismatch);
 }
 
 

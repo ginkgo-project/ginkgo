@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/absolute_array.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
+#include "core/components/absolute_array_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -54,53 +58,79 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 namespace hybrid {
+namespace {
 
 
-GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
+GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, hybrid::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(ell_fill_in_dense, ell::fill_in_dense);
+GKO_REGISTER_OPERATION(coo_fill_in_dense, coo::fill_in_dense);
+GKO_REGISTER_OPERATION(ell_extract_diagonal, ell::extract_diagonal);
+GKO_REGISTER_OPERATION(coo_extract_diagonal, coo::extract_diagonal);
+GKO_REGISTER_OPERATION(ell_count_nonzeros_per_row, ell::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(compute_coo_row_ptrs, hybrid::compute_coo_row_ptrs);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
-GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
-GKO_REGISTER_OPERATION(extract_coo_diagonal, coo::extract_diagonal);
-GKO_REGISTER_OPERATION(extract_ell_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 
 
+}  // anonymous namespace
 }  // namespace hybrid
 
 
-namespace {
-
-
 template <typename ValueType, typename IndexType>
-void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
-                      Array<size_type> &row_nnz)
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    const Hybrid& other)
 {
-    size_type nnz = 0;
-    IndexType current_row = 0;
-    auto row_nnz_val = row_nnz.get_data();
-    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-        row_nnz_val[i] = zero<size_type>();
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(other);
+        auto exec = this->get_executor();
+        *coo_ = *other.coo_;
+        *ell_ = *other.ell_;
+        strategy_ = other.strategy_;
     }
-    for (const auto &elem : data.nonzeros) {
-        if (elem.row != current_row) {
-            row_nnz_val[current_row] = nnz;
-            current_row = elem.row;
-            nnz = 0;
-        }
-        nnz += (elem.value != zero<ValueType>());
-    }
-    row_nnz_val[current_row] = nnz;
+    return *this;
 }
 
 
-}  // namespace
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    Hybrid&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        *coo_ = std::move(*other.coo_);
+        *ell_ = std::move(*other.ell_);
+        strategy_ = other.strategy_;
+    }
+    return *this;
+}
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+Hybrid<ValueType, IndexType>::Hybrid(const Hybrid& other)
+    : Hybrid(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
+    : Hybrid(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -114,9 +144,9 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                              const LinOp *b, const LinOp *beta,
-                                              LinOp *x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                              const LinOp* b, const LinOp* beta,
+                                              LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -131,7 +161,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Hybrid<next_precision<ValueType>, IndexType> *result) const
+    Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
     this->ell_->convert_to(result->ell_.get());
     this->coo_->convert_to(result->coo_.get());
@@ -144,24 +174,28 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(
-    Hybrid<next_precision<ValueType>, IndexType> *result)
+    Hybrid<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(hybrid::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    auto result_local = make_temporary_clone(exec, result);
+    exec->run(
+        hybrid::make_ell_fill_in_dense(this->get_ell(), result_local.get()));
+    exec->run(
+        hybrid::make_coo_fill_in_dense(this->get_coo(), result_local.get()));
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
@@ -169,89 +203,103 @@ void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+    Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-
-    size_type num_stored_elements = 0;
-    exec->run(hybrid::make_count_nonzeros(this, &num_stored_elements));
-
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(hybrid::make_convert_to_csr(this, tmp.get()));
-
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto num_rows = this->get_size()[0];
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        array<IndexType> ell_row_ptrs{exec, num_rows + 1};
+        array<IndexType> coo_row_ptrs{exec, num_rows + 1};
+        exec->run(hybrid::make_ell_count_nonzeros_per_row(
+            this->get_ell(), ell_row_ptrs.get_data()));
+        exec->run(
+            hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
+        exec->run(hybrid::make_convert_idxs_to_ptrs(
+            this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
+            num_rows, coo_row_ptrs.get_data()));
+        const auto nnz = static_cast<size_type>(
+            exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
+            exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
+        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+        tmp->col_idxs_.resize_and_reset(nnz);
+        tmp->values_.resize_and_reset(nnz);
+        tmp->set_size(this->get_size());
+        exec->run(hybrid::make_convert_to_csr(
+            this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
+            tmp.get()));
+    }
+    result->make_srow();
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::read(const mat_data &data)
+void Hybrid<ValueType, IndexType>::resize(dim<2> new_size,
+                                          size_type ell_row_nnz,
+                                          size_type coo_nnz)
 {
-    // get the limitation of columns of the ell part
-    // calculate coo storage
-    size_type ell_lim = zero<size_type>();
-    size_type coo_lim = zero<size_type>();
-    Array<size_type> row_nnz(this->get_executor()->get_master(), data.size[0]);
-    get_each_row_nnz(data, row_nnz);
-    strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
-
-    auto tmp =
-        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
-                       data.size[0], coo_lim, this->get_strategy());
-
-    // Get values and column indexes.
-    size_type ind = 0;
-    size_type n = data.nonzeros.size();
-    auto coo_vals = tmp->get_coo_values();
-    auto coo_col_idxs = tmp->get_coo_col_idxs();
-    auto coo_row_idxs = tmp->get_coo_row_idxs();
-    size_type coo_ind = 0;
-    for (size_type row = 0; row < data.size[0]; row++) {
-        size_type col = 0;
-
-        // ell_part
-        while (ind < n && data.nonzeros[ind].row == row && col < ell_lim) {
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                tmp->ell_val_at(row, col) = val;
-                tmp->ell_col_at(row, col) = data.nonzeros[ind].column;
-                col++;
-            }
-            ind++;
-        }
-        for (auto i = col; i < ell_lim; i++) {
-            tmp->ell_val_at(row, i) = zero<ValueType>();
-            tmp->ell_col_at(row, i) = 0;
-        }
-
-        // coo_part
-        while (ind < n && data.nonzeros[ind].row == row) {
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                coo_vals[coo_ind] = val;
-                coo_col_idxs[coo_ind] = data.nonzeros[ind].column;
-                coo_row_idxs[coo_ind] = data.nonzeros[ind].row;
-                coo_ind++;
-            }
-            ind++;
-        }
-    }
-
-    // Return the matrix
-    tmp->move_to(this);
+    this->set_size(new_size);
+    ell_->resize(new_size, ell_row_nnz);
+    coo_->resize(new_size, coo_nnz);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::write(mat_data &data) const
+void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    auto exec = this->get_executor();
+    const auto num_rows = data.get_size()[0];
+    const auto num_cols = data.get_size()[1];
+    auto local_data = make_temporary_clone(exec, &data);
+    array<int64> row_ptrs{exec, num_rows + 1};
+    exec->run(hybrid::make_convert_idxs_to_ptrs(
+        local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
+        row_ptrs.get_data()));
+    array<size_type> row_nnz{exec, data.get_size()[0]};
+    exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
+    size_type ell_max_nnz{};
+    size_type coo_nnz{};
+    this->get_strategy()->compute_hybrid_config(row_nnz, &ell_max_nnz,
+                                                &coo_nnz);
+    if (ell_max_nnz > num_cols) {
+        // TODO remove temporary fix after ELL gains true structural zeros
+        ell_max_nnz = num_cols;
+    }
+    array<int64> coo_row_ptrs{exec, num_rows + 1};
+    exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
+                                                coo_row_ptrs.get_data()));
+    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    this->resize(data.get_size(), ell_max_nnz, coo_nnz);
+    exec->run(
+        hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),
+                                         coo_row_ptrs.get_const_data(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::read(const mat_data& data)
+{
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
     auto tmp_clone =
@@ -267,17 +315,15 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
         for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row();
              ++i) {
             const auto val = tmp->ell_val_at(row, i);
-            if (val != zero<ValueType>()) {
-                const auto col = tmp->ell_col_at(row, i);
+            const auto col = tmp->ell_col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
                 data.nonzeros.emplace_back(row, col, val);
             }
         }
 
         while (coo_ind < coo_nnz && coo_row_idxs[coo_ind] == row) {
-            if (coo_vals[coo_ind] != zero<ValueType>()) {
-                data.nonzeros.emplace_back(row, coo_col_idxs[coo_ind],
-                                           coo_vals[coo_ind]);
-            }
+            data.nonzeros.emplace_back(row, coo_col_idxs[coo_ind],
+                                       coo_vals[coo_ind]);
             coo_ind++;
         }
     }
@@ -294,8 +340,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_extract_ell_diagonal(this->get_ell(), lend(diag)));
-    exec->run(hybrid::make_extract_coo_diagonal(this->get_coo(), lend(diag)));
+    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), lend(diag)));
+    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), lend(diag)));
     return diag;
 }
 

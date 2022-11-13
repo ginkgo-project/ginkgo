@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ constexpr int default_block_size = 512;
 
 __global__ __launch_bounds__(default_block_size) void set_all_statuses(
     size_type num_elems, uint8 stoppingId, bool setFinalized,
-    stopping_status *stop_status)
+    stopping_status* stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_elems) {
@@ -70,15 +70,16 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 
 void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status> *stop_status)
+                      array<stopping_status>* stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
-                         1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(stop_status->get_num_elems(), block_size);
 
-    set_all_statuses<<<grid_size, block_size, 0, 0>>>(
-        stop_status->get_num_elems(), stoppingId, setFinalized,
-        as_cuda_type(stop_status->get_data()));
+    if (grid_size > 0) {
+        set_all_statuses<<<grid_size, block_size, 0, 0>>>(
+            stop_status->get_num_elems(), stoppingId, setFinalized,
+            as_cuda_type(stop_status->get_data()));
+    }
 }
 
 

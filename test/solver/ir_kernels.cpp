@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,25 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Ir : public ::testing::Test {
+class Ir : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
 
     Ir() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride)
@@ -84,25 +70,22 @@ protected:
         return result;
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 
 TEST_F(Ir, InitializeIsEquivalentToRef)
 {
-    auto stop_status = gko::Array<gko::stopping_status>(ref, 43);
+    auto stop_status = gko::array<gko::stopping_status>(ref, 43);
     for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
         stop_status.get_data()[i].reset();
     }
-    auto d_stop_status = gko::Array<gko::stopping_status>(exec, stop_status);
+    auto d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
 
     gko::kernels::reference::ir::initialize(ref, &stop_status);
     gko::kernels::EXEC_NAMESPACE::ir::initialize(exec, &d_stop_status);
 
-    auto tmp = gko::Array<gko::stopping_status>(ref, d_stop_status);
+    auto tmp = gko::array<gko::stopping_status>(ref, d_stop_status);
     for (int i = 0; i < stop_status.get_num_elems(); ++i) {
         ASSERT_EQ(stop_status.get_const_data()[i], tmp.get_const_data()[i]);
     }
@@ -177,10 +160,10 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    // Note: r<value_type>::value * 1e2 instead of r<value_type>::value, as
+    // Note: r<value_type>::value * 150 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
     // difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 300);
 }
 
 
@@ -258,8 +241,39 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     // Note: r<value_type>::value * 1e2 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
     // difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 200);
 }
 
 
-}  // namespace
+TEST_F(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
+{
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    auto mtx = gko::share(gen_mtx(50, 50, 52));
+    auto b = gen_mtx(50, 3, 7);
+    auto d_mtx = gko::share(clone(exec, mtx));
+    auto d_b = clone(exec, b);
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
+        auto x = gen_mtx(50, 3, 4);
+        auto d_x = clone(exec, x);
+        auto ir_factory =
+            gko::solver::Ir<value_type>::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+                .with_default_initial_guess(guess)
+                .on(ref);
+        auto d_ir_factory =
+            gko::solver::Ir<value_type>::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                .with_default_initial_guess(guess)
+                .on(exec);
+        auto solver = ir_factory->generate(mtx);
+        auto d_solver = d_ir_factory->generate(d_mtx);
+
+        solver->apply(lend(b), lend(x));
+        d_solver->apply(lend(d_b), lend(d_x));
+
+        GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
+    }
+}

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
@@ -66,26 +66,27 @@ namespace par_ilut_factorization {
 
 template <typename ValueType, typename IndexType>
 void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
-                        const ValueType *values, IndexType size,
-                        remove_complex<ValueType> *tree, unsigned char *oracles,
-                        IndexType *partial_counts, IndexType *total_counts)
+                        const ValueType* values, IndexType size,
+                        remove_complex<ValueType>* tree, unsigned char* oracles,
+                        IndexType* partial_counts, IndexType* total_counts)
 {
     constexpr auto bucket_count = kernel::searchtree_width;
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
     // pick sample, build searchtree
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), dim3(1),
-                       dim3(bucket_count), 0, 0, as_hip_type(values), size,
-                       tree);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), 1,
+                       bucket_count, 0, 0, as_hip_type(values), size, tree);
     // determine bucket sizes
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, as_hip_type(values),
-                       size, tree, partial_counts, oracles, items_per_thread);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), num_blocks,
+                           default_block_size, 0, 0, as_hip_type(values), size,
+                           tree, partial_counts, oracles, items_per_thread);
+    }
     // compute prefix sum and total sum over block-local values
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum),
-                       dim3(bucket_count), dim3(default_block_size), 0, 0,
-                       partial_counts, total_counts, num_blocks);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum), bucket_count,
+                       default_block_size, 0, 0, partial_counts, total_counts,
+                       num_blocks);
     // compute prefix sum over bucket counts
     components::prefix_sum(exec, total_counts, bucket_count + 1);
 }
@@ -93,21 +94,21 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
 
 #define DECLARE_SSSS_COUNT(ValueType, IndexType)                               \
     void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,       \
-                            const ValueType *values, IndexType size,           \
-                            remove_complex<ValueType> *tree,                   \
-                            unsigned char *oracles, IndexType *partial_counts, \
-                            IndexType *total_counts)
+                            const ValueType* values, IndexType size,           \
+                            remove_complex<ValueType>* tree,                   \
+                            unsigned char* oracles, IndexType* partial_counts, \
+                            IndexType* total_counts)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SSSS_COUNT);
 
 
 template <typename IndexType>
 sampleselect_bucket<IndexType> sampleselect_find_bucket(
-    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), dim3(1),
-                       dim3(config::warp_size), 0, 0, prefix_sum, rank);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), 1,
+                       config::warp_size, 0, 0, prefix_sum, rank);
     IndexType values[3]{};
     exec->get_master()->copy_from(exec.get(), 3, prefix_sum, values);
     return {values[0], values[1], values[2]};
@@ -116,7 +117,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
 
 #define DECLARE_SSSS_FIND_BUCKET(IndexType)                                 \
     sampleselect_bucket<IndexType> sampleselect_find_bucket(                \
-        std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum, \
+        std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum, \
         IndexType rank)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(DECLARE_SSSS_FIND_BUCKET);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "accessor/cuda_helper.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "cuda/base/config.hpp"
@@ -77,58 +78,31 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 #include "common/cuda_hip/solver/cb_gmres_kernels.hpp.inc"
 
 
-// Specialization, so the Accessor can use the same function as regular pointers
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
-{
-    return acc::range<
-        acc::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
-        acc.get_accessor().get_size(),
-        as_cuda_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_stride());
-}
-
-template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
-        &acc)
-{
-    return acc::range<acc::scaled_reduced_row_major<dim, cuda_type<Type1>,
-                                                    cuda_type<Type2>, mask>>(
-        acc.get_accessor().get_size(),
-        as_cuda_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_storage_stride(),
-        as_cuda_type(acc.get_accessor().get_scalar()),
-        acc.get_accessor().get_scalar_stride());
-}
-
-
 template <typename ValueType>
-void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
+void zero_matrix(size_type m, size_type n, size_type stride, ValueType* array)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(n, block_size);
     zero_matrix_kernel<<<grid_size, block_size, 0, 0>>>(m, n, stride,
                                                         as_cuda_type(array));
 }
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *givens_sin,
-                  matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, size_type krylov_dim)
+void initialize(std::shared_ptr<const CudaExecutor> exec,
+                const matrix::Dense<ValueType>* b,
+                matrix::Dense<ValueType>* residual,
+                matrix::Dense<ValueType>* givens_sin,
+                matrix::Dense<ValueType>* givens_cos,
+                array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
-    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim = ceildiv(num_threads, default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
-    initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
+    initialize_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], krylov_dim,
         as_cuda_type(b->get_const_values()), b->get_stride(),
         as_cuda_type(residual->get_values()), residual->get_stride(),
@@ -137,18 +111,19 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(stop_status->get_data()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
-void initialize_2(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                  matrix::Dense<ValueType> *residual_norm_collection,
-                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                  Accessor3d krylov_bases,
-                  matrix::Dense<ValueType> *next_krylov_basis,
-                  Array<size_type> *final_iter_nums, size_type krylov_dim)
+void restart(std::shared_ptr<const CudaExecutor> exec,
+             const matrix::Dense<ValueType>* residual,
+             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             matrix::Dense<ValueType>* residual_norm_collection,
+             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             Accessor3d krylov_bases,
+             matrix::Dense<ValueType>* next_krylov_basis,
+             array<size_type>* final_iter_nums, array<char>& reduction_tmp,
+             size_type krylov_dim)
 {
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
@@ -157,18 +132,19 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const dim3 grid_dim_1(
-        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim_1 =
+        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
-    initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
+    restart_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
-        as_cuda_accessor(krylov_bases),
+        acc::as_cuda_range(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
-    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 reduction_tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
@@ -192,37 +168,41 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                 residual_norm->get_stride(),
                 as_cuda_type(arnoldi_norm->get_const_values() +
                              2 * stride_arnoldi),
-                stride_arnoldi, as_cuda_accessor(krylov_bases));
+                stride_arnoldi, acc::as_cuda_range(krylov_bases));
     }
 
-    const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
-    initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
+    const auto grid_dim_2 =
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size);
+    restart_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(residual_norm_collection->get_values()),
-        as_cuda_accessor(krylov_bases),
+        acc::as_cuda_range(krylov_bases),
         as_cuda_type(next_krylov_basis->get_values()),
         next_krylov_basis->get_stride(),
         as_cuda_type(final_iter_nums->get_data()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
-                        matrix::Dense<ValueType> *next_krylov_basis,
+                        matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3dim krylov_bases,
-                        matrix::Dense<ValueType> *hessenberg_iter,
-                        matrix::Dense<ValueType> *buffer_iter,
-                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                        size_type iter, const stopping_status *stop_status,
-                        stopping_status *reorth_status,
-                        Array<size_type> *num_reorth)
+                        matrix::Dense<ValueType>* hessenberg_iter,
+                        matrix::Dense<ValueType>* buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+                        size_type iter, const stopping_status* stop_status,
+                        stopping_status* reorth_status,
+                        array<size_type>* num_reorth)
 {
+    const auto dim_size = next_krylov_basis->get_size();
+    if (dim_size[1] == 0) {
+        return;
+    }
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
@@ -232,7 +212,6 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
@@ -244,7 +223,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     //       further investigation.
     const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
                                       iter + 1);
-    const dim3 block_size_iters_single(singledot_block_size);
+    const auto block_size_iters_single = singledot_block_size;
     size_type num_reorth_host;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
@@ -259,7 +238,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
         multidot_kernel<default_dot_dim><<<grid_size_num_iters, block_size>>>(
             dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_const_values()),
-            stride_next_krylov, as_cuda_accessor(krylov_bases),
+            stride_next_krylov, acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
             as_cuda_type(stop_status));
     } else {
@@ -267,7 +246,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size_iters_single, block_size_iters_single>>>(
                 dim_size[0],
                 as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                stride_next_krylov, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     }
@@ -279,7 +258,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
            default_block_size>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_accessor(krylov_bases),
+            acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
 
@@ -305,7 +284,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
         <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
             dim_size[1], as_cuda_type(arnoldi_norm->get_values()),
             stride_arnoldi, as_cuda_type(hessenberg_iter->get_values()),
-            stride_hessenberg, iter + 1, as_cuda_accessor(krylov_bases),
+            stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
             as_cuda_type(stop_status), as_cuda_type(reorth_status),
             as_cuda_type(num_reorth->get_data()));
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
@@ -318,7 +297,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_num_iters, block_size>>>(
                     dim_size[0], dim_size[1],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         } else {
@@ -326,7 +305,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_iters_single, block_size_iters_single>>>(
                     dim_size[0],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         }
@@ -338,7 +317,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                default_block_size>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                stride_next_krylov, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
                 as_cuda_type(stop_status), as_cuda_type(reorth_status));
@@ -367,7 +346,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
             <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
                 dim_size[1], as_cuda_type(arnoldi_norm->get_values()),
                 stride_arnoldi, as_cuda_type(hessenberg_iter->get_values()),
-                stride_hessenberg, iter + 1, as_cuda_accessor(krylov_bases),
+                stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(stop_status), as_cuda_type(reorth_status),
                 as_cuda_type(num_reorth->get_data()));
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
@@ -378,7 +357,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
            default_block_size>>>(
             iter, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_accessor(krylov_bases),
+            acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
@@ -388,19 +367,19 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
-                     matrix::Dense<ValueType> *givens_sin,
-                     matrix::Dense<ValueType> *givens_cos,
-                     matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                     matrix::Dense<ValueType> *residual_norm_collection,
-                     size_type iter, const Array<stopping_status> *stop_status)
+                     matrix::Dense<ValueType>* givens_sin,
+                     matrix::Dense<ValueType>* givens_cos,
+                     matrix::Dense<ValueType>* hessenberg_iter,
+                     matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                     matrix::Dense<ValueType>* residual_norm_collection,
+                     size_type iter, const array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_cols, block_size));
 
     givens_rotation_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1], iter,
@@ -415,18 +394,19 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename Accessor3d>
-void step_1(std::shared_ptr<const CudaExecutor> exec,
-            matrix::Dense<ValueType> *next_krylov_basis,
-            matrix::Dense<ValueType> *givens_sin,
-            matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<remove_complex<ValueType>> *residual_norm,
-            matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
-            matrix::Dense<ValueType> *buffer_iter,
-            matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-            size_type iter, Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+void arnoldi(std::shared_ptr<const CudaExecutor> exec,
+             matrix::Dense<ValueType>* next_krylov_basis,
+             matrix::Dense<ValueType>* givens_sin,
+             matrix::Dense<ValueType>* givens_cos,
+             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             matrix::Dense<ValueType>* residual_norm_collection,
+             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
+             matrix::Dense<ValueType>* buffer_iter,
+             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             size_type iter, array<size_type>* final_iter_nums,
+             const array<stopping_status>* stop_status,
+             array<stopping_status>* reorth_status,
+             array<size_type>* num_reorth)
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
@@ -442,21 +422,21 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 
 template <typename ValueType>
 void solve_upper_triangular(
-    const matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-    const Array<size_type> *final_iter_nums)
+    const matrix::Dense<ValueType>* residual_norm_collection,
+    const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
+    const array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
-                        1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
     solve_upper_triangular_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg->get_size()[1], num_rhs,
@@ -470,9 +450,9 @@ void solve_upper_triangular(
 
 template <typename ValueType, typename ConstAccessor3d>
 void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
-                  const matrix::Dense<ValueType> *y,
-                  matrix::Dense<ValueType> *before_preconditioner,
-                  const Array<size_type> *final_iter_nums)
+                  const matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = before_preconditioner->get_size()[1];
@@ -480,15 +460,13 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim{
-        static_cast<unsigned int>(
-            ceildiv(num_rows * stride_before_preconditioner, block_size)),
-        1, 1};
-    const dim3 block_dim{block_size, 1, 1};
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
 
 
     calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(
-        num_rows, num_cols, as_cuda_accessor(krylov_bases),
+        num_rows, num_cols, acc::as_cuda_range(krylov_bases),
         as_cuda_type(y->get_const_values()), y->get_stride(),
         as_cuda_type(before_preconditioner->get_values()),
         stride_before_preconditioner,
@@ -499,14 +477,17 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void step_2(std::shared_ptr<const CudaExecutor> exec,
-            const matrix::Dense<ValueType> *residual_norm_collection,
-            ConstAccessor3d krylov_bases,
-            const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *before_preconditioner,
-            const Array<size_type> *final_iter_nums)
+void solve_krylov(std::shared_ptr<const CudaExecutor> exec,
+                  const matrix::Dense<ValueType>* residual_norm_collection,
+                  ConstAccessor3d krylov_bases,
+                  const matrix::Dense<ValueType>* hessenberg,
+                  matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const array<size_type>* final_iter_nums)
 {
+    if (before_preconditioner->get_size()[1] == 0) {
+        return;
+    }
     // since hessenberg has dims:  iters x iters * num_rhs
     // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs
     const auto iters =
@@ -519,7 +500,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres

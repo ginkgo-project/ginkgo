@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cg {
@@ -50,28 +54,28 @@ namespace cg {
 
 #define GKO_DECLARE_CG_INITIALIZE_KERNEL(_type)                              \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho,                               \
-                    Array<stopping_status> *stop_status)
+                    const matrix::Dense<_type>* b, matrix::Dense<_type>* r,  \
+                    matrix::Dense<_type>* z, matrix::Dense<_type>* p,        \
+                    matrix::Dense<_type>* q, matrix::Dense<_type>* prev_rho, \
+                    matrix::Dense<_type>* rho,                               \
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho,                        \
-                const matrix::Dense<_type> *prev_rho,                   \
-                const Array<stopping_status> *stop_status)
+                matrix::Dense<_type>* p, const matrix::Dense<_type>* z, \
+                const matrix::Dense<_type>* rho,                        \
+                const matrix::Dense<_type>* prev_rho,                   \
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
-                const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho,                              \
-                const Array<stopping_status> *stop_status)
+                matrix::Dense<_type>* x, matrix::Dense<_type>* r,             \
+                const matrix::Dense<_type>* p, const matrix::Dense<_type>* q, \
+                const matrix::Dense<_type>* beta,                             \
+                const matrix::Dense<_type>* rho,                              \
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES             \
@@ -86,49 +90,7 @@ namespace cg {
 }  // namespace cg
 
 
-namespace omp {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace omp
-
-
-namespace cuda {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace cuda
-
-
-namespace reference {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace reference
-
-
-namespace hip {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cg, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

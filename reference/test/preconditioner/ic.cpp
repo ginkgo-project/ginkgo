@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -100,7 +100,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(Ic, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ic, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ic, BuildsTwoFactorComposition)
@@ -180,10 +180,9 @@ TYPED_TEST(Ic, CanBeCopied)
     auto before_lh_solver = ic->get_lh_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
     auto lh_l_composition =
-        Composition::create(this->lh_factor, this->l_factor);
-    auto copied = ic_prec_type::build()
-                      .on(this->exec)
-                      ->generate(gko::share(lh_l_composition));
+        gko::share(Composition::create(this->lh_factor, this->l_factor));
+    auto copied =
+        ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
 
     copied->copy_from(ic.get());
 
@@ -202,10 +201,9 @@ TYPED_TEST(Ic, CanBeMoved)
     auto before_lh_solver = ic->get_lh_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
     auto lh_l_composition =
-        Composition::create(this->lh_factor, this->l_factor);
-    auto moved = ic_prec_type::build()
-                     .on(this->exec)
-                     ->generate(gko::share(lh_l_composition));
+        gko::share(Composition::create(this->lh_factor, this->l_factor));
+    auto moved =
+        ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
 
     moved->copy_from(std::move(ic));
 

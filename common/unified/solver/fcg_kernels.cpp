@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,30 +52,43 @@ namespace fcg {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
+                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* p,
+                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* t,
+                matrix::Dense<ValueType>* prev_rho,
+                matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* rho_t,
+                array<stopping_status>* stop_status)
 {
-    run_kernel_solver(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
-                      auto q, auto t, auto prev_rho, auto rho, auto rho_t,
-                      auto stop) {
-            if (row == 0) {
+    if (b->get_size()) {
+        run_kernel_solver(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                          auto q, auto t, auto prev_rho, auto rho, auto rho_t,
+                          auto stop) {
+                if (row == 0) {
+                    rho[col] = zero(rho[col]);
+                    prev_rho[col] = rho_t[col] = one(prev_rho[col]);
+                    stop[col].reset();
+                }
+                t(row, col) = r(row, col) = b(row, col);
+                z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
+            },
+            b->get_size(), b->get_stride(), default_stride(b),
+            default_stride(r), default_stride(z), default_stride(p),
+            default_stride(q), default_stride(t), row_vector(prev_rho),
+            row_vector(rho), row_vector(rho_t), *stop_status);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto col, auto prev_rho, auto rho, auto rho_t,
+                          auto stop) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = rho_t[col] = one(prev_rho[col]);
                 stop[col].reset();
-            }
-            t(row, col) = r(row, col) = b(row, col);
-            z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
-        },
-        b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
-        default_stride(z), default_stride(p), default_stride(q),
-        default_stride(t), row_vector(prev_rho), row_vector(rho),
-        row_vector(rho_t), *stop_status);
+            },
+            b->get_size()[1], row_vector(prev_rho), row_vector(rho),
+            row_vector(rho_t), *stop_status);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -83,10 +96,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho_t,
-            const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* z,
+            const matrix::Dense<ValueType>* rho_t,
+            const matrix::Dense<ValueType>* prev_rho,
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -106,18 +119,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
+            matrix::Dense<ValueType>* t, const matrix::Dense<ValueType>* p,
+            const matrix::Dense<ValueType>* q,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Dense<ValueType>* rho,
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p,
                       auto q, auto beta, auto rho, auto stop) {
-            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+            if (!stop[col].has_stopped() && is_nonzero(beta[col])) {
                 auto tmp = rho[col] / beta[col];
                 auto prev_r = r(row, col);
                 x(row, col) += tmp * p(row, col);

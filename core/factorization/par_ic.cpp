@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -53,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace par_ic_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(add_diagonal_elements,
@@ -63,15 +65,16 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 GKO_REGISTER_OPERATION(init_factor, par_ic_factorization::init_factor);
 GKO_REGISTER_OPERATION(compute_factor, par_ic_factorization::compute_factor);
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 
 
+}  // anonymous namespace
 }  // namespace par_ic_factorization
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
     bool both_factors) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
@@ -97,7 +100,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
-    Array<IndexType> l_row_ptrs{exec, number_rows + 1};
+    array<IndexType> l_row_ptrs{exec, number_rows + 1};
     exec->run(par_ic_factorization::make_initialize_row_ptrs_l(
         csr_system_matrix.get(), l_row_ptrs.get_data()));
 
@@ -107,8 +110,8 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
 
     // Since `row_ptrs` of L is already created, the matrix can be
     // directly created with it
-    Array<IndexType> l_col_idxs{exec, l_nnz};
-    Array<ValueType> l_vals{exec, l_nnz};
+    array<IndexType> l_col_idxs{exec, l_nnz};
+    array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<CsrMatrix> l_factor = matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), parameters_.l_strategy);
@@ -117,19 +120,15 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
                                                       l_factor.get(), false));
 
     // build COO representation of lower factor
-    Array<IndexType> l_row_idxs{exec, l_nnz};
+    array<IndexType> l_row_idxs{exec, l_nnz};
     // copy values from l_factor, which are the lower triangular values of A
-    auto l_vals_view =
-        Array<ValueType>::view(exec, l_nnz, l_factor->get_values());
-    auto a_vals = Array<ValueType>{exec, l_vals_view};
-    auto a_row_idxs =
-        Array<IndexType>::view(exec, l_nnz, l_factor->get_col_idxs());
-    auto a_col_idxs = Array<IndexType>{exec, l_nnz};
+    auto l_vals_view = make_array_view(exec, l_nnz, l_factor->get_values());
+    auto a_vals = array<ValueType>{exec, l_vals_view};
+    auto a_row_idxs = array<IndexType>{exec, l_nnz};
+    auto a_col_idxs = make_array_view(exec, l_nnz, l_factor->get_col_idxs());
     auto a_lower_coo =
         CooMatrix::create(exec, matrix_size, std::move(a_vals),
-                          std::move(a_row_idxs), std::move(a_col_idxs));
-    exec->run(par_ic_factorization::make_convert_to_coo(l_factor.get(),
-                                                        a_lower_coo.get()));
+                          std::move(a_col_idxs), std::move(a_row_idxs));
 
     // compute sqrt of diagonal entries
     exec->run(par_ic_factorization::make_init_factor(l_factor.get()));

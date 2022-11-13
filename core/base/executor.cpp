@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
 }
 
 
-const char *Operation::get_name() const noexcept
+const char* Operation::get_name() const noexcept
 {
     static auto name = name_demangling::get_dynamic_type(*this);
     return name.c_str();

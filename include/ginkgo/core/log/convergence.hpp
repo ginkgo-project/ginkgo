@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,19 +66,19 @@ template <typename ValueType = default_precision>
 class Convergence : public Logger {
 public:
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *solution, const uint8 &stopping_id,
-        const bool &set_finalized, const Array<stopping_status> *status,
-        const bool &one_changed, const bool &all_stopped) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* solution, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_stopped) const override;
 
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *implicit_sq_resnorm, const LinOp *solution,
-        const uint8 &stopping_id, const bool &set_finalized,
-        const Array<stopping_status> *status, const bool &one_changed,
-        const bool &all_stopped) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* implicit_sq_resnorm, const LinOp* solution,
+        const uint8& stopping_id, const bool& set_finalized,
+        const array<stopping_status>* status, const bool& one_changed,
+        const bool& all_stopped) const override;
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
@@ -94,12 +94,31 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
-    static std::unique_ptr<Convergence> create(
-        std::shared_ptr<const Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask)
+    [[deprecated(
+        "use single-parameter create")]] static std::unique_ptr<Convergence>
+    create(std::shared_ptr<const Executor>,
+           const mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::unique_ptr<Convergence>(
-            new Convergence(exec, enabled_events));
+        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+    }
+
+    /**
+     * Creates a convergence logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
+    static std::unique_ptr<Convergence> create(
+        const mask_type& enabled_events = Logger::all_events_mask)
+    {
+        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
 
     /**
@@ -119,7 +138,7 @@ public:
      *
      * @return the number of iterations
      */
-    const size_type &get_num_iterations() const noexcept
+    const size_type& get_num_iterations() const noexcept
     {
         return num_iterations_;
     }
@@ -129,14 +148,14 @@ public:
      *
      * @return the residual
      */
-    const LinOp *get_residual() const noexcept { return residual_.get(); }
+    const LinOp* get_residual() const noexcept { return residual_.get(); }
 
     /**
      * Returns the residual norm
      *
      * @return the residual norm
      */
-    const LinOp *get_residual_norm() const noexcept
+    const LinOp* get_residual_norm() const noexcept
     {
         return residual_norm_.get();
     }
@@ -146,7 +165,7 @@ public:
      *
      * @return the implicit squared residual norm
      */
-    const LinOp *get_implicit_sq_resnorm() const noexcept
+    const LinOp* get_implicit_sq_resnorm() const noexcept
     {
         return implicit_sq_resnorm_.get();
     }
@@ -159,10 +178,21 @@ protected:
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      */
+    [[deprecated("use single-parameter constructor")]] explicit Convergence(
+        std::shared_ptr<const gko::Executor>,
+        const mask_type& enabled_events = Logger::all_events_mask)
+        : Logger(enabled_events)
+    {}
+
+    /**
+     * Creates a Convergence logger.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     */
     explicit Convergence(
-        std::shared_ptr<const gko::Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        const mask_type& enabled_events = Logger::all_events_mask)
+        : Logger(enabled_events)
     {}
 
 private:

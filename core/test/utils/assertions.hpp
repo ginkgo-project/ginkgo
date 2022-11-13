@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -134,7 +136,7 @@ public:
 
 
 template <typename NonzeroIterator>
-auto get_next_value(NonzeroIterator &it, const NonzeroIterator &end,
+auto get_next_value(NonzeroIterator& it, const NonzeroIterator& end,
                     size_type next_row, size_type next_col) ->
     typename std::decay<decltype(it->value)>::type
 {
@@ -147,7 +149,7 @@ auto get_next_value(NonzeroIterator &it, const NonzeroIterator &end,
 
 
 template <typename Ostream, typename MatrixData>
-void print_matrix(Ostream &os, const MatrixData &data)
+void print_matrix(Ostream& os, const MatrixData& data)
 {
     auto it = begin(data.nonzeros);
     for (size_type row = 0; row < data.size[0]; ++row) {
@@ -161,8 +163,8 @@ void print_matrix(Ostream &os, const MatrixData &data)
 
 
 template <typename Ostream, typename MatrixData1, typename MatrixData2>
-void print_componentwise_error(Ostream &os, const MatrixData1 &first,
-                               const MatrixData2 &second)
+void print_componentwise_error(Ostream& os, const MatrixData1& first,
+                               const MatrixData2& second)
 {
     using std::abs;
     using vt = typename detail::biggest_valuetype<
@@ -191,7 +193,7 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
 }
 
 template <typename Ostream, typename Iterator>
-void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
+void print_columns(Ostream& os, const Iterator& begin, const Iterator& end)
 {
     for (auto it = begin; it != end; ++it) {
         os << '\t' << it->column;
@@ -201,7 +203,7 @@ void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
 
 
 template <typename MatrixData1, typename MatrixData2>
-double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
+double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
     using std::abs;
     using vt = typename detail::biggest_valuetype<
@@ -235,9 +237,9 @@ double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 
 template <typename MatrixData1, typename MatrixData2>
 ::testing::AssertionResult matrices_near_impl(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const MatrixData1 &first,
-    const MatrixData2 &second, double tolerance)
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const MatrixData1& first,
+    const MatrixData2& second, double tolerance)
 {
     auto num_rows = first.size[0];
     auto num_cols = first.size[1];
@@ -258,7 +260,7 @@ template <typename MatrixData1, typename MatrixData2>
              << second_expression << " is " << err << "\n"
              << "\twhich is larger than " << tolerance_expression
              << " (which is " << tolerance << ")\n";
-        if (num_rows * num_cols <= 1000) {
+        if (num_rows <= 10 && num_cols <= 10) {
             fail << first_expression << " is:\n";
             detail::print_matrix(fail, first);
             fail << second_expression << " is:\n";
@@ -276,10 +278,9 @@ template <typename MatrixData1, typename MatrixData2>
             auto firstfile = testname + "." + first_expression + ".mtx";
             auto secondfile = testname + "." + second_expression + ".mtx";
             auto to_remove = [](char c) {
-                return !std::isalnum(c) && c != '_' && c != '.' && c != '-' &&
-                       c != '<' && c != '>';
+                return !std::isalnum(c) && c != '_' && c != '.' && c != '-';
             };
-            // remove all but alphanumerical and _.-<> characters from
+            // remove all but alphanumerical and _.- characters from
             // expressions
             firstfile.erase(
                 std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
@@ -302,8 +303,8 @@ template <typename MatrixData1, typename MatrixData2>
 
 template <typename MatrixData1, typename MatrixData2>
 ::testing::AssertionResult matrices_equal_sparsity_impl(
-    const std::string &first_expression, const std::string &second_expression,
-    const MatrixData1 &first, const MatrixData2 &second)
+    const std::string& first_expression, const std::string& second_expression,
+    const MatrixData1& first, const MatrixData2& second)
 {
     auto num_rows = first.size[0];
     auto num_cols = first.size[1];
@@ -359,8 +360,8 @@ template <typename MatrixData1, typename MatrixData2>
 
 template <typename ValueType>
 ::testing::AssertionResult array_equal_impl(
-    const std::string &first_expression, const std::string &second_expression,
-    const Array<ValueType> &first, const Array<ValueType> &second)
+    const std::string& first_expression, const std::string& second_expression,
+    const array<ValueType>& first, const array<ValueType>& second)
 {
     const auto num_elems1 = first.get_num_elems();
     const auto num_elems2 = second.get_num_elems();
@@ -373,14 +374,35 @@ template <typename ValueType>
     }
 
     auto exec = first.get_executor()->get_master();
-    Array<ValueType> first_array(exec, first);
-    Array<ValueType> second_array(exec, second);
-    for (decltype(first.get_num_elems()) i = 0; i < num_elems1; ++i) {
+    array<ValueType> first_array(exec, first);
+    array<ValueType> second_array(exec, second);
+    for (size_type i = 0; i < num_elems1; ++i) {
         if (!(first_array.get_const_data()[i] ==
               second_array.get_const_data()[i])) {
             auto fail = ::testing::AssertionFailure();
             fail << "Array " << first_expression << " is different from "
                  << second_expression << " at index " << i << "\n";
+            // how many surrounding lines to print?
+            constexpr size_type context_size = 3;
+            // find boundaries, avoid overflows
+            const size_type context_begin = i - std::min(context_size, i);
+            const size_type context_end =
+                std::min(i + context_size + 1, num_elems1);
+            if (i > context_size) {
+                fail << "...\n";
+            }
+            for (auto j = context_begin; j < context_end; j++) {
+                fail << (j == i ? "> " : "  ")
+                     << ::testing::PrintToString(
+                            first_array.get_const_data()[j])
+                     << ", "
+                     << ::testing::PrintToString(
+                            second_array.get_const_data()[j])
+                     << '\n';
+            }
+            if (context_end < num_elems1) {
+                fail << "...\n";
+            }
             return fail;
         }
     }
@@ -390,8 +412,8 @@ template <typename ValueType>
 
 
 ::testing::AssertionResult str_contains_impl(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &string1, const std::string &string2)
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& string1, const std::string& string2)
 {
     if (string1.find(string2) != std::string::npos) {
         return ::testing::AssertionSuccess();
@@ -420,14 +442,14 @@ template <typename T>
 using remove_container = typename remove_container_impl<T>::type;
 
 
-std::string remove_pointer_wrapper(const std::string &expression)
+std::string remove_pointer_wrapper(const std::string& expression)
 {
     constexpr auto prefix_len = sizeof("plain_ptr(") - 1;
     return expression.substr(prefix_len, expression.size() - prefix_len - 1);
 }
 
 
-std::string remove_list_wrapper(const std::string &expression)
+std::string remove_list_wrapper(const std::string& expression)
 {
     constexpr auto prefix_len = sizeof("l(") - 1;
     return expression.substr(prefix_len, expression.size() - prefix_len - 1);
@@ -456,9 +478,9 @@ std::string remove_list_wrapper(const std::string &expression)
  * @see GKO_EXPECT_MTX_NEAR
  */
 template <typename T, typename U>
-::testing::AssertionResult values_near(const std::string &first_expression,
-                                       const std::string &second_expression,
-                                       const std::string &tolerance_expression,
+::testing::AssertionResult values_near(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       const std::string& tolerance_expression,
                                        T val1, U val2, double abs_error)
 {
     static_assert(std::is_same<T, U>(),
@@ -478,8 +500,8 @@ template <typename T, typename U>
 
 template <>
 ::testing::AssertionResult values_near<gko::half, gko::half>(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, gko::half val1, gko::half val2,
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, gko::half val1, gko::half val2,
     double abs_error)
 {
     using T = float32;
@@ -498,8 +520,8 @@ template <>
 
 template <>
 ::testing::AssertionResult values_near<std::complex<half>, std::complex<half>>(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, std::complex<half> val1,
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, std::complex<half> val1,
     std::complex<half> val2, double abs_error)
 {
     using T = std::complex<float32>;
@@ -542,9 +564,9 @@ template <>
  */
 template <typename LinOp1, typename LinOp2>
 ::testing::AssertionResult matrices_near(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const LinOp1 *first,
-    const LinOp2 *second, double tolerance)
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
+    const LinOp2* second, double tolerance)
 {
     auto exec = first->get_executor()->get_master();
     matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>
@@ -567,8 +589,8 @@ template <typename LinOp1, typename LinOp2>
 
 template <typename LinOp1, typename T>
 ::testing::AssertionResult matrices_near(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const LinOp1 *first,
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
     std::initializer_list<T> second, double tolerance)
 {
     auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
@@ -595,13 +617,86 @@ template <typename LinOp1, typename T>
  * @see GKO_ASSERT_ARRAY_EQ
  */
 template <typename ValueType>
-::testing::AssertionResult array_equal(const std::string &first_expression,
-                                       const std::string &second_expression,
-                                       const Array<ValueType> &first,
-                                       const Array<ValueType> &second)
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       const array<ValueType>& first,
+                                       const array<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second);
+}
+
+/**
+ * array_equal overload: where `first` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
+ * `second`.
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const gko::detail::const_array_view<ValueType>& first,
+    const array<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression,
+                                    first.copy_to_array(), second);
+}
+
+/**
+ * array_equal overload: where `second` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
+ * `second`
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const array<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression, first,
+                                    second.copy_to_array());
+}
+
+/**
+ * array_equal overload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
+ * `second`
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression,
+                                    first.copy_to_array(),
+                                    second.copy_to_array());
+}
+
+/** array_equal overloads where one side is an initializer list .*/
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       std::initializer_list<ValueType> first,
+                                       const array<ValueType>& second)
+{
+    return array_equal(first_expression, second_expression,
+                       array<ValueType>{second.get_executor(), first}, second);
+}
+
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       const array<ValueType>& first,
+                                       std::initializer_list<ValueType> second)
+{
+    return array_equal(first_expression, second_expression, first,
+                       array<ValueType>{first.get_executor(), second});
 }
 
 
@@ -620,10 +715,10 @@ template <typename ValueType>
  *
  * @see GKO_ASSERT_STR_CONTAINS
  */
-::testing::AssertionResult str_contains(const std::string &first_expression,
-                                        const std::string &second_expression,
-                                        const std::string &string1,
-                                        const std::string &string2)
+::testing::AssertionResult str_contains(const std::string& first_expression,
+                                        const std::string& second_expression,
+                                        const std::string& string1,
+                                        const std::string& string2)
 {
     return detail::str_contains_impl(first_expression, second_expression,
                                      string1, string2);
@@ -654,8 +749,8 @@ template <typename ValueType>
  */
 template <typename LinOp1, typename LinOp2>
 ::testing::AssertionResult matrices_equal_sparsity(
-    const std::string &first_expression, const std::string &second_expression,
-    const LinOp1 *first, const LinOp2 *second)
+    const std::string& first_expression, const std::string& second_expression,
+    const LinOp1* first, const LinOp2* second)
 {
     auto exec = first->get_executor()->get_master();
     matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>
@@ -676,55 +771,68 @@ template <typename LinOp1, typename LinOp2>
 }
 
 
+template <typename LinOp1, typename T>
+::testing::AssertionResult matrices_equal_sparsity(
+    const std::string& first_expression, const std::string& second_expression,
+    const LinOp1* first, std::initializer_list<T> second)
+{
+    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
+        second, first->get_executor()->get_master());
+    return matrices_equal_sparsity(
+        first_expression, detail::remove_list_wrapper(second_expression), first,
+        second_mtx.get());
+}
+
+
 namespace detail {
 
 
 template <typename T>
-const std::initializer_list<std::initializer_list<T>> &l(
-    const std::initializer_list<std::initializer_list<T>> &list)
+const std::initializer_list<std::initializer_list<T>>& l(
+    const std::initializer_list<std::initializer_list<T>>& list)
 {
     return list;
 }
 
 template <typename T>
-const std::initializer_list<T> &l(const std::initializer_list<T> &list)
+const std::initializer_list<T>& l(const std::initializer_list<T>& list)
 {
     return list;
 }
 
 template <typename T>
-T &&l(T &&matrix)
+T&& l(T&& matrix)
 {
     return std::forward<T>(matrix);
 }
 
 template <typename T>
-T *plain_ptr(const std::shared_ptr<T> &ptr)
+T* plain_ptr(const std::shared_ptr<T>& ptr)
 {
     return ptr.get();
 }
 
 template <typename T>
-T *plain_ptr(const std::unique_ptr<T> &ptr)
+T* plain_ptr(const std::unique_ptr<T>& ptr)
 {
     return ptr.get();
 }
 
 template <typename T>
-const std::initializer_list<T> &plain_ptr(const std::initializer_list<T> &ptr)
+const std::initializer_list<T>& plain_ptr(const std::initializer_list<T>& ptr)
 {
     return ptr;
 }
 
 template <typename T>
-const std::initializer_list<std::initializer_list<T>> &plain_ptr(
-    const std::initializer_list<std::initializer_list<T>> &ptr)
+const std::initializer_list<std::initializer_list<T>>& plain_ptr(
+    const std::initializer_list<std::initializer_list<T>>& ptr)
 {
     return ptr;
 }
 
 template <typename T>
-T *plain_ptr(T *ptr)
+T* plain_ptr(T* ptr)
 {
     return ptr;
 }
@@ -833,7 +941,7 @@ T *plain_ptr(T *ptr)
 
 
 /**
- * Checks if two `gko::Array`s are equal.
+ * Checks if two `gko::array`s are equal.
  *
  * Each value of _array1 is tested against the corresponding value in
  * _array2 with the operator `==` for equality.
@@ -845,6 +953,16 @@ T *plain_ptr(T *ptr)
  * @param _array2  second array
  **/
 #define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                              \
+    {                                                                      \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
+                            _array2);                                      \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_ARRAY_EQ
+ **/
+#define GKO_EXPECT_ARRAY_EQ(_array1, _array2)                              \
     {                                                                      \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \

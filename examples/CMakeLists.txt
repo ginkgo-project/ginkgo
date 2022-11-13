@@ -23,6 +23,8 @@ set(EXAMPLES_LIST
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
+    mixed-multigrid-solver
+    multigrid-preconditioned-solver
     par-ilu-convergence
     performance-debugging
     preconditioner-export
@@ -38,13 +40,17 @@ endif()
 
 find_package(OpenCV QUIET)
 if(OpenCV_FOUND)
-    list(APPEND EXAMPLES_LIST heat-equation)
+    list(APPEND EXAMPLES_LIST heat-equation schroedinger-splitting)
 else()
-    message(STATUS "No OpenCV found, disabling heat-equation example")
+    message(STATUS "No OpenCV found, disabling examples with video output")
 endif()
 
 if(GINKGO_HAVE_PAPI_SDE)
     list(APPEND EXAMPLES_LIST papi-logging)
+endif()
+
+if(GINKGO_BUILD_MPI)
+    list(APPEND EXAMPLES_LIST distributed-solver)
 endif()
 
 foreach(example ${EXAMPLES_LIST})

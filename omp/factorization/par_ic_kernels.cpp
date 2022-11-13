@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The parallel IC factorization namespace.
+ * @brief The parallel ic factorization namespace.
  *
  * @ingroup factor
  */
@@ -54,7 +54,7 @@ namespace par_ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *l)
+                 matrix::Csr<ValueType, IndexType>* l)
 {
     auto num_rows = l->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -79,8 +79,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
-                    const matrix::Coo<ValueType, IndexType> *a_lower,
-                    matrix::Csr<ValueType, IndexType> *l)
+                    const matrix::Coo<ValueType, IndexType>* a_lower,
+                    matrix::Csr<ValueType, IndexType>* l)
 {
     auto num_rows = a_lower->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();

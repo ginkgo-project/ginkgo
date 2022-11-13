@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> idr_factory_precision;
 };
 
-TYPED_TEST_SUITE(Idr, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Idr, SolvesDenseSystem)
@@ -420,7 +420,7 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck2)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     using no_cpx_t = gko::remove_complex<T>;

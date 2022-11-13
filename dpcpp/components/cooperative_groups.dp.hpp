@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -165,16 +165,16 @@ namespace detail {
  * This is a limited implementation of the DPCPP thread_block_tile.
  */
 template <unsigned Size>
-class thread_block_tile : public sycl::ONEAPI::sub_group {
-    using sub_group = sycl::ONEAPI::sub_group;
+class thread_block_tile : public sycl::sub_group {
+    using sub_group = sycl::sub_group;
     using id_type = sub_group::id_type;
     using mask_type = config::lane_mask_type;
 
 public:
     // note: intel calls nd_item.get_sub_group(), but it still call
-    // intel::sub_group() to create the sub_group.
+    // sycl::sub_group() to create the sub_group.
     template <typename Group>
-    explicit thread_block_tile(const Group &parent_group)
+    explicit thread_block_tile(const Group& parent_group)
         : data_{Size, 0}, sub_group()
     {
 #ifndef NDEBUG
@@ -236,9 +236,9 @@ public:
     __dpct_inline__ mask_type ballot(int predicate) const noexcept
     {
         // todo: change it when OneAPI update the mask related api
-        return sycl::ONEAPI::reduce(
+        return sycl::reduce_over_group(
             *this, (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-            sycl::ONEAPI::plus<mask_type>());
+            sycl::plus<mask_type>());
     }
 
     /**
@@ -247,7 +247,7 @@ public:
      */
     __dpct_inline__ bool any(int predicate) const noexcept
     {
-        return sycl::ONEAPI::any_of(*this, (predicate != 0));
+        return sycl::any_of_group(*this, (predicate != 0));
     }
 
     /**
@@ -256,7 +256,7 @@ public:
      */
     __dpct_inline__ bool all(int predicate) const noexcept
     {
-        return sycl::ONEAPI::all_of(*this, (predicate != 0));
+        return sycl::all_of_group(*this, (predicate != 0));
     }
 
 
@@ -276,7 +276,7 @@ class thread_block_tile<1> {
 
 public:
     template <typename Group>
-    explicit thread_block_tile(const Group &parent_group) : data_{Size, 0}
+    explicit thread_block_tile(const Group& parent_group) : data_{Size, 0}
     {}
 
 
@@ -353,8 +353,7 @@ template <unsigned Size, typename Group>
 __dpct_inline__
     std::enable_if_t<(Size > 1) && Size <= 64 && !(Size & (Size - 1)),
                      detail::thread_block_tile<Size>>
-        tiled_partition
-    [[intel::reqd_sub_group_size(Size)]] (const Group &group)
+    tiled_partition(const Group& group)
 {
     return detail::thread_block_tile<Size>(group);
 }
@@ -362,7 +361,7 @@ __dpct_inline__
 
 template <unsigned Size, typename Group>
 __dpct_inline__ std::enable_if_t<Size == 1, detail::thread_block_tile<Size>>
-tiled_partition(const Group &group)
+tiled_partition(const Group& group)
 {
     return detail::thread_block_tile<Size>(group);
 }
@@ -388,7 +387,7 @@ struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
 
 
 class thread_block {
-    friend __dpct_inline__ thread_block this_thread_block(sycl::nd_item<3> &);
+    friend __dpct_inline__ thread_block this_thread_block(sycl::nd_item<3>&);
 
 public:
     __dpct_inline__ unsigned thread_rank() const noexcept { return data_.rank; }
@@ -398,7 +397,7 @@ public:
     __dpct_inline__ void sync() const noexcept { group_.barrier(); }
 
 private:
-    __dpct_inline__ thread_block(sycl::nd_item<3> &group)
+    __dpct_inline__ thread_block(sycl::nd_item<3>& group)
         : group_{group},
           data_{static_cast<unsigned>(group.get_local_range().size()),
                 static_cast<unsigned>(group.get_local_linear_id())}
@@ -408,11 +407,11 @@ private:
         unsigned rank;
     } data_;
 
-    sycl::nd_item<3> &group_;
+    sycl::nd_item<3>& group_;
 };
 
 
-__dpct_inline__ thread_block this_thread_block(sycl::nd_item<3> &group)
+__dpct_inline__ thread_block this_thread_block(sycl::nd_item<3>& group)
 {
     return thread_block(group);
 }
@@ -442,7 +441,7 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
  * bit block) would have to be used to represent the full space of thread ranks.
  */
 class grid_group {
-    friend __dpct_inline__ grid_group this_grid(sycl::nd_item<3> &);
+    friend __dpct_inline__ grid_group this_grid(sycl::nd_item<3>&);
 
 public:
     __dpct_inline__ unsigned size() const noexcept { return data_.size; }
@@ -450,7 +449,7 @@ public:
     __dpct_inline__ unsigned thread_rank() const noexcept { return data_.rank; }
 
 private:
-    __dpct_inline__ grid_group(sycl::nd_item<3> &group)
+    __dpct_inline__ grid_group(sycl::nd_item<3>& group)
         : data_{static_cast<unsigned>(group.get_global_range().size()),
                 static_cast<unsigned>(group.get_global_linear_id())}
     {}
@@ -465,7 +464,7 @@ private:
 // grid_group this_grid()
 // using cooperative_groups::this_grid;
 // Instead, use our limited implementation:
-__dpct_inline__ grid_group this_grid(sycl::nd_item<3> &group)
+__dpct_inline__ grid_group this_grid(sycl::nd_item<3>& group)
 {
     return grid_group(group);
 }

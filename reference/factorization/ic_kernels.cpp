@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ namespace ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
-             matrix::Csr<ValueType, IndexType> *m)
+             matrix::Csr<ValueType, IndexType>* m)
 {
     vector<IndexType> diagonals{m->get_size()[0], -1, exec};
     const auto row_ptrs = m->get_const_row_ptrs();

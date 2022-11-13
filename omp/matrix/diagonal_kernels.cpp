@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,9 +53,9 @@ namespace diagonal {
 
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Diagonal<ValueType> *a,
-                  const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c)
+                  const matrix::Diagonal<ValueType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
     c->copy_from(b);
@@ -64,7 +64,8 @@ void apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type row = 0; row < c->get_size()[0]; row++) {
-        const auto scal = diag_values[row];
+        const auto scal =
+            inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
              idx++) {
             csr_values[idx] *= scal;

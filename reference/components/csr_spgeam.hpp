@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,8 @@ namespace reference {
  */
 template <typename ValueType, typename IndexType, typename BeginCallback,
           typename EntryCallback, typename EndCallback>
-void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
+void abstract_spgeam(const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Csr<ValueType, IndexType>* b,
                      BeginCallback begin_cb, EntryCallback entry_cb,
                      EndCallback end_cb)
 {

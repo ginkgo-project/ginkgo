@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,10 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "accessor/hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
@@ -113,31 +114,19 @@ using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 namespace {
 
 
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_hip_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
-{
-    return acc::range<
-        acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
-        acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_stride());
-}
-
-
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   matrix::Dense<OutputValueType> *c,
-                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
-                   const matrix::Dense<OutputValueType> *beta = nullptr)
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   matrix::Dense<OutputValueType>* c,
+                   const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                   const matrix::Dense<OutputValueType>* beta = nullptr)
 {
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        acc::reduced_row_major<2, OutputValueType, const InputValueType>;
 
     const auto nrows = a->get_size()[0];
     const auto stride = a->get_stride();
@@ -152,30 +141,40 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
 
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{{num_stored_elements_per_row * stride}},
+    const auto a_vals = acc::range<a_accessor>(
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
+            num_stored_elements_per_row * stride)}},
         a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+    const auto b_vals = acc::range<b_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-            dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
-            as_hip_accessor(a_vals), a->get_const_col_idxs(), stride,
-            num_stored_elements_per_row, as_hip_accessor(b_vals),
-            as_hip_type(c->get_values()), c->get_stride());
+        if (grid_size.x > 0 && grid_size.y > 0) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
+                grid_size, block_size, 0, 0, nrows, num_worker_per_row,
+                acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
+                num_stored_elements_per_row, acc::as_hip_range(b_vals),
+                as_hip_type(c->get_values()), c->get_stride());
+        }
     } else if (alpha != nullptr && beta != nullptr) {
-        const auto alpha_val = gko::acc::range<a_accessor>(
-            std::array<size_type, 1>{1}, alpha->get_const_values());
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-            dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
-            as_hip_accessor(alpha_val), as_hip_accessor(a_vals),
-            a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-            as_hip_accessor(b_vals), as_hip_type(beta->get_const_values()),
-            as_hip_type(c->get_values()), c->get_stride());
+        if (grid_size.x > 0 && grid_size.y > 0) {
+            const auto alpha_val = acc::range<a_accessor>(
+                std::array<acc::size_type, 1>{1}, alpha->get_const_values());
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
+                grid_size, block_size, 0, 0, nrows, num_worker_per_row,
+                acc::as_hip_range(alpha_val), acc::as_hip_range(a_vals),
+                a->get_const_col_idxs(), stride, num_stored_elements_per_row,
+                acc::as_hip_range(b_vals),
+                as_hip_type(beta->get_const_values()),
+                as_hip_type(c->get_values()), c->get_stride());
+        }
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
@@ -187,7 +186,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Ell<ValueType, IndexType> *a)
+    const matrix::Ell<ValueType, IndexType>* a)
 {
     int num_thread_per_worker = 1;
     int atomic = 0;
@@ -231,9 +230,9 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType> *a,
-          const matrix::Dense<InputValueType> *b,
-          matrix::Dense<OutputValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -247,9 +246,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(),
-                               zero<OutputValueType>());
+        dense::fill(exec, c, zero<OutputValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -265,11 +262,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<MatrixValueType> *alpha,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   const matrix::Dense<OutputValueType> *beta,
-                   matrix::Dense<OutputValueType> *c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -294,143 +291,6 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto result_stride = result->get_stride();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-    const auto source_stride = source->get_stride();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
-                       dim3(block_size), 0, 0, num_rows, num_cols,
-                       result_stride, as_hip_type(result->get_values()));
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_dense, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows,
-                       source->get_num_stored_elements_per_row(), source_stride,
-                       as_hip_type(col_idxs), as_hip_type(vals), result_stride,
-                       as_hip_type(result->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    const auto stride = source->get_stride();
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-
-    constexpr auto rows_per_block =
-        ceildiv(default_block_size, config::warp_size);
-    const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
-
-    hipLaunchKernelGGL(
-        kernel::count_nnz_per_row, dim3(grid_dim_nnz), dim3(default_block_size),
-        0, 0, num_rows, max_nnz_per_row, stride,
-        as_hip_type(source->get_const_values()), as_hip_type(row_ptrs));
-
-    size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_dim);
-
-    components::prefix_sum(exec, row_ptrs, num_rows + 1);
-
-    hipLaunchKernelGGL(
-        kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,
-        num_rows, max_nnz_per_row, stride,
-        as_hip_type(source->get_const_values()),
-        as_hip_type(source->get_const_col_idxs()), as_hip_type(row_ptrs),
-        as_hip_type(col_idxs), as_hip_type(values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result)
-{
-    const auto num_rows = source->get_size()[0];
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-
-    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-
-    *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType> *source,
-                                Array<size_type> *result)
-{
-    const auto num_rows = source->get_size()[0];
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-    const auto stride = source->get_stride();
-    const auto values = source->get_const_values();
-
-    const auto warp_size = config::warp_size;
-    const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
-
-    hipLaunchKernelGGL(kernel::count_nnz_per_row, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows,
-                       max_nnz_per_row, stride, as_hip_type(values),
-                       as_hip_type(result->get_data()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
-    const auto orig_stride = orig->get_stride();
-    const auto diag_size = diag->get_size()[0];
-    const auto num_blocks =
-        ceildiv(diag_size * max_nnz_per_row, default_block_size);
-
-    const auto orig_values = orig->get_const_values();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
-
-    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, diag_size,
-                       max_nnz_per_row, orig_stride, as_hip_type(orig_values),
-                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell

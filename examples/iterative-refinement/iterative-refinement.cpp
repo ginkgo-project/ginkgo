@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -95,10 +95,8 @@ int main(int argc, char *argv[])
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = gko::matrix::Dense<ValueType>::create(exec);
-    auto b = gko::matrix::Dense<ValueType>::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
+    auto x = gko::clone(exec, host_x);
+    auto b = gko::clone(exec, host_x);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -111,14 +109,15 @@ int main(int argc, char *argv[])
     b->copy_from(host_x.get());
     gko::size_type max_iters = 10000u;
     RealValueType outer_reduction_factor{1e-12};
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(outer_reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
+    auto tol_stop =
+        gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                       .with_reduction_factor(outer_reduction_factor)
+                       .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create(exec);
+        gko::log::Convergence<ValueType>::create();
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
@@ -133,7 +132,7 @@ int main(int argc, char *argv[])
                             .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
                     .on(exec))
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(iter_stop, tol_stop)
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
 namespace {
+
+
+struct DummyLogger : gko::log::Logger {
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::linop_events_mask |
+                           gko::log::Logger::linop_factory_events_mask)
+    {}
+
+    void on_linop_apply_started(const gko::LinOp*, const gko::LinOp*,
+                                const gko::LinOp*) const override
+    {
+        linop_apply_started++;
+    }
+
+    void on_linop_apply_completed(const gko::LinOp*, const gko::LinOp*,
+                                  const gko::LinOp*) const override
+    {
+        linop_apply_completed++;
+    }
+
+    void on_linop_advanced_apply_started(const gko::LinOp*, const gko::LinOp*,
+                                         const gko::LinOp*, const gko::LinOp*,
+                                         const gko::LinOp*) const override
+    {
+        linop_advanced_apply_started++;
+    }
+
+    void on_linop_advanced_apply_completed(const gko::LinOp*, const gko::LinOp*,
+                                           const gko::LinOp*, const gko::LinOp*,
+                                           const gko::LinOp*) const override
+    {
+        linop_advanced_apply_completed++;
+    }
+
+    void on_linop_factory_generate_started(const gko::LinOpFactory*,
+                                           const gko::LinOp*) const override
+    {
+        linop_factory_generate_started++;
+    }
+
+    void on_linop_factory_generate_completed(const gko::LinOpFactory*,
+                                             const gko::LinOp*,
+                                             const gko::LinOp*) const override
+    {
+        linop_factory_generate_completed++;
+    }
+
+    int mutable linop_apply_started = 0;
+    int mutable linop_apply_completed = 0;
+    int mutable linop_advanced_apply_started = 0;
+    int mutable linop_advanced_apply_completed = 0;
+    int mutable linop_factory_generate_started = 0;
+    int mutable linop_factory_generate_completed = 0;
+};
 
 
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
@@ -64,23 +119,23 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp *>(b)->access();
-        static_cast<const DummyLinOp *>(x)->access();
+        static_cast<const DummyLinOp*>(b)->access();
+        static_cast<const DummyLinOp*>(x)->access();
         last_b_access = b->get_executor();
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp *>(alpha)->access();
-        static_cast<const DummyLinOp *>(b)->access();
-        static_cast<const DummyLinOp *>(beta)->access();
-        static_cast<const DummyLinOp *>(x)->access();
+        static_cast<const DummyLinOp*>(alpha)->access();
+        static_cast<const DummyLinOp*>(b)->access();
+        static_cast<const DummyLinOp*>(beta)->access();
+        static_cast<const DummyLinOp*>(x)->access();
         last_alpha_access = alpha->get_executor();
         last_b_access = b->get_executor();
         last_beta_access = beta->get_executor();
@@ -98,8 +153,11 @@ protected:
           alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
           b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
-          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})}
-    {}
+          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})},
+          logger{std::make_shared<DummyLogger>()}
+    {
+        op->add_logger(logger);
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::ReferenceExecutor> ref2;
@@ -108,6 +166,7 @@ protected:
     std::unique_ptr<DummyLinOp> beta;
     std::unique_ptr<DummyLinOp> b;
     std::unique_ptr<DummyLinOp> x;
+    std::shared_ptr<DummyLogger> logger;
 };
 
 
@@ -251,6 +310,32 @@ TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
 }
 
 
+TEST_F(EnableLinOp, ApplyIsLogged)
+{
+    auto before_logger = *logger;
+
+    op->apply(gko::lend(b), gko::lend(x));
+
+    ASSERT_EQ(logger->linop_apply_started,
+              before_logger.linop_apply_started + 1);
+    ASSERT_EQ(logger->linop_apply_completed,
+              before_logger.linop_apply_completed + 1);
+}
+
+
+TEST_F(EnableLinOp, AdvancedApplyIsLogged)
+{
+    auto before_logger = *logger;
+
+    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+
+    ASSERT_EQ(logger->linop_advanced_apply_started,
+              before_logger.linop_advanced_apply_started + 1);
+    ASSERT_EQ(logger->linop_advanced_apply_completed,
+              before_logger.linop_advanced_apply_completed + 1);
+}
+
+
 template <typename T = int>
 class DummyLinOpWithFactory
     : public gko::EnableLinOp<DummyLinOpWithFactory<T>> {
@@ -266,7 +351,7 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    DummyLinOpWithFactory(const Factory *factory,
+    DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor()),
           parameters_{factory->get_parameters()},
@@ -276,19 +361,23 @@ public:
     std::shared_ptr<const gko::LinOp> op_;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
 
 class EnableLinOpFactory : public ::testing::Test {
 protected:
-    EnableLinOpFactory() : ref{gko::ReferenceExecutor::create()} {}
+    EnableLinOpFactory()
+        : ref{gko::ReferenceExecutor::create()},
+          logger{std::make_shared<DummyLogger>()}
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<DummyLogger> logger;
 };
 
 
@@ -323,6 +412,36 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 }
 
 
+TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
+{
+    auto before_logger = *logger;
+    auto factory = DummyLinOpWithFactory<>::build().on(ref);
+    factory->add_logger(logger);
+    factory->generate(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+
+    ASSERT_EQ(logger->linop_factory_generate_started,
+              before_logger.linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->linop_factory_generate_completed,
+              before_logger.linop_factory_generate_completed + 1);
+}
+
+
+TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
+{
+    auto ref2 = gko::ReferenceExecutor::create();
+    auto dummy = gko::share(DummyLinOp::create(ref2, gko::dim<2>{3, 5}));
+    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
+
+    auto op = factory->generate(dummy);
+
+    ASSERT_EQ(op->get_executor(), ref);
+    ASSERT_EQ(op->get_parameters().value, 6);
+    ASSERT_EQ(op->op_->get_executor(), ref);
+    ASSERT_NE(op->op_.get(), dummy.get());
+    ASSERT_TRUE(dynamic_cast<const DummyLinOp*>(op->op_.get()));
+}
+
+
 template <typename Type>
 class DummyLinOpWithType
     : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
@@ -351,10 +470,10 @@ public:
     Type get_value() const { return value_; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 
 private:

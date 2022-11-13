@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,13 +95,13 @@ protected:
 
 inline int get_cpu_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_pu(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_pu(log_id)->os_id;
 }
 
 
 inline int get_core_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_core(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
 }
 
 
@@ -110,7 +110,7 @@ TEST_F(HipExecutor, CanBindToSinglePu)
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
     const int bind_pu = 1;
-    gko::MachineTopology::get_instance()->bind_to_pu(bind_pu);
+    gko::machine_topology::get_instance()->bind_to_pu(bind_pu);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(1));
@@ -122,7 +122,7 @@ TEST_F(HipExecutor, CanBindToPus)
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_pus = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_pus(bind_pus);
+    gko::machine_topology::get_instance()->bind_to_pus(bind_pus);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(1));
@@ -134,7 +134,7 @@ TEST_F(HipExecutor, CanBindToCores)
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_cores = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_cores(bind_cores);
+    gko::machine_topology::get_instance()->bind_to_cores(bind_cores);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(1));
@@ -144,9 +144,12 @@ TEST_F(HipExecutor, CanBindToCores)
 TEST_F(HipExecutor, ClosestCpusIsPopulated)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-    auto close_cpus0 = hip->get_closest_pus();
+    auto close_cpus = hip->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    ASSERT_NE(close_cpus0[0], -1);
+    ASSERT_NE(close_cpus[0], -1);
 }
 
 
@@ -154,9 +157,12 @@ TEST_F(HipExecutor, KnowsItsNuma)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
     auto numa0 = hip->get_closest_numa();
-    auto close_cpu0 = hip->get_closest_pus();
+    auto close_cpus = hip->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpu0[0]));
+    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpus[0]));
 
     ASSERT_TRUE(numa0 == numa_sys0);
 }

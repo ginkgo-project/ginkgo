@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,8 +89,10 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
-    using mat_data = gko::matrix_data<ValueType, int64>;
-    using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using mat_data = matrix_data<ValueType, int64>;
+    using mat_data32 = matrix_data<ValueType, int32>;
+    using device_mat_data = device_matrix_data<ValueType, int64>;
+    using device_mat_data32 = device_matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Diagonal>;
 
     friend class Diagonal<next_precision<ValueType>>;
@@ -99,17 +101,17 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void convert_to(Diagonal<next_precision<ValueType>> *result) const override;
+    void convert_to(Diagonal<next_precision<ValueType>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType>> *result) override;
+    void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
-    void convert_to(Csr<ValueType, int32> *result) const override;
+    void convert_to(Csr<ValueType, int32>* result) const override;
 
-    void move_to(Csr<ValueType, int32> *result) override;
+    void move_to(Csr<ValueType, int32>* result) override;
 
-    void convert_to(Csr<ValueType, int64> *result) const override;
+    void convert_to(Csr<ValueType, int64>* result) const override;
 
-    void move_to(Csr<ValueType, int64> *result) override;
+    void move_to(Csr<ValueType, int64>* result) override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -120,7 +122,7 @@ public:
      *
      * @return the pointer to the array of values
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc get_values()
@@ -129,7 +131,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -141,7 +143,7 @@ public:
      * @param b  the input vector(s) on which the diagonal matrix is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void rapply(const LinOp *b, LinOp *x) const
+    void rapply(const LinOp* b, LinOp* x) const
     {
         GKO_ASSERT_REVERSE_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(b, x);
@@ -150,14 +152,59 @@ public:
         this->rapply_impl(b, x);
     }
 
-    void read(const mat_data &data) override;
+    /**
+     * Applies the inverse of the diagonal matrix to a matrix b,
+     * which means scales the columns of b with the inverse of the according
+     * diagonal entries.
+     *
+     * @param b  the input vector(s) on which the inverse of the diagonal matrix
+     * is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    void inverse_apply(const LinOp* b, LinOp* x) const
+    {
+        GKO_ASSERT_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(b, x);
+        GKO_ASSERT_EQUAL_ROWS(this, x);
 
-    void read(const mat_data32 &data) override;
+        this->inverse_apply_impl(b, x);
+    }
 
-    void write(mat_data &data) const override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data32 &data) const override;
+    void read(const mat_data32& data) override;
 
+    void read(const device_mat_data& data) override;
+
+    void read(const device_mat_data32& data) override;
+
+    void read(device_mat_data&& data) override;
+
+    void read(device_mat_data32&& data) override;
+
+    void write(mat_data& data) const override;
+
+    void write(mat_data32& data) const override;
+
+    /**
+     * Creates a constant (immutable) Diagonal matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param values  the value array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Diagonal> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::const_array_view<ValueType>&& values)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Diagonal>(new Diagonal{
+            exec, size, gko::detail::array_const_cast(std::move(values))});
+    }
 
 protected:
     /**
@@ -195,23 +242,24 @@ protected:
      */
     template <typename ValuesArray>
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             ValuesArray &&values)
+             ValuesArray&& values)
         : EnableLinOp<Diagonal>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
-    void rapply_impl(const LinOp *b, LinOp *x) const;
+    void rapply_impl(const LinOp* b, LinOp* x) const;
 
+    void inverse_apply_impl(const LinOp* b, LinOp* x) const;
 
 private:
-    Array<value_type> values_;
+    array<value_type> values_;
 };
 
 

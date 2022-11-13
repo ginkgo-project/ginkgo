@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,33 +49,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Cgs : public ::testing::Test {
+class Cgs : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
-    Cgs() : rand_engine(30) {}
-
-    void SetUp()
+    Cgs() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-
-        mtx = gen_mtx(123, 123, 125);
-        gko::test::make_diag_dominant(mtx.get());
-        d_mtx = Mtx::create(exec);
-        d_mtx->copy_from(mtx.get());
+        auto data = gko::matrix_data<value_type, index_type>(
+            gko::dim<2>{123, 123},
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::utils::make_diag_dominant(data);
+        mtx = Mtx::create(ref, data.size, 125);
+        mtx->read(data);
+        d_mtx = gko::clone(exec, mtx);
         exec_cgs_factory =
             Solver::build()
                 .with_criteria(
@@ -92,13 +83,6 @@ protected:
                         .with_reduction_factor(::r<value_type>::value)
                         .on(ref))
                 .on(ref);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
@@ -135,55 +119,34 @@ protected:
         // check correct handling for zero values
         gamma->at(2) = 0.0;
         rho_prev->at(2) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
         // check correct handling for stopped columns
         stop_status->get_data()[1].stop(1);
 
-        d_b = Mtx::create(exec);
-        d_b->copy_from(b.get());
-        d_r = Mtx::create(exec);
-        d_r->copy_from(r.get());
-        d_r_tld = Mtx::create(exec);
-        d_r_tld->copy_from(r_tld.get());
-        d_p = Mtx::create(exec);
-        d_p->copy_from(p.get());
-        d_q = Mtx::create(exec);
-        d_q->copy_from(q.get());
-        d_u = Mtx::create(exec);
-        d_u->copy_from(u.get());
-        d_u_hat = Mtx::create(exec);
-        d_u_hat->copy_from(u_hat.get());
-        d_v_hat = Mtx::create(exec);
-        d_v_hat->copy_from(v_hat.get());
-        d_t = Mtx::create(exec);
-        d_t->copy_from(t.get());
-        d_x = Mtx::create(exec);
-        d_x->copy_from(x.get());
-        d_alpha = Mtx::create(exec);
-        d_alpha->copy_from(alpha.get());
-        d_beta = Mtx::create(exec);
-        d_beta->copy_from(beta.get());
-        d_gamma = Mtx::create(exec);
-        d_gamma->copy_from(gamma.get());
-        d_rho_prev = Mtx::create(exec);
-        d_rho_prev->copy_from(rho_prev.get());
-        d_rho = Mtx::create(exec);
-        d_rho->copy_from(rho.get());
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec, n));
-        // because there is no public function copy_from, use overloaded =
-        // operator
-        *d_stop_status = *stop_status;
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_r_tld = gko::clone(exec, r_tld);
+        d_p = gko::clone(exec, p);
+        d_q = gko::clone(exec, q);
+        d_u = gko::clone(exec, u);
+        d_u_hat = gko::clone(exec, u_hat);
+        d_v_hat = gko::clone(exec, v_hat);
+        d_t = gko::clone(exec, t);
+        d_x = gko::clone(exec, x);
+        d_alpha = gko::clone(exec, alpha);
+        d_beta = gko::clone(exec, beta);
+        d_gamma = gko::clone(exec, gamma);
+        d_rho_prev = gko::clone(exec, rho_prev);
+        d_rho = gko::clone(exec, rho);
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
@@ -205,7 +168,7 @@ protected:
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -222,7 +185,7 @@ protected:
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -315,16 +278,14 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
     auto exec_solver = exec_cgs_factory->generate(d_mtx);
     auto b = gen_mtx(m, n, n + 4);
     auto x = gen_mtx(m, n, n + 2);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1e3);
 }
 
 
@@ -336,16 +297,12 @@ TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
     auto ref_solver = ref_cgs_factory->generate(mtx);
     auto b = gen_mtx(m, n, n + 1);
     auto x = gen_mtx(m, n, n);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 5e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5e3);
 }
-
-}  // namespace

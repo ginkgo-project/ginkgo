@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/factorization/par_ilut_select_common.cuh"
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/atomic.cuh"
@@ -60,9 +60,9 @@ namespace par_ilut_factorization {
 
 template <typename ValueType, typename IndexType>
 void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
-                        const ValueType *values, IndexType size,
-                        remove_complex<ValueType> *tree, unsigned char *oracles,
-                        IndexType *partial_counts, IndexType *total_counts)
+                        const ValueType* values, IndexType size,
+                        remove_complex<ValueType>* tree, unsigned char* oracles,
+                        IndexType* partial_counts, IndexType* total_counts)
 {
     constexpr auto bucket_count = kernel::searchtree_width;
     auto num_threads_total = ceildiv(size, items_per_thread);
@@ -72,9 +72,11 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     kernel::build_searchtree<<<1, bucket_count>>>(as_cuda_type(values), size,
                                                   tree);
     // determine bucket sizes
-    kernel::count_buckets<<<num_blocks, default_block_size>>>(
-        as_cuda_type(values), size, tree, partial_counts, oracles,
-        items_per_thread);
+    if (num_blocks > 0) {
+        kernel::count_buckets<<<num_blocks, default_block_size>>>(
+            as_cuda_type(values), size, tree, partial_counts, oracles,
+            items_per_thread);
+    }
     // compute prefix sum and total sum over block-local values
     kernel::block_prefix_sum<<<bucket_count, default_block_size>>>(
         partial_counts, total_counts, num_blocks);
@@ -85,17 +87,17 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
 
 #define DECLARE_SSSS_COUNT(ValueType, IndexType)                               \
     void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,       \
-                            const ValueType *values, IndexType size,           \
-                            remove_complex<ValueType> *tree,                   \
-                            unsigned char *oracles, IndexType *partial_counts, \
-                            IndexType *total_counts)
+                            const ValueType* values, IndexType size,           \
+                            remove_complex<ValueType>* tree,                   \
+                            unsigned char* oracles, IndexType* partial_counts, \
+                            IndexType* total_counts)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SSSS_COUNT);
 
 
 template <typename IndexType>
 sampleselect_bucket<IndexType> sampleselect_find_bucket(
-    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
     kernel::find_bucket<<<1, config::warp_size>>>(prefix_sum, rank);
@@ -107,7 +109,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
 
 #define DECLARE_SSSS_FIND_BUCKET(IndexType)                                 \
     sampleselect_bucket<IndexType> sampleselect_find_bucket(                \
-        std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum, \
+        std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum, \
         IndexType rank)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(DECLARE_SSSS_FIND_BUCKET);

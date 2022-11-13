@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,11 +57,10 @@ protected:
     {}
 
 
-    static void assert_equal_to_original_mtx(gko::matrix::Dense<value_type> *m)
+    static void assert_equal_to_original_mtx(gko::matrix::Dense<value_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_stride(), 4);
-        ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
+        ASSERT_EQ(m->get_num_stored_elements(), 2 * m->get_stride());
         EXPECT_EQ(m->at(0, 0), value_type{1.0});
         EXPECT_EQ(m->at(0, 1), value_type{2.0});
         EXPECT_EQ(m->at(0, 2), value_type{3.0});
@@ -70,7 +69,7 @@ protected:
         ASSERT_EQ(m->at(1, 2), value_type{3.5});
     }
 
-    static void assert_empty(gko::matrix::Dense<value_type> *m)
+    static void assert_empty(gko::matrix::Dense<value_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -80,7 +79,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CanBeEmpty)
@@ -131,7 +130,26 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 9, data), 3);
+        gko::make_array_view(this->exec, 9, data), 3);
+
+    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(2, 1), value_type{6.0});
+}
+
+
+TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    // clang-format off
+    const value_type data[] = {
+        1.0, 2.0, -1.0,
+        3.0, 4.0, -1.0,
+        5.0, 6.0, -1.0};
+    // clang-format on
+
+    auto m = gko::matrix::Dense<TypeParam>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::array<value_type>::const_view(this->exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), value_type{6.0});
@@ -153,6 +171,7 @@ TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 TYPED_TEST(Dense, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx.get());
+    ASSERT_EQ(this->mtx->get_stride(), 4);
 }
 
 
@@ -222,6 +241,8 @@ TYPED_TEST(Dense, CanBeCopied)
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->at(0) = 7;
     this->assert_equal_to_original_mtx(mtx_copy.get());
+    ASSERT_EQ(this->mtx->get_stride(), 4);
+    ASSERT_EQ(mtx_copy->get_stride(), 3);
 }
 
 
@@ -230,14 +251,15 @@ TYPED_TEST(Dense, CanBeMoved)
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
     mtx_copy->copy_from(std::move(this->mtx));
     this->assert_equal_to_original_mtx(mtx_copy.get());
+    ASSERT_EQ(mtx_copy->get_stride(), 4);
 }
 
 
 TYPED_TEST(Dense, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
-    this->assert_equal_to_original_mtx(
-        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+    this->assert_equal_to_original_mtx(mtx_clone.get());
+    ASSERT_EQ(mtx_clone->get_stride(), 3);
 }
 
 
@@ -327,6 +349,15 @@ TYPED_TEST(Dense, CanCreateSubmatrix)
 }
 
 
+TYPED_TEST(Dense, CanCreateEmptySubmatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
+
+    EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
+}
+
+
 TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 {
     using value_type = typename TestFixture::value_type;
@@ -373,6 +404,72 @@ TYPED_TEST(Dense, CanCreateRealView)
         EXPECT_EQ(real_view->at(1, 1), real_type{2.5});
         EXPECT_EQ(real_view->at(1, 2), real_type{3.5});
     }
+}
+
+
+TYPED_TEST(Dense, CanMakeMutableView)
+{
+    auto view = gko::make_dense_view(this->mtx.get());
+
+    ASSERT_EQ(view->get_values(), this->mtx->get_values());
+    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
+    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
+}
+
+
+TYPED_TEST(Dense, CanMakeConstView)
+{
+    auto view = gko::make_const_dense_view(this->mtx.get());
+
+    ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
+    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
+    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
+}
+
+
+class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
+    friend class gko::EnablePolymorphicObject<CustomDense,
+                                              gko::matrix::Dense<>>;
+
+public:
+    static std::unique_ptr<CustomDense> create(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size, int data)
+    {
+        return std::unique_ptr<CustomDense>(
+            new CustomDense(std::move(exec), size, data));
+    }
+
+    int get_data() const { return data_; }
+
+private:
+    explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
+                         gko::dim<2> size = {}, int data = 0)
+        : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
+                                                              size),
+          data_(data)
+    {}
+
+    std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
+    {
+        auto view = create(this->get_executor(), {}, this->get_data());
+        gko::matrix::Dense<>::create_view_of_impl()->move_to(view.get());
+        return view;
+    }
+
+    int data_;
+};
+
+
+TEST(DenseView, CustomViewKeepsRuntimeType)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4}, 2);
+
+    auto view = gko::make_dense_view(vector.get());
+
+    ASSERT_EQ(view->get_values(), vector->get_values());
+    EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
+    ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
 }
 
 

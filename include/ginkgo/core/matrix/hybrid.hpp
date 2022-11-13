@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,6 +94,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Hybrid>;
@@ -130,11 +131,11 @@ public:
          *                                         part
          * @param coo_nnz  the output number of nonzeros of the coo part
          */
-        void compute_hybrid_config(const Array<size_type> &row_nnz,
-                                   size_type *ell_num_stored_elements_per_row,
-                                   size_type *coo_nnz)
+        void compute_hybrid_config(const array<size_type>& row_nnz,
+                                   size_type* ell_num_stored_elements_per_row,
+                                   size_type* coo_nnz)
         {
-            Array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
+            array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
                                          row_nnz.get_num_elems());
             ref_row_nnz = row_nnz;
             ell_num_stored_elements_per_row_ =
@@ -169,7 +170,7 @@ public:
          * @return the number of stored elements per row of the ell part
          */
         virtual size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const = 0;
+            array<size_type>* row_nnz) const = 0;
 
     protected:
         /**
@@ -180,7 +181,7 @@ public:
          *
          * @return the number of nonzeros of the coo part
          */
-        size_type compute_coo_nnz(const Array<size_type> &row_nnz) const
+        size_type compute_coo_nnz(const array<size_type>& row_nnz) const
         {
             size_type coo_nnz = 0;
             auto row_nnz_val = row_nnz.get_const_data();
@@ -214,7 +215,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return num_columns_;
         }
@@ -252,7 +253,7 @@ public:
         }
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             auto row_nnz_val = row_nnz->get_data();
             auto num_rows = row_nnz->get_num_elems();
@@ -294,7 +295,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             auto num_rows = row_nnz->get_num_elems();
             auto ell_cols =
@@ -340,7 +341,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
@@ -350,7 +351,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percentage() { return strategy_.get_percentage(); }
+        auto get_percentage() const { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
@@ -369,7 +370,7 @@ public:
         automatic() : strategy_(imbalance_bounded_limit(1.0 / 3.0, 0.001)) {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type> *row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
@@ -381,21 +382,25 @@ public:
     friend class Hybrid<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Hybrid<next_precision<ValueType>, IndexType> *result) const override;
+        Hybrid<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Hybrid<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Hybrid<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void read(const device_mat_data& data) override;
+
+    void read(device_mat_data&& data) override;
+
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -408,7 +413,7 @@ public:
      *
      * @return the values of the ell part
      */
-    value_type *get_ell_values() noexcept { return ell_->get_values(); }
+    value_type* get_ell_values() noexcept { return ell_->get_values(); }
 
     /**
      * @copydoc Hybrid::get_ell_values()
@@ -417,7 +422,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_ell_values() const noexcept
+    const value_type* get_const_ell_values() const noexcept
     {
         return ell_->get_const_values();
     }
@@ -427,7 +432,7 @@ public:
      *
      * @return the column indexes of the ell part
      */
-    index_type *get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
+    index_type* get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
 
     /**
      * @copydoc Hybrid::get_ell_col_idxs()
@@ -436,7 +441,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_ell_col_idxs() const noexcept
+    const index_type* get_const_ell_col_idxs() const noexcept
     {
         return ell_->get_const_col_idxs();
     }
@@ -479,7 +484,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    value_type &ell_val_at(size_type row, size_type idx) noexcept
+    value_type& ell_val_at(size_type row, size_type idx) noexcept
     {
         return ell_->val_at(row, idx);
     }
@@ -502,7 +507,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    index_type &ell_col_at(size_type row, size_type idx) noexcept
+    index_type& ell_col_at(size_type row, size_type idx) noexcept
     {
         return ell_->col_at(row, idx);
     }
@@ -520,14 +525,14 @@ public:
      *
      * @return the matrix of the ell part
      */
-    const ell_type *get_ell() const noexcept { return ell_.get(); }
+    const ell_type* get_ell() const noexcept { return ell_.get(); }
 
     /**
      * Returns the values of the coo part.
      *
      * @return the values of the coo part.
      */
-    value_type *get_coo_values() noexcept { return coo_->get_values(); }
+    value_type* get_coo_values() noexcept { return coo_->get_values(); }
 
     /**
      * @copydoc Hybrid::get_coo_values()
@@ -536,7 +541,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_coo_values() const noexcept
+    const value_type* get_const_coo_values() const noexcept
     {
         return coo_->get_const_values();
     }
@@ -546,7 +551,7 @@ public:
      *
      * @return the column indexes of the coo part.
      */
-    index_type *get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
+    index_type* get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
 
     /**
      * @copydoc Hybrid::get_coo_col_idxs()
@@ -555,7 +560,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_coo_col_idxs() const noexcept
+    const index_type* get_const_coo_col_idxs() const noexcept
     {
         return coo_->get_const_col_idxs();
     }
@@ -565,7 +570,7 @@ public:
      *
      * @return the row indexes of the coo part.
      */
-    index_type *get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
+    index_type* get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
 
     /**
      * @copydoc Hybrid::get_coo_row_idxs()
@@ -574,7 +579,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_coo_row_idxs() const noexcept
+    const index_type* get_const_coo_row_idxs() const noexcept
     {
         return coo_->get_const_row_idxs();
     }
@@ -594,7 +599,7 @@ public:
      *
      * @return the matrix of the coo part
      */
-    const coo_type *get_coo() const noexcept { return coo_.get(); }
+    const coo_type* get_coo() const noexcept { return coo_.get(); }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -628,22 +633,30 @@ public:
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
     /**
-     * Copies data from another Hybrid.
-     *
-     * @param other  the Hybrid to copy from
-     *
-     * @return this
+     * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
+     * Ell and Coo matrices.
      */
-    Hybrid &operator=(const Hybrid &other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        EnableLinOp<Hybrid<ValueType, IndexType>>::operator=(other);
-        this->coo_->copy_from(other.get_coo());
-        this->ell_->copy_from(other.get_ell());
-        return *this;
-    }
+    Hybrid& operator=(const Hybrid&);
+
+    /**
+     * Move-assigns a Hybrid matrix. Preserves the executor, move-assigns the
+     * Ell and Coo matrices. The moved-from matrix is empty (0x0 with empty
+     * Ell/Coo matrices).
+     */
+    Hybrid& operator=(Hybrid&&);
+
+    /**
+     * Copy-assigns a Hybrid matrix. Inherits the executor, copies the Ell and
+     * Coo matrices.
+     */
+    Hybrid(const Hybrid&);
+
+    /**
+     * Move-assigns a Hybrid matrix. Inherits the executor, moves the Ell and
+     * Coo matrices. The moved-from matrix is empty (0x0 with empty Ell/Coo
+     * matrices).
+     */
+    Hybrid(Hybrid&&);
 
 protected:
     /**
@@ -670,7 +683,7 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : Hybrid(std::move(exec), size, size[1], std::move(strategy))
     {}
@@ -686,7 +699,7 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0],
@@ -703,7 +716,7 @@ protected:
      * @param stride  stride of the rows
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
            size_type num_stored_elements_per_row, size_type stride,
            std::shared_ptr<strategy_type> strategy)
         : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
@@ -722,25 +735,37 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row, size_type stride,
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : EnableLinOp<Hybrid>(exec, size),
-          ell_(std::move(ell_type::create(
-              exec, size, num_stored_elements_per_row, stride))),
-          coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
+          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
+                                stride)),
+          coo_(coo_type::create(exec, size, num_nonzeros)),
           strategy_(std::move(strategy))
     {}
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    /**
+     * Resizes the matrix to the given dimensions and storage sizes.
+     *
+     * @param new_size  the new matrix dimensions
+     * @param ell_row_nnz  the number of non-zeros per row stored in ELL
+     * @param coo_nnz  the number of non-zeros stored in COO
+     *
+     * @see Ell::resize(dim<2>, size_type)
+     * @see Coo::resize(dim<2>, size_type)
+     */
+    void resize(dim<2> new_size, size_type ell_row_nnz, size_type coo_nnz);
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
-    std::shared_ptr<ell_type> ell_;
-    std::shared_ptr<coo_type> coo_;
+    std::unique_ptr<ell_type> ell_;
+    std::unique_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
 };
 

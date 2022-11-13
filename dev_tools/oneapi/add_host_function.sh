@@ -152,7 +152,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
                     TEMPLATE_CONTENT="${BASH_REMATCH[2]}"
                     NAME="${BASH_REMATCH[3]}"
                     VARIABLE="${BASH_REMATCH[4]}"
-                    VARIABLE=$(echo ${VARIABLE} | sed 's/__restrict__ //g')
+                    VARIABLE=$(echo "${VARIABLE}" | sed 's/__restrict__ //g')
                     VAR_INPUT=$(extract_varname "${VARIABLE}")
                     TEMPLATE_INPUT=$(extract_varname "${TEMPLATE_CONTENT}")
                     if [ -n "${TEMPLATE_INPUT}" ]; then

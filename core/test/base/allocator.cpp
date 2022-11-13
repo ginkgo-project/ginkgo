@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ TEST(ExecutorAllocator, Works)
     auto exec = gko::ReferenceExecutor::create();
     auto alloc = gko::ExecutorAllocator<int>(exec);
 
-    int *ptr{};
+    int* ptr{};
     ASSERT_NO_THROW(ptr = alloc.allocate(10));
     // This test can only fail with sanitizers
     ptr[0] = 0;
@@ -87,6 +87,110 @@ TEST(ExecutorAllocator, ComparesNotEqual)
     auto alloc2 = gko::ExecutorAllocator<float>(exec2);
 
     ASSERT_TRUE(alloc1 != alloc2);
+}
+
+
+TEST(ExecutorAllocator, MovedFromComparesEqual)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec);
+
+    auto alloc2 = gko::ExecutorAllocator<int>(std::move(alloc1));
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec);
+}
+
+
+TEST(ExecutorAllocator, MovedFromMixedComparesEqual)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec);
+
+    auto alloc2 = gko::ExecutorAllocator<float>(std::move(alloc1));
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec);
+}
+
+
+TEST(ExecutorAllocator, CopiedFromComparesEqual)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec);
+
+    auto alloc2 = gko::ExecutorAllocator<int>(alloc1);
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec);
+}
+
+
+TEST(ExecutorAllocator, CopiedFromMixedComparesEqual)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec);
+
+    auto alloc2 = gko::ExecutorAllocator<float>(alloc1);
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec);
+}
+
+
+TEST(ExecutorAllocator, MoveAssignedComparesEqual)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec1);
+    auto alloc2 = gko::ExecutorAllocator<int>(exec2);
+
+    alloc2 = std::move(alloc1);
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec1);
+}
+
+
+TEST(ExecutorAllocator, MoveAssignedMixedComparesEqual)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec1);
+    auto alloc2 = gko::ExecutorAllocator<float>(exec2);
+
+    alloc2 = std::move(alloc1);
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec1);
+}
+
+
+TEST(ExecutorAllocator, CopyAssignedComparesEqual)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec1);
+    auto alloc2 = gko::ExecutorAllocator<int>(exec2);
+
+    alloc2 = alloc1;
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec1);
+}
+
+
+TEST(ExecutorAllocator, CopyAssignedMixedComparesEqual)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    auto alloc1 = gko::ExecutorAllocator<int>(exec1);
+    auto alloc2 = gko::ExecutorAllocator<float>(exec2);
+
+    alloc2 = alloc1;
+
+    ASSERT_TRUE(alloc1 == alloc2);
+    ASSERT_EQ(alloc1.get_executor(), exec1);
 }
 
 

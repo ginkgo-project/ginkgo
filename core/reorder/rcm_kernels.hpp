@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,21 +48,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
 #define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)                     \
     void get_permutation(std::shared_ptr<const DefaultExecutor> exec,         \
-                         IndexType num_vertices, const IndexType *row_ptrs,   \
-                         const IndexType *col_idxs, const IndexType *degrees, \
-                         IndexType *permutation, IndexType *inv_permutation,  \
+                         IndexType num_vertices, const IndexType* row_ptrs,   \
+                         const IndexType* col_idxs, const IndexType* degrees, \
+                         IndexType* permutation, IndexType* inv_permutation,  \
                          gko::reorder::starting_strategy strategy)
 
 #define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType)             \
     void get_degree_of_nodes(std::shared_ptr<const DefaultExecutor> exec, \
                              IndexType num_vertices,                      \
-                             const IndexType *row_ptrs, IndexType *degrees)
+                             const IndexType* row_ptrs, IndexType* degrees)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                       \
     template <typename IndexType>                          \
@@ -71,49 +74,7 @@ namespace kernels {
     GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)
 
 
-namespace omp {
-namespace rcm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace rcm
-}  // namespace omp
-
-
-namespace cuda {
-namespace rcm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace rcm
-}  // namespace cuda
-
-
-namespace hip {
-namespace rcm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace rcm
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace rcm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace rcm
-}  // namespace dpcpp
-
-
-namespace reference {
-namespace rcm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace rcm
-}  // namespace reference
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(rcm, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

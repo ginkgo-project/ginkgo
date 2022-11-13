@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,19 +39,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/absolute_array.hpp"
+#include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
 namespace gko {
 namespace matrix {
 namespace diagonal {
+namespace {
 
 
 GKO_REGISTER_OPERATION(apply_to_dense, diagonal::apply_to_dense);
 GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
 GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, diagonal::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
 GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -60,27 +62,30 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 
 
+}  // anonymous namespace
 }  // namespace diagonal
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-        dynamic_cast<Csr<ValueType, int32> *>(x)) {
-        exec->run(diagonal::make_apply_to_csr(
-            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
-               dynamic_cast<Csr<ValueType, int64> *>(x)) {
-        exec->run(diagonal::make_apply_to_csr(
-            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
+                                        as<Csr<ValueType, int32>>(x), false));
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
+                                        as<Csr<ValueType, int64>>(x), false));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(
-                    diagonal::make_apply_to_dense(this, dense_b, dense_x));
+                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
+                                                        false));
             },
             b, x);
     }
@@ -88,16 +93,16 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
+void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-        dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
-               dynamic_cast<Csr<ValueType, int64> *>(x)) {
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
@@ -114,8 +119,34 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
+void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
+{
+    auto exec = this->get_executor();
+
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
+                                        as<Csr<ValueType, int32>>(x), true));
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
+                                        as<Csr<ValueType, int64>>(x), true));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
+                                                        true));
+            },
+            b, x);
+    }
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                     const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -148,7 +179,7 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision<ValueType>> *result) const
+    Diagonal<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -156,45 +187,111 @@ void Diagonal<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>> *result)
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int32>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Csr<ValueType, int32> *result)
+void Diagonal<ValueType>::move_to(Csr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::convert_to(Csr<ValueType, int64> *result) const
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int64>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Csr<ValueType, int64> *result)
+void Diagonal<ValueType>::move_to(Csr<ValueType, int64>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const device_mat_data& data)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
+    this->set_size(data.get_size());
+    values_.resize_and_reset(data.get_size()[0]);
+    values_.fill(zero<ValueType>());
+    auto exec = this->get_executor();
+    exec->run(diagonal::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data), this));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const device_mat_data32& data)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
+    this->set_size(data.get_size());
+    values_.resize_and_reset(data.get_size()[0]);
+    values_.fill(zero<ValueType>());
+    auto exec = this->get_executor();
+    exec->run(diagonal::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data), this));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(device_mat_data32&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const mat_data& data)
+{
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const mat_data32& data)
+{
+    this->read(device_mat_data32::create_from_host(this->get_executor(), data));
 }
 
 
@@ -202,64 +299,9 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType *mtx, const MatrixData &data)
+inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
-    // Diagonal matrices are assumed to be square.
-    GKO_ASSERT_EQ(data.size[0], data.size[1]);
-    // Diagonal matrices can have at most as many nonzero entries as rows /
-    // cols.
-    GKO_ASSERT_EQ(max(data.size[0], data.nonzeros.size()), data.size[0]);
-
-    auto tmp =
-        MatrixType::create(mtx->get_executor()->get_master(), data.size[0]);
-    auto values = tmp->get_values();
-    size_type ind = 0;
-    for (size_type row = 0; row < data.size[0]; ++row) {
-        values[row] = zero<typename MatrixType::value_type>();
-        for (size_type ind = 0; ind < data.nonzeros.size(); ind++) {
-            if (data.nonzeros[ind].row == row) {
-                // Diagonal matrices can only have entries on the diagonal.
-                GKO_ASSERT_EQ(row, data.nonzeros[ind].column);
-                values[row] = data.nonzeros[ind].value;
-            }
-        }
-    }
-
-    mtx->copy_from(tmp.get());
-}
-
-
-}  // namespace
-
-
-template <typename ValueType>
-void Diagonal<ValueType>::read(const mat_data &data)
-{
-    read_impl(this, data);
-}
-
-
-template <typename ValueType>
-void Diagonal<ValueType>::read(const mat_data32 &data)
-{
-    read_impl(this, data);
-}
-
-
-namespace {
-
-
-template <typename MatrixType, typename MatrixData>
-inline void write_impl(const MatrixType *mtx, MatrixData &data)
-{
-    std::unique_ptr<const LinOp> op{};
-    const MatrixType *tmp{};
-    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-        op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType *>(op.get());
-    } else {
-        tmp = mtx;
-    }
+    auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {tmp->get_size(), {}};
     const auto values = tmp->get_const_values();
@@ -274,14 +316,14 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::write(mat_data &data) const
+void Diagonal<ValueType>::write(mat_data& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::write(mat_data32 &data) const
+void Diagonal<ValueType>::write(mat_data32& data) const
 {
     write_impl(this, data);
 }

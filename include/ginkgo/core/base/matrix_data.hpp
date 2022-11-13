@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ struct input_triple {
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(Distribution&& dist, Generator&& gen)
 {
     return dist(gen);
 }
@@ -73,13 +73,64 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(Distribution&& dist, Generator&& gen)
 {
     return ValueType(dist(gen), dist(gen));
 }
 
 
 }  // namespace detail
+
+
+/**
+ * Type used to store nonzeros.
+ */
+template <typename ValueType, typename IndexType>
+struct matrix_data_entry {
+    using value_type = ValueType;
+    using index_type = IndexType;
+    matrix_data_entry() = default;
+
+    GKO_ATTRIBUTES matrix_data_entry(index_type r, index_type c, value_type v)
+        : row(r), column(c), value(v)
+    {}
+
+    bool operator==(const matrix_data_entry& other) const
+    {
+        return std::tie(this->row, this->column, this->value) ==
+               std::tie(other.row, other.column, other.value);
+    };
+    bool operator!=(const matrix_data_entry& other) const
+    {
+        return std::tie(this->row, this->column, this->value) !=
+               std::tie(other.row, other.column, other.value);
+    };
+
+#define GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(_op)            \
+    bool operator _op(const matrix_data_entry& other) const \
+    {                                                       \
+        return std::tie(this->row, this->column)            \
+            _op std::tie(other.row, other.column);          \
+    }
+
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>=);
+
+#undef GKO_DEFINE_DEFAULT_COMPARE_OPERATOR
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const matrix_data_entry& x)
+    {
+        os << '(' << x.row << ',' << x.column << ',' << x.value << ')';
+        return os;
+    }
+
+    index_type row;
+    index_type column;
+    value_type value;
+};
 
 
 /**
@@ -91,7 +142,8 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  * @note All Ginkgo functions returning such a structure will return the
  *       nonzeros sorted in row-major order.
  * @note All Ginkgo functions that take this structure as input expect that the
- *       nonzeros are sorted in row-major order.
+ *       nonzeros are sorted in row-major order and that the index pair
+ *       (row_index, column_index) of each nonzero is unique.
  * @note This structure is not optimized for usual access patterns and it can
  *       only exist on the CPU. Thus, it should only be used for utility
  *       functions which do not have to be optimized for performance.
@@ -103,37 +155,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 struct matrix_data {
     using value_type = ValueType;
     using index_type = IndexType;
-
-    /**
-     * Type used to store nonzeros.
-     */
-    struct nonzero_type {
-        nonzero_type() = default;
-
-        nonzero_type(index_type r, index_type c, value_type v)
-            : row(r), column(c), value(v)
-        {}
-
-#define GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(_op)                \
-    bool operator _op(const nonzero_type &other) const          \
-    {                                                           \
-        return std::tie(this->row, this->column, this->value)   \
-            _op std::tie(other.row, other.column, other.value); \
-    }
-
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(==);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(!=);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>=);
-
-#undef GKO_DEFINE_DEFAULT_COMPARE_OPERATOR
-
-        index_type row;
-        index_type column;
-        value_type value;
-    };
+    using nonzero_type = matrix_data_entry<value_type, index_type>;
 
     /**
      * Initializes a matrix filled with the specified value.
@@ -144,9 +166,10 @@ struct matrix_data {
     matrix_data(dim<2> size_ = dim<2>{}, ValueType value = zero<ValueType>())
         : size{size_}
     {
-        if (value == zero<ValueType>()) {
+        if (is_zero(value)) {
             return;
         }
+        nonzeros.reserve(size[0] * size[1]);
         for (size_type row = 0; row < size[0]; ++row) {
             for (size_type col = 0; col < size[1]; ++col) {
                 nonzeros.emplace_back(row, col, value);
@@ -165,14 +188,15 @@ struct matrix_data {
      * @param engine  random engine used to generate random values
      */
     template <typename RandomDistribution, typename RandomEngine>
-    matrix_data(dim<2> size_, RandomDistribution &&dist, RandomEngine &&engine)
+    matrix_data(dim<2> size_, RandomDistribution&& dist, RandomEngine&& engine)
         : size{size_}
     {
+        nonzeros.reserve(size[0] * size[1]);
         for (size_type row = 0; row < size[0]; ++row) {
             for (size_type col = 0; col < size[1]; ++col) {
                 const auto value =
                     detail::get_rand_value<ValueType>(dist, engine);
-                if (value != zero<ValueType>()) {
+                if (is_nonzero(value)) {
                     nonzeros.emplace_back(row, col, value);
                 }
             }
@@ -191,8 +215,8 @@ struct matrix_data {
             const auto row_data = begin(values)[row];
             size[1] = std::max(size[1], row_data.size());
             for (size_type col = 0; col < row_data.size(); ++col) {
-                const auto &val = begin(row_data)[col];
-                if (val != zero<ValueType>()) {
+                const auto& val = begin(row_data)[col];
+                if (is_nonzero(val)) {
                     nonzeros.emplace_back(row, col, val);
                 }
             }
@@ -212,7 +236,7 @@ struct matrix_data {
         : size{size_}, nonzeros()
     {
         nonzeros.reserve(nonzeros_.size());
-        for (const auto &elem : nonzeros_) {
+        for (const auto& elem : nonzeros_) {
             nonzeros.emplace_back(elem.row, elem.col, elem.val);
         }
     }
@@ -223,13 +247,13 @@ struct matrix_data {
      * @param size  size of the block-matrix (in blocks)
      * @param diag_block  matrix block used to fill the complete matrix
      */
-    matrix_data(dim<2> size_, const matrix_data &block)
+    matrix_data(dim<2> size_, const matrix_data& block)
         : size{size_ * block.size}
     {
         nonzeros.reserve(size_[0] * size_[1] * block.nonzeros.size());
         for (size_type row = 0; row < size_[0]; ++row) {
             for (size_type col = 0; col < size_[1]; ++col) {
-                for (const auto &elem : block.nonzeros) {
+                for (const auto& elem : block.nonzeros) {
                     nonzeros.emplace_back(row * block.size[0] + elem.row,
                                           col * block.size[1] + elem.column,
                                           elem.value);
@@ -247,12 +271,12 @@ struct matrix_data {
      * @param data  range used to initialize the matrix
      */
     template <typename Accessor>
-    matrix_data(const range<Accessor> &data)
+    matrix_data(const range<Accessor>& data)
         : size{data.length(0), data.length(1)}
     {
         for (gko::size_type row = 0; row < size[0]; ++row) {
             for (gko::size_type col = 0; col < size[1]; ++col) {
-                if (data(row, col) != zero<ValueType>()) {
+                if (is_nonzero(data(row, col))) {
                     nonzeros.emplace_back(row, col, data(row, col));
                 }
             }
@@ -270,7 +294,7 @@ struct matrix_data {
     static matrix_data diag(dim<2> size_, ValueType value)
     {
         matrix_data res(size_);
-        if (value != zero<ValueType>()) {
+        if (is_nonzero(value)) {
             const auto num_nnz = std::min(size_[0], size_[1]);
             res.nonzeros.reserve(num_nnz);
             for (size_type i = 0; i < num_nnz; ++i) {
@@ -309,13 +333,13 @@ struct matrix_data {
      *
      * @return the block-diagonal matrix
      */
-    static matrix_data diag(dim<2> size_, const matrix_data &block)
+    static matrix_data diag(dim<2> size_, const matrix_data& block)
     {
         matrix_data res(size_ * block.size);
         const auto num_blocks = std::min(size_[0], size_[1]);
         res.nonzeros.reserve(num_blocks * block.nonzeros.size());
         for (size_type b = 0; b < num_blocks; ++b) {
-            for (const auto &elem : block.nonzeros) {
+            for (const auto& elem : block.nonzeros) {
                 res.nonzeros.emplace_back(b * block.size[0] + elem.row,
                                           b * block.size[1] + elem.column,
                                           elem.value);
@@ -339,14 +363,14 @@ struct matrix_data {
     static matrix_data diag(ForwardIterator begin, ForwardIterator end)
     {
         matrix_data res(std::accumulate(
-            begin, end, dim<2>{}, [](dim<2> s, const matrix_data &d) {
+            begin, end, dim<2>{}, [](dim<2> s, const matrix_data& d) {
                 return dim<2>{s[0] + d.size[0], s[1] + d.size[1]};
             }));
 
         size_type row_offset{};
         size_type col_offset{};
         for (auto it = begin; it != end; ++it) {
-            for (const auto &elem : it->nonzeros) {
+            for (const auto& elem : it->nonzeros) {
                 res.nonzeros.emplace_back(row_offset + elem.row,
                                           col_offset + elem.column, elem.value);
             }
@@ -392,7 +416,7 @@ struct matrix_data {
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
                             remove_complex<ValueType> condition_number,
-                            RandomDistribution &&dist, RandomEngine &&engine,
+                            RandomDistribution&& dist, RandomEngine&& engine,
                             size_type num_reflectors)
     {
         using range = range<accessor::row_major<ValueType, 2>>;
@@ -436,7 +460,7 @@ struct matrix_data {
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
                             remove_complex<ValueType> condition_number,
-                            RandomDistribution &&dist, RandomEngine &&engine)
+                            RandomDistribution&& dist, RandomEngine&& engine)
     {
         return cond(size, condition_number,
                     std::forward<RandomDistribution>(dist),
@@ -468,11 +492,46 @@ struct matrix_data {
             });
     }
 
+    /**
+     * Remove entries with value zero from the matrix data.
+     */
+    void remove_zeros()
+    {
+        nonzeros.erase(
+            std::remove_if(begin(nonzeros), end(nonzeros),
+                           [](nonzero_type nz) { return is_zero(nz.value); }),
+            end(nonzeros));
+    }
+
+    /**
+     * Sum up all values that refer to the same matrix entry.
+     * The result is sorted in row-major order.
+     */
+    void sum_duplicates()
+    {
+        ensure_row_major_order();
+        std::vector<nonzero_type> new_nonzeros;
+        if (!nonzeros.empty()) {
+            new_nonzeros.emplace_back(nonzeros.front().row,
+                                      nonzeros.front().column,
+                                      zero<ValueType>());
+            for (auto entry : nonzeros) {
+                if (entry.row != new_nonzeros.back().row ||
+                    entry.column != new_nonzeros.back().column) {
+                    new_nonzeros.emplace_back(entry.row, entry.column,
+                                              zero<ValueType>());
+                }
+                new_nonzeros.back().value += entry.value;
+            }
+            nonzeros = std::move(new_nonzeros);
+        }
+    }
+
 private:
     template <typename Accessor>
     static void initialize_diag_with_cond(
         remove_complex<ValueType> condition_number,
-        const range<Accessor> &matrix)
+        const range<Accessor>& matrix)
     {
         using sigma_type = remove_complex<ValueType>;
         const auto size = matrix.length(0);
@@ -490,9 +549,9 @@ private:
 
     template <typename RandomDistribution, typename RandomEngine,
               typename Accessor>
-    static void generate_random_reflector(RandomDistribution &&dist,
-                                          RandomEngine &&engine,
-                                          const range<Accessor> &reflector)
+    static void generate_random_reflector(RandomDistribution&& dist,
+                                          RandomEngine&& engine,
+                                          const range<Accessor>& reflector)
     {
         for (gko::size_type i = 0; i < reflector.length(0); ++i) {
             reflector(i, 0) = detail::get_rand_value<ValueType>(dist, engine);
@@ -500,9 +559,9 @@ private:
     }
 
     template <typename Accessor>
-    static void reflect_domain(const range<Accessor> &reflector,
-                               const range<Accessor> &matrix,
-                               ValueType *work_data)
+    static void reflect_domain(const range<Accessor>& reflector,
+                               const range<Accessor>& matrix,
+                               ValueType* work_data)
     {
         const auto two = one<ValueType>() + one<ValueType>();
         range<accessor::row_major<ValueType, 2>> work(work_data,
@@ -514,9 +573,9 @@ private:
     }
 
     template <typename Accessor>
-    static void reflect_range(const range<Accessor> &reflector,
-                              const range<Accessor> &matrix,
-                              ValueType *work_data)
+    static void reflect_range(const range<Accessor>& reflector,
+                              const range<Accessor>& matrix,
+                              ValueType* work_data)
     {
         const auto two = one<ValueType>() + one<ValueType>();
         range<accessor::row_major<ValueType, 2>> work(

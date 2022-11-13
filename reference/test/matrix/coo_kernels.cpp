@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ protected:
         std::swap(vals[0], vals[1]);
     }
 
-    void assert_equal_to_mtx_in_csr_format(const Csr *m)
+    void assert_equal_to_mtx_in_csr_format(const Csr* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -104,7 +104,7 @@ protected:
     std::unique_ptr<Mtx> uns_mtx;
 };
 
-TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Coo, ConvertsToPrecision)
@@ -940,7 +940,8 @@ protected:
     using Mtx = gko::matrix::Coo<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(CooComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CooComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(CooComplex, OutplaceAbsolute)

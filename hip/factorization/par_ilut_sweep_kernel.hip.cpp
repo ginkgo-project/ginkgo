@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -85,28 +85,30 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void compute_l_u_factors(syn::value_list<int, subwarp_size>,
                          std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *l_coo,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *u_coo,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>* l_coo,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>* u_coo,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements() +
                                             u->get_num_stored_elements());
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::sweep<subwarp_size>), dim3(num_blocks),
-        dim3(default_block_size), 0, 0, a->get_const_row_ptrs(),
-        a->get_const_col_idxs(), as_hip_type(a->get_const_values()),
-        l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
-        l->get_const_col_idxs(), as_hip_type(l->get_values()),
-        static_cast<IndexType>(l->get_num_stored_elements()),
-        u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
-        as_hip_type(u->get_values()), u_csc->get_const_row_ptrs(),
-        u_csc->get_const_col_idxs(), as_hip_type(u_csc->get_values()),
-        static_cast<IndexType>(u->get_num_stored_elements()));
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::sweep<subwarp_size>), num_blocks,
+            default_block_size, 0, 0, a->get_const_row_ptrs(),
+            a->get_const_col_idxs(), as_hip_type(a->get_const_values()),
+            l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
+            l->get_const_col_idxs(), as_hip_type(l->get_values()),
+            static_cast<IndexType>(l->get_num_stored_elements()),
+            u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
+            as_hip_type(u->get_values()), u_csc->get_const_row_ptrs(),
+            u_csc->get_const_col_idxs(), as_hip_type(u_csc->get_values()),
+            static_cast<IndexType>(u->get_num_stored_elements()));
+    }
 }
 
 
@@ -119,12 +121,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_l_u_factors,
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *l_coo,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *u_coo,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>* l_coo,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>* u_coo,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =

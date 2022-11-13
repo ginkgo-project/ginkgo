@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           diag(gko::matrix::Diagonal<value_type>::create(exec, 3u))
     {
-        value_type *v = diag->get_values();
+        value_type* v = diag->get_values();
         v[0] = 1.0;
         v[1] = 3.0;
         v[2] = 2.0;
@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Diag> diag;
 
-    void assert_equal_to_original_mtx(const Diag *m)
+    void assert_equal_to_original_mtx(const Diag* m)
     {
         auto v = m->get_const_values();
         ASSERT_EQ(m->get_size(), gko::dim<2>(3, 3));
@@ -70,14 +70,14 @@ protected:
         EXPECT_EQ(v[2], value_type{2.0});
     }
 
-    void assert_empty(const Diag *m)
+    void assert_empty(const Diag* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_const_values(), nullptr);
     }
 };
 
-TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Diagonal, KnowsItsSize)
@@ -108,7 +108,20 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingData)
     value_type values[] = {1.0, 2.0, 3.0};
 
     auto diag = gko::matrix::Diagonal<value_type>::create(
-        this->exec, 3, gko::Array<value_type>::view(this->exec, 3, values));
+        this->exec, 3, gko::make_array_view(this->exec, 3, values));
+
+    ASSERT_EQ(diag->get_const_values(), values);
+}
+
+
+TYPED_TEST(Diagonal, CanBeCreatedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    const value_type values[] = {1.0, 2.0, 3.0};
+
+    auto diag = gko::matrix::Diagonal<value_type>::create_const(
+        this->exec, 3,
+        gko::array<value_type>::const_view(this->exec, 3, values));
 
     ASSERT_EQ(diag->get_const_values(), values);
 }
@@ -146,7 +159,7 @@ TYPED_TEST(Diagonal, CanBeCloned)
 
     this->assert_equal_to_original_mtx(this->diag.get());
     this->diag->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(dynamic_cast<Diag *>(clone.get()));
+    this->assert_equal_to_original_mtx(dynamic_cast<Diag*>(clone.get()));
 }
 
 
@@ -180,29 +193,7 @@ TYPED_TEST(Diagonal, CannotBeReadFromNonSquareMatrixData)
 
     ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
                      {3, 4}, {{0, 0, 1.0}, {1, 1, 3.0}, {2, 2, 2.0}}}),
-                 gko::ValueMismatch);
-}
-
-
-TYPED_TEST(Diagonal, ReadFailsForOffDiagonalEntries)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
-
-    ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
-                     {3, 3}, {{0, 0, 1.0}, {1, 2, 3.0}, {2, 2, 2.0}}}),
-                 gko::ValueMismatch);
-}
-
-
-TYPED_TEST(Diagonal, ReadFailsForTooManyEntries)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
-
-    ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
-                     {2, 2}, {{0, 0, 1.0}, {1, 1, 2.0}, {0, 1, 3.0}}}),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 

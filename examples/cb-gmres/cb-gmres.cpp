@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // To get an accurate result, the solve is repeated multiple times (while
 // ensuring the initial guess is always the same). The result of the solve will
 // be written to x.
-double measure_solve_time_in_s(const gko::Executor *exec, gko::LinOp *solver,
-                               const gko::LinOp *b, gko::LinOp *x)
+double measure_solve_time_in_s(const gko::Executor* exec, gko::LinOp* solver,
+                               const gko::LinOp* b, gko::LinOp* x)
 {
     constexpr int repeats{5};
     double duration{0};
@@ -73,7 +73,7 @@ double measure_solve_time_in_s(const gko::Executor *exec, gko::LinOp *solver,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
@@ -156,8 +156,9 @@ int main(int argc, char *argv[])
         cb_gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::RelativeResidualNorm<ValueType>::build()
-                    .with_tolerance(reduction_factor)
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::rhs_norm)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_krylov_dim(100u)
             .with_storage_precision(
@@ -168,8 +169,9 @@ int main(int argc, char *argv[])
         cb_gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::RelativeResidualNorm<ValueType>::build()
-                    .with_tolerance(reduction_factor)
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::rhs_norm)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_krylov_dim(100u)
             .with_storage_precision(

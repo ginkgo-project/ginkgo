@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ namespace {
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<!gko::is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return value_dist(gen);
 }
@@ -77,7 +77,7 @@ get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<gko::is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return ValueType(value_dist(gen), value_dist(gen));
 }
@@ -125,7 +125,7 @@ double timing(std::shared_ptr<const gko::Executor> exec,
 }  // namespace
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
@@ -206,15 +206,14 @@ int main(int argc, char *argv[])
     auto x_dim = gko::dim<2>{A_dim[0], b_dim[1]};
     auto host_b = hp_vec::create(exec->get_master(), b_dim);
     // fill the b vector with some random data
-    std::ranlux48 rand_engine(32);
+    std::default_random_engine rand_engine(32);
     auto dist = std::uniform_real_distribution<RealValueType>(0.0, 1.0);
     for (int i = 0; i < host_b->get_size()[0]; i++) {
         host_b->at(i, 0) = get_rand_value<HighPrecision>(dist, rand_engine);
     }
     // copy the data from host to device
-    auto hp_b = share(hp_vec::create(exec));
+    auto hp_b = share(gko::clone(exec, host_b));
     auto lp_b = share(lp_vec::create(exec));
-    hp_b->copy_from(lend(host_b));
     lp_b->copy_from(lend(hp_b));
 
     // create several result x vector in different precision

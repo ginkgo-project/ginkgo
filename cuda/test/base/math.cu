@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ __device__ bool test_complex_is_finite_function(FuncType isfin)
 
 
 template <typename T>
-__global__ void test_real_is_finite(bool *result)
+__global__ void test_real_is_finite(bool* result)
 {
     *result = kernel::test_real_is_finite_function<T>(
         [](T val) { return gko::is_finite(val); });
@@ -103,7 +103,7 @@ __global__ void test_real_is_finite(bool *result)
 
 
 template <typename ComplexType>
-__global__ void test_complex_is_finite(bool *result)
+__global__ void test_complex_is_finite(bool* result)
 {
     *result = kernel::test_complex_is_finite_function<ComplexType>(
         [](ComplexType val) { return gko::is_finite(val); });
@@ -120,7 +120,7 @@ protected:
     template <typename T>
     bool test_real_is_finite_kernel()
     {
-        gko::Array<bool> result(cuda, 1);
+        gko::array<bool> result(cuda, 1);
         test_real_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
@@ -129,7 +129,7 @@ protected:
     template <typename T>
     bool test_complex_is_finite_kernel()
     {
-        gko::Array<bool> result(cuda, 1);
+        gko::array<bool> result(cuda, 1);
         test_complex_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();

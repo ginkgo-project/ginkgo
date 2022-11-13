@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -201,7 +201,7 @@ protected:
     {}
 
     template <typename Mtx>
-    void test_select(const std::unique_ptr<Mtx> &mtx, index_type rank,
+    void test_select(const std::unique_ptr<Mtx>& mtx, index_type rank,
                      gko::remove_complex<value_type> expected,
                      gko::remove_complex<value_type> tolerance = 0.0)
     {
@@ -210,8 +210,8 @@ protected:
 
         gko::remove_complex<ValueType> res{};
         gko::remove_complex<ValueType> dres{};
-        gko::Array<ValueType> tmp(ref);
-        gko::Array<gko::remove_complex<ValueType>> tmp2(ref);
+        gko::array<ValueType> tmp(ref);
+        gko::array<gko::remove_complex<ValueType>> tmp2(ref);
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, result);
 
@@ -221,9 +221,9 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter(const std::unique_ptr<Mtx> &mtx,
+    void test_filter(const std::unique_ptr<Mtx>& mtx,
                      gko::remove_complex<value_type> threshold,
-                     const std::unique_ptr<Mtx> &expected, bool lower)
+                     const std::unique_ptr<Mtx>& expected, bool lower)
     {
         auto res_mtx = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo = Coo::create(exec, mtx->get_size());
@@ -245,15 +245,15 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter_approx(const std::unique_ptr<Mtx> &mtx, index_type rank,
-                            const std::unique_ptr<Mtx> &expected)
+    void test_filter_approx(const std::unique_ptr<Mtx>& mtx, index_type rank,
+                            const std::unique_ptr<Mtx>& expected)
     {
         auto res_mtx = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo = Coo::create(exec, mtx->get_size());
         auto res_mtx2 = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo2 = Coo::create(exec, mtx->get_size());
 
-        auto tmp = gko::Array<typename Mtx::value_type>{exec};
+        auto tmp = gko::array<typename Mtx::value_type>{exec};
         gko::remove_complex<typename Mtx::value_type> threshold{};
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
@@ -300,7 +300,8 @@ protected:
     gko::remove_complex<value_type> tol;
 };  // namespace
 
-TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelect)
@@ -347,7 +348,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx1.get(), 0.0, res_mtx.get(), null_coo, true);
@@ -426,9 +427,9 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    auto tmp = gko::Array<value_type>{this->ref};
+    auto tmp = gko::array<value_type>{this->ref};
     gko::remove_complex<value_type> threshold{};
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
@@ -514,20 +515,18 @@ TYPED_TEST(ParIlut, KernelComputeLU)
 
 TYPED_TEST(ParIlut, ThrowNotSupportedForWrongLinOp)
 {
-    auto lin_op = DummyLinOp::create(this->ref);
+    auto lin_op = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(lin_op)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->fact_fact->generate(lin_op), gko::NotSupported);
 }
 
 
 TYPED_TEST(ParIlut, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
-    auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
+    auto matrix = gko::share(Csr::create(this->ref, gko::dim<2>{2, 3}, 4));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(matrix)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->fact_fact->generate(matrix), gko::DimensionMismatch);
 }
 
 
@@ -558,9 +557,9 @@ TYPED_TEST(ParIlut, IsConsistentWithComposition)
     auto fact = this->fact_fact->generate(this->mtx_system);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_u_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_u_factor()));
     auto first_operator = gko::lend(fact->get_operators()[0]);
     auto second_operator = gko::lend(fact->get_operators()[1]);
 
@@ -581,9 +580,10 @@ TYPED_TEST(ParIlut, GenerateIdentity)
 TYPED_TEST(ParIlut, GenerateDenseIdentity)
 {
     using Dense = typename TestFixture::Dense;
-    auto dense_id = Dense::create(this->exec, this->identity->get_size());
+    auto dense_id =
+        gko::share(Dense::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id.get());
-    auto fact = this->fact_fact->generate(gko::share(dense_id));
+    auto fact = this->fact_fact->generate(dense_id);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
     GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), this->identity, this->tol);

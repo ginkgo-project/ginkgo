@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 
 
+#include <array>
+
+
 #include <omp.h>
 
 
@@ -44,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -58,41 +60,161 @@ namespace omp {
 namespace ell {
 
 
-template <typename InputValueType, typename MatrixValueType,
-          typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType> *a,
-          const matrix::Dense<InputValueType> *b,
-          matrix::Dense<OutputValueType> *c)
+template <int num_rhs, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType, typename OutFn>
+void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Ell<MatrixValueType, IndexType>* a,
+                    const matrix::Dense<InputValueType>* b,
+                    matrix::Dense<OutputValueType>* c, OutFn out)
 {
+    GKO_ASSERT(b->get_size()[1] == num_rhs);
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; row++) {
-        for (size_type j = 0; j < c->get_size()[1]; j++) {
-            c->at(row, j) = zero<OutputValueType>();
-        }
+        std::array<arithmetic_type, num_rhs> partial_sum;
+        partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a_vals(row + i * stride);
             auto col = a->col_at(row, i);
-            for (size_type j = 0; j < c->get_size()[1]; j++) {
-                c->at(row, j) += val * b_vals(col, j);
+            if (col != invalid_index<IndexType>()) {
+#pragma unroll
+                for (size_type j = 0; j < num_rhs; j++) {
+                    partial_sum[j] += val * b_vals(col, j);
+                }
             }
         }
+#pragma unroll
+        for (size_type j = 0; j < num_rhs; j++) {
+            [&] { c->at(row, j) = out(row, j, partial_sum[j]); }();
+        }
     }
+}
+
+
+template <int block_size, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType, typename OutFn>
+void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Ell<MatrixValueType, IndexType>* a,
+                  const matrix::Dense<InputValueType>* b,
+                  matrix::Dense<OutputValueType>* c, OutFn out)
+{
+    GKO_ASSERT(b->get_size()[1] > block_size);
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using a_accessor =
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+    using b_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+
+    const auto num_stored_elements_per_row =
+        a->get_num_stored_elements_per_row();
+    const auto stride = a->get_stride();
+    const auto a_vals = gko::acc::range<a_accessor>(
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
+        a->get_const_values());
+    const auto b_vals = gko::acc::range<b_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
+
+    const auto num_rhs = b->get_size()[1];
+    const auto rounded_rhs = num_rhs / block_size * block_size;
+
+#pragma omp parallel for
+    for (size_type row = 0; row < a->get_size()[0]; row++) {
+        std::array<arithmetic_type, block_size> partial_sum;
+        for (size_type rhs_base = 0; rhs_base < rounded_rhs;
+             rhs_base += block_size) {
+            partial_sum.fill(zero<arithmetic_type>());
+            for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+                auto val = a_vals(row + i * stride);
+                auto col = a->col_at(row, i);
+                if (col != invalid_index<IndexType>()) {
+#pragma unroll
+                    for (size_type j = 0; j < block_size; j++) {
+                        partial_sum[j] += val * b_vals(col, j + rhs_base);
+                    }
+                }
+            }
+#pragma unroll
+            for (size_type j = 0; j < block_size; j++) {
+                const auto col = j + rhs_base;
+                [&] { c->at(row, col) = out(row, col, partial_sum[j]); }();
+            }
+        }
+        partial_sum.fill(zero<arithmetic_type>());
+        for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+            auto val = a_vals(row + i * stride);
+            auto col = a->col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
+                for (size_type j = rounded_rhs; j < num_rhs; j++) {
+                    partial_sum[j - rounded_rhs] += val * b_vals(col, j);
+                }
+            }
+        }
+        for (size_type j = rounded_rhs; j < num_rhs; j++) {
+            [&] {
+                c->at(row, j) = out(row, j, partial_sum[j - rounded_rhs]);
+            }();
+        }
+    }
+}
+
+
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Ell<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
+{
+    const auto num_rhs = b->get_size()[1];
+    if (num_rhs <= 0) {
+        return;
+    }
+    auto out = [](auto, auto, auto value) { return value; };
+    if (num_rhs == 1) {
+        spmv_small_rhs<1>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 2) {
+        spmv_small_rhs<2>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 3) {
+        spmv_small_rhs<3>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 4) {
+        spmv_small_rhs<4>(exec, a, b, c, out);
+        return;
+    }
+    spmv_blocked<4>(exec, a, b, c, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -102,139 +224,44 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<MatrixValueType> *alpha,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   const matrix::Dense<OutputValueType> *beta,
-                   matrix::Dense<OutputValueType> *c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
-    using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
-    using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
-
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
-    const auto stride = a->get_stride();
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
-        a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
-    const auto alpha_val = OutputValueType(alpha->at(0, 0));
-    const auto beta_val = beta->at(0, 0);
-
-#pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; row++) {
-        for (size_type j = 0; j < c->get_size()[1]; j++) {
-            c->at(row, j) *= beta_val;
-        }
-        for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            auto val = a_vals(row + i * stride);
-            auto col = a->col_at(row, i);
-            for (size_type j = 0; j < c->get_size()[1]; j++) {
-                c->at(row, j) += alpha_val * val * b_vals(col, j);
-            }
-        }
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    const auto num_rhs = b->get_size()[1];
+    if (num_rhs <= 0) {
+        return;
     }
+    const auto alpha_val = arithmetic_type{alpha->at(0, 0)};
+    const auto beta_val = arithmetic_type{beta->at(0, 0)};
+    auto out = [&](auto i, auto j, auto value) {
+        return alpha_val * value + beta_val * arithmetic_type{c->at(i, j)};
+    };
+    if (num_rhs == 1) {
+        spmv_small_rhs<1>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 2) {
+        spmv_small_rhs<2>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 3) {
+        spmv_small_rhs<3>(exec, a, b, c, out);
+        return;
+    }
+    if (num_rhs == 4) {
+        spmv_small_rhs<4>(exec, a, b, c, out);
+        return;
+    }
+    spmv_blocked<4>(exec, a, b, c, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
-{
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto num_stored_elements_per_row =
-        source->get_num_stored_elements_per_row();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
-        }
-        for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            result->at(row, source->col_at(row, i)) += source->val_at(row, i);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result)
-{
-    size_type nonzeros = 0;
-    const auto num_rows = source->get_size()[0];
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-    const auto stride = source->get_stride();
-
-#pragma omp parallel for reduction(+ : nonzeros)
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros += (source->val_at(row, i) != zero<ValueType>());
-        }
-    }
-
-    *result = nonzeros;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType> *source,
-                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    const auto col_idxs = orig->get_const_col_idxs();
-    const auto values = orig->get_const_values();
-    const auto diag_size = diag->get_size()[0];
-    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
-    auto diag_values = diag->get_values();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < diag_size; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            if (orig->col_at(row, i) == row) {
-                diag_values[row] = orig->val_at(row, i);
-                break;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace ilu_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::compute_lu);
@@ -58,12 +59,13 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
 GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 
+}  // anonymous namespace
 }  // namespace ilu_factorization
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
+    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -89,8 +91,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // Separate L and U factors: nnz
     const auto matrix_size = local_system_matrix->get_size();
     const auto num_rows = matrix_size[0];
-    Array<IndexType> l_row_ptrs{exec, num_rows + 1};
-    Array<IndexType> u_row_ptrs{exec, num_rows + 1};
+    array<IndexType> l_row_ptrs{exec, num_rows + 1};
+    array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(ilu_factorization::make_initialize_row_ptrs_l_u(
         local_system_matrix.get(), l_row_ptrs.get_data(),
         u_row_ptrs.get_data()));
@@ -102,13 +104,13 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         exec->copy_val_to_host(u_row_ptrs.get_data() + num_rows));
 
     // Init arrays
-    Array<IndexType> l_col_idxs{exec, l_nnz};
-    Array<ValueType> l_vals{exec, l_nnz};
+    array<IndexType> l_col_idxs{exec, l_nnz};
+    array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<matrix_type> l_factor = matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), parameters_.l_strategy);
-    Array<IndexType> u_col_idxs{exec, u_nnz};
-    Array<ValueType> u_vals{exec, u_nnz};
+    array<IndexType> u_col_idxs{exec, u_nnz};
+    array<ValueType> u_vals{exec, u_nnz};
     std::shared_ptr<matrix_type> u_factor = matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
         std::move(u_row_ptrs), parameters_.u_strategy);

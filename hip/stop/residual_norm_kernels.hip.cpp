@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,10 @@ constexpr int default_block_size = 512;
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
     size_type num_cols, ValueType rel_residual_goal,
-    const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
+    const ValueType* __restrict__ tau, const ValueType* __restrict__ orig_tau,
     uint8 stoppingId, bool setFinalized,
-    stopping_status *__restrict__ stop_status,
-    bool *__restrict__ device_storage)
+    stopping_status* __restrict__ stop_status,
+    bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
@@ -84,7 +84,7 @@ __global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
 
 
 __global__ __launch_bounds__(1) void init_kernel(
-    bool *__restrict__ device_storage)
+    bool* __restrict__ device_storage)
 {
     device_storage[0] = true;
     device_storage[1] = false;
@@ -93,27 +93,30 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
+                   const matrix::Dense<ValueType>* tau,
+                   const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, Array<stopping_status> *stop_status,
-                   Array<bool> *device_storage, bool *all_converged,
-                   bool *one_changed)
+                   bool setFinalized, array<stopping_status>* stop_status,
+                   array<bool>* device_storage, bool* all_converged,
+                   bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
+    hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((residual_norm_kernel), dim3(grid_size),
-                       dim3(block_size), 0, 0, tau->get_size()[1],
-                       rel_residual_goal, as_hip_type(tau->get_const_values()),
-                       as_hip_type(orig_tau->get_const_values()), stoppingId,
-                       setFinalized, as_hip_type(stop_status->get_data()),
-                       as_hip_type(device_storage->get_data()));
+    if (grid_size > 0) {
+        hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
+                           tau->get_size()[1], rel_residual_goal,
+                           as_hip_type(tau->get_const_values()),
+                           as_hip_type(orig_tau->get_const_values()),
+                           stoppingId, setFinalized,
+                           as_hip_type(stop_status->get_data()),
+                           as_hip_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
@@ -142,11 +145,11 @@ template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
         size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-        const ValueType *__restrict__ tau,
-        const remove_complex<ValueType> *__restrict__ orig_tau,
+        const ValueType* __restrict__ tau,
+        const remove_complex<ValueType>* __restrict__ orig_tau,
         uint8 stoppingId, bool setFinalized,
-        stopping_status *__restrict__ stop_status,
-        bool *__restrict__ device_storage)
+        stopping_status* __restrict__ stop_status,
+        bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
@@ -164,7 +167,7 @@ __global__
 
 
 __global__ __launch_bounds__(1) void init_kernel(
-    bool *__restrict__ device_storage)
+    bool* __restrict__ device_storage)
 {
     device_storage[0] = true;
     device_storage[1] = false;
@@ -174,24 +177,27 @@ __global__ __launch_bounds__(1) void init_kernel(
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Dense<ValueType> *tau,
-    const matrix::Dense<remove_complex<ValueType>> *orig_tau,
+    const matrix::Dense<ValueType>* tau,
+    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, Array<stopping_status> *stop_status,
-    Array<bool> *device_storage, bool *all_converged, bool *one_changed)
+    bool setFinalized, array<stopping_status>* stop_status,
+    array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
-    hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
+    hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((implicit_residual_norm_kernel), dim3(grid_size),
-                       dim3(block_size), 0, 0, tau->get_size()[1],
-                       rel_residual_goal, as_hip_type(tau->get_const_values()),
-                       as_hip_type(orig_tau->get_const_values()), stoppingId,
-                       setFinalized, as_hip_type(stop_status->get_data()),
-                       as_hip_type(device_storage->get_data()));
+    if (grid_size > 0) {
+        hipLaunchKernelGGL(
+            (implicit_residual_norm_kernel), grid_size, block_size, 0, 0,
+            tau->get_size()[1], rel_residual_goal,
+            as_hip_type(tau->get_const_values()),
+            as_hip_type(orig_tau->get_const_values()), stoppingId, setFinalized,
+            as_hip_type(stop_status->get_data()),
+            as_hip_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());

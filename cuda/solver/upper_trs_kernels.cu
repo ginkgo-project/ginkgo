@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "cuda/base/cusparse_bindings.hpp"
@@ -63,26 +63,23 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                              bool &do_transpose)
+                              bool& do_transpose)
 {
     should_perform_transpose_kernel(exec, do_transpose);
 }
 
 
-void init_struct(std::shared_ptr<const CudaExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
-{
-    init_struct_kernel(exec, solve_struct);
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              const size_type num_rhs)
 {
-    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
-                                          true);
+    if (algorithm == solver::trisolve_algorithm::sparselib) {
+        generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct,
+                                              num_rhs, true, unit_diag);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -91,13 +88,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct, bool unit_diag,
+           const solver::trisolve_algorithm algorithm,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
-    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                       trans_x, b, x);
+    if (algorithm == solver::trisolve_algorithm::sparselib) {
+        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
+                                           trans_x, b, x);
+    } else {
+        sptrsv_naive_caching<true>(exec, matrix, unit_diag, b, x);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 namespace gko {
@@ -56,24 +56,18 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                              bool &do_transpose)
+                              bool& do_transpose)
 {
     do_transpose = false;
 }
 
 
-void init_struct(std::shared_ptr<const ReferenceExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
-{
-    // This init kernel is here to allow initialization of the solve struct for
-    // a more sophisticated implementation as for other executors.
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              const size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -91,10 +85,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct, bool unit_diag,
+           const solver::trisolve_algorithm algorithm,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();
@@ -104,13 +99,22 @@ void solve(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type inv_row = 0; inv_row < matrix->get_size()[0];
              ++inv_row) {
             auto row = matrix->get_size()[0] - 1 - inv_row;
-            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row]];
+            auto diag = one<ValueType>();
+            bool found_diag = false;
+            x->at(row, j) = b->at(row, j);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col > row) {
-                    x->at(row, j) +=
-                        -vals[k] * x->at(col, j) / vals[row_ptrs[row]];
+                    x->at(row, j) -= vals[k] * x->at(col, j);
                 }
+                if (col == row) {
+                    diag = vals[k];
+                    found_diag = true;
+                }
+            }
+            if (!unit_diag) {
+                GKO_ASSERT(found_diag);
+                x->at(row, j) /= diag;
             }
         }
     }

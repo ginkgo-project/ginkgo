@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "dpcpp/base/config.hpp"
@@ -81,7 +81,7 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 template <typename ValueType>
 void zero_matrix_kernel(size_type m, size_type n, size_type stride,
-                        ValueType *__restrict__ array,
+                        ValueType* __restrict__ array,
                         sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -99,11 +99,10 @@ GKO_ENABLE_DEFAULT_HOST(zero_matrix_kernel, zero_matrix_kernel);
 
 // Must be called with at least `num_rows * stride_krylov` threads in total.
 template <size_type block_size, typename ValueType, typename Accessor3d>
-void initialize_2_1_kernel(size_type num_rows, size_type num_rhs,
-                           size_type krylov_dim, Accessor3d krylov_bases,
-                           ValueType *__restrict__ residual_norm_collection,
-                           size_type stride_residual_nc,
-                           sycl::nd_item<3> item_ct1)
+void restart_1_kernel(size_type num_rows, size_type num_rhs,
+                      size_type krylov_dim, Accessor3d krylov_bases,
+                      ValueType* __restrict__ residual_norm_collection,
+                      size_type stride_residual_nc, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto krylov_stride =
@@ -130,17 +129,16 @@ void initialize_2_1_kernel(size_type num_rows, size_type num_rhs,
 }
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
-void initialize_2_1_kernel(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue *queue,
-                           size_type num_rows, size_type num_rhs,
-                           size_type krylov_dim, Accessor3d krylov_bases,
-                           ValueType *residual_norm_collection,
-                           size_type stride_residual_nc)
+void restart_1_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue* queue, size_type num_rows, size_type num_rhs,
+                      size_type krylov_dim, Accessor3d krylov_bases,
+                      ValueType* residual_norm_collection,
+                      size_type stride_residual_nc)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                initialize_2_1_kernel<block_size>(
+                restart_1_kernel<block_size>(
                     num_rows, num_rhs, krylov_dim, krylov_bases,
                     residual_norm_collection, stride_residual_nc, item_ct1);
             });
@@ -150,13 +148,13 @@ void initialize_2_1_kernel(dim3 grid, dim3 block,
 
 // Must be called with at least `num_rows * num_rhs` threads in total.
 template <size_type block_size, typename ValueType, typename Accessor3d>
-void initialize_2_2_kernel(
+void restart_2_kernel(
     size_type num_rows, size_type num_rhs,
-    const ValueType *__restrict__ residual, size_type stride_residual,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection, Accessor3d krylov_bases,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    size_type *__restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ residual, size_type stride_residual,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection, Accessor3d krylov_bases,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    size_type* __restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto krylov_stride =
@@ -179,18 +177,18 @@ void initialize_2_2_kernel(
 }
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
-void initialize_2_2_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
-    size_type num_rows, size_type num_rhs, const ValueType *residual,
-    size_type stride_residual, const remove_complex<ValueType> *residual_norm,
-    ValueType *residual_norm_collection, Accessor3d krylov_bases,
-    ValueType *next_krylov_basis, size_type stride_next_krylov,
-    size_type *final_iter_nums)
+void restart_2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue* queue, size_type num_rows, size_type num_rhs,
+                      const ValueType* residual, size_type stride_residual,
+                      const remove_complex<ValueType>* residual_norm,
+                      ValueType* residual_norm_collection,
+                      Accessor3d krylov_bases, ValueType* next_krylov_basis,
+                      size_type stride_next_krylov, size_type* final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                initialize_2_2_kernel<block_size>(
+                restart_2_kernel<block_size>(
                     num_rows, num_rhs, residual, stride_residual, residual_norm,
                     residual_norm_collection, krylov_bases, next_krylov_basis,
                     stride_next_krylov, final_iter_nums, item_ct1);
@@ -200,8 +198,8 @@ void initialize_2_2_kernel(
 
 
 void increase_final_iteration_numbers_kernel(
-    size_type *__restrict__ final_iter_nums,
-    const stopping_status *__restrict__ stop_status, size_type total_number,
+    size_type* __restrict__ final_iter_nums,
+    const stopping_status* __restrict__ stop_status, size_type total_number,
     sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -217,12 +215,12 @@ GKO_ENABLE_DEFAULT_HOST(increase_final_iteration_numbers_kernel,
 template <typename ValueType>
 void multinorm2_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       default_dot_dim *(default_dot_dim + 1)>
-        *reduction_helper_array)
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    uninitialized_array<remove_complex<ValueType>,
+                        default_dot_dim*(default_dot_dim + 1)>*
+        reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -236,7 +234,7 @@ void multinorm2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype *__restrict__ reduction_helper = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
     rc_vtype local_res = zero<rc_vtype>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -252,7 +250,7 @@ void multinorm2_kernel(
         group::this_thread_block(item_ct1));
     const auto sum = ::gko::kernels::dpcpp::reduce(
         tile_block, local_res,
-        [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+        [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -263,21 +261,23 @@ void multinorm2_kernel(
 
 template <typename ValueType>
 void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue *queue, size_type num_rows,
-                       size_type num_cols, const ValueType *next_krylov_basis,
+                       sycl::queue* queue, size_type num_rows,
+                       size_type num_cols, const ValueType* next_krylov_basis,
                        size_type stride_next_krylov,
-                       remove_complex<ValueType> *norms,
-                       const stopping_status *stop_status)
+                       remove_complex<ValueType>* norms,
+                       const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               default_dot_dim *(default_dot_dim + 1)>,
+            uninitialized_array<remove_complex<ValueType>,
+                                default_dot_dim*(default_dot_dim + 1)>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorm2_kernel(num_rows, num_cols, next_krylov_basis,
                                   stride_next_krylov, norms, stop_status,
                                   item_ct1,
@@ -290,12 +290,12 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 template <typename ValueType>
 void multinorminf_without_stop_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
     size_type stride_norms, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       default_dot_dim *(default_dot_dim + 1)>
-        *reduction_helper_array)
+    uninitialized_array<remove_complex<ValueType>,
+                        default_dot_dim*(default_dot_dim + 1)>*
+        reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -309,7 +309,7 @@ void multinorminf_without_stop_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype *__restrict__ reduction_helper = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
     rc_vtype local_max = zero<rc_vtype>();
     if (col_idx < num_cols) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -327,7 +327,7 @@ void multinorminf_without_stop_kernel(
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
     const auto value = ::gko::kernels::dpcpp::reduce(
-        tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
+        tile_block, local_max, [](const rc_vtype& a, const rc_vtype& b) {
             return ((a >= b) ? a : b);
         });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
@@ -339,20 +339,22 @@ void multinorminf_without_stop_kernel(
 
 template <typename ValueType>
 void multinorminf_without_stop_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
-    size_type num_rows, size_type num_cols, const ValueType *next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType> *norms,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    size_type num_rows, size_type num_cols, const ValueType* next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* norms,
     size_type stride_norms)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               default_dot_dim *(default_dot_dim + 1)>,
+            uninitialized_array<remove_complex<ValueType>,
+                                default_dot_dim*(default_dot_dim + 1)>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorminf_without_stop_kernel(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms, stride_norms, item_ct1,
@@ -366,15 +368,15 @@ void multinorminf_without_stop_kernel(
 template <bool compute_inf, typename ValueType>
 void multinorm2_inf_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
+    const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov,
-    remove_complex<ValueType> *__restrict__ norms1,
-    remove_complex<ValueType> *__restrict__ norms2,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       (1 + compute_inf) *
-                           default_dot_dim *(default_dot_dim + 1)>
-        *reduction_helper_array)
+    remove_complex<ValueType>* __restrict__ norms1,
+    remove_complex<ValueType>* __restrict__ norms2,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    uninitialized_array<remove_complex<ValueType>,
+                        (1 + compute_inf) *
+                            default_dot_dim*(default_dot_dim + 1)>*
+        reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -388,9 +390,9 @@ void multinorm2_inf_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype *__restrict__ reduction_helper_add = (*reduction_helper_array);
-    rc_vtype *__restrict__ reduction_helper_max =
-        static_cast<rc_vtype *>((*reduction_helper_array)) +
+    rc_vtype* __restrict__ reduction_helper_add = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper_max =
+        static_cast<rc_vtype*>((*reduction_helper_array)) +
         default_dot_dim * (default_dot_dim + 1);
     rc_vtype local_res = zero<rc_vtype>();
     rc_vtype local_max = zero<rc_vtype>();
@@ -417,12 +419,12 @@ void multinorm2_inf_kernel(
         group::this_thread_block(item_ct1));
     const auto sum = ::gko::kernels::dpcpp::reduce(
         tile_block, local_res,
-        [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+        [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     rc_vtype reduced_max{};
     if (compute_inf) {
         local_max = reduction_helper_max[tidy * (default_dot_dim + 1) + tidx];
         reduced_max = ::gko::kernels::dpcpp::reduce(
-            tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
+            tile_block, local_max, [](const rc_vtype& a, const rc_vtype& b) {
                 return ((a >= b) ? a : b);
             });
     }
@@ -439,21 +441,23 @@ void multinorm2_inf_kernel(
 
 template <bool compute_inf, typename ValueType>
 void multinorm2_inf_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
-    size_type num_rows, size_type num_cols, const ValueType *next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType> *norms1,
-    remove_complex<ValueType> *norms2, const stopping_status *stop_status)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    size_type num_rows, size_type num_cols, const ValueType* next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* norms1,
+    remove_complex<ValueType>* norms2, const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               (1 + compute_inf) *
-                                   default_dot_dim *(default_dot_dim + 1)>,
+            uninitialized_array<remove_complex<ValueType>,
+                                (1 + compute_inf) *
+                                    default_dot_dim*(default_dot_dim + 1)>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorm2_inf_kernel<compute_inf>(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms1, norms2, stop_status, item_ct1,
@@ -466,11 +470,11 @@ void multinorm2_inf_kernel(
 template <int dot_dim, typename ValueType, typename Accessor3d>
 void multidot_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
+    const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, dot_dim * dot_dim> &reduction_helper_array)
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    uninitialized_array<ValueType, dot_dim * dot_dim>& reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -497,7 +501,7 @@ void multidot_kernel(
     const size_type k = item_ct1.get_group(0);
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -519,7 +523,7 @@ void multidot_kernel(
     const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
     const auto sum = ::gko::kernels::dpcpp::reduce(
         tile_block, local_res,
-        [](const ValueType &a, const ValueType &b) { return a + b; });
+        [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
@@ -529,21 +533,22 @@ void multidot_kernel(
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
 void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue *queue, size_type num_rows, size_type num_cols,
-                     const ValueType *next_krylov_basis,
+                     sycl::queue* queue, size_type num_rows, size_type num_cols,
+                     const ValueType* next_krylov_basis,
                      size_type stride_next_krylov,
-                     const Accessor3d krylov_bases, ValueType *hessenberg_iter,
+                     const Accessor3d krylov_bases, ValueType* hessenberg_iter,
                      size_type stride_hessenberg,
-                     const stopping_status *stop_status)
+                     const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, dot_dim * dot_dim>, 0,
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<uninitialized_array<ValueType, dot_dim * dot_dim>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(dot_dim)]] {
                 multidot_kernel<dot_dim>(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
@@ -556,11 +561,11 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void singledot_kernel(
-    size_type num_rows, const ValueType *__restrict__ next_krylov_basis,
+    size_type num_rows, const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> &reduction_helper_array)
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    uninitialized_array<ValueType, block_size>& reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -583,7 +588,7 @@ void singledot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (!stop_status[col_idx].has_stopped()) {
@@ -600,7 +605,7 @@ void singledot_kernel(
     thread_block.sync();
     ::gko::kernels::dpcpp::reduce(
         thread_block, reduction_helper,
-        [](const ValueType &a, const ValueType &b) { return a + b; });
+        [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
@@ -609,21 +614,23 @@ void singledot_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue *queue, size_type num_rows,
-                      const ValueType *next_krylov_basis,
+                      sycl::queue* queue, size_type num_rows,
+                      const ValueType* next_krylov_basis,
                       size_type stride_next_krylov,
-                      const Accessor3d krylov_bases, ValueType *hessenberg_iter,
+                      const Accessor3d krylov_bases, ValueType* hessenberg_iter,
                       size_type stride_hessenberg,
-                      const stopping_status *stop_status)
+                      const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 singledot_kernel<block_size>(
                     num_rows, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
@@ -639,10 +646,10 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_kernel(
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
     const Accessor3d krylov_bases,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_idx = global_id / stride_next_krylov;
@@ -664,13 +671,13 @@ void update_next_krylov_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *next_krylov_basis, size_type stride_next_krylov,
-    const Accessor3d krylov_bases, const ValueType *hessenberg_iter,
-    size_type stride_hessenberg, const stopping_status *stop_status)
+    ValueType* next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, const ValueType* hessenberg_iter,
+    size_type stride_hessenberg, const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_kernel<block_size>(
@@ -687,11 +694,11 @@ void update_next_krylov_kernel(
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_and_add_kernel(
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const Accessor3d krylov_bases, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
-    size_type stride_buffer, const stopping_status *__restrict__ stop_status,
-    const stopping_status *__restrict__ reorth_status,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, ValueType* __restrict__ hessenberg_iter,
+    size_type stride_hessenberg, const ValueType* __restrict__ buffer_iter,
+    size_type stride_buffer, const stopping_status* __restrict__ stop_status,
+    const stopping_status* __restrict__ reorth_status,
     sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -718,15 +725,15 @@ void update_next_krylov_and_add_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_and_add_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *next_krylov_basis, size_type stride_next_krylov,
-    const Accessor3d krylov_bases, ValueType *hessenberg_iter,
-    size_type stride_hessenberg, const ValueType *buffer_iter,
-    size_type stride_buffer, const stopping_status *stop_status,
-    const stopping_status *reorth_status)
+    ValueType* next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, ValueType* hessenberg_iter,
+    size_type stride_hessenberg, const ValueType* buffer_iter,
+    size_type stride_buffer, const stopping_status* stop_status,
+    const stopping_status* reorth_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_and_add_kernel<block_size>(
@@ -742,12 +749,12 @@ void update_next_krylov_and_add_kernel(
 // Must be called with at least `num_rhs` threads
 template <int block_size, typename ValueType, typename Accessor3d>
 void check_arnoldi_norms(
-    size_type num_rhs, remove_complex<ValueType> *__restrict__ arnoldi_norm,
-    size_type stride_norm, ValueType *__restrict__ hessenberg_iter,
+    size_type num_rhs, remove_complex<ValueType>* __restrict__ arnoldi_norm,
+    size_type stride_norm, ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg, size_type iter, Accessor3d krylov_bases,
-    const stopping_status *__restrict__ stop_status,
-    stopping_status *__restrict__ reorth_status,
-    size_type *__restrict__ num_reorth, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status,
+    stopping_status* __restrict__ reorth_status,
+    size_type* __restrict__ num_reorth, sycl::nd_item<3> item_ct1)
 {
     const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat(item_ct1);
@@ -775,15 +782,15 @@ void check_arnoldi_norms(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void check_arnoldi_norms(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rhs,
-                         remove_complex<ValueType> *arnoldi_norm,
-                         size_type stride_norm, ValueType *hessenberg_iter,
+                         sycl::queue* queue, size_type num_rhs,
+                         remove_complex<ValueType>* arnoldi_norm,
+                         size_type stride_norm, ValueType* hessenberg_iter,
                          size_type stride_hessenberg, size_type iter,
                          Accessor3d krylov_bases,
-                         const stopping_status *stop_status,
-                         stopping_status *reorth_status, size_type *num_reorth)
+                         const stopping_status* stop_status,
+                         stopping_status* reorth_status, size_type* num_reorth)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 check_arnoldi_norms<block_size>(
@@ -797,9 +804,9 @@ void check_arnoldi_norms(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int block_size, typename RealValueType, typename Accessor3d>
 void set_scalar_kernel(size_type num_rhs, size_type num_blocks,
-                       const RealValueType *__restrict__ residual_norm,
+                       const RealValueType* __restrict__ residual_norm,
                        size_type stride_residual,
-                       const RealValueType *__restrict__ arnoldi_inf,
+                       const RealValueType* __restrict__ arnoldi_inf,
                        size_type stride_inf, Accessor3d krylov_bases,
                        sycl::nd_item<3> item_ct1)
 {
@@ -828,13 +835,13 @@ void set_scalar_kernel(size_type num_rhs, size_type num_blocks,
 
 template <int block_size, typename RealValueType, typename Accessor3d>
 void set_scalar_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue *queue, size_type num_rhs,
-                       size_type num_blocks, const RealValueType *residual_norm,
+                       sycl::queue* queue, size_type num_rhs,
+                       size_type num_blocks, const RealValueType* residual_norm,
                        size_type stride_residual,
-                       const RealValueType *arnoldi_inf, size_type stride_inf,
+                       const RealValueType* arnoldi_inf, size_type stride_inf,
                        Accessor3d krylov_bases)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 set_scalar_kernel<block_size>(
@@ -850,10 +857,10 @@ void set_scalar_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_krylov_next_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    Accessor3d krylov_bases, const ValueType *__restrict__ hessenberg_iter,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    Accessor3d krylov_bases, const ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_idx = global_id / stride_next_krylov;
@@ -875,13 +882,13 @@ void update_krylov_next_krylov_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_krylov_next_krylov_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *next_krylov_basis, size_type stride_next_krylov,
-    Accessor3d krylov_bases, const ValueType *hessenberg_iter,
-    size_type stride_hessenberg, const stopping_status *stop_status)
+    ValueType* next_krylov_basis, size_type stride_next_krylov,
+    Accessor3d krylov_bases, const ValueType* hessenberg_iter,
+    size_type stride_hessenberg, const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_krylov_next_krylov_kernel<block_size>(
@@ -898,10 +905,10 @@ void update_krylov_next_krylov_kernel(
 template <size_type block_size, typename ValueType, typename Accessor3d>
 void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
                          const Accessor3d krylov_bases,
-                         const ValueType *__restrict__ y, size_type stride_y,
-                         ValueType *__restrict__ before_preconditioner,
+                         const ValueType* __restrict__ y, size_type stride_y,
+                         ValueType* __restrict__ before_preconditioner,
                          size_type stride_preconditioner,
-                         const size_type *__restrict__ final_iter_nums,
+                         const size_type* __restrict__ final_iter_nums,
                          sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -919,14 +926,14 @@ void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
 void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rows,
+                         sycl::queue* queue, size_type num_rows,
                          size_type num_cols, const Accessor3d krylov_bases,
-                         const ValueType *y, size_type stride_y,
-                         ValueType *before_preconditioner,
+                         const ValueType* y, size_type stride_y,
+                         ValueType* before_preconditioner,
                          size_type stride_preconditioner,
-                         const size_type *final_iter_nums)
+                         const size_type* final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              calculate_Qy_kernel<block_size>(
@@ -938,32 +945,9 @@ void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-// Specialization, so the Accessor can use the same function as regular pointers
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_dpcpp_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
-{
-    return acc::range<acc::reduced_row_major<dim, Type1, Type2>>(
-        acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
-        acc.get_accessor().get_stride());
-}
-
-template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_dpcpp_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
-        &acc)
-{
-    return acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>(
-        acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
-        acc.get_accessor().get_storage_stride(),
-        acc.get_accessor().get_scalar(),
-        acc.get_accessor().get_scalar_stride());
-}
-
-
 template <typename ValueType>
 void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
-                 size_type n, size_type stride, ValueType *array)
+                 size_type n, size_type stride, ValueType* array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
@@ -973,12 +957,12 @@ void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *givens_sin,
-                  matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, size_type krylov_dim)
+void initialize(std::shared_ptr<const DpcppExecutor> exec,
+                const matrix::Dense<ValueType>* b,
+                matrix::Dense<ValueType>* residual,
+                matrix::Dense<ValueType>* givens_sin,
+                matrix::Dense<ValueType>* givens_cos,
+                array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -986,7 +970,7 @@ void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    initialize_1_kernel<block_size>(
+    initialize_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), b->get_size()[0],
         b->get_size()[1], krylov_dim, b->get_const_values(), b->get_stride(),
         residual->get_values(), residual->get_stride(),
@@ -995,18 +979,19 @@ void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
         stop_status->get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
-void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                  matrix::Dense<ValueType> *residual_norm_collection,
-                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                  Accessor3d krylov_bases,
-                  matrix::Dense<ValueType> *next_krylov_basis,
-                  Array<size_type> *final_iter_nums, size_type krylov_dim)
+void restart(std::shared_ptr<const DpcppExecutor> exec,
+             const matrix::Dense<ValueType>* residual,
+             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             matrix::Dense<ValueType>* residual_norm_collection,
+             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             Accessor3d krylov_bases,
+             matrix::Dense<ValueType>* next_krylov_basis,
+             array<size_type>* final_iter_nums, array<char>& reduction_tmp,
+             size_type krylov_dim)
 {
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
@@ -1021,12 +1006,13 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
-    initialize_2_1_kernel<block_size>(
+    restart_1_kernel<block_size>(
         grid_dim_1, block_dim, 0, exec->get_queue(), residual->get_size()[0],
-        residual->get_size()[1], krylov_dim, as_dpcpp_accessor(krylov_bases),
+        residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
-    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                  reduction_tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
@@ -1047,35 +1033,40 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
             default_block_size, 0, exec->get_queue(), num_rhs, krylov_dim + 1,
             residual_norm->get_const_values(), residual_norm->get_stride(),
             arnoldi_norm->get_const_values() + 2 * stride_arnoldi,
-            stride_arnoldi, as_dpcpp_accessor(krylov_bases));
+            stride_arnoldi, krylov_bases);
     }
 
     const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
-    initialize_2_2_kernel<block_size>(
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size),
+        1, 1);
+    restart_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
         residual->get_stride(), residual_norm->get_const_values(),
-        residual_norm_collection->get_values(), as_dpcpp_accessor(krylov_bases),
+        residual_norm_collection->get_values(), krylov_bases,
         next_krylov_basis->get_values(), next_krylov_basis->get_stride(),
         final_iter_nums->get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
-                        matrix::Dense<ValueType> *next_krylov_basis,
+                        matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3dim krylov_bases,
-                        matrix::Dense<ValueType> *hessenberg_iter,
-                        matrix::Dense<ValueType> *buffer_iter,
-                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                        size_type iter, const stopping_status *stop_status,
-                        stopping_status *reorth_status,
-                        Array<size_type> *num_reorth)
+                        matrix::Dense<ValueType>* hessenberg_iter,
+                        matrix::Dense<ValueType>* buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+                        size_type iter, const stopping_status* stop_status,
+                        stopping_status* reorth_status,
+                        array<size_type>* num_reorth)
 {
+    const auto dim_size = next_krylov_basis->get_size();
+    if (dim_size[1] == 0) {
+        return;
+    }
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
@@ -1085,7 +1076,6 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_computing_units() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
@@ -1112,15 +1102,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         multidot_kernel<default_dot_dim>(
             grid_size_num_iters, block_size, 0, exec->get_queue(), dim_size[0],
             dim_size[1], next_krylov_basis->get_const_values(),
-            stride_next_krylov, as_dpcpp_accessor(krylov_bases),
-            hessenberg_iter->get_values(), stride_hessenberg, stop_status);
+            stride_next_krylov, krylov_bases, hessenberg_iter->get_values(),
+            stride_hessenberg, stop_status);
     } else {
         singledot_kernel<singledot_block_size>(
             grid_size_iters_single, block_size_iters_single, 0,
             exec->get_queue(), dim_size[0],
             next_krylov_basis->get_const_values(), stride_next_krylov,
-            as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_values(),
-            stride_hessenberg, stop_status);
+            krylov_bases, hessenberg_iter->get_values(), stride_hessenberg,
+            stop_status);
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -1129,8 +1119,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
         dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-        as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_const_values(),
-        stride_hessenberg, stop_status);
+        krylov_bases, hessenberg_iter->get_const_values(), stride_hessenberg,
+        stop_status);
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -1153,7 +1143,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[1], default_block_size), default_block_size, 0,
         exec->get_queue(), dim_size[1], arnoldi_norm->get_values(),
         stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
-        iter + 1, as_dpcpp_accessor(krylov_bases), stop_status, reorth_status,
+        iter + 1, krylov_bases, stop_status, reorth_status,
         num_reorth->get_data());
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
@@ -1164,15 +1154,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             multidot_kernel<default_dot_dim>(
                 grid_size_num_iters, block_size, 0, exec->get_queue(),
                 dim_size[0], dim_size[1], next_krylov_basis->get_const_values(),
-                stride_next_krylov, as_dpcpp_accessor(krylov_bases),
-                buffer_iter->get_values(), stride_buffer, stop_status);
+                stride_next_krylov, krylov_bases, buffer_iter->get_values(),
+                stride_buffer, stop_status);
         } else {
             singledot_kernel<singledot_block_size>(
                 grid_size_iters_single, block_size_iters_single, 0,
                 exec->get_queue(), dim_size[0],
                 next_krylov_basis->get_const_values(), stride_next_krylov,
-                as_dpcpp_accessor(krylov_bases), buffer_iter->get_values(),
-                stride_buffer, stop_status);
+                krylov_bases, buffer_iter->get_values(), stride_buffer,
+                stop_status);
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -1181,9 +1171,9 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
             default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
             dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-            as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_values(),
-            stride_hessenberg, buffer_iter->get_const_values(), stride_buffer,
-            stop_status, reorth_status);
+            krylov_bases, hessenberg_iter->get_values(), stride_hessenberg,
+            buffer_iter->get_const_values(), stride_buffer, stop_status,
+            reorth_status);
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -1207,8 +1197,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             ceildiv(dim_size[1], default_block_size), default_block_size, 0,
             exec->get_queue(), dim_size[1], arnoldi_norm->get_values(),
             stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
-            iter + 1, as_dpcpp_accessor(krylov_bases), stop_status,
-            reorth_status, num_reorth->get_data());
+            iter + 1, krylov_bases, stop_status, reorth_status,
+            num_reorth->get_data());
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     }
 
@@ -1216,8 +1206,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter, dim_size[0],
         dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-        as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_const_values(),
-        stride_hessenberg, stop_status);
+        krylov_bases, hessenberg_iter->get_const_values(), stride_hessenberg,
+        stop_status);
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
@@ -1225,12 +1215,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
-                     matrix::Dense<ValueType> *givens_sin,
-                     matrix::Dense<ValueType> *givens_cos,
-                     matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                     matrix::Dense<ValueType> *residual_norm_collection,
-                     size_type iter, const Array<stopping_status> *stop_status)
+                     matrix::Dense<ValueType>* givens_sin,
+                     matrix::Dense<ValueType>* givens_cos,
+                     matrix::Dense<ValueType>* hessenberg_iter,
+                     matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                     matrix::Dense<ValueType>* residual_norm_collection,
+                     size_type iter, const array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -1251,18 +1241,19 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename Accessor3d>
-void step_1(std::shared_ptr<const DpcppExecutor> exec,
-            matrix::Dense<ValueType> *next_krylov_basis,
-            matrix::Dense<ValueType> *givens_sin,
-            matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<remove_complex<ValueType>> *residual_norm,
-            matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
-            matrix::Dense<ValueType> *buffer_iter,
-            matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-            size_type iter, Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
+             matrix::Dense<ValueType>* next_krylov_basis,
+             matrix::Dense<ValueType>* givens_sin,
+             matrix::Dense<ValueType>* givens_cos,
+             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             matrix::Dense<ValueType>* residual_norm_collection,
+             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
+             matrix::Dense<ValueType>* buffer_iter,
+             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             size_type iter, array<size_type>* final_iter_nums,
+             const array<stopping_status>* stop_status,
+             array<stopping_status>* reorth_status,
+             array<size_type>* num_reorth)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -1277,15 +1268,15 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 
 template <typename ValueType>
 void solve_upper_triangular(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-    const Array<size_type> *final_iter_nums)
+    const matrix::Dense<ValueType>* residual_norm_collection,
+    const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
+    const array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -1306,9 +1297,9 @@ void solve_upper_triangular(
 template <typename ValueType, typename ConstAccessor3d>
 void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
                   ConstAccessor3d krylov_bases, size_type num_krylov_bases,
-                  const matrix::Dense<ValueType> *y,
-                  matrix::Dense<ValueType> *before_preconditioner,
-                  const Array<size_type> *final_iter_nums)
+                  const matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = before_preconditioner->get_size()[1];
@@ -1325,7 +1316,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
     calculate_Qy_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-        as_dpcpp_accessor(krylov_bases), y->get_const_values(), y->get_stride(),
+        krylov_bases, y->get_const_values(), y->get_stride(),
         before_preconditioner->get_values(), stride_before_preconditioner,
         final_iter_nums->get_const_data());
     // Calculate qy
@@ -1334,14 +1325,17 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void step_2(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Dense<ValueType> *residual_norm_collection,
-            ConstAccessor3d krylov_bases,
-            const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *before_preconditioner,
-            const Array<size_type> *final_iter_nums)
+void solve_krylov(std::shared_ptr<const DpcppExecutor> exec,
+                  const matrix::Dense<ValueType>* residual_norm_collection,
+                  ConstAccessor3d krylov_bases,
+                  const matrix::Dense<ValueType>* hessenberg,
+                  matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const array<size_type>* final_iter_nums)
 {
+    if (before_preconditioner->get_size()[1] == 0) {
+        return;
+    }
     // since hessenberg has dims:  iters x iters * num_rhs
     // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs
     const auto iters =
@@ -1354,7 +1348,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres

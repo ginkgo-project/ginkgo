@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -86,11 +86,11 @@ using compiled_kernels =
 template <int subwarp_size, typename ValueType, typename IndexType>
 void threshold_filter_approx(syn::value_list<int, subwarp_size>,
                              std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> *tmp,
-                             remove_complex<ValueType> *threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
+                             const matrix::Csr<ValueType, IndexType>* m,
+                             IndexType rank, array<ValueType>* tmp,
+                             remove_complex<ValueType>* threshold,
+                             matrix::Csr<ValueType, IndexType>* m_out,
+                             matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
@@ -111,14 +111,14 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         tmp_size_totals + tmp_size_partials + tmp_size_oracles + tmp_size_tree;
     tmp->resize_and_reset(tmp_size);
 
-    auto total_counts = reinterpret_cast<IndexType *>(tmp->get_data());
+    auto total_counts = reinterpret_cast<IndexType*>(tmp->get_data());
     auto partial_counts =
-        reinterpret_cast<IndexType *>(tmp->get_data() + tmp_size_totals);
-    auto oracles = reinterpret_cast<unsigned char *>(
+        reinterpret_cast<IndexType*>(tmp->get_data() + tmp_size_totals);
+    auto oracles = reinterpret_cast<unsigned char*>(
         tmp->get_data() + tmp_size_totals + tmp_size_partials);
     auto tree =
-        reinterpret_cast<AbsType *>(tmp->get_data() + tmp_size_totals +
-                                    tmp_size_partials + tmp_size_oracles);
+        reinterpret_cast<AbsType*>(tmp->get_data() + tmp_size_totals +
+                                   tmp_size_partials + tmp_size_oracles);
 
     sampleselect_count(exec, values, size, tree, oracles, partial_counts,
                        total_counts);
@@ -142,9 +142,12 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::bucket_filter_nnz<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       old_row_ptrs, oracles, num_rows, bucket, new_row_ptrs);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::bucket_filter_nnz<subwarp_size>),
+            num_blocks, default_block_size, 0, 0, old_row_ptrs, oracles,
+            num_rows, bucket, new_row_ptrs);
+    }
 
     // build row pointers
     components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
@@ -157,21 +160,23 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType *new_row_idxs{};
+    IndexType* new_row_idxs{};
     if (m_out_coo) {
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
         coo_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, new_nnz, new_col_idxs);
+            make_array_view(exec, new_nnz, new_col_idxs);
         coo_builder.get_value_array() =
-            Array<ValueType>::view(exec, new_nnz, new_vals);
+            make_array_view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::bucket_filter<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       old_row_ptrs, old_col_idxs, as_hip_type(old_vals),
-                       oracles, num_rows, bucket, new_row_ptrs, new_row_idxs,
-                       new_col_idxs, as_hip_type(new_vals));
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::bucket_filter<subwarp_size>),
+                           num_blocks, default_block_size, 0, 0, old_row_ptrs,
+                           old_col_idxs, as_hip_type(old_vals), oracles,
+                           num_rows, bucket, new_row_ptrs, new_row_idxs,
+                           new_col_idxs, as_hip_type(new_vals));
+    }
 }
 
 
@@ -181,11 +186,11 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter_approx,
 
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> &tmp,
-                             remove_complex<ValueType> &threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
+                             const matrix::Csr<ValueType, IndexType>* m,
+                             IndexType rank, array<ValueType>& tmp,
+                             remove_complex<ValueType>& threshold,
+                             matrix::Csr<ValueType, IndexType>* m_out,
+                             matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto num_rows = m->get_size()[0];
     auto total_nnz = m->get_num_stored_elements();

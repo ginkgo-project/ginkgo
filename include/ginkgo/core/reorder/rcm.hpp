@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -92,10 +92,10 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm
-    : public EnablePolymorphicObject<Rcm<ValueType, IndexType>, ReorderingBase>,
-      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Rcm, ReorderingBase>;
+class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
+                                           ReorderingBase<IndexType>>,
+            public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
+    friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
 
 public:
     using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;
@@ -125,6 +125,11 @@ public:
         return inv_permutation_;
     }
 
+    /*const array<index_type>& get_permutation_array() const override
+    {
+        return permutation_array_;
+    }*/
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -148,15 +153,17 @@ protected:
      * Generates the permutation matrix and if required the inverse permutation
      * matrix.
      */
-    void generate(std::shared_ptr<const Executor> &exec,
+    void generate(std::shared_ptr<const Executor>& exec,
                   std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
     explicit Rcm(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
+        : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(
+              std::move(exec))
     {}
 
-    explicit Rcm(const Factory *factory, const ReorderingBaseArgs &args)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(factory->get_executor()),
+    explicit Rcm(const Factory* factory, const ReorderingBaseArgs& args)
+        : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(
+              factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
         // Always execute the reordering on the cpu.
@@ -166,7 +173,7 @@ protected:
                                         : this->get_executor();
 
         auto adjacency_matrix = SparsityMatrix::create(cpu_exec);
-        Array<IndexType> degrees;
+        array<IndexType> degrees;
 
         // The adjacency matrix has to be square.
         GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
@@ -194,15 +201,20 @@ protected:
         // Copy back results to gpu if necessary.
         if (is_gpu_executor) {
             const auto gpu_exec = this->get_executor();
-            auto gpu_perm = PermutationMatrix::create(gpu_exec, dim);
+            auto gpu_perm = share(PermutationMatrix::create(gpu_exec, dim));
             gpu_perm->copy_from(permutation_.get());
-            permutation_ = gko::share(gpu_perm);
+            permutation_ = gpu_perm;
             if (inv_permutation_) {
-                auto gpu_inv_perm = PermutationMatrix::create(gpu_exec, dim);
+                auto gpu_inv_perm =
+                    share(PermutationMatrix::create(gpu_exec, dim));
                 gpu_inv_perm->copy_from(inv_permutation_.get());
-                inv_permutation_ = gko::share(gpu_inv_perm);
+                inv_permutation_ = gpu_inv_perm;
             }
         }
+        auto permutation_array =
+            make_array_view(this->get_executor(), permutation_->get_size()[0],
+                            permutation_->get_permutation());
+        this->set_permutation_array(permutation_array);
     }
 
 private:

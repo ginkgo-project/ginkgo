@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ACCESSOR_ROW_MAJOR_HPP_
 
 #include <array>
+#include <cinttypes>
+
 
 #include "accessor_helper.hpp"
 #include "range.hpp"
@@ -80,11 +82,14 @@ public:
     /**
      * Type of underlying data storage.
      */
-    using data_type = value_type *;
+    using data_type = value_type*;
 
     using const_accessor = row_major<const ValueType, Dimensionality>;
     using length_type = std::array<size_type, dimensionality>;
     using stride_type = std::array<size_type, dimensionality - 1>;
+
+private:
+    using index_type = std::int64_t;
 
 protected:
     /**
@@ -113,8 +118,7 @@ protected:
     constexpr GKO_ACC_ATTRIBUTES explicit row_major(length_type size,
                                                     data_type data)
         : row_major{size, data,
-                    helper::compute_default_row_major_stride_array<
-                        typename stride_type::value_type>(size)}
+                    helper::compute_default_row_major_stride_array(size)}
     {}
 
 public:
@@ -140,10 +144,10 @@ public:
      */
     template <typename... Indices>
     constexpr GKO_ACC_ATTRIBUTES
-        std::enable_if_t<are_all_integral<Indices...>::value, value_type &>
-        operator()(Indices &&... indices) const
+        std::enable_if_t<are_all_integral<Indices...>::value, value_type&>
+        operator()(Indices&&... indices) const
     {
-        return data[helper::compute_row_major_index(
+        return data[helper::compute_row_major_index<index_type>(
             lengths, stride, std::forward<Indices>(indices)...)];
     }
 
@@ -165,7 +169,7 @@ public:
                range<row_major>{
                    length_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
-                   data + helper::compute_row_major_index(
+                   data + helper::compute_row_major_index<index_type>(
                               lengths, stride, (index_span{spans}.begin)...),
                    stride};
     }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -127,8 +127,8 @@ DEFINE_double(repetition_growth_factor, 1.5,
  * @param header  a header which describes the benchmark
  * @param format  the format of the benchmark input data
  */
-void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
-                                 std::string &format)
+void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
+                                 std::string& format)
 {
     std::ostringstream doc;
     doc << header << "Usage: " << (*argv)[0] << " [options]\n"
@@ -157,7 +157,7 @@ void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
  *
  * @param extra  describes benchmark specific extra parameters to output
  */
-void print_general_information(std::string &extra)
+void print_general_information(const std::string& extra)
 {
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
@@ -188,7 +188,7 @@ void print_general_information(std::string &extra)
  */
 template <typename MatrixType>
 std::unique_ptr<gko::LinOp> read_matrix(
-    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value &options)
+    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value& options)
 {
     return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
                                  std::move(exec));
@@ -196,15 +196,15 @@ std::unique_ptr<gko::LinOp> read_matrix(
 
 
 // Returns a random number engine
-std::ranlux24 &get_engine()
+std::default_random_engine& get_engine()
 {
-    static std::ranlux24 engine(FLAGS_seed);
+    static std::default_random_engine engine(FLAGS_seed);
     return engine;
 }
 
 
 // helper for writing out rapidjson Values
-std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
+std::ostream& operator<<(std::ostream& os, const rapidjson::Value& value)
 {
     rapidjson::OStreamWrapper jos(os);
     rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
@@ -220,8 +220,8 @@ std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 template <typename T, typename NameType, typename Allocator>
 std::enable_if_t<
     !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
-                  Allocator &&allocator)
+add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
+                  Allocator&& allocator)
 {
     if (object.HasMember(name)) {
         object[name] = std::forward<T>(value);
@@ -241,8 +241,8 @@ add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
 template <typename T, typename NameType, typename Allocator>
 std::enable_if_t<
     std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
-                  Allocator &&allocator)
+add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
+                  Allocator&& allocator)
 {
     if (object.HasMember(name)) {
         object[name] =
@@ -257,7 +257,7 @@ add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
 
 
 // helper for splitting a delimiter-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter = ',')
+std::vector<std::string> split(const std::string& s, char delimiter = ',')
 {
     std::istringstream iss(s);
     std::vector<std::string> tokens;
@@ -270,7 +270,7 @@ std::vector<std::string> split(const std::string &s, char delimiter = ',')
 
 
 // backup generation
-void backup_results(rapidjson::Document &results)
+void backup_results(rapidjson::Document& results)
 {
     static int next = 0;
     static auto filenames = []() -> std::array<std::string, 2> {
@@ -290,30 +290,35 @@ void backup_results(rapidjson::Document &results)
 
 
 // executor mapping
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
     executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
+        {"reference", [](bool) { return gko::ReferenceExecutor::create(); }},
+        {"omp", [](bool) { return gko::OmpExecutor::create(); }},
         {"cuda",
-         [] {
+         [](bool) {
              return gko::CudaExecutor::create(FLAGS_device_id,
                                               gko::OmpExecutor::create(), true);
          }},
         {"hip",
-         [] {
+         [](bool) {
              return gko::HipExecutor::create(FLAGS_device_id,
                                              gko::OmpExecutor::create(), true);
          }},
-        {"dpcpp", [] {
-             return gko::DpcppExecutor::create(FLAGS_device_id,
-                                               gko::OmpExecutor::create());
+        {"dpcpp", [](bool use_gpu_timer) {
+             auto property = dpcpp_queue_property::in_order;
+             if (use_gpu_timer) {
+                 property = dpcpp_queue_property::in_order |
+                            dpcpp_queue_property::enable_profiling;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::OmpExecutor::create(), "all", property);
          }}};
 
 
 // returns the appropriate executor, as set by the executor flag
-std::shared_ptr<gko::Executor> get_executor()
+std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 {
-    static auto exec = executor_factory.at(FLAGS_executor)();
+    static auto exec = executor_factory.at(FLAGS_executor)(use_gpu_timer);
     return exec;
 }
 
@@ -376,7 +381,7 @@ std::unique_ptr<vec<ValueType>> create_matrix(
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine &engine)
+    RandomEngine& engine)
 {
     auto res = vec<ValueType>::create(exec);
     res->read(gko::matrix_data<ValueType, itype>(
@@ -403,7 +408,7 @@ std::unique_ptr<vec<ValueType>> create_vector(
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_vector(
     std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-    RandomEngine &engine)
+    RandomEngine& engine)
 {
     return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
 }
@@ -411,14 +416,14 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-ValueType get_norm(const vec<ValueType> *norm)
+ValueType get_norm(const vec<ValueType>* norm)
 {
-    return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+    return norm->get_executor()->copy_val_to_host(norm->get_const_values());
 }
 
 
 template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -429,9 +434,25 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
 
 
 template <typename ValueType>
+gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
+                                                    const vec<ValueType>* b,
+                                                    const vec<ValueType>* x)
+{
+    auto ref_exec = gko::ReferenceExecutor::create();
+    auto exec = solver->get_executor();
+    auto ref_solver = gko::clone(ref_exec, solver);
+    auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
+    auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
+    auto err = gko::clone(ref_exec, x);
+    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(err));
+    return compute_norm2(lend(err));
+}
+
+
+template <typename ValueType>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp *system_matrix, const vec<ValueType> *b,
-    const vec<ValueType> *x)
+    const gko::LinOp* system_matrix, const vec<ValueType>* b,
+    const vec<ValueType>* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -444,7 +465,7 @@ gko::remove_complex<ValueType> compute_residual_norm(
 
 template <typename ValueType>
 gko::remove_complex<ValueType> compute_max_relative_norm2(
-    vec<ValueType> *result, const vec<ValueType> *answer)
+    vec<ValueType>* result, const vec<ValueType>* answer)
 {
     using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
@@ -526,7 +547,7 @@ public:
      *
      * @param timer  the timer that is to be used for the timings
      */
-    explicit IterationControl(const std::shared_ptr<Timer> &timer)
+    explicit IterationControl(const std::shared_ptr<Timer>& timer)
     {
         status_warmup_ = {TimerManager{timer, false}, FLAGS_warmup,
                           FLAGS_warmup, 0., 0};
@@ -541,8 +562,8 @@ public:
     }
 
     IterationControl() = default;
-    IterationControl(const IterationControl &) = default;
-    IterationControl(IterationControl &&) = default;
+    IterationControl(const IterationControl&) = default;
+    IterationControl(IterationControl&&) = default;
 
     /**
      * Creates iterable `run_control` object for the warmup run.
@@ -685,7 +706,7 @@ private:
              *
              * @return true if benchmark is not finished, else false
              */
-            bool operator!=(const iterator &)
+            bool operator!=(const iterator&)
             {
                 const bool is_finished = cur_info->is_finished();
                 if (!is_finished && stopped) {
@@ -698,7 +719,7 @@ private:
                 return !is_finished;
             }
 
-            status *cur_info;
+            status* cur_info;
             IndexType next_timing = 1;  //!< next iteration to stop timing
             bool stopped = true;
         };
@@ -708,7 +729,7 @@ private:
         // not used, could potentially used in c++17 as a sentinel
         iterator end() const { return iterator{}; }
 
-        status *info;
+        status* info;
     };
 
     status status_warmup_;

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#include <thrust/tuple.h>
 
 
-#include "hip/base/device_guard.hip.hpp"
+#include "accessor/hip_helper.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
@@ -49,56 +50,34 @@ namespace kernels {
 namespace hip {
 
 
+template <typename AccessorType>
+struct to_device_type_impl<gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(
+        gko::acc::as_hip_range(std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_hip_range(range);
+    }
+};
+
+template <typename AccessorType>
+struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(
+        gko::acc::as_hip_range(std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(const gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_hip_range(range);
+    }
+};
+
+
+namespace device_std = thrust;
+
+
 constexpr int default_block_size = 512;
 
 
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
-    size_type size, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    if (tidx >= size) {
-        return;
-    }
-    fn(tidx, args...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
-    size_type rows, size_type cols, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    auto col = tidx % cols;
-    auto row = tidx / cols;
-    if (row >= rows) {
-        return;
-    }
-    fn(row, col, args...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
-{
-    gko::hip::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = default_block_size;
-    auto num_blocks = ceildiv(size, block_size);
-    hipLaunchKernelGGL(generic_kernel_1d, num_blocks, block_size, 0, 0, size,
-                       fn, map_to_device(args)...);
-}
-
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
-{
-    gko::hip::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = default_block_size;
-    auto num_blocks = ceildiv(size[0] * size[1], block_size);
-    hipLaunchKernelGGL(generic_kernel_2d, num_blocks, block_size, 0, 0, size[0],
-                       size[1], fn, map_to_device(args)...);
-}
+#include "common/cuda_hip/base/kernel_launch.hpp.inc"
 
 
 }  // namespace hip

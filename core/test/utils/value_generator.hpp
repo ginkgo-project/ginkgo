@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ namespace detail {
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return value_dist(gen);
 }
@@ -72,7 +72,7 @@ get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return ValueType(value_dist(gen), value_dist(gen));
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,8 +80,7 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(ref);
     auto refmat = sample.generate_fbcsr();
-    auto dpcppmat = Mtx::create(dpcpp);
-    dpcppmat->copy_from(gko::lend(refmat));
+    auto dpcppmat = gko::clone(dpcpp, refmat);
     MatData refdata;
     MatData dpcppdata;
 

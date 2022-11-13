@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -61,8 +61,8 @@ namespace coo {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Coo<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Coo<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
@@ -73,11 +73,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Coo<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Coo<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
@@ -89,8 +89,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Coo<ValueType, IndexType> *a,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+           const matrix::Coo<ValueType, IndexType>* a,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
@@ -108,10 +108,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Dense<ValueType> *alpha,
-                    const matrix::Coo<ValueType, IndexType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
+                    const matrix::Dense<ValueType>* alpha,
+                    const matrix::Coo<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
@@ -130,63 +130,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
-{
-    convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
-}
-
-
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Coo<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_ptrs = result->get_row_ptrs();
-    const auto nnz = result->get_num_stored_elements();
-
-    const auto source_row_idxs = source->get_const_row_idxs();
-
-    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
-                             num_rows + 1);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Coo<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
     auto coo_row = source->get_const_row_idxs();
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
-        }
-    }
     for (size_type i = 0; i < source->get_num_stored_elements(); i++) {
         result->at(coo_row[i], coo_col[i]) += coo_val[i];
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Coo<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto row_idxs = orig->get_const_row_idxs();
     const auto col_idxs = orig->get_const_col_idxs();

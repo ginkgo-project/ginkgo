@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,16 +39,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 namespace criterion {
+namespace {
 
 
 GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 
 
+}  // anonymous namespace
 }  // namespace criterion
 
 
 void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
-                                 Array<stopping_status> *stop_status)
+                                 array<stopping_status>* stop_status)
 {
     this->get_executor()->run(criterion::make_set_all_statuses(
         stoppingId, setFinalized, stop_status));

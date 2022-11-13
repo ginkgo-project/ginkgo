@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T> &a)
+    static void assert_equal_to_original_x(gko::array<T>& a)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
         EXPECT_EQ(a.get_data()[0], T{5});
@@ -61,10 +61,10 @@ protected:
     }
 
     std::shared_ptr<gko::Executor> exec;
-    gko::Array<T> x;
+    gko::array<T> x;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
@@ -91,4 +91,30 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
     }
 
     this->assert_equal_to_original_x(this->x);
+}
+
+
+TYPED_TEST(Array, CanBeReduced)
+{
+    using T = TypeParam;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+    auto arr = gko::array<TypeParam>(cuda, I<T>{4, 6});
+    auto out = gko::array<TypeParam>(cuda, I<T>{2});
+
+    gko::reduce_add(arr, out);
+
+    out.set_executor(cuda->get_master());
+    ASSERT_EQ(out.get_data()[0], T{12});
+}
+
+
+TYPED_TEST(Array, CanBeReduced2)
+{
+    using T = TypeParam;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+    auto arr = gko::array<TypeParam>(cuda, I<T>{4, 6});
+
+    auto out = gko::reduce_add(arr, T{3});
+
+    ASSERT_EQ(out, T{13});
 }

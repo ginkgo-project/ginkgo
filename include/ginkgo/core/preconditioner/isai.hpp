@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -143,6 +143,34 @@ public:
                                             Csr>::type>(approximate_inverse_);
     }
 
+    /**
+     * Copy-assigns an ISAI preconditioner. Preserves the executor,
+     * shallow-copies the matrix and parameters. Creates a clone of the matrix
+     * if it is on the wrong executor.
+     */
+    Isai& operator=(const Isai& other);
+
+    /**
+     * Move-assigns an ISAI preconditioner. Preserves the executor,
+     * moves the matrix and parameters. Creates a clone of the matrix
+     * if it is on the wrong executor. The moved-from object is empty (0x0
+     * with nullptr matrix and default parameters)
+     */
+    Isai& operator=(Isai&& other);
+
+    /**
+     * Copy-constructs an ISAI preconditioner. Inherits the executor,
+     * shallow-copies the matrix and parameters.
+     */
+    Isai(const Isai& other);
+
+    /**
+     * Move-constructs an ISAI preconditioner. Inherits the executor,
+     * moves the matrix and parameters. The moved-from object is empty (0x0
+     * with nullptr matrix and default parameters)
+     */
+    Isai(Isai&& other);
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -206,7 +234,7 @@ protected:
      * @param factory  the factory to use to create the preconditoner
      * @param system_matrix  the matrix for which an ISAI is to be computed
      */
-    explicit Isai(const Factory *factory,
+    explicit Isai(const Factory* factory,
                   std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
@@ -223,13 +251,13 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         approximate_inverse_->apply(b, x);
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         approximate_inverse_->apply(alpha, b, beta, x);
     }

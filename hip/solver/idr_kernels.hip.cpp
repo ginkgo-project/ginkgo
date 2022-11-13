@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/hiprand_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -78,8 +78,8 @@ namespace {
 
 
 template <typename ValueType>
-void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
-                  Array<stopping_status> *stop_status)
+void initialize_m(const size_type nrhs, matrix::Dense<ValueType>* m,
+                  array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
@@ -93,17 +93,12 @@ void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
+void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
-    if (deterministic) {
-        auto subspace_vectors_data = matrix_data<ValueType>(
-            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
-            std::ranlux48(15));
-        subspace_vectors->read(subspace_vectors_data);
-    } else {
-        auto gen =
-            hiprand::rand_generator(time(NULL), HIPRAND_RNG_PSEUDO_DEFAULT);
+    if (!deterministic) {
+        auto gen = hiprand::rand_generator(std::random_device{}(),
+                                           HIPRAND_RNG_PSEUDO_DEFAULT);
         hiprand::rand_vector(
             gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
@@ -113,7 +108,7 @@ void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
 
 
 template <typename ValueType>
-void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
+void orthonormalize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors)
 {
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(
@@ -127,10 +122,10 @@ void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
 
 template <typename ValueType>
 void solve_lower_triangular(const size_type nrhs,
-                            const matrix::Dense<ValueType> *m,
-                            const matrix::Dense<ValueType> *f,
-                            matrix::Dense<ValueType> *c,
-                            const Array<stopping_status> *stop_status)
+                            const matrix::Dense<ValueType>* m,
+                            const matrix::Dense<ValueType>* f,
+                            matrix::Dense<ValueType>* c,
+                            const array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
 
@@ -147,13 +142,16 @@ void solve_lower_triangular(const size_type nrhs,
 template <typename ValueType>
 void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
                     const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType> *p,
-                    const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *alpha,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-                    matrix::Dense<ValueType> *u,
-                    const Array<stopping_status> *stop_status)
+                    const matrix::Dense<ValueType>* p,
+                    const matrix::Dense<ValueType>* m,
+                    matrix::Dense<ValueType>* alpha,
+                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+                    matrix::Dense<ValueType>* u,
+                    const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
 
@@ -198,10 +196,13 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType>
 void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-              const size_type k, const matrix::Dense<ValueType> *p,
-              const matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *m,
-              const Array<stopping_status> *stop_status)
+              const size_type k, const matrix::Dense<ValueType>* p,
+              const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
+              const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -232,12 +233,12 @@ void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
 template <typename ValueType>
 void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
                       const size_type nrhs, const size_type k,
-                      const matrix::Dense<ValueType> *m,
-                      const matrix::Dense<ValueType> *g,
-                      const matrix::Dense<ValueType> *u,
-                      matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *r,
-                      matrix::Dense<ValueType> *x,
-                      const Array<stopping_status> *stop_status)
+                      const matrix::Dense<ValueType>* m,
+                      const matrix::Dense<ValueType>* g,
+                      const matrix::Dense<ValueType>* u,
+                      matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* r,
+                      matrix::Dense<ValueType>* x,
+                      const array<stopping_status>* stop_status)
 {
     const auto size = x->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -262,9 +263,9 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType>* m,
+                matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
+                array<stopping_status>* stop_status)
 {
     initialize_m(nrhs, m, stop_status);
     initialize_subspace_vectors(subspace_vectors, deterministic);
@@ -276,12 +277,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *m,
-            const matrix::Dense<ValueType> *f,
-            const matrix::Dense<ValueType> *residual,
-            const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *c,
-            matrix::Dense<ValueType> *v,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* m,
+            const matrix::Dense<ValueType>* f,
+            const matrix::Dense<ValueType>* residual,
+            const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
+            matrix::Dense<ValueType>* v,
+            const array<stopping_status>* stop_status)
 {
     solve_lower_triangular(nrhs, m, f, c, stop_status);
 
@@ -304,11 +305,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *omega,
-            const matrix::Dense<ValueType> *preconditioned_vector,
-            const matrix::Dense<ValueType> *c, matrix::Dense<ValueType> *u,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* omega,
+            const matrix::Dense<ValueType>* preconditioned_vector,
+            const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
+            const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 
@@ -328,12 +332,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *alpha,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* p,
+            matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+            matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
+            matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* alpha,
+            matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
+            const array<stopping_status>* stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, nrhs, k, p, g_k, m, stop_status);
@@ -346,9 +350,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
-    const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
+    const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_omega_kernel), grid_dim,

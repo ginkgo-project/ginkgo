@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -163,10 +163,18 @@ TEST(Share, SharesSharedPointer)
     std::shared_ptr<Derived> p(new Derived());
     auto plain = p.get();
 
-    auto shared = gko::share(p);
+    auto shared = gko::share(std::move(p));
 
     ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
     ASSERT_EQ(plain, shared.get());
+}
+
+
+TEST(Share, SharesTemporarySharedPointer)
+{
+    auto shared = gko::share(std::make_shared<Derived>());
+
+    ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
 }
 
 
@@ -175,10 +183,18 @@ TEST(Share, SharesUniquePointer)
     std::unique_ptr<Derived> p(new Derived());
     auto plain = p.get();
 
-    auto shared = gko::share(p);
+    auto shared = gko::share(std::move(p));
 
     ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
     ASSERT_EQ(plain, shared.get());
+}
+
+
+TEST(Share, SharesTemporaryUniquePointer)
+{
+    auto shared = gko::share(std::make_unique<Derived>());
+
+    ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
 }
 
 
@@ -212,7 +228,7 @@ TEST(Lend, LendsUniquePointer)
 
     auto lent = gko::lend(p);
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -223,7 +239,7 @@ TEST(Lend, LendsSharedPointer)
 
     auto lent = gko::lend(p);
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -234,7 +250,7 @@ TEST(Lend, LendsPlainPointer)
 
     auto lent = gko::lend(p.get());
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -243,7 +259,7 @@ TEST(As, ConvertsPolymorphicType)
 {
     Derived d;
 
-    Base *b = &d;
+    Base* b = &d;
 
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
@@ -252,12 +268,12 @@ TEST(As, ConvertsPolymorphicType)
 TEST(As, FailsToConvertIfNotRelated)
 {
     Derived d;
-    Base *b = &d;
+    Base* b = &d;
 
     try {
         gko::as<NonRelated>(b);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Derived));
         ASSERT_TRUE(
@@ -269,7 +285,7 @@ TEST(As, FailsToConvertIfNotRelated)
 TEST(As, ConvertsConstantPolymorphicType)
 {
     Derived d;
-    const Base *b = &d;
+    const Base* b = &d;
 
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
@@ -278,12 +294,12 @@ TEST(As, ConvertsConstantPolymorphicType)
 TEST(As, FailsToConvertConstantIfNotRelated)
 {
     Derived d;
-    const Base *b = &d;
+    const Base* b = &d;
 
     try {
         gko::as<NonRelated>(b);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Derived));
         ASSERT_TRUE(
@@ -452,7 +468,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 {
     {
         auto clone = make_temporary_clone(
-            omp, static_cast<const DummyObject *>(gko::lend(obj)));
+            omp, static_cast<const DummyObject*>(gko::lend(obj)));
         obj->data = 7;
     }
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,18 +60,18 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_free(void *ptr) const noexcept
+void HipExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -79,37 +79,41 @@ void HipExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *HipExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(hip);
+void* HipExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::run(const Operation &op) const
+void HipExecutor::run(const Operation& op) const
 {
     op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
 }
+
+
+scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
+    GKO_NOT_COMPILED(hip);
 
 
 std::string HipError::get_error(int64)
@@ -136,6 +140,12 @@ std::string HipsparseError::get_error(int64)
 }
 
 
+std::string HipfftError::get_error(int64)
+{
+    return "ginkgo HIP module is not compiled";
+}
+
+
 int HipExecutor::get_num_devices() { return 0; }
 
 
@@ -143,6 +153,11 @@ void HipExecutor::set_gpu_property() {}
 
 
 void HipExecutor::init_handles() {}
+
+
+scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
+                                               int device_id)
+    GKO_NOT_COMPILED(hip);
 
 
 }  // namespace gko

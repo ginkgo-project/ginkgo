@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,34 +50,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Bicgstab : public ::testing::Test {
+class Bicgstab : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Bicgstab<value_type>;
 
-    Bicgstab() : rand_engine(30) {}
-
-    void SetUp()
+    Bicgstab() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-
-        mtx = gen_mtx(123, 123, 125);
-        gko::test::make_diag_dominant(mtx.get());
-        d_mtx = Mtx::create(exec);
-        d_mtx->copy_from(mtx.get());
+        auto data = gko::matrix_data<value_type, index_type>(
+            gko::dim<2>{123, 123},
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::utils::make_diag_dominant(data);
+        mtx = Mtx::create(ref, data.size, 125);
+        mtx->read(data);
+        d_mtx = gko::clone(exec, mtx);
         exec_bicgstab_factory =
             Solver::build()
                 .with_criteria(
@@ -95,13 +85,6 @@ protected:
                         .with_reduction_factor(::r<value_type>::value)
                         .on(ref))
                 .on(ref);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
@@ -142,57 +125,35 @@ protected:
         beta->at(2) = 0.0;
         omega->at(2) = 0.0;
         omega->at(3) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < n; ++i) {
             stop_status->get_data()[i].reset();
         }
         // check correct handling for stopped columns
         stop_status->get_data()[1].stop(1);
 
-        d_x = Mtx::create(exec);
-        d_b = Mtx::create(exec);
-        d_r = Mtx::create(exec);
-        d_z = Mtx::create(exec);
-        d_p = Mtx::create(exec);
-        d_t = Mtx::create(exec);
-        d_s = Mtx::create(exec);
-        d_y = Mtx::create(exec);
-        d_v = Mtx::create(exec);
-        d_rr = Mtx::create(exec);
-        d_prev_rho = Mtx::create(exec);
-        d_rho = Mtx::create(exec);
-        d_alpha = Mtx::create(exec);
-        d_beta = Mtx::create(exec);
-        d_gamma = Mtx::create(exec);
-        d_omega = Mtx::create(exec);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec));
-
-        d_x->copy_from(x.get());
-        d_b->copy_from(b.get());
-        d_r->copy_from(r.get());
-        d_z->copy_from(z.get());
-        d_p->copy_from(p.get());
-        d_v->copy_from(v.get());
-        d_y->copy_from(y.get());
-        d_t->copy_from(t.get());
-        d_s->copy_from(s.get());
-        d_rr->copy_from(rr.get());
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho->copy_from(rho.get());
-        d_alpha->copy_from(alpha.get());
-        d_beta->copy_from(beta.get());
-        d_gamma->copy_from(gamma.get());
-        d_omega->copy_from(omega.get());
-        *d_stop_status =
-            *stop_status;  // copy_from is not a public member function of Array
+        d_x = gko::clone(exec, x);
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_z = gko::clone(exec, z);
+        d_p = gko::clone(exec, p);
+        d_t = gko::clone(exec, t);
+        d_s = gko::clone(exec, s);
+        d_y = gko::clone(exec, y);
+        d_v = gko::clone(exec, v);
+        d_rr = gko::clone(exec, rr);
+        d_prev_rho = gko::clone(exec, prev_rho);
+        d_rho = gko::clone(exec, rho);
+        d_alpha = gko::clone(exec, alpha);
+        d_beta = gko::clone(exec, beta);
+        d_gamma = gko::clone(exec, gamma);
+        d_omega = gko::clone(exec, omega);
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
@@ -215,7 +176,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -233,7 +194,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -326,16 +287,13 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
     auto b = gen_mtx(m, n, n + 2);
     auto x = gen_mtx(m, n, n + 3);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 500);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
 
 
@@ -347,17 +305,11 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
     auto b = gen_mtx(m, n, n + 4);
     auto x = gen_mtx(m, n, n + 3);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 500);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 2000);
 }
-
-
-}  // namespace

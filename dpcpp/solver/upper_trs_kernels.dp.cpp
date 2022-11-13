@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 namespace gko {
@@ -60,29 +60,18 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                              bool &do_transpose)
+                              bool& do_transpose)
 {
     do_transpose = false;
 }
 
 
-void init_struct(std::shared_ptr<const DpcppExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
-{
-    // This init kernel is here to allow initialization of the solve struct for
-    // a more sophisticated implementation as for other executors.
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DpcppExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
-{
-    // This generate kernel is here to allow for a more sophisticated
-    // implementation as for other executors. This kernel would perform the
-    // "analysis" phase for the triangular matrix.
-}
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              const size_type num_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
@@ -94,11 +83,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct, bool unit_diag,
+           const solver::trisolve_algorithm algorithm,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b,
+           matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);

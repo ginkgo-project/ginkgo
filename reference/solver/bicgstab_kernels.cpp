@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,15 +54,15 @@ namespace bicgstab {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *rr, matrix::Dense<ValueType> *y,
-                matrix::Dense<ValueType> *s, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
-                matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
-                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *omega,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
+                matrix::Dense<ValueType>* rr, matrix::Dense<ValueType>* y,
+                matrix::Dense<ValueType>* s, matrix::Dense<ValueType>* t,
+                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* v,
+                matrix::Dense<ValueType>* p, matrix::Dense<ValueType>* prev_rho,
+                matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* alpha,
+                matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* gamma,
+                matrix::Dense<ValueType>* omega,
+                array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         rho->at(j) = one<ValueType>();
@@ -92,20 +92,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *v,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* p,
+            const matrix::Dense<ValueType>* v,
+            const matrix::Dense<ValueType>* rho,
+            const matrix::Dense<ValueType>* prev_rho,
+            const matrix::Dense<ValueType>* alpha,
+            const matrix::Dense<ValueType>* omega,
+            const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < p->get_size()[0]; ++i) {
         for (size_type j = 0; j < p->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
+            if (is_nonzero(prev_rho->at(j) * omega->at(j))) {
                 const auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
                 p->at(i, j) = r->at(i, j) +
@@ -122,19 +122,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
-            const matrix::Dense<ValueType> *v,
-            const matrix::Dense<ValueType> *rho,
-            matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* s,
+            const matrix::Dense<ValueType>* v,
+            const matrix::Dense<ValueType>* rho,
+            matrix::Dense<ValueType>* alpha,
+            const matrix::Dense<ValueType>* beta,
+            const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < s->get_size()[0]; ++i) {
         for (size_type j = 0; j < s->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (beta->at(j) != zero<ValueType>()) {
+            if (is_nonzero(beta->at(j))) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             } else {
@@ -150,18 +150,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(
-    std::shared_ptr<const ReferenceExecutor> exec, matrix::Dense<ValueType> *x,
-    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
-    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
-    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
-    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+    std::shared_ptr<const ReferenceExecutor> exec, matrix::Dense<ValueType>* x,
+    matrix::Dense<ValueType>* r, const matrix::Dense<ValueType>* s,
+    const matrix::Dense<ValueType>* t, const matrix::Dense<ValueType>* y,
+    const matrix::Dense<ValueType>* z, const matrix::Dense<ValueType>* alpha,
+    const matrix::Dense<ValueType>* beta, const matrix::Dense<ValueType>* gamma,
+    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (beta->at(j) != zero<ValueType>()) {
+        if (is_nonzero(beta->at(j))) {
             omega->at(j) = gamma->at(j) / beta->at(j);
         } else {
             omega->at(j) = zero<ValueType>();
@@ -184,9 +184,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
 template <typename ValueType>
 void finalize(std::shared_ptr<const ReferenceExecutor> exec,
-              matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
-              const matrix::Dense<ValueType> *alpha,
-              Array<stopping_status> *stop_status)
+              matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+              const matrix::Dense<ValueType>* alpha,
+              array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped() &&

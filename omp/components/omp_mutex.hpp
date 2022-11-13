@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,10 +51,10 @@ struct omp_mutex {
     omp_mutex() { omp_init_lock(&lock_); }
     ~omp_mutex() { omp_destroy_lock(&lock_); }
 
-    omp_mutex(const omp_mutex &) = delete;
-    omp_mutex(omp_mutex &&) = delete;
-    omp_mutex &operator=(const omp_mutex &) = delete;
-    omp_mutex &operator=(omp_mutex &&) = delete;
+    omp_mutex(const omp_mutex&) = delete;
+    omp_mutex(omp_mutex&&) = delete;
+    omp_mutex& operator=(const omp_mutex&) = delete;
+    omp_mutex& operator=(omp_mutex&&) = delete;
 
     void lock() { omp_set_lock(&lock_); }
 

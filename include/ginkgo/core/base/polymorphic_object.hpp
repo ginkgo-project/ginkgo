@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ public:
     }
 
     // preserve the executor of the object
-    PolymorphicObject &operator=(const PolymorphicObject &) { return *this; }
+    PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
 
     /**
      * Creates a new "default" object of the same dynamic type as this object.
@@ -155,7 +155,7 @@ public:
      *
      * @return this
      */
-    PolymorphicObject *copy_from(const PolymorphicObject *other)
+    PolymorphicObject* copy_from(const PolymorphicObject* other)
     {
         this->template log<log::Logger::polymorphic_object_copy_started>(
             exec_.get(), other, this);
@@ -176,12 +176,54 @@ public:
      *
      * @return this
      */
-    PolymorphicObject *copy_from(std::unique_ptr<PolymorphicObject> other)
+    PolymorphicObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        this->template log<log::Logger::polymorphic_object_copy_started>(
+        this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
         auto copied = this->copy_from_impl(std::move(other));
-        this->template log<log::Logger::polymorphic_object_copy_completed>(
+        this->template log<log::Logger::polymorphic_object_move_completed>(
+            exec_.get(), other.get(), this);
+        return copied;
+    }
+
+    /**
+     * Moves another object into this object.
+     *
+     * This is the polymorphic equivalent of the move assignment operator.
+     *
+     * @see move_from_impl(PolymorphicObject *)
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    PolymorphicObject* move_from(PolymorphicObject* other)
+    {
+        this->template log<log::Logger::polymorphic_object_move_started>(
+            exec_.get(), other, this);
+        auto moved = this->move_from_impl(other);
+        this->template log<log::Logger::polymorphic_object_move_completed>(
+            exec_.get(), other, this);
+        return moved;
+    }
+
+    /**
+     * Moves another object into this object.
+     *
+     * This is the polymorphic equivalent of the move assignment operator.
+     *
+     * @see move_from_impl(std::unique_ptr<PolymorphicObject>)
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    PolymorphicObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    {
+        this->template log<log::Logger::polymorphic_object_move_started>(
+            exec_.get(), other.get(), this);
+        auto copied = this->copy_from_impl(std::move(other));
+        this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other.get(), this);
         return copied;
     }
@@ -195,7 +237,7 @@ public:
      *
      * @return this
      */
-    PolymorphicObject *clear() { return this->clear_impl(); }
+    PolymorphicObject* clear() { return this->clear_impl(); }
 
     /**
      * Returns the Executor of the object.
@@ -222,7 +264,7 @@ protected:
     {}
 
     // preserve the executor of the object
-    explicit PolymorphicObject(const PolymorphicObject &other)
+    explicit PolymorphicObject(const PolymorphicObject& other)
     {
         *this = other;
     }
@@ -246,8 +288,8 @@ protected:
      *
      * @return this
      */
-    virtual PolymorphicObject *copy_from_impl(
-        const PolymorphicObject *other) = 0;
+    virtual PolymorphicObject* copy_from_impl(
+        const PolymorphicObject* other) = 0;
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
@@ -257,7 +299,28 @@ protected:
      *
      * @return this
      */
-    virtual PolymorphicObject *copy_from_impl(
+    virtual PolymorphicObject* copy_from_impl(
+        std::unique_ptr<PolymorphicObject> other) = 0;
+
+    /**
+     * Implementers of PolymorphicObject should implement this function instead
+     * of move_from(PolymorphicObject *).
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    virtual PolymorphicObject* move_from_impl(PolymorphicObject* other) = 0;
+
+    /**
+     * Implementers of PolymorphicObject should implement this function instead
+     * of move_from(std::unique_ptr<PolymorphicObject>).
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    virtual PolymorphicObject* move_from_impl(
         std::unique_ptr<PolymorphicObject> other) = 0;
 
     /**
@@ -266,7 +329,7 @@ protected:
      *
      * @return this
      */
-    virtual PolymorphicObject *clear_impl() = 0;
+    virtual PolymorphicObject* clear_impl() = 0;
 
 private:
     std::shared_ptr<const Executor> exec_;
@@ -299,42 +362,56 @@ public:
     std::unique_ptr<AbstractObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject *>(
-            this->create_default_impl(std::move(exec)).release())};
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::create_default(std::move(exec)).release())};
     }
 
     std::unique_ptr<AbstractObject> create_default() const
     {
-        return this->create_default(this->get_executor());
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::create_default().release())};
     }
 
     std::unique_ptr<AbstractObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->create_default(exec);
-        new_op->copy_from(this);
-        return new_op;
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::clone(std::move(exec)).release())};
     }
 
     std::unique_ptr<AbstractObject> clone() const
     {
-        return this->clone(this->get_executor());
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::clone().release())};
     }
 
-    AbstractObject *copy_from(const PolymorphicObject *other)
+    AbstractObject* copy_from(const PolymorphicObject* other)
     {
-        return static_cast<AbstractObject *>(this->copy_from_impl(other));
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::copy_from(other));
     }
 
-    AbstractObject *copy_from(std::unique_ptr<PolymorphicObject> other)
+    AbstractObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        return static_cast<AbstractObject *>(
-            this->copy_from_impl(std::move(other)));
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::copy_from(std::move(other)));
     }
 
-    AbstractObject *clear()
+    AbstractObject* move_from(PolymorphicObject* other)
     {
-        return static_cast<AbstractObject *>(this->clear_impl());
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::move_from(other));
+    }
+
+    AbstractObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    {
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::move_from(std::move(other)));
+    }
+
+    AbstractObject* clear()
+    {
+        return static_cast<AbstractObject*>(this->PolymorphicBase::clear());
     }
 };
 
@@ -347,12 +424,12 @@ public:
  * implementing mixins which depend on the type of the affected object, in which
  * case the type is set to the affected object (i.e. the CRTP parameter).
  */
-#define GKO_ENABLE_SELF(_type)                                    \
-    _type *self() noexcept { return static_cast<_type *>(this); } \
-                                                                  \
-    const _type *self() const noexcept                            \
-    {                                                             \
-        return static_cast<const _type *>(this);                  \
+#define GKO_ENABLE_SELF(_type)                                   \
+    _type* self() noexcept { return static_cast<_type*>(this); } \
+                                                                 \
+    const _type* self() const noexcept                           \
+    {                                                            \
+        return static_cast<const _type*>(this);                  \
     }
 
 
@@ -398,7 +475,7 @@ public:
      *
      * @param result  the object used to store the result of the conversion
      */
-    virtual void convert_to(result_type *result) const = 0;
+    virtual void convert_to(result_type* result) const = 0;
 
     /**
      * Converts the implementer to an object of type result_type by moving data
@@ -414,7 +491,7 @@ public:
      *       optimized by exploiting the fact that implementer's data can be
      *       moved to the result.
      */
-    virtual void move_to(result_type *result) = 0;
+    virtual void move_to(result_type* result) = 0;
 };
 
 
@@ -422,12 +499,12 @@ namespace detail {
 
 
 template <typename R, typename T>
-std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to_impl(
-    std::shared_ptr<const Executor> exec, T *obj)
+std::unique_ptr<R, std::function<void(R*)>> copy_and_convert_to_impl(
+    std::shared_ptr<const Executor> exec, T* obj)
 {
-    auto obj_as_r = dynamic_cast<R *>(obj);
+    auto obj_as_r = dynamic_cast<R*>(obj);
     if (obj_as_r != nullptr && obj->get_executor() == exec) {
-        return {obj_as_r, [](R *) {}};
+        return {obj_as_r, [](R*) {}};
     } else {
         auto copy = R::create(exec);
         as<ConvertibleTo<std::decay_t<R>>>(obj)->convert_to(lend(copy));
@@ -471,8 +548,8 @@ std::shared_ptr<R> copy_and_convert_to_impl(
  *         object
  */
 template <typename R, typename T>
-std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to(
-    std::shared_ptr<const Executor> exec, T *obj)
+std::unique_ptr<R, std::function<void(R*)>> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, T* obj)
 {
     return detail::copy_and_convert_to_impl<R>(std::move(exec), obj);
 }
@@ -485,8 +562,8 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to(
  *       result if the input had the same qualifier.
  */
 template <typename R, typename T>
-std::unique_ptr<const R, std::function<void(const R *)>> copy_and_convert_to(
-    std::shared_ptr<const Executor> exec, const T *obj)
+std::unique_ptr<const R, std::function<void(const R*)>> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, const T* obj)
 {
     return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
 }
@@ -559,6 +636,9 @@ std::shared_ptr<const R> copy_and_convert_to(
  *        ConvertibleTo<ConcreteObject> interface). To enable a default
  *        implementation of this interface see the EnablePolymorphicAssignment
  *        mixin.
+ * @note  This mixin can't be used with concrete types that derive from
+ *        experimental::distributed::DistributedBase. In that case use
+ *        experimental::EnableDistributedPolymorphicObject instead.
  *
  * @tparam ConcreteObject  the concrete type which is being implemented
  *                         [CRTP parameter]
@@ -579,20 +659,33 @@ protected:
         return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
     }
 
-    PolymorphicObject *copy_from_impl(const PolymorphicObject *other) override
+    PolymorphicObject* copy_from_impl(const PolymorphicObject* other) override
     {
         as<ConvertibleTo<ConcreteObject>>(other)->convert_to(self());
         return this;
     }
 
-    PolymorphicObject *copy_from_impl(
+    PolymorphicObject* copy_from_impl(
         std::unique_ptr<PolymorphicObject> other) override
     {
         as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
         return this;
     }
 
-    PolymorphicObject *clear_impl() override
+    PolymorphicObject* move_from_impl(PolymorphicObject* other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other)->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* move_from_impl(
+        std::unique_ptr<PolymorphicObject> other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* clear_impl() override
     {
         *self() = ConcreteObject{this->get_executor()};
         return this;
@@ -620,9 +713,9 @@ class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
 public:
     using result_type = ResultType;
 
-    void convert_to(result_type *result) const override { *result = *self(); }
+    void convert_to(result_type* result) const override { *result = *self(); }
 
-    void move_to(result_type *result) override { *result = std::move(*self()); }
+    void move_to(result_type* result) override { *result = std::move(*self()); }
 
 private:
     GKO_ENABLE_SELF(ConcreteType);
@@ -641,7 +734,7 @@ template <typename ConcreteType>
 class EnableCreateMethod {
 public:
     template <typename... Args>
-    static std::unique_ptr<ConcreteType> create(Args &&... args)
+    static std::unique_ptr<ConcreteType> create(Args&&... args)
     {
         return std::unique_ptr<ConcreteType>(
             new ConcreteType(std::forward<Args>(args)...));

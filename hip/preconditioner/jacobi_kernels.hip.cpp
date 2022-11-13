@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -78,22 +78,25 @@ constexpr int default_grid_size = 32 * 32 * 128;
 
 template <typename ValueType, typename IndexType>
 size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              const matrix::Csr<ValueType, IndexType>* mtx,
                               int32 max_block_size,
-                              IndexType *__restrict__ block_ptrs)
+                              IndexType* __restrict__ block_ptrs)
 {
-    Array<size_type> nums(exec, 1);
+    array<size_type> nums(exec, 1);
 
-    Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
+    // FIXME: num_rows == 0 bug
+    array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(config::warp_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
-    hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
-                       0, 0, mtx->get_size()[0], max_block_size,
-                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-                       matching_next_row.get_data());
-    hipLaunchKernelGGL(generate_natural_block_pointer, dim3(1), dim3(1), 0, 0,
+    const auto block_size = config::warp_size;
+    const auto grid_size =
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
+    if (grid_size > 0) {
+        hipLaunchKernelGGL(compare_adjacent_rows, grid_size, block_size, 0, 0,
+                           mtx->get_size()[0], max_block_size,
+                           mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                           matching_next_row.get_data());
+    }
+    hipLaunchKernelGGL(generate_natural_block_pointer, 1, 1, 0, 0,
                        mtx->get_size()[0], max_block_size,
                        matching_next_row.get_const_data(), block_ptrs,
                        nums.get_data());
@@ -105,12 +108,12 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
 template <typename IndexType>
 inline size_type agglomerate_supervariables(
     std::shared_ptr<const HipExecutor> exec, int32 max_block_size,
-    size_type num_natural_blocks, IndexType *block_ptrs)
+    size_type num_natural_blocks, IndexType* block_ptrs)
 {
-    Array<size_type> nums(exec, 1);
+    array<size_type> nums(exec, 1);
 
-    hipLaunchKernelGGL(agglomerate_supervariables_kernel, dim3(1), dim3(1), 0,
-                       0, max_block_size, num_natural_blocks, block_ptrs,
+    hipLaunchKernelGGL(agglomerate_supervariables_kernel, 1, 1, 0, 0,
+                       max_block_size, num_natural_blocks, block_ptrs,
                        nums.get_data());
 
     nums.set_executor(exec->get_master());
@@ -122,25 +125,26 @@ inline size_type agglomerate_supervariables(
 
 
 void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
-                           const Array<precision_reduction> &source,
-                           Array<precision_reduction> &precisions)
+                           const array<precision_reduction>& source,
+                           array<precision_reduction>& precisions)
 {
     const auto block_size = default_num_warps * config::warp_size;
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_num_warps>),
-                       dim3(grid_size), dim3(block_size), 0, 0,
-                       source.get_const_data(), source.get_num_elems(),
-                       precisions.get_data(), precisions.get_num_elems());
+    if (grid_size > 0) {
+        hipLaunchKernelGGL(duplicate_array, grid_size, block_size, 0, 0,
+                           source.get_const_data(), source.get_num_elems(),
+                           precisions.get_data(), precisions.get_num_elems());
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType> *system_matrix,
-                 uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers)
+                 const matrix::Csr<ValueType, IndexType>* system_matrix,
+                 uint32 max_block_size, size_type& num_blocks,
+                 array<IndexType>& block_pointers)
 {
     auto num_natural_blocks = find_natural_blocks(
         exec, system_matrix, max_block_size, block_pointers.get_data());
@@ -159,33 +163,36 @@ template <bool conjugate, int warps_per_block, int max_block_size,
           typename ValueType, typename IndexType>
 void transpose_jacobi(
     syn::value_list<int, max_block_size>, size_type num_blocks,
-    const precision_reduction *block_precisions,
-    const IndexType *block_pointers, const ValueType *blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    ValueType *out_blocks)
+    const precision_reduction* block_precisions,
+    const IndexType* block_pointers, const ValueType* blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    ValueType* out_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                adaptive_transpose_jacobi<conjugate, max_block_size,
-                                          subwarp_size, warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
-            storage_scheme, block_precisions, block_pointers, num_blocks,
-            as_hip_type(out_blocks));
-    } else {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(transpose_jacobi<conjugate, max_block_size,
-                                             subwarp_size, warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
-            storage_scheme, block_pointers, num_blocks,
-            as_hip_type(out_blocks));
+    if (grid_size > 0) {
+        if (block_precisions) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    adaptive_transpose_jacobi<conjugate, max_block_size,
+                                              subwarp_size, warps_per_block>),
+                grid_size, block_size, 0, 0, as_hip_type(blocks),
+                storage_scheme, block_precisions, block_pointers, num_blocks,
+                as_hip_type(out_blocks));
+        } else {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                                     warps_per_block>),
+                grid_size, block_size, 0, 0, as_hip_type(blocks),
+                storage_scheme, block_pointers, num_blocks,
+                as_hip_type(out_blocks));
+        }
     }
 }
 
@@ -198,11 +205,11 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_jacobi, transpose_jacobi);
 template <typename ValueType, typename IndexType>
 void transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    Array<ValueType> &out_blocks)
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    array<ValueType>& out_blocks)
 {
     select_transpose_jacobi(
         compiled_kernels(),
@@ -222,11 +229,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void conj_transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    Array<ValueType> &out_blocks)
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    array<ValueType>& out_blocks)
 {
     select_transpose_jacobi(
         compiled_kernels(),
@@ -246,11 +253,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    ValueType *result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);

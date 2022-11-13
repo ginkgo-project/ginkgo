@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,14 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
 namespace solver {
-
-
 namespace cg {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, cg::initialize);
@@ -57,6 +58,7 @@ GKO_REGISTER_OPERATION(step_1, cg::step_1);
 GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
+}  // anonymous namespace
 }  // namespace cg
 
 
@@ -66,7 +68,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -79,7 +81,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -87,9 +89,12 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Cg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    if (!this->get_system_matrix()) {
+        return;
+    }
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -98,46 +103,46 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
-                                     matrix::Dense<ValueType> *dense_x) const
+template <typename VectorType>
+void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                     VectorType* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(q, dense_b);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
 
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(cg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
-                                  prev_rho.get(), rho.get(), &stop_status));
     // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
+    exec->run(cg::make_initialize(
+        gko::detail::get_local(dense_b), gko::detail::get_local(r),
+        gko::detail::get_local(z), gko::detail::get_local(p),
+        gko::detail::get_local(q), prev_rho, rho, &stop_status));
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
-        r.get());
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
     int iter = -1;
     /* Memory movement summary:
@@ -150,16 +155,18 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
      * 1x norm2 residual   n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
-        r->compute_conj_dot(z.get(), rho.get());
+        // z = preconditioner * r
+        this->get_preconditioner()->apply(r, z);
+        // rho = dot(r, z)
+        r->compute_conj_dot(z, rho, reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
+            this, iter, r, dense_x, nullptr, rho);
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -167,25 +174,33 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
+        exec->run(cg::make_step_1(gko::detail::get_local(p),
+                                  gko::detail::get_local(z), rho, prev_rho,
                                   &stop_status));
-        system_matrix_->apply(p.get(), q.get());
-        p->compute_conj_dot(q.get(), beta.get());
+        // q = A * p
+        this->get_system_matrix()->apply(p, q);
+        // beta = dot(p, q)
+        p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
-                                  beta.get(), rho.get(), &stop_status));
+        exec->run(cg::make_step_2(
+            gko::detail::get_local(dense_x), gko::detail::get_local(r),
+            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
+            &stop_status));
         swap(prev_rho, rho);
     }
 }
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                               const LinOp *beta, LinOp *x) const
+void Cg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    if (!this->get_system_matrix()) {
+        return;
+    }
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
@@ -196,8 +211,57 @@ void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
+template <typename ValueType>
+int workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+int workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
+{
+    return 10;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
+    const Solver&)
+{
+    return {
+        "r",    "z",        "p",   "q",   "alpha",
+        "beta", "prev_rho", "rho", "one", "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Cg<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
+{
+    return {alpha, beta, prev_rho, rho};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
+{
+    return {r, z, p, q};
+}
+
+
 #define GKO_DECLARE_CG(_type) class Cg<_type>
+#define GKO_DECLARE_CG_TRAITS(_type) struct workspace_traits<Cg<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TRAITS);
 
 
 }  // namespace solver

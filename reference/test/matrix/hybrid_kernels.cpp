@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx1(Mtx::create(exec)),
           mtx2(Mtx::create(exec)),
-          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 2))
+          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 1))
     {
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
@@ -92,19 +92,16 @@ protected:
         ell_val[2] = 3.0;
         ell_val[3] = 5.0;
         ell_col[0] = 0;
-        ell_col[1] = 0;
+        ell_col[1] = gko::invalid_index<index_type>();
         ell_col[2] = 1;
         ell_col[3] = 1;
         // Set Coo values
         coo_val[0] = 2.0;
-        coo_val[1] = 0.0;
         coo_col[0] = 2;
-        coo_col[1] = 2;
         coo_row[0] = 0;
-        coo_row[1] = 1;
     }
 
-    void assert_equal_to_mtx(const Csr *m)
+    void assert_equal_to_mtx(const Csr* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -131,7 +128,7 @@ protected:
     std::unique_ptr<Mtx> mtx3;
 };
 
-TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Hybrid, AppliesToDenseVector)
@@ -493,17 +490,6 @@ TYPED_TEST(Hybrid, MovesEmptyToCsr)
 }
 
 
-TYPED_TEST(Hybrid, CountsNonzeros)
-{
-    gko::size_type nonzeros;
-
-    gko::kernels::reference::hybrid::count_nonzeros(
-        this->exec, this->mtx1.get(), &nonzeros);
-
-    ASSERT_EQ(nonzeros, 4);
-}
-
-
 TYPED_TEST(Hybrid, AppliesWithStrideToDenseVector)
 {
     using Vec = typename TestFixture::Vec;
@@ -838,7 +824,8 @@ protected:
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(HybridComplex, OutplaceAbsolute)

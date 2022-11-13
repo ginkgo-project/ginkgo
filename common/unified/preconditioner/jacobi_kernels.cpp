@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ namespace jacobi {
 
 template <typename ValueType>
 void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
+                 const array<ValueType>& diag, array<ValueType>& conj_diag)
 {
     run_kernel(
         exec,
@@ -67,7 +67,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
 
 template <typename ValueType>
 void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
+                     const array<ValueType>& diag, array<ValueType>& inv_diag)
 {
     run_kernel(
         exec,
@@ -82,11 +82,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
 
 template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<ValueType> &diag,
-                  const matrix::Dense<ValueType> *alpha,
-                  const matrix::Dense<ValueType> *b,
-                  const matrix::Dense<ValueType> *beta,
-                  matrix::Dense<ValueType> *x)
+                  const array<ValueType>& diag,
+                  const matrix::Dense<ValueType>* alpha,
+                  const matrix::Dense<ValueType>* b,
+                  const matrix::Dense<ValueType>* beta,
+                  matrix::Dense<ValueType>* x)
 {
     if (alpha->get_size()[1] > 1) {
         run_kernel(
@@ -116,9 +116,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 
 template <typename ValueType>
 void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<ValueType> &diag,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x)
+                         const array<ValueType>& diag,
+                         const matrix::Dense<ValueType>* b,
+                         matrix::Dense<ValueType>* x)
 {
     run_kernel(
         exec,
@@ -134,8 +134,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                             const Array<ValueType> &blocks,
-                             matrix::Dense<ValueType> *result)
+                             const array<ValueType>& blocks,
+                             matrix::Dense<ValueType>* result)
 {
     run_kernel(
         exec,

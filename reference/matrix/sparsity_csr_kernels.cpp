@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,8 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/base/iterator_factory.hpp"
-#include "reference/components/format_conversion.hpp"
+#include "core/base/mixed_precision_types.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -58,70 +60,99 @@ namespace reference {
 namespace sparsity_csr {
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::SparsityCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto val = a->get_const_value()[0];
+    const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(temp_val);
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::SparsityCsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
-    auto val = a->get_const_value()[0];
+    const auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
+    const auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
+    const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(
+                vbeta * static_cast<arithmetic_type>(c->at(row, j)) +
+                valpha * temp_val);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::SparsityCsr<ValueType, IndexType>* input,
+                   matrix::Dense<ValueType>* output)
+{
+    auto row_ptrs = input->get_const_row_ptrs();
+    auto col_idxs = input->get_const_col_idxs();
+    auto val = input->get_const_value()[0];
+
+    for (size_type row = 0; row < input->get_size()[0]; ++row) {
+        for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            auto col = col_idxs[k];
+            output->at(row, col) = val;
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type *num_diagonal_elements)
+    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
+    size_type* num_diagonal_elements)
 {
     auto num_rows = matrix->get_size()[0];
     auto row_ptrs = matrix->get_const_row_ptrs();
@@ -143,9 +174,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType *row_ptrs,
-                              const IndexType *col_idxs,
-                              matrix::SparsityCsr<ValueType, IndexType> *matrix)
+                              const IndexType* row_ptrs,
+                              const IndexType* col_idxs,
+                              matrix::SparsityCsr<ValueType, IndexType>* matrix)
 {
     auto num_rows = matrix->get_size()[0];
     auto adj_ptrs = matrix->get_row_ptrs();
@@ -177,9 +208,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 inline void convert_sparsity_to_csc(size_type num_rows,
-                                    const IndexType *row_ptrs,
-                                    const IndexType *col_idxs,
-                                    IndexType *row_idxs, IndexType *col_ptrs)
+                                    const IndexType* row_ptrs,
+                                    const IndexType* col_idxs,
+                                    IndexType* row_idxs, IndexType* col_ptrs)
 {
     for (size_type row = 0; row < num_rows; ++row) {
         for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
@@ -193,8 +224,8 @@ inline void convert_sparsity_to_csc(size_type num_rows,
 template <typename ValueType, typename IndexType>
 void transpose_and_transform(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *orig,
-    matrix::SparsityCsr<ValueType, IndexType> *trans)
+    const matrix::SparsityCsr<ValueType, IndexType>* orig,
+    matrix::SparsityCsr<ValueType, IndexType>* trans)
 {
     auto trans_row_ptrs = trans->get_row_ptrs();
     auto orig_row_ptrs = orig->get_const_row_ptrs();
@@ -205,9 +236,12 @@ void transpose_and_transform(
     auto orig_num_rows = orig->get_size()[0];
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
+    components::fill_array(exec, trans_row_ptrs, orig_num_cols + 1,
+                           IndexType{});
+    for (size_type i = 0; i < orig_nnz; i++) {
+        trans_row_ptrs[orig_col_idxs[i] + 1]++;
+    }
+    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_sparsity_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
                             trans_col_idxs, trans_row_ptrs + 1);
@@ -216,8 +250,8 @@ void transpose_and_transform(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::SparsityCsr<ValueType, IndexType> *orig,
-               matrix::SparsityCsr<ValueType, IndexType> *trans)
+               const matrix::SparsityCsr<ValueType, IndexType>* orig,
+               matrix::SparsityCsr<ValueType, IndexType>* trans)
 {
     transpose_and_transform(exec, orig, trans);
 }
@@ -228,7 +262,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType> *to_sort)
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 {
     auto row_ptrs = to_sort->get_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
@@ -247,7 +281,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *to_check, bool *is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();

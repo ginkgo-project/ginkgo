@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ protected:
         // clang-format on
     }
 
-    void assert_equal_to_mtx(const Csr *m)
+    void assert_equal_to_mtx(const Csr* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -105,7 +105,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ell, AppliesToDenseVector)
@@ -1022,7 +1022,8 @@ protected:
     using Mtx = gko::matrix::Ell<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(EllComplex, InplaceAbsolute)

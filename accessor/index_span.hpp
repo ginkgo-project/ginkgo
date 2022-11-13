@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,38 +89,38 @@ struct index_span {
      */
     GKO_ACC_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator<(const index_span &first,
-                                                       const index_span &second)
+    friend GKO_ACC_ATTRIBUTES constexpr bool operator<(const index_span& first,
+                                                       const index_span& second)
     {
         return first.end < second.begin;
     }
 
     friend GKO_ACC_ATTRIBUTES constexpr bool operator<=(
-        const index_span &first, const index_span &second)
+        const index_span& first, const index_span& second)
     {
         return first.end <= second.begin;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator>(const index_span &first,
-                                                       const index_span &second)
+    friend GKO_ACC_ATTRIBUTES constexpr bool operator>(const index_span& first,
+                                                       const index_span& second)
     {
         return second < first;
     }
 
     friend GKO_ACC_ATTRIBUTES constexpr bool operator>=(
-        const index_span &first, const index_span &second)
+        const index_span& first, const index_span& second)
     {
         return second <= first;
     }
 
     friend GKO_ACC_ATTRIBUTES constexpr bool operator==(
-        const index_span &first, const index_span &second)
+        const index_span& first, const index_span& second)
     {
         return first.begin == second.begin && first.end == second.end;
     }
 
     friend GKO_ACC_ATTRIBUTES constexpr bool operator!=(
-        const index_span &first, const index_span &second)
+        const index_span& first, const index_span& second)
     {
         return !(first == second);
     }

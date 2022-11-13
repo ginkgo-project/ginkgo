@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ namespace omp {
 template <typename ValueType>
 remove_complex<ValueType> compute_inf_norm(size_type num_rows,
                                            size_type num_cols,
-                                           const ValueType *matrix,
+                                           const ValueType* matrix,
                                            size_type stride)
 {
     auto result = zero<remove_complex<ValueType>>();

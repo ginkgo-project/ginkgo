@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,44 +59,49 @@ namespace fbcsr {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Fbcsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          const matrix::Fbcsr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b,
+          matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Fbcsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs) GKO_NOT_IMPLEMENTED;
+template <typename ValueType, typename IndexType>
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         device_matrix_data<ValueType, IndexType>& data,
+                         int block_size, array<IndexType>& row_ptrs,
+                         array<IndexType>& col_idxs,
+                         array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::Fbcsr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *const source,
-                    matrix::Csr<ValueType, IndexType> *const result)
+                    const matrix::Fbcsr<ValueType, IndexType>* const source,
+                    matrix::Csr<ValueType, IndexType>* const result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -105,8 +110,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
-               const matrix::Fbcsr<ValueType, IndexType> *orig,
-               matrix::Fbcsr<ValueType, IndexType> *trans) GKO_NOT_IMPLEMENTED;
+               const matrix::Fbcsr<ValueType, IndexType>* orig,
+               matrix::Fbcsr<ValueType, IndexType>* trans) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL);
@@ -114,8 +119,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *orig,
-                    matrix::Fbcsr<ValueType, IndexType> *trans)
+                    const matrix::Fbcsr<ValueType, IndexType>* orig,
+                    matrix::Fbcsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -123,30 +128,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *source,
-    size_type *result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *source,
-    Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Fbcsr<ValueType, IndexType>* to_check,
+    bool* is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
@@ -154,7 +139,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const DpcppExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -163,8 +148,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
+                      const matrix::Fbcsr<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);

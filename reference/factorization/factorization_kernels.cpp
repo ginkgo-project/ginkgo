@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -58,8 +58,8 @@ namespace factorization {
 
 template <typename IndexType>
 size_type count_missing_elements(IndexType num_rows, IndexType num_cols,
-                                 const IndexType *col_idxs,
-                                 const IndexType *row_ptrs)
+                                 const IndexType* col_idxs,
+                                 const IndexType* row_ptrs)
 {
     size_type missing_elements{};
     // if row >= num_cols, diagonal elements no longer exist
@@ -82,7 +82,7 @@ size_type count_missing_elements(IndexType num_rows, IndexType num_cols,
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
+                           matrix::Csr<ValueType, IndexType>* mtx,
                            bool /*is_sorted*/)
 {
     const auto values = mtx->get_const_values();
@@ -100,8 +100,8 @@ void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
 
     const auto old_nnz = mtx->get_num_stored_elements();
     const size_type new_nnz = old_nnz + missing_elements;
-    Array<ValueType> new_values_array{exec, new_nnz};
-    Array<IndexType> new_col_idxs_array{exec, new_nnz};
+    array<ValueType> new_values_array{exec, new_nnz};
+    array<IndexType> new_col_idxs_array{exec, new_nnz};
     auto new_values = new_values_array.get_data();
     auto new_col_idxs = new_col_idxs_array.get_data();
     IndexType added_elements{};
@@ -164,8 +164,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
@@ -195,9 +195,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
+                    const matrix::Csr<ValueType, IndexType>* system_matrix,
+                    matrix::Csr<ValueType, IndexType>* csr_l,
+                    matrix::Csr<ValueType, IndexType>* csr_u)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
@@ -250,8 +250,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs)
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
@@ -276,8 +276,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+                  const matrix::Csr<ValueType, IndexType>* system_matrix,
+                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();

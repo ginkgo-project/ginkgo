@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,12 +56,12 @@ TEST(NotCompiled, ThrowsWhenUsed)
 
 
 template <typename Expected, typename T>
-void test_not_supported_impl(const T &obj)
+void test_not_supported_impl(const T& obj)
 {
     try {
         GKO_NOT_SUPPORTED(obj);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         // check for equal suffix
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Expected));
@@ -87,7 +87,7 @@ struct Derived : Base {};
 TEST(NotSupported, ReturnsPtrNotSupportedException)
 {
     Derived d;
-    Base *b = &d;
+    Base* b = &d;
     test_not_supported_impl<Derived>(b);
 }
 
@@ -95,7 +95,7 @@ TEST(NotSupported, ReturnsPtrNotSupportedException)
 TEST(NotSupported, ReturnsRefNotSupportedException)
 {
     Derived d;
-    Base &b = d;
+    Base& b = d;
     test_not_supported_impl<Derived>(b);
 }
 
@@ -132,6 +132,14 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+void throws_cufft_error() { throw GKO_CUFFT_ERROR(0); }
+
+TEST(CudaError, ReturnsCufftError)
+{
+    ASSERT_THROW(throws_cufft_error(), gko::CufftError);
+}
+
+
 void throws_hip_error() { throw GKO_HIP_ERROR(0); }
 
 TEST(HipError, ReturnsHipError)
@@ -161,6 +169,14 @@ void throws_hipsparse_error() { throw GKO_HIPSPARSE_ERROR(0); }
 TEST(HipError, ReturnsHipsparseError)
 {
     ASSERT_THROW(throws_hipsparse_error(), gko::HipsparseError);
+}
+
+
+void throws_hipfft_error() { throw GKO_HIPFFT_ERROR(0); }
+
+TEST(HipError, ReturnsHipfftError)
+{
+    ASSERT_THROW(throws_hipfft_error(), gko::HipfftError);
 }
 
 

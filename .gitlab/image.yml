@@ -1,73 +1,89 @@
-.use_gko-nocuda-gnu9-llvm8:
-  image: ginkgohub/cpu:gnu9-llvm8
+.use_status-job-settings:
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  tags:
+    - private_ci
+    - status-jobs
+
+.use_gko-nocuda-openmpi-gnu9-llvm8:
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  tags:
+    - private_ci
+    - nla-gpu
+
+.use_gko-nocuda-nompi-gnu9-llvm8:
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
     - private_ci
     - cpu
     - amdci
 
-.use_gko-nocuda-gnu9-llvm8-intel:
-  image: ginkgohub/cpu:gnu9-llvm8-intel2020
+.use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018:
+  image: ginkgohub/cpu:mvapich2-gnu5-llvm39-intel2018
   tags:
     - private_ci
     - cpu
     - controller
 
-.use_gko-cuda90-gnu5-llvm39:
-  image: ginkgohub/cuda:90-gnu5-llvm39
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda91-gnu6-llvm40:
-  image: ginkgohub/cuda:91-gnu6-llvm40
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda92-gnu7-llvm50-intel2017:
-  image: ginkgohub/cuda:92-gnu7-llvm50-intel2017
+.use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017:
+  image: ginkgohub/cuda:92-mvapich2-gnu7-llvm50-intel2017
   tags:
     - private_ci
     - nvidia-gpu
 
-.use_gko-cuda100-gnu7-llvm60-intel2018:
-  image: ginkgohub/cuda:100-gnu7-llvm60-intel2018
+.use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018:
+  image: ginkgohub/cuda:100-mvapich2-gnu7-llvm60-intel2018
   tags:
     - private_ci
     - controller
     - cpu
 
-.use_gko-cuda101-gnu8-llvm7-intel2019:
-  image: ginkgohub/cuda:101-gnu8-llvm7-intel2019
+.use_gko-cuda101-openmpi-gnu8-llvm7-intel2019:
+  image: ginkgohub/cuda:101-openmpi-gnu8-llvm7-intel2019
   tags:
     - private_ci
     - controller
     - cpu
 
-.use_gko-cuda101-gnu8-llvm10-intel2019:
-  image: ginkgohub/cuda:101-gnu8-llvm10-intel2019
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda102-gnu8-llvm8-intel2019:
-  image: ginkgohub/cuda:102-gnu8-llvm8-intel2019
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda110-gnu9-llvm9-intel2020:
-  image: ginkgohub/cuda:110-gnu9-llvm9-intel2020
+.use_gko-cuda101-openmpi-gnu8-llvm13-intel2019:
+  image: ginkgohub/cuda:101-openmpi-gnu8-llvm13-intel2019
   tags:
     - private_ci
     - nvidia-gpu
 
-.use_gko-amd-gnu8-llvm7:
-  image: ginkgohub/rocm:gnu8-llvm7
+.use_gko-cuda102-nompi-gnu8-llvm8-intel2019:
+  image: ginkgohub/cuda:102-nompi-gnu8-llvm8-intel2019
+  tags:
+    - private_ci
+    - controller
+    - cpu
+
+.use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020:
+  image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
+  tags:
+    - private_ci
+    - horeka
+
+.use_gko_cuda114-openmpi-gnu11-llvm12:
+  image: ginkgohub/cuda:114-openmpi-gnu11-llvm12
+  tags:
+    - private_ci
+    - nvidia-gpu
+
+.use_gko-rocm40-openmpi-gnu8-llvm50:
+  image: ginkgohub/rocm:40-openmpi-gnu8-llvm50
+  tags:
+    - private_ci
+    - nla-gpu
+
+.use_gko-rocm45-nompi-gnu8-llvm8:
+  image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+
+.use_gko-rocm502-nompi-gnu11-llvm11:
+  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amdci
@@ -77,8 +93,7 @@
   image: ginkgohub/oneapi:latest
   tags:
     - private_ci
-    - intelci-igpu
-    - cpu
+    - fairrs
 
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest

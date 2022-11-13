@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/device_guard.hpp"
 
 
 namespace gko {
@@ -53,11 +52,10 @@ namespace ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
-             matrix::Csr<ValueType, IndexType> *m)
+             matrix::Csr<ValueType, IndexType>* m)
 {
     const auto id = exec->get_device_id();
     auto handle = exec->get_cusparse_handle();
-    gko::cuda::device_guard g{id};
     auto desc = cusparse::create_mat_descr();
     auto info = cusparse::create_ic0_info();
 
@@ -69,7 +67,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
                               m->get_const_values(), m->get_const_row_ptrs(),
                               m->get_const_col_idxs(), info, buffer_size);
 
-    Array<char> buffer{exec, buffer_size};
+    array<char> buffer{exec, buffer_size};
 
     // set up IC(0)
     cusparse::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,110 +43,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
 #define GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType)  \
     void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Coo<ValueType, IndexType> *a,  \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+              const matrix::Coo<ValueType, IndexType>* a,  \
+              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
 #define GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<ValueType> *alpha,       \
-                       const matrix::Coo<ValueType, IndexType> *a,  \
-                       const matrix::Dense<ValueType> *b,           \
-                       const matrix::Dense<ValueType> *beta,        \
-                       matrix::Dense<ValueType> *c)
+                       const matrix::Dense<ValueType>* alpha,       \
+                       const matrix::Coo<ValueType, IndexType>* a,  \
+                       const matrix::Dense<ValueType>* b,           \
+                       const matrix::Dense<ValueType>* beta,        \
+                       matrix::Dense<ValueType>* c)
 
 #define GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType)  \
     void spmv2(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Coo<ValueType, IndexType> *a,  \
-               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+               const matrix::Coo<ValueType, IndexType>* a,  \
+               const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
 #define GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType)  \
     void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<ValueType> *alpha,       \
-                        const matrix::Coo<ValueType, IndexType> *a,  \
-                        const matrix::Dense<ValueType> *b,           \
-                        matrix::Dense<ValueType> *c)
+                        const matrix::Dense<ValueType>* alpha,       \
+                        const matrix::Coo<ValueType, IndexType>* a,  \
+                        const matrix::Dense<ValueType>* b,           \
+                        matrix::Dense<ValueType>* c)
 
-#define GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
-                          const matrix::Coo<ValueType, IndexType> *source, \
-                          matrix::Dense<ValueType> *result)
-
-#define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Coo<ValueType, IndexType> *source, \
-                        matrix::Csr<ValueType, IndexType> *result)
+#define GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                       const matrix::Coo<ValueType, IndexType>* source, \
+                       matrix::Dense<ValueType>* result)
 
 #define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
-                          const matrix::Coo<ValueType, IndexType> *orig, \
-                          matrix::Diagonal<ValueType> *diag)
+                          const matrix::Coo<ValueType, IndexType>* orig, \
+                          matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
+    template <typename ValueType, typename IndexType>            \
+    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>            \
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>            \
+    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>            \
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>            \
+    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>            \
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace coo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace coo
-}  // namespace omp
-
-
-namespace cuda {
-namespace coo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace coo
-}  // namespace cuda
-
-
-namespace reference {
-namespace coo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace coo
-}  // namespace reference
-
-
-namespace hip {
-namespace coo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace coo
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace coo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace coo
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coo, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

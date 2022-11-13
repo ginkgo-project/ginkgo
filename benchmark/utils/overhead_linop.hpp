@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace overhead {
@@ -53,8 +56,8 @@ namespace overhead {
     static volatile std::uintptr_t val_operation_##_num = 0;          \
     template <typename _type>                                         \
     void operation##_num(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type> *b,               \
-                         matrix::Dense<_type> *x)                     \
+                         const matrix::Dense<_type>* b,               \
+                         matrix::Dense<_type>* x)                     \
     {                                                                 \
         val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);   \
     }
@@ -73,49 +76,7 @@ namespace overhead {
 }  // namespace overhead
 
 
-namespace omp {
-namespace overhead {
-
-GKO_DECLARE_ALL;
-
-}  // namespace overhead
-}  // namespace omp
-
-
-namespace cuda {
-namespace overhead {
-
-GKO_DECLARE_ALL;
-
-}  // namespace overhead
-}  // namespace cuda
-
-
-namespace reference {
-namespace overhead {
-
-GKO_DECLARE_ALL;
-
-}  // namespace overhead
-}  // namespace reference
-
-
-namespace hip {
-namespace overhead {
-
-GKO_DECLARE_ALL;
-
-}  // namespace overhead
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace overhead {
-
-GKO_DECLARE_ALL;
-
-}  // namespace overhead
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(overhead, GKO_DECLARE_ALL);
 
 
 #undef GKO_DECLARE_ALL
@@ -169,7 +130,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         using Vector = matrix::Dense<ValueType>;
 
@@ -186,8 +147,8 @@ protected:
         exec->run(overhead::make_operation4(dense_b, dense_x));
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -201,7 +162,7 @@ protected:
         : EnableLinOp<Overhead>(std::move(exec))
     {}
 
-    explicit Overhead(const Factory *factory,
+    explicit Overhead(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Overhead>(factory->get_executor(),
                                 transpose(system_matrix->get_size())),

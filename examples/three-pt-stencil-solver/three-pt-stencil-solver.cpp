@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,8 +80,8 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 // points.
 template <typename ValueType, typename IndexType>
 void generate_stencil_matrix(IndexType discretization_points,
-                             IndexType *row_ptrs, IndexType *col_idxs,
-                             ValueType *values)
+                             IndexType* row_ptrs, IndexType* col_idxs,
+                             ValueType* values)
 {
     IndexType pos = 0;
     const ValueType coefs[] = {-1, 2, -1};
@@ -102,7 +102,7 @@ void generate_stencil_matrix(IndexType discretization_points,
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ValueType, typename IndexType>
 void generate_rhs(IndexType discretization_points, Closure f, ValueType u0,
-                  ValueType u1, ValueType *rhs)
+                  ValueType u1, ValueType* rhs)
 {
     const ValueType h = 1.0 / (discretization_points + 1);
     for (IndexType i = 0; i < discretization_points; ++i) {
@@ -117,7 +117,7 @@ void generate_rhs(IndexType discretization_points, Closure f, ValueType u0,
 // Prints the solution `u`.
 template <typename ValueType, typename IndexType>
 void print_solution(IndexType discretization_points, ValueType u0, ValueType u1,
-                    const ValueType *u)
+                    const ValueType* u)
 {
     std::cout << u0 << '\n';
     for (IndexType i = 0; i < discretization_points; ++i) {
@@ -131,7 +131,7 @@ void print_solution(IndexType discretization_points, ValueType u0, ValueType u1,
 // solution function `correct_u`.
 template <typename Closure, typename ValueType, typename IndexType>
 gko::remove_complex<ValueType> calculate_error(IndexType discretization_points,
-                                               const ValueType *u,
+                                               const ValueType* u,
                                                Closure correct_u)
 {
     const ValueType h = 1.0 / (discretization_points + 1);
@@ -145,19 +145,19 @@ gko::remove_complex<ValueType> calculate_error(IndexType discretization_points,
 }
 
 template <typename ValueType, typename IndexType>
-void solve_system(const std::string &executor_string,
-                  IndexType discretization_points, IndexType *row_ptrs,
-                  IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
+void solve_system(const std::string& executor_string,
+                  IndexType discretization_points, IndexType* row_ptrs,
+                  IndexType* col_idxs, ValueType* values, ValueType* rhs,
+                  ValueType* u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using val_array = gko::Array<ValueType>;
-    using idx_array = gko::Array<IndexType>;
-    const auto &dp = discretization_points;
+    using val_array = gko::array<ValueType>;
+    using idx_array = gko::array<IndexType>;
+    const auto& dp = discretization_points;
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -232,7 +232,7 @@ void solve_system(const std::string &executor_string,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;

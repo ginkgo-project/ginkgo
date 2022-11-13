@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/lower_trs.hpp>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -42,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
@@ -51,16 +48,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 namespace lower_trs {
+namespace {
 
 
 GKO_REGISTER_OPERATION(generate, lower_trs::generate);
-GKO_REGISTER_OPERATION(init_struct, lower_trs::init_struct);
 GKO_REGISTER_OPERATION(should_perform_transpose,
                        lower_trs::should_perform_transpose);
 GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
+}  // anonymous namespace
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
+    : EnableLinOp<LowerTrs>(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
+    : EnableLinOp<LowerTrs>(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
+    const LowerTrs& other)
+{
+    if (this != &other) {
+        EnableLinOp<LowerTrs>::operator=(other);
+        EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
+        this->parameters_ = other.parameters_;
+        this->generate();
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
+    LowerTrs&& other)
+{
+    if (this != &other) {
+        EnableLinOp<LowerTrs>::operator=(std::move(other));
+        EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
+        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
+        if (this->get_executor() == other.get_executor()) {
+            this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
+        } else {
+            this->generate();
+        }
+    }
+    return *this;
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -84,63 +130,70 @@ std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::init_trs_solve_struct()
-{
-    this->get_executor()->run(lower_trs::make_init_struct(this->solve_struct_));
-}
-
-
-template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
-    this->get_executor()->run(lower_trs::make_generate(
-        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-        parameters_.num_rhs));
+    if (this->get_system_matrix()) {
+        this->get_executor()->run(lower_trs::make_generate(
+            this->get_system_matrix().get(), this->solve_struct_,
+            this->get_parameters().unit_diagonal, parameters_.algorithm,
+            parameters_.num_rhs));
+    }
+}
+
+
+static bool needs_transpose(std::shared_ptr<const Executor> exec)
+{
+    bool result{};
+    exec->run(lower_trs::make_should_perform_transpose(result));
+    return result;
 }
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
+            using ws = workspace_traits<LowerTrs>;
             const auto exec = this->get_executor();
+            this->setup_workspace();
 
             // This kernel checks if a transpose is needed for the multiple rhs
-            // case. Currently only the algorithm for CUDA version <=9.1 needs
-            // this transposition due to the limitation in the cusparse
-            // algorithm. The other executors (omp and reference) do not use the
+            // case. Currently only the algorithm for HIP needs this
+            // transposition due to the limitation in the hipsparse algorithm.
+            // The other executors (omp and reference, CUDA) do not use the
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
-            bool do_transpose = false;
-            std::shared_ptr<Vector> trans_b;
-            std::shared_ptr<Vector> trans_x;
-            this->get_executor()->run(
-                lower_trs::make_should_perform_transpose(do_transpose));
-            if (do_transpose) {
-                trans_b =
-                    Vector::create(exec, gko::transpose(dense_b->get_size()));
-                trans_x =
-                    Vector::create(exec, gko::transpose(dense_x->get_size()));
-            } else {
-                trans_b = Vector::create(exec);
-                trans_x = Vector::create(exec);
+            Vector* trans_b{};
+            Vector* trans_x{};
+            if (needs_transpose(exec)) {
+                trans_b = this->template create_workspace_op<Vector>(
+                    ws::transposed_b, gko::transpose(dense_b->get_size()));
+                trans_x = this->template create_workspace_op<Vector>(
+                    ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(lower_trs::make_solve(
-                gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-                gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
+                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                this->get_parameters().unit_diagonal, parameters_.algorithm,
+                trans_b, trans_x, dense_b, dense_x));
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                                const LinOp *b,
-                                                const LinOp *beta,
-                                                LinOp *x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                const LinOp* b,
+                                                const LinOp* beta,
+                                                LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
@@ -152,8 +205,64 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 }
 
 
+template <typename ValueType, typename IndexType>
+int workspace_traits<LowerTrs<ValueType, IndexType>>::num_arrays(const Solver&)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+int workspace_traits<LowerTrs<ValueType, IndexType>>::num_vectors(
+    const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? 2 : 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::string>
+workspace_traits<LowerTrs<ValueType, IndexType>>::op_names(const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? std::vector<std::string>{
+        "transposed_b",
+        "transposed_x",
+    } : std::vector<std::string>{};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::string>
+workspace_traits<LowerTrs<ValueType, IndexType>>::array_names(const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::scalars(
+    const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
+    const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? std::vector<int>{
+        transposed_b,
+        transposed_x,
+    } : std::vector<int>{};
+}
+
+
 #define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
+#define GKO_DECLARE_LOWER_TRS_TRAITS(_vtype, _itype) \
+    struct workspace_traits<LowerTrs<_vtype, _itype>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS_TRAITS);
 
 
 }  // namespace solver

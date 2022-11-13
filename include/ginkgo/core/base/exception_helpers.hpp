@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,21 +94,21 @@ namespace detail {
 
 template <typename T, typename T2 = void>
 struct dynamic_type_helper {
-    static const std::type_info &get(const T &obj) { return typeid(obj); }
+    static const std::type_info& get(const T& obj) { return typeid(obj); }
 };
 
 template <typename T>
 struct dynamic_type_helper<T,
                            typename std::enable_if<std::is_pointer<T>::value ||
                                                    have_ownership<T>()>::type> {
-    static const std::type_info &get(const T &obj)
+    static const std::type_info& get(const T& obj)
     {
         return obj ? typeid(*obj) : typeid(nullptr);
     }
 };
 
 template <typename T>
-const std::type_info &get_dynamic_type(const T &obj)
+const std::type_info& get_dynamic_type(const T& obj)
 {
     return dynamic_type_helper<T>::get(obj);
 }
@@ -139,12 +139,12 @@ namespace detail {
 
 
 template <typename T>
-inline dim<2> get_size(const T &op)
+inline dim<2> get_size(const T& op)
 {
     return op->get_size();
 }
 
-inline dim<2> get_size(const dim<2> &size) { return size; }
+inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 }  // namespace detail
@@ -192,6 +192,21 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
                                   ::gko::detail::get_size(_op1)[1],    \
                                   "expected non-empty matrix");        \
     }
+
+
+/**
+ *Asserts that _val is a power of two.
+ *
+ *@throw BadDimension  if _val is not a power of two.
+ */
+#define GKO_ASSERT_IS_POWER_OF_TWO(_val)                                   \
+    do {                                                                   \
+        if (_val == 0 || (_val & (_val - 1)) != 0) {                       \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_val, \
+                                      _val, _val,                          \
+                                      "expected power-of-two dimension");  \
+        }                                                                  \
+    } while (false)
 
 
 /**
@@ -284,6 +299,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a MpiError.
+ *
+ * @param errcode  The error code returned from the MPI routine.
+ */
+#define GKO_MPI_ERROR(_errcode) \
+    ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CudaError.
  *
  * @param errcode  The error code returned from a CUDA runtime API routine.
@@ -317,6 +341,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  */
 #define GKO_CUSPARSE_ERROR(_errcode) \
     ::gko::CusparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a CufftError.
+ *
+ * @param errcode  The error code returned from the cuFFT routine.
+ */
+#define GKO_CUFFT_ERROR(_errcode) \
+    ::gko::CufftError(__FILE__, __LINE__, __func__, _errcode)
 
 
 /**
@@ -376,6 +409,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Asserts that a cuFFT library call completed without errors.
+ *
+ * @param _cufft_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CUFFT_ERRORS(_cufft_call) \
+    do {                                        \
+        auto _errcode = _cufft_call;            \
+        if (_errcode != CUFFT_SUCCESS) {        \
+            throw GKO_CUFFT_ERROR(_errcode);    \
+        }                                       \
+    } while (false)
+
+
+/**
  * Instantiates a HipError.
  *
  * @param errcode  The error code returned from a HIP runtime API routine.
@@ -409,6 +456,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  */
 #define GKO_HIPSPARSE_ERROR(_errcode) \
     ::gko::HipsparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipfftError.
+ *
+ * @param errcode  The error code returned from the hipFFT routine.
+ */
+#define GKO_HIPFFT_ERROR(_errcode) \
+    ::gko::HipfftError(__FILE__, __LINE__, __func__, _errcode)
 
 
 /**
@@ -467,12 +523,40 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
     } while (false)
 
 
+/**
+ * Asserts that a hipFFT library call completed without errors.
+ *
+ * @param _hipfft_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPFFT_ERRORS(_hipfft_call) \
+    do {                                          \
+        auto _errcode = _hipfft_call;             \
+        if (_errcode != HIPFFT_SUCCESS) {         \
+            throw GKO_HIPFFT_ERROR(_errcode);     \
+        }                                         \
+    } while (false)
+
+
+/**
+ * Asserts that a MPI library call completed without errors.
+ *
+ * @param _mpi_call  a library call expression
+ */
+#define GKO_ASSERT_NO_MPI_ERRORS(_mpi_call) \
+    do {                                    \
+        auto _errcode = _mpi_call;          \
+        if (_errcode != MPI_SUCCESS) {      \
+            throw GKO_MPI_ERROR(_errcode);  \
+        }                                   \
+    } while (false)
+
+
 namespace detail {
 
 
 template <typename T>
-inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
-                               const std::string &dev, size_type size)
+inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
+                               const std::string& dev, size_type size)
 {
     if (ptr == nullptr) {
         throw AllocationError(file, line, dev, size);
@@ -568,6 +652,21 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
+ * Throws an @ref UnsupportedMatrixProperty exception in case of an unmet
+ * matrix property requirement.
+ *
+ * @param _message  A message describing the matrix property required.
+ */
+#define GKO_UNSUPPORTED_MATRIX_PROPERTY(_message)                             \
+    {                                                                         \
+        throw ::gko::UnsupportedMatrixProperty(__FILE__, __LINE__, _message); \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+
+/**
  * Ensures that a given size, typically of a linear algebraic object,
  * is divisible by a given block size.
  *
@@ -584,6 +683,26 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+/**
+ * Checks that the operator is a scalar, ie., has size 1x1.
+ *
+ * @param _op  Operator to be checked.
+ *
+ * @throw  BadDimension  if _op does not have size 1x1.
+ */
+#define GKO_ASSERT_IS_SCALAR(_op)                                            \
+    {                                                                        \
+        auto sz = gko::detail::get_size(_op);                                \
+        if (sz[0] != 1 || sz[1] != 1) {                                      \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      sz[0], sz[1], "expected scalar");      \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 

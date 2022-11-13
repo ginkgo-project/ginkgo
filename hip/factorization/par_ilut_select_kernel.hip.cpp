@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
@@ -70,27 +70,29 @@ namespace par_ilut_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void sampleselect_filter(const ValueType *values, IndexType size,
-                         const unsigned char *oracles,
-                         const IndexType *partial_counts, IndexType bucket,
-                         remove_complex<ValueType> *out)
+void sampleselect_filter(const ValueType* values, IndexType size,
+                         const unsigned char* oracles,
+                         const IndexType* partial_counts, IndexType bucket,
+                         remove_complex<ValueType>* out)
 {
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, as_hip_type(values),
-                       size, bucket, oracles, partial_counts, out,
-                       items_per_thread);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
+                           default_block_size, 0, 0, as_hip_type(values), size,
+                           bucket, oracles, partial_counts, out,
+                           items_per_thread);
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *m,
-                      IndexType rank, Array<ValueType> &tmp1,
-                      Array<remove_complex<ValueType>> &tmp2,
-                      remove_complex<ValueType> &threshold)
+                      const matrix::Csr<ValueType, IndexType>* m,
+                      IndexType rank, array<ValueType>& tmp1,
+                      array<remove_complex<ValueType>>& tmp2,
+                      remove_complex<ValueType>& threshold)
 {
     auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
@@ -114,14 +116,14 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     tmp1.resize_and_reset(tmp_size);
     tmp2.resize_and_reset(tmp_size_vals);
 
-    auto total_counts = reinterpret_cast<IndexType *>(tmp1.get_data());
+    auto total_counts = reinterpret_cast<IndexType*>(tmp1.get_data());
     auto partial_counts =
-        reinterpret_cast<IndexType *>(tmp1.get_data() + tmp_size_totals);
-    auto oracles = reinterpret_cast<unsigned char *>(
+        reinterpret_cast<IndexType*>(tmp1.get_data() + tmp_size_totals);
+    auto oracles = reinterpret_cast<unsigned char*>(
         tmp1.get_data() + tmp_size_totals + tmp_size_partials);
     auto tree =
-        reinterpret_cast<AbsType *>(tmp1.get_data() + tmp_size_totals +
-                                    tmp_size_partials + tmp_size_oracles);
+        reinterpret_cast<AbsType*>(tmp1.get_data() + tmp_size_totals +
+                                   tmp_size_partials + tmp_size_oracles);
 
     sampleselect_count(exec, values, size, tree, oracles, partial_counts,
                        total_counts);
@@ -144,7 +146,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     int step{};
     while (bucket.size > kernel::basecase_size) {
         std::swap(tmp21, tmp22);
-        const auto *tmp_in = tmp21;
+        const auto* tmp_in = tmp21;
         auto tmp_out = tmp22;
 
         sampleselect_count(exec, tmp_in, bucket.size, tree, oracles,
@@ -159,9 +161,9 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         // 256^5 = 2^40. fall back to standard library algorithm in that case.
         ++step;
         if (step > 5) {
-            Array<AbsType> cpu_out_array{
+            array<AbsType> cpu_out_array{
                 exec->get_master(),
-                Array<AbsType>::view(exec, bucket.size, tmp_out)};
+                make_array_view(exec, bucket.size, tmp_out)};
             auto begin = cpu_out_array.get_data();
             auto end = begin + bucket.size;
             auto middle = begin + rank;
@@ -172,10 +174,10 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     }
 
     // base case
-    auto out_ptr = reinterpret_cast<AbsType *>(tmp1.get_data());
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), dim3(1),
-                       dim3(kernel::basecase_block_size), 0, 0, tmp22,
-                       bucket.size, rank, out_ptr);
+    auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), 1,
+                       kernel::basecase_block_size, 0, 0, tmp22, bucket.size,
+                       rank, out_ptr);
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

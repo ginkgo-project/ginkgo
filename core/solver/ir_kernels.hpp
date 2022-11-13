@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace ir {
@@ -50,7 +53,7 @@ namespace ir {
 
 #define GKO_DECLARE_IR_INITIALIZE_KERNEL                         \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
-                    Array<stopping_status> *stop_status)
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_IR_INITIALIZE_KERNEL
@@ -59,49 +62,7 @@ namespace ir {
 }  // namespace ir
 
 
-namespace omp {
-namespace ir {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ir
-}  // namespace omp
-
-
-namespace cuda {
-namespace ir {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ir
-}  // namespace cuda
-
-
-namespace reference {
-namespace ir {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ir
-}  // namespace reference
-
-
-namespace hip {
-namespace ir {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ir
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace ir {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ir
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ir, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

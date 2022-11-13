@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,9 +51,9 @@ constexpr int items_per_thread = 16;
 
 template <typename ValueType, typename IndexType>
 void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
-                        const ValueType *values, IndexType size,
-                        remove_complex<ValueType> *tree, unsigned char *oracles,
-                        IndexType *partial_counts, IndexType *total_counts);
+                        const ValueType* values, IndexType size,
+                        remove_complex<ValueType>* tree, unsigned char* oracles,
+                        IndexType* partial_counts, IndexType* total_counts);
 
 
 template <typename IndexType>
@@ -66,7 +66,7 @@ struct sampleselect_bucket {
 
 template <typename IndexType>
 sampleselect_bucket<IndexType> sampleselect_find_bucket(
-    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank);
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -84,10 +84,10 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void threshold_filter(syn::value_list<int, subwarp_size>,
                       std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *a,
+                      const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType> *m_out,
-                      matrix::Coo<ValueType, IndexType> *m_out_coo, bool lower)
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
 {
     auto old_row_ptrs = a->get_const_row_ptrs();
     auto old_col_idxs = a->get_const_col_idxs();
@@ -97,10 +97,12 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::threshold_filter_nnz<subwarp_size>),
-        dim3(num_blocks), dim3(default_block_size), 0, 0, old_row_ptrs,
-        as_hip_type(old_vals), num_rows, threshold, new_row_ptrs, lower);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::threshold_filter_nnz<subwarp_size>),
+            num_blocks, default_block_size, 0, 0, old_row_ptrs,
+            as_hip_type(old_vals), num_rows, threshold, new_row_ptrs, lower);
+    }
 
     // build row pointers
     components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
@@ -113,21 +115,23 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType *new_row_idxs{};
+    IndexType* new_row_idxs{};
     if (m_out_coo) {
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
         coo_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, new_nnz, new_col_idxs);
+            make_array_view(exec, new_nnz, new_col_idxs);
         coo_builder.get_value_array() =
-            Array<ValueType>::view(exec, new_nnz, new_vals);
+            make_array_view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::threshold_filter<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       old_row_ptrs, old_col_idxs, as_hip_type(old_vals),
-                       num_rows, threshold, new_row_ptrs, new_row_idxs,
-                       new_col_idxs, as_hip_type(new_vals), lower);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::threshold_filter<subwarp_size>), num_blocks,
+            default_block_size, 0, 0, old_row_ptrs, old_col_idxs,
+            as_hip_type(old_vals), num_rows, threshold, new_row_ptrs,
+            new_row_idxs, new_col_idxs, as_hip_type(new_vals), lower);
+    }
 }
 
 
@@ -138,10 +142,10 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter, threshold_filter);
 
 template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *a,
+                      const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType> *m_out,
-                      matrix::Coo<ValueType, IndexType> *m_out_coo, bool lower)
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz = a->get_num_stored_elements();

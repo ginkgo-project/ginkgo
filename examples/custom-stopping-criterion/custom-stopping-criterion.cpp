@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,8 +65,8 @@ public:
 
 protected:
     bool check_impl(gko::uint8 stoppingId, bool setFinalized,
-                    gko::Array<gko::stopping_status> *stop_status,
-                    bool *one_changed, const Criterion::Updater &) override
+                    gko::array<gko::stopping_status>* stop_status,
+                    bool* one_changed, const Criterion::Updater&) override
     {
         bool result = *(parameters_.stop_iteration_process);
         if (result) {
@@ -80,8 +80,8 @@ protected:
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
 
-    explicit ByInteraction(const Factory *factory,
-                           const gko::stop::CriterionArgs &args)
+    explicit ByInteraction(const Factory* factory,
+                           const gko::stop::CriterionArgs& args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),
@@ -90,7 +90,7 @@ protected:
 };
 
 
-void run_solver(volatile bool *stop_iteration_process,
+void run_solver(volatile bool* stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
@@ -117,7 +117,7 @@ void run_solver(volatile bool *stop_iteration_process,
                       .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<ValueType>::create(
-        exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
+        gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(lend(b), lend(x));
 
     std::cout << "Solver stopped" << std::endl;
@@ -138,7 +138,7 @@ void run_solver(volatile bool *stop_iteration_process,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Print version information
     std::cout << gko::version_info::get() << std::endl;

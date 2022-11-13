@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ template <typename T>
 struct pointee_impl {};
 
 template <typename T>
-struct pointee_impl<T *> {
+struct pointee_impl<T*> {
     using type = T;
 };
 
@@ -157,12 +157,12 @@ using shared_type = std::shared_ptr<pointee<Pointer>>;
  *       object.
  */
 template <typename Pointer>
-inline detail::cloned_type<Pointer> clone(const Pointer &p)
+inline detail::cloned_type<Pointer> clone(const Pointer& p)
 {
     static_assert(detail::is_clonable<detail::pointee<Pointer>>(),
                   "Object is not clonable");
     return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
             p->clone().release()));
 }
 
@@ -184,12 +184,12 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
  */
 template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
-                                          const Pointer &p)
+                                          const Pointer& p)
 {
     static_assert(detail::is_clonable_to<detail::pointee<Pointer>>(),
                   "Object is not clonable");
     return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
             p->clone(std::move(exec)).release()));
 }
 
@@ -202,15 +202,18 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
  * @tparam OwningPointer  type of pointer with ownership to the object
  *                        (has to be a smart pointer)
  *
- * @param p  a pointer to the object
+ * @param p  a pointer to the object. It must be a temporary or explicitly
+ *           marked movable (rvalue reference).
  *
  * @note The original pointer `p` becomes invalid after this call.
  */
 template <typename OwningPointer>
-inline detail::shared_type<OwningPointer> share(OwningPointer &&p)
+inline detail::shared_type<OwningPointer> share(OwningPointer&& p)
 {
     static_assert(detail::have_ownership<OwningPointer>(),
                   "OwningPointer does not have ownership of the object");
+    static_assert(std::is_rvalue_reference<decltype(p)>::value,
+                  "p must be an rvalue for this function to work");
     return detail::shared_type<OwningPointer>(std::move(p));
 }
 
@@ -228,8 +231,8 @@ inline detail::shared_type<OwningPointer> share(OwningPointer &&p)
  * @note The original pointer `p` becomes invalid after this call.
  */
 template <typename OwningPointer>
-inline typename std::remove_reference<OwningPointer>::type &&give(
-    OwningPointer &&p)
+inline typename std::remove_reference<OwningPointer>::type&& give(
+    OwningPointer&& p)
 {
     static_assert(detail::have_ownership<OwningPointer>(),
                   "OwningPointer does not have ownership of the object");
@@ -249,8 +252,8 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
  */
 template <typename Pointer>
 inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer> *>::type
-lend(const Pointer &p)
+                               detail::pointee<Pointer>*>::type
+lend(const Pointer& p)
 {
     return p.get();
 }
@@ -267,8 +270,8 @@ lend(const Pointer &p)
  */
 template <typename Pointer>
 inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer> *>::type
-lend(const Pointer &p)
+                               detail::pointee<Pointer>*>::type
+lend(const Pointer& p)
 {
     return p;
 }
@@ -286,9 +289,9 @@ lend(const Pointer &p)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline typename std::decay<T>::type *as(U *obj)
+inline typename std::decay<T>::type* as(U* obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
+    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -312,9 +315,9 @@ inline typename std::decay<T>::type *as(U *obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline const typename std::decay<T>::type *as(const U *obj)
+inline const typename std::decay<T>::type* as(const U* obj)
 {
-    if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
+    if (auto p = dynamic_cast<const typename std::decay<T>::type*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -339,9 +342,9 @@ inline const typename std::decay<T>::type *as(const U *obj)
  */
 template <typename T, typename U>
 inline std::unique_ptr<typename std::decay<T>::type> as(
-    std::unique_ptr<U> &&obj)
+    std::unique_ptr<U>&& obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj.get())) {
+    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj.get())) {
         obj.release();
         return std::unique_ptr<typename std::decay<T>::type>{p};
     } else {
@@ -412,7 +415,7 @@ inline std::shared_ptr<const typename std::decay<T>::type> as(
 template <typename T>
 class null_deleter {
 public:
-    using pointer = T *;
+    using pointer = T*;
 
     /**
      * Deletes the object.

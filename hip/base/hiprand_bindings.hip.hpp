@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,12 +83,12 @@ inline hiprandGenerator_t rand_generator(int64 seed,
 
 #define GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, HiprandName)               \
     inline void rand_vector(                                                 \
-        hiprandGenerator_t &gen, int n, remove_complex<ValueType> mean,      \
-        remove_complex<ValueType> stddev, ValueType *values)                 \
+        hiprandGenerator_t& gen, int n, remove_complex<ValueType> mean,      \
+        remove_complex<ValueType> stddev, ValueType* values)                 \
     {                                                                        \
         n = is_complex<ValueType>() ? 2 * n : n;                             \
         GKO_ASSERT_NO_HIPRAND_ERRORS(HiprandName(                            \
-            gen, reinterpret_cast<remove_complex<ValueType> *>(values), n,   \
+            gen, reinterpret_cast<remove_complex<ValueType>*>(values), n,    \
             mean, stddev));                                                  \
     }                                                                        \
     static_assert(true,                                                      \

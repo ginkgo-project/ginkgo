@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,35 +49,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Cg : public ::testing::Test {
+class Cg : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
 
     Cg() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride)
@@ -108,41 +88,28 @@ protected:
         // check correct handling for zero values
         beta->at(2) = 0.0;
         prev_rho->at(2) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
         // check correct handling for stopped columns
         stop_status->get_data()[1].stop(1);
 
-        d_b = Mtx::create(exec);
-        d_b->copy_from(b.get());
-        d_r = Mtx::create(exec);
-        d_r->copy_from(r.get());
-        d_z = Mtx::create(exec);
-        d_z->copy_from(z.get());
-        d_p = Mtx::create(exec);
-        d_p->copy_from(p.get());
-        d_q = Mtx::create(exec);
-        d_q->copy_from(q.get());
-        d_x = Mtx::create(exec);
-        d_x->copy_from(x.get());
-        d_beta = Mtx::create(exec);
-        d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(exec);
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(exec);
-        d_rho->copy_from(rho.get());
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec, n));
-        *d_stop_status = *stop_status;
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_z = gko::clone(exec, z);
+        d_p = gko::clone(exec, p);
+        d_q = gko::clone(exec, q);
+        d_x = gko::clone(exec, x);
+        d_beta = gko::clone(exec, beta);
+        d_prev_rho = gko::clone(exec, prev_rho);
+        d_rho = gko::clone(exec, rho);
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
@@ -153,7 +120,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -164,7 +131,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -223,16 +190,17 @@ TEST_F(Cg, CgStep2IsEquivalentToRef)
 
 TEST_F(Cg, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53);
-    gko::test::make_hpd(mtx.get());
+    auto data = gko::matrix_data<value_type, index_type>(
+        gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
+        rand_engine);
+    gko::utils::make_hpd(data);
+    auto mtx = Mtx::create(ref, data.size, 53);
+    mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);
-    auto d_mtx = Mtx::create(exec);
-    d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(exec);
-    d_x->copy_from(x.get());
-    auto d_b = Mtx::create(exec);
-    d_b->copy_from(b.get());
+    auto d_mtx = gko::clone(exec, mtx);
+    auto d_x = gko::clone(exec, x);
+    auto d_b = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
@@ -255,8 +223,5 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
-
-
-}  // namespace

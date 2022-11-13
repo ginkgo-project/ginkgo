@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,7 @@ namespace stop {
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
  *                    $ \frac{|| r ||}{|| r_0||} < \tau $
  *
- * - rhs_resnorm:     Check for tolerance relative to the rhs norm.
+ * - rhs_norm:        Check for tolerance relative to the rhs norm.
  *                    $ \frac{|| r ||}{|| b ||} < \tau $
  *
  * @ingroup stop
@@ -81,12 +81,13 @@ class ResidualNormBase
                                          Criterion>;
 
 protected:
+    using absolute_type = remove_complex<ValueType>;
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using NormVector = matrix::Dense<absolute_type>;
     using Vector = matrix::Dense<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &updater) override;
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
@@ -94,92 +95,14 @@ protected:
     {}
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
-                              const CriterionArgs &args,
-                              remove_complex<ValueType> reduction_factor,
-                              mode baseline)
-        : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2},
-          reduction_factor_{reduction_factor},
-          baseline_{baseline},
-          system_matrix_{args.system_matrix},
-          b_{args.b},
-          one_{gko::initialize<Vector>({1}, exec)},
-          neg_one_{gko::initialize<Vector>({-1}, exec)}
-    {
-        switch (baseline_) {
-        case mode::initial_resnorm: {
-            if (args.initial_residual == nullptr) {
-                if (args.system_matrix == nullptr || args.b == nullptr ||
-                    args.x == nullptr) {
-                    GKO_NOT_SUPPORTED(nullptr);
-                } else {
-                    this->starting_tau_ = NormVector::create(
-                        exec, dim<2>{1, args.b->get_size()[1]});
-                    auto b_clone = share(args.b->clone());
-                    args.system_matrix->apply(neg_one_.get(), args.x,
-                                              one_.get(), b_clone.get());
-                    if (auto vec =
-                            std::dynamic_pointer_cast<const ComplexVector>(
-                                b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else if (auto vec =
-                                   std::dynamic_pointer_cast<const Vector>(
-                                       b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else {
-                        GKO_NOT_SUPPORTED(nullptr);
-                    }
-                }
-            } else {
-                this->starting_tau_ = NormVector::create(
-                    exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector *>(
-                        args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                }
-            }
-            break;
-        }
-        case mode::rhs_norm: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector *>(args.b.get())) {
-                auto dense_rhs = as<ComplexVector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            } else {
-                auto dense_rhs = as<Vector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            }
-            break;
-        }
-        case mode::absolute: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            this->starting_tau_->fill(gko::one<remove_complex<ValueType>>());
-            break;
-        }
-        default:
-            GKO_NOT_SUPPORTED(nullptr);
-        }
-        this->u_dense_tau_ =
-            NormVector::create_with_config_of(this->starting_tau_.get());
-    }
+                              const CriterionArgs& args,
+                              absolute_type reduction_factor, mode baseline);
 
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
     std::unique_ptr<NormVector> u_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
-    Array<bool> device_storage_;
+    array<bool> device_storage_;
 
 private:
     mode baseline_{mode::rhs_norm};
@@ -239,7 +162,7 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ResidualNorm(const Factory *factory, const CriterionArgs &args)
+    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -295,15 +218,15 @@ protected:
     // check_impl needs to be overwritten again since we focus on the implicit
     // residual here
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &updater) override;
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ImplicitResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit ImplicitResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -311,6 +234,18 @@ protected:
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+// The following classes are deprecated, but they internally reference
+// themselves. To reduce unnecessary warnings, we disable deprecation warnings
+// for the definition of these classes.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 
 
 /**
@@ -333,7 +268,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ResidualNormReduction : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::initial_resnorm")]] ResidualNormReduction
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -356,8 +295,8 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ResidualNormReduction(const Factory *factory,
-                                   const CriterionArgs &args)
+    explicit ResidualNormReduction(const Factory* factory,
+                                   const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -386,7 +325,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::rhs_norm")]] RelativeResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -409,8 +352,8 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit RelativeResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit RelativeResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(factory->get_executor(), args,
                                       factory->get_parameters().tolerance,
                                       mode::rhs_norm),
@@ -422,7 +365,7 @@ protected:
 /**
  * The AbsoluteResidualNorm class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
- * threshold, i.e. when norm(residual) / threshold.
+ * threshold, i.e. when norm(residual) < threshold.
  * For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
@@ -437,7 +380,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class AbsoluteResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::absolute")]] AbsoluteResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
@@ -459,14 +406,21 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit AbsoluteResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit AbsoluteResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(factory->get_executor(), args,
                                       factory->get_parameters().tolerance,
                                       mode::absolute),
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(pop)
+#endif
 
 
 }  // namespace stop

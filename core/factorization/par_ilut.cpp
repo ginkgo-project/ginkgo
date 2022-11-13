@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -56,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace par_ilut_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(threshold_select,
@@ -73,16 +75,17 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
 GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
+}  // namespace
 }  // namespace par_ilut_factorization
 
 
 using par_ilut_factorization::make_add_candidates;
 using par_ilut_factorization::make_compute_l_u_factors;
-using par_ilut_factorization::make_convert_to_coo;
+using par_ilut_factorization::make_convert_ptrs_to_idxs;
 using par_ilut_factorization::make_csr_transpose;
 using par_ilut_factorization::make_initialize_l_u;
 using par_ilut_factorization::make_initialize_row_ptrs_l_u;
@@ -90,6 +93,9 @@ using par_ilut_factorization::make_spgemm;
 using par_ilut_factorization::make_threshold_filter;
 using par_ilut_factorization::make_threshold_filter_approx;
 using par_ilut_factorization::make_threshold_select;
+
+
+namespace {
 
 
 template <typename ValueType, typename IndexType>
@@ -108,7 +114,7 @@ struct ParIlutState {
     // use the approximate selection/filter kernels?
     bool use_approx_select;
     // system matrix A
-    const CsrMatrix *system_matrix;
+    const CsrMatrix* system_matrix;
     // current lower factor L
     std::unique_ptr<CsrMatrix> l;
     // current upper factor U
@@ -128,16 +134,16 @@ struct ParIlutState {
     // upper factor U currently being updated
     std::unique_ptr<CooMatrix> u_coo;
     // temporary array for threshold selection
-    Array<ValueType> selection_tmp;
+    array<ValueType> selection_tmp;
     // temporary array for threshold selection
-    Array<remove_complex<ValueType>> selection_tmp2;
+    array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
     std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
     // strategy to be used by the upper factor
     std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy;
 
     ParIlutState(std::shared_ptr<const Executor> exec_in,
-                 const CsrMatrix *system_matrix_in,
+                 const CsrMatrix* system_matrix_in,
                  std::unique_ptr<CsrMatrix> l_in,
                  std::unique_ptr<CsrMatrix> u_in, IndexType l_nnz_limit,
                  IndexType u_nnz_limit, bool use_approx_select,
@@ -178,10 +184,13 @@ struct ParIlutState {
 };
 
 
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlut<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp>& system_matrix) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -197,8 +206,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
 
     // initialize the L and U matrix data structures
     const auto num_rows = csr_system_matrix->get_size()[0];
-    Array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
-    Array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
+    array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
+    array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     auto u_row_ptrs = u_row_ptrs_array.get_data();
     exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix.get(), l_row_ptrs,
@@ -210,11 +219,11 @@ ParIlut<ValueType, IndexType>::generate_l_u(
         static_cast<size_type>(exec->copy_val_to_host(u_row_ptrs + num_rows));
 
     auto mtx_size = csr_system_matrix->get_size();
-    auto l = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, l_nnz},
-                               Array<IndexType>{exec, l_nnz},
+    auto l = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, l_nnz},
+                               array<IndexType>{exec, l_nnz},
                                std::move(l_row_ptrs_array));
-    auto u = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, u_nnz},
-                               Array<IndexType>{exec, u_nnz},
+    auto u = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, u_nnz},
+                               array<IndexType>{exec, u_nnz},
                                std::move(u_row_ptrs_array));
 
     // initialize L and U
@@ -268,21 +277,25 @@ void ParIlutState<ValueType, IndexType>::iterate()
         u_csc_builder.get_value_array().resize_and_reset(u_nnz);
         // update arrays that will be aliased
         l_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, l_nnz, l_new->get_col_idxs());
+            make_array_view(exec, l_nnz, l_new->get_col_idxs());
         u_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, u_nnz, u_new->get_col_idxs());
+            make_array_view(exec, u_nnz, u_new->get_col_idxs());
         l_builder.get_value_array() =
-            Array<ValueType>::view(exec, l_nnz, l_new->get_values());
+            make_array_view(exec, l_nnz, l_new->get_values());
         u_builder.get_value_array() =
-            Array<ValueType>::view(exec, u_nnz, u_new->get_values());
+            make_array_view(exec, u_nnz, u_new->get_values());
     }
 
     // convert U' into CSC format
     exec->run(make_csr_transpose(u_new.get(), u_new_csc.get()));
 
     // convert L' and U' into COO format
-    exec->run(make_convert_to_coo(l_new.get(), l_coo.get()));
-    exec->run(make_convert_to_coo(u_new.get(), u_coo.get()));
+    exec->run(make_convert_ptrs_to_idxs(l_new->get_const_row_ptrs(),
+                                        l_new->get_size()[0],
+                                        l_coo->get_row_idxs()));
+    exec->run(make_convert_ptrs_to_idxs(u_new->get_const_row_ptrs(),
+                                        u_new->get_size()[0],
+                                        u_coo->get_row_idxs()));
 
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(system_matrix, l_new.get(), l_coo.get(),
@@ -297,7 +310,7 @@ void ParIlutState<ValueType, IndexType>::iterate()
     auto u_filter_rank = std::max<IndexType>(0, u_nnz - u_nnz_limit - 1);
     remove_complex<ValueType> l_threshold{};
     remove_complex<ValueType> u_threshold{};
-    CooMatrix *null_coo = nullptr;
+    CooMatrix* null_coo = nullptr;
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
         exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,

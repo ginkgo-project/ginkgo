@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,6 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
 {
     auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
-    // TODO: CUDA conversion Dense -> Csr not yet implemented
     auto csr_ref = gko::matrix::Csr<>::create(ref);
     csr_ref->copy_from(mtx.get());
     auto csr_mtx = gko::matrix::Csr<>::create(cuda);

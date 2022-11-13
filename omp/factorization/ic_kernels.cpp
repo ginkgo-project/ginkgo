@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ namespace ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
-             matrix::Csr<ValueType, IndexType> *m) GKO_NOT_IMPLEMENTED;
+             matrix::Csr<ValueType, IndexType>* m) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_COMPUTE_KERNEL);
 

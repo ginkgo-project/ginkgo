@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ protected:
 
     template <typename Accessor>
     static void check_accessor_correctness(
-        const Accessor &a,
+        const Accessor& a,
         std::tuple<int, int, int> ignore = std::tuple<int, int, int>(99, 99,
                                                                      99))
     {

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,10 +57,10 @@ struct DummyOperator : public gko::EnableLinOp<DummyOperator>,
         : gko::EnableLinOp<DummyOperator>(exec, size)
     {}
 
-    void apply_impl(const LinOp *b, LinOp *x) const override {}
+    void apply_impl(const LinOp* b, LinOp* x) const override {}
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {}
 };
 
@@ -97,7 +97,8 @@ protected:
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
 };
 
-TYPED_TEST_SUITE(IsaiFactory, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(IsaiFactory, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(IsaiFactory, KnowsItsExecutor)
@@ -260,9 +261,9 @@ TYPED_TEST(IsaiFactory, CanSetExcessSolverFactoryU)
 TYPED_TEST(IsaiFactory, ThrowsWrongDimensionA)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
+    auto mtx = gko::share(Csr::create(this->exec, gko::dim<2>{1, 2}, 1));
 
-    ASSERT_THROW(this->general_isai_factory->generate(gko::share(mtx)),
+    ASSERT_THROW(this->general_isai_factory->generate(mtx),
                  gko::DimensionMismatch);
 }
 
@@ -270,19 +271,18 @@ TYPED_TEST(IsaiFactory, ThrowsWrongDimensionA)
 TYPED_TEST(IsaiFactory, ThrowsWrongDimensionSpd)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
+    auto mtx = gko::share(Csr::create(this->exec, gko::dim<2>{1, 2}, 1));
 
-    ASSERT_THROW(this->spd_isai_factory->generate(gko::share(mtx)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->spd_isai_factory->generate(mtx), gko::DimensionMismatch);
 }
 
 
 TYPED_TEST(IsaiFactory, ThrowsWrongDimensionL)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
+    auto mtx = gko::share(Csr::create(this->exec, gko::dim<2>{1, 2}, 1));
 
-    ASSERT_THROW(this->lower_isai_factory->generate(gko::share(mtx)),
+    ASSERT_THROW(this->lower_isai_factory->generate(mtx),
                  gko::DimensionMismatch);
 }
 
@@ -290,9 +290,9 @@ TYPED_TEST(IsaiFactory, ThrowsWrongDimensionL)
 TYPED_TEST(IsaiFactory, ThrowsWrongDimensionU)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
+    auto mtx = gko::share(Csr::create(this->exec, gko::dim<2>{1, 2}, 1));
 
-    ASSERT_THROW(this->upper_isai_factory->generate(gko::share(mtx)),
+    ASSERT_THROW(this->upper_isai_factory->generate(mtx),
                  gko::DimensionMismatch);
 }
 
@@ -300,40 +300,36 @@ TYPED_TEST(IsaiFactory, ThrowsWrongDimensionU)
 TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrA)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx = gko::share(DummyOperator::create(this->exec, gko::dim<2>{2, 2}));
 
-    ASSERT_THROW(this->general_isai_factory->generate(gko::share(mtx)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->general_isai_factory->generate(mtx), gko::NotSupported);
 }
 
 
 TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrSpd)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx = gko::share(DummyOperator::create(this->exec, gko::dim<2>{2, 2}));
 
-    ASSERT_THROW(this->spd_isai_factory->generate(gko::share(mtx)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->spd_isai_factory->generate(mtx), gko::NotSupported);
 }
 
 
 TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrL)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx = gko::share(DummyOperator::create(this->exec, gko::dim<2>{2, 2}));
 
-    ASSERT_THROW(this->lower_isai_factory->generate(gko::share(mtx)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->lower_isai_factory->generate(mtx), gko::NotSupported);
 }
 
 
 TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrU)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx = gko::share(DummyOperator::create(this->exec, gko::dim<2>{2, 2}));
 
-    ASSERT_THROW(this->upper_isai_factory->generate(gko::share(mtx)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->upper_isai_factory->generate(mtx), gko::NotSupported);
 }
 
 

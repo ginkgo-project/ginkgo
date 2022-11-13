@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -243,7 +243,7 @@ public:
      * @internal
      * TODO: replace with ranges
      */
-    const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
+    const block_interleaved_storage_scheme<index_type>& get_storage_scheme()
         const noexcept
     {
         return storage_scheme_;
@@ -260,7 +260,7 @@ public:
      * @internal
      * TODO: replace with ranges
      */
-    const value_type *get_blocks() const noexcept
+    const value_type* get_blocks() const noexcept
     {
         return blocks_.get_const_data();
     }
@@ -274,7 +274,7 @@ public:
      *       implementations of the standard non-adaptive variant are allowed to
      *       omit the calculation of condition numbers.
      */
-    const remove_complex<value_type> *get_conditioning() const noexcept
+    const remove_complex<value_type>* get_conditioning() const noexcept
     {
         return conditioning_.get_const_data();
     }
@@ -289,15 +289,41 @@ public:
         return blocks_.get_num_elems();
     }
 
-    void convert_to(matrix::Dense<value_type> *result) const override;
+    void convert_to(matrix::Dense<value_type>* result) const override;
 
-    void move_to(matrix::Dense<value_type> *result) override;
+    void move_to(matrix::Dense<value_type>* result) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Copy-assigns a Jacobi preconditioner. Preserves executor, copies all
+     * data and parameters.
+     */
+    Jacobi& operator=(const Jacobi& other);
+
+    /**
+     * Move-assigns a Jacobi preconditioner. Preserves executor, moves all data
+     * and parameters. The moved-from object will be empty (0x0 and default
+     * parameters).
+     */
+    Jacobi& operator=(Jacobi&& other);
+
+    /**
+     * Copy-constructs a Jacobi preconditioner. Inherits executor, copies all
+     * data and parameters.
+     */
+    Jacobi(const Jacobi& other);
+
+    /**
+     * Move-assigns a Jacobi preconditioner. Inherits executor, moves all data
+     * and parameters. The moved-from object will be empty (0x0 and default
+     * parameters).
+     */
+    Jacobi(Jacobi&& other);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -366,7 +392,7 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
+        gko::array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
                                                             nullptr);
 
     private:
@@ -378,13 +404,13 @@ public:
             {}
 
             storage_optimization_type(
-                const Array<precision_reduction> &block_wise_opt)
+                const array<precision_reduction>& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{block_wise_opt}
             {}
 
             storage_optimization_type(
-                Array<precision_reduction> &&block_wise_opt)
+                array<precision_reduction>&& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{std::move(block_wise_opt)}
             {}
@@ -393,7 +419,7 @@ public:
 
             bool is_block_wise;
             precision_reduction of_all_blocks;
-            gko::Array<precision_reduction> block_wise;
+            gko::array<precision_reduction> block_wise;
         };
 
     public:
@@ -401,10 +427,10 @@ public:
          * The precisions to use for the blocks of the matrix.
          *
          * This parameter can either be a single instance of precision_reduction
-         * or an Array of precision_reduction values. If set to
+         * or an array of precision_reduction values. If set to
          * `precision_reduction(0, 0)` (this is the default), a regular
          * full-precision block-Jacobi will be used. Any other value (or an
-         * Array of values) will map to the adaptive variant.
+         * array of values) will map to the adaptive variant.
          *
          * The best starting point when evaluating the potential of the adaptive
          * version is to set this parameter to
@@ -440,7 +466,7 @@ public:
          * on the conditioning of the block.
          *
          * If the number of diagonal blocks is larger than the number of
-         * elements in the passed Array, the entire Array will be replicated
+         * elements in the passed array, the entire array will be replicated
          * until enough values are available. For example, if the original array
          * contained two precisions `(x, y)` and the preconditioner contains 5
          * blocks, the array will be transformed into `(x, y, x, y, x)` before
@@ -462,7 +488,7 @@ public:
          * `precision_reduction::autodetect()` will be replaced with the value
          * representing the precision used for the corresponding block.
          * If the non-adaptive version of Jacobi is used, the
-         * `storage_optimization.block_wise` Array will be empty.
+         * `storage_optimization.block_wise` array will be empty.
          */
         storage_optimization_type GKO_FACTORY_PARAMETER_VECTOR(
             storage_optimization, precision_reduction(0, 0));
@@ -522,7 +548,7 @@ protected:
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit Jacobi(const Factory *factory,
+    explicit Jacobi(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Jacobi>(factory->get_executor(),
                               gko::transpose(system_matrix->get_size())),
@@ -592,7 +618,7 @@ protected:
      *                      skipped (therefore, marking that it is already
      *                      sorted)
      */
-    void generate(const LinOp *system_matrix, bool skip_sorting);
+    void generate(const LinOp* system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the
@@ -601,18 +627,18 @@ protected:
      * @param system_matrix  the source matrix whose diagonal block pattern is
      *                       to be detected
      */
-    void detect_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix);
+    void detect_blocks(const matrix::Csr<ValueType, IndexType>* system_matrix);
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};
     size_type num_blocks_;
-    Array<value_type> blocks_;
-    Array<remove_complex<value_type>> conditioning_;
+    array<value_type> blocks_;
+    array<remove_complex<value_type>> conditioning_;
 };
 
 

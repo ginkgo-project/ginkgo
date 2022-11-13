@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,8 @@ namespace {
 
 
 template <typename ValueType>
-void print_vector(const std::string &name,
-                  const gko::matrix::Dense<ValueType> *vec)
+void print_vector(const std::string& name,
+                  const gko::matrix::Dense<ValueType>* vec)
 {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < vec->get_size()[0]; ++i) {
@@ -58,7 +58,7 @@ void print_vector(const std::string &name,
 }  // namespace
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
     // for convenience.
     std::shared_ptr<gko::log::Stream<ValueType>> stream_logger =
         gko::log::Stream<ValueType>::create(
-            exec,
             gko::log::Logger::all_events_mask ^
                 gko::log::Logger::linop_factory_events_mask ^
                 gko::log::Logger::polymorphic_object_events_mask,
@@ -151,31 +150,22 @@ int main(int argc, char *argv[])
     // Logger class for more information.
     std::ofstream filestream("my_file.txt");
     solver->add_logger(gko::log::Stream<ValueType>::create(
-        exec, gko::log::Logger::all_events_mask, filestream));
+        gko::log::Logger::all_events_mask, filestream));
     solver->add_logger(stream_logger);
 
     // Add another logger which puts all the data in an object, we can later
     // retrieve this object in our code. Here we only have want Executor
     // and criterion check completed events.
     std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
-        exec, gko::log::Logger::executor_events_mask |
-                  gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::executor_events_mask |
+        gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
 
     // Solve system
     solver->apply(lend(b), lend(x));
 
-    // Finally, get some data from `record_logger` and print the last memory
-    // location copied
-    auto &last_copy = record_logger->get().copy_completed.back();
-    std::cout << "Last memory copied was of size " << std::hex
-              << std::get<0>(*last_copy).num_bytes << " FROM executor "
-              << std::get<0>(*last_copy).exec << " pointer "
-              << std::get<0>(*last_copy).location << " TO executor "
-              << std::get<1>(*last_copy).exec << " pointer "
-              << std::get<1>(*last_copy).location << std::dec << std::endl;
-    // Also print the residual of the last criterion check event (where
+    // Print the residual of the last criterion check event (where
     // convergence happened)
     auto residual =
         record_logger->get().criterion_check_completed.back()->residual.get();

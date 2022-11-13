@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,8 @@ namespace dpcpp {
  */
 template <unsigned subgroup_size, typename ValueType, typename IndexType>
 __dpct_inline__ bool segment_scan(
-    const group::thread_block_tile<subgroup_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
+    const group::thread_block_tile<subgroup_size>& group, const IndexType ind,
+    ValueType* __restrict__ val)
 {
     bool head = true;
 #pragma unroll

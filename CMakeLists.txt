@@ -5,29 +5,17 @@ cmake_policy(SET CMP0074 NEW)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.4.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.5.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
-include(cmake/build_type_helpers.cmake)
-
-# Load other CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/install_helpers.cmake)
-
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
-endif()
-if (MINGW OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
-endif()
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -36,6 +24,7 @@ option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
 option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
@@ -78,6 +67,8 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
+# the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
+option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
 set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
@@ -97,6 +88,40 @@ option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ bac
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
+     catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
+
+# load executor-specific configuration
+if(GINKGO_BUILD_CUDA)
+    include(cmake/cuda.cmake)
+endif()
+if(GINKGO_BUILD_HIP)
+    include(cmake/hip.cmake)
+endif()
+if(GINKGO_BUILD_OMP)
+    find_package(OpenMP 3.0 REQUIRED)
+endif()
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+include(cmake/build_type_helpers.cmake)
+
+# Load other CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+if(MINGW OR CYGWIN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
+
+# For now, PGI/NVHPC nvc++ compiler doesn't seem to support
+# `#pragma omp declare reduction`
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
+    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
+    set(GINKGO_BUILD_OMP OFF)
+endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -118,7 +143,7 @@ if(GINKGO_BENCHMARK_ENABLE_TUNING)
     set(GINKGO_BUILD_EXAMPLES OFF)
 endif()
 
-if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP OR GINKGO_BUILD_DPCPP))
+if(GINKGO_BUILD_TESTS)
     message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
     set(GINKGO_BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
@@ -188,30 +213,30 @@ else()
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
-# We keep using NVCC/HCC for consistency with previous releases even if AMD
-# updated everything to use NVIDIA/AMD in ROCM 4.1
-set(GINKGO_HIP_PLATFORM_NVCC 0)
-set(GINKGO_HIP_PLATFORM_HCC 0)
-
-if(GINKGO_BUILD_HIP)
-    # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
-    if(DEFINED ENV{HIP_PLATFORM})
-        set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
-    elseif(GINKGO_HIPCONFIG_PATH)
-        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH}
-            --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
+set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
+set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
+if(GINKGO_BUILD_MPI)
+    find_package(MPI REQUIRED)
+    if(GINKGO_FORCE_GPU_AWARE_MPI)
+        set(GINKGO_HAVE_GPU_AWARE_MPI ON)
     else()
-        message(FATAL_ERROR "No platform could be found for HIP. "
-            "Set and export the environment variable HIP_PLATFORM.")
+        set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
     endif()
-    message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
-    set(HIP_PLATFORM_AMD_REGEX "hcc|amd")
-    set(HIP_PLATFORM_NVIDIA_REGEX "nvcc|nvidia")
 
-    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-        set(GINKGO_HIP_PLATFORM_HCC 1)
-    elseif (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-        set(GINKGO_HIP_PLATFORM_NVCC 1)
+    try_run(uses_openmpi gko_result_unused
+        ${PROJECT_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}/cmake/openmpi_test.cpp
+        LINK_LIBRARIES MPI::MPI_CXX
+        RUN_OUTPUT_VARIABLE openmpi_version
+        )
+    if(uses_openmpi)
+        if(openmpi_version VERSION_LESS "4.1")
+            message(WARNING
+                "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
+                "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
+                "switch to a different vendor.")
+            set(GINKGO_FORCE_SPMV_BLOCKING_COMM ON)
+        endif()
     endif()
 endif()
 
@@ -244,24 +269,25 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
+add_subdirectory(common)         # Import list of unified kernel source files
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
-if (GINKGO_BUILD_REFERENCE)
+if(GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
 if(GINKGO_BUILD_HIP)
     add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
-if (GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_DPCPP)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
-if (GINKGO_BUILD_OMP)
+if(GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check
-if (GINKGO_BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)       # Tests running on all executors
 endif()
 
@@ -326,8 +352,19 @@ if(GINKGO_BUILD_DOC)
     add_subdirectory(doc)
 endif()
 
+
+# add escape character '\' for space
+string(REPLACE " " "\ " PKG_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+# add escape character '\' for space in regex mode
+list(TRANSFORM GINKGO_INTERFACE_LINK_FLAGS REPLACE " " "\\\\ ")
+list(TRANSFORM GINKGO_INTERFACE_CXX_FLAGS REPLACE " " "\\\\ ")
+# convert the list to string
+string(REPLACE ";" " " GINKGO_INTERFACE_CXX_FLAGS "${GINKGO_INTERFACE_CXX_FLAGS}")
+string(REPLACE ";" " " GINKGO_INTERFACE_LINK_FLAGS "${GINKGO_INTERFACE_LINK_FLAGS}")
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
-    ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
+    ${Ginkgo_BINARY_DIR}/ginkgo.pc.in @ONLY)
+file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
+    INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
 
 # WINDOWS NVCC has " inside the string, add escape character
 # to avoid config problem.
@@ -340,27 +377,25 @@ set(GINKGO_TEST_INSTALL_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_install/")
 set(GINKGO_TEST_INSTALL_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_install/")
 set(GINKGO_TEST_EXPORTBUILD_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_exportbuild/")
 set(GINKGO_TEST_EXPORTBUILD_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_exportbuild/")
-if(MSVC)
-    set(GINKGO_TEST_INSTALL_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/$<CONFIG>/test_install)
-    set(GINKGO_TEST_EXPORTBUILD_CMD ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}/$<CONFIG>/test_exportbuild)
-    if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_CUDA_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/$<CONFIG>/test_install_cuda)
-    endif()
-else()
-    set(GINKGO_TEST_INSTALL_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/test_install)
-    set(GINKGO_TEST_EXPORTBUILD_CMD ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}/test_exportbuild)
-    if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_CUDA_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/test_install_cuda)
-    endif()
+set(GINKGO_TEST_PKGCONFIG_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_pkgconfig/")
+set(GINKGO_TEST_PKGCONFIG_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_pkgconfig/")
+get_property(GINKGO_USE_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+# GINKGO_CONFIG_PREFIX contains / in the end.
+set(GINKGO_CONFIG_PREFIX "$<$<BOOL:${GINKGO_USE_MULTI_CONFIG}>:$<CONFIG>/>")
+set(GINKGO_TEST_INSTALL_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_install)
+set(GINKGO_TEST_EXPORTBUILD_CMD ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_exportbuild)
+set(GINKGO_TEST_PKGCONFIG_CMD ${GINKGO_TEST_PKGCONFIG_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_pkgconfig)
+if(GINKGO_BUILD_CUDA)
+    set(GINKGO_TEST_INSTALL_CUDA_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_install_cuda)
 endif()
 if(GINKGO_BUILD_HIP)
-    set(GINKGO_TEST_INSTALL_HIP_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/test_install_hip)
+    set(GINKGO_TEST_INSTALL_HIP_CMD ${GINKGO_TEST_INSTALL_BIN_DIR}/${GINKGO_CONFIG_PREFIX}test_install_hip)
 endif()
 
 file(MAKE_DIRECTORY "${GINKGO_TEST_INSTALL_BIN_DIR}")
 file(MAKE_DIRECTORY "${GINKGO_TEST_EXPORTBUILD_BIN_DIR}")
 set(TOOLSET "")
-if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
+if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
     set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
 endif()
 add_custom_target(test_install
@@ -372,6 +407,7 @@ add_custom_target(test_install
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
@@ -392,6 +428,7 @@ add_custom_target(test_exportbuild
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
@@ -401,6 +438,24 @@ add_custom_target(test_exportbuild
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
     COMMENT "Running a test on Ginkgo's exported build directory. "
     "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
+
+add_custom_target(test_pkgconfig
+    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
+    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    # `--config cfg` is ignored by single-configuration generator.
+    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
+    # single-configuration generator.
+    COMMAND ${CMAKE_COMMAND}
+    --build ${GINKGO_TEST_PKGCONFIG_BIN_DIR}
+    --config $<CONFIG>
+    COMMAND ${GINKGO_TEST_PKGCONFIG_CMD}
+    COMMENT "Running a test on Ginkgo's PkgConfig"
+    "This requires installing Ginkgo first")
 
 
 # Setup CPack
@@ -416,4 +471,4 @@ if(GINKGO_CONFIG_LOG_DETAILED)
 else()
     FILE(READ ${PROJECT_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
 endif()
-MESSAGE("${GINKGO_LOG_SUMMARY}")
+MESSAGE(STATUS "${GINKGO_LOG_SUMMARY}")

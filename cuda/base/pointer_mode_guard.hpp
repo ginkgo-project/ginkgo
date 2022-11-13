@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,20 +61,20 @@ namespace cublas {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(cublasHandle_t &handle)
+    pointer_mode_guard(cublasHandle_t& handle)
     {
         l_handle = &handle;
         GKO_ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
@@ -88,7 +88,7 @@ public:
     }
 
 private:
-    cublasHandle_t *l_handle;
+    cublasHandle_t* l_handle;
 };
 
 
@@ -108,34 +108,34 @@ namespace cusparse {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(cusparseHandle_t &handle)
+    pointer_mode_guard(cusparseHandle_t handle)
     {
-        l_handle = &handle;
+        l_handle = handle;
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
         if (std::uncaught_exception()) {
-            cusparseSetPointerMode(*l_handle, CUSPARSE_POINTER_MODE_DEVICE);
+            cusparseSetPointerMode(l_handle, CUSPARSE_POINTER_MODE_DEVICE);
         } else {
-            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetPointerMode(
-                *l_handle, CUSPARSE_POINTER_MODE_DEVICE));
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(
+                cusparseSetPointerMode(l_handle, CUSPARSE_POINTER_MODE_DEVICE));
         }
     }
 
 private:
-    cusparseHandle_t *l_handle;
+    cusparseHandle_t l_handle;
 };
 
 

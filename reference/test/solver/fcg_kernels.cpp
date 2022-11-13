@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -120,7 +120,7 @@ protected:
         small_z = small_zero->clone();
         small_p = small_zero->clone();
         small_q = small_zero->clone();
-        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
         stopped.stop(1);
         non_stopped.reset();
         std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
@@ -143,7 +143,7 @@ protected:
     std::unique_ptr<Mtx> small_z;
     std::unique_ptr<Mtx> small_p;
     std::unique_ptr<Mtx> small_q;
-    gko::Array<gko::stopping_status> small_stop;
+    gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status non_stopped;
     std::unique_ptr<typename Solver::Factory> fcg_factory;
@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> fcg_factory_big2;
 };
 
-TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fcg, KernelInitialize)
@@ -509,7 +509,7 @@ TYPED_TEST(Fcg, SolvesBigDenseSystem2)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     using no_cpx_t = gko::remove_complex<T>;

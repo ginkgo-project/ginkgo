@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(Identity, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Identity, CanBeEmpty)
@@ -102,7 +102,7 @@ protected:
     using value_type = T;
 };
 
-TYPED_TEST_SUITE(IdentityFactory, gko::test::ValueTypes);
+TYPED_TEST_SUITE(IdentityFactory, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IdentityFactory, CanGenerateIdentityMatrix)

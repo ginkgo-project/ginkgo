@@ -6,18 +6,28 @@ target_sources(ginkgo
     base/array.cpp
     base/combination.cpp
     base/composition.cpp
+    base/dense_cache.cpp
+    base/device_matrix_data.cpp
     base/executor.cpp
+    base/index_set.cpp
+    base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    distributed/partition.cpp
+    factorization/elimination_forest.cpp
+    factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
+    factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
+    factorization/symbolic.cpp
     log/convergence.cpp
     log/logger.cpp
+    log/performance_hint.cpp
     log/record.cpp
     log/stream.cpp
     matrix/coo.cpp
@@ -26,25 +36,31 @@ target_sources(ginkgo
     matrix/diagonal.cpp
     matrix/ell.cpp
     matrix/fbcsr.cpp
+    matrix/fft.cpp
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    multigrid/amgx_pgm.cpp
+    matrix/row_gatherer.cpp
+    multigrid/pgm.cpp
+    multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp
+    reorder/scaled_reordered.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
+    solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
+    solver/direct.cpp
     solver/fcg.cpp
     solver/gmres.cpp
-    solver/cb_gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
     solver/lower_trs.cpp
+    solver/multigrid.cpp
     solver/upper_trs.cpp
     stop/combined.cpp
     stop/criterion.cpp
@@ -54,6 +70,14 @@ target_sources(ginkgo
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
+endif()
+
+if (GINKGO_BUILD_MPI)
+    target_sources(ginkgo
+        PRIVATE
+        mpi/exception.cpp
+        distributed/matrix.cpp
+        distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
@@ -71,6 +95,10 @@ if (GINKGO_HAVE_PAPI_SDE)
     list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
     get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
     list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+endif()
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
 # Since we have a public dependency on HIP, this dependency appears

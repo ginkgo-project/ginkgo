@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,13 @@ template <typename ValueType>
 class Dense;
 
 template <typename ValueType, typename IndexType>
+class Coo;
+
+template <typename ValueType, typename IndexType>
 class Csr;
+
+template <typename ValueType, typename IndexType>
+class Hybrid;
 
 
 /**
@@ -59,6 +65,9 @@ class Csr;
  * elements and the corresponding column indices are stored in column-major
  * fashion. The columns are padded to the length by user-defined stride
  * parameter whose default value is the number of rows of the matrix.
+ *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -81,8 +90,11 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
+    friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Ell<to_complex<ValueType>, IndexType>;
+    friend class Ell<next_precision<ValueType>, IndexType>;
+    friend class Hybrid<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
@@ -92,26 +104,29 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
 
-    friend class Ell<next_precision<ValueType>, IndexType>;
-
     void convert_to(
-        Ell<next_precision<ValueType>, IndexType> *result) const override;
+        Ell<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void read(const device_mat_data& data) override;
+
+    void read(device_mat_data&& data) override;
+
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -124,7 +139,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Ell::get_values()
@@ -133,7 +148,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -143,7 +158,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Ell::get_col_idxs()
@@ -152,7 +167,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -194,7 +209,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    value_type &val_at(size_type row, size_type idx) noexcept
+    value_type& val_at(size_type row, size_type idx) noexcept
     {
         return values_.get_data()[this->linearize_index(row, idx)];
     }
@@ -217,7 +232,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    index_type &col_at(size_type row, size_type idx) noexcept
+    index_type& col_at(size_type row, size_type idx) noexcept
     {
         return this->get_col_idxs()[this->linearize_index(row, idx)];
     }
@@ -230,6 +245,59 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
+    /**
+     * Creates a constant (immutable) Ell matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param num_stored_elements_per_row  the number of stored nonzeros per row
+     * @param stride  the column-stride of the value and column index array
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          the arrays on the correct executor.
+     */
+    static std::unique_ptr<const Ell> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        size_type num_stored_elements_per_row, size_type stride)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Ell>(new Ell{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            num_stored_elements_per_row, stride});
+    }
+
+    /**
+     * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
+     * matrix with minimal stride if the dimensions don't match, then copies the
+     * data over, ignoring padding.
+     */
+    Ell& operator=(const Ell&);
+
+    /**
+     * Move-assigns an Ell matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with empty Array).
+     */
+    Ell& operator=(Ell&&);
+
+    /**
+     * Copy-constructs an Ell matrix. Inherits executor and dimensions, but
+     * copies data without padding.
+     */
+    Ell(const Ell&);
+
+    /**
+     * Move-constructs an Ell matrix. Inherits executor, dimensions and data
+     * with padding. The moved-from object is empty (0x0 with empty Array).
+     */
+    Ell(Ell&&);
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -240,7 +308,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
         : Ell(std::move(exec), size, size[1])
     {}
 
@@ -253,7 +321,7 @@ protected:
      * @param num_stored_elements_per_row   the number of stored elements per
      *                                      row
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row)
         : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
     {}
@@ -267,7 +335,7 @@ protected:
      *                                      row
      * @param stride                stride of the rows
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_(exec, stride * num_stored_elements_per_row),
@@ -298,8 +366,8 @@ protected:
      *       array data will not be used in the matrix.
      */
     template <typename ValuesArray, typename ColIdxsArray>
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
-        ValuesArray &&values, ColIdxsArray &&col_idxs,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -313,10 +381,21 @@ protected:
                       col_idxs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    /**
+     * Resizes the matrix to the given dimensions and row nonzero count.
+     * If the dimensions or row nonzero count don't match their old values,
+     * the column stride will be reset to the number of rows and the internal
+     * storage reallocated to match these values.
+     *
+     * @param new_size  the new matrix dimensions
+     * @param max_row_nnz  the new number of nonzeros per row
+     */
+    void resize(dim<2> new_size, size_type max_row_nnz);
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
@@ -324,8 +403,8 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
 };

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,19 +46,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
 #define GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL(ValueType, IndexType) \
     void init_factor(std::shared_ptr<const DefaultExecutor> exec,   \
-                     matrix::Csr<ValueType, IndexType> *l_factor)
+                     matrix::Csr<ValueType, IndexType>* l_factor)
 
 #define GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)     \
     void compute_factor(                                                   \
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations, \
-        const matrix::Coo<ValueType, IndexType> *lower_system_matrix,      \
-        matrix::Csr<ValueType, IndexType> *l_factor)
+        const matrix::Coo<ValueType, IndexType>* lower_system_matrix,      \
+        matrix::Csr<ValueType, IndexType>* l_factor)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     template <typename ValueType, typename IndexType>            \
@@ -67,49 +70,8 @@ namespace kernels {
     GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace reference
-
-
-namespace hip {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(par_ic_factorization,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

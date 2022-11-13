@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ namespace ir {
 
 
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                Array<stopping_status> *stop_status)
+                array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < stop_status->get_num_elems(); ++j) {
         stop_status->get_data()[j].reset();

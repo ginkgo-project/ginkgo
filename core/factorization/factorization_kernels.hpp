@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -49,34 +52,34 @@ namespace kernels {
 #define GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,   \
                                                                IndexType)   \
     void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec, \
-                               matrix::Csr<ValueType, IndexType> *mtx,      \
+                               matrix::Csr<ValueType, IndexType>* mtx,      \
                                bool is_sorted)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
                                                                  IndexType) \
     void initialize_row_ptrs_l_u(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,             \
-        IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+        const matrix::Csr<ValueType, IndexType>* system_matrix,             \
+        IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
     void initialize_l_u(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,               \
-        matrix::Csr<ValueType, IndexType> *l_factor,                          \
-        matrix::Csr<ValueType, IndexType> *u_factor)
+        const matrix::Csr<ValueType, IndexType>* system_matrix,               \
+        matrix::Csr<ValueType, IndexType>* l_factor,                          \
+        matrix::Csr<ValueType, IndexType>* u_factor)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType, \
                                                                IndexType) \
     void initialize_row_ptrs_l(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,           \
-        IndexType *l_row_ptrs)
+        const matrix::Csr<ValueType, IndexType>* system_matrix,           \
+        IndexType* l_row_ptrs)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)   \
     void initialize_l(std::shared_ptr<const DefaultExecutor> exec,            \
-                      const matrix::Csr<ValueType, IndexType> *system_matrix, \
-                      matrix::Csr<ValueType, IndexType> *l_factor,            \
+                      const matrix::Csr<ValueType, IndexType>* system_matrix, \
+                      matrix::Csr<ValueType, IndexType>* l_factor,            \
                       bool diag_sqrt)
 
 
@@ -96,49 +99,8 @@ namespace kernels {
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace factorization
-}  // namespace reference
-
-
-namespace hip {
-namespace factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace factorization
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace factorization
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(factorization,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

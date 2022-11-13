@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,19 +51,19 @@ namespace {
 template <typename T>
 class Convergence : public ::testing::Test {};
 
-TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
@@ -86,12 +86,12 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithConvCheck)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -115,12 +115,12 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithStopCheck)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].stop(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -144,12 +144,12 @@ TYPED_TEST(Convergence, CanResetConvergenceStatus)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -172,12 +172,12 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;

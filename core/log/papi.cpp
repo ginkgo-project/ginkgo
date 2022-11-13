@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,48 +37,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/distributed/helpers.hpp"
+
+
 namespace gko {
 namespace log {
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_allocation_started(const Executor *exec,
-                                            const size_type &num_bytes) const
+void Papi<ValueType>::on_allocation_started(const Executor* exec,
+                                            const size_type& num_bytes) const
 {
     allocation_started.get_counter(exec) += num_bytes;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_allocation_completed(const Executor *exec,
-                                              const size_type &num_bytes,
-                                              const uintptr &location) const
+void Papi<ValueType>::on_allocation_completed(const Executor* exec,
+                                              const size_type& num_bytes,
+                                              const uintptr& location) const
 {
     allocation_completed.get_counter(exec) += num_bytes;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_free_started(const Executor *exec,
-                                      const uintptr &location) const
+void Papi<ValueType>::on_free_started(const Executor* exec,
+                                      const uintptr& location) const
 {
     free_started.get_counter(exec) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_free_completed(const Executor *exec,
-                                        const uintptr &location) const
+void Papi<ValueType>::on_free_completed(const Executor* exec,
+                                        const uintptr& location) const
 {
     free_completed.get_counter(exec) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_copy_started(const Executor *from, const Executor *to,
-                                      const uintptr &location_from,
-                                      const uintptr &location_to,
-                                      const size_type &num_bytes) const
+void Papi<ValueType>::on_copy_started(const Executor* from, const Executor* to,
+                                      const uintptr& location_from,
+                                      const uintptr& location_to,
+                                      const size_type& num_bytes) const
 {
     copy_started_from.get_counter(from) += num_bytes;
     copy_started_to.get_counter(to) += num_bytes;
@@ -86,11 +89,11 @@ void Papi<ValueType>::on_copy_started(const Executor *from, const Executor *to,
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_copy_completed(const Executor *from,
-                                        const Executor *to,
-                                        const uintptr &location_from,
-                                        const uintptr &location_to,
-                                        const size_type &num_bytes) const
+void Papi<ValueType>::on_copy_completed(const Executor* from,
+                                        const Executor* to,
+                                        const uintptr& location_from,
+                                        const uintptr& location_to,
+                                        const size_type& num_bytes) const
 {
     copy_completed_from.get_counter(from) += num_bytes;
     copy_completed_to.get_counter(to) += num_bytes;
@@ -98,16 +101,16 @@ void Papi<ValueType>::on_copy_completed(const Executor *from,
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_operation_launched(const Executor *exec,
-                                            const Operation *operation) const
+void Papi<ValueType>::on_operation_launched(const Executor* exec,
+                                            const Operation* operation) const
 {
     operation_launched.get_counter(exec) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_operation_completed(const Executor *exec,
-                                             const Operation *operation) const
+void Papi<ValueType>::on_operation_completed(const Executor* exec,
+                                             const Operation* operation) const
 {
     operation_completed.get_counter(exec) += 1;
 }
@@ -115,7 +118,7 @@ void Papi<ValueType>::on_operation_completed(const Executor *exec,
 
 template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_create_started(
-    const Executor *exec, const PolymorphicObject *po) const
+    const Executor* exec, const PolymorphicObject* po) const
 {
     polymorphic_object_create_started.get_counter(exec) += 1;
 }
@@ -123,8 +126,8 @@ void Papi<ValueType>::on_polymorphic_object_create_started(
 
 template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_create_completed(
-    const Executor *exec, const PolymorphicObject *input,
-    const PolymorphicObject *output) const
+    const Executor* exec, const PolymorphicObject* input,
+    const PolymorphicObject* output) const
 {
     polymorphic_object_create_completed.get_counter(exec) += 1;
 }
@@ -132,8 +135,8 @@ void Papi<ValueType>::on_polymorphic_object_create_completed(
 
 template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_copy_started(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     polymorphic_object_copy_started.get_counter(exec) += 1;
 }
@@ -141,54 +144,72 @@ void Papi<ValueType>::on_polymorphic_object_copy_started(
 
 template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_copy_completed(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     polymorphic_object_copy_completed.get_counter(exec) += 1;
 }
 
 
 template <typename ValueType>
+void Papi<ValueType>::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    polymorphic_object_move_started.get_counter(exec) += 1;
+}
+
+
+template <typename ValueType>
+void Papi<ValueType>::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    polymorphic_object_move_completed.get_counter(exec) += 1;
+}
+
+
+template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_deleted(
-    const Executor *exec, const PolymorphicObject *po) const
+    const Executor* exec, const PolymorphicObject* po) const
 {
     polymorphic_object_deleted.get_counter(exec) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                             const LinOp *x) const
+void Papi<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                             const LinOp* x) const
 {
     linop_apply_started.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                               const LinOp *x) const
+void Papi<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                               const LinOp* x) const
 {
     linop_apply_completed.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_advanced_apply_started(const LinOp *A,
-                                                      const LinOp *alpha,
-                                                      const LinOp *b,
-                                                      const LinOp *beta,
-                                                      const LinOp *x) const
+void Papi<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
+                                                      const LinOp* alpha,
+                                                      const LinOp* b,
+                                                      const LinOp* beta,
+                                                      const LinOp* x) const
 {
     linop_advanced_apply_started.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
-                                                        const LinOp *alpha,
-                                                        const LinOp *b,
-                                                        const LinOp *beta,
-                                                        const LinOp *x) const
+void Papi<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
+                                                        const LinOp* alpha,
+                                                        const LinOp* b,
+                                                        const LinOp* beta,
+                                                        const LinOp* x) const
 {
     linop_advanced_apply_completed.get_counter(A) += 1;
 }
@@ -196,7 +217,7 @@ void Papi<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
 
 template <typename ValueType>
 void Papi<ValueType>::on_linop_factory_generate_started(
-    const LinOpFactory *factory, const LinOp *input) const
+    const LinOpFactory* factory, const LinOp* input) const
 {
     linop_factory_generate_started.get_counter(factory) += 1;
 }
@@ -204,7 +225,7 @@ void Papi<ValueType>::on_linop_factory_generate_started(
 
 template <typename ValueType>
 void Papi<ValueType>::on_linop_factory_generate_completed(
-    const LinOpFactory *factory, const LinOp *input, const LinOp *output) const
+    const LinOpFactory* factory, const LinOp* input, const LinOp* output) const
 {
     linop_factory_generate_completed.get_counter(factory) += 1;
 }
@@ -212,11 +233,11 @@ void Papi<ValueType>::on_linop_factory_generate_completed(
 
 template <typename ValueType>
 void Papi<ValueType>::on_criterion_check_completed(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
-    const uint8 &stoppingId, const bool &setFinalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
-    const bool &converged) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
+    const uint8& stoppingId, const bool& setFinalized,
+    const array<stopping_status>* status, const bool& oneChanged,
+    const bool& converged) const
 {
     using Vector = matrix::Dense<ValueType>;
     double residual_norm_d = 0.0;
@@ -225,20 +246,21 @@ void Papi<ValueType>::on_criterion_check_completed(
         residual_norm_d =
             static_cast<double>(std::real(dense_r_norm->at(0, 0)));
     } else if (residual != nullptr) {
-        auto tmp_res_norm = Vector::create(residual->get_executor(),
-                                           dim<2>{1, residual->get_size()[1]});
-        auto dense_r = as<Vector>(residual);
-        dense_r->compute_norm2(tmp_res_norm.get());
-        residual_norm_d =
-            static_cast<double>(std::real(tmp_res_norm->at(0, 0)));
+        detail::vector_dispatch<ValueType>(residual, [&](const auto* dense_r) {
+            auto tmp_res_norm = Vector::create(
+                residual->get_executor(), dim<2>{1, residual->get_size()[1]});
+            dense_r->compute_norm2(tmp_res_norm.get());
+            residual_norm_d =
+                static_cast<double>(std::real(tmp_res_norm->at(0, 0)));
+        });
     }
 
     const auto tmp = reinterpret_cast<uintptr>(criterion);
-    auto &map = this->criterion_check_completed;
+    auto& map = this->criterion_check_completed;
     if (map.find(tmp) == map.end()) {
         map[tmp] = NULL;
     }
-    void *handle = map[tmp];
+    void* handle = map[tmp];
     if (!handle) {
         std::ostringstream oss;
         oss << "criterion_check_completed_" << tmp;
@@ -251,11 +273,11 @@ void Papi<ValueType>::on_criterion_check_completed(
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_iteration_complete(const LinOp *solver,
-                                            const size_type &num_iterations,
-                                            const LinOp *residual,
-                                            const LinOp *solution,
-                                            const LinOp *residual_norm) const
+void Papi<ValueType>::on_iteration_complete(const LinOp* solver,
+                                            const size_type& num_iterations,
+                                            const LinOp* residual,
+                                            const LinOp* solution,
+                                            const LinOp* residual_norm) const
 {
     this->on_iteration_complete(solver, num_iterations, residual, solution,
                                 residual_norm, nullptr);
@@ -264,9 +286,9 @@ void Papi<ValueType>::on_iteration_complete(const LinOp *solver,
 
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
-    const LinOp *solver, const size_type &num_iterations, const LinOp *residual,
-    const LinOp *solution, const LinOp *residual_norm,
-    const LinOp *implicit_sq_residual_norm) const
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm) const
 {
     iteration_complete.get_counter(solver) = num_iterations;
 }

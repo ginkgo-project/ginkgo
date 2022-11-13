@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int &val) : value(val) {}
+    explicit ExampleOperation(int& val) : value(val) {}
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = 1;
@@ -78,7 +78,7 @@ public:
         value = 5;
     }
 
-    int &value;
+    int& value;
 };
 
 
@@ -112,7 +112,7 @@ TEST(OmpExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
     exec_ptr omp = gko::OmpExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = omp->alloc<int>(num_elems));
     ASSERT_NO_THROW(omp->free(ptr));
@@ -130,7 +130,7 @@ TEST(OmpExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     exec_ptr omp = gko::OmpExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(ptr = omp->alloc<int>(num_elems), gko::AllocationError);
 
@@ -143,7 +143,7 @@ TEST(OmpExecutor, CopiesData)
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
-    int *copy = omp->alloc<int>(num_elems);
+    int* copy = omp->alloc<int>(num_elems);
 
     // user code is run on the OMP, so local variables are in OMP memory
     omp->copy(num_elems, orig, copy);
@@ -165,19 +165,9 @@ TEST(OmpExecutor, IsItsOwnMaster)
 #if GKO_HAVE_HWLOC
 
 
-TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
-{
-    auto omp = gko::OmpExecutor::create();
-
-    auto num_cpus = omp->get_num_cores() * omp->get_num_threads_per_core();
-
-    ASSERT_EQ(std::thread::hardware_concurrency(), num_cpus);
-}
-
-
 inline int get_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_core(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
 }
 
 
@@ -186,7 +176,7 @@ TEST(MachineTopology, CanBindToASpecificCore)
     auto cpu_sys = sched_getcpu();
 
     const int bind_core = 3;
-    gko::MachineTopology::get_instance()->bind_to_cores(
+    gko::machine_topology::get_instance()->bind_to_cores(
         std::vector<int>{bind_core});
 
     cpu_sys = sched_getcpu();
@@ -199,7 +189,7 @@ TEST(MachineTopology, CanBindToARangeofCores)
     auto cpu_sys = sched_getcpu();
 
     const std::vector<int> bind_core = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_cores(bind_core);
+    gko::machine_topology::get_instance()->bind_to_cores(bind_core);
 
     cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(1));
@@ -239,7 +229,7 @@ TEST(ReferenceExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = ref->alloc<int>(num_elems));
     ASSERT_NO_THROW(ref->free(ptr));
@@ -257,7 +247,7 @@ TEST(ReferenceExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(ptr = ref->alloc<int>(num_elems), gko::AllocationError);
 
@@ -270,7 +260,7 @@ TEST(ReferenceExecutor, CopiesData)
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = ref->alloc<int>(num_elems);
+    int* copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     ref->copy(num_elems, orig, copy);
@@ -284,7 +274,7 @@ TEST(ReferenceExecutor, CopiesData)
 TEST(ReferenceExecutor, CopiesSingleValue)
 {
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *el = ref->alloc<int>(1);
+    int* el = ref->alloc<int>(1);
     el[0] = 83683;
 
     EXPECT_EQ(83683, ref->copy_val_to_host(el));
@@ -299,7 +289,7 @@ TEST(ReferenceExecutor, CopiesDataFromOmp)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = ref->alloc<int>(num_elems);
+    int* copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     ref->copy_from(omp.get(), num_elems, orig, copy);
@@ -316,7 +306,7 @@ TEST(ReferenceExecutor, CopiesDataToOmp)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = omp->alloc<int>(num_elems);
+    int* copy = omp->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     omp->copy_from(ref.get(), num_elems, orig, copy);
@@ -619,10 +609,10 @@ struct mock_free : T {
      * with `()` operator instead of `{}`.
      */
     template <typename... Params>
-    mock_free(Params &&... params) : T(std::forward<Params>(params)...)
+    mock_free(Params&&... params) : T(std::forward<Params>(params)...)
     {}
 
-    void raw_free(void *ptr) const noexcept override
+    void raw_free(void* ptr) const noexcept override
     {
         called_free = true;
         T::raw_free(ptr);
@@ -648,6 +638,132 @@ TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
     int x[5];
 
     ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
+}
+
+
+struct DummyLogger : public gko::log::Logger {
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::executor_events_mask |
+                           gko::log::Logger::operation_events_mask)
+    {}
+
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        allocation_started++;
+    }
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
+    {
+        allocation_completed++;
+    }
+
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr& location) const override
+    {
+        free_started++;
+    }
+
+
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr& location) const override
+    {
+        free_completed++;
+    }
+
+    void on_copy_started(const gko::Executor* exec_from,
+                         const gko::Executor* exec_to,
+                         const gko::uintptr& loc_from,
+                         const gko::uintptr& loc_to,
+                         const gko::size_type& num_bytes) const override
+    {
+        copy_started++;
+    }
+
+    void on_copy_completed(const gko::Executor* exec_from,
+                           const gko::Executor* exec_to,
+                           const gko::uintptr& loc_from,
+                           const gko::uintptr& loc_to,
+                           const gko::size_type& num_bytes) const override
+    {
+        copy_completed++;
+    }
+
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
+    {
+        operation_launched++;
+    }
+
+
+    void on_operation_completed(const gko::Executor* exec,
+                                const gko::Operation* op) const override
+    {
+        operation_completed++;
+    }
+
+    mutable int allocation_started = 0;
+    mutable int allocation_completed = 0;
+    mutable int free_started = 0;
+    mutable int free_completed = 0;
+    mutable int copy_started = 0;
+    mutable int copy_completed = 0;
+    mutable int operation_launched = 0;
+    mutable int operation_completed = 0;
+};
+
+
+class ExecutorLogging : public ::testing::Test {
+protected:
+    ExecutorLogging()
+        : exec(gko::ReferenceExecutor::create()),
+          logger(std::make_shared<DummyLogger>())
+    {
+        exec->add_logger(logger);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> exec;
+    std::shared_ptr<DummyLogger> logger;
+};
+
+
+TEST_F(ExecutorLogging, LogsAllocationAndFree)
+{
+    auto before_logger = *logger;
+
+    auto p = exec->alloc<int>(1);
+    exec->free(p);
+
+    ASSERT_EQ(logger->allocation_started, before_logger.allocation_started + 1);
+    ASSERT_EQ(logger->allocation_completed,
+              before_logger.allocation_completed + 1);
+    ASSERT_EQ(logger->free_started, before_logger.free_started + 1);
+    ASSERT_EQ(logger->free_completed, before_logger.free_completed + 1);
+}
+
+
+TEST_F(ExecutorLogging, LogsCopy)
+{
+    auto before_logger = *logger;
+
+    exec->copy<std::nullptr_t>(0, nullptr, nullptr);
+
+    ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
+    ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
+}
+
+
+TEST_F(ExecutorLogging, LogsOperation)
+{
+    auto before_logger = *logger;
+    int value = 0;
+
+    exec->run(ExampleOperation(value));
+
+    ASSERT_EQ(logger->operation_launched, before_logger.operation_launched + 1);
+    ASSERT_EQ(logger->operation_completed,
+              before_logger.operation_completed + 1);
 }
 
 

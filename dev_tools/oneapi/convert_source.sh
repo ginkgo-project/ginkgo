@@ -16,8 +16,9 @@
 #                    If GTEST_HEADER_DIR is available elsewhere GINKGO_BUILD_TESTS is not required.
 #                    CMake's step is not required if copying the ginkgo config.hpp from another ginkgo build into "${ROOT_DIR}/include/ginkgo/".
 #   ROOT_BUILD_DIR: the complete path for build folder. The default is "${ROOT_DIR}/${BUILD_DIR}"
-#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/third_party_gtest/src/googletest/include"
+#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"
 #   CLANG_FORMAT: the clang-format exec. The default is "clang-format"
+#   VERBOSE: if it is set as 1, script will ouput the path information
 CURRENT_DIR="$( pwd )"
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 SCRIPT_DIR="$( pwd )"
@@ -192,7 +193,7 @@ done < "${UNFORMAT_FILE}"
 ${CLANG_FORMAT} -style=file "${EMBED_FILE}" > "${FORMAT_FILE}"
 
 # Add an extra host function so that the converted DPC++ code will look like CUDA.
-${SCRIPT_DIR}/add_host_function.sh "${FORMAT_FILE}" > "${EMBED_HOST_FILE}"
+"${SCRIPT_DIR}/add_host_function.sh" "${FORMAT_FILE}" > "${EMBED_HOST_FILE}"
 
 while IFS='' read -r line; do
     if [[ "${line}" =~ ${KERNEL_SYNTAX_START} ]] || [[ "${IN_SYNTAX}" = "true" ]]; then
@@ -294,12 +295,15 @@ replace_regex="${replace_regex};s/reduce_array_t/reduce_array/g"
 replace_regex="${replace_regex};s/auto dpct_local_range = block;//g"
 replace_regex="${replace_regex};s/sycl::nd_range<3>.*, *$/sycl_nd_range(grid, block), /g"
 # do not use c-style casting. use .get() to get the pointer.
-replace_regex="${replace_regex};s/\(UninitializedArray<.*> \*\)(.*\.get_pointer\(\))/\1.get()/g"
+replace_regex="${replace_regex};s/\(uninitialized_array<.*> \*\)(.*\.get_pointer\(\))/\1.get()/g"
 replace_regex="${replace_regex};s/tiled_partition_t/tiled_partition/g"
 replace_regex="${replace_regex};s|trick/thread_ids.hpp|dpcpp/components/thread_ids.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/cooperative_groups\.hpp|dpcpp/components/cooperative_groups.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/sorting\.hpp|dpcpp/components/sorting.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/reduction\.hpp|dpcpp/components/reduction.dp.hpp|g"
+replace_regex="${replace_regex};s|cuda/base/math\.hpp|limits|g"
+replace_regex="${replace_regex};s|device_numeric_limits(<.*>)::inf(,|;)|std::numeric_limits\1::infinity()\3|g"
+replace_regex="${replace_regex};s|device_numeric_limits(<.*>)::(.*)(,|;)|std::numeric_limits\1::\2()\3|g"
 replace_regex="${replace_regex};s/#define GET_QUEUE 0//g"
 replace_regex="${replace_regex};s/GET_QUEUE/exec->get_queue()/g"
 replace_regex="${replace_regex};s/cuda/dpcpp/g"
@@ -361,7 +365,7 @@ if [ "${EXTRACT_KERNEL}" = "true" ]; then
         dpct_device_path=$(echo "${variable}" | sed 's/common/dpcpp_code/g')
         dpct_device_file=$(echo "${dpct_device_path}" | sed 's|/|@|g')
         dpct_device_file="output/${dpct_device_file}"
-        cat ${dpct_file} | sed -n "/${device_regex} - start/,/${device_regex} - end/p" | sed "1d;\$d" > ${dpct_device_file}
+        cat "${dpct_file}" | sed -n "/${device_regex} - start/,/${device_regex} - end/p" | sed "1d;\$d" > "${dpct_device_file}"
         sed -i "/${device_regex} - start/,/${device_regex} - end/d;s~// *#include \"${device_regex}\"~#include \"${dpct_device_path}\"~g" ${dpct_file}
         dpct_dir=$(dirname "${dpct_device_path}")
         mkdir -p "${ROOT_DIR}/${dpct_dir}"

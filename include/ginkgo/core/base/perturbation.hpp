@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,14 @@ public:
         return scalar_;
     }
 
+    Perturbation& operator=(const Perturbation& other);
+
+    Perturbation& operator=(Perturbation&& other);
+
+    Perturbation(const Perturbation& other);
+
+    Perturbation(Perturbation&& other);
+
 protected:
     /**
      * Creates an empty perturbation operator (0x0 operator).
@@ -149,10 +157,10 @@ protected:
         this->validate_perturbation();
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     /**
      * Validates the dimensions of the `scalar`, `basis` and `projector`
@@ -175,8 +183,8 @@ private:
     mutable struct cache_struct {
         cache_struct() = default;
         ~cache_struct() = default;
-        cache_struct(const cache_struct &other) {}
-        cache_struct &operator=(const cache_struct &other) { return *this; }
+        cache_struct(const cache_struct& other) {}
+        cache_struct& operator=(const cache_struct& other) { return *this; }
 
         // allocate linops of cache. The dimenstion of `intermediate` is
         // (the number of rows of projector, the number of columns of b). Others

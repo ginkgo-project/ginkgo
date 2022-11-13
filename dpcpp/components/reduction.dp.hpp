@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
+#include "dpcpp/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
@@ -61,14 +62,9 @@ namespace kernels {
 namespace dpcpp {
 
 
-constexpr int default_block_size = 256;
-using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
-                    KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
-                    KCFG_1D::encode(256, 8)>();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+static constexpr int default_block_size = 256;
+static constexpr auto dcfg_1d_list = dcfg_1d_list_t();
+static constexpr auto dcfg_1d_array = as_array(dcfg_1d_list);
 
 /**
  * @internal
@@ -86,7 +82,7 @@ constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 template <
     typename Group, typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__dpct_inline__ ValueType reduce(const Group &group, ValueType local_data,
+__dpct_inline__ ValueType reduce(const Group& group, ValueType local_data,
                                  Operator reduce_op = Operator{})
 {
 #pragma unroll
@@ -109,13 +105,13 @@ __dpct_inline__ ValueType reduce(const Group &group, ValueType local_data,
 template <
     typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__dpct_inline__ int choose_pivot(const Group &group, ValueType local_data,
+__dpct_inline__ int choose_pivot(const Group& group, ValueType local_data,
                                  bool is_pivoted)
 {
     using real = remove_complex<ValueType>;
     real lmag = is_pivoted ? -one<real>() : abs(local_data);
-    const auto pivot =
-        reduce(group, group.thread_rank(), [&](int lidx, int ridx) {
+    const auto pivot = ::gko::kernels::dpcpp::reduce(
+        group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);
             if (rmag > lmag) {
                 lmag = rmag;
@@ -142,7 +138,7 @@ template <
     unsigned int sg_size = config::warp_size, typename Group,
     typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
-void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
+void reduce(const Group& __restrict__ group, ValueType* __restrict__ data,
             Operator reduce_op = Operator{})
 {
     const auto local_id = group.thread_rank();
@@ -176,8 +172,8 @@ void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
  */
 template <unsigned int sg_size = config::warp_size, typename Operator,
           typename ValueType>
-void reduce_array(size_type size, const ValueType *__restrict__ source,
-                  ValueType *__restrict__ result, sycl::nd_item<3> item_ct1,
+void reduce_array(size_type size, const ValueType* __restrict__ source,
+                  ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
                   Operator reduce_op = Operator{})
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -202,45 +198,48 @@ void reduce_array(size_type size, const ValueType *__restrict__ source,
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.
  */
-template <std::uint32_t cfg, typename ValueType>
+template <typename DeviceConfig, typename ValueType>
 void reduce_add_array(
-    size_type size, const ValueType *__restrict__ source,
-    ValueType *__restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &block_sum)
+    size_type size, const ValueType* __restrict__ source,
+    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+    uninitialized_array<ValueType, DeviceConfig::block_size>& block_sum)
 {
-    reduce_array<KCFG_1D::decode<1>(cfg)>(
-        size, source, static_cast<ValueType *>(block_sum), item_ct1,
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+    reduce_array<DeviceConfig::subgroup_size>(
+        size, source, static_cast<ValueType*>(block_sum), item_ct1,
+        [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
         result[item_ct1.get_group(2)] = block_sum[0];
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
+template <typename DeviceConfig = device_config<256, 16>, typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue *queue, size_type size,
-                      const ValueType *source, ValueType *result)
+                      sycl::queue* queue, size_type size,
+                      const ValueType* source, ValueType* result)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                reduce_add_array<cfg>(size, source, result, item_ct1,
-                                      *block_sum_acc_ct1.get_pointer());
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            DeviceConfig::subgroup_size)]] {
+                reduce_add_array<DeviceConfig>(
+                    size, source, result, item_ct1,
+                    *block_sum_acc_ct1.get_pointer());
             });
     });
 }
 
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_add_array_config,
-                                           reduce_add_array);
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(reduce_add_array_config,
+                                                  reduce_add_array, DCFG_1D);
 
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
-                               kcfg_1d_list);
+                               dcfg_1d_list);
 
 
 /**
@@ -254,21 +253,21 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
  */
 template <typename ValueType>
 ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
-                           size_type size, const ValueType *source)
+                           size_type size, const ValueType* source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;
-    auto block_results = Array<ValueType>(exec);
+    auto block_results = array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    constexpr auto dcfg_1d_array = as_array(dcfg_1d_list);
     const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        get_first_cfg(dcfg_1d_array, [&queue](std::uint32_t cfg) {
+            return validate(queue, DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
+    const auto wg_size = DCFG_1D::decode<0>(cfg);
+    const auto sg_size = DCFG_1D::decode<1>(cfg);
 
     if (size > wg_size) {
         const auto n = ceildiv(size, wg_size);
@@ -282,7 +281,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
         block_results_val = block_results.get_const_data();
     }
 
-    auto d_result = Array<ValueType>(exec, 1);
+    auto d_result = array<ValueType>(exec, 1);
 
     reduce_add_array_call(cfg, 1, wg_size, 0, exec->get_queue(), grid_dim,
                           block_results_val, d_result.get_data());

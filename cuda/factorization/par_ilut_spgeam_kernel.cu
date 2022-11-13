@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -82,12 +82,12 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
 {
     auto num_rows = static_cast<IndexType>(lu->get_size()[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
@@ -109,9 +109,12 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     // count non-zeros per row
-    kernel::tri_spgeam_nnz<subwarp_size><<<num_blocks, default_block_size>>>(
-        lu_row_ptrs, lu_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs,
-        u_new_row_ptrs, num_rows);
+    if (num_blocks > 0) {
+        kernel::tri_spgeam_nnz<subwarp_size>
+            <<<num_blocks, default_block_size>>>(
+                lu_row_ptrs, lu_col_idxs, a_row_ptrs, a_col_idxs,
+                l_new_row_ptrs, u_new_row_ptrs, num_rows);
+    }
 
     // build row ptrs
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
@@ -131,12 +134,16 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_new_vals = u_new->get_values();
 
     // fill columns and values
-    kernel::tri_spgeam_init<subwarp_size><<<num_blocks, default_block_size>>>(
-        lu_row_ptrs, lu_col_idxs, as_cuda_type(lu_vals), a_row_ptrs, a_col_idxs,
-        as_cuda_type(a_vals), l_row_ptrs, l_col_idxs, as_cuda_type(l_vals),
-        u_row_ptrs, u_col_idxs, as_cuda_type(u_vals), l_new_row_ptrs,
-        l_new_col_idxs, as_cuda_type(l_new_vals), u_new_row_ptrs,
-        u_new_col_idxs, as_cuda_type(u_new_vals), num_rows);
+    if (num_blocks > 0) {
+        kernel::tri_spgeam_init<subwarp_size>
+            <<<num_blocks, default_block_size>>>(
+                lu_row_ptrs, lu_col_idxs, as_cuda_type(lu_vals), a_row_ptrs,
+                a_col_idxs, as_cuda_type(a_vals), l_row_ptrs, l_col_idxs,
+                as_cuda_type(l_vals), u_row_ptrs, u_col_idxs,
+                as_cuda_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
+                as_cuda_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
+                as_cuda_type(u_new_vals), num_rows);
+    }
 }
 
 
@@ -148,12 +155,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =

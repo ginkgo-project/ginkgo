@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,8 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Permutation, AppliesRowPermutationToDense)
@@ -80,8 +81,7 @@ TYPED_TEST(Permutation, AppliesRowPermutationToDense)
     i_type rdata[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{2},
-        gko::Array<i_type>::view(this->exec, 2, rdata));
+        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata));
 
     perm->apply(x.get(), y.get());
     // clang-format off
@@ -107,8 +107,7 @@ TYPED_TEST(Permutation, AppliesColPermutationToDense)
     i_type rdata[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{2},
-        gko::Array<i_type>::view(this->exec, 2, rdata),
+        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata),
         gko::matrix::column_permute);
 
     perm->apply(x.get(), y.get());
@@ -137,11 +136,9 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToDense)
     i_type rdata[] = {1, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{2},
-        gko::Array<i_type>::view(this->exec, 2, rdata));
+        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata));
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{2},
-        gko::Array<i_type>::view(this->exec, 2, cdata),
+        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, cdata),
         gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -169,8 +166,7 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToDenseWithOneArray)
     i_type data[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{2},
-        gko::Array<i_type>::view(this->exec, 2, data),
+        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, data),
         gko::matrix::row_permute | gko::matrix::column_permute);
 
     perm->apply(x.get(), y1.get());
@@ -199,12 +195,10 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDense)
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -233,8 +227,7 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDenseWithOneArray)
     i_type data[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, data),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, data),
         gko::matrix::column_permute | gko::matrix::row_permute |
             gko::matrix::inverse_permute);
 
@@ -263,8 +256,7 @@ TYPED_TEST(Permutation, AppliesInverseRowPermutationToDense)
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
     rperm->apply(x.get(), y.get());
@@ -292,8 +284,7 @@ TYPED_TEST(Permutation, AppliesInverseColPermutationToDense)
     i_type cdata[] = {1, 2, 0};
 
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     cperm->apply(x.get(), y.get());
@@ -322,8 +313,7 @@ TYPED_TEST(Permutation, AppliesRowPermutationToCsr)
     i_type rdata[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata));
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata));
 
     perm->apply(x.get(), y.get());
     // clang-format off
@@ -351,8 +341,7 @@ TYPED_TEST(Permutation, AppliesColPermutationToCsr)
     i_type cdata[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
     perm->apply(x.get(), y.get());
@@ -383,11 +372,9 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToCsr)
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata));
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata));
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -416,8 +403,7 @@ TYPED_TEST(Permutation, AppliesInverseRowPermutationToCsr)
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
     rperm->apply(x.get(), y.get());
@@ -445,8 +431,7 @@ TYPED_TEST(Permutation, AppliesInverseColPermutationToCsr)
     i_type cdata[] = {1, 2, 0};
 
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     cperm->apply(x.get(), y.get());
@@ -476,12 +461,10 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToCsr)
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, rdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        this->exec, gko::dim<2>{3},
-        gko::Array<i_type>::view(this->exec, 3, cdata),
+        this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());

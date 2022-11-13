@@ -1,33 +1,40 @@
+#!/usr/bin/env bash
 ################################################################################
 # Environment variable detection
+#
+
+print_default() {
+    local var=$1
+    echo "$var  environment variable not set - assuming \"${!var}\"" 1>&2
+}
 
 if [ ! "${BENCHMARK}" ]; then
     BENCHMARK="spmv"
-    echo "BENCHMARK   environment variable not set - assuming \"${BENCHMARK}\"" 1>&2
+    print_default BENCHMARK
 fi
 
 if [ ! "${DRY_RUN}" ]; then
     DRY_RUN="false"
-    echo "DRY_RUN     environment variable not set - assuming \"${DRY_RUN}\"" 1>&2
+    print_default DRY_RUN
 fi
 
 if [ ! "${EXECUTOR}" ]; then
     EXECUTOR="cuda"
-    echo "EXECUTOR    environment variable not set - assuming \"${EXECUTOR}\"" 1>&2
+    print_default EXECUTOR
 fi
 
 if [ ! "${REPETITIONS}" ]; then
     REPETITIONS=10
-    echo "REPETITIONS    environment variable not set - assuming ${REPETITIONS}" 1>&2
+    print_default REPETITIONS
 fi
 
 if [ ! "${SOLVER_REPETITIONS}" ]; then
     SOLVER_REPETITIONS=1
-    echo "SOLVER_REPETITIONS    environment variable not set - assuming ${SOLVER_REPETITIONS}" 1>&2
+    print_default SOLVER_REPETITIONS
 fi
 
 if [ ! "${SEGMENTS}" ]; then
-    echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
+    echo "SEGMENTS  environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
     SEGMENT_ID=1
 elif [ ! "${SEGMENT_ID}" ]; then
@@ -37,57 +44,62 @@ fi
 
 if [ ! "${PRECONDS}" ]; then
     PRECONDS="none"
-    echo "PRECONDS    environment variable not set - assuming \"${PRECONDS}\"" 1>&2
+    print_default PRECONDS
 fi
 
 if [ ! "${FORMATS}" ]; then
-    echo "FORMATS    environment variable not set - assuming \"csr,coo,ell,hybrid,sellp\"" 1>&2
     FORMATS="csr,coo,ell,hybrid,sellp"
+    print_default FORMATS
 fi
 
 if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
-    echo "ELL_IMBALANCE_LIMIT    environment variable not set - assuming 100" 1>&2
     ELL_IMBALANCE_LIMIT=100
+    print_default ELL_IMBALANCE_LIMIT
 fi
 
 if [ ! "${SOLVERS}" ]; then
     SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
-    echo "SOLVERS    environment variable not set - assuming \"${SOLVERS}\"" 1>&2
+    print_default SOLVERS
 fi
 
 if [ ! "${SOLVERS_PRECISION}" ]; then
     SOLVERS_PRECISION=1e-6
-    echo "SOLVERS_PRECISION environment variable not set - assuming \"${SOLVERS_PRECISION}\"" 1>&2
+    print_default SOLVERS_PRECISION
 fi
 
 if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
     SOLVERS_MAX_ITERATIONS=10000
-    echo "SOLVERS_MAX_ITERATIONS environment variable not set - assuming \"${SOLVERS_MAX_ITERATIONS}\"" 1>&2
+    print_default SOLVERS_MAX_ITERATIONS
+fi
+
+if [ ! "${SOLVERS_WARMUP_MAX_ITERATIONS}" ]; then
+    SOLVERS_WARMUP_MAX_ITERATIONS=100
+    print_default SOLVERS_WARMUP_MAX_ITERATIONS
 fi
 
 if [ ! "${SOLVERS_GMRES_RESTART}" ]; then
     SOLVERS_GMRES_RESTART=100
-    echo "SOLVERS_GMRES_RESTART environment variable not set - assuming \"${SOLVERS_GMRES_RESTART}\"" 1>&2
+    print_default SOLVERS_GMRES_RESTART
 fi
 
 if [ ! "${SYSTEM_NAME}" ]; then
     SYSTEM_NAME="unknown"
-    echo "SYSTEM_MANE environment variable not set - assuming \"${SYSTEM_NAME}\"" 1>&2
+    print_default SYSTEM_NAME
 fi
 
 if [ ! "${DEVICE_ID}" ]; then
     DEVICE_ID="0"
-    echo "DEVICE_ID environment variable not set - assuming \"${DEVICE_ID}\"" 1>&2
+    print_default DEVICE_ID
 fi
 
 if [ ! "${SOLVERS_JACOBI_MAX_BS}" ]; then
     SOLVERS_JACOBI_MAX_BS="32"
-    echo "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
+    print_default SOLVERS_JACOBI_MAX_BS
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
     BENCHMARK_PRECISION="double"
-    echo "BENCHMARK_PRECISION not set - assuming \"${BENCHMARK_PRECISION}\"" 1>&2
+    print_default BENCHMARK_PRECISION
 fi
 
 if [ "${BENCHMARK_PRECISION}" == "double" ]; then
@@ -123,7 +135,7 @@ fi
 
 if [ ! "${SOLVERS_INITIAL_GUESS}" ]; then
     SOLVERS_INITIAL_GUESS="rhs"
-    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
+    print_default SOLVERS_INITIAL_GUESS
 fi
 
 if [ "${SOLVERS_INITIAL_GUESS}" == "random" ]; then
@@ -140,7 +152,7 @@ fi
 
 if [ ! "${GPU_TIMER}" ]; then
     GPU_TIMER="false"
-    echo "GPU_TIMER    environment variable not set - assuming \"${GPU_TIMER}\"" 1>&2
+    print_default GPU_TIMER
 fi
 
 # Control whether to run detailed benchmarks or not.

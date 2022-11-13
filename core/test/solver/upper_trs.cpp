@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/upper_trs.hpp>
-
-
 #include <memory>
 
 
@@ -40,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -66,7 +64,8 @@ protected:
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
 };
 
-TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(UpperTrs, UpperTrsFactoryKnowsItsExecutor)

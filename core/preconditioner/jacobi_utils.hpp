@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,21 +87,17 @@ struct precision_reduction_descriptor {
     };
 
     static constexpr GKO_ATTRIBUTES uint32
-    singleton(const precision_reduction &pr)
+    singleton(const precision_reduction& pr)
     {
-        return pr == precision_reduction(0, 0)
-                   ? p0n0
-                   : pr == precision_reduction(0, 1)
-                         ? p0n1
-                         : pr == precision_reduction(0, 2)
-                               ? p0n2
-                               : pr == precision_reduction(1, 0)
-                                     ? p1n0
-                                     : pr == precision_reduction(1, 1)
-                                           ? p1n1
-                                           : pr == precision_reduction(2, 0)
-                                                 ? p2n0
-                                                 : p0n0;
+        // clang-format off
+        return pr == precision_reduction(0, 0)   ? p0n0
+               : pr == precision_reduction(0, 1) ? p0n1
+               : pr == precision_reduction(0, 2) ? p0n2
+               : pr == precision_reduction(1, 0) ? p1n0
+               : pr == precision_reduction(1, 1) ? p1n1
+               : pr == precision_reduction(2, 0) ? p2n0
+               : p0n0;
+        // clang-format on
     }
 };
 
@@ -141,7 +137,7 @@ GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions(
     using gko::detail::float_traits;
     using type = remove_complex<ValueType>;
     using prd = precision_reduction_descriptor;
-    auto accurate = [&cond, &accuracy](double eps) {
+    auto accurate = [&cond, &accuracy](type eps) {
         return cond * eps < accuracy;
     };
     uint8 is_verified1 = 2;

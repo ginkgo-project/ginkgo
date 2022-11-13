@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,8 @@ protected:
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using strategy = gko::reorder::starting_strategy;
+    using perm_type = gko::matrix::Permutation<i_type>;
+
     Rcm()
         : ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),
@@ -76,8 +78,8 @@ protected:
 
     static void ubfs_reference(
         std::shared_ptr<CsrMtx> mtx,
-        i_type
-            *const levels,  // Must be inf/max in all nodes connected to source
+        i_type* const
+            levels,  // Must be inf/max in all nodes connected to source
         const i_type start)
     {
         const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -110,13 +112,14 @@ protected:
     static bool is_valid_start_node(std::shared_ptr<CsrMtx> mtx,
                                     std::shared_ptr<reorder_type> reorder,
                                     i_type start,
-                                    std::vector<bool> &already_visited)
+                                    std::vector<bool>& already_visited)
     {
         if (already_visited[start]) {
             return false;
         }
 
-        const auto n = reorder->get_permutation()->get_permutation_size();
+        const auto n = gko::as<perm_type>(reorder->get_permutation())
+                           ->get_permutation_size();
         auto degrees = std::vector<i_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
@@ -195,7 +198,8 @@ protected:
     static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
                                std::shared_ptr<reorder_type> reorder)
     {
-        const auto n = reorder->get_permutation()->get_permutation_size();
+        const auto n = gko::as<perm_type>(reorder->get_permutation())
+                           ->get_permutation_size();
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
         auto degrees = std::vector<i_type>(n);
@@ -206,8 +210,9 @@ protected:
 
         // Following checks for cm ordering, therefore create a reversed perm.
         auto perm = std::vector<i_type>(n);
-        std::copy_n(reorder->get_permutation()->get_const_permutation(), n,
-                    perm.begin());
+        std::copy_n(gko::as<perm_type>(reorder->get_permutation())
+                        ->get_const_permutation(),
+                    n, perm.begin());
         for (gko::size_type i = 0; i < n / 2; ++i) {
             const auto tmp = perm[i];
             perm[i] = perm[n - i - 1];
@@ -315,8 +320,9 @@ protected:
     std::shared_ptr<const gko::Executor> omp;
     std::shared_ptr<CsrMtx> o_1138_bus_mtx;
     std::shared_ptr<CsrMtx> d_1138_bus_mtx;
-    std::unique_ptr<reorder_type> reorder_op;
-    std::unique_ptr<reorder_type> d_reorder_op;
+    // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
+    // Therefore, use shared pointer
+    std::shared_ptr<reorder_type> d_reorder_op;
 };
 
 TEST_F(Rcm, OmpPermutationIsRcmOrdered)
@@ -325,9 +331,7 @@ TEST_F(Rcm, OmpPermutationIsRcmOrdered)
 
     auto perm = d_reorder_op->get_permutation();
 
-    // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
-    auto d_reorder_op_shared = gko::share(d_reorder_op);
-    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op_shared);
+    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op);
 }
 
 }  // namespace

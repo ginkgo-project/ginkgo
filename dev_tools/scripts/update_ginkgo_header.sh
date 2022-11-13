@@ -25,18 +25,15 @@ GINKGO_HEADER_TEMPLATE_FILE="${GINKGO_HEADER_FILE}.in"
 HEADER_LIST="global_includes.hpp.tmp"
 
 # Test if required commands are present on the system:
-command -v find &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v find &> /dev/null; then
     echo "${WARNING_PREFIX} "'The command `find` is required for this script to work, but not supported by your system.' 1>&2
     exit 0
 fi
-command -v sort &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v sort &> /dev/null; then
     echo "${WARNING_PREFIX} "'The command `sort` is required for this script to work, but not supported by your system.' 1>&2
     exit 0
 fi
-command -v cmp &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v cmp &> /dev/null; then
     echo "${WARNING_PREFIX} "'The command `cmp` is required for this script to work, but not supported by your system.' 1>&2
     exit 0
 fi
@@ -44,10 +41,9 @@ fi
 
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
-find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
-        grep -v 'residual_norm_reduction.hpp' > "${HEADER_LIST}"
-
-if [ ${?} -ne 0 ]; then
+if ! find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
+        grep -v 'residual_norm_reduction.hpp' | \
+        grep -v 'solver/.*_trs.hpp' > "${HEADER_LIST}"; then
     echo "${WARNING_PREFIX} "'The `find` command returned with an error!' 1>&2
     rm "${RM_PARAMETER}" "${HEADER_LIST}"
     exit 0
@@ -56,9 +52,7 @@ fi
 # It must be a POSIX locale in order to sort according to ASCII
 export LC_ALL=C
 # Sorting is necessary to group them according to the folders the header are in
-sort -o "${HEADER_LIST}" "${HEADER_LIST}"
-
-if [ ${?} -ne 0 ]; then
+if ! sort -o "${HEADER_LIST}" "${HEADER_LIST}"; then
     echo "${WARNING_PREFIX} "'The `sort` command returned with an error!' 1>&2
     rm "${RM_PARAMETER}" "${HEADER_LIST}"
     exit 0
@@ -83,8 +77,7 @@ fi
 GINKGO_HEADER_TMP="${GINKGO_HEADER_FILE}.tmp"
 
 # See if we have write permissions to ${GINKGO_HEADER_TMP}
-echo "Test for write permissions" > "${GINKGO_HEADER_TMP}"
-if [ ${?} -ne 0 ]; then
+if ! echo "Test for write permissions" > "${GINKGO_HEADER_TMP}"; then
     echo "${WARNING_PREFIX} No write permissions for temporary file '${GINKGO_HEADER_TMP}'!" 1>&2
     rm "${RM_PARAMETER}" "${HEADER_LIST}"
     exit 0
@@ -116,7 +109,7 @@ while IFS='' read -r line; do
                 continue
             fi
 
-            CURRENT_FOLDER="$(dirname ${file})"
+            CURRENT_FOLDER="$(dirname "${file}")"
             # add newline between different include folder
             if [ "${READING_FIRST_LINE}" != true ] && \
                [ "${CURRENT_FOLDER}" != "${PREVIOUS_FOLDER}" ]
@@ -138,8 +131,7 @@ rm "${RM_PARAMETER}" "${HEADER_LIST}"
 if [ ! -f "${GINKGO_HEADER_FILE}" ] || \
    ! cmp -s "${GINKGO_HEADER_TMP}" "${GINKGO_HEADER_FILE}"
 then
-    mv "${GINKGO_HEADER_TMP}" "${GINKGO_HEADER_FILE}"
-    if [ ${?} -ne 0 ]; then
+    if ! mv "${GINKGO_HEADER_TMP}" "${GINKGO_HEADER_FILE}"; then
         echo "${WARNING_PREFIX} No permission to replace the header '${GINKGO_HEADER_FILE}'!" 1>&2
         rm "${RM_PARAMETER}" "${GINKGO_HEADER_TMP}"
         exit 0

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,8 +74,8 @@ protected:
     void TearDown() { eventset = PAPI_NULL; }
 
     template <typename U>
-    const std::string init(const gko::log::Logger::mask_type &event,
-                           const std::string &event_name, U *ptr)
+    const std::string init(const gko::log::Logger::mask_type& event,
+                           const std::string& event_name, U* ptr)
     {
         logger = gko::log::Papi<T>::create(exec, event);
         std::ostringstream os;
@@ -84,7 +84,7 @@ protected:
         return os.str();
     }
 
-    void add_event(const std::string &event_name)
+    void add_event(const std::string& event_name)
     {
         int code;
         int ret_val = PAPI_event_name_to_code(event_name.c_str(), &code);
@@ -106,7 +106,7 @@ protected:
         }
     }
 
-    void stop(long long int *values)
+    void stop(long long int* values)
     {
         int ret_val = PAPI_stop(eventset, values);
         if (PAPI_OK != ret_val) {
@@ -119,7 +119,7 @@ protected:
     int eventset;
 };
 
-TYPED_TEST_SUITE(Papi, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Papi, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Papi, CatchesAllocationStarted)
@@ -330,6 +330,42 @@ TYPED_TEST(Papi, CatchesPolymorphicObjectCopyCompleted)
     this->start();
     this->logger
         ->template on<gko::log::Logger::polymorphic_object_copy_completed>(
+            this->exec.get(), nullptr, nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesPolymorphicObjectMoveStarted)
+{
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_move_started_mask,
+                   "polymorphic_object_move_started", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_move_started>(
+            this->exec.get(), nullptr, nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesPolymorphicObjectMoveCompleted)
+{
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_move_completed_mask,
+                   "polymorphic_object_move_completed", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_move_completed>(
             this->exec.get(), nullptr, nullptr);
     long long int value = 0;
     this->stop(&value);

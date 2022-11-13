@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,10 +76,10 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<typename Solver::Factory> ir_factory;
+    std::shared_ptr<typename Solver::Factory> ir_factory;
     std::unique_ptr<gko::LinOp> solver;
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
@@ -91,7 +91,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Ir, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Ir, IrFactoryKnowsItsExecutor)
@@ -104,7 +104,7 @@ TYPED_TEST(Ir, IrFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto cg_solver = static_cast<Solver *>(this->solver.get());
+    auto cg_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(cg_solver->get_system_matrix(), this->mtx);
 }
@@ -119,8 +119,8 @@ TYPED_TEST(Ir, CanBeCopied)
     copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -134,8 +134,8 @@ TYPED_TEST(Ir, CanBeMoved)
     copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -147,8 +147,8 @@ TYPED_TEST(Ir, CanBeCloned)
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
 }
 
@@ -160,12 +160,12 @@ TYPED_TEST(Ir, CanBeCleared)
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
-TYPED_TEST(Ir, ApplyUsesInitialGuessReturnsTrue)
+TYPED_TEST(Ir, DefaultApplyUsesInitialGuess)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
@@ -190,8 +190,8 @@ TYPED_TEST(Ir, CanSetInnerSolverInFactory)
                     .on(this->exec))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
-    auto inner_solver = dynamic_cast<const Solver *>(
-        static_cast<Solver *>(solver.get())->get_solver().get());
+    auto inner_solver = dynamic_cast<const Solver*>(
+        static_cast<Solver*>(solver.get())->get_solver().get());
 
     ASSERT_NE(inner_solver, nullptr);
     ASSERT_EQ(inner_solver->get_size(), gko::dim<2>(3, 3));
@@ -239,7 +239,7 @@ TYPED_TEST(Ir, CanSetCriteriaAgain)
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
     auto niter =
-        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+        static_cast<const gko::stop::Iteration::Factory*>(new_crit_fac.get())
             ->get_parameters()
             .max_iters;
 
@@ -292,6 +292,28 @@ TYPED_TEST(Ir, CanSetInnerSolver)
 
     ASSERT_NE(inner_solver.get(), nullptr);
     ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TYPED_TEST(Ir, CanSetApplyWithInitialGuessMode)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
+        auto ir_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(3u).on(
+                        this->exec))
+                .with_default_initial_guess(guess)
+                .on(this->exec);
+        auto solver = ir_factory->generate(this->mtx);
+
+        ASSERT_EQ(solver->apply_uses_initial_guess(),
+                  guess == gko::solver::initial_guess_mode::provided);
+    }
 }
 
 
@@ -367,6 +389,86 @@ TYPED_TEST(Ir, UseAsRichardson)
             ->generate(this->mtx);
 
     ASSERT_EQ(richardson->get_parameters().relaxation_factor, value_type{0.5});
+}
+
+
+TYPED_TEST(Ir, DefaultSmootherBuildWithSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto solver = gko::as<Solver>(share(std::move(this->solver)));
+
+    auto smoother_factory = gko::solver::build_smoother<value_type>(solver);
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.9});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 1);
+    ASSERT_EQ(smoother_factory->get_parameters().generated_solver.get(),
+              solver.get());
+}
+
+
+TYPED_TEST(Ir, DefaultSmootherBuildWithFactory)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto factory = this->ir_factory;
+
+    auto smoother_factory = gko::solver::build_smoother<value_type>(factory);
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.9});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 1);
+    ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
+}
+
+
+TYPED_TEST(Ir, SmootherBuildWithSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto solver = gko::as<Solver>(gko::share(std::move(this->solver)));
+
+    auto smoother_factory =
+        gko::solver::build_smoother<value_type>(solver, 3, value_type{0.5});
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.5});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 3);
+    ASSERT_EQ(smoother_factory->get_parameters().generated_solver.get(),
+              solver.get());
+}
+
+
+TYPED_TEST(Ir, SmootherBuildWithFactory)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto factory = this->ir_factory;
+
+    auto smoother_factory =
+        gko::solver::build_smoother<value_type>(factory, 3, value_type{0.5});
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.5});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 3);
+    ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
 }
 
 

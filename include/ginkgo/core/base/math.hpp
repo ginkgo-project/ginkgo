@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 
 #ifdef SYCL_LANGUAGE_VERSION
@@ -459,6 +460,31 @@ struct infinity_impl {
 };
 
 
+/**
+ * Computes the highest-precision type from a list of types
+ */
+template <typename T1, typename T2>
+struct highest_precision_impl {
+    using type = decltype(T1{} + T2{});
+};
+
+template <typename T1, typename T2>
+struct highest_precision_impl<std::complex<T1>, std::complex<T2>> {
+    using type = std::complex<typename highest_precision_impl<T1, T2>::type>;
+};
+
+template <typename Head, typename... Tail>
+struct highest_precision_variadic {
+    using type = typename highest_precision_impl<
+        Head, typename highest_precision_variadic<Tail...>::type>::type;
+};
+
+template <typename Head>
+struct highest_precision_variadic<Head> {
+    using type = Head;
+};
+
+
 }  // namespace detail
 
 
@@ -467,6 +493,16 @@ struct infinity_impl {
  */
 template <typename T>
 using next_precision = typename detail::next_precision_impl<T>::type;
+
+
+/**
+ * Obtains the previous type in the singly-linked precision list.
+ *
+ * @note Currently our lists contains only two elements, so this is the same as
+ *       next_precision.
+ */
+template <typename T>
+using previous_precision = next_precision<T>;
 
 
 /**
@@ -481,6 +517,22 @@ using reduce_precision = typename detail::reduce_precision_impl<T>::type;
  */
 template <typename T>
 using increase_precision = typename detail::increase_precision_impl<T>::type;
+
+
+/**
+ * Obtains the smallest arithmetic type that is able to store elements of all
+ * template parameter types exactly. All template type parameters need to be
+ * either real or complex types, mixing them is not possible.
+ *
+ * Formally, it computes a right-fold over the type list, with the highest
+ * precision of a pair of real arithmetic types T1, T2 computed as
+ * `decltype(T1{} + T2{})`, or
+ * `std::complex<highest_precision<remove_complex<T1>, remove_complex<T2>>>` for
+ * complex types.
+ */
+template <typename... Ts>
+using highest_precision =
+    typename detail::highest_precision_variadic<Ts...>::type;
 
 
 /**
@@ -622,7 +674,7 @@ GKO_INLINE __host__ constexpr T zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T zero(const T &)
+GKO_INLINE __host__ constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -650,7 +702,7 @@ GKO_INLINE __host__ constexpr T one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T one(const T &)
+GKO_INLINE __host__ constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -680,7 +732,7 @@ zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE __device__ constexpr T zero(const T &)
+GKO_INLINE __device__ constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -710,7 +762,7 @@ one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE __device__ constexpr T one(const T &)
+GKO_INLINE __device__ constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -741,7 +793,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
+GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -769,7 +821,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
+GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -779,6 +831,36 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 
 
 #undef GKO_BIND_ZERO_ONE
+
+
+/**
+ * Returns true if and only if the given value is zero.
+ *
+ * @tparam T  the type of the value
+ *
+ * @param value  the given value
+ * @return true iff the given value is zero, i.e. `value == zero<T>()`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_zero(T value)
+{
+    return value == zero<T>();
+}
+
+
+/**
+ * Returns true if and only if the given value is not zero.
+ *
+ * @tparam T  the type of the value
+ *
+ * @param value  the given value
+ * @return true iff the given value is not zero, i.e. `value != zero<T>()`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_nonzero(T value)
+{
+    return value != zero<T>();
+}
 
 
 /**
@@ -793,7 +875,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
  *
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
+GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T& x, const T& y)
 {
     return x >= y ? x : y;
 }
@@ -811,10 +893,144 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
  *
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
+GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
 {
     return x <= y ? x : y;
 }
+
+
+namespace detail {
+
+
+/**
+ * @internal
+ * Tests if a member function `Ref::to_arithmetic_type` exists
+ * This is used for the accessor references to convert to the arithmetic type in
+ * the math-functions
+ *
+ * @note
+ * This basically mirrors the accessor functionality
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+    using type = Ref;
+};
+
+template <typename Ref>
+struct has_to_arithmetic_type<
+    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
+};
+
+
+/**
+ * @internal
+ * Tests if the type `Ref::arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+};
+
+template <typename Ref>
+struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
+    : std::true_type {};
+
+
+/**
+ * @internal
+ * converts `ref` to arithmetic type. This is used for accessor references to
+ * convert the type before performing math operations.
+ * It performs the following three steps in order:
+ * 1. If a function `to_arithmetic_type()` is available, it will return the
+ *    result of that function
+ * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
+ *    implicit cast from Ref -> `Ref::arithmetic_type`
+ * 3. Otherwise, it will return `ref` itself.
+ */
+template <typename Ref>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<has_to_arithmetic_type<Ref>::value,
+                     typename has_to_arithmetic_type<Ref>::type>
+    to_arithmetic_type(const Ref& ref)
+{
+    return ref.to_arithmetic_type();
+}
+
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              has_arithmetic_type<Ref>::value,
+                                          typename Ref::arithmetic_type>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              !has_arithmetic_type<Ref>::value,
+                                          Ref>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+
+// Note: All functions have postfix `impl` so they are not considered for
+// overload resolution (in case a class / function also is in the namespace
+// `detail`)
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+real_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+real_impl(const T& x)
+{
+    return x.real();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+imag_impl(const T&)
+{
+    return T{};
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+imag_impl(const T& x)
+{
+    return x.imag();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return T{real_impl(x), -imag_impl(x)};
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -827,18 +1043,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-real(const T &x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto real(const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-real(const T &x)
-{
-    return x.real();
+    return detail::real_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -852,18 +1059,9 @@ real(const T &x)
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-imag(const T &)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto imag(const T& x)
 {
-    return zero<T>();
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-imag(const T &x)
-{
-    return x.imag();
+    return detail::imag_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -875,17 +1073,9 @@ imag(const T &x)
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<!is_complex_s<T>::value, T> conj(
-    const T &x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto conj(const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
-    const T &x)
-{
-    return T{x.real(), -x.imag()};
+    return detail::conj_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -897,7 +1087,7 @@ GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
  * @return  The squared norm of the object.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
+GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T& x)
     -> decltype(real(conj(x) * x))
 {
     return real(conj(x) * x);
@@ -916,7 +1106,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
 template <typename T>
 GKO_INLINE
     GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    abs(const T &x)
+    abs(const T& x)
 {
     return x >= zero<T>() ? x : -x;
 }
@@ -925,9 +1115,38 @@ GKO_INLINE
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
                                                       remove_complex<T>>
-abs(const T &x)
+abs(const T& x)
 {
     return sqrt(squared_norm(x));
+}
+
+
+/**
+ * Returns the value of pi.
+ *
+ * @tparam T  the value type to return
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T pi()
+{
+    return static_cast<T>(3.1415926535897932384626433);
+}
+
+
+/**
+ * Returns the value of exp(2 * pi * i * k / n), i.e. an nth root of unity.
+ *
+ * @param n  the denominator of the argument
+ * @param k  the numerator of the argument. Defaults to 1.
+ *
+ * @tparam T  the corresponding real value type.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::complex<remove_complex<T>> unit_root(
+    int64 n, int64 k = 1)
+{
+    return std::polar(one<remove_complex<T>>(),
+                      remove_complex<T>{2} * pi<remove_complex<T>>() * k / n);
 }
 
 
@@ -944,7 +1163,7 @@ abs(const T &x)
  * @return maximum of `hint` and the significant bit position of `n`
  */
 template <typename T>
-constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
+constexpr uint32 get_significant_bit(const T& n, uint32 hint = 0u) noexcept
 {
     return (T{1} << (hint + 1)) > n ? hint : get_significant_bit(n, hint + 1u);
 }
@@ -962,8 +1181,8 @@ constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
  * @return the smallest power of `base` not smaller than `limit`
  */
 template <typename T>
-constexpr T get_superior_power(const T &base, const T &limit,
-                               const T &hint = T{1}) noexcept
+constexpr T get_superior_power(const T& base, const T& limit,
+                               const T& hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
 }
@@ -982,7 +1201,7 @@ constexpr T get_superior_power(const T &base, const T &limit,
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
-is_finite(const T &value)
+is_finite(const T& value)
 {
     constexpr T infinity{detail::infinity_impl<T>::value};
     return abs(value) < infinity;
@@ -1002,7 +1221,7 @@ is_finite(const T &value)
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
-is_finite(const T &value)
+is_finite(const T& value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }
@@ -1023,6 +1242,70 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
 {
     return b == zero<T>() ? zero<T>() : a / b;
+}
+
+
+/**
+ * Checks if a floating point number is NaN.
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * @return `true` if the value is NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
+is_nan(const T& value)
+{
+    return std::isnan(value);
+}
+
+
+/**
+ * Checks if any component of a complex value is NaN.
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param value  complex value to check
+ *
+ * @return `true` if any component of the given value is NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
+    const T& value)
+{
+    return std::isnan(value.real()) || std::isnan(value.imag());
+}
+
+
+/**
+ * Returns a quiet NaN of the given type.
+ *
+ * @tparam T  the type of the object
+ *
+ * @return NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+nan()
+{
+    return std::numeric_limits<T>::quiet_NaN();
+}
+
+
+/**
+ * Returns a complex with both components quiet NaN.
+ *
+ * @tparam T  the type of the object
+ *
+ * @return complex{NaN, NaN}.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value, T>
+nan()
+{
+    return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};
 }
 
 

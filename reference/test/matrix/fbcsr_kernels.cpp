@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/fbcsr_kernels.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/value_generator.hpp"
 
 
 namespace {
@@ -89,7 +90,7 @@ protected:
           mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
-    void assert_equal_to_mtx(const Csr *const m)
+    void assert_equal_to_mtx(const Csr* const m)
     {
         ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
         ASSERT_EQ(m->get_num_stored_elements(),
@@ -105,7 +106,7 @@ protected:
         }
     }
 
-    void assert_equal_to_mtx(const SparCsr *m)
+    void assert_equal_to_mtx(const SparCsr* m)
     {
         ASSERT_EQ(m->get_size(), refspcmtx->get_size());
         ASSERT_EQ(m->get_num_nonzeros(), refspcmtx->get_num_nonzeros());
@@ -135,22 +136,20 @@ protected:
     const std::unique_ptr<const Mtx> mtxsq;
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
-constexpr typename std::enable_if_t<!gko::is_complex_s<T>::value, T>
-get_some_number()
-{
-    return static_cast<T>(1.2);
-}
-
-template <typename T>
-constexpr typename std::enable_if_t<gko::is_complex_s<T>::value, T>
-get_some_number()
+std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
+    std::shared_ptr<const gko::Executor> exec, const size_t nrows,
+    const size_t nrhs)
 {
     using RT = gko::remove_complex<T>;
-    return {static_cast<RT>(1.2), static_cast<RT>(3.4)};
+    std::default_random_engine engine(39);
+    std::normal_distribution<RT> dist(0.0, 5.0);
+    std::uniform_int_distribution<> nnzdist(1, nrhs);
+    return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
+        nrows, nrhs, nnzdist, dist, engine, exec);
 }
 
 
@@ -161,11 +160,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     using index_type = typename TestFixture::index_type;
     const index_type nrows = this->mtx2->get_size()[0];
     const index_type ncols = this->mtx2->get_size()[1];
-    auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
-    T *const xvals = x->get_values();
-    for (index_type i = 0; i < ncols; i++) {
-        xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, 1);
     auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     using Csr = typename TestFixture::Csr;
@@ -190,15 +185,31 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    for (index_type i = 0; i < ncols; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            x->at(i, j) = (static_cast<T>(3.0 * i) + get_some_number<T>()) /
-                          static_cast<T>(j + 1.0);
-        }
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, nvecs);
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+
+    this->mtx2->apply(x.get(), y.get());
+    this->ref2csrmtx->apply(x.get(), yref.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
+
+
+TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using CT = typename gko::to_complex<T>;
+    using CVec = gko::matrix::Dense<CT>;
+    using index_type = typename TestFixture::index_type;
+    const gko::size_type nrows = this->mtx2->get_size()[0];
+    const gko::size_type ncols = this->mtx2->get_size()[1];
+    const gko::size_type nvecs = 3;
+    auto x = get_some_vectors<CT>(this->exec, ncols, nvecs);
+    auto y = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
+    auto yref = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
     this->mtx2->apply(x.get(), y.get());
     this->ref2csrmtx->apply(x.get(), yref.get());
@@ -220,15 +231,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     auto beta = gko::initialize<Vec>({betav}, this->exec);
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, 1});
-    auto y = Vec::create(this->exec, gko::dim<2>{nrows, 1});
-    for (index_type i = 0; i < ncols; i++) {
-        x->at(i, 0) = (i + 1.0) * (i + 1.0);
-    }
-    for (index_type i = 0; i < nrows; i++) {
-        y->at(i, 0) = static_cast<T>(std::sin(2 * 3.14 * (i + 0.1) / nrows)) +
-                      get_some_number<T>();
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, 1);
+    auto y = get_some_vectors<T>(this->exec, nrows, 1);
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
@@ -252,21 +256,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    for (index_type i = 0; i < ncols; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            x->at(i, j) =
-                std::log(static_cast<T>(0.1 + static_cast<float>((i + 1) ^ 2)));
-        }
-    }
-    for (index_type i = 0; i < nrows; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            y->at(i, j) =
-                static_cast<T>(std::sin(2 * 3.14 * (i + j + 0.1) / nrows)) +
-                get_some_number<T>();
-        }
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, nvecs);
+    auto y = get_some_vectors<T>(this->exec, nrows, nvecs);
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
@@ -526,39 +517,6 @@ TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
 }
 
 
-TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
-{
-    using IndexType = typename TestFixture::index_type;
-    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx2->get_size()[0]);
-
-    gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
-        this->exec, this->mtx2.get(), &row_nnz);
-    gko::Array<gko::size_type> refrnnz(this->exec, this->mtx2->get_size()[0]);
-    gko::kernels::reference::csr ::calculate_nonzeros_per_row(
-        this->exec, this->ref2csrmtx.get(), &refrnnz);
-
-    ASSERT_EQ(row_nnz.get_num_elems(), refrnnz.get_num_elems());
-    auto row_nnz_val = row_nnz.get_data();
-    for (gko::size_type i = 0; i < this->mtx2->get_size()[0]; i++)
-        ASSERT_EQ(row_nnz_val[i], refrnnz.get_const_data()[i]);
-}
-
-
-TYPED_TEST(Fbcsr, CalculatesMaxNnzPerRow)
-{
-    using IndexType = typename TestFixture::index_type;
-    gko::size_type max_row_nnz{};
-
-    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
-        this->exec, this->mtx2.get(), &max_row_nnz);
-    gko::size_type ref_max_row_nnz{};
-    gko::kernels::reference::csr::calculate_max_nnz_per_row(
-        this->exec, this->ref2csrmtx.get(), &ref_max_row_nnz);
-
-    ASSERT_EQ(max_row_nnz, ref_max_row_nnz);
-}
-
-
 TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
@@ -568,9 +526,9 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
     this->mtxsq->convert_to(csrmtxsq.get());
 
     std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
-    auto reftmtx_as_csr = static_cast<const Csr *>(reftmtx.get());
+    auto reftmtx_as_csr = static_cast<const Csr*>(reftmtx.get());
     auto trans = this->mtxsq->transpose();
-    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
@@ -585,9 +543,9 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
     this->mtx2->convert_to(csrmtx.get());
 
     std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
-    auto reftmtx_as_csr = static_cast<Csr *>(reftmtx.get());
+    auto reftmtx_as_csr = static_cast<Csr*>(reftmtx.get());
     auto trans = this->mtx2->transpose();
-    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
@@ -604,7 +562,7 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     using Fbcsr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto cpmat = this->mtx->clone();
-    index_type *const colinds = cpmat->get_col_idxs();
+    index_type* const colinds = cpmat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
 
     ASSERT_FALSE(cpmat->is_sorted_by_column_index());
@@ -690,7 +648,8 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(FbcsrComplex, ConvertsComplexToCsr)
@@ -723,9 +682,9 @@ TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
     auto mtx = csample.generate_fbcsr();
 
     auto reftranslinop = csrmtx->conj_transpose();
-    auto reftrans = static_cast<const Csr *>(reftranslinop.get());
+    auto reftrans = static_cast<const Csr*>(reftranslinop.get());
     auto trans = mtx->conj_transpose();
-    auto trans_as_fbcsr = static_cast<const Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<const Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftrans, 0.0);
 }

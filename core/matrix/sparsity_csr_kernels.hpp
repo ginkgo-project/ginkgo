@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,59 +41,77 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType) \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-              const matrix::SparsityCsr<ValueType, IndexType> *a,  \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(MatrixValueType, InputValueType, \
+                                             OutputValueType, IndexType)      \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
+              const matrix::SparsityCsr<MatrixValueType, IndexType>* a,       \
+              const matrix::Dense<InputValueType>* b,                         \
+              matrix::Dense<OutputValueType>* c)
 
-#define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-                       const matrix::Dense<ValueType> *alpha,               \
-                       const matrix::SparsityCsr<ValueType, IndexType> *a,  \
-                       const matrix::Dense<ValueType> *b,                   \
-                       const matrix::Dense<ValueType> *beta,                \
-                       matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(            \
+    MatrixValueType, InputValueType, OutputValueType, IndexType)  \
+    void advanced_spmv(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,              \
+        const matrix::Dense<MatrixValueType>* alpha,              \
+        const matrix::SparsityCsr<MatrixValueType, IndexType>* a, \
+        const matrix::Dense<InputValueType>* b,                   \
+        const matrix::Dense<OutputValueType>* beta,               \
+        matrix::Dense<OutputValueType>* c)
+
+#define GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)    \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,            \
+                       const matrix::SparsityCsr<ValueType, IndexType>* input, \
+                       matrix::Dense<ValueType>* output)
 
 #define GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                  IndexType) \
     void remove_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType *row_ptrs, const IndexType *col_idxs,               \
-        matrix::SparsityCsr<ValueType, IndexType> *matrix)
+        const IndexType* row_ptrs, const IndexType* col_idxs,               \
+        matrix::SparsityCsr<ValueType, IndexType>* matrix)
 
 #define GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                     IndexType) \
     void count_num_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::SparsityCsr<ValueType, IndexType> *matrix,               \
-        size_type *num_diagonal_elements)
+        const matrix::SparsityCsr<ValueType, IndexType>* matrix,               \
+        size_type* num_diagonal_elements)
 
 #define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,           \
-                   const matrix::SparsityCsr<ValueType, IndexType> *orig, \
-                   matrix::SparsityCsr<ValueType, IndexType> *trans)
+                   const matrix::SparsityCsr<ValueType, IndexType>* orig, \
+                   matrix::SparsityCsr<ValueType, IndexType>* trans)
 
 #define GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType) \
     void sort_by_column_index(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::SparsityCsr<ValueType, IndexType> *to_sort)
+        matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 
 #define GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, \
                                                            IndexType) \
     void is_sorted_by_column_index(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::SparsityCsr<ValueType, IndexType> *to_check,    \
-        bool *is_sorted)
+        const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
+        bool* is_sorted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,   \
+                                         OutputValueType, IndexType);       \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(                          \
+        MatrixValueType, InputValueType, OutputValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
                                                              IndexType);    \
@@ -108,49 +126,8 @@ namespace kernels {
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
 
 
-namespace omp {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace omp
-
-
-namespace cuda {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace cuda
-
-
-namespace reference {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace reference
-
-
-namespace hip {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sparsity_csr,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

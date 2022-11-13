@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ namespace {
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int &val) : value(val) {}
+    explicit ExampleOperation(int& val) : value(val) {}
 
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
@@ -85,7 +85,7 @@ public:
         hipGetDevice(&value);
     }
 
-    int &value;
+    int& value;
 };
 
 
@@ -145,7 +145,7 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 
 TEST_F(HipExecutor, AllocatesAndFreesMemory)
 {
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = hip->alloc<int>(2));
     ASSERT_NO_THROW(hip->free(ptr));
@@ -155,7 +155,7 @@ TEST_F(HipExecutor, AllocatesAndFreesMemory)
 TEST_F(HipExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(
         {
@@ -168,7 +168,7 @@ TEST_F(HipExecutor, FailsWhenOverallocating)
 }
 
 
-__global__ void check_data(int *data)
+__global__ void check_data(int* data)
 {
     if (data[0] != 3 || data[1] != 8) {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -182,17 +182,17 @@ __global__ void check_data(int *data)
 TEST_F(HipExecutor, CopiesDataToHip)
 {
     int orig[] = {3, 8};
-    auto *copy = hip->alloc<int>(2);
+    auto* copy = hip->alloc<int>(2);
 
     hip->copy_from(omp.get(), 2, orig, copy);
 
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy);
+    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy);
     ASSERT_NO_THROW(hip->synchronize());
     hip->free(copy);
 }
 
 
-__global__ void check_data2(int *data)
+__global__ void check_data2(int* data)
 {
     if (data[0] != 4 || data[1] != 8) {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -210,7 +210,7 @@ __global__ void check_data2(int *data)
 TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 {
     int orig[] = {3, 8};
-    auto *copy = hip3->alloc<int>(2);
+    auto* copy = hip3->alloc<int>(2);
 
     hip3->copy_from(omp.get(), 2, orig, copy);
 
@@ -225,7 +225,7 @@ TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 #endif
 
 
-__global__ void init_data(int *data)
+__global__ void init_data(int* data)
 {
     data[0] = 3;
     data[1] = 8;
@@ -235,7 +235,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
 {
     int copy[2];
     auto orig = hip->alloc<int>(2);
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
+    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
     omp->copy_from(hip.get(), 2, orig, copy);
 
@@ -277,7 +277,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     int copy[2];
     auto orig = hip->alloc<int>(2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
+    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
     hip2->copy_from(hip.get(), 2, orig, copy_hip2);
@@ -285,7 +285,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy_hip2);
+    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy_hip2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());

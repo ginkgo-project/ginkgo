@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,22 +46,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
 #define GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType) \
     void add_candidates(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType> *llh,   \
-                        const matrix::Csr<ValueType, IndexType> *a,     \
-                        const matrix::Csr<ValueType, IndexType> *l,     \
-                        matrix::Csr<ValueType, IndexType> *l_new)
+                        const matrix::Csr<ValueType, IndexType>* llh,   \
+                        const matrix::Csr<ValueType, IndexType>* a,     \
+                        const matrix::Csr<ValueType, IndexType>* l,     \
+                        matrix::Csr<ValueType, IndexType>* l_new)
 
 #define GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType) \
     void compute_factor(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType> *a,     \
-                        matrix::Csr<ValueType, IndexType> *l,           \
-                        const matrix::Coo<ValueType, IndexType> *l_coo)
+                        const matrix::Csr<ValueType, IndexType>* a,     \
+                        matrix::Csr<ValueType, IndexType>* l,           \
+                        const matrix::Coo<ValueType, IndexType>* l_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename ValueType, typename IndexType>                \
@@ -70,49 +73,8 @@ namespace kernels {
     GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace par_ict_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ict_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace par_ict_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ict_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace par_ict_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ict_factorization
-}  // namespace reference
-
-
-namespace hip {
-namespace par_ict_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ict_factorization
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace par_ict_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ict_factorization
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(par_ict_factorization,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

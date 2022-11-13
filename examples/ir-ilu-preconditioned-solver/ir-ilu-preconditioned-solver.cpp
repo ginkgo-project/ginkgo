@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -97,32 +97,29 @@ int main(int argc, char *argv[])
     for (gko::size_type i = 0; i < num_rows; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = vec::create(exec);
-    auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
-    auto clone_x = vec::create(exec);
-    clone_x->copy_from(lend(x));
+    auto x = gko::clone(exec, host_x);
+    auto b = gko::clone(exec, host_x);
+    auto clone_x = gko::clone(exec, x);
 
     // Generate incomplete factors using ParILU
     auto par_ilu_fact =
         gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
     // Generate concrete factorization for input matrix
-    auto par_ilu = par_ilu_fact->generate(A);
+    auto par_ilu = gko::share(par_ilu_fact->generate(A));
 
     // Generate an iterative refinement factory to be used as a triangular
     // solver in the preconditioner application. The generated method is
     // equivalent to doing five block-Jacobi sweeps with a maximum block size
     // of 16.
-    auto bj_factory =
+    auto bj_factory = gko::share(
         bj::build()
             .with_max_block_size(16u)
             .with_storage_optimization(gko::precision_reduction::autodetect())
-            .on(exec);
+            .on(exec));
 
     auto trisolve_factory =
         ir::build()
-            .with_solver(share(bj_factory))
+            .with_solver(bj_factory)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(sweeps).on(exec))
             .on(exec);
@@ -137,18 +134,18 @@ int main(int argc, char *argv[])
             .on(exec);
 
     // Use incomplete factors to generate ILU preconditioner
-    auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));
 
     // Create stopping criteria for Gmres
     const RealValueType reduction_factor{1e-12};
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(1000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_reduction_factor(reduction_factor)
+                                   .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create(exec);
+        gko::log::Convergence<ValueType>::create();
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
@@ -158,8 +155,8 @@ int main(int argc, char *argv[])
     // solver+preconditioner combination is expected to be effective.
     auto ilu_gmres_factory =
         gmres::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
-            .with_generated_preconditioner(gko::share(ilu_preconditioner))
+            .with_criteria(iter_stop, tol_stop)
+            .with_generated_preconditioner(ilu_preconditioner)
             .on(exec);
 
     // Generate preconditioned solver for a specific target system

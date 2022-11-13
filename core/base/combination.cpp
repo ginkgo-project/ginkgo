@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,8 +43,8 @@ namespace {
 
 template <typename ValueType>
 inline void initialize_scalars(std::shared_ptr<const Executor> exec,
-                               std::unique_ptr<LinOp> &zero,
-                               std::unique_ptr<LinOp> &one)
+                               std::unique_ptr<LinOp>& zero,
+                               std::unique_ptr<LinOp>& one)
 {
     if (zero == nullptr) {
         zero = initialize<matrix::Dense<ValueType>>({gko::zero<ValueType>()},
@@ -61,16 +61,77 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+Combination<ValueType>& Combination<ValueType>::operator=(
+    const Combination& other)
+{
+    if (&other != this) {
+        EnableLinOp<Combination>::operator=(other);
+        auto exec = this->get_executor();
+        coefficients_ = other.coefficients_;
+        operators_ = other.operators_;
+        // if the operators are on the wrong executor, copy them over
+        if (other.get_executor() != exec) {
+            for (auto& coef : coefficients_) {
+                coef = gko::clone(exec, coef);
+            }
+            for (auto& op : operators_) {
+                op = gko::clone(exec, op);
+            }
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Combination<ValueType>& Combination<ValueType>::operator=(Combination&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Combination>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        coefficients_ = std::move(other.coefficients_);
+        operators_ = std::move(other.operators_);
+        // if the operators are on the wrong executor, copy them over
+        if (other.get_executor() != exec) {
+            for (auto& coef : coefficients_) {
+                coef = gko::clone(exec, coef);
+            }
+            for (auto& op : operators_) {
+                op = gko::clone(exec, op);
+            }
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Combination<ValueType>::Combination(const Combination& other)
+    : Combination(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Combination<ValueType>::Combination(Combination&& other)
+    : Combination(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
 {
     auto transposed = Combination<ValueType>::create(this->get_executor());
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
-    for (auto &coef : get_coefficients()) {
+    for (auto& coef : get_coefficients()) {
         transposed->coefficients_.push_back(share(coef->clone()));
     }
     // transpose operators
-    for (auto &op : get_operators()) {
+    for (auto& op : get_operators()) {
         transposed->operators_.push_back(
             share(as<Transposable>(op)->transpose()));
     }
@@ -85,12 +146,12 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
     auto transposed = Combination<ValueType>::create(this->get_executor());
     transposed->set_size(gko::transpose(this->get_size()));
     // conjugate coefficients!
-    for (auto &coef : get_coefficients()) {
+    for (auto& coef : get_coefficients()) {
         transposed->coefficients_.push_back(
             share(as<Transposable>(coef)->conj_transpose()));
     }
     // conjugate-transpose operators
-    for (auto &op : get_operators()) {
+    for (auto& op : get_operators()) {
         transposed->operators_.push_back(
             share(as<Transposable>(op)->conj_transpose()));
     }
@@ -100,7 +161,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Combination<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
                                   cache_.one);
@@ -118,8 +179,8 @@ void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                        const LinOp *beta, LinOp *x) const
+void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                        const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
