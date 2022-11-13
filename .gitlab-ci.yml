@@ -924,7 +924,7 @@ gh-pages:
     - git diff --quiet HEAD ||
       (git commit -m "Update documentation from ginkgo-project/ginkgo@${CURRENT_SHA}" && git push)
   dependencies: null
-  needs: [ "sync" ]
+  needs: []
 
 
 threadsanitizer:
