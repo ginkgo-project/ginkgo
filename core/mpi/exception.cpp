@@ -31,8 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <array>
-#include <mpi.h>
 #include <string>
+
+
+#include <mpi.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
