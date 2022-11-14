@@ -28,7 +28,7 @@ jobs:
         cd doc
         cp -r ../../doc/joss ./
         cd joss
-        pandoc paper.md -o paper.pdf --bibliography ./paper.bib --latex-engine=xelatex
+        pandoc paper.md -o paper.pdf --bibliography ./paper.bib --pdf-engine=xelatex
         popd
     - uses: actions/upload-artifact@v1.0.0
       with:
