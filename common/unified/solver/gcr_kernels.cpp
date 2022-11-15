@@ -53,7 +53,7 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType>* b,
                 matrix::Dense<ValueType>* residual,
-                Array<stopping_status>& stop_status)
+                stopping_status* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -78,8 +78,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
              const matrix::Dense<ValueType>* residual,
              matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
-             matrix::Dense<ValueType>* Ap_bases,
-             Array<size_type>& final_iter_nums)
+             matrix::Dense<ValueType>* Ap_bases, size_type* final_iter_nums)
 {
     run_kernel_solver(
         exec,
@@ -105,7 +104,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType>* Ap,
             const matrix::Dense<ValueType>* Ap_norm,
             const matrix::Dense<ValueType>* alpha,
-            const Array<stopping_status>& stop_status)
+            const stopping_status* stop_status)
 {
     run_kernel_solver(
         exec,
