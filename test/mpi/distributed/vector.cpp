@@ -91,15 +91,12 @@ private:
 template <typename ValueLocalGlobalIndexType>
 class VectorCreation : public CommonMpiTestFixture {
 public:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using part_type =
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
@@ -338,6 +335,83 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
     GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), clone_local_vec, 0);
+}
+
+
+template <typename ValueType>
+class VectorCreationHelpers : public CommonMpiTestFixture {
+public:
+    using value_type = ValueType;
+    using vec_type = gko::experimental::distributed::Vector<value_type>;
+
+    VectorCreationHelpers()
+        : local_size{4, 11},
+          size{local_size[1] * comm.size(), 11},
+          src(vec_type::create(this->exec, this->comm, size, local_size,
+                               local_size[1] + 3))
+    {}
+
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
+    gko::dim<2> local_size;
+    gko::dim<2> size;
+
+    std::unique_ptr<vec_type> src;
+    std::unique_ptr<vec_type> dst;
+};
+
+TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes);
+
+
+TYPED_TEST(VectorCreationHelpers, CanCreateWithConfigOf)
+{
+    using vec_type = typename TestFixture::vec_type;
+
+    auto new_vector = vec_type::create_with_config_of(this->src.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_size(), this->src->get_size());
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_local_vector()->get_size(),
+                                this->src->get_local_vector()->get_size());
+    ASSERT_EQ(new_vector->get_local_vector()->get_stride(),
+              this->src->get_local_vector()->get_stride());
+    ASSERT_EQ(new_vector->get_executor(), this->src->get_executor());
+    ASSERT_EQ(new_vector->get_communicator(), this->src->get_communicator());
+}
+
+
+TYPED_TEST(VectorCreationHelpers, CanCreateWithTypeOfDefaultParameter)
+{
+    using vec_type = typename TestFixture::vec_type;
+
+    auto new_vector = vec_type::create_with_type_of(this->src.get(), this->ref);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_size(), gko::dim<2>{});
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_local_vector()->get_size(),
+                                gko::dim<2>{});
+    ASSERT_EQ(new_vector->get_local_vector()->get_stride(), 0);
+    ASSERT_EQ(new_vector->get_executor(), this->ref);
+    ASSERT_EQ(new_vector->get_communicator(), this->src->get_communicator());
+}
+
+
+TYPED_TEST(VectorCreationHelpers, CanCreateWithTypeOf)
+{
+    using vec_type = typename TestFixture::vec_type;
+    gko::dim<2> new_local_size{3, 7};
+    gko::dim<2> new_global_size{new_local_size[0] * this->comm.size(),
+                                new_local_size[1]};
+    gko::size_type new_stride{14};
+
+    auto new_vector = vec_type::create_with_type_of(this->src.get(), this->ref,
+                                                    new_global_size,
+                                                    new_local_size, new_stride);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_size(), new_global_size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(new_vector->get_local_vector()->get_size(),
+                                new_local_size);
+    ASSERT_EQ(new_vector->get_local_vector()->get_stride(), new_stride);
+    ASSERT_EQ(new_vector->get_executor(), this->ref);
+    ASSERT_EQ(new_vector->get_communicator(), this->src->get_communicator());
 }
 
 

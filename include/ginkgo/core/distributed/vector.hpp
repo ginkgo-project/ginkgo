@@ -121,6 +121,44 @@ public:
         return (*other).create_with_same_config();
     }
 
+
+    /**
+     * Creates an empty Vector with the same type as another Vector, but on a
+     * different executor.
+     *
+     * @param other  The other multi-vector whose type we target.
+     * @param exec  The executor of the new multi-vector.
+     *
+     * @note  The new multi-vector uses the same communicator as other.
+     *
+     * @returns an empty Vector with the type of other.
+     */
+    static std::unique_ptr<Vector> create_with_type_of(
+        const Vector* other, std::shared_ptr<const Executor> exec)
+    {
+        return (*other).create_with_type_of_impl(exec, {}, {}, 0);
+    }
+
+    /**
+     * Creates an Vector with the same type as another Vector, but on a
+     * different executor and with a different size.
+     *
+     * @param other  The other multi-vector whose type we target.
+     * @param exec  The executor of the new multi-vector.
+     * @param global_size  The global size of the multi-vector.
+     * @param local_size  The local size of the multi-vector.
+     * @param stride  The stride of the new multi-vector.
+     *
+     * @returns a Vector of specified size with the type of other.
+     */
+    static std::unique_ptr<Vector> create_with_type_of(
+        const Vector* other, std::shared_ptr<const Executor> exec,
+        const dim<2>& global_size, const dim<2>& local_size, size_type stride)
+    {
+        return (*other).create_with_type_of_impl(exec, global_size, local_size,
+                                                 stride);
+    }
+
     /**
      * Reads a vector from the device_matrix_data structure and a global row
      * partition.
@@ -498,6 +536,21 @@ protected:
         return Vector::create(
             this->get_executor(), this->get_communicator(), this->get_size(),
             this->get_local_vector()->get_size(), this->get_stride());
+    }
+
+    /**
+     * Creates a Dense matrix with the same type as the callers matrix.
+     *
+     * @param global_size  global_size of the matrix
+     *
+     * @returns a Dense matrix with the same type as the caller.
+     */
+    virtual std::unique_ptr<Vector> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const
+    {
+        return Vector::create(exec, this->get_communicator(), global_size,
+                              local_size, stride);
     }
 
 private:
