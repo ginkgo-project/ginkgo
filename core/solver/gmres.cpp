@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -136,12 +137,47 @@ struct help_compute_norm<ValueType,
 
 
 template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
+    matrix::Dense<ValueType>* mtx, span rows, span cols)
+{
+    return mtx->create_submatrix(rows, cols);
+}
+
+
+#if GINKGO_BUILD_MPI
+
+
+template <typename ValueType>
+std::unique_ptr<experimental::distributed::Vector<ValueType>>
+create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
+                        span rows, span cols)
+{
+    dim<2> global_size{rows.length() * mtx->get_communicator().size(),
+                       cols.length()};
+    const auto exec = mtx->get_executor();
+    auto local_view = matrix::Dense<ValueType>::create(
+        exec, dim<2>{rows.length(), cols.length()},
+        make_array_view(exec,
+                        mtx->get_local_vector()->get_num_stored_elements(),
+                        mtx->get_local_values()),
+        mtx->get_local_vector()->get_stride());
+    return experimental::distributed::Vector<ValueType>::create(
+        exec, mtx->get_communicator(), global_size,
+        local_view->create_submatrix(rows, cols).get());
+}
+
+
+#endif
+
+
+template <typename ValueType>
 template <typename VectorType>
 void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                         VectorType* dense_x) const
 {
     using Vector = VectorType;
-    using NormVector = typename Vector::absolute_type;
+    using LocalVector = matrix::Dense<typename Vector::value_type>;
+    using NormVector = typename LocalVector::absolute_type;
     using ws = workspace_traits<Gmres>;
 
     constexpr uint8 RelativeStoppingId{1};
@@ -150,25 +186,28 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     this->setup_workspace();
 
     const auto num_rows = this->get_size()[0];
+    const auto local_num_rows =
+        ::gko::detail::get_local(dense_b)->get_size()[0];
     const auto num_rhs = dense_b->get_size()[1];
     const auto krylov_dim = this->get_krylov_dim();
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(preconditioned_vector, dense_b);
     auto krylov_bases = this->create_workspace_op_with_type_of(
-        ws::krylov_bases, dense_b,
-        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
+        ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
     // rows: rows of Hessenberg matrix, columns: block for each entry
-    auto hessenberg = this->template create_workspace_op<Vector>(
+    auto hessenberg = this->template create_workspace_op<LocalVector>(
         ws::hessenberg, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
-    auto givens_sin = this->template create_workspace_op<Vector>(
+    auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
-    auto givens_cos = this->template create_workspace_op<Vector>(
+    auto givens_cos = this->template create_workspace_op<LocalVector>(
         ws::givens_cos, dim<2>{krylov_dim, num_rhs});
-    auto residual_norm_collection = this->template create_workspace_op<Vector>(
-        ws::residual_norm_collection, dim<2>{krylov_dim + 1, num_rhs});
+    auto residual_norm_collection =
+        this->template create_workspace_op<LocalVector>(
+            ws::residual_norm_collection, dim<2>{krylov_dim + 1, num_rhs});
     auto residual_norm = this->template create_workspace_op<NormVector>(
         ws::residual_norm, dim<2>{1, num_rhs});
-    auto y = this->template create_workspace_op<Vector>(
+    auto y = this->template create_workspace_op<LocalVector>(
         ws::y, dim<2>{krylov_dim, num_rhs});
     // next_krylov_norm_tmp is only required for complex types to move real
     // values into a complex matrix
@@ -190,8 +229,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual = dense_b
     // givens_sin = givens_cos = 0
     // reset stop status
-    exec->run(gmres::make_initialize(dense_b, residual, givens_sin, givens_cos,
-                                     stop_status.get_data()));
+    exec->run(gmres::make_initialize(
+        gko::detail::get_local(dense_b), gko::detail::get_local(residual),
+        givens_sin, givens_cos, stop_status.get_data()));
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
 
@@ -200,8 +240,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
-    exec->run(gmres::make_restart(residual, residual_norm,
-                                  residual_norm_collection, krylov_bases,
+    exec->run(gmres::make_restart(gko::detail::get_local(residual),
+                                  residual_norm, residual_norm_collection,
+                                  gko::detail::get_local(krylov_bases),
                                   final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -253,7 +294,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                                stop_status.get_const_data()));
             // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_multi_axpy(
-                krylov_bases, y, before_preconditioner,
+                gko::detail::get_local(krylov_bases), y,
+                gko::detail::get_local(before_preconditioner),
                 final_iter_nums.get_const_data(), stop_status.get_data()));
 
             // x = x + get_preconditioner() * before_preconditioner
@@ -271,15 +313,18 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             exec->run(gmres::make_restart(
-                residual, residual_norm, residual_norm_collection, krylov_bases,
+                gko::detail::get_local(residual), residual_norm,
+                residual_norm_collection, gko::detail::get_local(krylov_bases),
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
-        auto this_krylov = krylov_bases->create_submatrix(
+        auto this_krylov = create_submatrix_helper(
+            krylov_bases,
             span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
             span{0, num_rhs});
 
-        auto next_krylov = krylov_bases->create_submatrix(
+        auto next_krylov = create_submatrix_helper(
+            krylov_bases,
             span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
             span{0, num_rhs});
         // preconditioned_vector = get_preconditioner() * this_krylov
@@ -303,8 +348,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:, i)
             auto hessenberg_entry = hessenberg_iter->create_submatrix(
                 span{i, i + 1}, span{0, num_rhs});
-            auto krylov_basis = krylov_bases->create_submatrix(
-                span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
+            auto krylov_basis = create_submatrix_helper(
+                krylov_bases, span{num_rows * i, num_rows * (i + 1)},
+                span{0, num_rhs});
             next_krylov->compute_conj_dot(
                 krylov_basis.get(), hessenberg_entry.get(), reduction_tmp);
             next_krylov->sub_scaled(hessenberg_entry.get(), krylov_basis.get());
@@ -315,8 +361,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
             span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-            next_krylov.get(), hessenberg_norm_entry.get(),
-            next_krylov_norm_tmp, reduction_tmp);
+            gko::detail::get_local(next_krylov.get()),
+            hessenberg_norm_entry.get(), next_krylov_norm_tmp, reduction_tmp);
         next_krylov->inv_scale(hessenberg_norm_entry.get());
         // End of Arnoldi
 
@@ -350,8 +396,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         restart_iter++;
     }
 
-    auto krylov_bases_small = krylov_bases->create_submatrix(
-        span{0, num_rows * (restart_iter + 1)}, span{0, num_rhs});
+    auto krylov_bases_small = create_submatrix_helper(
+        krylov_bases, span{0, num_rows * (restart_iter + 1)}, span{0, num_rhs});
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
@@ -362,7 +408,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     // before_preconditioner = krylov_bases * y
     exec->run(gmres::make_multi_axpy(
-        krylov_bases_small.get(), y, before_preconditioner,
+        gko::detail::get_local(krylov_bases_small.get()), y,
+        gko::detail::get_local(before_preconditioner),
         final_iter_nums.get_const_data(), stop_status.get_data()));
 
     // x = x + get_preconditioner() * before_preconditioner
@@ -379,7 +426,7 @@ void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
