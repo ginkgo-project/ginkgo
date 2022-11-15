@@ -186,8 +186,8 @@ public:
     }
 
     /**
-     * Creates a Dense matrix with the same type and executor as another Dense
-     * matrix but a different size.
+     * Creates a Dense matrix with the same type as another Dense
+     * matrix but on a different executor and with a different size.
      *
      * @param other  The other matrix whose type we target.
      * @param exec  The executor of the new matrix.
@@ -215,6 +215,24 @@ public:
     static std::unique_ptr<Dense> create_with_type_of(
         const Dense* other, std::shared_ptr<const Executor> exec,
         const dim<2>& size, size_type stride)
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, stride);
+    }
+
+    /**
+     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * Executor>, const dim<2>)
+     *
+     * @param local_size  Unused
+     * @param stride  The stride of the new matrix.
+     *
+     * @note This is an overload to stay consistent with
+     *       gko::experimental::distributed::Vector
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense* other, std::shared_ptr<const Executor> exec,
+        const dim<2>& size, const dim<2>& local_size, size_type stride)
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, stride);
