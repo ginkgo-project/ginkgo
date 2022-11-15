@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -71,25 +72,16 @@ constexpr size_type gcr_default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gcr : public EnableLinOp<Gcr<ValueType>>,
-            public Preconditionable,
-            public Transposable {
+class Gcr
+    : public EnableLinOp<Gcr<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>,
+      public Transposable {
     friend class EnableLinOp<Gcr>;
     friend class EnablePolymorphicObject<Gcr, LinOp>;
 
 public:
     using value_type = ValueType;
     using transposed_type = Gcr<ValueType>;
-
-    /**
-     * Gets the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -107,36 +99,14 @@ public:
      *
      * @return the Krylov dimension
      */
-    size_type get_krylov_dim() const { return krylov_dim_; }
+    size_type get_krylov_dim() const { return parameters_.krylov_dim; }
 
     /**
      * Sets the Krylov dimension
      *
      * @param other  the new Krylov dimension
      */
-    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
+    void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -184,34 +154,63 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gcr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+          EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
+              std::move(system_matrix), factory->get_parameters()},
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
-                                        this);
-            set_preconditioner(parameters_.generated_preconditioner);
-        } else if (parameters_.preconditioner) {
-            set_preconditioner(
-                parameters_.preconditioner->generate(system_matrix_));
-        } else {
-            set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
+        if (!parameters_.krylov_dim) {
+            parameters_.krylov_dim = gcr_default_krylov_dim;
         }
-        if (parameters_.krylov_dim) {
-            krylov_dim_ = parameters_.krylov_dim;
-        } else {
-            krylov_dim_ = gcr_default_krylov_dim;
-        }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
     }
+};
 
-private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    size_type krylov_dim_;
+
+template <typename ValueType>
+struct workspace_traits<Gcr<ValueType>> {
+    using Solver = Gcr<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int residual = 0;
+    // preconditioned vector
+    constexpr static int precon_residual = 1;
+    constexpr static int A_precon_residual = 2;
+    // p basis TODO: rename this vector
+    constexpr static int p_bases = 3;
+    // Ap basis TODO: rename this vector
+    constexpr static int Ap_bases = 4;
+    // alpha parameter
+    constexpr static int alpha = 5;
+    // beta parameter
+    constexpr static int beta = 6;
+    // TODO: rename this vector
+    constexpr static int Ap_norms = 7;
+    // residual norm scalar
+    constexpr static int residual_norm = 8;
+    // solution of the least-squares problem in Krylov space
+    constexpr static int y = 9;
+    // constant 1.0 scalar
+    constexpr static int one = 10;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 11;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+    // reduction tmp array
+    constexpr static int final_iter_nums = 2;
 };
 
 

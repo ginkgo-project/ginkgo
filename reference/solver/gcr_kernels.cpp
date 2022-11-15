@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
-#include "ginkgo/core/stop/stopping_status.hpp"
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {
@@ -56,14 +56,14 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType>* b,
                 matrix::Dense<ValueType>* residual,
-                Array<stopping_status>& stop_status)
+                stopping_status* stop_status)
 {
     //    using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             residual->at(i, j) = b->at(i, j);
         }
-        stop_status.get_data()[j].reset();
+        stop_status[j].reset();
     }
 }
 
@@ -75,15 +75,14 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
              const matrix::Dense<ValueType>* residual,
              matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
-             matrix::Dense<ValueType>* Ap_bases,
-             Array<size_type>& final_iter_nums)
+             matrix::Dense<ValueType>* Ap_bases, size_type* final_iter_nums)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             p_bases->at(i, j) = residual->at(i, j);
             Ap_bases->at(i, j) = A_residual->at(i, j);
         }
-        final_iter_nums.get_data()[j] = 0;
+        final_iter_nums[j] = 0;
     }
 }
 
@@ -97,11 +96,11 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType>* Ap,
             const matrix::Dense<ValueType>* Ap_norm,
             const matrix::Dense<ValueType>* alpha,
-            const Array<stopping_status>& stop_status)
+            const stopping_status* stop_status)
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            if (stop_status.get_const_data()[j].has_stopped()) {
+            if (stop_status[j].has_stopped()) {
                 continue;
             }
             if (Ap_norm->at(j) != zero<ValueType>()) {
