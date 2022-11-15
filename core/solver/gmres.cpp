@@ -136,11 +136,12 @@ struct help_compute_norm<ValueType,
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                        matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                        VectorType* dense_x) const
 {
-    using Vector = matrix::Dense<ValueType>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Vector = VectorType;
+    using NormVector = typename Vector::absolute_type;
     using ws = workspace_traits<Gmres>;
 
     constexpr uint8 RelativeStoppingId{1};
