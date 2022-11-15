@@ -102,7 +102,7 @@ void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -112,33 +112,35 @@ void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 template <typename ValueType, typename = void>
 struct help_compute_norm {
+    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const matrix::Dense<ValueType>* next_krylov,
+        const VectorType* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>*, array<char>& reduction_tmp)
     {
         next_krylov->compute_norm2(hessenberg_norm_entry, reduction_tmp);
-    };
+    }
 };
 
 template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
+    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const matrix::Dense<ValueType>* next_krylov,
+        const VectorType* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>* next_krylov_norm_tmp,
         array<char>& reduction_tmp)
     {
         next_krylov->compute_norm2(next_krylov_norm_tmp, reduction_tmp);
         next_krylov_norm_tmp->make_complex(hessenberg_norm_entry);
-    };
+    }
 };
 
 
 template <typename ValueType>
 std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
-    matrix::Dense<ValueType>* mtx, span rows, span cols)
+    matrix::Dense<ValueType>* mtx, dim<2> global_size, span rows, span cols)
 {
     return mtx->create_submatrix(rows, cols);
 }
@@ -150,13 +152,11 @@ std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
 template <typename ValueType>
 std::unique_ptr<experimental::distributed::Vector<ValueType>>
 create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
-                        span rows, span cols)
+                        dim<2> global_size, span rows, span cols)
 {
-    dim<2> global_size{rows.length() * mtx->get_communicator().size(),
-                       cols.length()};
     const auto exec = mtx->get_executor();
     auto local_view = matrix::Dense<ValueType>::create(
-        exec, dim<2>{rows.length(), cols.length()},
+        exec, mtx->get_local_vector()->get_size(),
         make_array_view(exec,
                         mtx->get_local_vector()->get_num_stored_elements(),
                         mtx->get_local_values()),
@@ -318,15 +318,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
-        auto this_krylov = create_submatrix_helper(
-            krylov_bases,
-            span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
+        auto this_krylov =
+            create_submatrix_helper(krylov_bases, dim<2>{num_rows, num_rhs},
+                                    span{local_num_rows * restart_iter,
+                                         local_num_rows * (restart_iter + 1)},
+                                    span{0, num_rhs});
 
-        auto next_krylov = create_submatrix_helper(
-            krylov_bases,
-            span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
+        auto next_krylov =
+            create_submatrix_helper(krylov_bases, dim<2>{num_rows, num_rhs},
+                                    span{local_num_rows * (restart_iter + 1),
+                                         local_num_rows * (restart_iter + 2)},
+                                    span{0, num_rhs});
         // preconditioned_vector = get_preconditioner() * this_krylov
         this->get_preconditioner()->apply(this_krylov.get(),
                                           preconditioned_vector);
@@ -349,7 +351,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             auto hessenberg_entry = hessenberg_iter->create_submatrix(
                 span{i, i + 1}, span{0, num_rhs});
             auto krylov_basis = create_submatrix_helper(
-                krylov_bases, span{num_rows * i, num_rows * (i + 1)},
+                krylov_bases, dim<2>{num_rows, num_rhs},
+                span{local_num_rows * i, local_num_rows * (i + 1)},
                 span{0, num_rhs});
             next_krylov->compute_conj_dot(
                 krylov_basis.get(), hessenberg_entry.get(), reduction_tmp);
@@ -361,8 +364,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
             span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-            gko::detail::get_local(next_krylov.get()),
-            hessenberg_norm_entry.get(), next_krylov_norm_tmp, reduction_tmp);
+            next_krylov.get(), hessenberg_norm_entry.get(),
+            next_krylov_norm_tmp, reduction_tmp);
         next_krylov->inv_scale(hessenberg_norm_entry.get());
         // End of Arnoldi
 
@@ -397,7 +400,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     }
 
     auto krylov_bases_small = create_submatrix_helper(
-        krylov_bases, span{0, num_rows * (restart_iter + 1)}, span{0, num_rhs});
+        krylov_bases, dim<2>{num_rows, num_rhs},
+        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
