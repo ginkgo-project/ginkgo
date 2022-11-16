@@ -224,8 +224,8 @@ if(GINKGO_BUILD_MPI)
     endif()
 
     try_run(uses_openmpi gko_result_unused
-        ${PROJECT_BINARY_DIR}
-        ${CMAKE_SOURCE_DIR}/cmake/openmpi_test.cpp
+        ${Ginkgo_BINARY_DIR}
+        ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
         LINK_LIBRARIES MPI::MPI_CXX
         RUN_OUTPUT_VARIABLE openmpi_version
         )
