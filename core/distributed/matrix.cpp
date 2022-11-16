@@ -56,6 +56,19 @@ GKO_REGISTER_OPERATION(build_local_nonlocal,
 }  // namespace matrix
 
 
+mpi::communicator setup_empty_neighborhood_communicator(mpi::communicator& comm)
+{
+    MPI_Comm graph;
+
+    int source = comm.rank();
+    int degree = 0;
+    MPI_Dist_graph_create(comm.get(), 1, &source, &degree, nullptr,
+                          MPI_UNWEIGHTED, MPI_INFO_NULL, false, &graph);
+
+    return mpi::communicator{graph}.duplicate();
+}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
@@ -79,17 +92,16 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
-      send_offsets_(comm.size() + 1),
-      send_sizes_(comm.size()),
-      recv_offsets_(comm.size() + 1),
-      recv_sizes_(comm.size()),
+      send_offsets_(1),
+      send_sizes_(),
+      recv_offsets_(1),
+      recv_sizes_(),
       gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)},
-      uses_neighbor_comm_(false),
-      neighbor_comm_(comm)
+      neighbor_comm_(setup_empty_neighborhood_communicator(comm))
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -142,18 +154,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
+void Matrix<ValueType, LocalIndexType,
+            GlobalIndexType>::enable_neighborhood_communication()
 {
-    using gko::distributed::comm_index_type;
+    using distributed::comm_index_type;
     auto comm = this->get_communicator();
-    uses_neighbor_comm_ = true;
     // define only outgoing edges:
     auto source = comm.rank();
     // compute degree for own rank
     auto degree = static_cast<comm_index_type>(
         std::count_if(send_sizes_.begin(), send_sizes_.end(),
                       [](const auto v) { return v > 0; }));
-    // destinations are ranks where send_size > 0
+    // destinations are ranks with send_size > 0
     std::vector<comm_index_type> destinations;
     std::vector<comm_index_type> weight;
     for (int r = 0; r < send_sizes_.size(); ++r) {
@@ -181,7 +193,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
                              in_weight.data(), num_out_neighbors,
                              out_neighbors.data(), out_weight.data());
 
-    neighbor_comm_ = mpi::communicator{graph};
+    neighbor_comm_ = mpi::communicator{graph}.duplicate();
 
     // compress communication info
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
@@ -263,6 +275,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
         ->read(std::move(non_local_data));
 
+    // initialize send and recv data
+    recv_sizes_.resize(comm.size());
+    recv_offsets_.resize(comm.size() + 1);
+    send_sizes_.resize(comm.size());
+    send_offsets_.resize(comm.size() + 1);
+
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     exec->get_master()->copy_from(
         exec, num_parts, recv_sizes_array.get_const_data(), recv_sizes_.data());
@@ -290,9 +308,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec);
     }
 
-    if (neighbor_comm) {
-        this->use_neighbor_comm();
-    }
+    this->enable_neighborhood_communication();
 }
 
 
@@ -365,25 +381,16 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
                                     : recv_buffer_->get_values();
     exec->synchronize();
 #ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
-    if (uses_neighbor_comm_) {
-        throw std::runtime_error("Neighbor comm not supported atm");
-    }
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
-                      send_sizes_.data(), send_offsets_.data(), type.get(),
-                      recv_ptr, recv_sizes_.data(), recv_offsets_.data(),
-                      type.get());
+    neighbor_comm_.neighor_all_to_all_v(
+        use_host_buffer ? exec->get_master() : exec, send_ptr,
+        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+        recv_sizes_.data(), recv_offsets_.data(), type.get());
     return {};
 #else
-    if (uses_neighbor_comm_) {
-        return neighbor_comm_.i_neighor_all_to_all_v(
-            send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
-            recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
-    } else {
-        return comm.i_all_to_all_v(
-            use_host_buffer ? exec->get_master() : exec, send_ptr,
-            send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
-            recv_sizes_.data(), recv_offsets_.data(), type.get());
-    }
+    return neighbor_comm_.i_neighor_all_to_all_v(
+        use_host_buffer ? exec->get_master() : exec, send_ptr,
+        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+        recv_sizes_.data(), recv_offsets_.data(), type.get());
 #endif
 }
 
@@ -496,7 +503,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
-        uses_neighbor_comm_ = other.uses_neighbor_comm_;
         neighbor_comm_ = other.neighbor_comm_;
     }
     return *this;
@@ -522,7 +528,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
-        uses_neighbor_comm_ = std::exchange(other.uses_neighbor_comm_, false);
         neighbor_comm_ = std::move(other.neighbor_comm_);
     }
     return *this;

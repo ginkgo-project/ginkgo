@@ -412,8 +412,6 @@ public:
      */
     Matrix& operator=(Matrix&& other);
 
-    void use_neighbor_comm();
-
 protected:
     /**
      * Creates an empty distributed matrix.
@@ -547,6 +545,8 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    void enable_neighborhood_communication();
+
 private:
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
@@ -561,7 +561,6 @@ private:
     gko::detail::DenseCache<value_type> recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
-    bool uses_neighbor_comm_;
     mpi::communicator neighbor_comm_;
 };
 

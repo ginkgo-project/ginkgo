@@ -489,7 +489,7 @@ public:
     {
         MPI_Comm dup;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(this->get(), &dup));
-        auto other = communicator{MPI_COMM_NULL, this->get_executor()};
+        auto other = communicator{MPI_COMM_NULL};
         other.comm_.reset(new MPI_Comm(dup), comm_deleter{});
         return other;
     }
@@ -1427,20 +1427,31 @@ public:
             recv_offsets, type_impl<RecvType>::get_type());
     }
 
-    request i_neighor_all_to_all_v(const void* send_buffer,
-                                   const int* send_counts,
-                                   const int* send_offsets,
-                                   MPI_Datatype send_type, void* recv_buffer,
-                                   const int* recv_counts,
-                                   const int* recv_offsets,
-                                   MPI_Datatype recv_type) const
+    request i_neighor_all_to_all_v(
+        std::shared_ptr<const Executor> exec, const void* send_buffer,
+        const int* send_counts, const int* send_offsets, MPI_Datatype send_type,
+        void* recv_buffer, const int* recv_counts, const int* recv_offsets,
+        MPI_Datatype recv_type) const
     {
-        auto guard = this->exec_->get_scoped_device_id();
-        request req(exec_);
+        auto guard = exec->get_scoped_device_id_guard();
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
             recv_counts, recv_offsets, recv_type, this->get(), req.get()));
         return req;
+    }
+
+
+    request neighor_all_to_all_v(
+        std::shared_ptr<const Executor> exec, const void* send_buffer,
+        const int* send_counts, const int* send_offsets, MPI_Datatype send_type,
+        void* recv_buffer, const int* recv_counts, const int* recv_offsets,
+        MPI_Datatype recv_type) const
+    {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Neighbor_alltoallv(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type, this->get()));
     }
 
     /**
