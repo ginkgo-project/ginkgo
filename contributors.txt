@@ -23,3 +23,4 @@ Olenik Gregor <go@hpsim.de> HPSim
 Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Riemer Lukas <lksriemer@gmail.com> Karlsruhe Institute of Technology
 Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
+Niklas Conen <niklas.conen@student.kit.edu> Karlsruhe Institute of Technology
