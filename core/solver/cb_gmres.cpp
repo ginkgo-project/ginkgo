@@ -231,6 +231,10 @@ struct compression_helper {
                 //                {"write_debug_inputs:write_input", true},
                 //                {"write_debug_inputs:display_paths", true},
                 //                {"write_debug_inputs:io", "posix"},
+                // numpy outputs numpy compatible arrays
+                                {"write_debug_inputs:write_input", true},
+                                {"write_debug_inputs:display_paths", true},
+                                {"write_debug_inputs:io", "numpy"},
             });
             pc_->set_name("pressio");
             pc_->set_options(options_from_file);
@@ -240,10 +244,10 @@ struct compression_helper {
                                           : pressio_double_dtype;
             for (size_type i = 0; i < p_data_vec_.size(); ++i) {
                 p_data_vec_[i] =
-                    pressio_data::owning(pressio_type, {num_rows_});
+                    pressio_data::empty(pressio_type_byte, {});
             }
-            in_temp_ = pressio_data::owning(pressio_type, {num_rows_});
-            out_temp_ = pressio_data::owning(pressio_type, {num_rows_});
+            in_temp_ = pressio_data::owning(pressio_type, {ceildiv(num_rows_, 44), 44});
+            out_temp_ = pressio_data::owning(pressio_type, {ceildiv(num_rows_, 44), 44});
         }
     }
 
