@@ -47,16 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace matrix {
-
-
-template <typename ValueType, typename IndexType>
-class Csr;
-
-
-}
-
-
 namespace detail {
 
 
