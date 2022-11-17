@@ -112,14 +112,7 @@ public:
      *
      * @param other  The other vector whose configuration needs to copied.
      */
-    static std::unique_ptr<Vector> create_with_config_of(const Vector* other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
+    static std::unique_ptr<Vector> create_with_config_of(const Vector* other);
 
 
     /**
@@ -134,10 +127,7 @@ public:
      * @returns an empty Vector with the type of other.
      */
     static std::unique_ptr<Vector> create_with_type_of(
-        const Vector* other, std::shared_ptr<const Executor> exec)
-    {
-        return (*other).create_with_type_of_impl(exec, {}, {}, 0);
-    }
+        const Vector* other, std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Vector with the same type as another Vector, but on a
@@ -153,11 +143,7 @@ public:
      */
     static std::unique_ptr<Vector> create_with_type_of(
         const Vector* other, std::shared_ptr<const Executor> exec,
-        const dim<2>& global_size, const dim<2>& local_size, size_type stride)
-    {
-        return (*other).create_with_type_of_impl(exec, global_size, local_size,
-                                                 stride);
-    }
+        const dim<2>& global_size, const dim<2>& local_size, size_type stride);
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -531,27 +517,23 @@ protected:
      *
      * @returns a Vector with the same size and stride as the caller.
      */
-    std::unique_ptr<Vector> create_with_same_config() const
-    {
-        return Vector::create(
-            this->get_executor(), this->get_communicator(), this->get_size(),
-            this->get_local_vector()->get_size(), this->get_stride());
-    }
+    virtual std::unique_ptr<Vector> create_with_same_config() const;
 
     /**
-     * Creates a Dense matrix with the same type as the callers matrix.
+     * Creates a Vector with the same type as the callers multi-vector.
      *
-     * @param global_size  global_size of the matrix
+     * @note The new vector will use the same communicator as the caller.
      *
-     * @returns a Dense matrix with the same type as the caller.
+     * @param exec  the executor of the new vector.
+     * @param global_size  global_size of the vector.
+     * @param local_size  the size of the local Dense vector.
+     * @param stride  the stride of the local Dense vector.
+     *
+     * @returns a Vector with the same type as the caller.
      */
     virtual std::unique_ptr<Vector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const
-    {
-        return Vector::create(exec, this->get_communicator(), global_size,
-                              local_size, stride);
-    }
+        const dim<2>& local_size, size_type stride) const;
 
 private:
     local_vector_type local_;
