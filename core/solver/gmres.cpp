@@ -138,6 +138,11 @@ struct help_compute_norm<ValueType,
 };
 
 
+/**
+ * Helper to extract a submatrix.
+ *
+ * @note  global_size is unused, since it can be deferred from rows and cols.
+ */
 template <typename ValueType>
 std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
     matrix::Dense<ValueType>* mtx, dim<2> global_size, span rows, span cols)
@@ -149,6 +154,13 @@ std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
 #if GINKGO_BUILD_MPI
 
 
+/**
+ * Helper to extract a submatrix.
+ *
+ * @param global_size  the global_size of the submatrix
+ * @param rows  the rows of the submatrix in local indices
+ * @param cols  the columns of the submatrix in local indices
+ */
 template <typename ValueType>
 std::unique_ptr<experimental::distributed::Vector<ValueType>>
 create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
