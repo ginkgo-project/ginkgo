@@ -57,9 +57,12 @@ struct DefaultSystemGenerator {
         if (config.HasMember("filename")) {
             std::ifstream in(config["filename"].GetString());
             return gko::read_generic_raw<ValueType, IndexType>(in);
-        } else {
+        } else if (config.HasMember("stencil")) {
             return generate_stencil<ValueType, IndexType>(
                 config["stencil"].GetString(), config["size"].GetInt64());
+        } else {
+            throw std::runtime_error(
+                "No known way to generate matrix data found.");
         }
     }
 
@@ -160,10 +163,13 @@ struct DistributedDefaultSystemGenerator {
         if (config.HasMember("filename")) {
             std::ifstream in(config["filename"].GetString());
             return gko::read_generic_raw<value_type, index_type>(in);
-        } else {
+        } else if (config.HasMember("stencil")) {
             return generate_stencil<value_type, index_type>(
                 config["stencil"].GetString(), comm, config["size"].GetInt64(),
                 config["comm_pattern"].GetString() == std::string("optimal"));
+        } else {
+            throw std::runtime_error(
+                "No known way to generate matrix data found.");
         }
     }
 
