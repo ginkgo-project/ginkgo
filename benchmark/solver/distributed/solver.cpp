@@ -135,27 +135,12 @@ int main(int argc, char* argv[])
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
 
 
-    std::string json_input;
-    if (rank == 0) {
-        if (FLAGS_overhead) {
-            // Fake test case to run once
-            json_input += R"(
+    std::string json_input = FLAGS_overhead
+                                 ? R"(
 [{"filename": "overhead.mtx",
   "optimal": {"spmv": "csr-csr"}]
-)";
-        } else {
-            std::string line;
-            while (std::cin >> line) {
-                json_input += line;
-            }
-        }
-    }
-    auto input_size = json_input.size();
-    comm.broadcast(exec->get_master(), &input_size, 1, 0);
-    json_input.resize(input_size);
-    comm.broadcast(exec->get_master(), &json_input[0],
-                   static_cast<int>(input_size), 0);
-
+)"
+                                 : broadcast_json_input(std::cin, comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
 

@@ -48,6 +48,29 @@ using dist_mtx =
                                            GlobalIndexType>;
 
 
+std::string broadcast_json_input(std::istream& is,
+                                 gko::experimental::mpi::communicator comm)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    std::string json_input;
+    if (comm.rank() == 0) {
+        std::string line;
+        while (std::cin >> line) {
+            json_input += line;
+        }
+    }
+
+    auto input_size = json_input.size();
+    comm.broadcast(exec->get_master(), &input_size, 1, 0);
+    json_input.resize(input_size);
+    comm.broadcast(exec->get_master(), &json_input[0],
+                   static_cast<int>(input_size), 0);
+
+    return json_input;
+}
+
+
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_matrix_data(
     rapidjson::Value& test_case, gko::experimental::mpi::communicator comm)
