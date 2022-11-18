@@ -118,14 +118,16 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(precon_residual, dense_b);
     GKO_SOLVER_VECTOR(A_precon_residual, dense_b);
-    auto p_bases = this->create_workspace_op_with_type_of(
-        ws::p_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs});
-    auto Ap_bases = this->create_workspace_op_with_type_of(
-        ws::Ap_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs});
-    auto alpha = this->template create_workspace_op<Vector>(ws::alpha,
-                                                            dim<2>{1, num_rhs});
-    auto beta = this->template create_workspace_op<Vector>(ws::beta,
-                                                           dim<2>{1, num_rhs});
+    auto krylov_bases_p = this->create_workspace_op_with_type_of(
+        ws::krylov_bases_p, dense_b,
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
+    auto mapped_krylov_bases_Ap = this->create_workspace_op_with_type_of(
+        ws::mapped_krylov_bases_Ap, dense_b,
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
+    auto tmp_alpha = this->template create_workspace_op<Vector>(
+        ws::tmp_alpha, dim<2>{1, num_rhs});
+    auto tmp_beta = this->template create_workspace_op<Vector>(
+        ws::tmp_beta, dim<2>{1, num_rhs});
     auto residual_norm = this->template create_workspace_op<NormVector>(
         ws::residual_norm, dim<2>{1, num_rhs});
     auto Ap_norms = this->template create_workspace_op<Vector>(
@@ -153,8 +155,9 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // Ap(:,1) = A_precon_residual(:,1)
     // final_iter_nums = {0, ..., 0}
     // apply preconditioner to residual
-    exec->run(gcr::make_restart(precon_residual, A_precon_residual, p_bases,
-                                Ap_bases, final_iter_nums.get_data()));
+    exec->run(gcr::make_restart(precon_residual, A_precon_residual,
+                                krylov_bases_p, mapped_krylov_bases_Ap,
+                                final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -190,18 +193,18 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Restart
             // current residual already preconditioned
             exec->run(gcr::make_restart(precon_residual, A_precon_residual,
-                                        p_bases, Ap_bases,
+                                        krylov_bases_p, mapped_krylov_bases_Ap,
                                         final_iter_nums.get_data()));
             restart_iter = 0;
         }
         // compute alpha
-        auto Ap = Ap_bases->create_submatrix(
+        auto Ap = mapped_krylov_bases_Ap->create_submatrix(
             span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
             span{0, num_rhs});
-        auto p = p_bases->create_submatrix(
+        auto p = krylov_bases_p->create_submatrix(
             span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
             span{0, num_rhs});
-        residual->compute_conj_dot(Ap.get(), alpha);
+        residual->compute_conj_dot(Ap.get(), tmp_alpha);
         // normalise
         auto Ap_norm = Ap_norms->create_submatrix(
             span{restart_iter, restart_iter + 1}, span{0, num_rhs});
@@ -211,7 +214,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // x = x + tmp * p
         // r = r - tmp * Ap
         exec->run(gcr::make_step_1(dense_x, residual, p.get(), Ap.get(),
-                                   Ap_norm.get(), alpha,
+                                   Ap_norm.get(), tmp_alpha,
                                    stop_status.get_const_data()));
 
         // apply preconditioner to residual
@@ -221,10 +224,10 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         this->get_system_matrix()->apply(precon_residual, A_precon_residual);
 
         // modified Gram-Schmidt
-        auto next_Ap = Ap_bases->create_submatrix(
+        auto next_Ap = mapped_krylov_bases_Ap->create_submatrix(
             span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
             span{0, num_rhs});
-        auto next_p = p_bases->create_submatrix(
+        auto next_p = krylov_bases_p->create_submatrix(
             span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
             span{0, num_rhs});
         // Ap = Ar
@@ -232,17 +235,17 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         next_Ap->copy_from(A_precon_residual);
         next_p->copy_from(precon_residual);
         for (size_type i = 0; i <= restart_iter; ++i) {
-            Ap = Ap_bases->create_submatrix(
+            Ap = mapped_krylov_bases_Ap->create_submatrix(
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
-            p = p_bases->create_submatrix(
+            p = krylov_bases_p->create_submatrix(
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
             Ap_norm =
                 Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
             // beta = Ar*Ap/Ap*Ap
-            A_precon_residual->compute_conj_dot(Ap.get(), beta);
-            beta->inv_scale(Ap_norm.get());
-            next_Ap->sub_scaled(beta, Ap.get());
-            next_p->sub_scaled(beta, p.get());
+            A_precon_residual->compute_conj_dot(Ap.get(), tmp_beta);
+            tmp_beta->inv_scale(Ap_norm.get());
+            next_Ap->sub_scaled(tmp_beta, Ap.get());
+            next_p->sub_scaled(tmp_beta, p.get());
         }
         restart_iter++;
     }
@@ -274,7 +277,7 @@ int workspace_traits<Gcr<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gcr<ValueType>>::num_vectors(const Solver&)
 {
-    return 11;
+    return 10;
 }
 
 
@@ -285,13 +288,12 @@ std::vector<std::string> workspace_traits<Gcr<ValueType>>::op_names(
     return {"residual",
             "precon_residual",
             "A_precon_residual",
-            "p_bases",
-            "Ap_bases",
-            "alpha",
-            "beta",
+            "krylov_bases_p",
+            "mapped_krylov_bases_Ap",
+            "tmp_alpha",
+            "tmp_beta",
             "Ap_norms",
             "residual_norm",
-            "y",
             "one",
             "minus_one"};
 }
@@ -308,14 +310,15 @@ std::vector<std::string> workspace_traits<Gcr<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Gcr<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, beta, Ap_norms, residual_norm, y};
+    return {tmp_alpha, tmp_beta, Ap_norms, residual_norm};
 }
 
 
 template <typename ValueType>
 std::vector<int> workspace_traits<Gcr<ValueType>>::vectors(const Solver&)
 {
-    return {residual, precon_residual, A_precon_residual, p_bases, Ap_bases};
+    return {residual, precon_residual, A_precon_residual, krylov_bases_p,
+            mapped_krylov_bases_Ap};
 }
 
 
