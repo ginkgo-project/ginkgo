@@ -160,7 +160,7 @@ template <typename SystemGenerator>
 void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                         rapidjson::Document& test_cases,
                         const std::vector<std::string> formats,
-                        const SystemGenerator& system_generator)
+                        const SystemGenerator& system_generator, bool do_print)
 {
     auto& allocator = test_cases.GetAllocator();
 
@@ -181,16 +181,20 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                        })) {
                 continue;
             }
-            std::clog << "Running test case: " << test_case << std::endl;
+            if (do_print) {
+                std::clog << "Running test case: " << test_case << std::endl;
+            }
             auto data = system_generator.generate_matrix_data(test_case);
 
             auto nrhs = FLAGS_nrhs;
-            auto b = system_generator.create_matrix_random(
+            auto b = system_generator.create_multi_vector_random(
                 exec, gko::dim<2>{data.size[1], nrhs});
-            auto x = system_generator.create_matrix_random(
+            auto x = system_generator.create_multi_vector_random(
                 exec, gko::dim<2>{data.size[0], nrhs});
-            std::clog << "Matrix is of size (" << data.size[0] << ", "
-                      << data.size[1] << ")" << std::endl;
+            if (do_print) {
+                std::clog << "Matrix is of size (" << data.size[0] << ", "
+                          << data.size[1] << ")" << std::endl;
+            }
             add_or_set_member(test_case, "size", data.size[0], allocator);
             add_or_set_member(test_case, "nnz", data.nonzeros.size(),
                               allocator);
@@ -215,8 +219,10 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 apply_spmv(format_name.c_str(), exec, system_generator, data,
                            lend(b), lend(x), lend(answer), test_case,
                            allocator);
-                std::clog << "Current state:" << std::endl
-                          << test_cases << std::endl;
+                if (do_print) {
+                    std::clog << "Current state:" << std::endl
+                              << test_cases << std::endl;
+                }
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
                     auto performance =
                         spmv_case[format_name.c_str()]["time"].GetDouble();
@@ -229,7 +235,9 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                             allocator);
                     }
                 }
-                backup_results(test_cases);
+                if (do_print) {
+                    backup_results(test_cases);
+                }
             }
         } catch (const std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
