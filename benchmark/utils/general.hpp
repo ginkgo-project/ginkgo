@@ -181,23 +181,6 @@ void print_general_information(const std::string& extra)
 }
 
 
-/**
- * Creates a Ginkgo matrix from an input file.
- *
- * @param exec  the executor where the matrix will be put
- * @param options  should contain a `filename` option with the input file string
- *
- * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix(
-    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value& options)
-{
-    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
-                                 std::move(exec));
-}
-
-
 // Returns a random number engine
 std::default_random_engine& get_engine()
 {
@@ -411,55 +394,6 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     h_res->move_to(res.get());
     return res;
 }
-
-
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    ValueType value)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(size, value));
-    return res;
-}
-
-
-// creates a random matrix
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine& engine)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(
-        size,
-        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
-                                                                       1.0),
-        engine));
-    return res;
-}
-
-
-// creates a zero vector
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
-    return res;
-}
-
-
-// creates a random vector
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-    RandomEngine& engine)
-{
-    return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
-}
-
 
 // utilities for computing norms and residuals
 template <typename ValueType>
