@@ -181,8 +181,8 @@ struct DistributedDefaultSystemGenerator {
         const std::string& format_name,
         const gko::matrix_data<value_type, index_type>& data) const
     {
-        auto part = gko::distributed::Partition<itype, gko::int64>::
-            build_from_global_size_uniform(
+        auto part = gko::experimental::distributed::
+            Partition<itype, gko::int64>::build_from_global_size_uniform(
                 exec, comm.size(), static_cast<gko::int64>(data.size[0]));
         auto formats = split(format_name, '-');
         return ::create_distributed_matrix(exec, comm, formats[0], formats[1],
@@ -200,9 +200,9 @@ struct DistributedDefaultSystemGenerator {
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
         value_type value) const
     {
-        auto part = gko::distributed::Partition<itype, gko::int64>::
-            build_from_global_size_uniform(exec, comm.size(),
-                                           static_cast<gko::int64>(size[0]));
+        auto part = gko::experimental::distributed::
+            Partition<itype, gko::int64>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<gko::int64>(size[0]));
         return Vec::create(
             exec, comm, size,
             local_generator
@@ -219,9 +219,9 @@ struct DistributedDefaultSystemGenerator {
     std::unique_ptr<Vec> create_multi_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size) const
     {
-        auto part = gko::distributed::Partition<itype, gko::int64>::
-            build_from_global_size_uniform(exec, comm.size(),
-                                           static_cast<gko::int64>(size[0]));
+        auto part = gko::experimental::distributed::
+            Partition<itype, gko::int64>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<gko::int64>(size[0]));
         return Vec::create(
             exec, comm, size,
             local_generator
@@ -260,7 +260,7 @@ struct DistributedDefaultSystemGenerator {
                            local.get());
     }
 
-    gko::mpi::communicator comm;
+    gko::experimental::mpi::communicator comm;
     LocalGenerator local_generator{};
 };
 
