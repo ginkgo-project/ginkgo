@@ -124,19 +124,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::string json_input;
-    if (rank == 0) {
-        std::string line;
-        while (std::cin >> line) {
-            json_input += line;
-        }
-    }
-    auto input_size = json_input.size();
-    comm.broadcast(exec->get_master(), &input_size, 1, 0);
-    json_input.resize(input_size);
-    comm.broadcast(exec->get_master(), &json_input[0],
-                   static_cast<int>(input_size), 0);
-
+    std::string json_input = broadcast_json_input(std::cin, comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
     if (!test_cases.IsArray()) {
