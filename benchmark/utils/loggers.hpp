@@ -190,7 +190,8 @@ struct StorageLogger : gko::log::Logger {
     }
 
 #if GINKGO_BUILD_MPI
-    void write_data(gko::mpi::communicator comm, rapidjson::Value& output,
+    void write_data(gko::experimental::mpi::communicator comm,
+                    rapidjson::Value& output,
                     rapidjson::MemoryPoolAllocator<>& allocator)
     {
         const std::lock_guard<std::mutex> lock(mutex);

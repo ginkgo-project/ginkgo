@@ -282,8 +282,8 @@ gko::matrix_data<ValueType, IndexType> generate_stencil(
 
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
-    gko::mpi::communicator comm, const gko::size_type target_local_size,
-    bool restricted)
+    gko::experimental::mpi::communicator comm,
+    const gko::size_type target_local_size, bool restricted)
 {
     std::array<int, 2> dims{};
     std::array<int, 2> periods{};
@@ -303,8 +303,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
 
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
-    gko::mpi::communicator comm, const gko::size_type target_local_size,
-    bool restricted)
+    gko::experimental::mpi::communicator comm,
+    const gko::size_type target_local_size, bool restricted)
 {
     std::array<int, 3> dims{};
     std::array<int, 3> periods{};
@@ -331,8 +331,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
-    gko::mpi::communicator comm, const IndexType target_local_size,
-    bool restricted)
+    gko::experimental::mpi::communicator comm,
+    const IndexType target_local_size, bool restricted)
 {
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 2));
@@ -374,8 +374,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
-    gko::mpi::communicator comm, const IndexType target_local_size,
-    bool restricted)
+    gko::experimental::mpi::communicator comm,
+    const IndexType target_local_size, bool restricted)
 {
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 3));
@@ -416,7 +416,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
 
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_stencil(
-    std::string stencil_name, gko::mpi::communicator comm,
+    std::string stencil_name, gko::experimental::mpi::communicator comm,
     const gko::size_type target_local_size, bool optimal_comm)
 {
     if (optimal_comm) {

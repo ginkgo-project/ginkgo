@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
-    Generator(gko::mpi::communicator comm)
+    Generator(gko::experimental::mpi::communicator comm)
         : DistributedDefaultSystemGenerator<SolverGenerator>{std::move(comm),
                                                              {}}
     {}
@@ -80,7 +80,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
 
 int main(int argc, char* argv[])
 {
-    gko::mpi::environment mpi_env{argc, argv};
+    gko::experimental::mpi::environment mpi_env{argc, argv};
 
     // Set the default repetitions = 1.
     FLAGS_repetitions = "1";
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 )";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
