@@ -56,7 +56,9 @@ double closest_nth_root(T v, int n)
 
 /**
  * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
- * creates a 5-pt stencil, if it is false creates a 9-pt stencil. If
+ * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
+ *
+ * If
  * strong_scaling is set to true, creates the same problem size independent of
  * the number of ranks, if it false the problem size grows with the number of
  * ranks.
@@ -101,28 +103,25 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     };
 
     auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j) {
-        return !restricted || ((d_i == 0 && d_j == 0));
+        return !restricted || ((d_i == 0 || d_j == 0));
     };
 
-    auto nnz_in_row = [&](const IndexType i, const IndexType j) {
+    auto nnz_in_row = [&]() {
         int num_neighbors = 0;
         for (IndexType d_i : {-1, 0, 1}) {
             for (IndexType d_j : {-1, 0, 1}) {
                 if (is_valid_neighbor(d_i, d_j)) {
-                    auto neighbor = flat_idx(j + d_j, i + d_i);
-                    if (is_valid_idx(neighbor)) {
-                        num_neighbors++;
-                    }
+                    num_neighbors++;
                 }
             }
         }
         return num_neighbors;
     };
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
     for (IndexType i = 0; i < dp; ++i) {
         for (IndexType j = 0; j < dp; ++j) {
             auto row = flat_idx(j, i);
-            auto diag_value = static_cast<ValueType>(nnz_in_row(i, j) - 1);
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
                     if (is_valid_neighbor(d_i, d_j)) {
@@ -204,30 +203,25 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                 (d_j == 0 && d_k == 0));
     };
 
-    auto nnz_in_row = [&](const IndexType i, const IndexType j,
-                          const IndexType k) {
+    auto nnz_in_row = [&]() {
         int num_neighbors = 0;
         for (IndexType d_i : {-1, 0, 1}) {
             for (IndexType d_j : {-1, 0, 1}) {
                 for (IndexType d_k : {-1, 0, 1}) {
                     if (is_valid_neighbor(d_i, d_j, d_k)) {
-                        auto neighbor = flat_idx(k + d_k, j + d_j, i + d_i);
-                        if (is_valid_idx(neighbor)) {
-                            num_neighbors++;
-                        }
+                        num_neighbors++;
                     }
                 }
             }
         }
         return num_neighbors;
     };
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
     for (IndexType i = 0; i < dp; ++i) {
         for (IndexType j = 0; j < dp; ++j) {
             for (IndexType k = 0; k < dp; ++k) {
                 auto row = flat_idx(k, j, i);
-                auto diag_value =
-                    static_cast<ValueType>(nnz_in_row(i, j, k) - 1);
                 for (IndexType d_i : {-1, 0, 1}) {
                     for (IndexType d_j : {-1, 0, 1}) {
                         for (IndexType d_k : {-1, 0, 1}) {
@@ -345,16 +339,37 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
         gko::dim<2>{static_cast<gko::size_type>(mat_size),
                     static_cast<gko::size_type>(mat_size)});
 
+    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j) {
+        return !restricted || ((d_i == 0 || d_j == 0));
+    };
+
+    auto nnz_in_row = [&]() {
+        int num_neighbors = 0;
+        for (IndexType d_i : {-1, 0, 1}) {
+            for (IndexType d_j : {-1, 0, 1}) {
+                if (is_valid_neighbor(d_i, d_j)) {
+                    num_neighbors++;
+                }
+            }
+        }
+        return num_neighbors;
+    };
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
+
     for (IndexType row = start; row < end; row++) {
         auto i = row / dp;
         auto j = row % dp;
         for (IndexType d_i = -1; d_i <= 1; d_i++) {
             for (IndexType d_j = -1; d_j <= 1; d_j++) {
-                if (!restricted || (d_i == 0 || d_j == 0)) {
+                if (is_valid_neighbor(d_i, d_j)) {
                     auto col = j + d_j + (i + d_i) * dp;
                     if (col >= 0 && col < mat_size) {
-                        A_data.nonzeros.emplace_back(row, col,
-                                                     gko::one<ValueType>());
+                        if (col != row) {
+                            A_data.nonzeros.emplace_back(
+                                row, col, -gko::one<ValueType>());
+                        } else {
+                            A_data.nonzeros.emplace_back(row, col, diag_value);
+                        }
                     }
                 }
             }
@@ -388,6 +403,28 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
         gko::dim<2>{static_cast<gko::size_type>(mat_size),
                     static_cast<gko::size_type>(mat_size)});
 
+    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
+                                 const IndexType d_k) {
+        return !restricted ||
+               ((d_i == 0 && d_j == 0) || (d_i == 0 && d_k == 0) ||
+                (d_j == 0 && d_k == 0));
+    };
+
+    auto nnz_in_row = [&]() {
+        int num_neighbors = 0;
+        for (IndexType d_i : {-1, 0, 1}) {
+            for (IndexType d_j : {-1, 0, 1}) {
+                for (IndexType d_k : {-1, 0, 1}) {
+                    if (is_valid_neighbor(d_i, d_j, d_k)) {
+                        num_neighbors++;
+                    }
+                }
+            }
+        }
+        return num_neighbors;
+    };
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
+
     for (IndexType row = start; row < end; row++) {
         auto i = row / (dp * dp);
         auto j = (row % (dp * dp)) / dp;
@@ -395,14 +432,17 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
         for (IndexType d_i = -1; d_i <= 1; d_i++) {
             for (IndexType d_j = -1; d_j <= 1; d_j++) {
                 for (IndexType d_k = -1; d_k <= 1; d_k++) {
-                    if (!restricted ||
-                        ((d_i == 0 && d_j == 0) || (d_i == 0 && d_k == 0) ||
-                         (d_j == 0 && d_k == 0))) {
+                    if (is_valid_neighbor(d_i, d_j, d_k)) {
                         auto col =
                             k + d_k + (j + d_j) * dp + (i + d_i) * dp * dp;
                         if (col >= 0 && col < mat_size) {
-                            A_data.nonzeros.emplace_back(row, col,
-                                                         gko::one<ValueType>());
+                            if (col != row) {
+                                A_data.nonzeros.emplace_back(
+                                    row, col, -gko::one<ValueType>());
+                            } else {
+                                A_data.nonzeros.emplace_back(row, col,
+                                                             diag_value);
+                            }
                         }
                     }
                 }
