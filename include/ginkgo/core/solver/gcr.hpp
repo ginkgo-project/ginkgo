@@ -187,23 +187,21 @@ struct workspace_traits<Gcr<ValueType>> {
     constexpr static int precon_residual = 1;
     constexpr static int A_precon_residual = 2;
     // p basis TODO: rename this vector
-    constexpr static int p_bases = 3;
+    constexpr static int krylov_bases_p = 3;
     // Ap basis TODO: rename this vector
-    constexpr static int Ap_bases = 4;
+    constexpr static int mapped_krylov_bases_Ap = 4;
     // alpha parameter
-    constexpr static int alpha = 5;
+    constexpr static int tmp_alpha = 5;
     // beta parameter
-    constexpr static int beta = 6;
+    constexpr static int tmp_beta = 6;
     // TODO: rename this vector
     constexpr static int Ap_norms = 7;
     // residual norm scalar
     constexpr static int residual_norm = 8;
-    // solution of the least-squares problem in Krylov space
-    constexpr static int y = 9;
     // constant 1.0 scalar
-    constexpr static int one = 10;
+    constexpr static int one = 9;
     // constant -1.0 scalar
-    constexpr static int minus_one = 11;
+    constexpr static int minus_one = 10;
 
     // stopping status array
     constexpr static int stop = 0;

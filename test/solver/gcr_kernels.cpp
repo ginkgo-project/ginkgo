@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/gcr.hpp>
+#include "core/solver/gcr_kernels.hpp"
 #include <random>
 #include <gtest/gtest.h>
 
@@ -38,25 +38,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-#include "core/solver/gcr_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "core/test/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 namespace {
 
-class Gcr : public ::testing::Test {
+class Gcr : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Gcr<value_type>;
     using norm_type = gko::remove_complex<value_type>;
@@ -64,39 +57,27 @@ protected:
     template <typename T>
     using Dense = typename gko::matrix::Dense<T>;
 
-    Gcr() : rand_engine(30) {}
-
-    void SetUp()
+    Gcr() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-
         mtx = gen_mtx(123, 123);
-        gko::test::make_hpd(mtx.get());
-        d_mtx = Mtx::create(exec);
-        d_mtx->copy_from(mtx.get());
-        d_gcr_factory =
+        d_mtx = gko::clone(exec, mtx);
+        exec_gcr_factory =
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(exec),
-                    gko::stop::ResidualNorm<>::build()
-                        .with_reduction_factor(1e-15).on(exec))
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_reduction_factor(value_type{1e-15})
+                        .on(exec))
                 .on(exec);
 
         ref_gcr_factory =
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(ref),
-                    gko::stop::ResidualNorm<>::build()
-                        .with_reduction_factor(1e-15).on(ref))
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_reduction_factor(value_type{1e-15})
+                        .on(ref))
                 .on(ref);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     template <typename ValueType = value_type, typename IndexType = index_type>
@@ -147,8 +128,8 @@ protected:
         d_Ap = gko::clone(exec, Ap);
         d_alpha = gko::clone(exec, alpha);
         d_Ap_norm = gko::clone(exec, Ap_norm);
-        d_stop_status = gko::Array<gko::stopping_status>(exec, stop_status);
-        d_final_iter_nums = gko::Array<gko::size_type>(exec, final_iter_nums);
+        d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
+        d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -156,9 +137,9 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Mtx> d_mtx;
-    std::unique_ptr<Solver::Factory> d_gcr_factory;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> d_mtx;
+    std::unique_ptr<Solver::Factory> exec_gcr_factory;
     std::unique_ptr<Solver::Factory> ref_gcr_factory;
 
     std::unique_ptr<Mtx> x;
@@ -171,8 +152,8 @@ protected:
     std::unique_ptr<Mtx> Ap;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> Ap_norm;
-    gko::Array<gko::stopping_status> stop_status;
-    gko::Array<gko::size_type> final_iter_nums;
+    gko::array<gko::stopping_status> stop_status;
+    gko::array<gko::size_type> final_iter_nums;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -184,8 +165,8 @@ protected:
     std::unique_ptr<Mtx> d_Ap;
     std::unique_ptr<Mtx> d_alpha;
     std::unique_ptr<Mtx> d_Ap_norm;
-    gko::Array<gko::stopping_status> d_stop_status;
-    gko::Array<gko::size_type> d_final_iter_nums;
+    gko::array<gko::stopping_status> d_stop_status;
+    gko::array<gko::size_type> d_final_iter_nums;
 
 };
 
@@ -195,9 +176,9 @@ TEST_F(Gcr, GcrKernelInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gcr::initialize(ref, b.get(), residual.get(),
-                                             stop_status);
+                                             stop_status.get_data());
     gko::kernels::EXEC_NAMESPACE::gcr::initialize(
-        exec, d_b.get(), d_residual.get(), d_stop_status);
+        exec, d_b.get(), d_residual.get(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
@@ -210,11 +191,11 @@ TEST_F(Gcr, GcrKernelRestartIsEquivalentToRef)
 
     gko::kernels::reference::gcr::restart(
         ref, residual.get(), A_residual.get(), p_bases.get(), Ap_bases.get(),
-        final_iter_nums);
+        final_iter_nums.get_data());
     gko::kernels::EXEC_NAMESPACE::gcr::restart(
         exec, d_residual.get(),
         d_A_residual.get(), d_p_bases.get(), d_Ap_bases.get(),
-        d_final_iter_nums);
+        d_final_iter_nums.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_A_residual, A_residual, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_p, p, r<value_type>::value);
@@ -227,9 +208,8 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(), Ap.get(), Ap_norm.get(), alpha.get(), stop_status);
-    gko::kernels::EXEC_NAMESPACE::gcr::step_1(exec, d_x.get(), d_residual.get
-                                                                (), d_p.get(), d_Ap.get(), d_Ap_norm.get(), d_alpha.get(), d_stop_status);
+    gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(), Ap.get(), Ap_norm.get(), alpha.get(), stop_status.get_data());
+    gko::kernels::EXEC_NAMESPACE::gcr::step_1(exec, d_x.get(), d_residual.get(), d_p.get(), d_Ap.get(), d_Ap_norm.get(), d_alpha.get(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
@@ -240,8 +220,8 @@ TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
-    auto ref_solver = ref_gcr_factory->generate(gko::share(mtx));
-    auto d_solver = d_gcr_factory->generate(gko::share(d_mtx));
+    auto ref_solver = ref_gcr_factory->generate(mtx);
+    auto d_solver = exec_gcr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = Mtx::create(exec);
@@ -261,8 +241,8 @@ TEST_F(Gcr, GcrApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 5;
-    auto ref_solver = ref_gcr_factory->generate(gko::share(mtx));
-    auto omp_solver = d_gcr_factory->generate(gko::share(d_mtx));
+    auto ref_solver = ref_gcr_factory->generate(mtx);
+    auto omp_solver = exec_gcr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = Mtx::create(exec);

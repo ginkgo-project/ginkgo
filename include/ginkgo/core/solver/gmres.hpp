@@ -54,7 +54,7 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_krylov_dim = 100u;
+constexpr size_type gmres_default_krylov_dim = 100u;
 
 
 /**
@@ -163,7 +163,7 @@ protected:
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
-            parameters_.krylov_dim = default_krylov_dim;
+            parameters_.krylov_dim = gmres_default_krylov_dim;
         }
     }
 };
