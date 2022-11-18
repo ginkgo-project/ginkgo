@@ -134,7 +134,6 @@ int main(int argc, char* argv[])
     std::stringstream ss_rel_res_goal;
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
 
-
     std::string json_input = FLAGS_overhead
                                  ? R"(
 [{"filename": "overhead.mtx",
