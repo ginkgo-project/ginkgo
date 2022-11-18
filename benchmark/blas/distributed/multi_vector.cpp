@@ -48,7 +48,7 @@ using Generator = DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>;
 
 int main(int argc, char* argv[])
 {
-    gko::mpi::environment mpi_env{argc, argv};
+    gko::experimental::mpi::environment mpi_env{argc, argv};
 
     std::string header = R"("
 A benchmark for measuring performance of Ginkgo's BLAS-like "
@@ -66,7 +66,7 @@ Parameters for a benchmark case are:
     std::string extra_information = "The operations are " + FLAGS_operations;
     print_general_information(extra_information);
 
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());

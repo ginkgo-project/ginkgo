@@ -75,7 +75,7 @@ std::string example_config = R"(
 
 
 struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
-    Generator(gko::mpi::communicator comm)
+    Generator(gko::experimental::mpi::communicator comm)
         : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>{
               std::move(comm), {}}
     {}
@@ -94,21 +94,24 @@ struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
 
 int main(int argc, char* argv[])
 {
-    gko::mpi::environment mpi_env{argc, argv};
+    gko::experimental::mpi::environment mpi_env{argc, argv};
+
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
 
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
     std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The formats are [" + FLAGS_local_formats +
-                                    "]x[" + FLAGS_non_local_formats + "]\n" +
-                                    "The number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs) + "\n";
-    print_general_information(extra_information);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
+    if (rank == 0) {
+        std::string extra_information = "The formats are [" +
+                                        FLAGS_local_formats + "]x[" +
+                                        FLAGS_non_local_formats + "]\n" +
+                                        "The number of right hand sides is " +
+                                        std::to_string(FLAGS_nrhs) + "\n";
+        print_general_information(extra_information);
+    }
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 

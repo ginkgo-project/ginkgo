@@ -329,7 +329,7 @@ const std::map<std::string,
         {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
         {"cuda",
          [](MPI_Comm comm) {
-             FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::CudaExecutor::get_num_devices());
              return gko::CudaExecutor::create(
                  FLAGS_device_id, gko::ReferenceExecutor::create(), false,
@@ -337,18 +337,20 @@ const std::map<std::string,
          }},
         {"hip",
          [](MPI_Comm comm) {
-             FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::HipExecutor::get_num_devices());
              return gko::HipExecutor::create(
                  FLAGS_device_id, gko::ReferenceExecutor::create(), true);
          }},
         {"dpcpp", [](MPI_Comm comm) {
              if (gko::DpcppExecutor::get_num_devices("gpu")) {
-                 FLAGS_device_id = gko::mpi::map_rank_to_device_id(
-                     comm, gko::DpcppExecutor::get_num_devices("gpu"));
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
              } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
-                 FLAGS_device_id = gko::mpi::map_rank_to_device_id(
-                     comm, gko::DpcppExecutor::get_num_devices("cpu"));
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
              } else {
                  GKO_NOT_IMPLEMENTED;
              }
