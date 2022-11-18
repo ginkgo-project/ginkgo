@@ -585,7 +585,8 @@ void solve_system(const std::string& solver_name,
 template <typename SystemGenerator>
 void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                            rapidjson::Document& test_cases,
-                           const SystemGenerator& system_generator)
+                           const SystemGenerator& system_generator,
+                           bool do_print)
 {
     auto solvers = split(FLAGS_solvers, ',');
     auto preconds = split(FLAGS_preconditioners, ',');
@@ -615,7 +616,9 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                        })) {
                 continue;
             }
-            std::clog << "Running test case: " << test_case << std::endl;
+            if (do_print) {
+                std::clog << "Running test case: " << test_case << std::endl;
+            }
 
             using Vec = typename SystemGenerator::Vec;
             std::shared_ptr<gko::LinOp> system_matrix;
@@ -635,21 +638,28 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                     exec, system_matrix.get(), b.get());
             }
 
-            std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
-                      << ", " << system_matrix->get_size()[1] << ")"
-                      << std::endl;
+            if (do_print) {
+                std::clog << "Matrix is of size ("
+                          << system_matrix->get_size()[0] << ", "
+                          << system_matrix->get_size()[1] << ")" << std::endl;
+            }
             add_or_set_member(test_case, "size", system_matrix->get_size()[0],
                               allocator);
             auto precond_solver_name = begin(precond_solvers);
             for (const auto& solver_name : solvers) {
                 for (const auto& precond_name : preconds) {
-                    std::clog << "\tRunning solver: " << *precond_solver_name
-                              << std::endl;
+                    if (do_print) {
+                        std::clog
+                            << "\tRunning solver: " << *precond_solver_name
+                            << std::endl;
+                    }
                     solve_system(solver_name, precond_name,
                                  precond_solver_name->c_str(), exec,
                                  system_matrix, lend(b), lend(x), test_case,
                                  allocator);
-                    backup_results(test_cases);
+                    if (do_print) {
+                        backup_results(test_cases);
+                    }
                     ++precond_solver_name;
                 }
             }

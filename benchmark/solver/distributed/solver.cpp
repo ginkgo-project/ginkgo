@@ -163,7 +163,9 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_solver_benchmarks(exec, test_cases, Generator(comm));
+    run_solver_benchmarks(exec, test_cases, Generator(comm), rank == 0);
 
-    std::cout << test_cases << std::endl;
+    if (rank == 0) {
+        std::cout << test_cases << std::endl;
+    }
 }
