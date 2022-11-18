@@ -482,15 +482,6 @@ public:
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
     }
 
-    communicator duplicate() const
-    {
-        MPI_Comm dup;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(this->get(), &dup));
-        auto other = communicator{MPI_COMM_NULL};
-        other.comm_.reset(new MPI_Comm(dup), comm_deleter{});
-        return other;
-    }
-
     /**
      * Return the underlying MPI_Comm object.
      *
