@@ -71,22 +71,6 @@ std::string broadcast_json_input(std::istream& is,
 }
 
 
-template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_matrix_data(
-    rapidjson::Value& test_case, gko::experimental::mpi::communicator comm)
-{
-    if (test_case.HasMember("filename")) {
-        std::ifstream in(test_case["filename"].GetString());
-        return gko::read_generic_raw<ValueType, IndexType>(in);
-    } else {
-        return generate_stencil<ValueType, IndexType>(
-            test_case["stencil"].GetString(), std::move(comm),
-            test_case["size"].GetInt64(),
-            test_case["comm_pattern"].GetString() == std::string("optimal"));
-    }
-}
-
-
 std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
     std::shared_ptr<gko::Executor> exec,
     gko::experimental::mpi::communicator comm, const std::string& format_local,

@@ -164,8 +164,10 @@ struct DistributedDefaultSystemGenerator {
             std::ifstream in(config["filename"].GetString());
             return gko::read_generic_raw<value_type, index_type>(in);
         } else if (config.HasMember("stencil")) {
+            auto local_size = static_cast<gko::int64>(
+                config["size"].GetInt64() / comm.size());
             return generate_stencil<value_type, index_type>(
-                config["stencil"].GetString(), comm, config["size"].GetInt64(),
+                config["stencil"].GetString(), comm, local_size,
                 config["comm_pattern"].GetString() == std::string("optimal"));
         } else {
             throw std::runtime_error(
