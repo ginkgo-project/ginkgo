@@ -306,59 +306,6 @@ void write_precond_info(const gko::LinOp* precond,
 }
 
 
-template <typename Engine>
-std::unique_ptr<vec<etype>> generate_rhs(
-    std::shared_ptr<const gko::Executor> exec, const gko::LinOp* system_matrix,
-    Engine engine)
-{
-    gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
-    if (FLAGS_rhs_generation == "1") {
-        return create_matrix<etype>(exec, vec_size, gko::one<etype>());
-    } else if (FLAGS_rhs_generation == "random") {
-        return create_matrix<etype>(exec, vec_size, engine);
-    } else if (FLAGS_rhs_generation == "sinus") {
-        auto rhs = vec<etype>::create(exec, vec_size);
-
-        auto tmp = create_matrix_sin<etype>(exec, vec_size);
-        auto scalar = gko::matrix::Dense<rc_etype>::create(
-            exec->get_master(), gko::dim<2>{1, vec_size[1]});
-        tmp->compute_norm2(scalar.get());
-        for (gko::size_type i = 0; i < vec_size[1]; ++i) {
-            scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
-        }
-        // normalize sin-vector
-        if (gko::is_complex_s<etype>::value) {
-            tmp->scale(scalar->make_complex().get());
-        } else {
-            tmp->scale(scalar.get());
-        }
-        system_matrix->apply(tmp.get(), rhs.get());
-        return rhs;
-    }
-    throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
-                                FLAGS_rhs_generation + " is not supported!");
-}
-
-
-template <typename Engine>
-std::unique_ptr<vec<etype>> generate_initial_guess(
-    std::shared_ptr<const gko::Executor> exec, const gko::LinOp* system_matrix,
-    const vec<etype>* rhs, Engine engine)
-{
-    gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
-    if (FLAGS_initial_guess_generation == "0") {
-        return create_matrix<etype>(exec, vec_size, gko::zero<etype>());
-    } else if (FLAGS_initial_guess_generation == "random") {
-        return create_matrix<etype>(exec, vec_size, engine);
-    } else if (FLAGS_initial_guess_generation == "rhs") {
-        return rhs->clone();
-    }
-    throw std::invalid_argument(std::string("\"initial_guess_generation\" = ") +
-                                FLAGS_initial_guess_generation +
-                                " is not supported!");
-}
-
-
 struct SolverGenerator : DefaultSystemGenerator<> {
     using Vec = typename DefaultSystemGenerator::Vec;
 
@@ -370,7 +317,33 @@ struct SolverGenerator : DefaultSystemGenerator<> {
             std::ifstream rhs_fd{config["rhs"].GetString()};
             return gko::read<Vec>(rhs_fd, std::move(exec));
         } else {
-            return ::generate_rhs(std::move(exec), system_matrix, engine);
+            gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
+            if (FLAGS_rhs_generation == "1") {
+                return create_multi_vector(exec, vec_size, gko::one<etype>());
+            } else if (FLAGS_rhs_generation == "random") {
+                return create_multi_vector_random(exec, vec_size);
+            } else if (FLAGS_rhs_generation == "sinus") {
+                auto rhs = vec<etype>::create(exec, vec_size);
+
+                auto tmp = create_matrix_sin<etype>(exec, vec_size);
+                auto scalar = gko::matrix::Dense<rc_etype>::create(
+                    exec->get_master(), gko::dim<2>{1, vec_size[1]});
+                tmp->compute_norm2(scalar.get());
+                for (gko::size_type i = 0; i < vec_size[1]; ++i) {
+                    scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
+                }
+                // normalize sin-vector
+                if (gko::is_complex_s<etype>::value) {
+                    tmp->scale(scalar->make_complex().get());
+                } else {
+                    tmp->scale(scalar.get());
+                }
+                system_matrix->apply(tmp.get(), rhs.get());
+                return rhs;
+            }
+            throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
+                                        FLAGS_rhs_generation +
+                                        " is not supported!");
         }
     }
 
@@ -378,8 +351,17 @@ struct SolverGenerator : DefaultSystemGenerator<> {
         std::shared_ptr<const gko::Executor> exec,
         const gko::LinOp* system_matrix, const Vec* rhs) const
     {
-        return ::generate_initial_guess(std::move(exec), system_matrix, rhs,
-                                        engine);
+        gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
+        if (FLAGS_initial_guess_generation == "0") {
+            return create_multi_vector(exec, vec_size, gko::zero<etype>());
+        } else if (FLAGS_initial_guess_generation == "random") {
+            return create_multi_vector_random(exec, vec_size);
+        } else if (FLAGS_initial_guess_generation == "rhs") {
+            return rhs->clone();
+        }
+        throw std::invalid_argument(
+            std::string("\"initial_guess_generation\" = ") +
+            FLAGS_initial_guess_generation + " is not supported!");
     }
 
     std::unique_ptr<Vec> initialize(

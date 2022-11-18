@@ -285,6 +285,8 @@ int main(int argc, char* argv[])
 
     auto& allocator = test_cases.GetAllocator();
 
+    DefaultSystemGenerator<> generator{};
+
     for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
@@ -304,14 +306,14 @@ int main(int argc, char* argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
-            auto data =
-                DefaultSystemGenerator<>::generate_matrix_data(test_case);
+            auto data = generator.generate_matrix_data(test_case);
 
             auto system_matrix =
                 share(formats::matrix_factory(FLAGS_formats, exec, data));
-            auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
-                                          engine);
-            auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
+            auto b = generator.create_multi_vector_random(
+                exec, system_matrix->get_size()[0]);
+            auto x = generator.create_multi_vector(
+                exec, system_matrix->get_size()[0], gko::zero<etype>());
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
