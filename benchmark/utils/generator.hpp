@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/stencil_matrix.hpp"
 #if GINKGO_BUILD_MPI
 #include "benchmark/utils/distributed_helpers.hpp"
 #endif
