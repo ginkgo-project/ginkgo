@@ -356,6 +356,20 @@ public:
         return non_local_mtx_;
     }
 
+    gko::matrix::Dense<ValueType>* get_recv_buffer() const
+    {
+        auto exec = this->get_executor();
+        auto use_host_buffer =
+            exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+        if (use_host_buffer) {
+            recv_buffer_->copy_from(host_recv_buffer_.get());
+        }
+        gko::dim<2> buffer_size = host_recv_buffer_.get()
+                                      ? host_recv_buffer_.get()->get_size()
+                                      : gko::dim<2>{0, 0};
+        return recv_buffer_.get();
+    }
+
     /**
      * Copy constructs a Matrix.
      *
@@ -389,6 +403,16 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
+
+    /**
+     * Starts a non-blocking communication of the values of b that are shared
+     * with other processors.
+     *
+     * @param local_b  The full local vector to be communicated. The subset of
+     *                 shared values is automatically extracted.
+     * @return  MPI request for the non-blocking communication.
+     */
+    mpi::request communicate(const local_vector_type* local_b) const;
 
 protected:
     /**
@@ -507,16 +531,6 @@ protected:
                     mpi::communicator comm,
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
-
-    /**
-     * Starts a non-blocking communication of the values of b that are shared
-     * with other processors.
-     *
-     * @param local_b  The full local vector to be communicated. The subset of
-     *                 shared values is automatically extracted.
-     * @return  MPI request for the non-blocking communication.
-     */
-    mpi::request communicate(const local_vector_type* local_b) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
