@@ -65,7 +65,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class RgsCoarsening : public EnableLinOp<RgsCoarsening<ValueType, IndexType>>,
                       public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<RgsCoarsening>;
-    friend struct polymorphic_object_traits<RgsCoarsening>;
+    friend class EnablePolymorphicObject<RgsCoarsening, LinOp>;
 
 public:
     using value_type = ValueType;
