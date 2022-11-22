@@ -7,6 +7,8 @@ configure_file("test/ani1_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_lu.mt
 configure_file("test/ani1_amd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd.mtx")
 configure_file("test/ani1_amd_chol.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_chol.mtx")
 configure_file("test/ani1_amd_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_lu.mtx")
+configure_file("test/ani1_nonsymm.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm.mtx")
+configure_file("test/ani1_nonsymm_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm_lu.mtx")
 configure_file("test/ani4.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4.mtx")
 configure_file("test/ani4_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_lu.mtx")
 configure_file("test/ani4_amd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd.mtx")
