@@ -42,6 +42,11 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<matrix::Csr<ValueType, IndexType>> symbolic_cholesky(
     const matrix::Csr<ValueType, IndexType>*);
 
+/** Computes the symbolic LU factorization of the given matrix. */
+template <typename ValueType, typename IndexType>
+std::unique_ptr<matrix::Csr<ValueType, IndexType>> symbolic_lu(
+    const matrix::Csr<ValueType, IndexType>*);
+
 
 }  // namespace factorization
 }  // namespace gko

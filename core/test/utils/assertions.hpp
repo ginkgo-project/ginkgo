@@ -202,6 +202,86 @@ void print_columns(Ostream& os, const Iterator& begin, const Iterator& end)
 }
 
 
+template <typename Ostream, typename MatrixData1, typename MatrixData2>
+void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
+                            const MatrixData2& second)
+{
+    auto first_it = first.nonzeros.begin();
+    auto second_it = second.nonzeros.begin();
+    os << ' ';
+    for (int col = 0; col < first.size[1]; col++) {
+        os << (col % 10);
+    }
+    os << '\n';
+    for (int row = 0; row < first.size[0]; row++) {
+        os << (row % 10);
+        for (int col = 0; col < first.size[1]; col++) {
+            const auto has_first =
+                get_next_value(first_it, end(first.nonzeros), row, col) !=
+                gko::zero<typename MatrixData1::value_type>();
+            const auto has_second =
+                get_next_value(second_it, end(second.nonzeros), row, col) !=
+                gko::zero<typename MatrixData2::value_type>();
+            if (has_first) {
+                if (has_second) {
+                    os << '+';
+                } else {
+                    os << '|';
+                }
+            } else {
+                if (has_second) {
+                    os << '-';
+                } else {
+                    os << ' ';
+                }
+            }
+        }
+        os << (row % 10) << '\n';
+    }
+    os << ' ';
+    for (int col = 0; col < first.size[1]; col++) {
+        os << (col % 10);
+    }
+    os << "\n| is first, - is second, + is both\n";
+}
+
+
+template <typename Ostream, typename MatrixData1, typename MatrixData2>
+void save_matrices_to_disk(Ostream& os, const MatrixData1& first,
+                           const MatrixData2& second,
+                           std::string first_expression,
+                           std::string second_expression)
+{
+    // build output filenames
+    auto test_case_info =
+        ::testing::UnitTest::GetInstance()->current_test_info();
+    auto testname = test_case_info
+                        ? std::string{test_case_info->test_case_name()} + "." +
+                              test_case_info->name()
+                        : std::string{"null"};
+    auto firstfile = testname + "." + first_expression + ".mtx";
+    auto secondfile = testname + "." + second_expression + ".mtx";
+    auto to_remove = [](char c) {
+        return !std::isalnum(c) && c != '_' && c != '.' && c != '-';
+    };
+    // remove all but alphanumerical and _.- characters from
+    // expressions
+    firstfile.erase(
+        std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
+        firstfile.end());
+    secondfile.erase(
+        std::remove_if(secondfile.begin(), secondfile.end(), to_remove),
+        secondfile.end());
+    // save matrices
+    std::ofstream first_stream{firstfile};
+    gko::write_raw(first_stream, first, gko::layout_type::coordinate);
+    std::ofstream second_stream{secondfile};
+    gko::write_raw(second_stream, second, gko::layout_type::coordinate);
+    os << first_expression << " saved as " << firstfile << "\n";
+    os << second_expression << " saved as " << secondfile << "\n";
+}
+
+
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
@@ -268,33 +348,8 @@ template <typename MatrixData1, typename MatrixData2>
             fail << "component-wise relative error is:\n";
             detail::print_componentwise_error(fail, first, second);
         } else {
-            // build output filenames
-            auto test_case_info =
-                ::testing::UnitTest::GetInstance()->current_test_info();
-            auto testname =
-                test_case_info ? std::string{test_case_info->test_case_name()} +
-                                     "." + test_case_info->name()
-                               : std::string{"null"};
-            auto firstfile = testname + "." + first_expression + ".mtx";
-            auto secondfile = testname + "." + second_expression + ".mtx";
-            auto to_remove = [](char c) {
-                return !std::isalnum(c) && c != '_' && c != '.' && c != '-';
-            };
-            // remove all but alphanumerical and _.- characters from
-            // expressions
-            firstfile.erase(
-                std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
-                firstfile.end());
-            secondfile.erase(
-                std::remove_if(secondfile.begin(), secondfile.end(), to_remove),
-                secondfile.end());
-            // save matrices
-            std::ofstream first_stream{firstfile};
-            gko::write_raw(first_stream, first, gko::layout_type::coordinate);
-            std::ofstream second_stream{secondfile};
-            gko::write_raw(second_stream, second, gko::layout_type::coordinate);
-            fail << first_expression << " saved as " << firstfile << "\n";
-            fail << second_expression << " saved as " << secondfile << "\n";
+            detail::save_matrices_to_disk(fail, first, second, first_expression,
+                                          second_expression);
         }
         return fail;
     }
@@ -348,6 +403,13 @@ template <typename MatrixData1, typename MatrixData2>
             fail << "and " << second_expression << " has "
                  << (snd_row_end - snd_row_begin) << " columns:\n";
             detail::print_columns(fail, snd_row_begin, snd_row_end);
+            if (num_rows < 40 && num_cols < 40) {
+                fail << "Full sparsity pattern:\n";
+                detail::print_sparsity_pattern(fail, first, second);
+            } else {
+                detail::save_matrices_to_disk(
+                    fail, first, second, first_expression, second_expression);
+            }
             return fail;
         }
         fst_it = fst_row_end;
@@ -763,6 +825,13 @@ template <typename LinOp1, typename LinOp2>
 
     first_data.ensure_row_major_order();
     second_data.ensure_row_major_order();
+    // make sure if we write data to disk, it only contains ones.
+    for (auto& entry : first_data.nonzeros) {
+        entry.value = gko::one<typename LinOp1::value_type>();
+    }
+    for (auto& entry : second_data.nonzeros) {
+        entry.value = gko::one<typename LinOp2::value_type>();
+    }
 
     return detail::matrices_equal_sparsity_impl(
         detail::remove_pointer_wrapper(first_expression),
