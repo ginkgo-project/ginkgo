@@ -77,21 +77,21 @@ namespace kernels {
                     matrix::Csr<ValueType, IndexType>* factors)
 
 
-#define GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)                \
-    void factorize(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType* lookup_storage_offsets, const int64* lookup_descs, \
-        const int32* lookup_storage, const IndexType* diag_idxs,            \
-        const IndexType* transpose_idxs,                                    \
-        matrix::Csr<ValueType, IndexType>* factors, array<int>& tmp_storage)
+#define GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)                   \
+    void factorize(std::shared_ptr<const DefaultExecutor> exec,                \
+                   const IndexType* lookup_offsets, const int64* lookup_descs, \
+                   const int32* lookup_storage, const IndexType* diag_idxs,    \
+                   const IndexType* transpose_idxs,                            \
+                   matrix::Csr<ValueType, IndexType>* factors,                 \
+                   array<int>& tmp_storage)
 
 
-#define GKO_DECLARE_LDL_FACTORIZE(ValueType, IndexType)                     \
-    void ldl_factorize(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType* lookup_storage_offsets, const int64* lookup_descs, \
-        const int32* lookup_storage, const IndexType* diag_idxs,            \
-        const IndexType* transpose_idxs,                                    \
+#define GKO_DECLARE_LDL_FACTORIZE(ValueType, IndexType)             \
+    void ldl_factorize(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const IndexType* lookup_offsets, const int64* lookup_descs, \
+        const int32* lookup_storage, const IndexType* diag_idxs,    \
+        const IndexType* transpose_idxs,                            \
         matrix::Csr<ValueType, IndexType>* factors, array<int>& tmp_storage)
 
 
