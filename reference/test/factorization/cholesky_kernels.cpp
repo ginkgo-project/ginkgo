@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/factorization/cholesky.hpp>
+
+
 #include <algorithm>
 #include <memory>
 
@@ -37,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
@@ -45,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
@@ -62,7 +68,13 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
 
-    Cholesky() : ref(gko::ReferenceExecutor::create()), tmp{ref} {}
+    Cholesky()
+        : ref(gko::ReferenceExecutor::create()),
+          tmp{ref},
+          storage_offsets{ref},
+          storage{ref},
+          row_descs{ref}
+    {}
 
     std::unique_ptr<matrix_type> combined_factor(
         gko::ptr_param<const matrix_type> l_factor)
@@ -71,13 +83,74 @@ protected:
             {gko::one<value_type>()}, ref);
         auto id = gko::matrix::Identity<value_type>::create(
             ref, l_factor->get_size()[0]);
-        auto result = gko::as<matrix_type>(l_factor->transpose());
+        auto result = gko::as<matrix_type>(l_factor->conj_transpose());
         l_factor->apply(one, id, one, result);
+        gko::matrix_data<value_type, index_type> data;
+        result->write(data);
+        for (auto& entry : data.nonzeros) {
+            if (entry.row == entry.column) {
+                entry.value /= value_type{2.0};
+            }
+        }
+        result->read(data);
         return result;
     }
 
+    void setup(const char* name_mtx, const char* name_factor,
+               bool init_sparsity = false)
+    {
+        std::ifstream stream{name_mtx};
+        std::ifstream ref_stream{name_factor};
+        mtx = gko::read<matrix_type>(stream, this->ref);
+        num_rows = mtx->get_size()[0];
+        l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
+        combined_ref = combined_factor(l_factor_ref.get());
+        l_factor = matrix_type::create(ref, l_factor_ref->get_size(),
+                                       l_factor_ref->get_num_stored_elements());
+        combined = matrix_type::create(ref, combined_ref->get_size(),
+                                       combined_ref->get_num_stored_elements());
+        if (init_sparsity) {
+            ref->copy(num_rows + 1, l_factor_ref->get_const_row_ptrs(),
+                      l_factor->get_row_ptrs());
+            ref->copy(l_factor_ref->get_num_stored_elements(),
+                      l_factor_ref->get_const_col_idxs(),
+                      l_factor->get_col_idxs());
+            ref->copy(num_rows + 1, combined_ref->get_const_row_ptrs(),
+                      combined->get_row_ptrs());
+            ref->copy(combined_ref->get_num_stored_elements(),
+                      combined_ref->get_const_col_idxs(),
+                      combined->get_col_idxs());
+            storage_offsets.resize_and_reset(num_rows + 1);
+            row_descs.resize_and_reset(num_rows);
+
+            const auto allowed = gko::matrix::csr::sparsity_type::bitmap |
+                                 gko::matrix::csr::sparsity_type::full |
+                                 gko::matrix::csr::sparsity_type::hash;
+            gko::kernels::reference::csr::build_lookup_offsets(
+                ref, combined->get_const_row_ptrs(),
+                combined->get_const_col_idxs(), num_rows, allowed,
+                storage_offsets.get_data());
+            storage.resize_and_reset(
+                storage_offsets.get_const_data()[num_rows]);
+            gko::kernels::reference::csr::build_lookup(
+                ref, combined->get_const_row_ptrs(),
+                combined->get_const_col_idxs(), num_rows, allowed,
+                storage_offsets.get_const_data(), row_descs.get_data(),
+                storage.get_data());
+        }
+    }
+
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    gko::size_type num_rows;
     gko::array<index_type> tmp;
+    gko::array<index_type> storage_offsets;
+    gko::array<gko::int32> storage;
+    gko::array<gko::int64> row_descs;
+    std::shared_ptr<matrix_type> mtx;
+    std::shared_ptr<matrix_type> l_factor;
+    std::shared_ptr<matrix_type> l_factor_ref;
+    std::shared_ptr<matrix_type> combined;
+    std::shared_ptr<matrix_type> combined_ref;
 };
 
 TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
@@ -290,16 +363,14 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
 
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1)
 {
-    using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
-    std::ifstream stream{gko::matrices::location_ani1_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
-    gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx);
+    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    gko::array<index_type> row_nnz{this->ref, this->mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
-        this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
+        this->ref, this->mtx.get(), forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(
         row_nnz, I<index_type>({1, 2, 3, 3, 2, 2,  7,  7,  7,  8, 8, 7,
@@ -310,58 +381,45 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1)
 
 TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1)
 {
-    using matrix_type = typename TestFixture::matrix_type;
-    using index_type = typename TestFixture::index_type;
-    std::ifstream stream{gko::matrices::location_ani1_mtx};
-    std::ifstream ref_stream{gko::matrices::location_ani1_chol_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
-    auto l_factor =
-        matrix_type::create(this->ref, l_factor_ref->get_size(),
-                            l_factor_ref->get_num_stored_elements());
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx);
+    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
-        this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
+        this->ref, this->mtx.get(), forest, this->l_factor->get_row_ptrs(),
+        this->tmp);
     gko::kernels::reference::components::prefix_sum(
-        this->ref, l_factor->get_row_ptrs(), mtx->get_size()[0] + 1);
+        this->ref, this->l_factor->get_row_ptrs(),
+        this->mtx->get_size()[0] + 1);
 
     gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
-        this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
+        this->ref, this->mtx.get(), forest, this->l_factor.get(), this->tmp);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(l_factor, l_factor_ref);
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->l_factor, this->l_factor_ref);
 }
 
 
 TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
 {
-    using matrix_type = typename TestFixture::matrix_type;
-    using index_type = typename TestFixture::index_type;
-    std::ifstream stream{gko::matrices::location_ani1_mtx};
-    std::ifstream ref_stream{gko::matrices::location_ani1_chol_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    auto combined_factor_ref = this->combined_factor(l_factor_ref);
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx);
 
-    std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
+    auto combined_factor =
+        gko::factorization::symbolic_cholesky(this->mtx.get());
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
+    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, this->combined_ref);
 }
 
 
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 {
-    using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
-    std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
-    gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx);
+    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    gko::array<index_type> row_nnz{this->ref, this->mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
-        this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
+        this->ref, this->mtx.get(), forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(
         row_nnz, I<index_type>({1, 1,  2, 3, 5,  4, 1, 2,  3,  4, 1,  2,
@@ -372,43 +430,212 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 
 TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1Amd)
 {
-    using matrix_type = typename TestFixture::matrix_type;
-    using index_type = typename TestFixture::index_type;
-    std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
-    std::ifstream ref_stream{gko::matrices::location_ani1_amd_chol_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
-    auto l_factor =
-        matrix_type::create(this->ref, l_factor_ref->get_size(),
-                            l_factor_ref->get_num_stored_elements());
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx);
+    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
-        this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
+        this->ref, this->mtx.get(), forest, this->l_factor->get_row_ptrs(),
+        this->tmp);
     gko::kernels::reference::components::prefix_sum(
-        this->ref, l_factor->get_row_ptrs(), mtx->get_size()[0] + 1);
+        this->ref, this->l_factor->get_row_ptrs(),
+        this->mtx->get_size()[0] + 1);
 
     gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
-        this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
+        this->ref, this->mtx.get(), forest, this->l_factor.get(), this->tmp);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(l_factor, l_factor_ref);
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->l_factor, this->l_factor_ref);
 }
 
 
 TYPED_TEST(Cholesky, SymbolicFactorizeAni1Amd)
 {
-    using matrix_type = typename TestFixture::matrix_type;
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx);
+
+    auto combined_factor =
+        gko::factorization::symbolic_cholesky(this->mtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, this->combined_ref);
+}
+
+
+TYPED_TEST(Cholesky, KernelInitializeWorks)
+{
     using value_type = typename TestFixture::value_type;
-    std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
-    std::ifstream ref_stream{gko::matrices::location_ani1_amd_chol_mtx};
-    auto mtx = gko::read<matrix_type>(stream, this->ref);
-    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    auto combined_factor_ref = this->combined_factor(l_factor_ref);
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx, true);
+    std::fill_n(this->combined->get_values(),
+                this->combined->get_num_stored_elements(),
+                gko::zero<value_type>());
+    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+    gko::array<index_type> transpose_idxs{
+        this->ref, this->combined->get_num_stored_elements()};
 
-    std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
+    gko::kernels::reference::cholesky::initialize(
+        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get());
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
+    GKO_ASSERT_MTX_NEAR(this->mtx, this->combined, 0.0);
+    for (gko::size_type row = 0; row < this->num_rows; row++) {
+        const auto diag_pos = diag_idxs.get_const_data()[row];
+        const auto begin_pos = this->combined->get_const_row_ptrs()[row];
+        const auto end_pos = this->combined->get_const_row_ptrs()[row + 1];
+        ASSERT_GE(diag_pos, begin_pos);
+        ASSERT_LT(diag_pos, end_pos);
+        ASSERT_EQ(this->combined->get_const_col_idxs()[diag_pos], row);
+        for (auto nz = begin_pos; nz < end_pos; nz++) {
+            const auto trans_pos = transpose_idxs.get_const_data()[nz];
+            const auto col = this->combined->get_const_col_idxs()[nz];
+            ASSERT_GE(trans_pos, this->combined->get_const_row_ptrs()[col]);
+            ASSERT_LT(trans_pos, this->combined->get_const_row_ptrs()[col + 1]);
+            ASSERT_EQ(this->combined->get_const_col_idxs()[trans_pos], row);
+            ASSERT_EQ(transpose_idxs.get_const_data()[trans_pos], nz);
+        }
+    }
+}
+
+
+TYPED_TEST(Cholesky, KernelInitializeAmdWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx, true);
+    std::fill_n(this->combined->get_values(),
+                this->combined->get_num_stored_elements(),
+                gko::zero<value_type>());
+    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+    gko::array<index_type> transpose_idxs{
+        this->ref, this->combined->get_num_stored_elements()};
+
+    gko::kernels::reference::cholesky::initialize(
+        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx, this->combined, 0.0);
+    for (gko::size_type row = 0; row < this->num_rows; row++) {
+        const auto diag_pos = diag_idxs.get_const_data()[row];
+        const auto begin_pos = this->combined->get_const_row_ptrs()[row];
+        const auto end_pos = this->combined->get_const_row_ptrs()[row + 1];
+        ASSERT_GE(diag_pos, begin_pos);
+        ASSERT_LT(diag_pos, end_pos);
+        ASSERT_EQ(this->combined->get_const_col_idxs()[diag_pos], row);
+        for (auto nz = begin_pos; nz < end_pos; nz++) {
+            const auto trans_pos = transpose_idxs.get_const_data()[nz];
+            const auto col = this->combined->get_const_col_idxs()[nz];
+            ASSERT_GE(trans_pos, this->combined->get_const_row_ptrs()[col]);
+            ASSERT_LT(trans_pos, this->combined->get_const_row_ptrs()[col + 1]);
+            ASSERT_EQ(this->combined->get_const_col_idxs()[trans_pos], row);
+            ASSERT_EQ(transpose_idxs.get_const_data()[trans_pos], nz);
+        }
+    }
+}
+
+
+TYPED_TEST(Cholesky, KernelFactorizeWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx, true);
+    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+    gko::array<index_type> transpose_idxs{
+        this->ref, this->combined->get_num_stored_elements()};
+    gko::array<int> tmp{this->ref};
+    gko::kernels::reference::cholesky::initialize(
+        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get());
+
+    gko::kernels::reference::cholesky::factorize(
+        this->ref, this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get(),
+        tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Cholesky, FactorizeWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_chol_mtx, true);
+    auto factory =
+        gko::experimental::factorization::Cholesky<value_type,
+                                                   index_type>::build()
+            .on(this->ref);
+
+    auto cholesky = factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(cholesky->get_combined(), this->combined_ref,
+                        r<value_type>::value);
+    ASSERT_EQ(
+        cholesky->get_storage_type(),
+        gko::experimental::factorization::storage_type::symm_combined_cholesky);
+    ASSERT_EQ(cholesky->get_lower_factor(), nullptr);
+    ASSERT_EQ(cholesky->get_upper_factor(), nullptr);
+    ASSERT_EQ(cholesky->get_diagonal(), nullptr);
+}
+
+
+TYPED_TEST(Cholesky, KernelFactorizeAmdWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx, true);
+    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+    gko::array<index_type> transpose_idxs{
+        this->ref, this->combined->get_num_stored_elements()};
+    gko::array<int> tmp{this->ref};
+    gko::kernels::reference::cholesky::initialize(
+        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get());
+
+    gko::kernels::reference::cholesky::factorize(
+        this->ref, this->storage_offsets.get_const_data(),
+        this->row_descs.get_const_data(), this->storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get(),
+        tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Cholesky, FactorizeAmdWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_chol_mtx, true);
+    auto pattern = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
+    pattern->copy_from(this->combined_ref.get());
+    auto factory =
+        gko::experimental::factorization::Cholesky<value_type,
+                                                   index_type>::build()
+            .with_symbolic_factorization(pattern)
+            .on(this->ref);
+
+    auto cholesky = factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(cholesky->get_combined(), this->combined_ref,
+                        r<value_type>::value);
+    ASSERT_EQ(
+        cholesky->get_storage_type(),
+        gko::experimental::factorization::storage_type::symm_combined_cholesky);
+    ASSERT_EQ(cholesky->get_lower_factor(), nullptr);
+    ASSERT_EQ(cholesky->get_upper_factor(), nullptr);
+    ASSERT_EQ(cholesky->get_diagonal(), nullptr);
 }
 
 
