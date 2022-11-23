@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/stencil_matrix.hpp"
 
 
+using global_itype = gko::int64;
+
+
 template <typename ValueType>
 using dist_vec = gko::experimental::distributed::Vector<ValueType>;
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -56,7 +59,7 @@ std::string broadcast_json_input(std::istream& is,
     std::string json_input;
     if (comm.rank() == 0) {
         std::string line;
-        while (std::cin >> line) {
+        while (is >> line) {
             json_input += line;
         }
     }
@@ -70,48 +73,5 @@ std::string broadcast_json_input(std::istream& is,
     return json_input;
 }
 
-
-std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
-    std::shared_ptr<gko::Executor> exec,
-    gko::experimental::mpi::communicator comm, const std::string& format_local,
-    const std::string& format_non_local,
-    const gko::matrix_data<etype, gko::int64>& data,
-    const gko::experimental::distributed::Partition<itype, gko::int64>* part,
-    rapidjson::Value& spmv_case, rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    auto local_mat = formats::matrix_type_factory.at(format_local)(exec);
-    auto non_local_mat =
-        formats::matrix_type_factory.at(format_non_local)(exec);
-
-    auto storage_logger = std::make_shared<StorageLogger>();
-    exec->add_logger(storage_logger);
-
-    auto dist_mat = dist_mtx<etype, itype, gko::int64>::create(
-        exec, comm, local_mat.get(), non_local_mat.get());
-    dist_mat->read_distributed(data, part);
-
-    exec->remove_logger(gko::lend(storage_logger));
-    storage_logger->write_data(comm, spmv_case, allocator);
-
-    return dist_mat;
-}
-
-std::unique_ptr<dist_mtx<etype, itype, gko::int64>> create_distributed_matrix(
-    std::shared_ptr<const gko::Executor> exec,
-    gko::experimental::mpi::communicator comm, const std::string& format_local,
-    const std::string& format_non_local,
-    const gko::matrix_data<etype, gko::int64>& data,
-    const gko::experimental::distributed::Partition<itype, gko::int64>* part)
-{
-    auto local_mat = formats::matrix_type_factory.at(format_local)(exec);
-    auto non_local_mat =
-        formats::matrix_type_factory.at(format_non_local)(exec);
-
-    auto dist_mat = dist_mtx<etype, itype, gko::int64>::create(
-        exec, comm, local_mat.get(), non_local_mat.get());
-    dist_mat->read_distributed(data, part);
-
-    return dist_mat;
-}
 
 #endif  // GINKGO_BENCHMARK_UTILS_DISTRIBUTED_HELPERS_HPP

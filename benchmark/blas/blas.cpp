@@ -118,7 +118,7 @@ Parameters for a benchmark case are:
     stride_y: stride for in/out vector y (optional, default r)
     stride_A: stride for A matrix in gemm (optional, default k)
     stride_B: stride for B matrix in gemm (optional, default m)
-    stride_C: stride for C matrix in gemm (optional, default m
+    stride_C: stride for C matrix in gemm (optional, default m)
 )";
     std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
