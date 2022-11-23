@@ -68,7 +68,7 @@ struct DefaultSystemGenerator {
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix(
-        std::shared_ptr<const gko::Executor> exec, rapidjson::Value& config)
+        std::shared_ptr<gko::Executor> exec, rapidjson::Value& config)
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
@@ -76,16 +76,29 @@ struct DefaultSystemGenerator {
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
-        std::shared_ptr<const gko::Executor> exec,
-        const std::string& format_name,
-        const gko::matrix_data<ValueType, itype>& data)
+        std::shared_ptr<gko::Executor> exec, const std::string& format_name,
+        const gko::matrix_data<ValueType, itype>& data,
+        rapidjson::Value* spmv_case = nullptr,
+        rapidjson::MemoryPoolAllocator<>* allocator = nullptr)
     {
-        return gko::share(
-            ::formats::matrix_factory(format_name, std::move(exec), data));
+        auto storage_logger = std::make_shared<StorageLogger>();
+        if (spmv_case && allocator) {
+            exec->add_logger(storage_logger);
+        }
+
+        auto mtx =
+            gko::share(::formats::matrix_factory(format_name, exec, data));
+
+        if (spmv_case && allocator) {
+            exec->remove_logger(gko::lend(storage_logger));
+            storage_logger->write_data(*spmv_case, *allocator);
+        }
+
+        return mtx;
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
-        std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<gko::Executor> exec,
         const gko::matrix_data<ValueType, itype>& data)
     {
         return generate_matrix_with_format(std::move(exec), "coo", data);
@@ -100,7 +113,7 @@ struct DefaultSystemGenerator {
         return res;
     }
 
-    static std::unique_ptr<Vec> create_multi_vector(
+    static std::unique_ptr<Vec> create_multi_vector_strided(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
         gko::size_type stride)
     {
@@ -121,20 +134,6 @@ struct DefaultSystemGenerator {
         return res;
     }
 
-    // creates a zero vector
-    static std::unique_ptr<Vec> create_vector(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-    {
-        return create_multi_vector(std::move(exec), gko::dim<2>{size, 1}, 1);
-    }
-
-    // creates a random vector
-    static std::unique_ptr<Vec> create_vector_random(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-    {
-        return create_multi_vector_random(exec, gko::dim<2>{size, 1});
-    }
-
     static std::unique_ptr<Vec> initialize(
         std::initializer_list<ValueType> il,
         std::shared_ptr<const gko::Executor> exec)
@@ -151,7 +150,7 @@ template <typename LocalGeneratorType>
 struct DistributedDefaultSystemGenerator {
     using LocalGenerator = LocalGeneratorType;
 
-    using index_type = gko::int64;
+    using index_type = global_itype;
     using local_index_type = typename LocalGenerator::index_type;
     using value_type = typename LocalGenerator::value_type;
 
@@ -165,7 +164,7 @@ struct DistributedDefaultSystemGenerator {
             std::ifstream in(config["filename"].GetString());
             return gko::read_generic_raw<value_type, index_type>(in);
         } else if (config.HasMember("stencil")) {
-            auto local_size = static_cast<gko::int64>(
+            auto local_size = static_cast<global_itype>(
                 config["size"].GetInt64() / comm.size());
             return generate_stencil<value_type, index_type>(
                 config["stencil"].GetString(), comm, local_size,
@@ -177,8 +176,7 @@ struct DistributedDefaultSystemGenerator {
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix(
-        std::shared_ptr<const gko::Executor> exec,
-        rapidjson::Value& config) const
+        std::shared_ptr<gko::Executor> exec, rapidjson::Value& config) const
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
@@ -186,21 +184,39 @@ struct DistributedDefaultSystemGenerator {
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
-        std::shared_ptr<const gko::Executor> exec,
-        const std::string& format_name,
-        const gko::matrix_data<value_type, index_type>& data) const
+        std::shared_ptr<gko::Executor> exec, const std::string& format_name,
+        const gko::matrix_data<value_type, index_type>& data,
+        rapidjson::Value* spmv_case = nullptr,
+        rapidjson::MemoryPoolAllocator<>* allocator = nullptr) const
     {
         auto part = gko::experimental::distributed::
-            Partition<itype, gko::int64>::build_from_global_size_uniform(
-                exec, comm.size(), static_cast<gko::int64>(data.size[0]));
+            Partition<itype, global_itype>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<global_itype>(data.size[0]));
         auto formats = split(format_name, '-');
-        return ::create_distributed_matrix(exec, comm, formats[0], formats[1],
-                                           data, part.get());
+
+        auto local_mat = formats::matrix_type_factory.at(formats[0])(exec);
+        auto non_local_mat = formats::matrix_type_factory.at(formats[1])(exec);
+
+        auto storage_logger = std::make_shared<StorageLogger>();
+        if (spmv_case && allocator) {
+            exec->add_logger(storage_logger);
+        }
+
+        auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
+            exec, comm, local_mat.get(), non_local_mat.get());
+        dist_mat->read_distributed(data, part.get());
+
+        if (spmv_case && allocator) {
+            exec->remove_logger(gko::lend(storage_logger));
+            storage_logger->write_data(comm, *spmv_case, *allocator);
+        }
+
+        return dist_mat;
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
-        std::shared_ptr<const gko::Executor> exec,
-        const gko::matrix_data<value_type, gko::int64>& data) const
+        std::shared_ptr<gko::Executor> exec,
+        const gko::matrix_data<value_type, global_itype>& data) const
     {
         return generate_matrix_with_format(std::move(exec), "coo-coo", data);
     }
@@ -210,8 +226,8 @@ struct DistributedDefaultSystemGenerator {
         value_type value) const
     {
         auto part = gko::experimental::distributed::
-            Partition<itype, gko::int64>::build_from_global_size_uniform(
-                exec, comm.size(), static_cast<gko::int64>(size[0]));
+            Partition<itype, global_itype>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<global_itype>(size[0]));
         return Vec::create(
             exec, comm, size,
             local_generator
@@ -224,13 +240,32 @@ struct DistributedDefaultSystemGenerator {
                 .get());
     }
 
+    std::unique_ptr<Vec> create_multi_vector_strided(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+        gko::size_type stride) const
+    {
+        auto part = gko::experimental::distributed::
+            Partition<itype, global_itype>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<global_itype>(size[0]));
+        return Vec::create(
+            exec, comm, size,
+            local_generator
+                .create_multi_vector_strided(
+                    exec,
+                    gko::dim<2>{static_cast<gko::size_type>(
+                                    part->get_part_size(comm.rank())),
+                                size[1]},
+                    stride)
+                .get());
+    }
+
     // creates a random multi_vector
     std::unique_ptr<Vec> create_multi_vector_random(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size) const
     {
         auto part = gko::experimental::distributed::
-            Partition<itype, gko::int64>::build_from_global_size_uniform(
-                exec, comm.size(), static_cast<gko::int64>(size[0]));
+            Partition<itype, global_itype>::build_from_global_size_uniform(
+                exec, comm.size(), static_cast<global_itype>(size[0]));
         return Vec::create(
             exec, comm, size,
             local_generator
@@ -239,20 +274,6 @@ struct DistributedDefaultSystemGenerator {
                                           part->get_part_size(comm.rank())),
                                       size[1]})
                 .get());
-    }
-
-    // creates a zero vector
-    std::unique_ptr<Vec> create_vector(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
-    {
-        return create_multi_vector(exec, gko::dim<2>{size, 1}, value_type{});
-    }
-
-    // creates a random vector
-    std::unique_ptr<Vec> create_vector_random(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type size) const
-    {
-        return create_multi_vector_random(exec, gko::dim<2>{size, 1});
     }
 
     std::unique_ptr<Vec> initialize(
