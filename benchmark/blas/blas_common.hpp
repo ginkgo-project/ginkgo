@@ -98,10 +98,10 @@ public:
                   gko::size_type cols, gko::size_type istride,
                   gko::size_type ostride)
     {
-        in_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                            istride);
-        out_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                             ostride);
+        in_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, istride);
+        out_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, ostride);
         as_vector<Generator>(in_)->fill(1);
     }
 
@@ -136,10 +136,10 @@ public:
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        x_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride_in);
-        y_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride_out);
+        x_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride_in);
+        y_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride_out);
         alpha_->fill(1);
         as_vector<Generator>(x_)->fill(1);
     }
@@ -177,8 +177,8 @@ public:
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        y_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride);
+        y_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride);
         alpha_->fill(1);
     }
 
@@ -211,10 +211,10 @@ public:
                  gko::size_type stride_y)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        x_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride_x);
-        y_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride_y);
+        x_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride_x);
+        y_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride_y);
         as_vector<Generator>(x_)->fill(1);
         as_vector<Generator>(y_)->fill(1);
     }
@@ -249,8 +249,8 @@ public:
                   gko::size_type cols, gko::size_type stride)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        y_ = generator.create_multi_vector(exec, gko::dim<2>{rows, cols},
-                                           stride);
+        y_ = generator.create_multi_vector_strided(
+            exec, gko::dim<2>{rows, cols}, stride);
         as_vector<Generator>(y_)->fill(1);
     }
 
@@ -283,9 +283,12 @@ public:
                    gko::size_type k, gko::size_type m, gko::size_type stride_A,
                    gko::size_type stride_B, gko::size_type stride_C)
     {
-        A_ = generator.create_multi_vector(exec, gko::dim<2>{n, k}, stride_A);
-        B_ = generator.create_multi_vector(exec, gko::dim<2>{k, m}, stride_B);
-        C_ = generator.create_multi_vector(exec, gko::dim<2>{n, m}, stride_C);
+        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
+                                                   stride_A);
+        B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
+                                                   stride_B);
+        C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
+                                                   stride_C);
         as_vector<Generator>(A_)->fill(1);
         as_vector<Generator>(B_)->fill(1);
     }
@@ -321,9 +324,12 @@ public:
                            gko::size_type stride_A, gko::size_type stride_B,
                            gko::size_type stride_C)
     {
-        A_ = generator.create_multi_vector(exec, gko::dim<2>{n, k}, stride_A);
-        B_ = generator.create_multi_vector(exec, gko::dim<2>{k, m}, stride_B);
-        C_ = generator.create_multi_vector(exec, gko::dim<2>{n, m}, stride_C);
+        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
+                                                   stride_A);
+        B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
+                                                   stride_B);
+        C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
+                                                   stride_C);
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
         beta_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
         as_vector<Generator>(A_)->fill(1);
