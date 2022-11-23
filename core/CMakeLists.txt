@@ -15,10 +15,12 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/version.cpp
     distributed/partition.cpp
+    factorization/cholesky.cpp
     factorization/elimination_forest.cpp
     factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
+    factorization/ldl.cpp
     factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp

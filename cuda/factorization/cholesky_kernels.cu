@@ -41,7 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/lu_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/cooperative_groups.cuh"
@@ -122,39 +124,6 @@ void cholesky_symbolic_count(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT);
-
-
-template <typename ValueType, typename IndexType>
-void cholesky_symbolic_factorize(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    const factorization::elimination_forest<IndexType>& forest,
-    matrix::Csr<ValueType, IndexType>* l_factor,
-    const array<IndexType>& tmp_storage)
-{
-    const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
-    if (num_rows == 0) {
-        return;
-    }
-    const auto mtx_nnz = static_cast<IndexType>(mtx->get_num_stored_elements());
-    const auto postorder_cols = tmp_storage.get_const_data();
-    const auto lower_ends = postorder_cols + mtx_nnz;
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto postorder = forest.postorder.get_const_data();
-    const auto inv_postorder = forest.inv_postorder.get_const_data();
-    const auto postorder_parent = forest.postorder_parents.get_const_data();
-    const auto out_row_ptrs = l_factor->get_const_row_ptrs();
-    const auto out_cols = l_factor->get_col_idxs();
-    const auto num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
-    cholesky_symbolic_factorize_kernel<config::warp_size>
-        <<<num_blocks, default_block_size>>>(
-            num_rows, row_ptrs, lower_ends, postorder_cols, postorder,
-            postorder_parent, out_row_ptrs, out_cols);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
 
 
 }  // namespace cholesky
