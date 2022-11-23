@@ -368,15 +368,43 @@ TYPED_TEST(Lu, GenerateWithKnownSparsityAmdIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityFails)
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
-
+    this->initialize_data(gko::matrices::location_ani4_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->ref);
     auto dfactory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .on(this->exec);
 
-    ASSERT_THROW(dfactory->generate(this->dmtx), gko::NotSupported);
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
 }
