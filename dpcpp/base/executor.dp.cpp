@@ -109,7 +109,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
     try {
         queue_->wait_and_throw();
         sycl::free(ptr, queue_->get_context());
-    } catch (cl::sycl::exception& err) {
+    } catch (sycl::exception& err) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable Dpcpp error on device "
@@ -231,7 +231,7 @@ void delete_queue(sycl::queue* queue)
 }
 
 
-::cl::sycl::property_list get_property_list(dpcpp_queue_property property)
+sycl::property_list get_property_list(dpcpp_queue_property property)
 {
     if (property == dpcpp_queue_property::in_order) {
         return {sycl::property::queue::in_order{}};
@@ -257,11 +257,11 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     if (!device.is_host()) {
         try {
             auto subgroup_sizes =
-                device.get_info<cl::sycl::info::device::sub_group_sizes>();
+                device.get_info<sycl::info::device::sub_group_sizes>();
             for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
-        } catch (cl::sycl::exception& err) {
+        } catch (sycl::exception& err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
