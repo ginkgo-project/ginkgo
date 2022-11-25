@@ -31,8 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/gcr_kernels.hpp"
+
+
 #include <random>
+
+
 #include <gtest/gtest.h>
+
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -46,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
-namespace {
 
 class Gcr : public CommonTestFixture {
 protected:
@@ -59,7 +63,7 @@ protected:
 
     Gcr() : rand_engine(30)
     {
-        mtx = gen_mtx(123, 123);
+        mtx = gen_mtx(16, 16);
         d_mtx = gko::clone(exec, mtx);
         exec_gcr_factory =
             Solver::build()
@@ -92,7 +96,7 @@ protected:
     void initialize_data(int nrhs = 43)
     {
 #ifdef GINKGO_FAST_TESTS
-        int m = 123;
+        int m = 16;
 #else
         int m = 597;
 #endif
@@ -109,11 +113,11 @@ protected:
         Ap_norm = gen_mtx(1, nrhs);
 
 
-        stop_status = gko::Array<gko::stopping_status>(ref, nrhs);
+        stop_status = gko::array<gko::stopping_status>(ref, nrhs);
         for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
             stop_status.get_data()[i].reset();
         }
-        final_iter_nums = gko::Array<gko::size_type>(ref, nrhs);
+        final_iter_nums = gko::array<gko::size_type>(ref, nrhs);
         for (size_t i = 0; i < final_iter_nums.get_num_elems(); ++i) {
             final_iter_nums.get_data()[i] = 5;
         }
@@ -132,10 +136,7 @@ protected:
         d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
@@ -218,44 +219,37 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
 
 TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 {
-    int m = 123;
+    int m = 16;
     int n = 1;
     auto ref_solver = ref_gcr_factory->generate(mtx);
-    auto d_solver = exec_gcr_factory->generate(d_mtx);
+    auto exec_solver = exec_gcr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, r<value_type>::value * 1e2);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 0);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
 }
 
 
 TEST_F(Gcr, GcrApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 5;
+    int m = 16;
+    int n = 3;
     auto ref_solver = ref_gcr_factory->generate(mtx);
-    auto omp_solver = exec_gcr_factory->generate(d_mtx);
+    auto exec_solver = exec_gcr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
-    omp_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 0);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
 }
-
-
-}  // namespace

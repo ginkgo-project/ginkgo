@@ -91,6 +91,9 @@ std::unique_ptr<LinOp> Gcr<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Gcr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
@@ -136,9 +139,9 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         ws::final_iter_nums, num_rhs);
 
     // indicates if one vectors status changed
+    GKO_SOLVER_ONE_MINUS_ONE();
     bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
-    GKO_SOLVER_ONE_MINUS_ONE();
 
     // Initialization
     // residual = dense_b
@@ -277,7 +280,7 @@ int workspace_traits<Gcr<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gcr<ValueType>>::num_vectors(const Solver&)
 {
-    return 10;
+    return 11;
 }
 
 
