@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <CL/sycl.hpp>
 
-namespace sycl = cl::sycl;
 
 int main()
 {

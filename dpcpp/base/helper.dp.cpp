@@ -46,7 +46,7 @@ bool validate(sycl::queue* queue, unsigned int workgroup_size,
 {
     auto device = queue->get_device();
     auto subgroup_size_list =
-        device.get_info<cl::sycl::info::device::sub_group_sizes>();
+        device.get_info<sycl::info::device::sub_group_sizes>();
     auto max_workgroup_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     bool allowed = false;

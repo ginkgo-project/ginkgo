@@ -95,7 +95,7 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 
 #define GKO_BIND_DOT(ValueType, Name, Func)                                    \
-    inline void Name(::cl::sycl::queue& exec_queue, std::int64_t n,            \
+    inline void Name(sycl::queue& exec_queue, std::int64_t n,                  \
                      const ValueType* x, std::int64_t incx,                    \
                      const ValueType* y, std::int64_t incy, ValueType* result) \
     {                                                                          \

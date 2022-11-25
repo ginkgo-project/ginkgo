@@ -1833,7 +1833,7 @@ public:
         return this->get_exec_info().device_id;
     }
 
-    ::cl::sycl::queue* get_queue() const { return queue_.get(); }
+    sycl::queue* get_queue() const { return queue_.get(); }
 
     /**
      * Get the number of devices present on the system.
@@ -1944,7 +1944,7 @@ private:
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T*)>>;
-    queue_manager<::cl::sycl::queue> queue_;
+    queue_manager<sycl::queue> queue_;
 };
 
 
