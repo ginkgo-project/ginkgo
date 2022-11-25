@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -332,33 +334,6 @@ void MultigridState::generate(const LinOp* system_matrix_in,
 }
 
 
-// template <class VectorType>
-// void allocate_memory(int level, multigrid::cycle cycle, size_type
-// current_nrows,
-//                      size_type next_nrows)
-// {
-//     using value_type = typename VectorType::value_type;
-//     // using vec = matrix::Dense<VT>;
-//     using norm_vec = remove_complex<VectorType>;
-//     auto scalar_size = dim<2>{1, mg_state->nrhs};
-//     auto vector_size = dim<2>{next_nrows, mg_state->nrhs};
-//     auto exec = as<LinOp>(mg_state->multigrid->get_mg_level_list().at(level))
-//                     ->get_executor();
-//     // 1 x nrhs
-//     alpha_list.emplace_back(VectorType::create(exec, scalar_size));
-//     beta_list.emplace_back(VectorType::create(exec, scalar_size));
-//     gamma_list.emplace_back(VectorType::create(exec, scalar_size));
-//     rho_list.emplace_back(VectorType::create(exec, scalar_size));
-//     zeta_list.emplace_back(VectorType::create(exec, scalar_size));
-//     // next level's nrows x nrhs
-//     v_list.emplace_back(VectorType::create(exec, vector_size));
-//     w_list.emplace_back(VectorType::create(exec, vector_size));
-//     d_list.emplace_back(VectorType::create(exec, vector_size));
-//     // 1 x nrhs norm_vec
-//     old_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
-//     new_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
-// }
-
 template <class VectorType>
 void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
                                      size_type current_nrows,
@@ -392,6 +367,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
 #if GINKGO_BUILD_MPI
 
+
 template <typename VectorType>
 void MultigridState::allocate_memory(experimental::mpi::communicator& comm,
                                      int level, multigrid::cycle cycle,
@@ -401,30 +377,34 @@ void MultigridState::allocate_memory(experimental::mpi::communicator& comm,
     using value_type = typename VectorType::value_type;
     using vec = VectorType;
     using dense_vec = matrix::Dense<value_type>;
+    using dist_mat =
+        experimental::distributed::Matrix<value_type, int32, int64>;
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    // auto coarse_op =
-    //     multigrid->get_mg_level_list().at(level)->get_coarse_op();
-    // auto coarse_part = multigrid->get_mg_level_list()
-    //                        .at(level)
-    //                        ->get_coarse_op()
-    //                        ->get_partition();
-    r_list.emplace_back(
-        VectorType::create(exec, comm, dim<2>{current_nrows, nrhs}));
+    auto coarse_op = multigrid->get_mg_level_list().at(level)->get_coarse_op();
+    auto coarse_part =
+        as<dist_mat>(multigrid->get_mg_level_list().at(level)->get_coarse_op())
+            ->get_row_partition();
+    size_type local_part_size = coarse_part->get_part_size(comm.rank());
+    auto local_size = dim<2>{local_part_size, nrhs};
+    r_list.emplace_back(VectorType::create(
+        exec, comm, dim<2>{current_nrows, nrhs}, local_size));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(
-            VectorType::create(exec, comm, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(
-            VectorType::create(exec, comm, dim<2>{current_nrows, nrhs}));
+        g_list.emplace_back(VectorType::create(
+            exec, comm, dim<2>{current_nrows, nrhs}, local_size));
+        e_list.emplace_back(VectorType::create(
+            exec, comm, dim<2>{current_nrows, nrhs}, local_size));
         next_one_list.emplace_back(
             initialize<dense_vec>({one<value_type>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, comm, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, comm, dim<2>{next_nrows, nrhs}));
+        g_list.emplace_back(
+            vec::create(exec, comm, dim<2>{next_nrows, nrhs}, local_size));
+        e_list.emplace_back(
+            vec::create(exec, comm, dim<2>{next_nrows, nrhs}, local_size));
         next_one_list.emplace_back(
             initialize<dense_vec>({one<value_type>()}, exec));
     }
@@ -448,12 +428,25 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
     }
     auto mg_level = multigrid->get_mg_level_list().at(level);
     run<gko::multigrid::EnableMultigridLevel, float, double,
-        std::complex<float>, std::complex<double>>(
-        mg_level, [&, this](auto mg_level) {
+        std::complex<float>,
+        std::complex<double>>(mg_level, [&, this](auto mg_level) {
+#if GINKGO_BUILD_MPI
+        if (gko::detail::is_distributed(matrix.get())) {
+            using value_type = typename std::decay_t<
+                gko::detail::pointee<decltype(mg_level)>>::value_type;
+            auto comm =
+                dynamic_cast<const experimental::distributed::DistributedBase*>(
+                    matrix.get())
+                    ->get_communicator();
+            this->run_cycle<VectorType>(cycle, level, matrix, b, x, mode);
+        } else
+#endif
+        {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             this->run_cycle<VectorType>(cycle, level, matrix, b, x, mode);
-        });
+        }
+    });
 }
 
 
@@ -776,9 +769,19 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             if (iter == 0 && guess == initial_guess_mode::zero) {
                 mode = mode | multigrid::cycle_mode::x_is_zero;
             }
-            cache_.state->run_mg_cycle<matrix::Dense<value_type>>(
-                this->get_parameters().cycle, 0, this->get_system_matrix(), b,
-                x, mode);
+#if GINKGO_BUILD_MPI
+            if (gko::detail::is_distributed(this->get_system_matrix().get())) {
+                cache_.state->run_mg_cycle<
+                    experimental::distributed::Vector<value_type>>(
+                    this->get_parameters().cycle, 0, this->get_system_matrix(),
+                    b, x, mode);
+            } else
+#endif
+            {
+                cache_.state->run_mg_cycle<matrix::Dense<value_type>>(
+                    this->get_parameters().cycle, 0, this->get_system_matrix(),
+                    b, x, mode);
+            }
         }
     };
 
