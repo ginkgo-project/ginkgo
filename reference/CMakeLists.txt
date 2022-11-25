@@ -51,6 +51,7 @@ target_sources(ginkgo_reference
     solver/batch_direct_kernels.cpp
     solver/batch_gmres_kernels.cpp
     solver/batch_idr_kernels.cpp
+    solver/batch_lower_trs_kernels.cpp
     solver/batch_richardson_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
