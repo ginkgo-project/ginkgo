@@ -54,6 +54,13 @@ double closest_nth_root(T v, int n)
 }
 
 
+template <typename IndexType>
+bool is_in_box(const IndexType i, const IndexType bound)
+{
+    return 0 <= i && i < bound;
+}
+
+
 /**
  * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
  * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
@@ -85,25 +92,26 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     };
 
     auto target_coords = [&](const IndexType i, const int coord) {
-        return 0 <= i && i <= dp - 1 ? coord : i < 0 ? coord - 1 : coord + 1;
+        return is_in_box(i, dp) ? coord : i < 0 ? coord - 1 : coord + 1;
     };
 
     auto target_local_idx = [&](const IndexType i) {
-        return 0 <= i && i <= dp - 1 ? i : i < 0 ? dp + i : dp - i;
+        return is_in_box(i, dp) ? i : i < 0 ? dp + i : dp - i;
     };
 
-    auto flat_idx = [&](const IndexType ix, IndexType iy) {
-        return global_offset(target_coords(ix, position[0]),
-                             target_coords(iy, position[1])) +
-               target_local_idx(ix) + target_local_idx(iy) * dp;
-    };
-
-    auto is_valid_idx = [&](const IndexType i) {
-        return i >= 0 && i < static_cast<IndexType>(global_size);
+    auto flat_idx = [&](const IndexType ix, const IndexType iy) {
+        auto tcx = target_coords(ix, position[0]);
+        auto tcy = target_coords(iy, position[1]);
+        if (is_in_box(tcx, dims[0]) && is_in_box(tcy, dims[1])) {
+            return global_offset(tcx, tcy) + target_local_idx(ix) +
+                   target_local_idx(iy) * dp;
+        } else {
+            return static_cast<IndexType>(-1);
+        }
     };
 
     auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j) {
-        return !restricted || ((d_i == 0 || d_j == 0));
+        return !restricted || d_i == 0 || d_j == 0;
     };
 
     auto nnz_in_row = [&]() {
@@ -126,7 +134,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
                 for (IndexType d_j : {-1, 0, 1}) {
                     if (is_valid_neighbor(d_i, d_j)) {
                         auto col = flat_idx(j + d_j, i + d_i);
-                        if (is_valid_idx(col)) {
+                        if (is_in_box(col,
+                                      static_cast<IndexType>(global_size))) {
                             if (col != row) {
                                 A_data.nonzeros.emplace_back(
                                     row, col, -gko::one<ValueType>());
@@ -171,29 +180,29 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     auto global_offset = [&](const int cx, const int cy, const int cz) {
         return cx * static_cast<int>(local_size) +
                cy * static_cast<int>(local_size) * dims[0] +
-               cz * static_cast<int>(local_size * local_size) * dims[0] *
-                   dims[1];
+               cz * static_cast<int>(local_size) * dims[0] * dims[1];
     };
 
     auto target_coords = [&](const IndexType i, const int coord) {
-        return 0 <= i && i <= dp - 1 ? coord : i < 0 ? coord - 1 : coord + 1;
+        return is_in_box(i, dp) ? coord : i < 0 ? coord - 1 : coord + 1;
     };
 
     auto target_local_idx = [&](const IndexType i) {
-        return 0 <= i && i <= dp - 1 ? i : i < 0 ? dp + i : dp - i;
+        return is_in_box(i, dp) ? i : i < 0 ? dp + i : dp - i;
     };
 
     auto flat_idx = [&](const IndexType ix, const IndexType iy,
                         const IndexType iz) {
-        return global_offset(target_coords(ix, position[0]),
-                             target_coords(iy, position[1]),
-                             target_coords(iz, position[2])) +
-               target_local_idx(ix) + target_local_idx(iy) * dp +
-               target_local_idx(iz) * dp * dp;
-    };
-
-    auto is_valid_idx = [&](const IndexType i) {
-        return i >= 0 && i < static_cast<IndexType>(global_size);
+        auto tcx = target_coords(ix, position[0]);
+        auto tcy = target_coords(iy, position[1]);
+        auto tcz = target_coords(iz, position[2]);
+        if (is_in_box(tcx, dims[0]) && is_in_box(tcy, dims[1]) &&
+            is_in_box(tcz, dims[2])) {
+            return global_offset(tcx, tcy, tcz) + target_local_idx(ix) +
+                   target_local_idx(iy) * dp + target_local_idx(iz) * dp * dp;
+        } else {
+            return static_cast<IndexType>(-1);
+        }
     };
 
     auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
@@ -227,7 +236,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                         for (IndexType d_k : {-1, 0, 1}) {
                             if (is_valid_neighbor(d_i, d_j, d_k)) {
                                 auto col = flat_idx(k + d_k, j + d_j, i + d_i);
-                                if (is_valid_idx(col)) {
+                                if (is_in_box(col, static_cast<IndexType>(
+                                                       global_size))) {
                                     if (col != row) {
                                         A_data.nonzeros.emplace_back(
                                             row, col, -gko::one<ValueType>());
@@ -280,15 +290,11 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     const gko::size_type target_local_size, bool restricted)
 {
     std::array<int, 2> dims{};
-    std::array<int, 2> periods{};
     MPI_Dims_create(comm.size(), dims.size(), dims.data());
 
-    MPI_Comm cart_comm;
-    MPI_Cart_create(comm.get(), dims.size(), dims.data(), periods.data(), 0,
-                    &cart_comm);
-
     std::array<int, 2> coords{};
-    MPI_Cart_coords(cart_comm, comm.rank(), coords.size(), coords.data());
+    coords[0] = comm.rank() % dims[0];
+    coords[1] = comm.rank() / dims[0];
 
     return generate_2d_stencil_box<ValueType, IndexType>(
         dims, coords, target_local_size, restricted);
@@ -301,15 +307,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     const gko::size_type target_local_size, bool restricted)
 {
     std::array<int, 3> dims{};
-    std::array<int, 3> periods{};
     MPI_Dims_create(comm.size(), dims.size(), dims.data());
 
-    MPI_Comm cart_comm;
-    MPI_Cart_create(comm.get(), dims.size(), dims.data(), periods.data(), 0,
-                    &cart_comm);
-
     std::array<int, 3> coords{};
-    MPI_Cart_coords(cart_comm, comm.rank(), coords.size(), coords.data());
+    coords[0] = comm.rank() % dims[0];
+    coords[1] = (comm.rank() / dims[0]) % dims[1];
+    coords[2] = comm.rank() / (dims[0] * dims[1]);
 
     return generate_3d_stencil_box<ValueType, IndexType>(
         dims, coords, target_local_size, restricted);
