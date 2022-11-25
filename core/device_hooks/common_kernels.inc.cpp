@@ -83,6 +83,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_direct_kernels.hpp"
 #include "core/solver/batch_gmres_kernels.hpp"
 #include "core/solver/batch_idr_kernels.hpp"
+#include "core/solver/batch_lower_trs_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -711,6 +712,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 }  // namespace batch_direct
+
+
+namespace batch_lower_trs {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_LOWER_TRS_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_LOWER_TRS_APPLY_KERNEL);
+
+
+}  // namespace batch_lower_trs
 
 
 namespace sparsity_csr {

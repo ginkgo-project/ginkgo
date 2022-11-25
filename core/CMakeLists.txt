@@ -72,6 +72,7 @@ target_sources(ginkgo
     solver/batch_direct.cpp
     solver/batch_gmres.cpp
     solver/batch_idr.cpp
+    solver/batch_lower_trs.cpp
     solver/batch_richardson.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
