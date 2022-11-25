@@ -497,7 +497,8 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gmres<10u>, Gmres<100u>>;
+using SolverTypes =
+    ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gmres<10u>, Gmres<100u>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 

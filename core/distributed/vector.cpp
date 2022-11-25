@@ -478,8 +478,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row,
-                                      size_type col) const noexcept
+ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
+    noexcept
 {
     return local_.at(row, col);
 }
