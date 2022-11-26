@@ -181,9 +181,9 @@ protected:
         if (!to_scale) {
             // this enables transpose for non-scaled solvers
             left_scaling_ =
-                gko::share(BIdentity::create(exec, system_matrix->get_size()));
+                gko::share(BIdentity::create(exec, system_matrix_->get_size()));
             right_scaling_ =
-                gko::share(BIdentity::create(exec, system_matrix->get_size()));
+                gko::share(BIdentity::create(exec, system_matrix_->get_size()));
         }
     }
 
