@@ -55,11 +55,13 @@ protected:
     using value_type = T;
     using real_type = gko::remove_complex<T>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
+    using ubatched_mat_type = typename Mtx::unbatch_type;
     using Dense = gko::matrix::BatchDense<value_type>;
     using Solver = gko::solver::BatchLowerTrs<value_type>;
 
     BatchLowerTrs()
         : exec(gko::ReferenceExecutor::create()),
+          //  mtx(get_lower_matrix()),
           mtx(gko::test::create_poisson1d_batch<Mtx>(
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
@@ -71,9 +73,26 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     const gko::size_type nbatch = 3;
     const int nrows = 5;
+    const int min_nnz_row = 1;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchlowertrs_factory;
     std::unique_ptr<gko::BatchLinOp> solver;
+
+    std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> get_lower_matrix()
+    {
+        auto unbatch_mat =
+            gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
+                nrows, false, true,
+                std::uniform_int_distribution<>(min_nnz_row, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                std::static_pointer_cast<const gko::ReferenceExecutor>(exec));
+
+        return Mtx::create(
+            std::static_pointer_cast<const gko::ReferenceExecutor>(exec),
+            nbatch, unbatch_mat.get());
+    }
 };
 
 TYPED_TEST_SUITE(BatchLowerTrs, gko::test::ValueTypes);
