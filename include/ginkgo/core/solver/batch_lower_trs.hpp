@@ -113,6 +113,16 @@ public:
          */
         std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
             right_scaling_op, nullptr);
+
+        /**
+         * @brief Optimization parameter that skips the sorting of the input
+         *        matrix (only skip if it is known that it is already sorted).
+         *
+         * The triangular solve algorithm requires the input matrix to be
+         * sorted. If it is, this parameter can be set to `true` to skip the
+         * sorting for better performance.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, true);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchLowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
