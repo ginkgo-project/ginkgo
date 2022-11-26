@@ -62,6 +62,7 @@ void call_apply_kernel(
     const int shared_size =
         gko::kernels::batch_lower_trs::local_memory_requirement<ValueType>(
             a.num_rows, b_b.num_rhs);
+    assert(b_b.num_rhs == 1);
     apply_kernel<<<nbatch, default_block_size, shared_size>>>(a, b_b.values,
                                                               x_b.values);
 

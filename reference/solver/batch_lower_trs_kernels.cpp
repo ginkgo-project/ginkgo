@@ -34,18 +34,78 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-
+#include "reference/matrix/batch_struct.hpp"
 
 namespace gko {
 namespace kernels {
 namespace reference {
 namespace batch_lower_trs {
 
+namespace {
+
+#include "reference/solver/batch_lower_trs_kernels.hpp.inc"
+}  // namespace
+
+template <typename BatchMatrixType, typename ValueType>
+void call_apply_kernel(
+    const BatchMatrixType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b_b,
+    const gko::batch_dense::UniformBatch<ValueType>& x_b)
+{
+    const size_type nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+    const auto nrhs = b_b.num_rhs;
+    GKO_ASSERT(nrhs == 1);
+
+    const int local_size_bytes =
+        gko::kernels::batch_lower_trs::local_memory_requirement<ValueType>(
+            nrows, nrhs);
+
+    std::vector<unsigned char> local_space(local_size_bytes);
+
+    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        batch_entry_lower_trsv_impl<BatchMatrixType, ValueType>(
+            a, b_b, x_b, ibatch, local_space.data());
+    }
+}
+
+
+template <typename ValueType>
+void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
+                             const matrix::BatchDense<ValueType>* const b,
+                             matrix::BatchDense<ValueType>* const x)
+{
+    namespace device = gko::kernels::host;
+    const auto b_b = device::get_batch_struct(b);
+    const auto x_b = device::get_batch_struct(x);
+
+    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(sys_mat)) {
+        auto m_b = device::get_batch_struct(amat);
+        call_apply_kernel(m_b, b_b, x_b);
+
+    } else if (auto amat =
+                   dynamic_cast<const matrix::BatchEll<ValueType>*>(sys_mat)) {
+        auto m_b = device::get_batch_struct(amat);
+        call_apply_kernel(m_b, b_b, x_b);
+
+    } else if (auto amat = dynamic_cast<const matrix::BatchDense<ValueType>*>(
+                   sys_mat)) {
+        auto m_b = device::get_batch_struct(amat);
+        call_apply_kernel(m_b, b_b, x_b);
+    } else {
+        GKO_NOT_SUPPORTED(sys_mat);
+    }
+}
+
+
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const BatchLinOp* const sys_mat,
            const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* const x)
+{
+    dispatch_on_matrix_type(sys_mat, b, x);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_LOWER_TRS_APPLY_KERNEL);
 
