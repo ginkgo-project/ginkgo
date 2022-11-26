@@ -33,8 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/batch_lower_trs.hpp>
 
 
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -93,12 +94,30 @@ void BatchLowerTrs<ValueType>::apply_impl(const BatchLinOp* b,
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
 
+    auto exec = this->get_executor();
+    auto system_matrix_new = gko::share(gko::clone(
+        exec, this->system_matrix_.get()));  // any way to avoid extra copy if
+                                             // matrix is already sorted ??
+
+    if (parameters_.skip_sorting !=
+        true) {  // Note: dynamic cast now happens twice - here and then
+                 // dispatch on matrix type- individual backends.
+
+        if (auto amat = dynamic_cast<matrix::BatchCsr<ValueType>*>(
+                system_matrix_new.get())) {
+            amat->sort_by_column_index();
+
+        } else if (auto amat = dynamic_cast<matrix::BatchEll<ValueType>*>(
+                       system_matrix_new.get())) {
+            // amat->sort_by_column_index();
+        }
+    }
+
     const bool to_scale = std::dynamic_pointer_cast<const BDiag>(
                               this->parameters_.left_scaling_op) &&
                           std::dynamic_pointer_cast<const BDiag>(
                               this->parameters_.right_scaling_op);
 
-    auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
@@ -115,8 +134,8 @@ void BatchLowerTrs<ValueType>::apply_impl(const BatchLinOp* b,
         b_scaled_ptr = dense_b;
     }
 
-    exec->run(batch_lower_trs::make_apply(this->system_matrix_.get(),
-                                          b_scaled_ptr, dense_x));
+    exec->run(batch_lower_trs::make_apply(system_matrix_new.get(), b_scaled_ptr,
+                                          dense_x));
 
     if (to_scale) {
         as<const BDiag>(this->parameters_.right_scaling_op)
