@@ -62,6 +62,7 @@ target_sources(ginkgo_cuda
     solver/batch_gmres_kernels.cu
     solver/batch_idr_kernels.cu
     solver/batch_lower_trs_kernels.cu
+    solver/batch_upper_trs_kernels.cu
     solver/batch_richardson_kernels.cu
     solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
