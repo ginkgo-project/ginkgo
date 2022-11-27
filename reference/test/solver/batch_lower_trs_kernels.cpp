@@ -50,104 +50,140 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+// TODO: Add tests for non-sorted input matrix
+// TODO: Add tests for input matrices in dense and ell format
+template <typename T>
+class BatchLowerTrs : public ::testing::Test {
+protected:
+    using value_type = T;
+    using real_type = gko::remove_complex<value_type>;
+    using BCsr = gko::matrix::BatchCsr<value_type, int>;
+    using BEll = gko::matrix::BatchEll<value_type, int>;
+    using BDense = gko::matrix::BatchDense<value_type>;
+    using RBDense = gko::matrix::BatchDense<real_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
+    using solver_type = gko::solver::BatchLowerTrs<value_type>;
 
-// template <typename T>
-// class BatchDirect : public ::testing::Test {
-// protected:
-//     using value_type = T;
-//     using real_type = gko::remove_complex<value_type>;
-//     using Mtx = gko::matrix::BatchCsr<value_type, int>;
-//     using BDense = gko::matrix::BatchDense<value_type>;
-//     using RBDense = gko::matrix::BatchDense<real_type>;
-//     using BDiag = gko::matrix::BatchDiagonal<value_type>;
-//     using solver_type = gko::solver::BatchDirect<value_type>;
+    BatchLowerTrs()
+        : exec(gko::ReferenceExecutor::create()),
+          csr_lower_mat(get_csr_lower_matrix())
+    {
+        setup_ref_scaling_test();
+        setup_rhs_and_sol();
+    }
 
-//     BatchDirect() : exec(gko::ReferenceExecutor::create()) {}
+    std::shared_ptr<gko::ReferenceExecutor> exec;
+    const real_type eps = r<value_type>::value;
 
-//     std::shared_ptr<gko::ReferenceExecutor> exec;
+    const size_t nbatch = 2;
+    const int nrows = 4;
 
-//     const real_type eps = r<value_type>::value;
+    std::shared_ptr<BDiag> left_scale;
+    std::shared_ptr<BDiag> right_scale;
 
-//     const size_t nbatch = 2;
-//     const int nrows = 3;
-//     const int ncols = 5;
-//     const int nrhs = 2;
+    std::shared_ptr<BCsr> csr_lower_mat;
+    std::shared_ptr<BDense> b;
+    std::shared_ptr<BDense> x;
+    std::shared_ptr<BDense> expected_sol;
 
-//     std::unique_ptr<BDiag> left_scale;
-//     std::unique_ptr<BDiag> right_scale;
+    /*
 
-//     void setup_ref_scaling_test()
-//     {
-//         left_scale = BDiag::create(
-//             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
-//         left_scale->at(0, 0) = 2.0;
-//         left_scale->at(0, 1) = 3.0;
-//         left_scale->at(0, 2) = -1.0;
-//         left_scale->at(1, 0) = 1.0;
-//         left_scale->at(1, 1) = -2.0;
-//         left_scale->at(1, 2) = -4.0;
-//         right_scale = BDiag::create(
-//             exec, gko::batch_dim<>(nbatch, gko::dim<2>(ncols, ncols)));
-//         right_scale->at(0, 0) = 1.0;
-//         right_scale->at(0, 1) = 1.5;
-//         right_scale->at(0, 2) = -2.0;
-//         right_scale->at(0, 3) = 4.0;
-//         right_scale->at(0, 4) = 0.25;
-//         right_scale->at(1, 0) = 0.5;
-//         right_scale->at(1, 1) = -3.0;
-//         right_scale->at(1, 2) = -2.0;
-//         right_scale->at(1, 3) = 2.0;
-//         right_scale->at(1, 4) = -1.0;
-//     }
-// };
+    2  0  0  0   *     2    =     4
+    1  2  0  0         5          12
+    4  0  5  0         1          13
+    0  0  7  1         3          10
 
-// TYPED_TEST_SUITE(BatchDirect, gko::test::ValueTypes);
+    1  0  0  0   *     4    =     4
+    3  4  0  0         1          16
+    1  0  1  0         2          6
+    0  0  4  5         6          38
+
+    */
+
+    std::unique_ptr<BCsr> get_csr_lower_matrix()
+    {
+        auto mat = BCsr::create(exec, nbatch, gko::dim<2>(nrows, nrows), 7);
+        int* const row_ptrs = mat->get_row_ptrs();
+        int* const col_idxs = mat->get_col_idxs();
+        value_type* const vals = mat->get_values();
+        // clang-format off
+		row_ptrs[0] = 0; row_ptrs[1] = 1; row_ptrs[2] = 3; row_ptrs[3] = 5; row_ptrs[4] = 7;
+		col_idxs[0] = 0; col_idxs[1] = 0; col_idxs[2] = 1; col_idxs[3] = 0;
+		col_idxs[4] = 2; col_idxs[5] = 2; col_idxs[6] = 3;
+		vals[0] = 2.0; vals[1] = 1.0; vals[2] = 2.0; vals[3] = 4.0;
+		vals[4] = 5.0; vals[5] = 7.0;
+		vals[6] = 1.0; vals[7] = 1.0; vals[8] = 3.0; vals[9] = 4.0;
+		vals[10] = 1.0; vals[11] = 1.0;
+        vals[12] = 4.0; vals[13] = 5.0;
+        // clang-format on
+        return mat;
+    }
+
+    void setup_rhs_and_sol()
+    {
+        this->b = gko::batch_initialize<BDense>(
+            {{4.0, 12.0, 13.0, 10.0}, {4.0, 16.0, 6.0, 38.0}}, exec);
+
+        this->expected_sol = gko::batch_initialize<BDense>(
+            {{2.0, 5.0, 1.0, 3.0}, {4.0, 1.0, 2.0, 6.0}}, exec);
+
+        this->x = BDense::create(
+            exec, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1)));
+    }
 
 
-// TYPED_TEST(BatchDirect, SystemPreScaleTranspose)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_lower_trs): change the code imported from
-// solver/batch_direct if needed
-// //    using T = typename TestFixture::value_type;
-// //    using BDense = typename TestFixture::BDense;
-// //    this->setup_ref_scaling_test();
-// //    auto b_orig = gko::batch_initialize<BDense>(
-// //        {{I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({1.5, 4.0})},
-// //         {{1.0, -2.0}, {1.0, -2.5}, {-3.0, 0.5}}},
-// //        this->exec);
-// //    auto b_scaled = gko::batch_initialize<BDense>(
-// //        {{I<T>({2.0, -6.0, -1.5}), I<T>({-2.0, 6.0, -4.0})},
-// //         {{1.0, -2.0, 12.0}, {-2.0, 5.0, -2.0}}},
-// //        this->exec);
-// //    auto refmat = gko::batch_initialize<BDense>(
-// //        {{I<T>{1.0, 2.0, -1.0, 0.0, -2.0}, I<T>{2.0, -1.0, 0.0, 0.0, 3.0},
-// //          I<T>{3.0, -2.0, 1.0, 2.0, 0.0}},
-// //         {I<T>{3.0, 1.0, -2.0, 0.0, -2.0}, I<T>{2.0, -4.0, 0.0, 0.0, 3.0},
-// //          I<T>{2.0, -1.0, 1.0, 2.0, 0.0}}},
-// //        this->exec);
-// //    auto refscaledmat = gko::batch_initialize<BDense>(
-// //        {{I<T>{2.0, 6.0, -3.0}, I<T>{6.0, -4.5, 3.0}, I<T>{4.0, 0.0, 2.0},
-// //          I<T>{0.0, 0.0, -8.0}, I<T>{-1.0, 2.25, 0.0}},
-// //         {I<T>{1.5, -2.0, -4.0}, I<T>{-3.0, -24.0, -12.0}, I<T>{4.0,
-// 0.0, 8.0},
-// //          I<T>{0.0, 0.0, -16.0}, I<T>{2.0, 6.0, 0.0}}},
-// //        this->exec);
-// //    auto scaledmat = BDense::create(
-// //        this->exec,
-// //        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->ncols,
-// this->nrows)));
-// //    auto scaledb = BDense::create(
-// //        this->exec,
-// //        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs,
-// this->nrows)));
-// //
-// // gko::kernels::reference::batch_lower_trs::pre_diag_scale_system_transpose(
-// //        this->exec, refmat.get(), b_orig.get(), this->left_scale.get(),
-// //        this->right_scale.get(), scaledmat.get(), scaledb.get());
-// //
-// //    GKO_ASSERT_BATCH_MTX_NEAR(scaledb, b_scaled, this->eps);
-// //    GKO_ASSERT_BATCH_MTX_NEAR(scaledmat, refscaledmat, this->eps);
-// //}
+    void setup_ref_scaling_test()
+    {
+        left_scale = gko::share(BDiag::create(
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows))));
+        left_scale->at(0, 0) = 2.0;
+        left_scale->at(0, 1) = 3.0;
+        left_scale->at(0, 2) = -1.0;
+        left_scale->at(0, 3) = -4.0;
+        left_scale->at(1, 0) = 1.0;
+        left_scale->at(1, 1) = -2.0;
+        left_scale->at(1, 2) = -4.0;
+        left_scale->at(1, 3) = 3.0;
+        right_scale = gko::share(BDiag::create(
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows))));
+        right_scale->at(0, 0) = 1.0;
+        right_scale->at(0, 1) = 1.5;
+        right_scale->at(0, 2) = -2.0;
+        right_scale->at(0, 3) = 4.0;
+        right_scale->at(1, 0) = 0.5;
+        right_scale->at(1, 1) = -3.0;
+        right_scale->at(1, 2) = -2.0;
+        right_scale->at(1, 3) = 2.0;
+    }
+};
+
+TYPED_TEST_SUITE(BatchLowerTrs, gko::test::ValueTypes);
+
+
+TYPED_TEST(BatchLowerTrs, CsrMatrixTriSolveIsCorrect)
+{
+    using solver_type = typename TestFixture::solver_type;
+    auto lower_trs_solver = solver_type::build()
+                                .with_skip_sorting(true)
+                                .on(this->exec)
+                                ->generate(this->csr_lower_mat);
+    lower_trs_solver->apply(this->b.get(), this->x.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+}
+
+TYPED_TEST(BatchLowerTrs, CsrMatrixTriSolveWithScalingIsCorrect)
+{
+    using solver_type = typename TestFixture::solver_type;
+
+    auto lower_trs_solver = solver_type::build()
+                                .with_skip_sorting(true)
+                                .with_left_scaling_op(this->left_scale)
+                                .with_right_scaling_op(this->right_scale)
+                                .on(this->exec)
+                                ->generate(this->csr_lower_mat);
+    lower_trs_solver->apply(this->b.get(), this->x.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+}
+
 
 }  // namespace
