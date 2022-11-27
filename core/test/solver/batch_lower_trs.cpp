@@ -61,37 +61,36 @@ protected:
 
     BatchLowerTrs()
         : exec(gko::ReferenceExecutor::create()),
-          //  mtx(get_lower_matrix()),
-          mtx(gko::test::create_poisson1d_batch<Mtx>(
-              std::static_pointer_cast<const gko::ReferenceExecutor>(
-                  this->exec),
-              nrows, nbatch)),
+          mtx(get_csr_lower_matrix()),
           batchlowertrs_factory(Solver::build().on(exec)),
           solver(batchlowertrs_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    const gko::size_type nbatch = 3;
-    const int nrows = 5;
-    const int min_nnz_row = 1;
+    const gko::size_type nbatch = 2;
+    const int nrows = 4;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchlowertrs_factory;
     std::unique_ptr<gko::BatchLinOp> solver;
 
-    std::ranlux48 rand_engine;
-
-    std::unique_ptr<Mtx> get_lower_matrix()
+    std::unique_ptr<Mtx> get_csr_lower_matrix()
     {
-        auto unbatch_mat =
-            gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
-                nrows, false, true,
-                std::uniform_int_distribution<>(min_nnz_row, nrows),
-                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                std::static_pointer_cast<const gko::ReferenceExecutor>(exec));
-
-        return Mtx::create(
-            std::static_pointer_cast<const gko::ReferenceExecutor>(exec),
-            nbatch, unbatch_mat.get());
+        auto mat = Mtx::create(gko::as<const gko::ReferenceExecutor>(exec), 2,
+                               gko::dim<2>(4, 4), 7);
+        int* const row_ptrs = mat->get_row_ptrs();
+        int* const col_idxs = mat->get_col_idxs();
+        value_type* const vals = mat->get_values();
+        // clang-format off
+        row_ptrs[0] = 0;row_ptrs[1] = 1; row_ptrs[2] = 3;
+        row_ptrs[3] = 5; row_ptrs[4] = 7;
+        col_idxs[0] = 0; col_idxs[1] = 0; col_idxs[2] = 1;
+        col_idxs[3] = 0;  col_idxs[4] = 2; col_idxs[5] = 2; col_idxs[6] = 3;
+        vals[0] = 2.0; vals[1] = 1.0; vals[2] = 2.0; vals[3] = 4.0;
+        vals[4] = 5.0; vals[5] = 7.0; vals[6] = 1.0; vals[7] = 1.0;
+        vals[8] = 3.0; vals[9] = 4.0; vals[10] = 1.0; vals[11] = 1.0;
+        vals[12] = 4.0; vals[13] = 5.0;
+        // clang-format on
+        return mat;
     }
 };
 
