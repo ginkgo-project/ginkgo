@@ -70,7 +70,27 @@ __device__ __forceinline__ void naive_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    // assert(0);  // TODO
+
+    const int num_rows = L_entry.num_rows;
+    const int* const __restrict__ row_ptrs = L_entry.row_ptrs;
+    const int* const __restrict__ col_idxs = L_entry.col_idxs;
+    const ValueType* const __restrict__ mat_values_entry = L_entry.values;
+
+    if (threadIdx.x == 0) {
+        // L * x = b
+        for (int row_idx = 0; row_idx < num_rows; row_idx++) {
+            ValueType sum = zero<ValueType>();
+            for (int col_idx = 0; col_idx < row_idx; col_idx++) {
+                sum += L_entry.values[row_idx * L_entry.stride + col_idx] *
+                       x_entry[col_idx];
+            }
+
+            x_entry[row_idx] =
+                (b_entry[row_idx] - sum) /
+                L_entry.values[row_idx * L_entry.stride + row_idx];
+        }
+    }
 }
 
 

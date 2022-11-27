@@ -71,7 +71,25 @@ template <typename ValueType>
 inline void upper_trsv(
     const gko::batch_dense::BatchEntry<const ValueType>& U_entry,
     const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
-    const gko::batch_dense::BatchEntry<ValueType>& x_entry) GKO_NOT_IMPLEMENTED;
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry)
+{
+    const auto nrows = U_entry.num_rows;
+    const auto nrhs = b_entry.num_rhs;
+
+    for (int rhs_idx = 0; rhs_idx < nrhs; rhs_idx++) {
+        for (int row_idx = nrows - 1; row_idx >= 0; row_idx--) {
+            ValueType sum = zero<ValueType>();
+            for (int col_idx = nrows - 1; col_idx > row_idx; col_idx--) {
+                sum += U_entry.values[row_idx * U_entry.stride + col_idx] *
+                       x_entry.values[col_idx * x_entry.stride + rhs_idx];
+            }
+
+            x_entry.values[row_idx * x_entry.stride + rhs_idx] =
+                (b_entry.values[row_idx * b_entry.stride + rhs_idx] - sum) /
+                U_entry.values[row_idx * U_entry.stride + row_idx];
+        }
+    }
+}
 
 
 template <typename BatchMatrixType, typename ValueType>
