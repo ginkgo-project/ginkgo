@@ -66,7 +66,8 @@ protected:
 
     BatchLowerTrs()
         : exec(gko::ReferenceExecutor::create()),
-          csr_lower_mat(get_csr_lower_matrix())
+          csr_lower_mat(get_csr_lower_matrix()),
+          dense_lower_mat(get_dense_lower_matrix())
     {
         setup_ref_scaling_test();
         setup_rhs_and_sol();
@@ -82,6 +83,7 @@ protected:
     std::shared_ptr<BDiag> right_scale;
 
     std::shared_ptr<BCsr> csr_lower_mat;
+    std::shared_ptr<BDense> dense_lower_mat;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
     std::shared_ptr<BDense> expected_sol;
@@ -115,6 +117,25 @@ protected:
 		vals[6] = 1.0; vals[7] = 1.0; vals[8] = 3.0; vals[9] = 4.0;
 		vals[10] = 1.0; vals[11] = 1.0;
         vals[12] = 4.0; vals[13] = 5.0;
+        // clang-format on
+        return mat;
+    }
+
+    std::unique_ptr<BDense> get_dense_lower_matrix()
+    {
+        auto mat = BDense::create(
+            exec, gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, nrows)));
+        value_type* const vals = mat->get_values();
+        // clang-format off
+		vals[0] = 2.0; vals[1] = 0.0; vals[2] = 0.0; vals[3] = 0.0;
+		vals[4] = 1.0; vals[5] = 2.0; vals[6] = 0.0; vals[7] = 0.0; 
+        vals[8] = 4.0; vals[9] = 0.0; vals[10] = 5.0; vals[11] = 0.0;
+        vals[12] = 0.0; vals[13] = 0.0;   vals[14] = 7.0; vals[15] = 1.0;
+
+        vals[16] = 1.0; vals[17] = 0.0;   vals[18] = 0.0; vals[19] = 0.0;
+        vals[20] = 3.0; vals[21] = 4.0;   vals[22] = 0.0; vals[23] = 0.0;
+        vals[24] = 1.0; vals[25] = 0.0;   vals[26] = 1.0; vals[27] = 0.0;
+        vals[28] = 0.0; vals[29] = 0.0;   vals[30] = 4.0; vals[31] = 5.0;
         // clang-format on
         return mat;
     }
@@ -181,6 +202,31 @@ TYPED_TEST(BatchLowerTrs, CsrMatrixTriSolveWithScalingIsCorrect)
                                 .with_right_scaling_op(this->right_scale)
                                 .on(this->exec)
                                 ->generate(this->csr_lower_mat);
+    lower_trs_solver->apply(this->b.get(), this->x.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+}
+
+TYPED_TEST(BatchLowerTrs, DenseMatrixTriSolveIsCorrect)
+{
+    using solver_type = typename TestFixture::solver_type;
+    auto lower_trs_solver = solver_type::build()
+                                .with_skip_sorting(true)
+                                .on(this->exec)
+                                ->generate(this->dense_lower_mat);
+    lower_trs_solver->apply(this->b.get(), this->x.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+}
+
+TYPED_TEST(BatchLowerTrs, DenseMatrixTriSolveWithScalingIsCorrect)
+{
+    using solver_type = typename TestFixture::solver_type;
+
+    auto lower_trs_solver = solver_type::build()
+                                .with_skip_sorting(true)
+                                .with_left_scaling_op(this->left_scale)
+                                .with_right_scaling_op(this->right_scale)
+                                .on(this->exec)
+                                ->generate(this->dense_lower_mat);
     lower_trs_solver->apply(this->b.get(), this->x.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
 }
