@@ -1,5 +1,4 @@
 ginkgo_create_cuda_test(batch_bicgstab_allocation)
 ginkgo_create_test(batch_direct_kernels)
-ginkgo_create_test(batch_lower_trs_kernels)
 ginkgo_create_test(lower_trs_kernels ADDITIONAL_INCLUDES ${CUDA_INCLUDE_DIRS})
 ginkgo_create_test(upper_trs_kernels ADDITIONAL_INCLUDES ${CUDA_INCLUDE_DIRS})
