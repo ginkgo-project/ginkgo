@@ -5,6 +5,9 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
 
+#include <iomanip>
+#include <ios>
+#include <iostream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -309,32 +312,23 @@ char print_type()
 
 
 template <typename Range>
-void compare_and_copy(Range&& old, Range&& curr, size_type num_vecs)
+void print_krylov_vectors(Range&& curr, size_type num_vecs, size_type iteration)
 {
     using T = typename std::decay_t<Range>::accessor::arithmetic_type;
-    bool error_detected = false;
-    for (size_type i = 0; i < num_vecs - 1; ++i) {
-        for (size_type row = 0; row < old.length(1); ++row) {
-            for (size_type rhs = 0; rhs < old.length(2); ++rhs) {
-                const T ov = old(i, row, rhs);
-                const T cv = curr(i, row, rhs);
-                if (ov != cv) {
-                    std::cerr << "Mismatching at: " << i << ' ' << row << ' '
-                              << rhs << ": " << ov << " vs. " << cv << '\n';
-                    error_detected = true;
-                }
-            }
+    const std::string matrix_delim = "$$$$$$$$$$\n";
+    const std::string iteration_prefix = "__iteration: ";
+    const std::string elem_delim = " ";
+    std::cout << std::setprecision(17) << std::scientific;
+    std::cout << iteration_prefix << iteration << '\n';
+    std::cout << matrix_delim;
+    for (size_type i = 0; i < num_vecs; ++i) {
+        for (size_type row = 0; row < curr.length(1); ++row) {
+            const T cv = curr(i, row, 0);
+            std::cout << cv << elem_delim;
         }
+        std::cout << '\n';
     }
-    if (!error_detected) {
-        std::cout << "Iteration " << num_vecs - 1 << " is fine!\n";
-    }
-    const auto curr_vec = num_vecs - 1;
-    for (size_type row = 0; row < old.length(1); ++row) {
-        for (size_type rhs = 0; rhs < old.length(2); ++rhs) {
-            old(curr_vec, row, rhs) = T(curr(curr_vec, row, rhs));
-        }
-    }
+    std::cout << matrix_delim;
 }
 
 
@@ -377,9 +371,7 @@ void CbGmres<ValueType>::apply_dense_impl(
          */
         const dim<3> krylov_bases_dim{krylov_dim + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
-        Range3dHelper helper2(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
-        auto krylov_bases_range_compare = helper2.get_range();
 
         // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
@@ -542,6 +534,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 auto hessenberg_view = hessenberg->create_submatrix(
                     span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
+                print_krylov_vectors(krylov_bases_range, restart_iter + 1,
+                                     total_iter);
                 exec->run(cb_gmres::make_solve_krylov(
                     residual_norm_collection.get(),
                     krylov_bases_range.get_accessor().to_const(),
@@ -620,8 +614,6 @@ void CbGmres<ValueType>::apply_dense_impl(
             // Calculate residual norm
 
             comp_helper.compress(restart_iter + 1, helper);  // ADDED
-            compare_and_copy(krylov_bases_range, krylov_bases_range_compare,
-                             restart_iter + 1);
             restart_iter++;
         }  // closes while(true)
         // Solve x
