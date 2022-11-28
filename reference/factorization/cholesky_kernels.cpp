@@ -60,11 +60,10 @@ namespace cholesky {
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_count(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz, array<IndexType>&)
+void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* mtx,
+                    const factorization::elimination_forest<IndexType>& forest,
+                    IndexType* row_nnz, array<IndexType>&)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -97,7 +96,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_factorize(
+void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
@@ -202,12 +201,10 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         ValueType diag = vals[row_diag];
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
             diag -= squared_norm(vals[lower_nz]);
+            // copy the lower triangular entries to the transpose
+            vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
         }
         vals[row_diag] = sqrt(diag);
-        // copy the lower triangular entries to the transpose
-        for (auto nz = row_begin; nz < row_diag; nz++) {
-            vals[transpose_idxs[nz]] = conj(vals[nz]);
-        }
     }
 }
 
@@ -220,41 +217,7 @@ void ldl_factorize(std::shared_ptr<const DefaultExecutor> exec,
                    const int32* lookup_storage, const IndexType* diag_idxs,
                    const IndexType* transpose_idxs,
                    matrix::Csr<ValueType, IndexType>* factors,
-                   array<int>& tmp_storage)
-{
-    const auto num_rows = factors->get_size()[0];
-    const auto row_ptrs = factors->get_const_row_ptrs();
-    const auto cols = factors->get_const_col_idxs();
-    const auto vals = factors->get_values();
-    for (size_type row = 0; row < num_rows; row++) {
-        const auto row_begin = row_ptrs[row];
-        const auto row_diag = diag_idxs[row];
-        matrix::csr::device_sparsity_lookup<IndexType> lookup{
-            row_ptrs, cols, lookup_offsets, lookup_storage, lookup_descs, row};
-        for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
-            const auto dep = cols[lower_nz];
-            const auto dep_diag_idx = diag_idxs[dep];
-            const auto dep_diag = vals[dep_diag_idx];
-            const auto dep_end = row_ptrs[dep + 1];
-            const auto scale = vals[lower_nz] / dep_diag;
-            vals[lower_nz] = scale;
-            for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end; dep_nz++) {
-                const auto col = cols[dep_nz];
-                if (col <= row) {
-                    // handle implicit one
-                    const auto val =
-                        col == dep ? one<ValueType>() : vals[dep_nz];
-                    const auto nz = row_begin + lookup.lookup_unsafe(col);
-                    vals[nz] -= scale * vals[diag_idxs[col]] * val;
-                }
-            }
-            // copy the lower triangular entries to the transpose
-            for (auto nz = row_begin; nz < row_diag; nz++) {
-                vals[transpose_idxs[nz]] = conj(vals[nz]);
-            }
-        }
-    }
-}
+                   array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LDL_FACTORIZE);
 

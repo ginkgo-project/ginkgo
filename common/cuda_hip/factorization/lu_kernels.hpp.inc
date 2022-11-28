@@ -146,11 +146,14 @@ __global__ __launch_bounds__(default_block_size) void factorize(
             vals[output_pos] -= scale * upper_val;
         }
     }
+    warp.sync();
     __threadfence();
-    // notify local warps
-    store(sh_ready, row_local, 1);
-    // notify other blocks
-    store(ready, row, 1);
+    if (lane == 0) {
+        // notify local warps
+        store(sh_ready, row_local, 1);
+        // notify other blocks
+        store(ready, row, 1);
+    }
 }
 
 
