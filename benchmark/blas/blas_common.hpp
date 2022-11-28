@@ -84,7 +84,7 @@ public:
 };
 
 template <typename Generator, typename T>
-auto as_vector(T&& p)
+auto as_vector(T& p)
 {
     return gko::as<typename Generator::Vec>(gko::lend(p));
 }
@@ -95,13 +95,13 @@ class CopyOperation : public BenchmarkOperation {
 public:
     CopyOperation(std::shared_ptr<const gko::Executor> exec,
                   const Generator& generator, gko::size_type rows,
-                  gko::size_type cols, gko::size_type istride,
-                  gko::size_type ostride)
+                  gko::size_type cols, gko::size_type stride_in,
+                  gko::size_type stride_out)
     {
         in_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, istride);
+            exec, gko::dim<2>{rows, cols}, stride_in);
         out_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, ostride);
+            exec, gko::dim<2>{rows, cols}, stride_out);
         as_vector<Generator>(in_)->fill(1);
     }
 
@@ -379,19 +379,17 @@ struct dimensions {
 };
 
 
-gko::size_type get_optional(rapidjson::Value& obj, const char* name,
-                            gko::size_type default_value)
-{
-    if (obj.HasMember(name)) {
-        return obj[name].GetUint64();
-    } else {
-        return default_value;
-    }
-}
-
-
 dimensions parse_dims(rapidjson::Value& test_case)
 {
+    auto get_optional = [](rapidjson::Value& obj, const char* name,
+                           gko::size_type default_value) {
+        if (obj.HasMember(name)) {
+            return obj[name].GetUint64();
+        } else {
+            return default_value;
+        }
+    };
+
     dimensions result;
     result.n = test_case["n"].GetInt64();
     result.k = get_optional(test_case, "k", result.n);
