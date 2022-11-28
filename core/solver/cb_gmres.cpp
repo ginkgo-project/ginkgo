@@ -232,9 +232,9 @@ struct compression_helper {
                 //                {"write_debug_inputs:display_paths", true},
                 //                {"write_debug_inputs:io", "posix"},
                 // numpy outputs numpy compatible arrays
-                                {"write_debug_inputs:write_input", true},
-                                {"write_debug_inputs:display_paths", true},
-                                {"write_debug_inputs:io", "numpy"},
+                //                {"write_debug_inputs:write_input", true},
+                //                {"write_debug_inputs:display_paths", true},
+                //                {"write_debug_inputs:io", "numpy"},
             });
             pc_->set_name("pressio");
             pc_->set_options(options_from_file);
@@ -243,11 +243,14 @@ struct compression_helper {
                                           ? pressio_float_dtype
                                           : pressio_double_dtype;
             for (size_type i = 0; i < p_data_vec_.size(); ++i) {
-                p_data_vec_[i] =
-                    pressio_data::empty(pressio_type_byte, {});
+                p_data_vec_[i] = pressio_data::empty(pressio_byte_dtype, {});
             }
-            in_temp_ = pressio_data::owning(pressio_type, {ceildiv(num_rows_, 44), 44});
-            out_temp_ = pressio_data::owning(pressio_type, {ceildiv(num_rows_, 44), 44});
+            in_temp_ = pressio_data::owning(
+                pressio_type,
+                {static_cast<uint64>(ceildiv(num_rows_, 44ul)), 44l});
+            out_temp_ = pressio_data::owning(
+                pressio_type,
+                {static_cast<uint64>(ceildiv(num_rows_, 44ul)), 44l});
         }
     }
 
@@ -305,6 +308,36 @@ char print_type()
 }
 
 
+template <typename Range>
+void compare_and_copy(Range&& old, Range&& curr, size_type num_vecs)
+{
+    using T = typename std::decay_t<Range>::accessor::arithmetic_type;
+    bool error_detected = false;
+    for (size_type i = 0; i < num_vecs - 1; ++i) {
+        for (size_type row = 0; row < old.length(1); ++row) {
+            for (size_type rhs = 0; rhs < old.length(2); ++rhs) {
+                const T ov = old(i, row, rhs);
+                const T cv = curr(i, row, rhs);
+                if (ov != cv) {
+                    std::cerr << "Mismatching at: " << i << ' ' << row << ' '
+                              << rhs << ": " << ov << " vs. " << cv << '\n';
+                    error_detected = true;
+                }
+            }
+        }
+    }
+    if (!error_detected) {
+        std::cout << "Iteration " << num_vecs - 1 << " is fine!\n";
+    }
+    const auto curr_vec = num_vecs - 1;
+    for (size_type row = 0; row < old.length(1); ++row) {
+        for (size_type rhs = 0; rhs < old.length(2); ++rhs) {
+            old(curr_vec, row, rhs) = T(curr(curr_vec, row, rhs));
+        }
+    }
+}
+
+
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
     const matrix::Dense<ValueType>* dense_b,
@@ -344,7 +377,9 @@ void CbGmres<ValueType>::apply_dense_impl(
          */
         const dim<3> krylov_bases_dim{krylov_dim + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
+        Range3dHelper helper2(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
+        auto krylov_bases_range_compare = helper2.get_range();
 
         // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
@@ -585,6 +620,8 @@ void CbGmres<ValueType>::apply_dense_impl(
             // Calculate residual norm
 
             comp_helper.compress(restart_iter + 1, helper);  // ADDED
+            compare_and_copy(krylov_bases_range, krylov_bases_range_compare,
+                             restart_iter + 1);
             restart_iter++;
         }  // closes while(true)
         // Solve x
