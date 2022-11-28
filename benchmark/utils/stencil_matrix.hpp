@@ -65,46 +65,63 @@ bool is_in_box(const IndexType i, const IndexType bound)
  * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
  * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
  *
- * If
- * strong_scaling is set to true, creates the same problem size independent of
- * the number of ranks, if it false the problem size grows with the number of
- * ranks.
+ * If `dim != [1 1]` then the matrix data is a subset of a larger matrix.
+ * The total matrix is a discretization of `[0, dims[0]] x [0, dims[1]]`, and
+ * each box is square. The position of the box defines the subset of the matrix.
+ * The degrees of freedom are ordered box-wise and the boxes themselves are
+ * ordered lexicographical. This means that the indices are with respect to the
+ * larger matrix, i.e. they might not start with 0.
+ *
+ * @param dims  The number of boxes in each dimension.
+ * @param positions  The position of this box with respect to each dimension.
+ * @param target_local_size  The desired size of the boxes. The actual size can
+ *                           deviate from this to accommodate the square size of
+ *                           the boxes.
+ * @param restricted  If true, a 5-pt stencil is used, else a 9-pt stencil.
+ *
+ * @return  matrix data of a box using either 5-pt or 9-pt stencil.
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
-    std::array<int, 2> dims, std::array<int, 2> position,
+    std::array<int, 2> dims, std::array<int, 2> positions,
     const gko::size_type target_local_size, bool restricted)
 {
     auto num_boxes =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto dp =
+    const auto discretization_points =
         static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto local_size = static_cast<gko::size_type>(dp * dp);
+    const auto local_size = static_cast<gko::size_type>(discretization_points *
+                                                        discretization_points);
     const auto global_size = local_size * num_boxes;
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int px, const int py) {
-        return static_cast<int>(local_size) * px +
-               static_cast<int>(local_size) * dims[0] * py;
+    auto global_offset = [&](const int position_x, const int position_y) {
+        return static_cast<int>(local_size) * position_x +
+               static_cast<int>(local_size) * dims[0] * position_y;
     };
 
-    auto target_coords = [&](const IndexType i, const int coord) {
-        return is_in_box(i, dp) ? coord : i < 0 ? coord - 1 : coord + 1;
+    auto target_position = [&](const IndexType i, const int position) {
+        return is_in_box(i, discretization_points)
+                   ? position
+                   : (i < 0 ? position - 1 : position + 1);
     };
 
     auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, dp) ? i : i < 0 ? dp + i : dp - i;
+        return is_in_box(i, discretization_points)
+                   ? i
+                   : (i < 0 ? discretization_points + i
+                            : discretization_points - i);
     };
 
     auto flat_idx = [&](const IndexType ix, const IndexType iy) {
-        auto tcx = target_coords(ix, position[0]);
-        auto tcy = target_coords(iy, position[1]);
-        if (is_in_box(tcx, dims[0]) && is_in_box(tcy, dims[1])) {
-            return global_offset(tcx, tcy) + target_local_idx(ix) +
-                   target_local_idx(iy) * dp;
+        auto tpx = target_position(ix, positions[0]);
+        auto tpy = target_position(iy, positions[1]);
+        if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
+            return global_offset(tpx, tpy) + target_local_idx(ix) +
+                   target_local_idx(iy) * discretization_points;
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -127,8 +144,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
-    for (IndexType i = 0; i < dp; ++i) {
-        for (IndexType j = 0; j < dp; ++j) {
+    for (IndexType i = 0; i < discretization_points; ++i) {
+        for (IndexType j = 0; j < discretization_points; ++j) {
             auto row = flat_idx(j, i);
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
@@ -156,50 +173,72 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
 
 /**
  * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
- * creates a 7-pt stencil, if it is false creates a 27-pt stencil. If
- * strong_scaling is set to true, creates the same problem size independent of
- * the number of ranks, if it false the problem size grows with the number of
- * ranks.
+ * creates a 7-pt stencil, if it is false creates a 27-pt stencil.
+ *
+ * If `dim != [1 1 1]` then the matrix data is a subset of a larger matrix.
+ * The total matrix is a discretization of `[0, dims[0]] x [0, dims[1]] x [0,
+ * dims[2]]`, and each box is a cube. The position of the box defines the subset
+ * of the matrix. The degrees of freedom are ordered box-wise and the boxes
+ * themselves are ordered lexicographical. This means that the indices are with
+ * respect to the larger matrix, i.e. they might not start with 0.
+ *
+ * @param dims  The number of boxes in each dimension.
+ * @param positions  The position of this box with respect to each dimension.
+ * @param target_local_size  The desired size of the boxes. The actual size can
+ *                           deviate from this to accommodate the uniform size
+ *                           of the boxes.
+ * @param restricted  If true, a 7-pt stencil is used, else a 27-pt stencil.
+ *
+ * @return  matrix data of a box using either 7-pt or 27-pt stencil.
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
-    std::array<int, 3> dims, std::array<int, 3> position,
+    std::array<int, 3> dims, std::array<int, 3> positions,
     const gko::size_type target_local_size, bool restricted)
 {
     auto num_boxes =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto dp =
+    const auto discretization_points =
         static_cast<IndexType>(closest_nth_root(target_local_size, 3));
-    const auto local_size = static_cast<gko::size_type>(dp * dp * dp);
+    const auto local_size = static_cast<gko::size_type>(
+        discretization_points * discretization_points * discretization_points);
     const auto global_size = local_size * num_boxes;
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int cx, const int cy, const int cz) {
-        return cx * static_cast<int>(local_size) +
-               cy * static_cast<int>(local_size) * dims[0] +
-               cz * static_cast<int>(local_size) * dims[0] * dims[1];
+    auto global_offset = [&](const int position_x, const int position_y,
+                             const int position_z) {
+        return position_x * static_cast<int>(local_size) +
+               position_y * static_cast<int>(local_size) * dims[0] +
+               position_z * static_cast<int>(local_size) * dims[0] * dims[1];
     };
 
-    auto target_coords = [&](const IndexType i, const int coord) {
-        return is_in_box(i, dp) ? coord : i < 0 ? coord - 1 : coord + 1;
+    auto target_position = [&](const IndexType i, const int position) {
+        return is_in_box(i, discretization_points)
+                   ? position
+                   : (i < 0 ? position - 1 : position + 1);
     };
 
     auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, dp) ? i : i < 0 ? dp + i : dp - i;
+        return is_in_box(i, discretization_points)
+                   ? i
+                   : (i < 0 ? discretization_points + i
+                            : discretization_points - i);
     };
 
     auto flat_idx = [&](const IndexType ix, const IndexType iy,
                         const IndexType iz) {
-        auto tcx = target_coords(ix, position[0]);
-        auto tcy = target_coords(iy, position[1]);
-        auto tcz = target_coords(iz, position[2]);
-        if (is_in_box(tcx, dims[0]) && is_in_box(tcy, dims[1]) &&
-            is_in_box(tcz, dims[2])) {
-            return global_offset(tcx, tcy, tcz) + target_local_idx(ix) +
-                   target_local_idx(iy) * dp + target_local_idx(iz) * dp * dp;
+        auto tpx = target_position(ix, positions[0]);
+        auto tpy = target_position(iy, positions[1]);
+        auto tpz = target_position(iz, positions[2]);
+        if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
+            is_in_box(tpz, dims[2])) {
+            return global_offset(tpx, tpy, tpz) + target_local_idx(ix) +
+                   target_local_idx(iy) * discretization_points +
+                   target_local_idx(iz) * discretization_points *
+                       discretization_points;
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -227,9 +266,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
-    for (IndexType i = 0; i < dp; ++i) {
-        for (IndexType j = 0; j < dp; ++j) {
-            for (IndexType k = 0; k < dp; ++k) {
+    for (IndexType i = 0; i < discretization_points; ++i) {
+        for (IndexType j = 0; j < discretization_points; ++j) {
+            for (IndexType k = 0; k < discretization_points; ++k) {
                 auto row = flat_idx(k, j, i);
                 for (IndexType d_i : {-1, 0, 1}) {
                     for (IndexType d_j : {-1, 0, 1}) {
@@ -258,6 +297,17 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
 }
 
 
+/**
+ * Generates matrix data for the requested stencil.
+ *
+ * @see generate_2d_stencil_box, generate_3d_stencil_box
+ *
+ * @param stencil_name  The name of the stencil.
+ * @param target_local_size  The desired size of the matrix. The actual size can
+ *                           deviate from this to accommodate the uniform size
+ *                           of the discretization.
+ * @return  matrix data using the requested stencil.
+ */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_stencil(
     std::string stencil_name, const gko::size_type target_local_size)
@@ -284,6 +334,12 @@ gko::matrix_data<ValueType, IndexType> generate_stencil(
 #if GINKGO_BUILD_MPI
 
 
+/**
+ * Generates matrix data for a given 2D stencil, where the position of this
+ * block is given by it's MPI rank.
+ *
+ * @see generate_2d_stencil_box
+ */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     gko::experimental::mpi::communicator comm,
@@ -301,6 +357,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
 }
 
 
+/**
+ * Generates matrix data for a given 23 stencil, where the position of this
+ * block is given by it's MPI rank.
+ *
+ * @see generate_3d_stencil_box
+ */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     gko::experimental::mpi::communicator comm,
@@ -321,10 +383,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
 
 /**
  * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
- * creates a 5-pt stencil, if it is false creates a 9-pt stencil. If
- * strong_scaling is set to true, creates the same problemsize independent of
- * the number of ranks, if it false the problem size grows with the number of
- * ranks.
+ * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
+ *
+ * The degrees of freedom are ordered such that each MPI rank has at most two
+ * neighbors.
+ *
+ * @see generate_2d_stencil_box
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
@@ -385,10 +449,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
 
 /**
  * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
- * creates a 7-pt stencil, if it is false creates a 27-pt stencil. If
- * strong_scaling is set to true, creates the same problemsize independent of
- * the number of ranks, if it false the problem size grows with the number of
- * ranks.
+ * creates a 7-pt stencil, if it is false creates a 27-pt stencil.
+ *
+ * The degrees of freedom are ordered such that each MPI rank has at most two
+ * neighbors.
+ *
+ * @see generate_3d_stencil_box
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
@@ -457,6 +523,13 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
 }
 
 
+/**
+ * Generates matrix data for the requested stencil.
+ *
+ * @copydoc  generate_stencil(const gko::size_type, bool)
+ *
+ * @param comm  The MPI communicator to determine the rank.
+ */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_stencil(
     std::string stencil_name, gko::experimental::mpi::communicator comm,
