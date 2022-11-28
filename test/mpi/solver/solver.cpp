@@ -330,7 +330,7 @@ protected:
         }
         {
             SCOPED_TRACE("Some empty partition");
-            guarded_fn(gen_part(50, comm.size() - 1));
+            guarded_fn(gen_part(50, std::max(1, comm.size() - 1)));
         }
     }
 
