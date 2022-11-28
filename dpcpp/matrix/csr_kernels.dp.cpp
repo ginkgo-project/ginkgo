@@ -91,7 +91,7 @@ constexpr int classical_overweight = 32;
  */
 using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
+using classical_kernels = syn::value_list<int, config::warp_size, 16, 1>;
 
 
 namespace kernel {
