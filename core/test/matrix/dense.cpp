@@ -362,12 +362,11 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx =
-        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
+        this->mtx->create_submatrix(gko::span{1, 2}, gko::span{1, 3}, 3);
 
-    EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
-    EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
-    EXPECT_EQ(submtx->at(1, 0), value_type{1.5});
-    EXPECT_EQ(submtx->at(1, 1), value_type{2.5});
+    EXPECT_EQ(submtx->at(0, 0), value_type{2.5});
+    EXPECT_EQ(submtx->at(0, 1), value_type{3.5});
+    EXPECT_EQ(submtx->get_num_stored_elements(), 2);
 }
 
 
