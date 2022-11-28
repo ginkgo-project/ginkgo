@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+namespace kernel {
+
+
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
     IndexType num_rows, const IndexType* cols, const IndexType* row_ptrs,
@@ -58,22 +61,8 @@ __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
 }
 
 
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void pointer_doubling_kernel(
-    IndexType num_rows, const IndexType* parents, IndexType* doubled_parents)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-    const auto parent = parents[row];
-    doubled_parents[row] = parent < num_rows ? parents[parent] : num_rows;
-}
-
-
 template <int subwarp_size, typename IndexType>
-__global__
-__launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
+__global__ __launch_bounds__(default_block_size) void symbolic_count(
     IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
     const IndexType* inv_postorder, const IndexType* postorder_cols,
     const IndexType* postorder_parent, IndexType* row_nnz)
@@ -101,9 +90,8 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
             node = postorder_parent[node];
         }
     }
-    count =
-        reduce(subwarp, count, [](IndexType a, IndexType b) { return a + b; }) +
-        1;  // lower entries plus diagonal
+    // lower entries plus diagonal
+    count = reduce(subwarp, count, thrust::plus<IndexType>{}) + 1;
     if (lane == 0) {
         row_nnz[row] = count;
     }
@@ -111,8 +99,7 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
 
 
 template <int subwarp_size, typename IndexType>
-__global__
-__launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
+__global__ __launch_bounds__(default_block_size) void symbolic_factorize(
     IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
     const IndexType* inv_postorder, const IndexType* postorder_cols,
     const IndexType* postorder, const IndexType* postorder_parent,
@@ -159,7 +146,121 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_factorize(
+__global__ __launch_bounds__(default_block_size) void factorize(
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
+    const IndexType* __restrict__ storage_offsets,
+    const int32* __restrict__ storage, const int64* __restrict__ row_descs,
+    const IndexType* __restrict__ diag_idxs,
+    const IndexType* __restrict__ transpose_idxs, ValueType* __restrict__ vals,
+    int* __restrict__ ready, int* __restrict__ block_counter,
+    size_type num_rows)
+{
+    __shared__ int threadblock_offset;
+    __shared__ int sh_ready[default_block_size / config::warp_size];
+    if (threadIdx.x == 0) {
+        threadblock_offset = atomic_add(block_counter, 1) * default_block_size;
+    }
+    if (threadIdx.x < default_block_size / config::warp_size) {
+        sh_ready[threadIdx.x] = 0;
+    }
+    __syncthreads();
+    const auto row = (threadblock_offset + static_cast<int>(threadIdx.x)) /
+                     config::warp_size;
+    if (row >= num_rows) {
+        return;
+    }
+    const auto block = threadblock_offset / default_block_size;
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    const auto row_begin = row_ptrs[row];
+    const auto row_diag = diag_idxs[row];
+    const auto row_end = row_ptrs[row + 1];
+    const auto row_local = row % (default_block_size / config::warp_size);
+    gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+        row_ptrs, cols, storage_offsets, storage, row_descs, row};
+    // for each lower triangular entry: eliminate with corresponding row
+    for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
+        const auto dep = cols[lower_nz];
+        const auto dep_block = dep / (default_block_size / config::warp_size);
+        const auto dep_local = dep % (default_block_size / config::warp_size);
+        auto val = vals[lower_nz];
+        const auto diag_idx = diag_idxs[dep];
+        const auto dep_end = row_ptrs[dep + 1];
+        // assert(dep < row);
+        if (dep_block == block) {
+            // wait for a local dependency
+            while (!load(sh_ready, dep_local)) {
+                __threadfence();
+            }
+        } else {
+            // wait for a global dependency
+            while (!load(ready, dep)) {
+                __threadfence();
+            }
+        }
+        __threadfence();
+        const auto diag = vals[diag_idx];
+        const auto scale = val / diag;
+        if (lane == 0) {
+            vals[lower_nz] = scale;
+        }
+        // subtract all entries past the diagonal
+        for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
+             upper_nz += config::warp_size) {
+            const auto upper_col = cols[upper_nz];
+            if (upper_col < row) {
+                const auto col_dep_block =
+                    upper_col / (default_block_size / config::warp_size);
+                const auto col_dep_local =
+                    upper_col % (default_block_size / config::warp_size);
+                if (col_dep_block == block) {
+                    // wait for a local dependency
+                    while (!load(sh_ready, col_dep_local)) {
+                        __threadfence();
+                    }
+                } else {
+                    // wait for a global dependency
+                    while (!load(ready, upper_col)) {
+                        __threadfence();
+                    }
+                }
+                __threadfence();
+                const auto upper_val = vals[upper_nz];
+                const auto output_pos =
+                    lookup.lookup_unsafe(upper_col) + row_begin;
+                vals[output_pos] -= scale * upper_val;
+            }
+        }
+    }
+    ValueType sum{};
+    for (auto lower_nz = row_begin + lane; lower_nz < row_diag;
+         lower_nz += config::warp_size) {
+        sum += squared_norm(vals[lower_nz]);
+        // copy the lower triangular entries to the transpose
+        vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
+    }
+    sum = reduce(warp, sum, thrust::plus<ValueType>{});
+    if (lane == 0) {
+        // store computed diagonal
+        vals[row_diag] = sqrt(vals[row_diag] - sum);
+    }
+    warp.sync();
+    __threadfence();
+    if (lane == 0) {
+        // notify local warps
+        store(sh_ready, row_local, 1);
+        // notify other blocks
+        store(ready, row, 1);
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
@@ -181,8 +282,8 @@ void cholesky_symbolic_factorize(
     const auto out_cols = l_factor->get_col_idxs();
     const auto num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    cholesky_symbolic_factorize_kernel<config::warp_size>
-        <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+    kernel::symbolic_factorize<config::warp_size>
+        <<<num_blocks, default_block_size, exec->get_stream()>>>(
             num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
             postorder, postorder_parent, out_row_ptrs, out_cols);
 }
@@ -206,16 +307,19 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     // convert to COO
     const auto nnz = factors->get_num_stored_elements();
     array<IndexType> row_idx_array{exec, nnz};
+    array<IndexType> col_idx_array{exec, nnz};
     const auto row_idxs = row_idx_array.get_data();
-    const auto col_idxs = factors->get_const_col_idxs();
+    const auto col_idxs = col_idx_array.get_data();
+    exec->copy(nnz, factors->get_const_col_idxs(), col_idxs);
     components::convert_ptrs_to_idxs(exec, factors->get_const_row_ptrs(),
                                      factors->get_size()[0], row_idxs);
+    components::fill_seq_array(exec, transpose_idxs, nnz);
     // compute nonzero permutation for sparse transpose
-    std::sort(transpose_idxs, transpose_idxs + nnz,
-              [&](IndexType i, IndexType j) {
-                  return std::tie(col_idxs[i], row_idxs[i]) <
-                         std::tie(col_idxs[j], row_idxs[j]);
-              });
+    // to profit from cub/rocPRIM's fast radix sort, we do it in two steps
+    thrust::stable_sort_by_key(thrust_policy(exec), row_idxs, row_idxs + nnz,
+                               transpose_idxs);
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs, col_idxs + nnz,
+                               transpose_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
@@ -228,7 +332,23 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* transpose_idxs,
                matrix::Csr<ValueType, IndexType>* factors,
                array<int>& tmp_storage)
-{}
+{
+    const auto num_rows = factors->get_size()[0];
+    if (num_rows > 0) {
+        tmp_storage.resize_and_reset(num_rows + 1);
+        components::fill_array(exec, tmp_storage.get_data(), num_rows + 1,
+                               int{});
+        const auto num_blocks =
+            ceildiv(num_rows, default_block_size / config::warp_size);
+        kernel::
+            factorize<<<num_blocks, default_block_size, exec->get_stream()>>>(
+                factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+                lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
+                transpose_idxs, as_device_type(factors->get_values()),
+                tmp_storage.get_data(), tmp_storage.get_data() + num_rows,
+                num_rows);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
@@ -239,7 +359,6 @@ void ldl_factorize(std::shared_ptr<const DefaultExecutor> exec,
                    const int32* lookup_storage, const IndexType* diag_idxs,
                    const IndexType* transpose_idxs,
                    matrix::Csr<ValueType, IndexType>* factors,
-                   array<int>& tmp_storage)
-{}
+                   array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LDL_FACTORIZE);

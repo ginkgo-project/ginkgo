@@ -51,7 +51,7 @@ namespace kernels {
 
 
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType)        \
-    void cholesky_symbolic_count(                                        \
+    void symbolic_count(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
@@ -59,7 +59,7 @@ namespace kernels {
 
 
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType)    \
-    void cholesky_symbolic_factorize(                                    \
+    void symbolic_factorize(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \

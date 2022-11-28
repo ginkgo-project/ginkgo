@@ -37,6 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <thrust/execution_policy.h>
+#include <thrust/functional.h>
+#include <thrust/sort.h>
+#include <thrust/tuple.h>
+
+
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -44,12 +50,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
+#include "core/matrix/csr_lookup.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
+#include "cuda/base/thrust.cuh"
+#include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
+#include "cuda/components/volatile.cuh"
 
 
 namespace gko {
@@ -70,11 +80,10 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_count(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz, array<IndexType>& tmp_storage)
+void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* mtx,
+                    const factorization::elimination_forest<IndexType>& forest,
+                    IndexType* row_nnz, array<IndexType>& tmp_storage)
 {
     const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     if (num_rows == 0) {
@@ -91,8 +100,8 @@ void cholesky_symbolic_count(
     // transform col indices to postorder indices
     {
         const auto num_blocks = ceildiv(num_rows, default_block_size);
-        build_postorder_cols<<<num_blocks, default_block_size, 0,
-                               exec->get_stream()>>>(
+        kernel::build_postorder_cols<<<num_blocks, default_block_size, 0,
+                                       exec->get_stream()>>>(
             num_rows, cols, row_ptrs, inv_postorder, postorder_cols,
             lower_ends);
     }
@@ -116,7 +125,7 @@ void cholesky_symbolic_count(
     {
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        cholesky_symbolic_count_kernel<config::warp_size>
+        kernel::symbolic_count<config::warp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
                 postorder_parent, row_nnz);
