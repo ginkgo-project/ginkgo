@@ -477,36 +477,32 @@ __dpct_inline__ grid_group this_grid(sycl::nd_item<3>& group)
 
 
 // Enable group can directly use group function
-__SYCL_INLINE_NAMESPACE(cl)
-{
-    namespace sycl {
-    namespace detail {
+namespace sycl {
+namespace detail {
 
 
-    template <unsigned Size>
-    struct is_sub_group<
-        ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>>
-        : std::true_type {};
+template <unsigned Size>
+struct is_sub_group<
+    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>>
+    : std::true_type {};
 
 
-    namespace spirv {
+namespace spirv {
 
 
-    template <typename Group>
-    struct group_scope;
+template <typename Group>
+struct group_scope;
 
-    template <unsigned Size>
-    struct group_scope<
-        ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>> {
-        static constexpr __spv::Scope::Flag value =
-            __spv::Scope::Flag::Subgroup;
-    };
+template <unsigned Size>
+struct group_scope<
+    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>> {
+    static constexpr __spv::Scope::Flag value = __spv::Scope::Flag::Subgroup;
+};
 
 
-    }  // namespace spirv
-    }  // namespace detail
-    }  // namespace sycl
-}  // __SYCL_INLINE_NAMESPACE(cl)
+}  // namespace spirv
+}  // namespace detail
+}  // namespace sycl
 
 
 #endif  // GKO_DPCPP_COMPONENTS_COOPERATIVE_GROUPS_DP_HPP_

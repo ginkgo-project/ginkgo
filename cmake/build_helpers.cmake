@@ -134,9 +134,9 @@ function(ginkgo_extract_clang_version CLANG_COMPILER GINKGO_CLANG_VERSION)
 endfunction()
 
 # Extract the DPC++ version
-function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION)
+function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION MACRO_VAR)
     set(DPCPP_VERSION_PROG "#include <CL/sycl.hpp>\n#include <iostream>\n"
-        "int main() {std::cout << __SYCL_COMPILER_VERSION << '\\n'\;"
+        "int main() {std::cout << ${MACRO_VAR} << '\\n'\;"
         "return 0\;}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp" ${DPCPP_VERSION_PROG})
     execute_process(COMMAND ${DPCPP_COMPILER} ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp
