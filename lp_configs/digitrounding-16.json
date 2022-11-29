@@ -1,0 +1,4 @@
+{
+  "pressio:compressor": "digit_rounding",
+  "digit_rounding:prec":{"type":1,"value": 16}
+}
