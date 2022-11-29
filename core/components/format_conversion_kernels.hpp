@@ -67,18 +67,30 @@ namespace kernels {
 #define GKO_DECLARE_CONVERT_IDXS_TO_PTRS64(IndexType) \
     GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, ::gko::int64)
 
+#define GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET(IndexType, RowPtrType)      \
+    void convert_idxs_to_ptrs_with_offset(                                  \
+        std::shared_ptr<const DefaultExecutor> exec, const IndexType* idxs, \
+        const IndexType* offset, size_type num_idxs, size_type num_blocks,  \
+        RowPtrType* ptrs)
+#define GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET32(IndexType) \
+    GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET(IndexType, ::gko::int32)
+#define GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET64(IndexType) \
+    GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET(IndexType, ::gko::int64)
+
 #define GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)                        \
     void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,  \
                                const RowPtrType* ptrs, size_type num_blocks, \
                                size_type* sizes)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                         \
-    template <typename IndexType, typename RowPtrType>       \
-    GKO_DECLARE_CONVERT_PTRS_TO_IDXS(IndexType, RowPtrType); \
-    template <typename IndexType, typename RowPtrType>       \
-    GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType); \
-    template <typename RowPtrType>                           \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                \
+    template <typename IndexType, typename RowPtrType>              \
+    GKO_DECLARE_CONVERT_PTRS_TO_IDXS(IndexType, RowPtrType);        \
+    template <typename IndexType, typename RowPtrType>              \
+    GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType);        \
+    template <typename IndexType, typename RowPtrType>              \
+    GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET(IndexType, RowPtrType); \
+    template <typename RowPtrType>                                  \
     GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)
 
 

@@ -203,17 +203,25 @@ void fill_coarse(
                       coarse_indices.get_data()[i]) !=
             f_row_idxs + global_nnz) {
             int cidx = 0;
+            int i_offset = 0;
+            int j_offset = 0;
             for (auto j = 0; j < coarse_size[0]; ++j) {
                 if (std::find(f_col_idxs, f_col_idxs + global_nnz,
                               coarse_indices.get_data()[j]) !=
                     f_col_idxs + global_nnz) {
+                    // if (i > 50) {
+                    //     i_offset = 50;
+                    // }
+                    // if (j > 50) {
+                    //     j_offset = 50;
+                    // }
                     // Assume row major ordering
                     c_matrix_data.add_value(
                         ridx, cidx,
                         fine_matrix_data.get_const_values()
                             [fine_row_ptrs.get_const_data()
-                                 [coarse_indices.get_data()[i]] +
-                             coarse_indices.get_data()[j]]);
+                                 [coarse_indices.get_data()[i] - i_offset] +
+                             coarse_indices.get_data()[j] - j_offset]);
                     // c_matrix_data.get_row_idxs()[nnz] = ridx;
                     // coarse_data.get_col_idxs()[nnz] = cidx;
                     // coarse_data.get_values()[nnz] =

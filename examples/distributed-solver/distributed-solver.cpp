@@ -192,9 +192,26 @@ int main(int argc, char* argv[])
         if (i < grid_dim - 1) {
             A_data.nonzeros.emplace_back(i, i + 1, -1);
         }
+
         b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
         x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
+
+    // for (int i = 0; i < A_data.nonzeros.size(); i++) {
+    //     std::cout << rank << " ( " << A_data.nonzeros[i].row << ", "
+    //               << A_data.nonzeros[i].column << ","
+    //               << A_data.nonzeros[i].value << " )" << std::endl;
+    // }
+
+    auto Adev_data =
+        gko::device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
+            exec, A_data);
+
+    // for (int i = 0; i < Adev_data.get_num_elems(); i++) {
+    //     std::cout << rank << " ( " << Adev_data.get_row_idxs()[i] << ", "
+    //               << Adev_data.get_col_idxs()[i] << ","
+    //               << Adev_data.get_values()[i] << " )" << std::endl;
+    // }
 
     // Take timings.
     comm.synchronize();
@@ -255,14 +272,15 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv = solver::build()
-                    .with_preconditioner(schwarz::build()
-                                             .with_local_solver(local_solver)
-                                             .with_coarse_solvers(coarse_solver)
-                                             .on(exec))
-                    .with_criteria(iter_stop, tol_stop)
-                    .on(exec)
-                    ->generate(A);
+    auto Ainv =
+        solver::build()
+            .with_preconditioner(schwarz::build()
+                                     .with_local_solver(local_solver)
+                                     // .with_coarse_solvers(coarse_solver)
+                                     .on(exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec)
+            ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.

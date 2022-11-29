@@ -71,6 +71,8 @@ GKO_REGISTER_OPERATION(find_strongest_neighbor,
 GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, coarse_gen::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs_with_offset,
+                       components::convert_idxs_to_ptrs_with_offset);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
@@ -141,6 +143,7 @@ void CoarseGen<ValueType, LocalIndexType,
     auto exec = this->get_executor();
     const matrix_type* dist_fine_mat =
         dynamic_cast<const matrix_type*>(system_matrix_.get());
+    auto comm = dist_fine_mat->get_communicator();
     auto fine_row_partition = dist_fine_mat->get_row_partition();
     auto fine_col_partition = dist_fine_mat->get_col_partition();
 
@@ -173,10 +176,25 @@ void CoarseGen<ValueType, LocalIndexType,
     device_matrix_data<ValueType, GlobalIndexType> prolong_data{
         exec, dim<2>{global_size[0], global_coarse_size}};
     auto fine_row_ptrs = array<GlobalIndexType>(exec, local_size[0] + 1);
+    fine_row_ptrs.fill(-one<GlobalIndexType>());
+    auto fine_offset = array<GlobalIndexType>(exec, 1);
+    if (comm.rank() == 1) {
+        // fine_offset.fill(50);
+        fine_offset.fill(0);
+    } else {
+        fine_offset.fill(0);
+    }
 
-    exec->run(coarse_gen::make_convert_idxs_to_ptrs(
-        fine_mat_data.get_const_row_idxs(), fine_mat_data.get_num_elems(),
-        local_size[0], fine_row_ptrs.get_data()));
+    exec->run(coarse_gen::make_convert_idxs_to_ptrs_with_offset(
+        fine_mat_data.get_const_row_idxs(), fine_offset.get_const_data(),
+        fine_mat_data.get_num_elems(), local_size[0],
+        fine_row_ptrs.get_data()));
+
+
+    for (int i = 0; i < fine_row_ptrs.get_num_elems(); i++) {
+        std::cout << " rank: " << comm.rank()
+                  << " rptrs: " << fine_row_ptrs.get_data()[i] << std::endl;
+    }
 
     auto coarse_row_partition =
         gko::share(gko::experimental::distributed::
