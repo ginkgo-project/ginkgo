@@ -53,12 +53,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_lookup.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/syncfree.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/components/volatile.cuh"
 
 
 namespace gko {
