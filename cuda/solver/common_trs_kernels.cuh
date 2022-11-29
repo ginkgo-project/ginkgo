@@ -483,7 +483,7 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = 0.0;
+    ValueType sum = ValueType{0.0};
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
@@ -537,7 +537,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, nan<ValueType>());
+    dense::fill(exec, x, ValueType(nan<ValueType>()));
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);

@@ -101,6 +101,17 @@ struct basic_float_traits<float16> {
     static constexpr bool rounds_to_nearest = true;
 };
 
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+template <>
+struct basic_float_traits<__half> {
+    using type = __half;
+    static constexpr int sign_bits = 1;
+    static constexpr int significand_bits = 10;
+    static constexpr int exponent_bits = 5;
+    static constexpr bool rounds_to_nearest = true;
+};
+#endif
+
 template <>
 struct basic_float_traits<float32> {
     using type = float32;
@@ -310,22 +321,30 @@ private:
  */
 class half {
 public:
-    half() noexcept = default;
+    GKO_ATTRIBUTES half() noexcept = default;
 
-    GKO_ATTRIBUTES half(float32 val) noexcept
+    GKO_ATTRIBUTES half& operator=(const half& val) = default;
+    GKO_ATTRIBUTES half(const half& val) = default;
+    // GKO_ATTRIBUTES half(half const&) = default;
+    // complex() = default;
+
+    // complex(const complex<T>& z) = default;
+
+    explicit GKO_ATTRIBUTES half(float32 val) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        const auto tmp = __float2half_rn(val);
-        data_ = reinterpret_cast<const uint16&>(tmp);
-#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        data_ = float2half(reinterpret_cast<const uint32&>(val));
-#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        this->float2half(val);
     }
 
-    GKO_ATTRIBUTES half(float64 val) noexcept : half(static_cast<float32>(val))
+    explicit GKO_ATTRIBUTES half(float64 val) noexcept
+        : half(static_cast<float32>(val))
     {}
 
-    GKO_ATTRIBUTES operator float32() const noexcept
+    explicit GKO_ATTRIBUTES half(int val) noexcept
+    : half(static_cast<float32>(val)) {
+        
+    }
+
+    GKO_ATTRIBUTES operator float() const noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return __half2float(reinterpret_cast<const __half&>(data_));
@@ -335,22 +354,158 @@ public:
 #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
-    GKO_ATTRIBUTES operator float64() const noexcept
+// #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+//     GKO_ATTRIBUTES operator __half() noexcept
+//     {
+//         return reinterpret_cast<const __half&>(*this);
+//     }
+// #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+
+
+    GKO_ATTRIBUTES half& operator+=(const float& rhs)
     {
-        return static_cast<float64>(static_cast<float32>(*this));
+        auto val = *this + rhs;
+        this->float2half(val);
+        return *this;
     }
 
-    GKO_ATTRIBUTES half operator-() const noexcept
+    GKO_ATTRIBUTES half& operator/=(const float& rhs)
     {
-        auto res = *this;
-        // flip sign bit
-        res.data_ ^= f16_traits::sign_mask;
-        return res;
+        auto val = *this / rhs;
+        this->float2half(val);
+        return *this;
+    }
+
+    GKO_ATTRIBUTES half& operator*=(const float& rhs)
+    {
+        auto val = *this * rhs;
+        this->float2half(val);
+        return *this;
+    }
+
+    GKO_ATTRIBUTES half& operator-=(const float& rhs)
+    {
+        auto val = *this - rhs;
+        this->float2half(val);
+        return *this;
+    }
+
+    // half& operator+=(const half& rhs)
+    // {
+    //     auto val = *this + float(rhs);
+    //     this->float2half(val);
+    //     return *this;
+    // }
+
+    // half& operator/=(const half& rhs)
+    // {
+    //     auto val = *this / float(rhs);
+    //     this->float2half(val);
+    //     return *this;
+    // }
+
+    // half& operator*=(const half& rhs)
+    // {
+    //     auto val = *this * float(rhs);
+    //     this->float2half(val);
+    //     return *this;
+    // }
+
+    // half& operator-=(const half& rhs)
+    // {
+    //     auto val = *this - float(rhs);
+    //     this->float2half(val);
+    //     return *this;
+    // }
+
+    GKO_ATTRIBUTES friend half operator+(half lhs, const half& rhs)
+    {
+        float flhs = lhs;
+        flhs += rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator-(half lhs, const half& rhs)
+    {
+        float flhs = lhs;
+        flhs -= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator*(half lhs, const half& rhs)
+    {
+        float flhs = lhs;
+        flhs *= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator/(half lhs, const half& rhs)
+    {
+        float flhs = lhs;
+        flhs /= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+
+    GKO_ATTRIBUTES friend half operator+(half lhs, const float& rhs)
+    {
+        float flhs = lhs;
+        flhs += rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator-(half lhs, const float& rhs)
+    {
+        float flhs = lhs;
+        flhs -= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator*(half lhs, const float& rhs)
+    {
+        float flhs = lhs;
+        flhs *= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES friend half operator/(half lhs, const float& rhs)
+    {
+        float flhs = lhs;
+        flhs /= rhs;  // reuse compound assignment
+        return half(flhs);
+    }
+
+    GKO_ATTRIBUTES half& operator=(int val)
+    {
+        this->float2half(float(val));
+        return *this;
+    }
+
+    GKO_ATTRIBUTES half& operator=(float val)
+    {
+        this->float2half(val);
+        return *this;
+    }
+
+    GKO_ATTRIBUTES half& operator=(double val)
+    {
+        this->float2half(static_cast<float>(val));
+        return *this;
     }
 
 private:
     using f16_traits = detail::float_traits<float16>;
     using f32_traits = detail::float_traits<float32>;
+
+    GKO_ATTRIBUTES void float2half(float val) noexcept
+    {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        const auto tmp = __float2half_rn(val);
+        data_ = reinterpret_cast<const uint16&>(tmp);
+#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        data_ = float2half(reinterpret_cast<const uint32&>(val));
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    }
 
     static uint16 float2half(uint32 data_) noexcept
     {
@@ -493,8 +648,13 @@ class complex<gko::half> {
 public:
     using value_type = gko::half;
 
-    complex(const value_type& real = 0.f, const value_type& imag = 0.f)
+    complex(const value_type& real = value_type(0.f),
+            const value_type& imag = value_type(0.f))
         : real_(real), imag_(imag)
+    {}
+    template <typename T, typename U>
+    explicit complex(const T& real, const U& imag)
+        : complex(static_cast<value_type>(real), static_cast<value_type>(imag))
     {}
 
     template <typename U>
@@ -573,6 +733,20 @@ struct numeric_limits<gko::half> {
     static constexpr float epsilon()
     {
         return gko::detail::float_traits<gko::half>::eps;
+    }
+
+    static constexpr float infinity()
+    {
+        return numeric_limits<float>::infinity();
+    }
+
+    static constexpr float min() { return numeric_limits<float>::min(); }
+
+    static constexpr float max() { return numeric_limits<float>::max(); }
+
+    static constexpr float quiet_NaN()
+    {
+        return numeric_limits<float>::quiet_NaN();
     }
 };
 

@@ -50,15 +50,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
+namespace std {
+
+template <>
+struct is_scalar<__half> : std::true_type {};
+
+}  // namespace std
+
 namespace gko {
 
+#if defined(__CUDA_ARCH__)
+template <>
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return is_nan(float(val));
+}
+#endif
 
 namespace kernels {
 namespace cuda {
+#if defined(__CUDA_ARCH__)
+// template <>
+__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
-
+__device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }
+#endif
 namespace detail {
-
 
 /**
  * @internal
@@ -156,6 +173,17 @@ struct culibs_type_impl<std::complex<double>> {
     using type = cuDoubleComplex;
 };
 
+
+template <>
+struct culibs_type_impl<half> {
+    using type = __half;
+};
+
+template <>
+struct culibs_type_impl<std::complex<half>> {
+    using type = __half2;
+};
+
 template <typename T>
 struct culibs_type_impl<thrust::complex<T>> {
     using type = typename culibs_type_impl<std::complex<T>>::type;
@@ -186,6 +214,11 @@ struct cuda_type_impl<volatile T> {
     using type = volatile typename cuda_type_impl<T>::type;
 };
 
+template <>
+struct cuda_type_impl<half> {
+    using type = __half;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
     using type = thrust::complex<T>;
@@ -201,6 +234,11 @@ struct cuda_type_impl<cuComplex> {
     using type = thrust::complex<float>;
 };
 
+template <>
+struct cuda_type_impl<__half2> {
+    using type = thrust::complex<__half>;
+};
+
 template <typename T>
 struct cuda_struct_member_type_impl {
     using type = T;
@@ -209,6 +247,11 @@ struct cuda_struct_member_type_impl {
 template <typename T>
 struct cuda_struct_member_type_impl<std::complex<T>> {
     using type = fake_complex<T>;
+};
+
+template <>
+struct cuda_struct_member_type_impl<gko::half> {
+    using type = __half;
 };
 
 template <typename ValueType, typename IndexType>

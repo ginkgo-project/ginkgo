@@ -108,6 +108,7 @@ class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public EnableCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
+      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,

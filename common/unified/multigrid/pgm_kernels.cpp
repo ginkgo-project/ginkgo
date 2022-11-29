@@ -266,6 +266,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs,
                           auto weight_vals, auto diag, auto agg_const_val,
                           auto agg_val) {
+                using value_type = device_type<ValueType>;
                 if (agg_val[row] != -1) {
                     return;
                 }
@@ -304,6 +305,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
             exec,
             [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs,
                           auto weight_vals, auto diag, auto agg_val) {
+                using value_type = device_type<ValueType>;
                 if (agg_val[row] != -1) {
                     return;
                 }
