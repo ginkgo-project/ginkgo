@@ -76,6 +76,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* What is the major version of dpcpp compiler */
+// clang-format off
+#define GINKGO_DPCPP_MAJOR_VERSION @GINKGO_DPCPP_MAJOR_VERSION@
+// clang-format on
+
+
 /* Is PAPI SDE available for Logging? */
 // clang-format off
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
