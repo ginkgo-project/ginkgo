@@ -274,8 +274,15 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     }
     this->get_exec_info().max_workgroup_size = static_cast<int>(
         device.get_info<sycl::info::device::max_work_group_size>());
+// They change the max_work_item_size with template parameter Dimension after
+// major version 6 and adding the default = 3 is not in the same release.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+    auto max_workitem_sizes =
+        device.get_info<sycl::info::device::max_work_item_sizes<3>>();
+#else
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
+#endif
     // Get the max dimension of a sycl::id object
     auto max_work_item_dimensions =
         device.get_info<sycl::info::device::max_work_item_dimensions>();
