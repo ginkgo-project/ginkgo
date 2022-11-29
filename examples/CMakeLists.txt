@@ -53,6 +53,13 @@ if(GINKGO_BUILD_MPI)
     list(APPEND EXAMPLES_LIST distributed-solver)
 endif()
 
+find_package(Kokkos QUIET)
+if(Kokkos_FOUND)
+    list(APPEND EXAMPLES_LIST kokkos_assembly)
+else()
+    message(STATUS "No Kokkos found, disabling examples with Kokkos assembly.")
+endif()
+
 foreach(example ${EXAMPLES_LIST})
     add_subdirectory(${example})
 endforeach()
