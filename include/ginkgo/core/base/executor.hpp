@@ -121,10 +121,10 @@ constexpr allocation_mode default_hip_alloc_mode =
 }  // namespace gko
 
 
-namespace sycl {
 // after intel/llvm September'22 release, which uses major version 6, they
 // introduce another inline namespace _V1.
 #if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
 inline namespace _V1 {
 
 
@@ -132,14 +132,18 @@ class queue;
 
 
 }  // namespace _V1
+}  // namespace sycl
 #else  // __LIBSYCL_MAJOR_VERSION < 6
+inline namespace cl {
+namespace sycl {
 
 
 class queue;
 
 
-#endif
 }  // namespace sycl
+}  // namespace cl
+#endif
 
 
 /**
