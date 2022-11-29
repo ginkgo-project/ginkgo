@@ -8,15 +8,5 @@ fi
 BUILD_DIR=$1
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 
-source ${THIS_DIR}/../build-setup.sh
-
-CXX="nvcc"
-
-# adjust to nvcc style link flags
-LINK_FLAGS="${LINK_FLAGS/-Wl,-rpath,/-Xlinker -rpath -Xlinker }"
-
-# build
-${CXX} -std=c++14 -o ${THIS_DIR}/custom-matrix-format \
-       ${THIS_DIR}/custom-matrix-format.cpp ${THIS_DIR}/stencil_kernel.cu \
-       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
-       -L${THIS_DIR} ${LINK_FLAGS}
+cmake ${THIS_DIR} -DGinkgo_ROOT=${BUILD_DIR}
+cmake --build .
