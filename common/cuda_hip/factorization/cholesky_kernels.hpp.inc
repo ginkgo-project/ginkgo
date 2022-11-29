@@ -152,54 +152,32 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     const int32* __restrict__ storage, const int64* __restrict__ row_descs,
     const IndexType* __restrict__ diag_idxs,
     const IndexType* __restrict__ transpose_idxs, ValueType* __restrict__ vals,
-    int* __restrict__ ready, int* __restrict__ block_counter,
-    size_type num_rows)
+    syncfree_storage dep_storage, size_type num_rows)
 {
-    __shared__ int threadblock_offset;
-    __shared__ int sh_ready[default_block_size / config::warp_size];
-    if (threadIdx.x == 0) {
-        threadblock_offset = atomic_add(block_counter, 1) * default_block_size;
-    }
-    if (threadIdx.x < default_block_size / config::warp_size) {
-        sh_ready[threadIdx.x] = 0;
-    }
-    __syncthreads();
-    const auto row = (threadblock_offset + static_cast<int>(threadIdx.x)) /
-                     config::warp_size;
+    using scheduler_t =
+        syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
+    __shared__ typename scheduler_t::shared_storage sh_dep_storage;
+    scheduler_t scheduler(dep_storage, sh_dep_storage);
+    const auto row = scheduler.get_work_id();
     if (row >= num_rows) {
         return;
     }
-    const auto block = threadblock_offset / default_block_size;
     const auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
     const auto lane = warp.thread_rank();
     const auto row_begin = row_ptrs[row];
     const auto row_diag = diag_idxs[row];
     const auto row_end = row_ptrs[row + 1];
-    const auto row_local = row % (default_block_size / config::warp_size);
     gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
-        row_ptrs, cols, storage_offsets, storage, row_descs, row};
+        row_ptrs, cols,      storage_offsets,
+        storage,  row_descs, static_cast<size_type>(row)};
     // for each lower triangular entry: eliminate with corresponding row
     for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
         const auto dep = cols[lower_nz];
-        const auto dep_block = dep / (default_block_size / config::warp_size);
-        const auto dep_local = dep % (default_block_size / config::warp_size);
         auto val = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
-        // assert(dep < row);
-        if (dep_block == block) {
-            // wait for a local dependency
-            while (!load(sh_ready, dep_local)) {
-                __threadfence();
-            }
-        } else {
-            // wait for a global dependency
-            while (!load(ready, dep)) {
-                __threadfence();
-            }
-        }
-        __threadfence();
+        scheduler.wait(dep);
         const auto diag = vals[diag_idx];
         const auto scale = val / diag;
         if (lane == 0) {
@@ -210,22 +188,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
             if (upper_col < row) {
-                const auto col_dep_block =
-                    upper_col / (default_block_size / config::warp_size);
-                const auto col_dep_local =
-                    upper_col % (default_block_size / config::warp_size);
-                if (col_dep_block == block) {
-                    // wait for a local dependency
-                    while (!load(sh_ready, col_dep_local)) {
-                        __threadfence();
-                    }
-                } else {
-                    // wait for a global dependency
-                    while (!load(ready, upper_col)) {
-                        __threadfence();
-                    }
-                }
-                __threadfence();
+                scheduler.wait(upper_col);
                 const auto upper_val = vals[upper_nz];
                 const auto output_pos =
                     lookup.lookup_unsafe(upper_col) + row_begin;
@@ -245,14 +208,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         // store computed diagonal
         vals[row_diag] = sqrt(vals[row_diag] - sum);
     }
-    warp.sync();
-    __threadfence();
-    if (lane == 0) {
-        // notify local warps
-        store(sh_ready, row_local, 1);
-        // notify other blocks
-        store(ready, row, 1);
-    }
+    scheduler.mark_ready();
 }
 
 
@@ -283,7 +239,7 @@ void symbolic_factorize(
     const auto num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     kernel::symbolic_factorize<config::warp_size>
-        <<<num_blocks, default_block_size, exec->get_stream()>>>(
+        <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
             num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
             postorder, postorder_parent, out_row_ptrs, out_cols);
 }
@@ -335,18 +291,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = factors->get_size()[0];
     if (num_rows > 0) {
-        tmp_storage.resize_and_reset(num_rows + 1);
-        components::fill_array(exec, tmp_storage.get_data(), num_rows + 1,
-                               int{});
+        syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::
-            factorize<<<num_blocks, default_block_size, exec->get_stream()>>>(
-                factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-                lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
-                transpose_idxs, as_device_type(factors->get_values()),
-                tmp_storage.get_data(), tmp_storage.get_data() + num_rows,
-                num_rows);
+        kernel::factorize<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
+            transpose_idxs, as_device_type(factors->get_values()), storage,
+            num_rows);
     }
 }
 

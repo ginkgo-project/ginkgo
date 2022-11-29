@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/lu_kernels.hpp"
+#ifndef GKO_HIP_COMPONENTS_SYNCFREE_HIP_HPP_
+#define GKO_HIP_COMPONENTS_SYNCFREE_HIP_HPP_
 
 
-#include <algorithm>
-#include <memory>
+#include <ginkgo/core/base/array.hpp>
 
 
-#include <ginkgo/core/matrix/csr.hpp>
-
-
-#include "core/base/allocator.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/matrix/csr_lookup.hpp"
-#include "hip/base/types.hip.hpp"
+#include "hip/base/config.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/syncfree.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/volatile.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
-/**
- * @brief The LU namespace.
- *
- * @ingroup factor
- */
-namespace lu_factorization {
 
 
-constexpr static int default_block_size = 512;
+#include "common/cuda_hip/components/syncfree.hpp.inc"
 
 
-#include "common/cuda_hip/factorization/lu_kernels.hpp.inc"
-
-
-}  // namespace lu_factorization
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_HIP_COMPONENTS_SYNCFREE_HIP_HPP_
