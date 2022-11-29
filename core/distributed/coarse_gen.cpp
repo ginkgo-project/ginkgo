@@ -201,9 +201,10 @@ void CoarseGen<ValueType, LocalIndexType,
                        Partition<LocalIndexType, GlobalIndexType>::create(
                            exec, fine_row_partition->get_num_parts()));
 
-    exec->run(coarse_gen::make_fill_coarse(fine_mat_data, fine_row_ptrs,
-                                           coarse_data, restrict_data,
-                                           prolong_data, coarse_indices_map_));
+    exec->run(coarse_gen::make_fill_coarse(
+        comm.rank(), fine_mat_data, fine_row_partition, fine_col_partition,
+        fine_row_ptrs, coarse_data, restrict_data, prolong_data,
+        coarse_indices_map_));
 
     fill_coarse_partition(fine_row_partition, coarse_indices_map_,
                           coarse_row_partition);

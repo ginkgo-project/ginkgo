@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -67,27 +68,38 @@ namespace coarse_gen {
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,  \
         array<IndexType>& intermediate_agg)
 
-#define GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, IndexType)          \
-    void fill_coarse(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const device_matrix_data<ValueType, IndexType>& fine_matrix_data, \
-        const array<IndexType>& fine_row_ptrs,                            \
-        device_matrix_data<ValueType, IndexType>& coarse_data,            \
-        device_matrix_data<ValueType, IndexType>& restrict_data,          \
-        device_matrix_data<ValueType, IndexType>& prolong_data,           \
-        array<IndexType>& coarse_indices)
+#define GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, LocalIndexType,  \
+                                           GlobalIndexType)            \
+    void fill_coarse(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec, const int rank,   \
+        const device_matrix_data<ValueType, GlobalIndexType>&          \
+            fine_matrix_data,                                          \
+        std::shared_ptr<const experimental::distributed::Partition<    \
+            LocalIndexType, GlobalIndexType>>                          \
+            fine_row_partition,                                        \
+        std::shared_ptr<const experimental::distributed::Partition<    \
+            LocalIndexType, GlobalIndexType>>                          \
+            fine_col_partition,                                        \
+        const array<GlobalIndexType>& fine_row_ptrs,                   \
+        device_matrix_data<ValueType, GlobalIndexType>& coarse_data,   \
+        device_matrix_data<ValueType, GlobalIndexType>& restrict_data, \
+        device_matrix_data<ValueType, GlobalIndexType>& prolong_data,  \
+        array<GlobalIndexType>& coarse_indices)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
+    using comm_index_type = experimental::distributed::comm_index_type;   \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_COARSE_GEN_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, IndexType)
+    template <typename ValueType, typename IndexType,                     \
+              typename GlobalIndexType>                                   \
+    GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, IndexType, GlobalIndexType)
 
 
 }  // namespace coarse_gen
+   // coarse_gen
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coarse_gen,
@@ -98,7 +110,9 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coarse_gen,
 
 
 }  // namespace kernels
+   // kernels
 }  // namespace gko
+   // gko
 
 
 #endif  // GKO_CORE_DISTRIBUTED_COARSE_GEN_KERNELS_HPP_

@@ -85,17 +85,19 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void fill_coarse(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const device_matrix_data<ValueType, IndexType>& fine_matrix_data,
-    const array<IndexType>& fine_row_ptrs,
-    device_matrix_data<ValueType, IndexType>& coarse_data,
-    device_matrix_data<ValueType, IndexType>& restrict_data,
-    device_matrix_data<ValueType, IndexType>& prolong_data,
-    array<IndexType>& coarse_indices) GKO_NOT_IMPLEMENTED;
+    std::shared_ptr<const DefaultExecutor> exec, const int rank,
+    const device_matrix_data<ValueType, GlobalIndexType>& fine_matrix_data,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>&
+        fine_partition,
+    const array<GlobalIndexType>& fine_row_ptrs,
+    device_matrix_data<ValueType, GlobalIndexType>& coarse_data,
+    device_matrix_data<ValueType, GlobalIndexType>& restrict_data,
+    device_matrix_data<ValueType, GlobalIndexType>& prolong_data,
+    array<GlobalIndexType>& coarse_indices) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_FILL_COARSE);
 
 
