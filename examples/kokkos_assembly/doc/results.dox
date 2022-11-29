@@ -1,0 +1,10 @@
+<h1>Results</h1>
+Example output:
+```
+> ./kokkos-assembly
+
+Solve complete.
+The average relative error is 1.05488e-11
+```
+
+The actual error depends on the used hardware.
