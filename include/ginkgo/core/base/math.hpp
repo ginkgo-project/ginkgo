@@ -34,6 +34,13 @@ using std::abs;
 using std::sqrt;
 
 
+inline half abs(half a) { return half((a > 0) ? a : -a); }
+inline half abs(std::complex<half> a)
+{
+    return half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
+}
+inline half sqrt(half a) { return half(sqrt(float(a))); }
+
 }  // namespace reference
 }  // namespace kernels
 
@@ -46,6 +53,14 @@ using std::abs;
 
 
 using std::sqrt;
+
+
+inline half abs(half a) { return half((a > 0) ? a : -a); }
+inline half abs(std::complex<half> a)
+{
+    return half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
+}
+inline half sqrt(half a) { return half(sqrt(float(a))); }
 
 
 }  // namespace omp
@@ -362,13 +377,18 @@ template <typename T>
 struct next_precision_impl {};
 
 template <>
+struct next_precision_impl<half> {
+    using type = float;
+};
+
+template <>
 struct next_precision_impl<float> {
     using type = double;
 };
 
 template <>
 struct next_precision_impl<double> {
-    using type = float;
+    using type = half;
 };
 
 template <typename T>
@@ -420,10 +440,21 @@ struct increase_precision_impl<half> {
 
 
 template <typename T>
+struct arth_type {
+    using type = T;
+};
+
+template <>
+struct arth_type<half> {
+    using type = float;
+};
+
+template <typename T>
 struct infinity_impl {
     // CUDA doesn't allow us to call std::numeric_limits functions
     // so we need to store the value instead.
-    static constexpr auto value = std::numeric_limits<T>::infinity();
+    static constexpr auto value =
+        std::numeric_limits<typename arth_type<T>::type>::infinity();
 };
 
 
@@ -627,7 +658,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 template <typename T>
 GKO_INLINE __host__ constexpr T zero()
 {
-    return T{};
+    return T(0.0);
 }
 
 
@@ -655,7 +686,7 @@ GKO_INLINE __host__ constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE __host__ constexpr T one()
 {
-    return T(1);
+    return T(1.0);
 }
 
 
@@ -685,7 +716,7 @@ GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 zero()
 {
-    return T{};
+    return T(0.0);
 }
 
 
@@ -715,7 +746,7 @@ GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 one()
 {
-    return T(1);
+    return T(1.0);
 }
 
 
@@ -746,7 +777,7 @@ GKO_INLINE __device__ constexpr T one(const T&)
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
 {
-    return T{};
+    return T(half{0.0});
 }
 
 
@@ -774,7 +805,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 {
-    return T(1);
+    return T(1.0);
 }
 
 
@@ -970,7 +1001,7 @@ template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
 imag_impl(const T&)
 {
-    return T{};
+    return T(0.0);
 }
 
 template <typename T>
@@ -1075,7 +1106,7 @@ GKO_INLINE
     GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
     abs(const T& x)
 {
-    return x >= zero<T>() ? x : -x;
+    return x >= zero<T>() ? x : static_cast<T>(-x);
 }
 
 
@@ -1170,7 +1201,8 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_finite(const T& value)
 {
-    constexpr T infinity{detail::infinity_impl<T>::value};
+    constexpr typename detail::arth_type<T>::type infinity{
+        detail::infinity_impl<T>::value};
     return abs(value) < infinity;
 }
 
@@ -1254,7 +1286,16 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
  * @return NaN.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
+    !is_complex_s<T>::value && !std::is_same<T, half>::value, T>
+nan()
+{
+    return std::numeric_limits<T>::quiet_NaN();
+}
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
+    std::is_same<T, half>::value, float>
 nan()
 {
     return std::numeric_limits<T>::quiet_NaN();
