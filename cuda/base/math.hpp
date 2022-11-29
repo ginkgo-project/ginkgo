@@ -11,7 +11,6 @@
 
 #include <thrust/complex.h>
 
-
 namespace gko {
 
 
