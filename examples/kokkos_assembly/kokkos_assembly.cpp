@@ -73,8 +73,8 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
             auto mask =
                 static_cast<IndexType>(0 <= col && col < discretization_points);
 
-            v_row_idxs[i] = mask * static_cast<IndexType>(row);
-            v_col_idxs[i] = mask * static_cast<IndexType>(col);
+            v_row_idxs[i] = mask * row;
+            v_col_idxs[i] = mask * col;
             v_values[i] = mask * coefs[ofs + 1];
         });
 
@@ -106,20 +106,6 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
                 values_view[i] += u1;
             }
         });
-}
-
-
-// Prints the solution `u`.
-template <typename ValueType>
-void print_solution(ValueType u0, ValueType u1,
-                    const gko::matrix::Dense<ValueType>* u)
-{
-    auto host_u = gko::make_temporary_clone(u->get_executor()->get_master(), u);
-    std::cout << u0 << '\n';
-    for (int i = 0; i < u->get_size()[0]; ++i) {
-        std::cout << host_u->get_const_values()[i] << '\n';
-    }
-    std::cout << u1 << std::endl;
 }
 
 
@@ -161,11 +147,11 @@ int main(int argc, char* argv[])
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType>;
 
-    // Figure out where to run the code
+    // Print help message. For details on the kokkos-options see
+    // https://kokkos.github.io/kokkos-core-wiki/ProgrammingGuide/Initialization.html#initialization-by-command-line-arguments
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [discretization_points] [kokkos_assembly-options]"
-                  << std::endl;
+                  << " [discretization_points] [kokkos-options]" << std::endl;
         std::exit(-1);
     }
 
