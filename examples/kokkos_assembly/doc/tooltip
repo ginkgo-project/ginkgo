@@ -1,1 +1,1 @@
-Assembles a CSR matrix with Kokkos kernels.
+Assembles a CSR matrix with Kokkos API.

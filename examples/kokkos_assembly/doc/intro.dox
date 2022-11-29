@@ -17,7 +17,7 @@ This example show how to use Ginkgo data with Kokkos kernels.
 
 <h3> Notes </h3>
 
-If this example is build as part of Ginkgo, it is advised to configure Ginkgo with
+If this example is built as part of Ginkgo, it is advised to configure Ginkgo with
 `-DGINKGO_WITH_CCACHE=OFF` to prevent incompabilities with Kokkos' compiler wrapper
 for `nvcc`.
 
