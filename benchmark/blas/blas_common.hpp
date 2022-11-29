@@ -382,7 +382,7 @@ struct dimensions {
 dimensions parse_dims(rapidjson::Value& test_case)
 {
     auto get_optional = [](rapidjson::Value& obj, const char* name,
-                           gko::size_type default_value) {
+                           gko::size_type default_value) -> gko::size_type {
         if (obj.HasMember(name)) {
             return obj[name].GetUint64();
         } else {
