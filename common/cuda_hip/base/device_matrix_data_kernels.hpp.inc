@@ -39,9 +39,13 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     auto value_ptr = as_device_type(values.get_const_data());
     auto size = values.get_num_elems();
     // count nonzeros
-    auto nnz = thrust::count_if(
-        thrust_policy(exec), value_ptr, value_ptr + size,
-        [] __device__(device_value_type value) { return is_nonzero(value); });
+    // __half != is only device, can not call __device__ from a __host__
+    // __device__ (is_nonzero)
+    auto nnz =
+        thrust::count_if(thrust_policy(exec), value_ptr, value_ptr + size,
+                         [] __device__(device_value_type value) {
+                             return value != zero(value);
+                         });
     if (nnz < size) {
         using tuple_type =
             thrust::tuple<IndexType, IndexType, device_value_type>;
@@ -57,7 +61,8 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                                as_device_type(new_values.get_data())));
         thrust::copy_if(thrust_policy(exec), it, it + size, out_it,
                         [] __device__(tuple_type entry) {
-                            return is_nonzero(thrust::get<2>(entry));
+                            return thrust::get<2>(entry) !=
+                                   zero(thrust::get<2>(entry));
                         });
         // swap out storage
         values = std::move(new_values);

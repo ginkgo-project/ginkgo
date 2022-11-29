@@ -144,21 +144,23 @@ GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions(
     auto supported = static_cast<uint32>(prd::p0n0);
     // the following code uses short-circuiting to avoid calling possibly
     // expensive verificatiors multiple times
-    if (accurate(float_traits<truncate_type<truncate_type<type>>>::eps)) {
+    if (accurate(type(float_traits<truncate_type<truncate_type<type>>>::eps))) {
         supported |= prd::p2n0;
     }
-    if (accurate(float_traits<truncate_type<reduce_precision<type>>>::eps) &&
+    if (accurate(
+            type(float_traits<truncate_type<reduce_precision<type>>>::eps)) &&
         (is_verified1 = verificator1())) {
         supported |= prd::p1n1;
     }
-    if (accurate(float_traits<reduce_precision<reduce_precision<type>>>::eps) &&
+    if (accurate(type(
+            float_traits<reduce_precision<reduce_precision<type>>>::eps)) &&
         is_verified1 != 0 && verificator2()) {
         supported |= prd::p0n2;
     }
-    if (accurate(float_traits<truncate_type<type>>::eps)) {
+    if (accurate(type(float_traits<truncate_type<type>>::eps))) {
         supported |= prd::p1n0;
     }
-    if (accurate(float_traits<reduce_precision<type>>::eps) &&
+    if (accurate(type(float_traits<reduce_precision<type>>::eps)) &&
         (is_verified1 == 1 ||
          (is_verified1 == 2 && (is_verified1 = verificator1())))) {
         supported |= prd::p0n1;

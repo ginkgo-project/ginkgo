@@ -68,6 +68,36 @@ void atomic_add(ValueType& out, ValueType val)
 }
 
 
+template <typename ResultType, typename ValueType>
+inline ResultType reinterpret(ValueType val)
+{
+    static_assert(sizeof(ValueType) == sizeof(ResultType),
+                  "The type to reinterpret to must be of the same size as the "
+                  "original type.");
+    return reinterpret_cast<ResultType&>(val);
+}
+
+
+template <>
+void atomic_add(half& out, half val)
+{
+    // UB?
+    uint16_t* address_as_converter = reinterpret_cast<uint16_t*>(&out);
+    uint16_t old = *address_as_converter;
+    uint16_t assumed;
+    do {
+        assumed = old;
+        auto answer = reinterpret<uint16_t>(reinterpret<half>(assumed) + val);
+#pragma omp atomic capture
+{
+        old = *address_as_converter;
+        *address_as_converter = (old == assumed) ? answer : old;
+}
+    } while (assumed != old);
+
+}  // namespace omp
+
+
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

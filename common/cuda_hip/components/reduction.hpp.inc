@@ -75,7 +75,7 @@ __device__ __forceinline__ int choose_pivot(const Group& group,
                                             bool is_pivoted)
 {
     using real = remove_complex<ValueType>;
-    real lmag = is_pivoted ? -one<real>() : abs(local_data);
+    real lmag = real(is_pivoted ? -one<real>() : abs(local_data));
     const auto pivot =
         reduce(group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);
