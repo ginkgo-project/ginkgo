@@ -264,6 +264,8 @@ endif()
 
 if(GINKGO_BUILD_DPCPP)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+else()
+    set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
