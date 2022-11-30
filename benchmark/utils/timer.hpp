@@ -111,10 +111,13 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
 
 
 /**
- * Get the timer. If the executor does not support gpu timer, still return the
- * cpu timer.
+ * Get the MPI timer. This timer will wrap a local timer and report the longest
+ * duration among all processes using a global reduction.
+ *
+ * @see get_timer
  *
  * @param exec  Executor associated to the timer
+ * @param comm  Communicator containing all involved processes
  * @param use_gpu_timer  whether to use the gpu timer
  */
 std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
