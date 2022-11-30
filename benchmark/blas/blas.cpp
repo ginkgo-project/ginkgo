@@ -137,7 +137,8 @@ Parameters for a benchmark case are:
         std::exit(1);
     }
 
-    run_blas_benchmarks(exec, operation_map, test_cases, true);
+    run_blas_benchmarks(exec, get_timer(exec, FLAGS_gpu_timer), operation_map,
+                        test_cases, true);
 
     std::cout << test_cases << std::endl;
 }

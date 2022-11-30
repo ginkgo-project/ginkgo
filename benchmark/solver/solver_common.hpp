@@ -380,6 +380,7 @@ void solve_system(const std::string& solver_name,
                   const std::string& precond_name,
                   const char* precond_solver_name,
                   std::shared_ptr<gko::Executor> exec,
+                  std::shared_ptr<Timer> timer,
                   std::shared_ptr<const gko::LinOp> system_matrix,
                   const VectorType* b, const VectorType* x,
                   rapidjson::Value& test_case,
@@ -415,7 +416,7 @@ void solve_system(const std::string& solver_name,
                               allocator);
         }
 
-        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic{timer};
 
         // warm run
         std::shared_ptr<gko::LinOp> solver;
@@ -566,6 +567,7 @@ void solve_system(const std::string& solver_name,
 
 template <typename SystemGenerator>
 void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
+                           std::shared_ptr<Timer> timer,
                            rapidjson::Document& test_cases,
                            const SystemGenerator& system_generator,
                            bool do_print)
@@ -637,7 +639,7 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                             << std::endl;
                     }
                     solve_system(solver_name, precond_name,
-                                 precond_solver_name->c_str(), exec,
+                                 precond_solver_name->c_str(), exec, timer,
                                  system_matrix, lend(b), lend(x), test_case,
                                  allocator);
                     if (do_print) {

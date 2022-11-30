@@ -411,7 +411,8 @@ dimensions parse_dims(rapidjson::Value& test_case)
 
 template <typename OpMap>
 void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
-                const OpMap& operation_map, rapidjson::Value& test_case,
+                std::shared_ptr<Timer> timer, const OpMap& operation_map,
+                rapidjson::Value& test_case,
                 rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
@@ -421,7 +422,6 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
 
         auto op = operation_map.at(operation_name)(exec, parse_dims(test_case));
 
-        auto timer = get_timer(exec, FLAGS_gpu_timer);
         IterationControl ic(timer);
 
         // warm run
@@ -470,6 +470,7 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
 
 template <typename OpMap>
 void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
+                         std::shared_ptr<Timer> timer,
                          const OpMap& operation_map,
                          rapidjson::Document& test_cases, bool do_print)
 {
@@ -497,7 +498,7 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
             }
 
             for (const auto& operation_name : operations) {
-                apply_blas(operation_name.c_str(), exec, operation_map,
+                apply_blas(operation_name.c_str(), exec, timer, operation_map,
                            test_case, allocator);
 
                 if (do_print) {
