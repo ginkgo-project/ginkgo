@@ -246,9 +246,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
 
     auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
                                  const IndexType d_k) {
-        return !restricted ||
-               ((d_i == 0 && d_j == 0) || (d_i == 0 && d_k == 0) ||
-                (d_j == 0 && d_k == 0));
+        return !restricted || ((d_i == 0) + (d_j == 0) + (d_k == 0) >= 2);
     };
 
     auto nnz_in_row = [&]() {
@@ -395,9 +393,10 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
     gko::experimental::mpi::communicator comm,
     const IndexType target_local_size, bool restricted)
 {
-    const auto dp =
+    const auto discretization_points =
         static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto mat_size = dp * dp * comm.size();
+    const auto mat_size =
+        discretization_points * discretization_points * comm.size();
     const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
@@ -424,13 +423,13 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
     for (IndexType row = start; row < end; row++) {
-        auto i = row / dp;
-        auto j = row % dp;
+        auto i = row / discretization_points;
+        auto j = row % discretization_points;
         for (IndexType d_i = -1; d_i <= 1; d_i++) {
             for (IndexType d_j = -1; d_j <= 1; d_j++) {
                 if (is_valid_neighbor(d_i, d_j)) {
-                    auto col = j + d_j + (i + d_i) * dp;
-                    if (col >= 0 && col < mat_size) {
+                    auto col = j + d_j + (i + d_i) * discretization_points;
+                    if (is_in_box(col, mat_size)) {
                         if (col != row) {
                             A_data.nonzeros.emplace_back(
                                 row, col, -gko::one<ValueType>());
@@ -461,9 +460,10 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
     gko::experimental::mpi::communicator comm,
     const IndexType target_local_size, bool restricted)
 {
-    const auto dp =
+    const auto discretization_points =
         static_cast<IndexType>(closest_nth_root(target_local_size, 3));
-    const auto mat_size = dp * dp * dp * comm.size();
+    const auto mat_size = discretization_points * discretization_points *
+                          discretization_points * comm.size();
     const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
     const auto start = rows_per_rank * comm.rank();
     const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
@@ -474,9 +474,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
 
     auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
                                  const IndexType d_k) {
-        return !restricted ||
-               ((d_i == 0 && d_j == 0) || (d_i == 0 && d_k == 0) ||
-                (d_j == 0 && d_k == 0));
+        return !restricted || ((d_i == 0) + (d_j == 0) + (d_k == 0) >= 2);
     };
 
     auto nnz_in_row = [&]() {
@@ -495,16 +493,18 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
     for (IndexType row = start; row < end; row++) {
-        auto i = row / (dp * dp);
-        auto j = (row % (dp * dp)) / dp;
-        auto k = row % dp;
+        auto i = row / (discretization_points * discretization_points);
+        auto j = (row % (discretization_points * discretization_points)) /
+                 discretization_points;
+        auto k = row % discretization_points;
         for (IndexType d_i = -1; d_i <= 1; d_i++) {
             for (IndexType d_j = -1; d_j <= 1; d_j++) {
                 for (IndexType d_k = -1; d_k <= 1; d_k++) {
                     if (is_valid_neighbor(d_i, d_j, d_k)) {
-                        auto col =
-                            k + d_k + (j + d_j) * dp + (i + d_i) * dp * dp;
-                        if (col >= 0 && col < mat_size) {
+                        auto col = k + d_k + (j + d_j) * discretization_points +
+                                   (i + d_i) * discretization_points *
+                                       discretization_points;
+                        if (is_in_box(col, mat_size)) {
                             if (col != row) {
                                 A_data.nonzeros.emplace_back(
                                     row, col, -gko::one<ValueType>());
