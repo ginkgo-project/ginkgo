@@ -503,7 +503,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
-        neighbor_comm_ = other.neighbor_comm_;
+        neighbor_comm_ = other.neighbor_comm_.duplicate();
     }
     return *this;
 }
