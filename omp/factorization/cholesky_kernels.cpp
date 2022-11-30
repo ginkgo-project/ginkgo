@@ -237,17 +237,6 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
 
-template <typename ValueType, typename IndexType>
-void ldl_factorize(std::shared_ptr<const DefaultExecutor> exec,
-                   const IndexType* lookup_offsets, const int64* lookup_descs,
-                   const int32* lookup_storage, const IndexType* diag_idxs,
-                   const IndexType* transpose_idxs,
-                   matrix::Csr<ValueType, IndexType>* factors,
-                   array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LDL_FACTORIZE);
-
-
 }  // namespace cholesky
 }  // namespace omp
 }  // namespace kernels

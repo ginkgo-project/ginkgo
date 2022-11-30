@@ -20,7 +20,6 @@ target_sources(ginkgo
     factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
-    factorization/ldl.cpp
     factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp
