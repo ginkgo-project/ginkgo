@@ -200,6 +200,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         }
         ValueType diag = vals[row_diag];
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
+            const auto col = cols[lower_nz];
             diag -= squared_norm(vals[lower_nz]);
             // copy the lower triangular entries to the transpose
             vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
@@ -209,17 +210,6 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
-
-
-template <typename ValueType, typename IndexType>
-void ldl_factorize(std::shared_ptr<const DefaultExecutor> exec,
-                   const IndexType* lookup_offsets, const int64* lookup_descs,
-                   const int32* lookup_storage, const IndexType* diag_idxs,
-                   const IndexType* transpose_idxs,
-                   matrix::Csr<ValueType, IndexType>* factors,
-                   array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LDL_FACTORIZE);
 
 
 }  // namespace cholesky
