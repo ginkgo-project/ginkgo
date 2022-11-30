@@ -709,7 +709,7 @@ private:
 
         iterator begin() const { return iterator{info}; }
 
-        // not used, could potentially used in c++17 as a sentinel
+        // not used, could potentially be used in c++17 as a sentinel
         iterator end() const { return iterator{}; }
 
         status* info;

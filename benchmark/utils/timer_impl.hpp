@@ -41,10 +41,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+class MpiWrappedTimer;
+
+
 /**
  * Timer stores the timing information
  */
 class Timer {
+    friend MpiWrappedTimer;
+
 public:
     /**
      * Start the timer
@@ -192,6 +197,36 @@ protected:
 private:
     std::shared_ptr<const gko::Executor> exec_;
     std::chrono::time_point<std::chrono::steady_clock> start_;
+};
+
+
+class MpiWrappedTimer : public Timer {
+public:
+    MpiWrappedTimer(std::shared_ptr<const gko::Executor> exec,
+                    gko::experimental::mpi::communicator comm,
+                    std::shared_ptr<Timer> concrete_timer)
+        : exec_(std::move(exec)),
+          comm_(std::move(comm)),
+          concrete_timer_(std::move(concrete_timer))
+    {}
+
+protected:
+    void tic_impl() override { concrete_timer_->tic_impl(); }
+
+    double toc_impl() override
+    {
+        auto local_duration = concrete_timer_->toc_impl();
+        double duration = local_duration;
+        comm_.template all_reduce(exec_, &local_duration, &duration, 1,
+                                  MPI_MAX);
+        return duration;
+    }
+
+private:
+    std::shared_ptr<const gko::Executor> exec_;
+    gko::experimental::mpi::communicator comm_;
+
+    std::shared_ptr<Timer> concrete_timer_;
 };
 
 
