@@ -341,17 +341,22 @@ gko::matrix_data<ValueType, IndexType> generate_stencil(
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted)
+    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
 {
-    std::array<int, 2> dims{};
-    MPI_Dims_create(comm.size(), dims.size(), dims.data());
+    if (optimal_comm) {
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            {comm.size(), 1}, {comm.rank(), 0}, target_local_size, restricted);
+    } else {
+        std::array<int, 2> dims{};
+        MPI_Dims_create(comm.size(), dims.size(), dims.data());
 
-    std::array<int, 2> coords{};
-    coords[0] = comm.rank() % dims[0];
-    coords[1] = comm.rank() / dims[0];
+        std::array<int, 2> coords{};
+        coords[0] = comm.rank() % dims[0];
+        coords[1] = comm.rank() / dims[0];
 
-    return generate_2d_stencil_box<ValueType, IndexType>(
-        dims, coords, target_local_size, restricted);
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            dims, coords, target_local_size, restricted);
+    }
 }
 
 
@@ -364,162 +369,25 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted)
+    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
 {
-    std::array<int, 3> dims{};
-    MPI_Dims_create(comm.size(), dims.size(), dims.data());
+    if (optimal_comm) {
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            {comm.size(), 1, 1}, {comm.rank(), 0, 0}, target_local_size,
+            restricted);
+    } else {
+        std::array<int, 3> dims{};
 
-    std::array<int, 3> coords{};
-    coords[0] = comm.rank() % dims[0];
-    coords[1] = (comm.rank() / dims[0]) % dims[1];
-    coords[2] = comm.rank() / (dims[0] * dims[1]);
+        MPI_Dims_create(comm.size(), dims.size(), dims.data());
 
-    return generate_3d_stencil_box<ValueType, IndexType>(
-        dims, coords, target_local_size, restricted);
-}
+        std::array<int, 3> coords{};
+        coords[0] = comm.rank() % dims[0];
+        coords[1] = (comm.rank() / dims[0]) % dims[1];
+        coords[2] = comm.rank() / (dims[0] * dims[1]);
 
-
-/**
- * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
- * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
- *
- * The degrees of freedom are ordered such that each MPI rank has at most two
- * neighbors.
- *
- * @see generate_2d_stencil_box
- */
-template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
-    gko::experimental::mpi::communicator comm,
-    const IndexType target_local_size, bool restricted)
-{
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto mat_size =
-        discretization_points * discretization_points * comm.size();
-    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
-    const auto start = rows_per_rank * comm.rank();
-    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
-
-    auto A_data = gko::matrix_data<ValueType, IndexType>(
-        gko::dim<2>{static_cast<gko::size_type>(mat_size),
-                    static_cast<gko::size_type>(mat_size)});
-
-    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j) {
-        return !restricted || ((d_i == 0 || d_j == 0));
-    };
-
-    auto nnz_in_row = [&]() {
-        int num_neighbors = 0;
-        for (IndexType d_i : {-1, 0, 1}) {
-            for (IndexType d_j : {-1, 0, 1}) {
-                if (is_valid_neighbor(d_i, d_j)) {
-                    num_neighbors++;
-                }
-            }
-        }
-        return num_neighbors;
-    };
-    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
-
-    for (IndexType row = start; row < end; row++) {
-        auto i = row / discretization_points;
-        auto j = row % discretization_points;
-        for (IndexType d_i = -1; d_i <= 1; d_i++) {
-            for (IndexType d_j = -1; d_j <= 1; d_j++) {
-                if (is_valid_neighbor(d_i, d_j)) {
-                    auto col = j + d_j + (i + d_i) * discretization_points;
-                    if (is_in_box(col, mat_size)) {
-                        if (col != row) {
-                            A_data.nonzeros.emplace_back(
-                                row, col, -gko::one<ValueType>());
-                        } else {
-                            A_data.nonzeros.emplace_back(row, col, diag_value);
-                        }
-                    }
-                }
-            }
-        }
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            dims, coords, target_local_size, restricted);
     }
-
-    return A_data;
-}
-
-
-/**
- * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
- * creates a 7-pt stencil, if it is false creates a 27-pt stencil.
- *
- * The degrees of freedom are ordered such that each MPI rank has at most two
- * neighbors.
- *
- * @see generate_3d_stencil_box
- */
-template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
-    gko::experimental::mpi::communicator comm,
-    const IndexType target_local_size, bool restricted)
-{
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 3));
-    const auto mat_size = discretization_points * discretization_points *
-                          discretization_points * comm.size();
-    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
-    const auto start = rows_per_rank * comm.rank();
-    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
-
-    auto A_data = gko::matrix_data<ValueType, IndexType>(
-        gko::dim<2>{static_cast<gko::size_type>(mat_size),
-                    static_cast<gko::size_type>(mat_size)});
-
-    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
-                                 const IndexType d_k) {
-        return !restricted || ((d_i == 0) + (d_j == 0) + (d_k == 0) >= 2);
-    };
-
-    auto nnz_in_row = [&]() {
-        int num_neighbors = 0;
-        for (IndexType d_i : {-1, 0, 1}) {
-            for (IndexType d_j : {-1, 0, 1}) {
-                for (IndexType d_k : {-1, 0, 1}) {
-                    if (is_valid_neighbor(d_i, d_j, d_k)) {
-                        num_neighbors++;
-                    }
-                }
-            }
-        }
-        return num_neighbors;
-    };
-    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
-
-    for (IndexType row = start; row < end; row++) {
-        auto i = row / (discretization_points * discretization_points);
-        auto j = (row % (discretization_points * discretization_points)) /
-                 discretization_points;
-        auto k = row % discretization_points;
-        for (IndexType d_i = -1; d_i <= 1; d_i++) {
-            for (IndexType d_j = -1; d_j <= 1; d_j++) {
-                for (IndexType d_k = -1; d_k <= 1; d_k++) {
-                    if (is_valid_neighbor(d_i, d_j, d_k)) {
-                        auto col = k + d_k + (j + d_j) * discretization_points +
-                                   (i + d_i) * discretization_points *
-                                       discretization_points;
-                        if (is_in_box(col, mat_size)) {
-                            if (col != row) {
-                                A_data.nonzeros.emplace_back(
-                                    row, col, -gko::one<ValueType>());
-                            } else {
-                                A_data.nonzeros.emplace_back(row, col,
-                                                             diag_value);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return A_data;
 }
 
 
@@ -529,46 +397,32 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
  * @copydoc  generate_stencil(const gko::size_type, bool)
  *
  * @param comm  The MPI communicator to determine the rank.
+ * @param optimal_comm  If true, a  1D domain decomposition is used which leads
+ *                      to each processor having at most two neighbors. This
+ *                      also changes the domain shape to an elongated channel.
+ *                      If false, a mostly uniform 2D or 3D decomposition is
+ *                      used, and the domain shape is mostly cubic.
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_stencil(
     std::string stencil_name, gko::experimental::mpi::communicator comm,
     const gko::size_type target_local_size, bool optimal_comm)
 {
-    if (optimal_comm) {
-        if (stencil_name == "5pt") {
-            return generate_2d_stencil_with_optimal_comm<ValueType, IndexType>(
-                std::move(comm), target_local_size, true);
-        } else if (stencil_name == "9pt") {
-            return generate_2d_stencil_with_optimal_comm<ValueType, IndexType>(
-                std::move(comm), target_local_size, false);
-        } else if (stencil_name == "7pt") {
-            return generate_3d_stencil_with_optimal_comm<ValueType, IndexType>(
-                std::move(comm), target_local_size, true);
-        } else if (stencil_name == "27pt") {
-            return generate_3d_stencil_with_optimal_comm<ValueType, IndexType>(
-                std::move(comm), target_local_size, false);
-        } else {
-            throw std::runtime_error("Stencil " + stencil_name +
-                                     " not implemented");
-        }
+    if (stencil_name == "5pt") {
+        return generate_2d_stencil<ValueType, IndexType>(
+            std::move(comm), target_local_size, true, optimal_comm);
+    } else if (stencil_name == "9pt") {
+        return generate_2d_stencil<ValueType, IndexType>(
+            std::move(comm), target_local_size, false, optimal_comm);
+    } else if (stencil_name == "7pt") {
+        return generate_3d_stencil<ValueType, IndexType>(
+            std::move(comm), target_local_size, true, optimal_comm);
+    } else if (stencil_name == "27pt") {
+        return generate_3d_stencil<ValueType, IndexType>(
+            std::move(comm), target_local_size, false, optimal_comm);
     } else {
-        if (stencil_name == "5pt") {
-            return generate_2d_stencil<ValueType, IndexType>(
-                std::move(comm), target_local_size, true);
-        } else if (stencil_name == "9pt") {
-            return generate_2d_stencil<ValueType, IndexType>(
-                std::move(comm), target_local_size, false);
-        } else if (stencil_name == "7pt") {
-            return generate_3d_stencil<ValueType, IndexType>(
-                std::move(comm), target_local_size, true);
-        } else if (stencil_name == "27pt") {
-            return generate_3d_stencil<ValueType, IndexType>(
-                std::move(comm), target_local_size, false);
-        } else {
-            throw std::runtime_error("Stencil " + stencil_name +
-                                     " not implemented");
-        }
+        throw std::runtime_error("Stencil " + stencil_name +
+                                 " not implemented");
     }
 }
 
