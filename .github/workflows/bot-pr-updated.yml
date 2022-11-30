@@ -60,3 +60,14 @@ jobs:
         with:
             name: abi
             path: abi.diff
+  changelog-wiki-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check if the PR ID exists in wiki
+        # Disable it when label contains 1:ST:skip-changelog-wiki-check or the branch name starts with release
+        if: ! contains(github.event.issue.labels.*.name, '1:ST:skip-changelog-wiki-check') || ! startsWith( ${{ github.event.pull_request.head.name }}, 'release')
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          curl https://raw.githubusercontent.com/wiki/ginkgo-project/ginkgo/Changelog.md > Changelog.md
+          PR=\[\#${PR_NUMBER}\]\(https://github.com/ginkgo-project/ginkgo/(issues|pull)/${PR_NUMBER}\)
+          cat Changelog.md | grep -E ${PR}
