@@ -239,6 +239,14 @@ namespace kernels {
                       const IndexType* storage_offsets, int64* row_desc,      \
                       int32* storage)
 
+#define GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)               \
+    void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const IndexType* row_ptrs,                     \
+                          const IndexType* col_idxs, size_type num_rows, \
+                          const IndexType* storage_offsets,              \
+                          const int64* row_desc, const int32* storage,   \
+                          IndexType sample_size, IndexType* result)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -302,7 +310,9 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
+    template <typename IndexType>                                          \
+    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);

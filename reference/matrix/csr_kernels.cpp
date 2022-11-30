@@ -1272,6 +1272,36 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
 
+template <typename IndexType>
+void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* row_ptrs, const IndexType* col_idxs,
+                      size_type num_rows, const IndexType* storage_offsets,
+                      const int64* row_desc, const int32* storage,
+                      IndexType sample_size, IndexType* result)
+{
+    for (size_type row = 0; row < num_rows; row++) {
+        gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+            row_ptrs, col_idxs, storage_offsets,
+            storage,  row_desc, static_cast<size_type>(row)};
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        const auto row_len = row_end - row_begin;
+        for (IndexType sample = 0; sample < sample_size; sample++) {
+            if (row_len > 0) {
+                const auto sample_idx = row_len * sample / sample_size;
+                const auto col = col_idxs[row_begin + sample_idx];
+                result[row * sample_size + sample] =
+                    lookup.lookup_unsafe(col) + row_begin;
+            } else {
+                result[row * sample_size + sample] = -1;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL);
+
+
 }  // namespace csr
 }  // namespace reference
 }  // namespace kernels
