@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   The size parameter denotes the size per process. It might be adjusted to
   fit the dimensionality of the stencil more easily.
   Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
-  Optional values for "comm_pattern" are: stencil, optimal (default).
+  Optional values for "comm_pattern" are: stencil, optimal.
   Possible values for "optimal[spmv]" follow the pattern
   "<local_format>-<non_local_format>", where both "local_format" and
   "non_local_format" can be any of the recognized spmv formats.
@@ -109,13 +109,14 @@ int main(int argc, char* argv[])
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
-    std::string extra_information;
-    if (FLAGS_repetitions == "auto") {
-        extra_information =
-            "WARNING: repetitions = 'auto' not supported for MPI "
-            "benchmarks, setting repetitions to the default value.";
-        FLAGS_repetitions = "10";
-    }
+    std::stringstream ss_rel_res_goal;
+    ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
+
+    std::string extra_information =
+        "Running " + FLAGS_solvers + " with " +
+        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
+        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
+        std::to_string(FLAGS_nrhs) + "\n";
     if (rank == 0) {
         print_general_information(extra_information);
     }
@@ -131,9 +132,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::stringstream ss_rel_res_goal;
-    ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
-
     std::string json_input = FLAGS_overhead
                                  ? R"(
 [{"filename": "overhead.mtx",
@@ -147,7 +145,8 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_solver_benchmarks(exec, test_cases, Generator(comm), rank == 0);
+    run_solver_benchmarks(exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
+                          test_cases, Generator(comm), rank == 0);
 
     if (rank == 0) {
         std::cout << test_cases << std::endl;

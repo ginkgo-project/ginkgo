@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_solver_benchmarks(exec, test_cases, SolverGenerator{}, true);
+    run_solver_benchmarks(exec, get_timer(exec, FLAGS_gpu_timer), test_cases,
+                          SolverGenerator{}, true);
 
     std::cout << test_cases << std::endl;
 }

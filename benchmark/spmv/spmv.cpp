@@ -81,7 +81,8 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_spmv_benchmark(exec, test_cases, formats, Generator{}, true);
+    run_spmv_benchmark(exec, test_cases, formats, Generator{},
+                       get_timer(exec, FLAGS_gpu_timer), true);
 
     std::cout << test_cases << std::endl;
 }

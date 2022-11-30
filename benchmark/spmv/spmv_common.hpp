@@ -52,7 +52,7 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 // calling it
 template <typename Generator, typename VectorType, typename IndexType>
 void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
-                const Generator& generator,
+                const Generator& generator, std::shared_ptr<Timer> timer,
                 const gko::matrix_data<etype, IndexType>& data,
                 const VectorType* b, const VectorType* x,
                 const VectorType* answer, rapidjson::Value& test_case,
@@ -78,7 +78,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                               max_relative_norm2, allocator);
         }
 
-        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic{timer};
         // warm run
         for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
@@ -156,7 +156,8 @@ template <typename SystemGenerator>
 void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                         rapidjson::Document& test_cases,
                         const std::vector<std::string> formats,
-                        const SystemGenerator& system_generator, bool do_print)
+                        const SystemGenerator& system_generator,
+                        std::shared_ptr<Timer> timer, bool do_print)
 {
     auto& allocator = test_cases.GetAllocator();
 
@@ -212,8 +213,8 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 exec->synchronize();
             }
             for (const auto& format_name : formats) {
-                apply_spmv(format_name.c_str(), exec, system_generator, data,
-                           lend(b), lend(x), lend(answer), test_case,
+                apply_spmv(format_name.c_str(), exec, system_generator, timer,
+                           data, lend(b), lend(x), lend(answer), test_case,
                            allocator);
                 if (do_print) {
                     std::clog << "Current state:" << std::endl
