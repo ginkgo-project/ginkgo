@@ -62,8 +62,8 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType>* mtx,
     if (mtx->get_num_stored_elements() <= 0) {
         return;
     }
-    const auto& exec = mtx->get_executor();
-    const auto& master = exec->get_master();
+    const auto exec = mtx->get_executor();
+    const auto master = exec->get_master();
 
     // If exec is not the master/host, extract the master and perform the
     // unsorting there, followed by copying it back
@@ -100,8 +100,8 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType>* mtx,
         return;
     }
 
-    const auto& exec = mtx->get_executor();
-    const auto& master = exec->get_master();
+    const auto exec = mtx->get_executor();
+    const auto master = exec->get_master();
 
     // If exec is not the master/host, extract the master and perform the
     // unsorting there, followed by copying it back
