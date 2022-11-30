@@ -131,7 +131,8 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
-    run_spmv_benchmark(exec, test_cases, formats, Generator{comm}, rank == 0);
+    run_spmv_benchmark(exec, test_cases, formats, Generator{comm},
+                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), rank == 0);
 
     if (rank == 0) {
         std::cout << test_cases << std::endl;

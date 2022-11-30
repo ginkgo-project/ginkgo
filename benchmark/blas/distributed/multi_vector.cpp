@@ -127,7 +127,8 @@ Parameters for a benchmark case are:
                      exec, Generator{comm, {}}, dims.n, dims.r, dims.stride_y);
              }}};
 
-    run_blas_benchmarks(exec, operation_map, test_cases, rank == 0);
+    run_blas_benchmarks(exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
+                        operation_map, test_cases, rank == 0);
 
     if (rank == 0) {
         std::cout << test_cases << std::endl;
