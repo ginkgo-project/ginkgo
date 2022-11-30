@@ -217,8 +217,7 @@ protected:
     {
         auto local_duration = concrete_timer_->toc_impl();
         double duration = local_duration;
-        comm_.template all_reduce(exec_, &local_duration, &duration, 1,
-                                  MPI_MAX);
+        comm_.all_reduce(exec_, &local_duration, &duration, 1, MPI_MAX);
         return duration;
     }
 
