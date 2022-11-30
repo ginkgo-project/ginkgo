@@ -199,9 +199,7 @@ void CudaExecutor::synchronize() const
 {
     detail::cuda_scoped_device_id g(this->get_device_id());
     cudaEvent_t event;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(event));
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(event));
-    // GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
 
