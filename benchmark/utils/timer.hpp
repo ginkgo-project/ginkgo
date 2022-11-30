@@ -106,4 +106,25 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
     return std::make_shared<CpuTimer>(exec);
 }
 
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Get the timer. If the executor does not support gpu timer, still return the
+ * cpu timer.
+ *
+ * @param exec  Executor associated to the timer
+ * @param use_gpu_timer  whether to use the gpu timer
+ */
+std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
+                                     gko::experimental::mpi::communicator comm,
+                                     bool use_gpu_timer)
+{
+    return std::make_shared<MpiWrappedTimer>(exec, std::move(comm),
+                                             get_timer(exec, use_gpu_timer));
+}
+
+
+#endif  // GINKGO_BUILD_MPI
 #endif  // GKO_BENCHMARK_UTILS_TIMER_HPP_
