@@ -200,6 +200,9 @@ private:
 };
 
 
+#if GINKGO_BUILD_MPI
+
+
 class MpiWrappedTimer : public Timer {
 public:
     MpiWrappedTimer(std::shared_ptr<const gko::Executor> exec,
@@ -229,4 +232,5 @@ private:
 };
 
 
+#endif  // GINKGO_BUILD_MPI
 #endif  // GKO_BENCHMARK_UTILS_TIMER_IMPL_HPP_
