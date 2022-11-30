@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -208,7 +208,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     default_ss.stop_rel_res = rel_res_norm;
     default_ss.krylov_dim = 100u;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
-    /*
+    //*
     default_ss.precond = precond_type::build()
                              .with_max_block_size(32u)
                              .with_skip_sorting(true)
@@ -259,7 +259,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     benchmarks.back().settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::keep;
 
-    /*
+    //*
     benchmarks.emplace_back();
     benchmarks.back().name = get_name(1);
     benchmarks.back().settings = default_ss;
@@ -286,7 +286,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             gko::solver::cb_gmres::storage_precision::use_sz;
         benchmarks.back().settings.lp_config = config_file;
     }
-    */
+    //*/
 
     // Note: The time might not be significantly different since the matrix is
     //       quite small
