@@ -16,7 +16,7 @@ jobs:
           ref: develop
       - name: Check for formatting changes
         env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
       - name: Upload code formatting patch
         if: failure()
@@ -52,7 +52,7 @@ jobs:
           cmake --build build-old -j`nproc`
       - name: Compute abidiff
         env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: old/.github/abidiff.sh
       - name: Upload ABI diff
         if: failure()

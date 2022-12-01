@@ -13,5 +13,5 @@ jobs:
           ref: develop
       - name: Add appropriate labels
         env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .github/label.sh
