@@ -179,8 +179,8 @@ void CoarseGen<ValueType, LocalIndexType,
     fine_row_ptrs.fill(-one<GlobalIndexType>());
     auto fine_offset = array<GlobalIndexType>(exec, 1);
     if (comm.rank() == 1) {
-        // fine_offset.fill(50);
-        fine_offset.fill(0);
+        fine_offset.fill(50);
+        // fine_offset.fill(0);
     } else {
         fine_offset.fill(0);
     }
