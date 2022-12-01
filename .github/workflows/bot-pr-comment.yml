@@ -13,7 +13,7 @@ jobs:
         ref: develop
     - name: Add appropriate labels
       env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cp --preserve .github/label.sh /tmp && /tmp/label.sh
   check_format:
     name: check-format
@@ -26,7 +26,7 @@ jobs:
         ref: develop
     - name: Check for formatting changes
       env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cp --preserve .github/check-format.sh /tmp && /tmp/check-format.sh
     - name: Upload code formatting patch
       if: failure()
@@ -46,7 +46,7 @@ jobs:
         persist-credentials: false
     - name: Commit formatting changes
       env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cp --preserve .github/format.sh /tmp && /tmp/format.sh
   rebase:
     name: rebase
@@ -61,7 +61,7 @@ jobs:
         persist-credentials: false
     - name: Automatic Rebase
       env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cp --preserve .github/rebase.sh /tmp && /tmp/rebase.sh
   format-rebase:
     name: format-rebase
@@ -76,7 +76,7 @@ jobs:
         persist-credentials: false
     - name: Automatic Formatting Rebase
       env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cp --preserve .github/format-rebase.sh /tmp && /tmp/format-rebase.sh
     - name: Upload code formatting diffs
       if: success()
