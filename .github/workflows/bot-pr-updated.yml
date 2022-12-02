@@ -64,10 +64,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: check if the PR ID exists in wiki
+        env:
+          # it suggests the head.ref should be accessd by environment.
+          BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
         # Disable it when label contains 1:ST:skip-changelog-wiki-check or the branch name starts with release
-        if: ! contains(github.event.issue.labels.*.name, '1:ST:skip-changelog-wiki-check') || ! startsWith( ${{ github.event.pull_request.head.name }}, 'release')
+        # need use ${{  }} evaluate to avoid special character ! as the first one
+        # On the pull_request trigger, it needs to use github.event.pull_request
+        # In if statement, the environment is accessed by env.variable. It can not be accessed by $variable because it is on action side not runner side.
+        # The label is not updated if we only change the label and rerun the action.
+        if: |
+          ${{
+            !contains(github.event.pull_request.labels.*.name, '1:ST:skip-changelog-wiki-check') && 
+            !startsWith( env.BRANCH_NAME, 'release')
+          }}
+        # echo accepts "$variable" not "${variable}" from environment
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           curl https://raw.githubusercontent.com/wiki/ginkgo-project/ginkgo/Changelog.md > Changelog.md
-          PR=\[\#${PR_NUMBER}\]\(https://github.com/ginkgo-project/ginkgo/(issues|pull)/${PR_NUMBER}\)
-          cat Changelog.md | grep -E ${PR}
+          PR="\[\#${PR_NUMBER}\]\(https://github.com/ginkgo-project/ginkgo/(issues|pull)/${PR_NUMBER}\)
+          HAS_WIKI="$(cat Changelog.md | grep -E ${PR} || echo false)"
+          if [[ "${HAS_WIKI}" == "false" ]]; then
+            echo "This PR does not create the corresponding entry in wiki/Changelog"
+            echo "Please adds [#${PR_NUMBER}](https://github.com/ginkgo-project/ginkgo/pull/${PR_NUMBER}) in wiki/Changelog"
+            exit 1
+          else
+            echo "Wiki already has this PR entry."
+          fi
