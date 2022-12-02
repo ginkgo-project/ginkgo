@@ -63,7 +63,7 @@ protected:
 
     Gcr() : rand_engine(30)
     {
-        mtx = gen_mtx(16, 16);
+        mtx = gen_mtx(15, 15);
         d_mtx = gko::clone(exec, mtx);
         exec_gcr_factory =
             Solver::build()
@@ -96,7 +96,7 @@ protected:
     void initialize_data(int nrhs = 43)
     {
 #ifdef GINKGO_FAST_TESTS
-        int m = 16;
+        int m = 123;
 #else
         int m = 597;
 #endif
@@ -106,8 +106,7 @@ protected:
         A_residual = gen_mtx(m, nrhs);
         p_bases = gen_mtx(m * (gko::solver::gcr_default_krylov_dim + 1), nrhs);
         p = gen_mtx(m, nrhs);
-        Ap_bases = gen_mtx(m * (gko::solver::gcr_default_krylov_dim + 1),
-                           nrhs);
+        Ap_bases = gen_mtx(m * (gko::solver::gcr_default_krylov_dim + 1), nrhs);
         Ap = gen_mtx(m, nrhs);
         alpha = gen_mtx(1, nrhs);
         Ap_norm = gen_mtx(1, nrhs);
@@ -168,7 +167,6 @@ protected:
     std::unique_ptr<Mtx> d_Ap_norm;
     gko::array<gko::stopping_status> d_stop_status;
     gko::array<gko::size_type> d_final_iter_nums;
-
 };
 
 
@@ -190,13 +188,12 @@ TEST_F(Gcr, GcrKernelRestartIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gcr::restart(
-        ref, residual.get(), A_residual.get(), p_bases.get(), Ap_bases.get(),
-        final_iter_nums.get_data());
+    gko::kernels::reference::gcr::restart(ref, residual.get(), A_residual.get(),
+                                          p_bases.get(), Ap_bases.get(),
+                                          final_iter_nums.get_data());
     gko::kernels::EXEC_NAMESPACE::gcr::restart(
-        exec, d_residual.get(),
-        d_A_residual.get(), d_p_bases.get(), d_Ap_bases.get(),
-        d_final_iter_nums.get_data());
+        exec, d_residual.get(), d_A_residual.get(), d_p_bases.get(),
+        d_Ap_bases.get(), d_final_iter_nums.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_A_residual, A_residual, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_p, p, r<value_type>::value);
@@ -209,8 +206,12 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(), Ap.get(), Ap_norm.get(), alpha.get(), stop_status.get_data());
-    gko::kernels::EXEC_NAMESPACE::gcr::step_1(exec, d_x.get(), d_residual.get(), d_p.get(), d_Ap.get(), d_Ap_norm.get(), d_alpha.get(), d_stop_status.get_data());
+    gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(),
+                                         Ap.get(), Ap_norm.get(), alpha.get(),
+                                         stop_status.get_data());
+    gko::kernels::EXEC_NAMESPACE::gcr::step_1(
+        exec, d_x.get(), d_residual.get(), d_p.get(), d_Ap.get(),
+        d_Ap_norm.get(), d_alpha.get(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
@@ -219,7 +220,7 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
 
 TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 {
-    int m = 16;
+    int m = 15;
     int n = 1;
     auto ref_solver = ref_gcr_factory->generate(mtx);
     auto exec_solver = exec_gcr_factory->generate(d_mtx);
@@ -238,8 +239,8 @@ TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Gcr, GcrApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 16;
-    int n = 3;
+    int m = 15;
+    int n = 5;
     auto ref_solver = ref_gcr_factory->generate(mtx);
     auto exec_solver = exec_gcr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
