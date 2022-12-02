@@ -113,7 +113,8 @@ public:
         _name##_ = value;                            \
         return *this;                                \
     }                                                \
-    mutable _type _name##_ {}
+    mutable _type _name##_                           \
+    {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
         GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual);
@@ -207,6 +208,22 @@ protected:
 };
 
 
+enum class residual_norm_criteria {
+    /**
+     * neither direct, nor implicit are used
+     */
+    none,
+    /**
+     * the exact residual norm is directly used in the criterion check
+     */
+    direct,
+    /**
+     * the implicit residual norm is used in the criterion check
+     */
+    implicit
+};
+
+
 /**
  * This struct is used to pass parameters to the
  * EnableDefaultCriterionFactoryCriterionFactory::generate() method. It is the
@@ -222,15 +239,18 @@ struct CriterionArgs {
     std::shared_ptr<const LinOp> b;
     const LinOp* x;
     const LinOp* initial_residual;
+    residual_norm_criteria check;
 
 
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
                   std::shared_ptr<const LinOp> b, const LinOp* x,
-                  const LinOp* initial_residual = nullptr)
+                  const LinOp* initial_residual = nullptr,
+                  residual_norm_criteria check = residual_norm_criteria::none)
         : system_matrix{system_matrix},
           b{b},
           x{x},
-          initial_residual{initial_residual}
+          initial_residual{initial_residual},
+          check(check)
     {}
 };
 

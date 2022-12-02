@@ -255,6 +255,9 @@ struct workspace_traits {
     static std::vector<int> scalars(const Solver&) { return {}; }
     // array containing all vectors (dependent on problem size)
     static std::vector<int> vectors(const Solver&) { return {}; }
+    // how the residual norm is used in the criterion check
+    static constexpr stop::residual_norm_criteria check =
+        stop::residual_norm_criteria::none;
 };
 
 
