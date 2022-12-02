@@ -209,19 +209,19 @@ void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
     auto first_it = first.nonzeros.begin();
     auto second_it = second.nonzeros.begin();
     os << ' ';
-    for (int col = 0; col < first.size[1]; col++) {
+    for (size_type col = 0; col < first.size[1]; col++) {
         os << (col % 10);
     }
     os << '\n';
-    for (int row = 0; row < first.size[0]; row++) {
+    for (size_type row = 0; row < first.size[0]; row++) {
         os << (row % 10);
-        for (int col = 0; col < first.size[1]; col++) {
+        for (size_type col = 0; col < first.size[1]; col++) {
             const auto has_first =
                 get_next_value(first_it, end(first.nonzeros), row, col) !=
-                gko::zero<typename MatrixData1::value_type>();
+                zero<typename MatrixData1::value_type>();
             const auto has_second =
                 get_next_value(second_it, end(second.nonzeros), row, col) !=
-                gko::zero<typename MatrixData2::value_type>();
+                zero<typename MatrixData2::value_type>();
             if (has_first) {
                 if (has_second) {
                     os << '+';
@@ -239,10 +239,10 @@ void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
         os << (row % 10) << '\n';
     }
     os << ' ';
-    for (int col = 0; col < first.size[1]; col++) {
+    for (size_type col = 0; col < first.size[1]; col++) {
         os << (col % 10);
     }
-    os << "\n| is first, - is second, + is both\n";
+    os << "\n'|' is first, '-' is second, '+' is both, ' ' is none\n";
 }
 
 
@@ -827,10 +827,10 @@ template <typename LinOp1, typename LinOp2>
     second_data.ensure_row_major_order();
     // make sure if we write data to disk, it only contains ones.
     for (auto& entry : first_data.nonzeros) {
-        entry.value = gko::one<typename LinOp1::value_type>();
+        entry.value = one<typename LinOp1::value_type>();
     }
     for (auto& entry : second_data.nonzeros) {
-        entry.value = gko::one<typename LinOp2::value_type>();
+        entry.value = one<typename LinOp2::value_type>();
     }
 
     return detail::matrices_equal_sparsity_impl(
