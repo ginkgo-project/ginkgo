@@ -124,6 +124,10 @@ protected:
             {I<T>{1., 2.}, I<T>{3., 4.}, I<T>{5., 6.}}, exec);
         small_x = Mtx::create(exec, small_size);
         small_residual = Mtx::create(exec, small_size);
+        small_A_residual = Mtx::create(exec, small_size);
+        small_krylov_bases_p = Mtx::create(exec, small_size);
+        small_mapped_krylov_bases_Ap = Mtx::create(exec, small_size);
+        small_Ap_norm = rc_Mtx::create(exec, gko::dim<2>{1, small_size[1]});
 
         stopped.converge(1, true);
         non_stopped.reset();
@@ -137,6 +141,10 @@ protected:
     std::unique_ptr<Mtx> small_x;
     std::unique_ptr<Mtx> small_b;
     std::unique_ptr<Mtx> small_residual;
+    std::unique_ptr<Mtx> small_A_residual;
+    std::unique_ptr<Mtx> small_krylov_bases_p;
+    std::unique_ptr<Mtx> small_mapped_krylov_bases_Ap;
+    std::unique_ptr<rc_Mtx> small_Ap_norm;
     gko::array<gko::size_type> small_final_iter_nums;
     gko::array<gko::stopping_status> small_stop;
 
@@ -170,6 +178,65 @@ TYPED_TEST(Gcr, KernelInitialize)
     for (int i = 0; i < this->small_stop.get_num_elems(); ++i) {
         ASSERT_EQ(this->small_stop.get_data()[i], this->non_stopped);
     }
+}
+
+
+TYPED_TEST(Gcr, KernelRestart)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const value_type nan =
+        std::numeric_limits<gko::remove_complex<value_type>>::quiet_NaN();
+    this->small_residual->copy_from(this->small_b.get());
+    this->mtx->apply(this->small_residual.get(), this->small_A_residual.get());
+    this->small_krylov_bases_p->fill(nan);
+    this->small_mapped_krylov_bases_Ap->fill(nan);
+    std::fill_n(this->small_final_iter_nums.get_data(),
+                this->small_final_iter_nums.get_num_elems(), 999);
+    auto expected_p_bases = gko::clone(this->exec, this->small_krylov_bases_p);
+    auto expected_Ap_bases =
+        gko::clone(this->exec, this->small_mapped_krylov_bases_Ap);
+    const auto small_size = this->small_residual->get_size();
+    for (int i = 0; i < small_size[0]; ++i) {
+        for (int j = 0; j < small_size[1]; ++j) {
+            expected_p_bases->get_values()[i * small_size[1] + j] =
+                this->small_residual->get_const_values()[i * small_size[1] + j];
+            expected_Ap_bases->get_values()[i * small_size[1] + j] =
+                this->small_A_residual
+                    ->get_const_values()[i * small_size[1] + j];
+        }
+    }
+
+    gko::kernels::reference::gcr::restart(
+        this->exec, this->small_residual.get(), this->small_A_residual.get(),
+        this->small_krylov_bases_p.get(),
+        this->small_mapped_krylov_bases_Ap.get(),
+        this->small_final_iter_nums.get_data());
+
+    ASSERT_EQ(this->small_final_iter_nums.get_num_elems(),
+              this->small_residual->get_size()[1]);
+    for (int i = 0; i < this->small_final_iter_nums.get_num_elems(); ++i) {
+        ASSERT_EQ(this->small_final_iter_nums.get_const_data()[i], 0);
+    }
+    GKO_ASSERT_MTX_NEAR(this->small_krylov_bases_p, this->small_residual,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->small_mapped_krylov_bases_Ap,
+                        this->small_A_residual, r<value_type>::value);
+}
+
+
+TYPED_TEST(Gcr, KernelStep1)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const auto nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    this->small_residual->fill(nan);
+    this->small_krylov_bases_p = gko::initialize<Mtx>(
+        {I<T>{0.5, -0.75}, I<T>{1.25, 1.5}, I<T>{-0.5, 1}}, this->exec);
+    this->mtx->apply(this->small_krylov_bases_p.get(),
+                     this->small_mapped_krylov_bases_Ap.get());
+    this->small_mapped_krylov_bases_Ap->compute_norm2(
+        this->small_Ap_norm.get());
 }
 
 
