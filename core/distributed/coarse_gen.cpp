@@ -191,10 +191,10 @@ void CoarseGen<ValueType, LocalIndexType,
         fine_row_ptrs.get_data()));
 
 
-    for (int i = 0; i < fine_row_ptrs.get_num_elems(); i++) {
-        std::cout << " rank: " << comm.rank()
-                  << " rptrs: " << fine_row_ptrs.get_data()[i] << std::endl;
-    }
+    // for (int i = 0; i < fine_row_ptrs.get_num_elems(); i++) {
+    //     std::cout << " rank: " << comm.rank()
+    //               << " rptrs: " << fine_row_ptrs.get_data()[i] << std::endl;
+    // }
 
     auto coarse_row_partition =
         gko::share(gko::experimental::distributed::

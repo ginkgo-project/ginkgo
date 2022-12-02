@@ -211,25 +211,31 @@ void fill_coarse(
     const auto col_range_end = fine_col_partition->get_range_bounds()[rank + 1];
     const auto c_indices = coarse_indices.get_const_data();
     const auto f_row_ptrs = fine_row_ptrs.get_const_data();
+    // for (int nnz = 0; nnz < coarse_size[0]; ++nnz) {
+    //     std::cout << " rank " << rank << " cidx id: " << nnz << " : "
+    //               << c_indices[nnz] << std::endl;
+    // }
+    std::cout << "rank " << rank << " fmat size  " << f_mat_data.nonzeros.size()
+              << " g nnz " << global_nnz << std::endl;
 
     // Get coarse data with global fine matrix indexing.
     int nnz = 0;
     int ridx = 0;
     for (auto i = 0; i < global_size[0]; ++i) {
-        auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
-        if (idx1 != c_indices + coarse_size[0]) {
-            int cidx = 0;
-            for (auto j = f_row_ptrs[i]; j < f_row_ptrs[i + 1]; ++j) {
-                auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
-                                      f_col_idxs[j]);
-                if (idx2 != c_indices + coarse_size[0]) {
+        if (i >= row_range_start && i < row_range_end) {
+            auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
+            if (idx1 != c_indices + coarse_size[0]) {
+                int cidx = 0;
+                for (auto j = f_row_ptrs[i]; j < f_row_ptrs[i + 1]; ++j) {
+                    auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
+                                          f_col_idxs[j]);
                     // Assume row major ordering
                     c_matrix_data.add_value(
-                        ridx, cidx, fine_matrix_data.get_const_values()[j]);
-                    cidx++;
+                        ridx, idx2 - c_indices,
+                        fine_matrix_data.get_const_values()[j]);
                 }
+                ridx++;
             }
-            ridx++;
         }
     }
 
@@ -238,11 +244,11 @@ void fill_coarse(
             exec, c_matrix_data.get_ordered_data());
     auto c_data = c_matrix_data.get_ordered_data();
 
-    // for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
-    //     std::cout << " id: " << nnz << " : " << c_data.nonzeros[nnz]
-    //               << std::endl;
-    // }
-    // std::cout << " Here " << __LINE__ << std::endl;
+    for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
+        std::cout << "coarse id: " << nnz << " : " << c_data.nonzeros[nnz]
+                  << std::endl;
+    }
+    std::cout << " Here " << __LINE__ << std::endl;
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
@@ -255,18 +261,20 @@ void fill_coarse(
             nnz++;
         }
     }
+
     restrict_data =
         device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
             exec, r_matrix_data.get_ordered_data());
     auto r_data = r_matrix_data.get_ordered_data();
-    for (int nnz = 0; nnz < r_data.nonzeros.size(); ++nnz) {
-        std::cout << " id: " << nnz << " : " << r_data.nonzeros[nnz]
-                  << std::endl;
-    }
+    // for (int nnz = 0; nnz < r_data.nonzeros.size(); ++nnz) {
+    //     std::cout << "rank " << rank << "r id: " << nnz << " : "
+    //               << r_data.nonzeros[nnz] << std::endl;
+    // }
+    // std::cout << " r size " << r_data.nonzeros.size() << std::endl;
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
-        if (std::find(f_col_idxs + global_nnz, f_col_idxs + global_nnz,
+        if (std::find(f_col_idxs, f_col_idxs + global_nnz,
                       coarse_indices.get_data()[i]) !=
             f_col_idxs + global_nnz) {
             // Assume row major ordering
@@ -278,6 +286,12 @@ void fill_coarse(
             nnz++;
         }
     }
+    auto p_data = p_matrix_data.get_ordered_data();
+    // std::cout << " p size " << p_data.nonzeros.size() << std::endl;
+    // for (int nnz = 0; nnz < p_data.nonzeros.size(); ++nnz) {
+    //     std::cout << "rank " << rank << "p id: " << nnz << " : "
+    //               << p_data.nonzeros[nnz] << std::endl;
+    // }
     prolong_data =
         device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
             exec, p_matrix_data.get_ordered_data());
