@@ -66,8 +66,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
         },
         // Note: default_stride only applied to objects created using
         // creat_with_config_of as this guarantees identical stride.
-        b->get_size(), b->get_stride(), b, default_stride(residual),
-        stop_status);
+        b->get_size(), b->get_stride(), b, residual, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
@@ -90,8 +89,8 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
             p_bases(row, col) = residual(row, col);
             Ap_bases(row, col) = A_residual(row, col);
         },
-        residual->get_size(), residual->get_stride(), residual,
-        default_stride(A_residual), p_bases, Ap_bases, final_iter_nums);
+        residual->get_size(), residual->get_stride(), residual, A_residual,
+        p_bases, Ap_bases, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
@@ -116,8 +115,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 residual(row, col) -= tmp * Ap(row, col);
             }
         },
-        x->get_size(), p->get_stride(), x, residual, p, default_stride(Ap),
-        row_vector(Ap_norm), row_vector(alpha), stop_status);
+        x->get_size(), p->get_stride(), x, residual, p, Ap, Ap_norm, alpha,
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);
