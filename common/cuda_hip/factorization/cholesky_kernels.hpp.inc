@@ -167,7 +167,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         auto val = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
-        scheduler.wait(dep);
+        scheduler.wait(dep, lower_nz);
         const auto diag = vals[diag_idx];
         const auto scale = val / diag;
         if (lane == 0) {
@@ -281,7 +281,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = factors->get_size()[0];
     if (num_rows > 0) {
-        syncfree_storage storage(exec, tmp_storage, num_rows);
+        syncfree_storage storage(exec, tmp_storage, num_rows,
+                                 factors->get_num_stored_elements());
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
         kernel::factorize<<<num_blocks, default_block_size>>>(
@@ -289,6 +290,9 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
             transpose_idxs, as_device_type(factors->get_values()), storage,
             num_rows);
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        storage.dump();
+#endif
     }
 }
 

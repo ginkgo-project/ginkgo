@@ -36,15 +36,83 @@ struct syncfree_storage {
 
     status_word* status;
     status_word* block_counter;
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+    const DefaultExecutor* exec;
+    size_type num_elements;
+    size_type num_dependency_ids;
+    int64* ready_timestamps;
+    int64* wait_begin_timestamps;
+    int64* wait_end_timestamps;
+    int64* aux_wait;
+#endif
 
     syncfree_storage(std::shared_ptr<const DefaultExecutor> exec,
-                     array<status_word>& status_array, size_type num_elements)
+                     array<status_word>& status_array, size_type num_elements,
+                     size_type num_dependency_ids)
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        : exec{exec.get()},
+          num_elements{num_elements},
+          num_dependency_ids{num_dependency_ids},
+          ready_timestamps{exec->template alloc<int64>(num_elements)},
+          wait_begin_timestamps{
+              exec->template alloc<int64>(num_dependency_ids)},
+          wait_end_timestamps{exec->template alloc<int64>(num_dependency_ids)},
+          aux_wait{exec->template alloc<int64>(num_elements)}
+#endif
     {
         status_array.resize_and_reset(num_elements + 1);
         status = status_array.get_data();
         block_counter = status + num_elements;
         components::fill_array(exec, status, num_elements + 1, 0);
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        components::fill_array(exec, ready_timestamps, num_elements, int64{-1});
+        components::fill_array(exec, wait_begin_timestamps, num_dependency_ids,
+                               int64{-1});
+        components::fill_array(exec, wait_end_timestamps, num_dependency_ids,
+                               int64{-1});
+        components::fill_array(exec, aux_wait, num_elements, int64{});
+#endif
     }
+
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+    void dump()
+    {
+        const auto sh_exec = exec->shared_from_this();
+        array<int64> ready_timestamp_array{sh_exec, num_elements,
+                                           ready_timestamps};
+        array<int64> wait_begin_timestamp_array{sh_exec, num_dependency_ids,
+                                                wait_begin_timestamps};
+        array<int64> wait_end_timestamp_array{sh_exec, num_dependency_ids,
+                                              wait_end_timestamps};
+        array<int64> aux_wait_array{sh_exec, num_elements, aux_wait};
+        ready_timestamp_array.set_executor(exec->get_master());
+        wait_begin_timestamp_array.set_executor(exec->get_master());
+        wait_end_timestamp_array.set_executor(exec->get_master());
+        aux_wait_array.set_executor(exec->get_master());
+        auto baseline = *std::min_element(
+            wait_begin_timestamp_array.get_const_data(),
+            wait_begin_timestamp_array.get_const_data() + num_elements);
+        std::ofstream output{"sync-timing.csv"};
+        for (size_type i = 0; i < num_elements; i++) {
+            output << (ready_timestamp_array.get_data()[i] - baseline) << ',';
+        }
+        output << '\n';
+        for (size_type i = 0; i < num_elements; i++) {
+            output << aux_wait_array.get_data()[i] << ',';
+        }
+        output << '\n';
+        for (size_type i = 0; i < num_dependency_ids; i++) {
+            output << (wait_begin_timestamp_array.get_data()[i] - baseline)
+                   << ',';
+        }
+        output << '\n';
+        for (size_type i = 0; i < num_dependency_ids; i++) {
+            output << (wait_end_timestamp_array.get_data()[i] - baseline)
+                   << ',';
+        }
+        output << '\n';
+    }
+#endif
 };
 
 
@@ -88,7 +156,45 @@ public:
         return static_cast<int>(threadIdx.x) % subwarp_size;
     }
 
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+    __device__ __forceinline__ int64 global_time()
+    {
+        uint64 time{};
+        asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(time));
+        return time;
+    }
+#endif
+
+    __device__ __forceinline__ void wait(IndexType dependency,
+                                         IndexType dependency_id)
+    {
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        if (get_lane() == 0) {
+            global.wait_begin_timestamps[dependency_id] = global_time();
+        }
+#endif
+        wait_impl(dependency);
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        if (get_lane() == 0) {
+            global.wait_end_timestamps[dependency_id] = global_time();
+        }
+#endif
+    }
+
     __device__ __forceinline__ void wait(IndexType dependency)
+    {
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        auto begin = global_time();
+#endif
+        wait_impl(dependency);
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+        if (get_lane() == 0) {
+            global.aux_wait[get_work_id()] += global_time() - begin;
+        }
+#endif
+    }
+
+    __device__ __forceinline__ void wait_impl(IndexType dependency)
     {
         const auto dep_block = dependency / (block_size / subwarp_size);
         const auto dep_local = dependency % (block_size / subwarp_size);
@@ -135,6 +241,9 @@ public:
             store(local.status, sh_id, 1);
             // notify other blocks
             store(global.status, get_work_id(), 1);
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+            global.ready_timestamps[get_work_id()] = global_time();
+#endif
         }
     }
 

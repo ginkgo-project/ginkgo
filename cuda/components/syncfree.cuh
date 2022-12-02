@@ -37,6 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
+#ifdef GKO_FACTORIZATION_PROFILE_OUTPUT
+#include <fstream>
+#endif
+
+
 #include "core/components/fill_array_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/components/atomic.cuh"
