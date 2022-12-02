@@ -251,6 +251,53 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
+template <typename ValueType>
+AutomaticResidualNorm<ValueType>::AutomaticResidualNorm(
+    std::shared_ptr<const gko::Executor> exec)
+    : EnablePolymorphicObject<AutomaticResidualNorm<ValueType>, Criterion>(exec)
+{}
+
+
+template <typename ValueType>
+AutomaticResidualNorm<ValueType>::AutomaticResidualNorm(
+    const AutomaticResidualNorm::Factory* factory, const CriterionArgs& args)
+    : EnablePolymorphicObject<AutomaticResidualNorm<ValueType>, Criterion>(
+          factory->get_executor()),
+      parameters_{factory->get_parameters()}
+{
+    switch (args.check) {
+    case residual_norm_criteria::direct:
+        actual_criteria_ =
+            ResidualNorm<ValueType>::build()
+                .with_reduction_factor(parameters_.reduction_factor)
+                .with_baseline(parameters_.baseline)
+                .on(this->get_executor())
+                ->generate(args);
+        break;
+    case residual_norm_criteria::implicit:
+        actual_criteria_ =
+            ImplicitResidualNorm<ValueType>::build()
+                .with_reduction_factor(parameters_.reduction_factor)
+                .with_baseline(parameters_.baseline)
+                .on(this->get_executor())
+                ->generate(args);
+        break;
+    default:
+        GKO_NOT_SUPPORTED(args.check);
+    }
+}
+
+
+template <typename ValueType>
+bool AutomaticResidualNorm<ValueType>::check_impl(
+    uint8 stoppingId, bool setFinalized, array<stopping_status>* stop_status,
+    bool* one_changed, const Criterion::Updater& updater)
+{
+    return actual_criteria_->check_impl(stoppingId, setFinalized, stop_status,
+                                        one_changed, updater);
+}
+
+
 #define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNormBase<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
@@ -258,6 +305,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
     class ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
+
+#define GKO_DECLARE_AUTOMATIC_RESIDUAL_NORM(_type) \
+    class AutomaticResidualNorm<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_AUTOMATIC_RESIDUAL_NORM);
 
 
 }  // namespace stop

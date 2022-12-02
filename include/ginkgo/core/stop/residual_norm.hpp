@@ -65,6 +65,10 @@ namespace stop {
 enum class mode { absolute, initial_resnorm, rhs_norm };
 
 
+template <typename ValueType>
+class AutomaticResidualNorm;
+
+
 /**
  * The ResidualNormBase class provides a framework for stopping criteria
  * related to the residual norm. These criteria differ in the way they
@@ -79,6 +83,7 @@ class ResidualNormBase
     : public EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion> {
     friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
                                          Criterion>;
+    friend class AutomaticResidualNorm<ValueType>;
 
 protected:
     using absolute_type = remove_complex<ValueType>;
@@ -233,6 +238,51 @@ protected:
               factory->get_parameters().baseline),
           parameters_{factory->get_parameters()}
     {}
+};
+
+
+template <typename ValueType = default_precision>
+class AutomaticResidualNorm
+    : public EnablePolymorphicObject<AutomaticResidualNorm<ValueType>,
+                                     Criterion> {
+    friend class EnablePolymorphicObject<AutomaticResidualNorm<ValueType>,
+                                         Criterion>;
+
+public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Vector = matrix::Dense<ValueType>;
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Residual norm reduction factor
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+
+        /**
+         * The quantity the reduction is relative to. Choices include
+         * "mode::rhs_norm", "mode::initial_resnorm" and "mode::absolute"
+         */
+        mode GKO_FACTORY_PARAMETER_SCALAR(baseline, mode::rhs_norm);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(AutomaticResidualNorm<ValueType>, parameters,
+                                 Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+protected:
+    explicit AutomaticResidualNorm(std::shared_ptr<const gko::Executor> exec);
+
+    explicit AutomaticResidualNorm(const Factory* factory,
+                                   const CriterionArgs& args);
+
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
+
+private:
+    std::unique_ptr<ResidualNormBase<ValueType>> actual_criteria_;
 };
 
 
