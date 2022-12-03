@@ -221,6 +221,7 @@ void fill_coarse(
     // Get coarse data with global fine matrix indexing.
     int nnz = 0;
     int ridx = 0;
+    std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
     for (auto i = 0; i < global_size[0]; ++i) {
         if (i >= row_range_start && i < row_range_end) {
             auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
@@ -229,15 +230,19 @@ void fill_coarse(
                 for (auto j = f_row_ptrs[i]; j < f_row_ptrs[i + 1]; ++j) {
                     auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
                                           f_col_idxs[j]);
-                    // Assume row major ordering
-                    c_matrix_data.add_value(
-                        ridx, idx2 - c_indices,
-                        fine_matrix_data.get_const_values()[j]);
+                    if (idx2 != c_indices + coarse_size[0]) {
+                        // Assume row major ordering
+                        c_matrix_data.add_value(
+                            ridx, idx2 - c_indices,
+                            fine_matrix_data.get_const_values()[j]);
+                    }
                 }
                 ridx++;
             }
         }
     }
+    std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
+
 
     coarse_data =
         device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
@@ -248,7 +253,7 @@ void fill_coarse(
         std::cout << "coarse id: " << nnz << " : " << c_data.nonzeros[nnz]
                   << std::endl;
     }
-    std::cout << " Here " << __LINE__ << std::endl;
+    std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
 
     nnz = 0;
     for (auto i = 0; i < coarse_size[0]; ++i) {
