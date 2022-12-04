@@ -76,13 +76,16 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto scal_op = initialize<Vector>({0.5}, exec);
     this->local_solver_->apply(gko::detail::get_local(dense_b),
                                gko::detail::get_local(dense_x));
 
     if (coarse_solvers_[0]) {
         for (auto& coarse : coarse_solvers_) {
-            coarse->apply(dense_b, dense_x);
+            auto x_clone = dense_x->clone();
+            dense_x->scale(scal_op.get());
+            coarse->apply(dense_b, x_clone.get());
+            dense_x->add_scaled(scal_op.get(), x_clone.get());
         }
     }
 }
