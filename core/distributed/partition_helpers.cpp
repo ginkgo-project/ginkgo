@@ -42,14 +42,12 @@ namespace distributed {
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 build_partition_from_local_range(std::shared_ptr<const Executor> exec,
-                                 LocalIndexType local_start,
-                                 LocalIndexType local_end,
-                                 mpi::communicator comm)
+                                 span local_range, mpi::communicator comm)
 {
-    GlobalIndexType range[2] = {static_cast<GlobalIndexType>(local_start),
-                                static_cast<GlobalIndexType>(local_end)};
+    GlobalIndexType range[2] = {static_cast<GlobalIndexType>(local_range.begin),
+                                static_cast<GlobalIndexType>(local_range.end)};
 
-    // make all range_ends available on each rank
+    // make all range_start_ends available on each rank
     Array<GlobalIndexType> ranges_start_end(exec->get_master(),
                                             comm.size() * 2);
     ranges_start_end.fill(0);
@@ -74,12 +72,11 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
         exec, ranges);
 }
 
-#define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE(_local_type,      \
-                                                     _global_type)     \
-    std::unique_ptr<Partition<_local_type, _global_type>>              \
-    build_partition_from_local_range(                                  \
-        std::shared_ptr<const Executor> exec, _local_type local_start, \
-        _local_type local_end, mpi::communicator comm)
+#define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE(_local_type,          \
+                                                     _global_type)         \
+    std::unique_ptr<Partition<_local_type, _global_type>>                  \
+    build_partition_from_local_range(std::shared_ptr<const Executor> exec, \
+                                     span local_range, mpi::communicator comm)
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE);
 
