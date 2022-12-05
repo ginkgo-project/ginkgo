@@ -1505,6 +1505,14 @@ private:
 
 
 /**
+ * Checks if the combination of Executor and communicator requires passing
+ * MPI buffers from the host memory.
+ */
+bool requires_host_buffer(const std::shared_ptr<const Executor>& exec,
+                          const communicator& comm);
+
+
+/**
  * Get the rank in the communicator of the calling process.
  *
  * @param comm  the communicator
