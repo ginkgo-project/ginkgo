@@ -67,7 +67,7 @@ void extract_dense_linear_sys_pattern(
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const matrix::Csr<ValueType, IndexType>* const first_approx_inv,
     IndexType* const dense_mat_pattern, IndexType* const rhs_one_idxs,
-    IndexType* const sizes)
+    IndexType* const sizes, IndexType* num_matches_per_row_for_each_csr_sys)
 {
     const auto nrows = first_approx_inv->get_size()[0];
     const auto nnz_aiA = first_approx_inv->get_num_stored_elements();
@@ -79,7 +79,8 @@ void extract_dense_linear_sys_pattern(
                           first_sys_csr->get_const_col_idxs(),
                           first_approx_inv->get_const_row_ptrs(),
                           first_approx_inv->get_const_col_idxs(),
-                          dense_mat_pattern, rhs_one_idxs, sizes);
+                          dense_mat_pattern, rhs_one_idxs, sizes,
+                          num_matches_per_row_for_each_csr_sys);
 
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
@@ -153,6 +154,103 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_csr_sys_pattern(
+    std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
+    const int size,
+    const matrix::Csr<ValueType, IndexType>* const first_approx_inv,
+    const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
+    matrix::Csr<gko::remove_complex<ValueType>, IndexType>* const csr_pattern)
+{
+    const auto nrows = first_approx_inv->get_size()[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(size, default_block_size));
+
+    extract_csr_sys_pattern_kernel<ValueType><<<grid, block>>>(
+        lin_sys_row, size, first_approx_inv->get_const_row_ptrs(),
+        first_approx_inv->get_const_col_idxs(),
+        first_sys_csr->get_const_row_ptrs(),
+        first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),
+        csr_pattern->get_col_idxs(), csr_pattern->get_values());
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ISAI_EXTRACT_CSR_PATTERN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_batch_csr_sys_with_values(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<gko::remove_complex<ValueType>, IndexType>* const
+        csr_pattern,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    matrix::BatchCsr<ValueType, IndexType>* const batch_csr_mats)
+{
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto csr_nnz = csr_pattern->get_num_stored_elements();
+    const auto sys_nnz = sys_csr->get_num_stored_elements();
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * csr_nnz, default_block_size));
+
+    fill_batch_csr_system_kernel<<<grid, block>>>(
+        nbatch, csr_nnz, csr_pattern->get_const_values(), sys_nnz,
+        as_cuda_type(sys_csr->get_const_values()),
+        as_cuda_type(batch_csr_mats->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ISAI_FILL_BATCH_CSR_SYSTEM_USING_PATTERN);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
+                                const IndexType rhs_one_idx,
+                                matrix::BatchDense<ValueType>* const b,
+                                matrix::BatchDense<ValueType>* const x)
+{
+    const auto nbatch = b->get_num_batch_entries();
+    const auto size = b->get_size().at(0)[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * size, default_block_size));
+
+    initialize_b_and_x_vectors_kernel<<<grid, block>>>(
+        nbatch, size, rhs_one_idx, as_cuda_type(b->get_values()),
+        as_cuda_type(x->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ISAI_INITIALIZE_B_AND_X);
+
+
+template <typename ValueType, typename IndexType>
+void write_large_sys_solution_to_inverse(
+    std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
+    const matrix::BatchDense<ValueType>* const x,
+    matrix::BatchCsr<ValueType, IndexType>* const approx_inv)
+{
+    const auto nbatch = x->get_num_batch_entries();
+    const auto size = x->get_size().at(0)[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * size, default_block_size));
+
+    write_large_sys_solution_to_inverse_kernel<<<grid, block>>>(
+        nbatch, lin_sys_row, size, as_cuda_type(x->get_const_values()),
+        approx_inv->get_num_stored_elements() / nbatch,
+        approx_inv->get_const_row_ptrs(),
+        as_cuda_type(approx_inv->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ISAI_WRITE_SOLUTION_TO_INVERSE);
 
 }  // namespace batch_isai
 }  // namespace cuda
