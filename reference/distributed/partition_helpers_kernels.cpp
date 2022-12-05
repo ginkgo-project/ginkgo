@@ -13,7 +13,7 @@ void compress_start_ends(std::shared_ptr<const DefaultExecutor> exec,
                          const array<GlobalIndexType>& range_start_ends,
                          array<GlobalIndexType>& ranges)
 {
-    if (ranges.get_num_elems()) {
+    if (ranges.get_num_elems() && range_start_ends.get_num_elems()) {
         ranges.get_data()[0] = range_start_ends.get_const_data()[0];
         for (size_type i = 0; i < ranges.get_num_elems() - 1; ++i) {
             ranges.get_data()[i + 1] =
