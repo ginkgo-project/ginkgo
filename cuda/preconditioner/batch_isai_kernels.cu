@@ -203,6 +203,8 @@ void fill_batch_csr_sys_with_values(
         nbatch, csr_nnz, csr_pattern->get_const_values(), sys_nnz,
         as_cuda_type(sys_csr->get_const_values()),
         as_cuda_type(batch_csr_mats->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -224,6 +226,8 @@ void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
     initialize_b_and_x_vectors_kernel<<<grid, block>>>(
         nbatch, size, rhs_one_idx, as_cuda_type(b->get_values()),
         as_cuda_type(x->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -247,6 +251,8 @@ void write_large_sys_solution_to_inverse(
         approx_inv->get_num_stored_elements() / nbatch,
         approx_inv->get_const_row_ptrs(),
         as_cuda_type(approx_inv->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

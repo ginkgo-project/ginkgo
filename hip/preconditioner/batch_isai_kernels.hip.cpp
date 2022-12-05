@@ -148,6 +148,8 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
             sizeof(ValueType),
         0, prec, nbatch, num_rows, as_hip_type(r->get_const_values()),
         as_hip_type(z->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -161,7 +163,22 @@ void extract_csr_sys_pattern(
     const matrix::Csr<ValueType, IndexType>* const first_approx_inv,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     matrix::Csr<gko::remove_complex<ValueType>, IndexType>* const csr_pattern)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nrows = first_approx_inv->get_size()[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(size, default_block_size));
+
+    hipLaunchKernelGGL(
+        extract_csr_sys_pattern_kernel<ValueType>, grid, block, 0, 0,
+        lin_sys_row, size, first_approx_inv->get_const_row_ptrs(),
+        first_approx_inv->get_const_col_idxs(),
+        first_sys_csr->get_const_row_ptrs(),
+        first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),
+        csr_pattern->get_col_idxs(), csr_pattern->get_values());
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_EXTRACT_CSR_PATTERN_KERNEL);
@@ -174,17 +191,46 @@ void fill_batch_csr_sys_with_values(
         csr_pattern,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     matrix::BatchCsr<ValueType, IndexType>* const batch_csr_mats)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto csr_nnz = csr_pattern->get_num_stored_elements();
+    const auto sys_nnz = sys_csr->get_num_stored_elements();
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * csr_nnz, default_block_size));
+
+    hipLaunchKernelGGL(fill_batch_csr_system_kernel, grid, block, 0, 0, nbatch,
+                       csr_nnz, csr_pattern->get_const_values(), sys_nnz,
+                       as_hip_type(sys_csr->get_const_values()),
+                       as_hip_type(batch_csr_mats->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_FILL_BATCH_CSR_SYSTEM_USING_PATTERN);
 
 
 template <typename ValueType, typename IndexType>
-void initialize_b_and_x_vectors(
-    std::shared_ptr<const DefaultExecutor> exec, const IndexType rhs_one_idx,
-    matrix::BatchDense<ValueType>* const b,
-    matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
+void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
+                                const IndexType rhs_one_idx,
+                                matrix::BatchDense<ValueType>* const b,
+                                matrix::BatchDense<ValueType>* const x)
+{
+    const auto nbatch = b->get_num_batch_entries();
+    const auto size = b->get_size().at(0)[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * size, default_block_size));
+
+    hipLaunchKernelGGL(initialize_b_and_x_vectors_kernel, grid, block, 0, 0,
+                       nbatch, size, rhs_one_idx, as_hip_type(b->get_values()),
+                       as_hip_type(x->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_INITIALIZE_B_AND_X);
@@ -194,7 +240,22 @@ void write_large_sys_solution_to_inverse(
     std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
     const matrix::BatchDense<ValueType>* const x,
     matrix::BatchCsr<ValueType, IndexType>* const approx_inv)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nbatch = x->get_num_batch_entries();
+    const auto size = x->get_size().at(0)[0];
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * size, default_block_size));
+
+    hipLaunchKernelGGL(write_large_sys_solution_to_inverse_kernel, grid, block,
+                       0, 0, nbatch, lin_sys_row, size,
+                       as_hip_type(x->get_const_values()),
+                       approx_inv->get_num_stored_elements() / nbatch,
+                       approx_inv->get_const_row_ptrs(),
+                       as_hip_type(approx_inv->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_WRITE_SOLUTION_TO_INVERSE);
