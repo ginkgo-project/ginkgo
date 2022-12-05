@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/mpi.hpp>
+#include "ginkgo/core/base/range.hpp"
 
 
 namespace gko {
@@ -64,9 +65,7 @@ class Partition;
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 build_partition_from_local_range(std::shared_ptr<const Executor> exec,
-                                 LocalIndexType local_start,
-                                 LocalIndexType local_end,
-                                 mpi::communicator comm);
+                                 span local_range, mpi::communicator comm);
 
 
 }  // namespace distributed
