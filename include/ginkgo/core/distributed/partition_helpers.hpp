@@ -56,8 +56,11 @@ class Partition;
  * Builds a partition from a local range.
  *
  * @param exec  the Executor on which the partition should be built.
- * @param local_start the start index of the local range.
- * @param local_end the end index of the local range.
+ * @param local_range the start and end indices of the local range
+ *
+ * @warning The local ranges have to be continuous and ascending. This means
+ *          that for a process `i` with `range[i] = [s_i, e_i)` then for process
+ *          `j = i+1` `range[j] = [s_j = e_i, e_j)`.
  *
  * @return a Partition where each range has the individual local_start
  *         and local_ends.
@@ -73,7 +76,5 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 }  // namespace gko
 
 
-#endif
-
-
+#endif  // GINKGO_BUILD_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HELPERS_HPP_
