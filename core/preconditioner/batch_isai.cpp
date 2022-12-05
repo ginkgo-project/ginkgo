@@ -31,8 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_lower_trs.hpp>
+#include <ginkgo/core/solver/batch_upper_trs.hpp>
 
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -50,9 +55,159 @@ GKO_REGISTER_OPERATION(extract_dense_linear_sys_pattern,
                        batch_isai::extract_dense_linear_sys_pattern);
 GKO_REGISTER_OPERATION(fill_values_dense_mat_and_solve,
                        batch_isai::fill_values_dense_mat_and_solve);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(extract_csr_sys_pattern,
+                       batch_isai::extract_csr_sys_pattern);
+GKO_REGISTER_OPERATION(fill_batch_csr_sys_with_values,
+                       batch_isai::fill_batch_csr_sys_with_values);
+GKO_REGISTER_OPERATION(initialize_b_and_x_vectors,
+                       batch_isai::initialize_b_and_x_vectors);
+GKO_REGISTER_OPERATION(write_large_sys_solution_to_inverse,
+                       batch_isai::write_large_sys_solution_to_inverse);
+
 
 }  // namespace
 }  // namespace batch_isai
+
+
+namespace detail {
+
+template <typename ValueType, typename IndexType>
+void batch_isai_extension(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> first_sys_csr,
+    std::shared_ptr<matrix::Csr<ValueType, IndexType>> first_approx_inv,
+    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> sys_csr,
+    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> approx_inv,
+    const gko::array<IndexType>& sizes,
+    const gko::array<IndexType>& rhs_one_idxs,
+    const gko::array<IndexType>& num_matches_per_row_for_each_csr_sys,
+    const gko::preconditioner::batch_isai_input_matrix_type&
+        input_matrix_type_isai)
+{
+    using mtx_type = matrix::BatchCsr<ValueType, IndexType>;
+    using unbatch_type = matrix::Csr<ValueType, IndexType>;
+    using BDense = matrix::BatchDense<ValueType>;
+    using lower_trs = solver::BatchLowerTrs<ValueType>;
+    using upper_trs = solver::BatchUpperTrs<ValueType>;
+    using bicgstab = solver::BatchBicgstab<ValueType>;
+    using RealValueType = gko::remove_complex<ValueType>;
+
+    const auto nrows = sys_csr->get_size().at(0)[0];
+    const auto nbatch = sys_csr->get_num_batch_entries();
+
+    gko::array<IndexType> sizes_host(exec->get_master(), nrows);
+    exec->get_master()->copy_from(exec.get(), nrows, sizes.get_const_data(),
+                                  sizes_host.get_data());
+
+    gko::array<IndexType> rhs_one_idxs_host(exec->get_master(), nrows);
+    exec->get_master()->copy_from(exec.get(), nrows,
+                                  rhs_one_idxs.get_const_data(),
+                                  rhs_one_idxs_host.get_data());
+
+    for (int lin_sys_row = 0; lin_sys_row < sizes_host.get_num_elems();
+         lin_sys_row++) {
+        const auto size = sizes_host.get_const_data()[lin_sys_row];
+        const auto rhs_one_idx =
+            rhs_one_idxs_host.get_const_data()[lin_sys_row];
+
+        if (size <= gko::preconditioner::batch_isai::row_size_limit) {
+            continue;
+        }
+
+        // row_ptrs for csr pattern
+        array<IndexType> csr_pattern_row_ptrs_arr(exec, size + 1);
+        const auto offset = first_approx_inv->get_const_row_ptrs()[lin_sys_row];
+        IndexType zero_val = zero<IndexType>();
+        exec->copy_from(exec->get_master().get(), 1, &zero_val,
+                        csr_pattern_row_ptrs_arr.get_data());
+
+        exec->copy(
+            size,
+            num_matches_per_row_for_each_csr_sys.get_const_data() + offset,
+            csr_pattern_row_ptrs_arr.get_data() + 1);
+
+
+        exec->run(batch_isai::make_prefix_sum(
+            csr_pattern_row_ptrs_arr.get_data(), size + 1));
+
+
+        // extract csr pattern
+        IndexType csr_nnz = exec->copy_val_to_host(
+            csr_pattern_row_ptrs_arr.get_const_data() + size);
+        array<IndexType> csr_pattern_col_idxs_arr(exec, csr_nnz);
+        array<RealValueType> csr_pattern_values_arr(exec, csr_nnz);
+        std::shared_ptr<matrix::Csr<RealValueType, IndexType>> csr_pattern =
+            gko::share(matrix::Csr<RealValueType, IndexType>::create(
+                exec, gko::dim<2>(size, size),
+                std::move(csr_pattern_values_arr),
+                std::move(csr_pattern_col_idxs_arr),
+                std::move(csr_pattern_row_ptrs_arr)));
+
+        // Now extract csr pattern
+        exec->run(batch_isai::make_extract_csr_sys_pattern(
+            lin_sys_row, size, first_approx_inv.get(), first_sys_csr.get(),
+            csr_pattern.get()));
+
+        csr_pattern->transpose();
+
+
+        // Now create a batched csr matrix and fill it with values
+        auto batch_csr_mats = gko::share(
+            mtx_type::create(exec, nbatch, gko::dim<2>(size, size), csr_nnz));
+        exec->copy(size + 1, csr_pattern->get_const_row_ptrs(),
+                   batch_csr_mats->get_row_ptrs());
+        exec->copy(csr_nnz, csr_pattern->get_const_col_idxs(),
+                   batch_csr_mats->get_col_idxs());
+
+
+        exec->run(batch_isai::make_fill_batch_csr_sys_with_values(
+            csr_pattern.get(), sys_csr.get(), batch_csr_mats.get()));
+
+        auto b = gko::share(BDense::create(
+            exec, gko::batch_dim<2>(nbatch, gko::dim<2>(size, 1))));
+        auto x = gko::share(BDense::create(
+            exec, gko::batch_dim<2>(nbatch, gko::dim<2>(size, 1))));
+
+        exec->run(batch_isai::make_initialize_b_and_x_vectors(
+            rhs_one_idx, b.get(), x.get()));
+
+
+        if (input_matrix_type_isai ==
+            gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {
+            auto solver =
+                upper_trs::build().with_skip_sorting(true).on(exec)->generate(
+                    batch_csr_mats);
+            solver->apply(b.get(), x.get());
+        } else if (input_matrix_type_isai ==
+                   gko::preconditioner::batch_isai_input_matrix_type::
+                       upper_tri) {
+            auto solver =
+                lower_trs::build().with_skip_sorting(true).on(exec)->generate(
+                    batch_csr_mats);
+            solver->apply(b.get(), x.get());
+        } else if (input_matrix_type_isai ==
+                   gko::preconditioner::batch_isai_input_matrix_type::general) {
+            auto solver =
+                bicgstab::build()
+                    .with_preconditioner(
+                        preconditioner::BatchJacobi<ValueType>::build().on(
+                            exec))
+                    .on(exec)
+                    ->generate(batch_csr_mats);
+            solver->apply(b.get(), x.get());
+        } else {
+            GKO_NOT_SUPPORTED(input_matrix_type_isai);
+        }
+
+
+        // write solution back to approx inv
+        exec->run(batch_isai::make_write_large_sys_solution_to_inverse(
+            lin_sys_row, x.get(), approx_inv.get()));
+    }
+}
+
+}  // namespace detail
 
 
 template <typename ValueType, typename IndexType>
@@ -123,16 +278,23 @@ void BatchIsai<ValueType, IndexType>::generate_precond()
     gko::array<IndexType> rhs_one_idxs(exec, num_rows);
     rhs_one_idxs.fill(static_cast<IndexType>(-1));
     gko::array<IndexType> sizes(exec, num_rows);
+    gko::array<IndexType> num_matches_per_row_for_each_csr_sys(
+        exec, first_approx_inv->get_num_stored_elements());
 
     exec->run(batch_isai::make_extract_dense_linear_sys_pattern(
         first_sys_csr.get(), first_approx_inv.get(),
-        dense_mat_pattern.get_data(), rhs_one_idxs.get_data(),
-        sizes.get_data()));
+        dense_mat_pattern.get_data(), rhs_one_idxs.get_data(), sizes.get_data(),
+        num_matches_per_row_for_each_csr_sys.get_data()));
 
     exec->run(batch_isai::make_fill_values_dense_mat_and_solve(
         sys_csr.get(), this->approx_inv_.get(),
         dense_mat_pattern.get_const_data(), rhs_one_idxs.get_const_data(),
         sizes.get_const_data(), this->parameters_.isai_input_matrix_type));
+
+    detail::batch_isai_extension(exec, first_sys_csr, first_approx_inv, sys_csr,
+                                 approx_inv_, sizes, rhs_one_idxs,
+                                 num_matches_per_row_for_each_csr_sys,
+                                 this->parameters_.isai_input_matrix_type);
 }
 
 

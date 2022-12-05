@@ -37,7 +37,8 @@ __global__
         const int* const __restrict__ A_col_idxs,
         const int* const __restrict__ aiA_row_ptrs,
         const int* const __restrict__ aiA_col_idxs,
-        int* const dense_mat_pattern, int* const rhs_one_idxs, int* const sizes)
+        int* const dense_mat_pattern, int* const rhs_one_idxs, int* const sizes,
+        int* num_matches_per_row_for_each_csr_sys)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     // assert(subwarp_size >= row_size_limit); //Not required here
@@ -77,28 +78,52 @@ __global__
             const int A_row = aiA_col;
             const int A_row_st = A_row_ptrs[A_row];
             const int A_row_end = A_row_ptrs[A_row + 1];
-            const int dense_sys_row = aiA_nz_id - aiA_row_st;
 
-            assert(i_size <= row_size_limit);
+            int* count_matches =
+                &num_matches_per_row_for_each_csr_sys[aiA_nz_id];
 
-            int* const dense_ptr_for_this_row =
-                dense_mat_ptr + dense_sys_row * row_size_limit;
 
-            auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st,
-                                     A_row_st](
-                                        int, int aiA_idx_match, int A_idx_match,
-                                        config::lane_mask_type, bool valid) {
-                if (valid) {
-                    dense_ptr_for_this_row[aiA_idx_match] =
-                        A_idx_match + A_row_st;
+            if (i_size <= row_size_limit) {
+                if (subwarpgrp.thread_rank() == 0) {
+                    *count_matches = -1;
                 }
-            };
 
-            // warp-parallel match algorithm
-            group_match<subwarp_size>(
-                aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
-                A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
-                do_this_on_match);
+                const int dense_sys_row = aiA_nz_id - aiA_row_st;
+
+                int* const dense_ptr_for_this_row =
+                    dense_mat_ptr + dense_sys_row * row_size_limit;
+
+                auto do_this_on_match =
+                    [dense_ptr_for_this_row, aiA_row_st, A_row_st](
+                        int, int aiA_idx_match, int A_idx_match,
+                        config::lane_mask_type, bool valid) {
+                        if (valid) {
+                            dense_ptr_for_this_row[aiA_idx_match] =
+                                A_idx_match + A_row_st;
+                        }
+                    };
+
+                // warp-parallel match algorithm
+                group_match<subwarp_size>(
+                    aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
+                    A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
+                    do_this_on_match);
+
+            } else {
+                auto do_this_on_match =
+                    [count_matches](int, int aiA_idx_match, int A_idx_match,
+                                    config::lane_mask_type, bool valid) {
+                        if (valid) {
+                            atomicAdd(count_matches, 1);
+                        }
+                    };
+
+                // warp-parallel match algorithm
+                group_match<subwarp_size>(
+                    aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
+                    A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
+                    do_this_on_match);
+            }
 
             subwarpgrp.sync();
             ele_id_assigned_to_subwarpgrp += total_num_subwarp_grps_in_grid;
@@ -372,5 +397,129 @@ __global__
         {
             aiA_values[aiA_row_ptrs[row] + local_id + batch_id * aiA_nnz] = sol;
         }
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void match_for_csr(
+    const int* const inv_col_idxs, const int inv_row_st, const int inv_row_end,
+    const int* const sys_col_idxs, const int sys_row_st, const int sys_row_end,
+    const int csr_pattern_row_start, int* const csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    int l = inv_row_st;
+    int m = sys_row_st;
+    int j = csr_pattern_row_start;
+
+    while (l < inv_row_end && m < sys_row_end) {
+        if (inv_col_idxs[l] == sys_col_idxs[m]) {
+            csr_pattern_values[j] =
+                static_cast<gko::remove_complex<ValueType>>(m);
+            csr_pattern_col_idxs[j] = l - inv_row_st;
+            j++;
+
+            l++;
+            m++;
+        } else if (inv_col_idxs[l] > sys_col_idxs[m]) {
+            m++;
+        } else {
+            l++;
+        }
+    }
+}
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void extract_csr_sys_pattern_kernel(
+        const int lin_sys_row, const int size, const int* const inv_row_ptrs,
+        const int* const inv_col_idxs, const int* const sys_row_ptrs,
+        const int* const sys_col_idxs, const int* const csr_pattern_row_ptrs,
+        int* const csr_pattern_col_idxs,
+        gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    // use one thread per match of the 2 arrays (non-coalseced accesses but data
+    // locality)
+    const int gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    const int inv_row_st = inv_row_ptrs[lin_sys_row];
+    const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
+    for (int i = inv_row_st + gid; i < inv_row_end;
+         i += blockDim.x * gridDim.x) {
+        const int col_idx = inv_col_idxs[i];
+        const int sys_row = col_idx;
+        const int sys_row_st = sys_row_ptrs[sys_row];
+        const int sys_row_end = sys_row_ptrs[sys_row + 1];
+
+        const int csr_pattern_row_start = csr_pattern_row_ptrs[col_idx];
+
+        match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
+                                 sys_col_idxs, sys_row_st, sys_row_end,
+                                 csr_pattern_row_start, csr_pattern_col_idxs,
+                                 csr_pattern_values);
+    }
+}
+
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void fill_batch_csr_system_kernel(
+        const int nbatch, const int csr_nnz,
+        const gko::remove_complex<ValueType>* const csr_pattern_values,
+        const int sys_nnz, const ValueType* const sys_csr_values,
+        ValueType* const batch_csr_mats_values)
+{
+    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+
+    for (int i = gid; i < nbatch * csr_nnz; i += blockDim.x * gridDim.x) {
+        const int batch_id = i / csr_nnz;
+        const int csr_nnz_id = i % csr_nnz;
+
+        const int sys_idx = static_cast<int>(csr_pattern_values[csr_nnz_id]);
+        batch_csr_mats_values[batch_id * csr_nnz + csr_nnz_id] =
+            sys_csr_values[batch_id * sys_nnz + sys_idx];
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(
+    default_block_size) void initialize_b_and_x_vectors_kernel(const int nbatch,
+                                                               const int size,
+                                                               const int
+                                                                   rhs_one_idx,
+                                                               ValueType* const
+                                                                   b_vals,
+                                                               ValueType* const
+                                                                   x_vals)
+{
+    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+
+    for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {
+        const int batch_id = i / size;
+        const int idx = i % size;
+
+        b_vals[idx + batch_id * size] = zero<ValueType>();
+        if (idx == rhs_one_idx) {
+            b_vals[idx + batch_id * size] = one<ValueType>();
+        }
+        x_vals[idx + batch_id * size] = zero<ValueType>();
+    }
+}
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void write_large_sys_solution_to_inverse_kernel(
+        const int nbatch, const int lin_sys_row, const int size,
+        const ValueType* const x_vals, const int inv_nnz,
+        const int* const inv_row_ptrs, ValueType* const inv_vals)
+{
+    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+
+    for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {
+        const int batch_id = i / size;
+        const int idx = i % size;
+
+        inv_vals[inv_row_ptrs[lin_sys_row] + idx + batch_id * inv_nnz] =
+            x_vals[idx + batch_id * size];
     }
 }
