@@ -34,9 +34,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 
 
+#include "core/distributed/partition_helpers_kernels.hpp"
+
+
 namespace gko {
 namespace experimental {
 namespace distributed {
+namespace partition_helpers {
+namespace {
+
+
+GKO_REGISTER_OPERATION(compress_start_ends,
+                       partition_helpers::compress_start_ends);
+
+
+}
+}  // namespace partition_helpers
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -48,25 +61,18 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                                 static_cast<GlobalIndexType>(local_range.end)};
 
     // make all range_start_ends available on each rank
-    Array<GlobalIndexType> ranges_start_end(exec->get_master(),
-                                            comm.size() * 2);
+    auto mpi_exec = (exec == exec->get_master() || mpi::is_gpu_aware())
+                        ? exec
+                        : exec->get_master();
+    array<GlobalIndexType> ranges_start_end(mpi_exec, comm.size() * 2);
     ranges_start_end.fill(0);
-    comm.all_gather(exec->get_master(), range, 2, ranges_start_end.get_data(),
-                    2);
+    comm.all_gather(mpi_exec, range, 2, ranges_start_end.get_data(), 2);
+    ranges_start_end.set_executor(exec);
 
     // remove duplicates
-    Array<GlobalIndexType> ranges(exec->get_master(), comm.size() + 1);
-    auto ranges_se_data = ranges_start_end.get_const_data();
-    ranges.get_data()[0] = ranges_se_data[0];
-    for (int i = 1; i < ranges_start_end.get_num_elems() - 1; i += 2) {
-        GKO_ASSERT_EQ(ranges_se_data[i], ranges_se_data[i + 1]);
-        ranges.get_data()[i / 2 + 1] = ranges_se_data[i];
-    }
-    ranges.get_data()[ranges.get_num_elems() - 1] =
-        ranges_se_data[ranges_start_end.get_num_elems() - 1];
-
-    // move data to correct executor
-    ranges.set_executor(exec);
+    array<GlobalIndexType> ranges(exec, comm.size() + 1);
+    exec->run(
+        partition_helpers::make_compress_start_ends(ranges_start_end, ranges));
 
     return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
         exec, ranges);
