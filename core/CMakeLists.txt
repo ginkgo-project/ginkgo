@@ -78,7 +78,8 @@ if(GINKGO_BUILD_MPI)
     ginkgo
     PRIVATE mpi/exception.cpp distributed/coarse_gen.cpp distributed/matrix.cpp
             distributed/preconditioner/schwarz.cpp
-            distributed/partition_helpers.cpp distributed/vector.cpp)
+            distributed/partition_helpers.cpp
+            distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
