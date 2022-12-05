@@ -200,37 +200,69 @@ private:
 };
 
 
-#if GINKGO_BUILD_MPI
+#ifdef HAS_CUDA_TIMER
+std::shared_ptr<Timer> get_cuda_timer(
+    std::shared_ptr<const gko::CudaExecutor> exec);
+#endif  // HAS_CUDA_TIMER
 
 
-class MpiWrappedTimer : public Timer {
-public:
-    MpiWrappedTimer(std::shared_ptr<const gko::Executor> exec,
-                    gko::experimental::mpi::communicator comm,
-                    std::shared_ptr<Timer> concrete_timer)
-        : exec_(std::move(exec)),
-          comm_(std::move(comm)),
-          concrete_timer_(std::move(concrete_timer))
-    {}
+#ifdef HAS_HIP_TIMER
+std::shared_ptr<Timer> get_hip_timer(
+    std::shared_ptr<const gko::HipExecutor> exec);
+#endif  // HAS_HIP_TIMER
 
-protected:
-    void tic_impl() override { concrete_timer_->tic_impl(); }
 
-    double toc_impl() override
-    {
-        auto local_duration = concrete_timer_->toc_impl();
-        double duration = local_duration;
-        comm_.all_reduce(exec_, &local_duration, &duration, 1, MPI_MAX);
-        return duration;
+#ifdef HAS_DPCPP_TIMER
+std::shared_ptr<Timer> get_dpcpp_timer(
+    std::shared_ptr<const gko::DpcppExecutor> exec);
+#endif  // HAS_DPCPP_TIMER
+
+
+#if HAS_MPI_TIMER
+/**
+ * Get the MPI timer. This timer will wrap a local timer and report the longest
+ * duration among all processes using a global reduction.
+ *
+ * @see get_timer
+ *
+ * @param exec  Executor associated to the timer
+ * @param comm  Communicator containing all involved processes
+ * @param use_gpu_timer  whether to use the gpu timer
+ */
+std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
+                                     gko::experimental::mpi::communicator comm,
+                                     bool use_gpu_timer);
+#endif  // HAS_MPI_TIMER
+
+
+std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
+                                 bool use_gpu_timer)
+{
+    if (use_gpu_timer) {
+#ifdef HAS_CUDA_TIMER
+        if (auto cuda =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+            return get_cuda_timer(cuda);
+        }
+#endif  // HAS_CUDA_TIMER
+
+#ifdef HAS_HIP_TIMER
+        if (auto hip =
+                std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
+            return get_hip_timer(hip);
+        }
+#endif  // HAS_HIP_TIMER
+
+#ifdef HAS_DPCPP_TIMER
+        if (auto dpcpp =
+                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+            return get_dpcpp_timer(dpcpp);
+        }
+#endif  // HAS_DPCPP_TIMER
     }
-
-private:
-    std::shared_ptr<const gko::Executor> exec_;
-    gko::experimental::mpi::communicator comm_;
-
-    std::shared_ptr<Timer> concrete_timer_;
-};
+    // No cuda/hip/dpcpp executor available or no gpu_timer used
+    return std::make_shared<CpuTimer>(exec);
+}
 
 
-#endif  // GINKGO_BUILD_MPI
 #endif  // GKO_BENCHMARK_UTILS_TIMER_IMPL_HPP_
