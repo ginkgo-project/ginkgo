@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
+#include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
@@ -251,6 +252,15 @@ GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 
 }  // namespace partition
+
+
+namespace partition_helpers {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS);
+
+
+}
 
 
 namespace distributed_vector {
