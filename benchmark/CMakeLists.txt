@@ -10,13 +10,26 @@ function(ginkgo_benchmark_add_tuning_maybe name)
     endif()
 endfunction()
 
+
+function(ginkgo_benchmark_add_mpi_timer_maybe name)
+    if(GINKGO_BUILD_MPI)
+        if(NOT TARGET mpi_timer)
+            add_library(mpi_timer ${Ginkgo_SOURCE_DIR}/benchmark/utils/mpi_timer.cpp)
+            target_link_libraries(mpi_timer ginkgo)
+        endif()
+        target_link_libraries(${name} mpi_timer)
+        target_compile_definitions(${name} PRIVATE HAS_MPI_TIMER=1)
+    endif()
+endfunction()
+
+
 function(ginkgo_benchmark_cusparse_linops type def)
     add_library(cusparse_linops_${type} utils/cuda_linops.cpp)
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         # remove false positive CUDA warnings when calling one<T>() and zero<T>()
         target_compile_options(cusparse_linops_${type}
             PRIVATE
-                $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
     endif()
     # make the dependency public to catch issues
     target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
@@ -73,6 +86,7 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
         target_compile_definitions("${name}" PRIVATE HAS_DPCPP_TIMER=1)
         target_link_libraries("${name}" dpcpp_timer)
     endif()
+    ginkgo_benchmark_add_mpi_timer_maybe("${name}")
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
     target_compile_options("${name}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     ginkgo_benchmark_add_tuning_maybe("${name}")

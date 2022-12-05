@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,37 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_TIMER_HPP_
-#define GKO_BENCHMARK_UTILS_TIMER_HPP_
-
-
-#include <ginkgo/ginkgo.hpp>
-
-
-#include <memory>
-
-
-#include <gflags/gflags.h>
+#include <ginkgo/core/base/mpi.hpp>
 
 
 #include "benchmark/utils/timer_impl.hpp"
 
 
-// Command-line arguments
-DEFINE_bool(gpu_timer, false,
-            "use gpu timer based on event. It is valid only when "
-            "executor is cuda or hip");
+class MpiWrappedTimer : public Timer {
+public:
+    MpiWrappedTimer(std::shared_ptr<const gko::Executor> exec,
+                    gko::experimental::mpi::communicator comm,
+                    std::shared_ptr<Timer> concrete_timer)
+        : exec_(std::move(exec)),
+          comm_(std::move(comm)),
+          concrete_timer_(std::move(concrete_timer))
+    {}
+
+protected:
+    void tic_impl() override { concrete_timer_->tic_impl(); }
+
+    double toc_impl() override
+    {
+        auto local_duration = concrete_timer_->toc_impl();
+        double duration = local_duration;
+        comm_.all_reduce(exec_, &local_duration, &duration, 1, MPI_MAX);
+        return duration;
+    }
+
+private:
+    std::shared_ptr<const gko::Executor> exec_;
+    gko::experimental::mpi::communicator comm_;
+
+    std::shared_ptr<Timer> concrete_timer_;
+};
 
 
-/**
- * Get the timer. If the executor does not support gpu timer, still return the
- * cpu timer.
- *
- * @param exec  Executor associated to the timer
- * @param use_gpu_timer  whether to use the gpu timer
- */
-std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
-                                 bool use_gpu_timer);
-
-
-#endif  // GKO_BENCHMARK_UTILS_TIMER_HPP_
+std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
+                                     gko::experimental::mpi::communicator comm,
+                                     bool use_gpu_timer)
+{
+    return std::make_shared<MpiWrappedTimer>(exec, std::move(comm),
+                                             get_timer(exec, use_gpu_timer));
+}
