@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -51,14 +52,14 @@ class Partition;
 
 
 /**
- * Builds a partition from the local range
+ * Builds a partition from a local range.
  *
- * @param exec  the Executor on which the partition should be built
- * @param local_start the start index of the local range
- * @param local_end the end index of the local range
+ * @param exec  the Executor on which the partition should be built.
+ * @param local_start the start index of the local range.
+ * @param local_end the end index of the local range.
  *
  * @return a Partition where each range has the individual local_start
- * and local_ends
+ *         and local_ends.
  */
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
@@ -69,6 +70,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
