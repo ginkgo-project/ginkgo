@@ -334,8 +334,6 @@ __global__
         thread::get_subwarp_num_flat<subwarp_size, int>();
     const int local_id = subwarpgrp.thread_rank();
 
-    printf("\n in kernel fill values dense mat and solve \n");
-
     for (int i = subwarp_id_in_grid; i < nrows * nbatch;
          i += total_num_subwarp_grps_in_grid) {
         const int row = i % nrows;
@@ -345,10 +343,6 @@ __global__
             dense_mat_pattern + row_size_limit * row_size_limit * row;
         const int size = sizes[row];
         const int rhs_one_idx = rhs_one_idxs[row];
-
-        if (subwarpgrp.thread_rank() == 0) {
-            printf("row: %d, batch_id: %d, size: %d \n\n", row, batch_id, size);
-        }
 
         if (size > row_size_limit) {
             continue;
@@ -443,8 +437,7 @@ __device__ __forceinline__ void match_for_csr(
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void extract_csr_sys_pattern_kernel(
-        const int lin_sys_row, const int size,
-        const int* const __restrict__ inv_row_ptrs,
+        const int lin_sys_row, const int* const __restrict__ inv_row_ptrs,
         const int* const __restrict__ inv_col_idxs,
         const int* const __restrict__ sys_row_ptrs,
         const int* const __restrict__ sys_col_idxs,
@@ -484,7 +477,7 @@ __global__
         const int sys_nnz, const ValueType* const __restrict__ sys_csr_values,
         ValueType* const __restrict__ batch_csr_mats_values)
 {
-    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
     for (int i = gid; i < nbatch * csr_nnz; i += blockDim.x * gridDim.x) {
         const int batch_id = i / csr_nnz;
@@ -505,7 +498,7 @@ __global__
         ValueType* const __restrict__ b_vals,
         ValueType* const __restrict__ x_vals)
 {
-    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
     for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {
         const int batch_id = i / size;
@@ -527,7 +520,7 @@ __global__
         const int* const __restrict__ inv_row_ptrs,
         ValueType* const __restrict__ inv_vals)
 {
-    const int gid = threadIdx.x + blockDim.x * gridDim.x;
+    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
     assert(size == inv_row_ptrs[lin_sys_row + 1] - inv_row_ptrs[lin_sys_row]);
 
     for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {

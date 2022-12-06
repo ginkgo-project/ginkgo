@@ -68,6 +68,9 @@ void extract_dense_linear_sys_pattern(
     // ==> Let J = set of non-zero cols of aiA[i,:], then aiA(i,J) * A(J,J) =
     // I(i,J) for each row i
 
+    //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+    //           << std::endl;
+
     const auto num_rows = first_sys_csr->get_size()[0];
     const IndexType* const A_row_ptrs = first_sys_csr->get_const_row_ptrs();
     const IndexType* const A_col_idxs = first_sys_csr->get_const_col_idxs();
@@ -82,6 +85,9 @@ void extract_dense_linear_sys_pattern(
             aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes,
             num_matches_per_row_for_each_csr_sys);
     }
+
+    //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+    //           << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -98,6 +104,10 @@ void fill_values_dense_mat_and_solve(
     const gko::preconditioner::batch_isai_input_matrix_type&
         input_matrix_type_isai)
 {
+    //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+    //           << std::endl;
+
+
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto A_batch = host::get_batch_struct(sys_csr);
     const auto aiA_batch = host::get_batch_struct(inv);
@@ -106,10 +116,21 @@ void fill_values_dense_mat_and_solve(
         const auto A_entry = gko::batch::batch_entry(A_batch, batch_idx);
         const auto aiA_entry = gko::batch::batch_entry(aiA_batch, batch_idx);
 
+
+        //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+        //           << std::endl;
+
         fill_values_dense_mat_and_solve_batch_entry_impl(
             A_entry, aiA_entry, dense_mat_pattern, rhs_one_idxs, sizes,
             input_matrix_type_isai);
+
+
+        //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+        //           << std::endl;
     }
+
+    //  std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+    //           << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

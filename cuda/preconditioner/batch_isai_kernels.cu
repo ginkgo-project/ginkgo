@@ -69,9 +69,9 @@ void extract_dense_linear_sys_pattern(
     IndexType* const dense_mat_pattern, IndexType* const rhs_one_idxs,
     IndexType* const sizes, IndexType* num_matches_per_row_for_each_csr_sys)
 {
-    exec->synchronize();
-    std::cout << "file: " << __FILE__ "  and line: " << __LINE__ << std::endl;
-    exec->synchronize();
+    // exec->synchronize();
+    // std::cout << "file: " << __FILE__ "  and line: " << __LINE__ <<
+    // std::endl; exec->synchronize();
 
     const auto nrows = first_approx_inv->get_size()[0];
     const auto nnz_aiA = first_approx_inv->get_num_stored_elements();
@@ -89,9 +89,10 @@ void extract_dense_linear_sys_pattern(
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 
-    exec->synchronize();
+    // exec->synchronize();
 
-    std::cout << "file: " << __FILE__ "  and line: " << __LINE__ << std::endl;
+    // std::cout << "file: " << __FILE__ "  and line: " << __LINE__ <<
+    // std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -108,7 +109,8 @@ void fill_values_dense_mat_and_solve(
     const gko::preconditioner::batch_isai_input_matrix_type&
         input_matrix_type_isai)
 {
-    std::cout << "file: " << __FILE__ "  and line: " << __LINE__ << std::endl;
+    // std::cout << "file: " << __FILE__ "  and line: " << __LINE__ <<
+    // std::endl;
 
     const auto nbatch = inv->get_num_batch_entries();
     const auto nrows = static_cast<int>(inv->get_size().at(0)[0]);
@@ -123,7 +125,8 @@ void fill_values_dense_mat_and_solve(
     }
     dim3 grid(grid_size);
 
-    std::cout << "file: " << __FILE__ "  and line: " << __LINE__ << std::endl;
+    // std::cout << "file: " << __FILE__ "  and line: " << __LINE__ <<
+    // std::endl;
 
     fill_values_dense_mat_and_solve_kernel<default_subwarp_size>
         <<<grid, block>>>(
@@ -182,7 +185,7 @@ void extract_csr_sys_pattern(
     dim3 grid(ceildiv(size, default_block_size));
 
     extract_csr_sys_pattern_kernel<ValueType><<<grid, block>>>(
-        lin_sys_row, size, first_approx_inv->get_const_row_ptrs(),
+        lin_sys_row, first_approx_inv->get_const_row_ptrs(),
         first_approx_inv->get_const_col_idxs(),
         first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),

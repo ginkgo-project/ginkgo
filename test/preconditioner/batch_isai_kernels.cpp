@@ -78,9 +78,9 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 9;
-    const index_type nrows = 29;
-    const int min_nnz_row = 5;
+    const size_t nbatch = 1;
+    const index_type nrows = 4;
+    const int min_nnz_row = 2;
     std::shared_ptr<const Mtx> general_mtx;
     std::shared_ptr<const Mtx> lower_mtx;
     std::shared_ptr<const Mtx> upper_mtx;
@@ -115,26 +115,28 @@ protected:
         const int spy_power,
         std::shared_ptr<const gko::matrix::BatchCsr<value_type>> mtx)
     {
-        // auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
+        auto d_mtx = gko::share(gko::clone(exec, mtx.get()));
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
                              .with_isai_input_matrix_type(isai_type)
                              .with_sparsity_power(spy_power)
                              .on(ref);
-        // auto d_prec_fact = prec_type::build()
-        //                        .with_skip_sorting(true)
-        //                        .with_isai_input_matrix_type(isai_type)
-        //                        .with_sparsity_power(spy_power)
-        //                        .on(exec);
+        auto d_prec_fact = prec_type::build()
+                               .with_skip_sorting(true)
+                               .with_isai_input_matrix_type(isai_type)
+                               .with_sparsity_power(spy_power)
+                               .on(exec);
 
+        std::cout << "Ref exec: " << std::endl;
         auto prec = prec_fact->generate(mtx);
-        // auto d_prec = d_prec_fact->generate(d_mtx);
 
-        // const auto approx_inv = prec->get_const_approximate_inverse().get();
-        // const auto d_approx_inv =
-        // d_prec->get_const_approximate_inverse().get(); const auto tol = 5000
-        // * r<value_type>::value; GKO_ASSERT_BATCH_MTX_NEAR(approx_inv,
-        // d_approx_inv, tol);
+        std::cout << "Cuda exec: " << std::endl;
+        auto d_prec = d_prec_fact->generate(d_mtx);
+
+        const auto approx_inv = prec->get_const_approximate_inverse().get();
+        const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
+        const auto tol = 10000 * r<value_type>::value;
+        GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
     }
 
     // TODO: Add tests for non-sorted input matrix
@@ -182,7 +184,7 @@ protected:
     }
 };
 
-
+/*
 TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 {
     this->test_generate_eqvt_to_ref(
@@ -190,29 +192,32 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
         this->general_mtx);
 }
 
-/*
 TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 {
     this->test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
         this->general_mtx);
 }
+*/
 
 
+/*
 TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy1)
 {
     this->test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 1,
         this->lower_mtx);
 }
+*/
 
-
+/*
 TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy2)
 {
     this->test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
         this->lower_mtx);
 }
+*/
 
 
 TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
@@ -222,6 +227,7 @@ TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
         this->upper_mtx);
 }
 
+/*
 
 TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy2)
 {
@@ -261,23 +267,24 @@ TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
         this->lower_mtx);
 }
+*/
 
-
+/*
 TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy1)
 {
     this->test_apply_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 1,
         this->upper_mtx);
 }
+*/
 
-
+/*
 TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy2)
 {
     this->test_apply_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 2,
         this->upper_mtx);
-}
+}*/
 
-*/
 
 }  // namespace
