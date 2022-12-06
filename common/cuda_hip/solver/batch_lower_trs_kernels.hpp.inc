@@ -226,11 +226,10 @@ __global__ void apply_kernel(const BatchMatrixType L,
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
         //  Kernels for volta architecture and its successors
         //  (make use of independent thread scheduling)
-        // naive_lower_trsv(L_entry, b_entry, x_entry);
         independent_thread_scheduling_lower_trsv(L_entry, b_entry, x_entry);
 #else
-        // naive_lower_trsv(L_entry, b_entry, x_entry);
         warp_synchronous_lower_trsv(L_entry, b_entry, x_entry);
+
 #endif
     }
 }
