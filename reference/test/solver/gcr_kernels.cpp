@@ -128,6 +128,7 @@ protected:
         small_krylov_bases_p = Mtx::create(exec, small_size);
         small_mapped_krylov_bases_Ap = Mtx::create(exec, small_size);
         small_Ap_norm = rc_Mtx::create(exec, gko::dim<2>{1, small_size[1]});
+        small_tmp_alpha = Mtx::create(exec, gko::dim<2>{1, small_size[1]});
 
         stopped.converge(1, true);
         non_stopped.reset();
@@ -145,6 +146,7 @@ protected:
     std::unique_ptr<Mtx> small_krylov_bases_p;
     std::unique_ptr<Mtx> small_mapped_krylov_bases_Ap;
     std::unique_ptr<rc_Mtx> small_Ap_norm;
+    std::unique_ptr<Mtx> small_tmp_alpha;
     gko::array<gko::size_type> small_final_iter_nums;
     gko::array<gko::stopping_status> small_stop;
 
@@ -230,6 +232,7 @@ TYPED_TEST(Gcr, KernelStep1)
     using T = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     const auto nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    this->small_x->fill(nan);
     this->small_residual->fill(nan);
     this->small_krylov_bases_p = gko::initialize<Mtx>(
         {I<T>{0.5, -0.75}, I<T>{1.25, 1.5}, I<T>{-0.5, 1}}, this->exec);
@@ -237,6 +240,13 @@ TYPED_TEST(Gcr, KernelStep1)
                      this->small_mapped_krylov_bases_Ap.get());
     this->small_mapped_krylov_bases_Ap->compute_norm2(
         this->small_Ap_norm.get());
+    this->small_tmp_alpha = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+
+    gko::kernels::reference::gcr::step_1(
+        this->exec, this->small_x.get(), this->small_residual.get(),
+        this->small_krylov_bases_p.get(),
+        this->small_mapped_krylov_bases_Ap.get(), this->small_Ap_norm.get(),
+        this->small_tmp_alpha.get(), this->small_stop.get_data());
 }
 
 

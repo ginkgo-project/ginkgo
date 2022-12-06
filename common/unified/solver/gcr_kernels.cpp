@@ -101,7 +101,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* Ap,
-            const matrix::Dense<ValueType>* Ap_norm,
+            const matrix::Dense<remove_complex<ValueType>>* Ap_norm,
             const matrix::Dense<ValueType>* alpha,
             const stopping_status* stop_status)
 {
@@ -110,7 +110,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto residual, auto p,
                       auto Ap, auto Ap_norm, auto alpha, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto tmp = safe_divide(alpha[col], Ap_norm[col]);
+                auto tmp = alpha[col] / Ap_norm[col];
                 x(row, col) += tmp * p(row, col);
                 residual(row, col) -= tmp * Ap(row, col);
             }

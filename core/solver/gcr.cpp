@@ -133,7 +133,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         ws::tmp_beta, dim<2>{1, num_rhs});
     auto residual_norm = this->template create_workspace_op<NormVector>(
         ws::residual_norm, dim<2>{1, num_rhs});
-    auto Ap_norms = this->template create_workspace_op<Vector>(
+    auto Ap_norms = this->template create_workspace_op<NormVector>(
         ws::Ap_norms, dim<2>{krylov_dim + 1, num_rhs});
     auto& final_iter_nums = this->template create_workspace_array<size_type>(
         ws::final_iter_nums, num_rhs);
