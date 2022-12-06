@@ -30,17 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-inline void match_and_write(const int size, const int dense_sys_row,
-                            const int aiA_row_st, const int aiA_row_end,
-                            const int* const aiA_col_idxs, const int A_row_st,
-                            const int A_row_end, const int* const A_col_idxs,
-                            int* const dense_mat_pattern_ptr)
-{
-    using gko::preconditioner::batch_isai::row_size_limit;
-    int* const dense_mat_row_ptr =
-        dense_mat_pattern_ptr + dense_sys_row * row_size_limit;
-    // row-major order
 
+template <typename Callback>
+inline void match(const int aiA_row_st, const int aiA_row_end,
+                  const int* const aiA_col_idxs, const int A_row_st,
+                  const int A_row_end, const int* const A_col_idxs,
+                  Callback do_this_on_match)
+{
     int ptr_aiA = aiA_row_st;
     int ptr_A = A_row_st;
 
@@ -54,7 +50,7 @@ inline void match_and_write(const int size, const int dense_sys_row,
             ptr_A++;
         } else  // val_aiA == val_A
         {
-            dense_mat_row_ptr[ptr_aiA - aiA_row_st] = ptr_A;
+            do_this_on_match(ptr_aiA, ptr_A);
             ptr_aiA++;
             ptr_A++;
         }
@@ -66,7 +62,8 @@ inline void extract_pattern_for_dense_sys_corr_to_current_row_impl(
     const int curr_row_idx, const int num_rows, const int* const A_row_ptrs,
     const int* const A_col_idxs, const int* const aiA_row_ptrs,
     const int* const aiA_col_idxs, int* const dense_mat_pattern,
-    int* const rhs_one_idxs, int* const sizes)
+    int* const rhs_one_idxs, int* const sizes,
+    int* num_matches_per_row_for_each_csr_sys)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
 
@@ -79,7 +76,6 @@ inline void extract_pattern_for_dense_sys_corr_to_current_row_impl(
     const int aiA_row_end = aiA_row_ptrs[curr_row_idx + 1];
 
     size = aiA_row_end - aiA_row_st;
-    assert(size <= gko::preconditioner::batch_isai::row_size_limit);
 
     for (int i = aiA_row_st; i < aiA_row_end; i++) {
         const int col = aiA_col_idxs[i];
@@ -91,11 +87,38 @@ inline void extract_pattern_for_dense_sys_corr_to_current_row_impl(
         const int A_row_st = A_row_ptrs[A_row];
         const int A_row_end = A_row_ptrs[A_row + 1];
 
-        // match row: curr_row_idx of aiA with row: A_row of A (both the arrays
-        // are in sorted order)
-        match_and_write(size, i - aiA_row_st, aiA_row_st, aiA_row_end,
-                        aiA_col_idxs, A_row_st, A_row_end, A_col_idxs,
-                        dense_mat_pattern_ptr);
+
+        if (size <= row_size_limit) {
+            // match row: curr_row_idx of aiA with row: A_row of A (both the
+            // arrays are in sorted order)
+            const int dense_sys_row = i - aiA_row_st;
+            int* const dense_ptr_for_row =
+                dense_mat_pattern_ptr + dense_sys_row * row_size_limit;
+            // row-major order
+
+            auto write_on_match = [dense_ptr_for_row, aiA_row_st](
+                                      int idx_match_aiA_arr,
+                                      int idx_match_A_arr) {
+                dense_ptr_for_row[idx_match_aiA_arr - aiA_row_st] =
+                    idx_match_A_arr;
+            };
+
+            match(aiA_row_st, aiA_row_end, aiA_col_idxs, A_row_st, A_row_end,
+                  A_col_idxs, write_on_match);
+        } else {
+            // match row: curr_row_idx of aiA with row: A_row of A (both the
+            // arrays are in sorted order)
+            int& count = num_matches_per_row_for_each_csr_sys[i];
+            count = 0;
+
+            auto count_on_match = [&count](int idx_match_aiA_arr,
+                                           int idx_match_A_arr) {
+                count = count + 1;
+            };
+
+            match(aiA_row_st, aiA_row_end, aiA_col_idxs, A_row_st, A_row_end,
+                  A_col_idxs, count_on_match);
+        }
     }
 }
 

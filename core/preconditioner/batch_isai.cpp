@@ -280,16 +280,33 @@ void BatchIsai<ValueType, IndexType>::generate_precond()
     gko::array<IndexType> sizes(exec, num_rows);
     gko::array<IndexType> num_matches_per_row_for_each_csr_sys(
         exec, first_approx_inv->get_num_stored_elements());
+    num_matches_per_row_for_each_csr_sys.fill(static_cast<IndexType>(-1));
+
+    std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+              << std::endl;
+
+    exec->synchronize();
 
     exec->run(batch_isai::make_extract_dense_linear_sys_pattern(
         first_sys_csr.get(), first_approx_inv.get(),
         dense_mat_pattern.get_data(), rhs_one_idxs.get_data(), sizes.get_data(),
         num_matches_per_row_for_each_csr_sys.get_data()));
 
+    exec->synchronize();
+
+    std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+              << std::endl;
+
+
     exec->run(batch_isai::make_fill_values_dense_mat_and_solve(
         sys_csr.get(), this->approx_inv_.get(),
         dense_mat_pattern.get_const_data(), rhs_one_idxs.get_const_data(),
         sizes.get_const_data(), this->parameters_.isai_input_matrix_type));
+
+    std::cout << "file: " << __FILE__ << "  and line: " << __LINE__
+              << std::endl;
+
+    std::cout << "Before batch isai extension" << std::endl;
 
     detail::batch_isai_extension(exec, first_sys_csr, first_approx_inv, sys_csr,
                                  approx_inv_, sizes, rhs_one_idxs,

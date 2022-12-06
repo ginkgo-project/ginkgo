@@ -79,7 +79,8 @@ void extract_dense_linear_sys_pattern(
     for (IndexType row_idx = 0; row_idx < num_rows; row_idx++) {
         extract_pattern_for_dense_sys_corr_to_current_row_impl(
             row_idx, static_cast<int>(num_rows), A_row_ptrs, A_col_idxs,
-            aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes);
+            aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes,
+            num_matches_per_row_for_each_csr_sys);
     }
 }
 
@@ -150,6 +151,60 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_APPLY_KERNEL);
 
 
+template <typename ValueType>
+inline void match_for_csr(
+    const int* const inv_col_idxs, const int inv_row_st, const int inv_row_end,
+    const int* const sys_col_idxs, const int sys_row_st, const int sys_row_end,
+    const int csr_pattern_row_start, int* const csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    int l = inv_row_st;
+    int m = sys_row_st;
+    int j = csr_pattern_row_start;
+
+    while (l < inv_row_end && m < sys_row_end) {
+        if (inv_col_idxs[l] == sys_col_idxs[m]) {
+            csr_pattern_values[j] =
+                static_cast<gko::remove_complex<ValueType>>(m);
+            csr_pattern_col_idxs[j] = l - inv_row_st;
+            j++;
+
+            l++;
+            m++;
+        } else if (inv_col_idxs[l] > sys_col_idxs[m]) {
+            m++;
+        } else {
+            l++;
+        }
+    }
+}
+
+
+template <typename ValueType>
+void extract_csr_row_impl(
+    const int lin_sys_row, const int inv_nz, const int* const inv_row_ptrs,
+    const int* const inv_col_idxs, const int* const sys_row_ptrs,
+    const int* const sys_col_idxs, const int* const csr_pattern_row_ptrs,
+    int* const csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    const int col_idx = inv_col_idxs[inv_nz];
+    const int sys_row = col_idx;
+    const int sys_row_st = sys_row_ptrs[sys_row];
+    const int sys_row_end = sys_row_ptrs[sys_row + 1];
+
+    const int inv_row_st = inv_row_ptrs[lin_sys_row];
+    const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
+
+    const int csr_pattern_row_start = csr_pattern_row_ptrs[inv_nz - inv_row_st];
+
+    match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
+                             sys_col_idxs, sys_row_st, sys_row_end,
+                             csr_pattern_row_start, csr_pattern_col_idxs,
+                             csr_pattern_values);
+}
+
+
 template <typename ValueType, typename IndexType>
 void extract_csr_sys_pattern(
     std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
@@ -157,7 +212,29 @@ void extract_csr_sys_pattern(
     const matrix::Csr<ValueType, IndexType>* const first_approx_inv,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     matrix::Csr<gko::remove_complex<ValueType>, IndexType>* const csr_pattern)
-    GKO_NOT_IMPLEMENTED;
+{
+    const IndexType* const inv_row_ptrs =
+        first_approx_inv->get_const_row_ptrs();
+    const IndexType* const inv_col_idxs =
+        first_approx_inv->get_const_col_idxs();
+    const IndexType* const sys_row_ptrs = first_sys_csr->get_const_row_ptrs();
+    const IndexType* const sys_col_idxs = first_sys_csr->get_const_col_idxs();
+    const IndexType* const csr_pattern_row_ptrs =
+        csr_pattern->get_const_row_ptrs();
+    IndexType* const csr_pattern_col_idxs = csr_pattern->get_col_idxs();
+    gko::remove_complex<ValueType>* const csr_pattern_values =
+        csr_pattern->get_values();
+
+    const int inv_row_st = inv_row_ptrs[lin_sys_row];
+    const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
+
+    for (int inv_nz = inv_row_st; inv_nz < inv_row_end; inv_nz++) {
+        extract_csr_row_impl<ValueType>(
+            lin_sys_row, inv_nz, inv_row_ptrs, inv_col_idxs, sys_row_ptrs,
+            sys_col_idxs, csr_pattern_row_ptrs, csr_pattern_col_idxs,
+            csr_pattern_values);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_EXTRACT_CSR_PATTERN_KERNEL);
@@ -170,17 +247,52 @@ void fill_batch_csr_sys_with_values(
         csr_pattern,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     matrix::BatchCsr<ValueType, IndexType>* const batch_csr_mats)
-    GKO_NOT_IMPLEMENTED;
+{
+    using real_type = gko::remove_complex<ValueType>;
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto csr_nnz = csr_pattern->get_num_stored_elements();
+    const auto sys_nnz = sys_csr->get_num_stored_elements() / nbatch;
+    ValueType* const batch_csr_mats_values = batch_csr_mats->get_values();
+    const real_type* const csr_pattern_values = csr_pattern->get_const_values();
+    const ValueType* const sys_csr_values = sys_csr->get_const_values();
+
+    for (int i = 0; i < nbatch * csr_nnz; i++) {
+        const int batch_id = i / csr_nnz;
+        const int csr_nnz_id = i % csr_nnz;
+
+        const int sys_idx = static_cast<int>(csr_pattern_values[csr_nnz_id]);
+        assert(sys_idx >= 0 && sys_idx < sys_nnz);
+        batch_csr_mats_values[batch_id * csr_nnz + csr_nnz_id] =
+            sys_csr_values[batch_id * sys_nnz + sys_idx];
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_FILL_BATCH_CSR_SYSTEM_USING_PATTERN);
 
 
 template <typename ValueType, typename IndexType>
-void initialize_b_and_x_vectors(
-    std::shared_ptr<const DefaultExecutor> exec, const IndexType rhs_one_idx,
-    matrix::BatchDense<ValueType>* const b,
-    matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
+void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
+                                const IndexType rhs_one_idx,
+                                matrix::BatchDense<ValueType>* const b,
+                                matrix::BatchDense<ValueType>* const x)
+{
+    const auto nbatch = b->get_num_batch_entries();
+    const auto size = b->get_size().at(0)[0];
+    ValueType* const b_vals = b->get_values();
+    ValueType* const x_vals = x->get_values();
+
+    for (int i = 0; i < nbatch * size; i++) {
+        const int batch_id = i / size;
+        const int idx = i % size;
+
+        b_vals[idx + batch_id * size] = zero<ValueType>();
+        if (idx == rhs_one_idx) {
+            b_vals[idx + batch_id * size] = one<ValueType>();
+        }
+        x_vals[idx + batch_id * size] = zero<ValueType>();
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_INITIALIZE_B_AND_X);
@@ -190,7 +302,24 @@ void write_large_sys_solution_to_inverse(
     std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
     const matrix::BatchDense<ValueType>* const x,
     matrix::BatchCsr<ValueType, IndexType>* const approx_inv)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nbatch = x->get_num_batch_entries();
+    const auto size = x->get_size().at(0)[0];
+    const ValueType* const x_vals = x->get_const_values();
+    const IndexType* const inv_row_ptrs = approx_inv->get_const_row_ptrs();
+    assert(size == inv_row_ptrs[lin_sys_row + 1] - inv_row_ptrs[lin_sys_row]);
+
+    ValueType* const inv_vals = approx_inv->get_values();
+    const auto inv_nnz = approx_inv->get_num_stored_elements() / nbatch;
+
+    for (int i = 0; i < nbatch * size; i++) {
+        const int batch_id = i / size;
+        const int idx = i % size;
+
+        inv_vals[inv_row_ptrs[lin_sys_row] + idx + batch_id * inv_nnz] =
+            x_vals[idx + batch_id * size];
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_WRITE_SOLUTION_TO_INVERSE);
