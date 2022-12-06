@@ -94,7 +94,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* Ap,
-            const matrix::Dense<ValueType>* Ap_norm,
+            const matrix::Dense<remove_complex<ValueType>>* Ap_norm,
             const matrix::Dense<ValueType>* alpha,
             const stopping_status* stop_status)
 {
