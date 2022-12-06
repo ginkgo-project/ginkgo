@@ -58,8 +58,6 @@ void call_apply_kernel(
     const gko::batch_dense::UniformBatch<const ValueType>& b_b,
     const gko::batch_dense::UniformBatch<ValueType>& x_b)
 {
-    std::cout << "Calling lower trs apply kernel: file: " << __FILE__
-              << "   and line: " << __LINE__ << std::endl;
     const auto nbatch = a.num_batch;
     const int shared_size =
         gko::kernels::batch_lower_trs::local_memory_requirement<ValueType>(
@@ -108,10 +106,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchDense<ValueType>* const x)
 {
     dispatch_on_matrix_type(sys_mat, b, x);
-
-    exec->synchronize();
-    std::cout << "Solve completed: lower trs apply kernel: file: " << __FILE__
-              << "   and line: " << __LINE__ << std::endl;
 }
 
 
