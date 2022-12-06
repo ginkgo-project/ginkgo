@@ -75,7 +75,8 @@ void extract_dense_linear_sys_pattern(
     for (IndexType row_idx = 0; row_idx < num_rows; row_idx++) {
         extract_pattern_for_dense_sys_corr_to_current_row_impl(
             row_idx, static_cast<int>(num_rows), A_row_ptrs, A_col_idxs,
-            aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes);
+            aiA_row_ptrs, aiA_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes,
+            num_matches_per_row_for_each_csr_sys);
     }
 }
 

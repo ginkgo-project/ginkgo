@@ -84,9 +84,7 @@ __global__
 
 
             if (i_size <= row_size_limit) {
-                if (subwarpgrp.thread_rank() == 0) {
-                    *count_matches = -1;
-                }
+                // assert(*count_matches == -1);
 
                 const int dense_sys_row = aiA_nz_id - aiA_row_st;
 
@@ -110,6 +108,10 @@ __global__
                     do_this_on_match);
 
             } else {
+                if (subwarpgrp.thread_rank() == 0) {
+                    *count_matches = 0;
+                }
+
                 auto do_this_on_match =
                     [count_matches](int, int aiA_idx_match, int A_idx_match,
                                     config::lane_mask_type, bool valid) {
@@ -332,6 +334,8 @@ __global__
         thread::get_subwarp_num_flat<subwarp_size, int>();
     const int local_id = subwarpgrp.thread_rank();
 
+    printf("\n in kernel fill values dense mat and solve \n");
+
     for (int i = subwarp_id_in_grid; i < nrows * nbatch;
          i += total_num_subwarp_grps_in_grid) {
         const int row = i % nrows;
@@ -342,7 +346,13 @@ __global__
         const int size = sizes[row];
         const int rhs_one_idx = rhs_one_idxs[row];
 
-        assert(size <= row_size_limit);
+        if (subwarpgrp.thread_rank() == 0) {
+            printf("row: %d, batch_id: %d, size: %d \n\n", row, batch_id, size);
+        }
+
+        if (size > row_size_limit) {
+            continue;
+        }
 
         ValueType local_row[row_size_limit];
         // Note: The Pattern shouldn't be  a transpose.
@@ -402,10 +412,12 @@ __global__
 
 template <typename ValueType>
 __device__ __forceinline__ void match_for_csr(
-    const int* const inv_col_idxs, const int inv_row_st, const int inv_row_end,
-    const int* const sys_col_idxs, const int sys_row_st, const int sys_row_end,
-    const int csr_pattern_row_start, int* const csr_pattern_col_idxs,
-    gko::remove_complex<ValueType>* const csr_pattern_values)
+    const int* const __restrict__ inv_col_idxs, const int inv_row_st,
+    const int inv_row_end, const int* const __restrict__ sys_col_idxs,
+    const int sys_row_st, const int sys_row_end,
+    const int csr_pattern_row_start,
+    int* const __restrict__ csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values)
 {
     int l = inv_row_st;
     int m = sys_row_st;
@@ -431,11 +443,14 @@ __device__ __forceinline__ void match_for_csr(
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void extract_csr_sys_pattern_kernel(
-        const int lin_sys_row, const int size, const int* const inv_row_ptrs,
-        const int* const inv_col_idxs, const int* const sys_row_ptrs,
-        const int* const sys_col_idxs, const int* const csr_pattern_row_ptrs,
-        int* const csr_pattern_col_idxs,
-        gko::remove_complex<ValueType>* const csr_pattern_values)
+        const int lin_sys_row, const int size,
+        const int* const __restrict__ inv_row_ptrs,
+        const int* const __restrict__ inv_col_idxs,
+        const int* const __restrict__ sys_row_ptrs,
+        const int* const __restrict__ sys_col_idxs,
+        const int* const __restrict__ csr_pattern_row_ptrs,
+        int* const __restrict__ csr_pattern_col_idxs,
+        gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values)
 {
     // use one thread per match of the 2 arrays (non-coalseced accesses but data
     // locality)
@@ -450,7 +465,7 @@ __global__
         const int sys_row_st = sys_row_ptrs[sys_row];
         const int sys_row_end = sys_row_ptrs[sys_row + 1];
 
-        const int csr_pattern_row_start = csr_pattern_row_ptrs[col_idx];
+        const int csr_pattern_row_start = csr_pattern_row_ptrs[i - inv_row_st];
 
         match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
                                  sys_col_idxs, sys_row_st, sys_row_end,
@@ -464,9 +479,10 @@ template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void fill_batch_csr_system_kernel(
         const int nbatch, const int csr_nnz,
-        const gko::remove_complex<ValueType>* const csr_pattern_values,
-        const int sys_nnz, const ValueType* const sys_csr_values,
-        ValueType* const batch_csr_mats_values)
+        const gko::remove_complex<
+            ValueType>* const __restrict__ csr_pattern_values,
+        const int sys_nnz, const ValueType* const __restrict__ sys_csr_values,
+        ValueType* const __restrict__ batch_csr_mats_values)
 {
     const int gid = threadIdx.x + blockDim.x * gridDim.x;
 
@@ -475,6 +491,7 @@ __global__
         const int csr_nnz_id = i % csr_nnz;
 
         const int sys_idx = static_cast<int>(csr_pattern_values[csr_nnz_id]);
+        assert(sys_idx >= 0 && sys_idx < sys_nnz);
         batch_csr_mats_values[batch_id * csr_nnz + csr_nnz_id] =
             sys_csr_values[batch_id * sys_nnz + sys_idx];
     }
@@ -482,15 +499,11 @@ __global__
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(
-    default_block_size) void initialize_b_and_x_vectors_kernel(const int nbatch,
-                                                               const int size,
-                                                               const int
-                                                                   rhs_one_idx,
-                                                               ValueType* const
-                                                                   b_vals,
-                                                               ValueType* const
-                                                                   x_vals)
+__global__
+    __launch_bounds__(default_block_size) void initialize_b_and_x_vectors_kernel(
+        const int nbatch, const int size, const int rhs_one_idx,
+        ValueType* const __restrict__ b_vals,
+        ValueType* const __restrict__ x_vals)
 {
     const int gid = threadIdx.x + blockDim.x * gridDim.x;
 
@@ -510,10 +523,12 @@ template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void write_large_sys_solution_to_inverse_kernel(
         const int nbatch, const int lin_sys_row, const int size,
-        const ValueType* const x_vals, const int inv_nnz,
-        const int* const inv_row_ptrs, ValueType* const inv_vals)
+        const ValueType* const __restrict__ x_vals, const int inv_nnz,
+        const int* const __restrict__ inv_row_ptrs,
+        ValueType* const __restrict__ inv_vals)
 {
     const int gid = threadIdx.x + blockDim.x * gridDim.x;
+    assert(size == inv_row_ptrs[lin_sys_row + 1] - inv_row_ptrs[lin_sys_row]);
 
     for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {
         const int batch_id = i / size;
