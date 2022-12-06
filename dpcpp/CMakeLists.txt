@@ -51,7 +51,6 @@ target_sources(ginkgo_dpcpp
     preconditioner/batch_ilu_kernels.dp.cpp
     preconditioner/batch_identity_kernels.dp.cpp
     preconditioner/batch_jacobi_kernels.dp.cpp
-    preconditioner/batch_par_ilu_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_advanced_apply_kernel.dp.cpp
     preconditioner/jacobi_generate_kernel.dp.cpp
@@ -65,7 +64,6 @@ target_sources(ginkgo_dpcpp
     solver/batch_idr_kernels.dp.cpp
     solver/batch_richardson_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
-    solver/gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp
