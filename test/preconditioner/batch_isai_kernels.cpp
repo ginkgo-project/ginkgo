@@ -78,9 +78,10 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 1;
-    const index_type nrows = 4;
-    const int min_nnz_row = 2;
+    const size_t nbatch = 2;
+    const index_type nrows = 40;
+    const int min_nnz_row = 20;
+    
     std::shared_ptr<const Mtx> general_mtx;
     std::shared_ptr<const Mtx> lower_mtx;
     std::shared_ptr<const Mtx> upper_mtx;
@@ -90,7 +91,7 @@ protected:
         auto unbatch_mat =
             gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
                 nrows, false, true,
-                std::uniform_int_distribution<>(min_nnz_row, nrows),
+                std::uniform_int_distribution<>(nrows, nrows),
                 std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
                 ref);
 
@@ -102,7 +103,7 @@ protected:
         auto unbatch_mat =
             gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
                 nrows, false, false,
-                std::uniform_int_distribution<>(min_nnz_row, nrows),
+                std::uniform_int_distribution<>(nrows, nrows),
                 std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
                 ref);
 
@@ -184,7 +185,7 @@ protected:
     }
 };
 
-/*
+
 TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 {
     this->test_generate_eqvt_to_ref(
@@ -198,26 +199,25 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
         this->general_mtx);
 }
-*/
 
 
-/*
+
 TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy1)
 {
     this->test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 1,
         this->lower_mtx);
 }
-*/
 
-/*
+
+
 TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy2)
 {
     this->test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
         this->lower_mtx);
 }
-*/
+
 
 
 TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
@@ -227,7 +227,7 @@ TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
         this->upper_mtx);
 }
 
-/*
+
 
 TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy2)
 {
@@ -267,24 +267,23 @@ TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
         this->lower_mtx);
 }
-*/
 
-/*
+
+
 TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy1)
 {
     this->test_apply_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 1,
         this->upper_mtx);
 }
-*/
 
-/*
+
 TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy2)
 {
     this->test_apply_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 2,
         this->upper_mtx);
-}*/
+}
 
 
 }  // namespace
