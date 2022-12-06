@@ -273,6 +273,10 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
 
     for (int row_idx = 0; row_idx < aiA_entry.num_rows; row_idx++) {
         const int size = sizes[row_idx];
+
+        if (size > row_size_limit) {
+            continue;
+        }
         const int rhs_one_loc = rhs_one_idxs[row_idx];
         const int* const dense_mat_pattern_ptr =
             dense_mat_pattern + row_idx * row_size_limit * row_size_limit;
