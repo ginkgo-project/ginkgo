@@ -73,9 +73,6 @@ __device__ __forceinline__ void naive_lower_trsv(
     // assert(0);  // TODO
 
     const int num_rows = L_entry.num_rows;
-    const int* const __restrict__ row_ptrs = L_entry.row_ptrs;
-    const int* const __restrict__ col_idxs = L_entry.col_idxs;
-    const ValueType* const __restrict__ mat_values_entry = L_entry.values;
 
     if (threadIdx.x == 0) {
         // L * x = b
@@ -229,8 +226,10 @@ __global__ void apply_kernel(const BatchMatrixType L,
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
         //  Kernels for volta architecture and its successors
         //  (make use of independent thread scheduling)
+        // naive_lower_trsv(L_entry, b_entry, x_entry);
         independent_thread_scheduling_lower_trsv(L_entry, b_entry, x_entry);
 #else
+        // naive_lower_trsv(L_entry, b_entry, x_entry);
         warp_synchronous_lower_trsv(L_entry, b_entry, x_entry);
 #endif
     }

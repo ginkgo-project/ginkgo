@@ -73,9 +73,6 @@ __device__ __forceinline__ void naive_upper_trsv(
     // assert(0);  // TODO
 
     const int num_rows = U_entry.num_rows;
-    const int* const __restrict__ row_ptrs = U_entry.row_ptrs;
-    const int* const __restrict__ col_idxs = U_entry.col_idxs;
-    const ValueType* const __restrict__ mat_values_entry = U_entry.values;
 
     if (threadIdx.x == 0) {
         for (int row_idx = num_rows - 1; row_idx >= 0; row_idx--) {
