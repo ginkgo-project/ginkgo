@@ -231,31 +231,6 @@ void batch_isai_extension(
                                   rhs_one_idxs.get_const_data(),
                                   rhs_one_idxs_host.get_data());
 
-
-    // Not needed:
-    // gko::array<IndexType>
-    // num_matches_per_row_for_each_csr_sys_host(exec->get_master(),
-    // num_matches_per_row_for_each_csr_sys.get_num_elems());
-    // exec->get_master()->copy_from(exec.get(),
-    // num_matches_per_row_for_each_csr_sys.get_num_elems(),
-    //                               num_matches_per_row_for_each_csr_sys.get_const_data(),
-    //                               num_matches_per_row_for_each_csr_sys_host.get_data());
-
-    // // std::cout << "sys_csr: " << std::endl;
-    // // print_csr_matrix(exec, sys_csr);
-
-    // // std::cout << "approx inv: " << std::endl;
-    // // print_csr_matrix(exec, approx_inv);
-
-    // for(int i = 0; i < num_matches_per_row_for_each_csr_sys.get_num_elems();
-    // i++)
-    // {
-    //     std::cout << "i: " << i << "   num_matches: " <<
-    //     num_matches_per_row_for_each_csr_sys_host.get_const_data()[i] <<
-    //     std::endl;
-    // }
-
-
     for (int lin_sys_row = 0; lin_sys_row < sizes_host.get_num_elems();
          lin_sys_row++) {
         const auto size = sizes_host.get_const_data()[lin_sys_row];
@@ -266,8 +241,9 @@ void batch_isai_extension(
             continue;
         }
 
-        std::cout << "lin_sys_row: " << lin_sys_row << "  size: " << size
-                  << "  rhs_one_idx: " << rhs_one_idx << std::endl;
+        std::cout << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
+                  << "  size: " << size << "  rhs_one_idx: " << rhs_one_idx
+                  << std::endl;
 
         // row_ptrs for csr pattern
         array<IndexType> csr_pattern_row_ptrs_arr(exec, size + 1);
@@ -327,18 +303,21 @@ void batch_isai_extension(
             lin_sys_row, size, first_approx_inv.get(), first_sys_csr.get(),
             csr_pattern.get()));
 
-        csr_pattern->transpose();
+        auto csr_pattern_transposed = as<matrix::Csr<RealValueType, IndexType>>(
+            gko::share(csr_pattern->transpose()));
 
         // Now create a batched csr matrix and fill it with values
         auto batch_csr_mats = gko::share(
             mtx_type::create(exec, nbatch, gko::dim<2>(size, size), csr_nnz));
-        exec->copy(size + 1, csr_pattern->get_const_row_ptrs(),
+        exec->copy(size + 1, csr_pattern_transposed->get_const_row_ptrs(),
                    batch_csr_mats->get_row_ptrs());
-        exec->copy(csr_nnz, csr_pattern->get_const_col_idxs(),
+        exec->copy(csr_nnz, csr_pattern_transposed->get_const_col_idxs(),
                    batch_csr_mats->get_col_idxs());
 
         exec->run(batch_isai::make_fill_batch_csr_sys_with_values(
-            csr_pattern.get(), sys_csr.get(), batch_csr_mats.get()));
+            csr_pattern_transposed.get(), sys_csr.get(), batch_csr_mats.get()));
+
+        // print_csr_matrix(exec, batch_csr_mats);
 
         auto b = gko::share(BDense::create(
             exec, gko::batch_dim<2>(nbatch, gko::dim<2>(size, 1))));
@@ -349,7 +328,7 @@ void batch_isai_extension(
             rhs_one_idx, b.get(), x.get()));
 
 
-        print_dense_matrix(exec, b);
+        // print_dense_matrix(exec, b);
 
         if (input_matrix_type_isai ==
             gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {
@@ -357,11 +336,7 @@ void batch_isai_extension(
                 upper_trs::build().with_skip_sorting(true).on(exec)->generate(
                     batch_csr_mats);
 
-            std::cout << "Calling upper trs solver" << std::endl;
             solver->apply(b.get(), x.get());
-
-            exec->synchronize();
-            std::cout << "solve completed" << std::endl;
 
         } else if (input_matrix_type_isai ==
                    gko::preconditioner::batch_isai_input_matrix_type::
@@ -370,12 +345,8 @@ void batch_isai_extension(
                 lower_trs::build().with_skip_sorting(true).on(exec)->generate(
                     batch_csr_mats);
 
-            std::cout << "Calling lower trs solver" << std::endl;
-
             solver->apply(b.get(), x.get());
 
-            exec->synchronize();
-            std::cout << "solve completed" << std::endl;
         } else if (input_matrix_type_isai ==
                    gko::preconditioner::batch_isai_input_matrix_type::general) {
             auto solver =
@@ -389,7 +360,6 @@ void batch_isai_extension(
         } else {
             GKO_NOT_SUPPORTED(input_matrix_type_isai);
         }
-
 
         // write solution back to approx inv
         exec->run(batch_isai::make_write_large_sys_solution_to_inverse(
