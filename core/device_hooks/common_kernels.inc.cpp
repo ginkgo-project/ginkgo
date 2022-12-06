@@ -70,7 +70,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
-#include "core/preconditioner/batch_exact_ilu_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
