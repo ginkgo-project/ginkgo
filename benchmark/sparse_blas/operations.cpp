@@ -48,28 +48,31 @@ using Mtx = gko::matrix::Csr<etype, itype>;
 
 
 std::pair<bool, double> validate_result(const Mtx* correct_mtx,
-                                        const Mtx* host_mtx)
+                                        const Mtx* test_mtx)
 {
-    if (correct_mtx->get_size() != host_mtx->get_size() ||
-        correct_mtx->get_num_stored_elements() !=
-            host_mtx->get_num_stored_elements()) {
+    auto ref = gko::ReferenceExecutor::create();
+    auto host_correct_mtx = gko::make_temporary_clone(ref, correct_mtx);
+    auto host_test_mtx = gko::make_temporary_clone(ref, test_mtx);
+    if (host_correct_mtx->get_size() != host_test_mtx->get_size() ||
+        host_correct_mtx->get_num_stored_elements() !=
+            host_test_mtx->get_num_stored_elements()) {
         return {false, 0.0};
     }
     double err_nrm_sq{};
-    const auto size = correct_mtx->get_size();
+    const auto size = host_correct_mtx->get_size();
     for (gko::size_type row = 0; row < size[0]; row++) {
-        const auto begin = host_mtx->get_const_row_ptrs()[row];
-        const auto end = host_mtx->get_const_row_ptrs()[row + 1];
-        if (begin != correct_mtx->get_const_row_ptrs()[row] ||
-            end != correct_mtx->get_const_row_ptrs()[row + 1] ||
-            !std::equal(correct_mtx->get_const_col_idxs() + begin,
-                        correct_mtx->get_const_col_idxs() + end,
-                        host_mtx->get_const_col_idxs() + begin)) {
+        const auto begin = host_test_mtx->get_const_row_ptrs()[row];
+        const auto end = host_test_mtx->get_const_row_ptrs()[row + 1];
+        if (begin != host_correct_mtx->get_const_row_ptrs()[row] ||
+            end != host_correct_mtx->get_const_row_ptrs()[row + 1] ||
+            !std::equal(host_correct_mtx->get_const_col_idxs() + begin,
+                        host_correct_mtx->get_const_col_idxs() + end,
+                        host_test_mtx->get_const_col_idxs() + begin)) {
             return {false, 0.0};
         }
         for (auto nz = begin; nz < end; nz++) {
-            const auto diff = host_mtx->get_const_values()[nz] -
-                              correct_mtx->get_const_values()[nz];
+            const auto diff = host_test_mtx->get_const_values()[nz] -
+                              host_correct_mtx->get_const_values()[nz];
             err_nrm_sq += gko::squared_norm(diff);
         }
     }
@@ -137,17 +140,14 @@ public:
         auto ref = gko::ReferenceExecutor::create();
         auto correct = Mtx::create(ref, mtx_out_->get_size());
         gko::make_temporary_clone(ref, mtx_)->apply(mtx2_.get(), correct.get());
-        return validate_result(
-            correct.get(),
-            gko::make_temporary_clone(ref, mtx_out_.get()).get());
+        return validate_result(correct.get(), mtx_out_.get());
     }
 
     gko::size_type get_flops() const override
     {
-        auto host_mtx = Mtx::create(mtx_->get_executor()->get_master());
-        auto host_mtx2 = Mtx::create(mtx_->get_executor()->get_master());
-        host_mtx->copy_from(mtx_);
-        host_mtx2->copy_from(mtx2_.get());
+        auto host_exec = mtx_->get_executor()->get_master();
+        auto host_mtx = gko::make_temporary_clone(host_exec, lend(mtx_));
+        auto host_mtx2 = gko::make_temporary_clone(host_exec, lend(mtx2_));
         // count the individual products a_ik * b_kj
         gko::size_type work{};
         for (gko::size_type row = 0; row < host_mtx->get_size()[0]; row++) {
@@ -219,9 +219,7 @@ public:
         auto correct = gko::make_temporary_clone(ref, mtx2_.get());
         gko::make_temporary_clone(ref, mtx_)->apply(
             scalar_.get(), id_.get(), scalar_.get(), correct.get());
-        return validate_result(
-            correct.get(),
-            gko::make_temporary_clone(ref, mtx_out_.get()).get());
+        return validate_result(correct.get(), mtx_out_.get());
     }
 
     gko::size_type get_flops() const override
@@ -265,7 +263,7 @@ public:
         return validate_result(
             gko::as<Mtx>(gko::make_temporary_clone(ref, mtx_)->transpose())
                 .get(),
-            gko::make_temporary_clone(ref, mtx_out_.get()).get());
+            mtx_out_.get());
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -301,9 +299,7 @@ public:
         auto ref = gko::ReferenceExecutor::create();
         auto mtx_sorted = gko::clone(ref, mtx_shuffled_);
         mtx_sorted->sort_by_column_index();
-        return validate_result(
-            mtx_sorted.get(),
-            gko::make_temporary_clone(ref, mtx_out_.get()).get());
+        return validate_result(mtx_sorted.get(), mtx_out_.get());
     }
 
     gko::size_type get_flops() const override { return 0; }
