@@ -104,7 +104,7 @@ __device__ __forceinline__ void independent_thread_scheduling_lower_trsv(
     const ValueType* const __restrict__ mat_values_entry = L_entry.values;
 
     for (int row_index = threadIdx.x; row_index < num_rows;
-         row_index += blockDim.x) {
+         row_index += static_cast<int>(blockDim.x)) {
         ValueType sum = 0;
         const int start = row_ptrs[row_index];
         const int end = row_ptrs[row_index + 1] - 1;
@@ -150,7 +150,7 @@ __device__ __forceinline__ void warp_synchronous_lower_trsv(
     const ValueType* const __restrict__ mat_values_entry = L_entry.values;
 
     for (int row_index = threadIdx.x; row_index < num_rows;
-         row_index += blockDim.x) {
+         row_index += static_cast<int>(blockDim.x)) {
         ValueType sum = 0;
 
         const int start = row_ptrs[row_index];
