@@ -1526,10 +1526,13 @@ protected:
         this->get_exec_info().num_pu_per_cu = 0;
         this->CudaExecutor::populate_exec_info(
             machine_topology::get_instance());
-        if (this->get_exec_info().closest_pu_ids.size()) {
-            machine_topology::get_instance()->bind_to_pus(
-                this->get_closest_pus());
-        }
+        // FIXME: Binding GPU to the closest pus seems to have significant
+        // slowdowns on some systems
+        // if (this->get_exec_info().closest_pu_ids.size()) {
+        //     machine_topology::get_instance()->bind_to_pus(
+        //         this->get_closest_pus());
+        // }
+
         // it only gets attribute from device, so it should not be affected by
         // DeviceReset.
         this->set_gpu_property();
@@ -1732,10 +1735,13 @@ protected:
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
         this->HipExecutor::populate_exec_info(machine_topology::get_instance());
-        if (this->get_exec_info().closest_pu_ids.size()) {
-            machine_topology::get_instance()->bind_to_pus(
-                this->get_closest_pus());
-        }
+        // FIXME: Binding GPU to the closest pus seems to have significant
+        // slowdowns on some systems
+        // if (this->get_exec_info().closest_pu_ids.size()) {
+        //     machine_topology::get_instance()->bind_to_pus(
+        //         this->get_closest_pus());
+        // }
+
         // it only gets attribute from device, so it should not be affected by
         // DeviceReset.
         this->set_gpu_property();
