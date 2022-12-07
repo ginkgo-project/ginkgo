@@ -30,9 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_gmres.hpp>
 #include <ginkgo/core/solver/batch_lower_trs.hpp>
 #include <ginkgo/core/solver/batch_upper_trs.hpp>
 
@@ -217,6 +219,7 @@ void batch_isai_extension(
     using lower_trs = solver::BatchLowerTrs<ValueType>;
     using upper_trs = solver::BatchUpperTrs<ValueType>;
     using bicgstab = solver::BatchBicgstab<ValueType>;
+    using gmres = solver::BatchGmres<ValueType>;
     using RealValueType = gko::remove_complex<ValueType>;
 
     const auto nrows = sys_csr->get_size().at(0)[0];
@@ -241,7 +244,9 @@ void batch_isai_extension(
             continue;
         }
 
-        std::cout << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
+        std::cout << std::endl
+                  << std::endl
+                  << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
                   << "  size: " << size << "  rhs_one_idx: " << rhs_one_idx
                   << std::endl;
 
@@ -317,7 +322,8 @@ void batch_isai_extension(
         exec->run(batch_isai::make_fill_batch_csr_sys_with_values(
             csr_pattern_transposed.get(), sys_csr.get(), batch_csr_mats.get()));
 
-        // print_csr_matrix(exec, batch_csr_mats);
+        //  std::cout << "batch csr sys to be solved: " << std::endl;
+        //  print_csr_matrix(exec, batch_csr_mats);
 
         auto b = gko::share(BDense::create(
             exec, gko::batch_dim<2>(nbatch, gko::dim<2>(size, 1))));
@@ -327,8 +333,8 @@ void batch_isai_extension(
         exec->run(batch_isai::make_initialize_b_and_x_vectors(
             rhs_one_idx, b.get(), x.get()));
 
-
-        // print_dense_matrix(exec, b);
+        //  std::cout << "The rhs: " << std::endl;
+        //  print_dense_matrix(exec, b);
 
         if (input_matrix_type_isai ==
             gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {
@@ -349,17 +355,26 @@ void batch_isai_extension(
 
         } else if (input_matrix_type_isai ==
                    gko::preconditioner::batch_isai_input_matrix_type::general) {
-            auto solver =
-                bicgstab::build()
-                    .with_preconditioner(
-                        preconditioner::BatchJacobi<ValueType>::build().on(
-                            exec))
-                    .on(exec)
-                    ->generate(batch_csr_mats);
+            const RealValueType reduction_factor{1e-10};
+            auto solver = gmres::build()
+                              .with_default_max_iterations(1000)
+                              .with_tolerance_type(
+                                  gko::stop::batch::ToleranceType::absolute)
+                              .with_default_residual_tol(reduction_factor)
+                              .with_preconditioner(
+                                  preconditioner::BatchIlu<ValueType>::build()
+                                      .with_skip_sorting(true)
+                                      .on(exec))
+                              .on(exec)
+                              ->generate(batch_csr_mats);
             solver->apply(b.get(), x.get());
         } else {
             GKO_NOT_SUPPORTED(input_matrix_type_isai);
         }
+
+
+        // std::cout << "The sol: " << std::endl;
+        // print_dense_matrix(exec, x);
 
         // write solution back to approx inv
         exec->run(batch_isai::make_write_large_sys_solution_to_inverse(
