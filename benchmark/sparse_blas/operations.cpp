@@ -318,7 +318,11 @@ public:
 
     void prepare() override { mtx_out_->copy_from(mtx_shuffled_.get()); }
 
-    void run() override { mtx_out_->sort_by_column_index(); }
+    void run() override
+    {
+        // FIXME: here, we are measuring sorted input except for the first run
+        mtx_out_->sort_by_column_index();
+    }
 
 private:
     std::unique_ptr<Mtx> mtx_shuffled_;
