@@ -485,8 +485,9 @@ __global__
 
         const int sys_idx = static_cast<int>(csr_pattern_values[csr_nnz_id]);
         assert(sys_idx >= 0 && sys_idx < sys_nnz);
-        batch_csr_mats_values[batch_id * csr_nnz + csr_nnz_id] =
-            sys_csr_values[batch_id * sys_nnz + sys_idx];
+
+        const ValueType to_write = sys_csr_values[batch_id * sys_nnz + sys_idx];
+        batch_csr_mats_values[batch_id * csr_nnz + csr_nnz_id] = to_write;
     }
 }
 
