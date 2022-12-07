@@ -83,7 +83,7 @@ protected:
 
     const size_t nbatch = 3;
     const index_type nrows_small = 10;
-    const index_type nrows_big = 200;
+    const index_type nrows_big = 300;
     const index_type min_nnz_row_small = 3;
     const index_type min_nnz_row_big = 30;
 
