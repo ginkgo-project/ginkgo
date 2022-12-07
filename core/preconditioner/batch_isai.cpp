@@ -244,11 +244,11 @@ void batch_isai_extension(
             continue;
         }
 
-        std::cout << std::endl
-                  << std::endl
-                  << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
-                  << "  size: " << size << "  rhs_one_idx: " << rhs_one_idx
-                  << std::endl;
+        // std::cout << std::endl
+        //           << std::endl
+        //           << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
+        //           << "  size: " << size << "  rhs_one_idx: " << rhs_one_idx
+        //           << std::endl;
 
         // row_ptrs for csr pattern
         array<IndexType> csr_pattern_row_ptrs_arr(exec, size + 1);
@@ -319,6 +319,9 @@ void batch_isai_extension(
         exec->copy(csr_nnz, csr_pattern_transposed->get_const_col_idxs(),
                    batch_csr_mats->get_col_idxs());
 
+        // std::cout << " sys_csr: " << std::endl;
+        // print_csr_matrix(exec, sys_csr);
+
         exec->run(batch_isai::make_fill_batch_csr_sys_with_values(
             csr_pattern_transposed.get(), sys_csr.get(), batch_csr_mats.get()));
 
@@ -335,6 +338,7 @@ void batch_isai_extension(
 
         //  std::cout << "The rhs: " << std::endl;
         //  print_dense_matrix(exec, b);
+
 
         if (input_matrix_type_isai ==
             gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {

@@ -195,7 +195,7 @@ void fill_batch_csr_sys_with_values(
 {
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto csr_nnz = csr_pattern->get_num_stored_elements();
-    const auto sys_nnz = sys_csr->get_num_stored_elements();
+    const auto sys_nnz = sys_csr->get_num_stored_elements() / nbatch;
 
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * csr_nnz, default_block_size));
