@@ -449,6 +449,22 @@ protected:
             typeid(*vec), size, size[1]);
     }
 
+    template <typename LinOpType>
+    LinOpType* create_workspace_op_with_type_of(int vector_id,
+                                                const LinOpType* vec,
+                                                dim<2> global_size,
+                                                dim<2> local_size) const
+    {
+        return workspace_.template create_or_get_op<LinOpType>(
+            vector_id,
+            [&] {
+                return LinOpType::create_with_type_of(
+                    vec, workspace_.get_executor(), global_size, local_size,
+                    local_size[1]);
+            },
+            typeid(*vec), global_size, local_size[1]);
+    }
+
     template <typename ValueType>
     matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
                                                       size_type size) const
