@@ -41,7 +41,9 @@ __device__ __forceinline__ void naive_lower_trsv(
     const int* const __restrict__ col_idxs = L_entry.col_idxs;
     const ValueType* const __restrict__ mat_values_entry = L_entry.values;
 
+
     if (threadIdx.x == 0) {
+        printf("\n\nstart solve");
         // L * x = b
         for (int row_idx = 0; row_idx < num_rows; row_idx++) {
             ValueType sum{0};
@@ -52,6 +54,8 @@ __device__ __forceinline__ void naive_lower_trsv(
             x_entry[row_idx] = (b_entry[row_idx] - sum) /
                                mat_values_entry[row_ptrs[row_idx + 1] - 1];
         }
+
+        printf("\n\nend solve");
     }
 }
 
@@ -228,7 +232,8 @@ __global__ void apply_kernel(const BatchMatrixType L,
         //  (make use of independent thread scheduling)
         independent_thread_scheduling_lower_trsv(L_entry, b_entry, x_entry);
 #else
-        warp_synchronous_lower_trsv(L_entry, b_entry, x_entry);
+        naive_lower_trsv(L_entry, b_entry, x_entry);
+        // warp_synchronous_lower_trsv(L_entry, b_entry, x_entry);
 
 #endif
     }
