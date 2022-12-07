@@ -72,7 +72,7 @@ protected:
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
-    const index_type nrows = 29;
+    const index_type nrows = 300;
     
     std::shared_ptr<BCsr> csr_upper_mat;
     std::shared_ptr<BDense> b;
