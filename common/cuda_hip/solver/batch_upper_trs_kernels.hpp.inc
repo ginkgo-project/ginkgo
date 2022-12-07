@@ -102,7 +102,7 @@ __device__ __forceinline__ void independent_thread_scheduling_upper_trsv(
     const ValueType* const __restrict__ mat_values_entry = U_entry.values;
 
     for (int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-         row_index >= 0; row_index -= blockDim.x) {
+         row_index >= 0; row_index -= static_cast<int>(blockDim.x)) {
         ValueType sum = 0;
         const int start = row_ptrs[row_index];
         const int end = row_ptrs[row_index + 1] - 1;
@@ -149,7 +149,7 @@ __device__ __forceinline__ void warp_synchronous_upper_trsv(
     const ValueType* const __restrict__ mat_values_entry = U_entry.values;
 
     for (int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-         row_index >= 0; row_index -= blockDim.x) {
+         row_index >= 0; row_index -= static_cast<int>(blockDim.x)) {
         ValueType sum = 0;
 
         const int start = row_ptrs[row_index];
