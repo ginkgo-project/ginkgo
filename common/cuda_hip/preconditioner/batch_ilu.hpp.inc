@@ -100,8 +100,9 @@ private:
         const ValueType* const __restrict__ factored_values_entry =
             mat_factorized_entry_.values;
 
-        const int row_index = threadIdx.x;
-        if (row_index < num_rows) {
+
+        for (int row_index = static_cast<int>(threadIdx.x);
+             row_index < num_rows; row_index += static_cast<int>(blockDim.x)) {
             ValueType sum = 0;
 
             const int start = row_ptrs[row_index];
@@ -138,8 +139,8 @@ private:
         const ValueType* const __restrict__ factored_values_entry =
             mat_factorized_entry_.values;
 
-        const int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-        if (row_index >= 0) {
+        for (int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+             row_index >= 0; row_index -= static_cast<int>(blockDim.x)) {
             ValueType sum = 0;
 
             const int start = csr_diag_locs_[row_index];
@@ -176,9 +177,8 @@ private:
         const ValueType* const __restrict__ factored_values_entry =
             mat_factorized_entry_.values;
 
-
-        const int row_index = threadIdx.x;
-        if (row_index < num_rows) {
+        for (int row_index = static_cast<int>(threadIdx.x);
+             row_index < num_rows; row_index += static_cast<int>(blockDim.x)) {
             ValueType sum = 0;
             const int start = row_ptrs[row_index];
             const int end = csr_diag_locs_[row_index];
@@ -204,9 +204,8 @@ private:
         const ValueType* const __restrict__ factored_values_entry =
             mat_factorized_entry_.values;
 
-        const int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-
-        if (row_index >= 0) {
+        for (int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+             row_index >= 0; row_index -= static_cast<int>(blockDim.x)) {
             ValueType sum = 0;
             const int start = csr_diag_locs_[row_index];
             const int end = row_ptrs[row_index + 1] - 1;
