@@ -124,6 +124,18 @@ void apply_sparse_blas(const char* operation_name,
             add_or_set_member(test_case[operation_name], "error",
                               validation_result.second, allocator);
         }
+        if (FLAGS_detailed) {
+            add_or_set_member(test_case[operation_name], "components",
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+            auto gen_logger =
+                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            exec->add_logger(gen_logger);
+            op->run();
+            exec->remove_logger(gko::lend(gen_logger));
+            gen_logger->write_data(test_case[operation_name]["components"],
+                                   allocator, 1);
+        }
 
         add_or_set_member(test_case[operation_name], "completed", true,
                           allocator);
