@@ -1293,7 +1293,7 @@ void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
                 result[row * sample_size + sample] =
                     lookup.lookup_unsafe(col) + row_begin;
             } else {
-                result[row * sample_size + sample] = -1;
+                result[row * sample_size + sample] = invalid_index<IndexType>();
             }
         }
     }

@@ -7,7 +7,6 @@
 #include <gflags/gflags.h>
 
 
-#include "core/base/kernel_declaration.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -31,15 +30,14 @@ DEFINE_int32(
     spgeam_swap_distance, 100,
     "Maximum distance for row swaps to avoid rows with disjoint column ranges");
 
-DEFINE_string(
-    spgemm_mode, "normal",
-    "Which matrix B should be used to compute A * B: normal, "
-    "transposed, sparse, dense\n"
-    "normal: B = A for A square, A^T otherwise\ntransposed: B = "
-    "A^T\nsparse: B is a sparse matrix with dimensions of A^T with uniformly "
-    "random values, at most -spgemm_rowlength non-zeros per row\ndense: B is a "
-    "'dense' sparse matrix with -spgemm_rowlength columns and non-zeros per "
-    "row");
+DEFINE_string(spgemm_mode, "normal",
+              R"(Which matrix B should be used to compute A * B: normal, 
+transposed, sparse, dense
+normal: B = A for A square, A^T otherwise\ntransposed: B = A^T
+sparse: B is a sparse matrix with dimensions of A^T with uniformly 
+        random values, at most -spgemm_rowlength non-zeros per row
+dense: B is a 'dense' sparse matrix with -spgemm_rowlength columns
+       and non-zeros per row)");
 
 DEFINE_int32(spgemm_rowlength, 10,
              "The length of rows in randomly generated matrices B. Only "
@@ -138,8 +136,10 @@ public:
     {
         auto ref = gko::ReferenceExecutor::create();
         auto correct = Mtx::create(ref, mtx_out_->get_size());
-        gko::clone(ref, mtx_)->apply(mtx2_.get(), correct.get());
-        return validate_result(correct.get(), gko::clone(ref, mtx_out_).get());
+        gko::make_temporary_clone(ref, mtx_)->apply(mtx2_.get(), correct.get());
+        return validate_result(
+            correct.get(),
+            gko::make_temporary_clone(ref, mtx_out_.get()).get());
     }
 
     gko::size_type get_flops() const override
@@ -216,10 +216,12 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto correct = gko::clone(ref, mtx2_.get());
-        gko::clone(ref, mtx_)->apply(scalar_.get(), id_.get(), scalar_.get(),
-                                     correct.get());
-        return validate_result(correct.get(), gko::clone(ref, mtx_out_).get());
+        auto correct = gko::make_temporary_clone(ref, mtx2_.get());
+        gko::make_temporary_clone(ref, mtx_)->apply(
+            scalar_.get(), id_.get(), scalar_.get(), correct.get());
+        return validate_result(
+            correct.get(),
+            gko::make_temporary_clone(ref, mtx_out_.get()).get());
     }
 
     gko::size_type get_flops() const override
@@ -261,8 +263,9 @@ public:
     {
         auto ref = gko::ReferenceExecutor::create();
         return validate_result(
-            gko::as<Mtx>(gko::clone(ref, mtx_)->transpose()).get(),
-            gko::clone(ref, mtx_out_).get());
+            gko::as<Mtx>(gko::make_temporary_clone(ref, mtx_)->transpose())
+                .get(),
+            gko::make_temporary_clone(ref, mtx_out_.get()).get());
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -298,8 +301,9 @@ public:
         auto ref = gko::ReferenceExecutor::create();
         auto mtx_sorted = gko::clone(ref, mtx_shuffled_);
         mtx_sorted->sort_by_column_index();
-        return validate_result(mtx_sorted.get(),
-                               gko::clone(ref, mtx_out_).get());
+        return validate_result(
+            mtx_sorted.get(),
+            gko::make_temporary_clone(ref, mtx_out_.get()).get());
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -329,7 +333,7 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto mtx_sorted = gko::clone(ref, mtx_);
+        auto mtx_sorted = gko::make_temporary_clone(ref, mtx_);
         return {mtx_sorted->is_sorted_by_column_index() == result_, 0.0};
     }
 
@@ -395,7 +399,7 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto host_mtx = gko::clone(ref, mtx_);
+        auto host_mtx = gko::make_temporary_clone(ref, mtx_);
         gko::array<itype> host_storage_offsets{ref, storage_offsets_};
         gko::array<gko::int64> host_row_descs{ref, row_descs_};
         gko::array<gko::int32> host_storage{ref, storage_};
@@ -485,7 +489,7 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto host_mtx = gko::clone(ref, mtx_);
+        auto host_mtx = gko::make_temporary_clone(ref, mtx_);
         gko::array<itype> host_results{ref, results_};
         const auto row_ptrs = host_mtx->get_const_row_ptrs();
         for (gko::size_type row = 0; row < mtx_->get_size()[0]; row++) {

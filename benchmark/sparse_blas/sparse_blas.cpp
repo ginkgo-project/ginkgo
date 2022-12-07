@@ -64,9 +64,10 @@ const std::map<std::string,
         {"classical", [] { return std::make_shared<Mtx::classical>(); }},
         {"sparselib", [] { return std::make_shared<Mtx::sparselib>(); }}};
 
-DEFINE_string(operations, "spgemm,spgeam,transpose",
-              "Comma-separated list of operations to be benchmarked. Can be "
-              "spgemm, spgeam, transpose, sort, is_sorted");
+DEFINE_string(
+    operations, "spgemm,spgeam,transpose",
+    "Comma-separated list of operations to be benchmarked. Can be "
+    "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, lookup");
 
 DEFINE_string(strategies, "classical,sparselib",
               "Comma-separated list of CSR strategies: classical, sparselib");
