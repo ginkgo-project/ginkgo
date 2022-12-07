@@ -78,9 +78,9 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 1;
-    const index_type nrows = 34;
-    const int min_nnz_row = 31;
+    const size_t nbatch = 3;
+    const index_type nrows = 40;
+    const int min_nnz_row = 30;
     
     std::shared_ptr<const Mtx> general_mtx;
     std::shared_ptr<const Mtx> lower_mtx;
@@ -129,17 +129,17 @@ protected:
                                .on(exec);
 
         //std::cout << "Ref exec: " << std::endl;
-        //auto prec = prec_fact->generate(mtx);
+        auto prec = prec_fact->generate(mtx);
 
-        std::cout << "Cuda exec: " << std::endl;
+        //std::cout << "Cuda exec: " << std::endl;
         auto d_prec = d_prec_fact->generate(d_mtx);
 
-        /*
+        
         const auto approx_inv = prec->get_const_approximate_inverse().get();
         const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
         const auto tol = 10000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
-        */
+        
     }
 
     // TODO: Add tests for non-sorted input matrix
@@ -187,7 +187,7 @@ protected:
     }
 };
 
-
+/*
 TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 {
     this->test_generate_eqvt_to_ref(
@@ -201,7 +201,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
         this->general_mtx);
 }
-
+*/
 
 
 
@@ -254,7 +254,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
         this->general_mtx);
 }
-
+*/
 
 TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy1)
 {
@@ -287,6 +287,6 @@ TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy2)
         gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 2,
         this->upper_mtx);
 }
-*/
+
 
 }  // namespace
