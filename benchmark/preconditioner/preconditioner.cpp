@@ -201,9 +201,15 @@ void run_preconditioner(const char* precond_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
+            if (exec->get_master() != exec) {
+                exec->get_master()->add_logger(gen_logger);
+            }
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
                 precond_op = precond->generate(system_matrix);
+            }
+            if (exec->get_master() != exec) {
+                exec->get_master()->remove_logger(gko::lend(gen_logger));
             }
             exec->remove_logger(gko::lend(gen_logger));
 
@@ -213,8 +219,14 @@ void run_preconditioner(const char* precond_name,
             auto apply_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(apply_logger);
+            if (exec->get_master() != exec) {
+                exec->get_master()->add_logger(apply_logger);
+            }
             for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
+            }
+            if (exec->get_master() != exec) {
+                exec->get_master()->remove_logger(gko::lend(apply_logger));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
