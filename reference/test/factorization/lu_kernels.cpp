@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
+#include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
@@ -108,6 +109,32 @@ protected:
 };
 
 TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+
+
+TYPED_TEST(Lu, SymbolicCholeskyWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_lu_mtx);
+
+    auto lu = gko::factorization::symbolic_cholesky(this->mtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
+}
+
+
+TYPED_TEST(Lu, SymbolicLUWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_nonsymm_mtx,
+                gko::matrices::location_ani1_nonsymm_lu_mtx);
+
+    auto lu = gko::factorization::symbolic_lu(this->mtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
+}
 
 
 TYPED_TEST(Lu, KernelInitializeWorks)
@@ -202,6 +229,30 @@ TYPED_TEST(Lu, FactorizeWorks)
     auto lu = factory->generate(this->mtx);
 
     GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu, r<value_type>::value);
+    ASSERT_EQ(lu->get_storage_type(),
+              gko::experimental::factorization::storage_type::combined_lu);
+    ASSERT_EQ(lu->get_lower_factor(), nullptr);
+    ASSERT_EQ(lu->get_upper_factor(), nullptr);
+    ASSERT_EQ(lu->get_diagonal(), nullptr);
+}
+
+
+TYPED_TEST(Lu, FactorizeNonsymmetricWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_nonsymm_mtx,
+                gko::matrices::location_ani1_nonsymm_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(false)
+            .on(this->ref);
+
+    auto lu = factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
+                        r<value_type>::value * 10);
     ASSERT_EQ(lu->get_storage_type(),
               gko::experimental::factorization::storage_type::combined_lu);
     ASSERT_EQ(lu->get_lower_factor(), nullptr);

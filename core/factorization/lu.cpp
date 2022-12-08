@@ -95,7 +95,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         if (parameters_.symmetric_sparsity) {
             factors = gko::factorization::symbolic_cholesky(mtx.get());
         } else {
-            GKO_NOT_SUPPORTED(mtx);
+            factors = gko::factorization::symbolic_lu(mtx.get());
         }
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;
