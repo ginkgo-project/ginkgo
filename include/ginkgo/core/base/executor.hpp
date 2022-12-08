@@ -510,6 +510,56 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                   "semi-colon warnings")
 
 
+/**
+ * Binds a host-side kernel (independent of executor type) to an Operation.
+ *
+ * It also defines a helper function which creates the associated operation.
+ * Any input arguments passed to the helper function are forwarded to the
+ * kernel when the operation is executed.
+ * The kernel name is searched for in the namespace where this macro is called.
+ * Host operations are used to make computations that are not part of the device
+ * kernels visible to profiling loggers and benchmarks.
+ *
+ * @param _name  operation name
+ * @param _kernel  kernel which will be bound to the operation
+ *
+ * Example
+ * -------
+ *
+ * ```c++
+ * void host_kernel(int) {
+ *     // do some expensive computations
+ * }
+ *
+ * // Bind the kernels to the operation
+ * GKO_REGISTER_HOST_OPERATION(my_op, host_kernel);
+ *
+ * int main() {
+ *     // create executor
+ *     auto ref = ReferenceExecutor::create();
+ *
+ *     // create the operation
+ *     auto op = make_my_op(5); // x = 5
+ *
+ *     ref->run(op);  // run host kernel
+ * }
+ * ```
+ *
+ * @ingroup Executor
+ */
+#define GKO_REGISTER_HOST_OPERATION(_name, _kernel)                          \
+    template <typename... Args>                                              \
+    auto make_##_name(Args&&... args)                                        \
+    {                                                                        \
+        return ::gko::detail::make_register_operation(                       \
+            #_name, sizeof...(Args),                                         \
+            [&args...](auto) { _kernel(std::forward<Args>(args)...); });     \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 #define GKO_DECLARE_EXECUTOR_FRIEND(_type, ...) friend class _type
 
 /**

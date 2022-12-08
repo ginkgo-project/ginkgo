@@ -56,6 +56,9 @@ GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
 GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
 GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
+GKO_REGISTER_HOST_OPERATION(symbolic_cholesky,
+                            gko::factorization::symbolic_cholesky);
+GKO_REGISTER_HOST_OPERATION(symbolic_lu, gko::factorization::symbolic_lu);
 
 
 }  // namespace
@@ -93,9 +96,9 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         if (parameters_.symmetric_sparsity) {
-            factors = gko::factorization::symbolic_cholesky(mtx.get());
+            exec->run(make_symbolic_cholesky(mtx.get(), factors));
         } else {
-            factors = gko::factorization::symbolic_lu(mtx.get());
+            exec->run(make_symbolic_lu(mtx.get(), factors));
         }
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;

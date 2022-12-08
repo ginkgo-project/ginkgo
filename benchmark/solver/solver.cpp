@@ -435,12 +435,18 @@ void solve_system(const std::string& solver_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
+            if (exec->get_master() != exec) {
+                exec->get_master()->add_logger(gen_logger);
+            }
 
             auto precond = precond_factory.at(precond_name)(exec);
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_max_iters)
                          ->generate(system_matrix);
 
+            if (exec->get_master() != exec) {
+                exec->get_master()->remove_logger(gko::lend(gen_logger));
+            }
             exec->remove_logger(gko::lend(gen_logger));
             gen_logger->write_data(solver_json["generate"]["components"],
                                    allocator, 1);
@@ -459,9 +465,15 @@ void solve_system(const std::string& solver_name,
             auto apply_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(apply_logger);
+            if (exec->get_master() != exec) {
+                exec->get_master()->add_logger(apply_logger);
+            }
 
             solver->apply(lend(b), lend(x_clone));
 
+            if (exec->get_master() != exec) {
+                exec->get_master()->remove_logger(gko::lend(apply_logger));
+            }
             exec->remove_logger(gko::lend(apply_logger));
             apply_logger->write_data(solver_json["apply"]["components"],
                                      allocator, 1);

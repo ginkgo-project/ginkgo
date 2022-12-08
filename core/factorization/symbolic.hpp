@@ -37,15 +37,24 @@ namespace gko {
 namespace factorization {
 
 
-/** Computes the symbolic Cholesky factorization of the given matrix. */
+/**
+ * Computes the symbolic Cholesky factorization of the given matrix.
+ * @param mtx  the input matrix
+ * @param factors  the output factors stored in a combined pattern
+ */
 template <typename ValueType, typename IndexType>
-std::unique_ptr<matrix::Csr<ValueType, IndexType>> symbolic_cholesky(
-    const matrix::Csr<ValueType, IndexType>*);
+void symbolic_cholesky(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
-/** Computes the symbolic LU factorization of the given matrix. */
+/**
+ * Computes the symbolic LU factorization of the given matrix.
+ * @param mtx  the input matrix
+ * @param factors  the output factors stored in a combined pattern
+ */
 template <typename ValueType, typename IndexType>
-std::unique_ptr<matrix::Csr<ValueType, IndexType>> symbolic_lu(
-    const matrix::Csr<ValueType, IndexType>*);
+void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
+                 std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
 
 }  // namespace factorization
