@@ -64,7 +64,7 @@ trigger_pipeline:
           echo "Skipping the full pipeline and making the full pipeline succeed"
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
+            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
           echo "If you want to run the full tests, remove 1:ST:skip-full-test and add 1:ST:ready-to-merge or 1:ST:run-full-test to the pull request. Then rerun this job or start a new pipeline."
         elif [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
           echo "Running full pipeline."
@@ -75,7 +75,7 @@ trigger_pipeline:
           echo "Didn't find required labels, so we're making the full pipeline fail."
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
+            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
           echo "To skip the full pipeline for this pull request, rerun this job or start a new pipeline after adding the label 1:ST:skip-full-test."
           echo "To run the full pipeline for this pull request, rerun this job or start a new pipeline after adding one of the 1:ST:run-full-test or 1:ST:ready-to-merge labels."
         fi
