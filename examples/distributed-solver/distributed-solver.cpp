@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
-                      << " [executor] [num_grid_points] " << std::endl;
+                      << " [executor] [num_grid_points] [num_iterations] "
+                      << std::endl;
         }
         std::exit(-1);
     }
