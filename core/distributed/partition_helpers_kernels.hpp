@@ -17,10 +17,18 @@ namespace kernels {
                              const array<_type>& range_start_ends,        \
                              array<_type>& ranges)
 
+#define GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(_type) \
+    void sort_by_range_start(                                    \
+        std::shared_ptr<const DefaultExecutor> exec,             \
+        array<_type>& range_start_ends,                          \
+        array<experimental::distributed::comm_index_type>& part_ids)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES    \
-    template <typename GlobalIndexType> \
-    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS(GlobalIndexType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename GlobalIndexType>                                 \
+    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS(GlobalIndexType); \
+    template <typename GlobalIndexType>                                 \
+    GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(partition_helpers,

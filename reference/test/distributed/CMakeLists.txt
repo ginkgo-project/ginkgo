@@ -1,3 +1,4 @@
 ginkgo_create_test(matrix_kernels)
+ginkgo_create_test(partition_helpers_kernels)
 ginkgo_create_test(partition_kernels)
 ginkgo_create_test(vector_kernels)
