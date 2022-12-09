@@ -55,14 +55,16 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 template <typename GlobalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
                            const array<GlobalIndexType>& ranges,
+                           const array<comm_index_type>& part_id_mapping,
                            GlobalIndexType* range_bounds,
                            comm_index_type* part_ids)
 {
+    bool uses_mapping = part_id_mapping.get_num_elems() > 0;
     range_bounds[0] = 0;
     for (comm_index_type i = 0; i < ranges.get_num_elems() - 1; i++) {
         auto end = ranges.get_const_data()[i + 1];
         range_bounds[i + 1] = end;
-        part_ids[i] = i;
+        part_ids[i] = uses_mapping ? part_id_mapping.get_const_data()[i] : i;
     }
 }
 

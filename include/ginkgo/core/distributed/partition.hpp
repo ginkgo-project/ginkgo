@@ -260,15 +260,18 @@ public:
      *
      * @param exec  the Executor on which the partition should be built
      * @param ranges  the boundaries of the ranges representing each part.
-     *                Part i contains the indices [ranges[i], ranges[i + 1]).
-     *                Has to contain at least one element.
-     *                The first element has to be 0.
+     *                Part parti_id[i] contains the indices
+     *                [ranges[i], ranges[i + 1]). Has to contain at least
+     *                one element. The first element has to be 0.
+     * @param part_ids  the part ids of the provided ranges. If empty, then
+     *                  it will assume range i belongs to part i.
      *
      * @return  a Partition representing the given contiguous partitioning.
      */
     static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
-        const array<global_index_type>& ranges);
+        const array<global_index_type>& ranges,
+        const array<comm_index_type>& part_ids = {});
 
     /**
      * Builds a partition by evenly distributing the global range.
