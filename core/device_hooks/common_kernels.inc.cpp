@@ -258,9 +258,10 @@ namespace partition_helpers {
 
 
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START);
 
 
-}
+}  // namespace partition_helpers
 
 
 namespace distributed_vector {
