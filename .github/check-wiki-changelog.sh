@@ -7,7 +7,7 @@ SKIP_CHECK=$(api_get "$PR_URL" | jq -r 'any( [.labels | .[] | .name ] | .[] ; . 
 
 if [[ "$SKIP_CHECK" == "true" ]]; then
   echo "The PR contains the 1:ST:skip-changelog-wiki-check label. Skipping the wiki check."
-elif [[ "$HEAD_BRANCH" =~ ^release.* ]]; then
+elif [[ "$HEAD_BRANCH" =~ ^release-.* ]]; then
   echo "The PR branch name starts with release. Skipping the wiki check."
 else
   curl https://raw.githubusercontent.com/wiki/ginkgo-project/ginkgo/Changelog.md > Changelog.md
