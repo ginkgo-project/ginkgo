@@ -43,6 +43,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+class Iteration : public gko::log::Logger {
+public:
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::size_type& it, const gko::LinOp* r,
+                               const gko::LinOp* x, const gko::LinOp* tau,
+                               const gko::LinOp* implicit_tau_sq) const override
+    {
+        it_count = it;
+    }
+
+    gko::size_type get_last_iteration() const { return it_count; }
+
+    static std::unique_ptr<Iteration> create(
+        const mask_type& enabled_events = Logger::all_events_mask)
+    {
+        return std::unique_ptr<Iteration>(new Iteration(enabled_events));
+    }
+
+private:
+    explicit Iteration(
+        const mask_type& enabled_events = Logger::all_events_mask)
+        : Logger(enabled_events)
+    {}
+
+    mutable gko::size_type it_count;
+};
+
+
 int main(int argc, char* argv[])
 {
     // @sect3{Type Definitiions}
@@ -216,13 +244,16 @@ int main(int argc, char* argv[])
     auto Ainv =
         solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
+                    .with_reduction_factor(1e-3)
                     .on(exec))
             .on(exec)
             ->generate(A);
+
+    auto logger = gko::share(Iteration::create());
+    Ainv->add_logger(logger);
 
     // Take timings.
     comm.synchronize();
@@ -265,4 +296,7 @@ int main(int argc, char* argv[])
                   << std::endl;
         // clang-format on
     }
+    std::cout << "\nRank " << comm.rank()
+              << " total iterations: " << logger->get_last_iteration()
+              << std::endl;
 }
