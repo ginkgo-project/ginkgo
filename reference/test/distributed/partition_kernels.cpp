@@ -171,6 +171,28 @@ TYPED_TEST(Partition, BuildsFromRangeWithSingleElement)
 }
 
 
+TYPED_TEST(Partition, BuildsFromRangesWithPartIds)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    using part_type = typename TestFixture::part_type;
+    gko::array<global_index_type> ranges{this->ref, {0, 5, 5, 7, 9, 10}};
+    gko::array<comm_index_type> part_id{this->ref, {0, 4, 3, 1, 2}};
+
+    auto partition =
+        part_type::build_from_contiguous(this->ref, ranges, part_id);
+
+    EXPECT_EQ(partition->get_size(),
+              ranges.get_data()[ranges.get_num_elems() - 1]);
+    EXPECT_EQ(partition->get_num_ranges(), ranges.get_num_elems() - 1);
+    EXPECT_EQ(partition->get_num_parts(), ranges.get_num_elems() - 1);
+    EXPECT_EQ(partition->get_num_empty_parts(), 1);
+    assert_equal_data(partition->get_range_bounds(), {0, 5, 5, 7, 9, 10});
+    assert_equal_data(partition->get_part_ids(), {0, 4, 3, 1, 2});
+    assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_sizes(), {5, 2, 1, 2, 0});
+}
+
+
 TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
     using part_type = typename TestFixture::part_type;
