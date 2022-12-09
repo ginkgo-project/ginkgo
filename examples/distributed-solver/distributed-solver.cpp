@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
                                                                 LocalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     using mg = gko::solver::Multigrid;
+    using ir = gko::solver::Ir<ValueType>;
     using ic = gko::preconditioner::Ic<>;
 
     const gko::experimental::mpi::environment env(argc, argv);
@@ -275,14 +276,20 @@ int main(int argc, char* argv[])
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
     //
-    auto local_solver =
-        gko::share(bj::build().with_max_block_size(1u).on(exec));
-    // gko::share(ic::build().on(exec));
+    auto bj_solver = gko::share(bj::build().with_max_block_size(1u).on(exec));
+    auto ic_solver = gko::share(ic::build().on(exec));
     auto coarse_gen_fac = gko::share(coarse_gen::build().on(exec));
     auto mg_coarsest_solver = gko::share(
         solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .on(exec));
+    auto smoother_gen = gko::share(
+        ir::build()
+            .with_solver(bj_solver)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
 
     auto coarse_fac = gko::share(
@@ -290,13 +297,14 @@ int main(int argc, char* argv[])
             .with_max_levels(1u)
             .with_mg_level(coarse_gen_fac)
             .with_coarsest_solver(mg_coarsest_solver)
+            .with_pre_smoother(smoother_gen)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto coarse_solver = gko::share(coarse_fac->generate(A));
     auto Ainv = solver::build()
                     .with_preconditioner(schwarz::build()
-                                             .with_local_solver(local_solver)
+                                             .with_local_solver(ic_solver)
                                              .with_coarse_solvers(coarse_solver)
                                              .on(exec))
                     .with_criteria(iter_stop, tol_stop)

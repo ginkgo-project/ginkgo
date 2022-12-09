@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -146,6 +147,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<gko::matrix::Diagonal<ValueType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::extract_diagonal() const
+{
+    return gko::as<DiagonalExtractable<ValueType>>(this->get_local_matrix())
+        ->extract_diagonal();
 }
 
 

@@ -86,6 +86,7 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
             dense_x->scale(scal_op.get());
             coarse->apply(dense_b, x_clone.get());
             dense_x->add_scaled(scal_op.get(), x_clone.get());
+            // coarse->apply(dense_b, dense_x);
         }
     }
 }

@@ -53,8 +53,11 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType>
+class Diagonal;
 
-}
+
+}  // namespace matrix
 
 
 namespace detail {
@@ -268,6 +271,7 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+      public DiagonalExtractable<ValueType>,
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
@@ -294,6 +298,9 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
+
+    std::unique_ptr<matrix::Diagonal<value_type>> extract_diagonal()
+        const override;
 
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
