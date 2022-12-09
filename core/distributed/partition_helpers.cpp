@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 
 
+#include "core/components/fill_array_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 
 
@@ -44,11 +45,14 @@ namespace partition_helpers {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compress_start_ends,
-                       partition_helpers::compress_start_ends);
+GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
+GKO_REGISTER_OPERATION(sort_by_range_start,
+                       partition_helpers::sort_by_range_start);
+GKO_REGISTER_OPERATION(check_consecutive_ranges,
+                       partition_helpers::check_consecutive_ranges);
 
 
-}
+}  // namespace
 }  // namespace partition_helpers
 
 
@@ -61,18 +65,49 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                                 static_cast<GlobalIndexType>(local_range.end)};
 
     // make all range_start_ends available on each rank
-    auto mpi_exec = (exec == exec->get_master() || mpi::is_gpu_aware())
-                        ? exec
-                        : exec->get_master();
+    auto mpi_exec = exec->get_master();
     array<GlobalIndexType> ranges_start_end(mpi_exec, comm.size() * 2);
-    ranges_start_end.fill(0);
-    comm.all_gather(mpi_exec, range, 2, ranges_start_end.get_data(), 2);
+    ranges_start_end.fill(invalid_index<GlobalIndexType>());
+    MPI_Datatype tmp;
+    MPI_Type_vector(2, 1, comm.size(),
+                    mpi::type_impl<GlobalIndexType>::get_type(), &tmp);
+    MPI_Type_commit(&tmp);
+    comm.all_gather(
+        mpi_exec, range, 1,
+        mpi::contiguous_type(2, mpi::type_impl<GlobalIndexType>::get_type())
+            .get(),
+        ranges_start_end.get_data(), 1, tmp);
+    MPI_Type_free(&tmp);
+    if (comm.rank() == 0) {
+        std::cout << ranges_start_end.get_num_elems() << " ";
+        for (int i = 0; i < comm.size() * 2; ++i) {
+            std::cout << ranges_start_end.get_data()[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    comm.synchronize();
     ranges_start_end.set_executor(exec);
+
+    // make_sort_by_range_start
+    array<comm_index_type> part_ids(exec, comm.size());
+    exec->run(partition_helpers::make_fill_seq_array(part_ids.get_data(),
+                                                     part_ids.get_num_elems()));
+    exec->run(partition_helpers::make_sort_by_range_start(ranges_start_end,
+                                                          part_ids));
+
+    // check for consistency
+    bool consecutive_ranges = false;
+    exec->run(partition_helpers::make_check_consecutive_ranges(
+        ranges_start_end, &consecutive_ranges));
+    if (!consecutive_ranges) {
+        throw Error(__FILE__, __LINE__, "The partition contains gaps.");
+    }
 
     // remove duplicates
     array<GlobalIndexType> ranges(exec, comm.size() + 1);
-    exec->run(
-        partition_helpers::make_compress_start_ends(ranges_start_end, ranges));
+    exec->copy(1, ranges_start_end.get_data(), ranges.get_data());
+    exec->copy(comm.size(), ranges_start_end.get_data() + comm.size(),
+               ranges.get_data() + 1);
 
     return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
         exec, ranges);

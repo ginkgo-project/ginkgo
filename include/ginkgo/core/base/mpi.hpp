@@ -1012,6 +1012,18 @@ public:
             this->get()));
     }
 
+
+    void all_gather(std::shared_ptr<const Executor> exec,
+                    const void* send_buffer, const int send_count,
+                    MPI_Datatype send_type, void* recv_buffer,
+                    const int recv_count, MPI_Datatype recv_type) const
+    {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Allgather(send_buffer, send_count, send_type, recv_buffer,
+                          recv_count, recv_type, this->get()));
+    }
+
     /**
      * (Non-blocking) Gather data onto all ranks from all ranks in the
      * communicator.
