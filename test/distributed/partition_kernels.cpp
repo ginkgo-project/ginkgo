@@ -276,6 +276,22 @@ TYPED_TEST(Partition, BuildsFromContiguousWithSingleEntry)
 }
 
 
+TYPED_TEST(Partition, BuildsFromContiguousWithPartId)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    using part_type = typename TestFixture::part_type;
+    gko::array<global_index_type> ranges{this->ref,
+                                         {0, 1234, 3134, 4578, 16435, 60000}};
+    gko::array<comm_index_type> part_id{this->ref, {0, 4, 3, 1, 2}};
+    gko::array<global_index_type> dranges{this->exec, ranges};
+
+    auto part = part_type::build_from_contiguous(this->ref, ranges, part_id);
+    auto dpart = part_type::build_from_contiguous(this->exec, dranges, part_id);
+
+    this->assert_equal(part, dpart);
+}
+
+
 TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
     using global_index_type = typename TestFixture::global_index_type;
