@@ -101,4 +101,32 @@ TYPED_TEST(PartitionHelpers, CanSortByRangeStart)
     GKO_ASSERT_ARRAY_EQ(part_ids, result_part_ids);
 }
 
+
+TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    auto range_start_ends = this->default_range_start_ends;
+    bool result = false;
+
+    gko::kernels::reference::partition_helpers::check_consecutive_ranges(
+        this->ref, range_start_ends, &result);
+
+    ASSERT_TRUE(result);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    gko::array<global_index_type> range_start_ends{this->ref,
+                                                   {7, 4, 0, 9, 9, 7, 4, 11}};
+    bool result = true;
+
+    gko::kernels::reference::partition_helpers::check_consecutive_ranges(
+        this->ref, range_start_ends, &result);
+
+    ASSERT_FALSE(result);
+}
+
+
 }  // namespace
