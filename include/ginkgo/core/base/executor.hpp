@@ -1153,6 +1153,7 @@ public:
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
+        auto scope_guard = get_scoped_device_id_guard();
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
@@ -1324,14 +1325,6 @@ public:
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
     }
 
-    void run(const Operation& op) const override
-    {
-        this->template log<log::Logger::operation_launched>(this, &op);
-        op.run(std::static_pointer_cast<const ReferenceExecutor>(
-            this->shared_from_this()));
-        this->template log<log::Logger::operation_completed>(this, &op);
-    }
-
     scoped_device_id_guard get_scoped_device_id_guard() const override
     {
         return {this, 0};
@@ -1408,8 +1401,6 @@ public:
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1613,8 +1604,6 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
-
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     /**
@@ -1812,8 +1801,6 @@ public:
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
