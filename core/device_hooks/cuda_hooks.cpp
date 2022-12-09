@@ -108,13 +108,6 @@ scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::run(const Operation& op) const
-{
-    op.run(
-        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
-}
-
-
 std::string CudaError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";

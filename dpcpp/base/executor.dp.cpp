@@ -193,15 +193,6 @@ scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
 }
 
 
-void DpcppExecutor::run(const Operation& op) const
-{
-    this->template log<log::Logger::operation_launched>(this, &op);
-    op.run(std::static_pointer_cast<const DpcppExecutor>(
-        this->shared_from_this()));
-    this->template log<log::Logger::operation_completed>(this, &op);
-}
-
-
 int DpcppExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();

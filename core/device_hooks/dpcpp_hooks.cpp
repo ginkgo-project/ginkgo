@@ -114,13 +114,6 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
 void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::run(const Operation& op) const
-{
-    op.run(std::static_pointer_cast<const DpcppExecutor>(
-        this->shared_from_this()));
-}
-
-
 scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(dpcpp);
 

@@ -105,13 +105,6 @@ void HipExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::run(const Operation& op) const
-{
-    op.run(
-        std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
-}
-
-
 scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(hip);
 
