@@ -17,11 +17,10 @@ void compress_start_ends(std::shared_ptr<const DefaultExecutor> exec,
                          array<GlobalIndexType>& ranges)
 {
     if (ranges.get_num_elems() && range_start_ends.get_num_elems()) {
+        auto num_ranges = ranges.get_num_elems() - 1;
         ranges.get_data()[0] = range_start_ends.get_const_data()[0];
-        for (size_type i = 0; i < ranges.get_num_elems() - 1; ++i) {
-            ranges.get_data()[i + 1] =
-                range_start_ends.get_const_data()[2 * i + 1];
-        }
+        std::copy_n(range_start_ends.get_const_data() + num_ranges, num_ranges,
+                    ranges.get_data() + 1);
     }
 }
 
