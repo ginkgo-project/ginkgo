@@ -71,4 +71,4 @@ jobs:
     - name: Check if PR number exists in wiki/Changelog
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/check-wiki-changelog.sh /tmp && /tmp/check-wiki-changelog.sh
+      run: .github/check-wiki-changelog.sh
