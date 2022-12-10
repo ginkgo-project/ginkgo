@@ -113,7 +113,9 @@ namespace {
 
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+void abstract_spmv(syn::value_list<int, info>,
+                   std::shared_ptr<const DefaultExecutor> exec,
+                   int num_worker_per_row,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
                    matrix::Dense<OutputValueType>* c,
@@ -153,7 +155,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
     if (alpha == nullptr && beta == nullptr) {
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
-                <<<grid_size, block_size, 0, 0>>>(
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     nrows, num_worker_per_row, acc::as_cuda_range(a_vals),
                     a->get_const_col_idxs(), stride,
                     num_stored_elements_per_row, acc::as_cuda_range(b_vals),
@@ -164,7 +166,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
             std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
-                <<<grid_size, block_size, 0, 0>>>(
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     nrows, num_worker_per_row, acc::as_cuda_range(alpha_val),
                     acc::as_cuda_range(a_vals), a->get_const_col_idxs(), stride,
                     num_stored_elements_per_row, acc::as_cuda_range(b_vals),
@@ -247,8 +249,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
-        c);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -281,8 +283,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
-        alpha, beta);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c, alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(

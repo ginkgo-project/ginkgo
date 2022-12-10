@@ -121,7 +121,8 @@ protected:
     bool test_real_is_finite_kernel()
     {
         gko::array<bool> result(cuda, 1);
-        test_real_is_finite<T><<<1, 1>>>(result.get_data());
+        test_real_is_finite<T>
+            <<<1, 1, 0, cuda->get_stream()>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
@@ -130,7 +131,8 @@ protected:
     bool test_complex_is_finite_kernel()
     {
         gko::array<bool> result(cuda, 1);
-        test_complex_is_finite<T><<<1, 1>>>(result.get_data());
+        test_complex_is_finite<T>
+            <<<1, 1, 0, cuda->get_stream()>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }

@@ -95,13 +95,13 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
         static_cast<uint32>(ceildiv(num_rows, block_dim / subwarp_size));
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>
-            <<<grid_dim, block_dim>>>(
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
                 cuda_row_ptrs_add,
                 as_cuda_type(needs_change_device.get_data()));
     } else {
         kernel::find_missing_diagonal_elements<false, subwarp_size>
-            <<<grid_dim, block_dim>>>(
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
                 cuda_row_ptrs_add,
                 as_cuda_type(needs_change_device.get_data()));
@@ -127,13 +127,14 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
 
     // no empty kernel guard needed here, we exit earlier already
     kernel::add_missing_diagonal_elements<subwarp_size>
-        <<<grid_dim, block_dim>>>(num_rows, cuda_old_values, cuda_old_col_idxs,
-                                  cuda_old_row_ptrs, cuda_new_values,
-                                  cuda_new_col_idxs, cuda_row_ptrs_add);
+        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+            num_rows, cuda_old_values, cuda_old_col_idxs, cuda_old_row_ptrs,
+            cuda_new_values, cuda_new_col_idxs, cuda_row_ptrs_add);
 
     const auto grid_dim_row_ptrs_update =
         static_cast<uint32>(ceildiv(num_rows, block_dim));
-    kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim>>>(
+    kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim, 0,
+                              exec->get_stream()>>>(
         num_rows + 1, cuda_old_row_ptrs, cuda_row_ptrs_add);
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
@@ -159,7 +160,8 @@ void initialize_row_ptrs_l_u(
     const auto grid_dim = number_blocks;
 
     if (num_rows > 0) {
-        kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
+        kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0,
+                                        exec->get_stream()>>>(
             num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -186,7 +188,7 @@ void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (num_rows > 0) {
-        kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
+        kernel::initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
             num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -217,7 +219,8 @@ void initialize_row_ptrs_l(
     const auto grid_dim = number_blocks;
 
     if (num_rows > 0) {
-        kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0, 0>>>(
+        kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0,
+                                      exec->get_stream()>>>(
             num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -242,7 +245,7 @@ void initialize_l(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (num_rows > 0) {
-        kernel::initialize_l<<<grid_dim, block_size, 0, 0>>>(
+        kernel::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
             num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),

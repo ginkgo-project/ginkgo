@@ -541,27 +541,29 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);
-    sptrsv_init_kernel<<<1, 1>>>(nan_produced.get_data(),
-                                 atomic_counter.get_data());
+    sptrsv_init_kernel<<<1, 1, 0, exec->get_stream()>>>(
+        nan_produced.get_data(), atomic_counter.get_data());
 
     const dim3 block_size(
         is_fallback_required ? fallback_block_size : default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
-        sptrsv_naive_legacy_kernel<is_upper><<<grid_size, block_size>>>(
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            as_cuda_type(matrix->get_const_values()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs, unit_diag,
-            nan_produced.get_data(), atomic_counter.get_data());
+        sptrsv_naive_legacy_kernel<is_upper>
+            <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                as_cuda_type(matrix->get_const_values()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     } else {
-        sptrsv_naive_caching_kernel<is_upper><<<grid_size, block_size>>>(
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            as_cuda_type(matrix->get_const_values()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs, unit_diag,
-            nan_produced.get_data(), atomic_counter.get_data());
+        sptrsv_naive_caching_kernel<is_upper>
+            <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                as_cuda_type(matrix->get_const_values()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     }
 
 #if GKO_VERBOSE_LEVEL >= 1

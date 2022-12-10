@@ -82,7 +82,8 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
     if (grid > 0) {
-        kernel::kcycle_step_1_kernel<<<grid, default_block_size>>>(
+        kernel::kcycle_step_1_kernel<<<grid, default_block_size, 0,
+                                       exec->get_stream()>>>(
             nrows, nrhs, e->get_stride(), grid_nrows,
             as_cuda_type(alpha->get_const_values()),
             as_cuda_type(rho->get_const_values()),
@@ -111,7 +112,8 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
     if (grid > 0) {
-        kernel::kcycle_step_2_kernel<<<grid, default_block_size>>>(
+        kernel::kcycle_step_2_kernel<<<grid, default_block_size, 0,
+                                       exec->get_stream()>>>(
             nrows, nrhs, e->get_stride(), grid_nrows,
             as_cuda_type(alpha->get_const_values()),
             as_cuda_type(rho->get_const_values()),
@@ -137,7 +139,8 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = new_norm->get_size()[1];
     const auto grid = ceildiv(nrhs, default_block_size);
     if (grid > 0) {
-        kernel::kcycle_check_stop_kernel<<<grid, default_block_size>>>(
+        kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
+                                           exec->get_stream()>>>(
             nrhs, as_cuda_type(old_norm->get_const_values()),
             as_cuda_type(new_norm->get_const_values()), as_cuda_type(rel_tol),
             as_cuda_type(dis_stop.get_data()));

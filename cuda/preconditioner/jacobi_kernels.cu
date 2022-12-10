@@ -85,11 +85,11 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
         ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
 
     if (grid_size > 0) {
-        compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
+        compare_adjacent_rows<<<grid_size, block_size, 0, exec->get_stream()>>>(
             mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), matching_next_row.get_data());
     }
-    generate_natural_block_pointer<<<1, 1, 0, 0>>>(
+    generate_natural_block_pointer<<<1, 1, 0, exec->get_stream()>>>(
         mtx->get_size()[0], max_block_size, matching_next_row.get_const_data(),
         block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
@@ -104,7 +104,7 @@ inline size_type agglomerate_supervariables(
 {
     array<size_type> nums(exec, 1);
 
-    agglomerate_supervariables_kernel<<<1, 1, 0, 0>>>(
+    agglomerate_supervariables_kernel<<<1, 1, 0, exec->get_stream()>>>(
         max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
 
     nums.set_executor(exec->get_master());
@@ -124,7 +124,7 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
     if (grid_size > 0) {
-        duplicate_array<<<grid_size, block_size>>>(
+        duplicate_array<<<grid_size, block_size, 0, exec->get_stream()>>>(
             source.get_const_data(), source.get_num_elems(),
             precisions.get_data(), precisions.get_num_elems());
     }
@@ -153,7 +153,8 @@ namespace {
 template <bool conjugate, int warps_per_block, int max_block_size,
           typename ValueType, typename IndexType>
 void transpose_jacobi(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    syn::value_list<int, max_block_size>,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -170,14 +171,15 @@ void transpose_jacobi(
         if (block_precisions) {
             adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
                                       warps_per_block>
-                <<<grid_size, block_size, 0, 0>>>(
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     as_cuda_type(blocks), storage_scheme, block_precisions,
                     block_pointers, num_blocks, as_cuda_type(out_blocks));
         } else {
             transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                             warps_per_block><<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_pointers,
-                num_blocks, as_cuda_type(out_blocks));
+                             warps_per_block>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    as_cuda_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_cuda_type(out_blocks));
         }
     }
 }
@@ -203,7 +205,7 @@ void transpose_jacobi(
             return max_block_size <= compiled_block_size;
         },
         syn::value_list<int, false, config::min_warps_per_block>(),
-        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        syn::type_list<>(), exec, num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());
 }
@@ -227,7 +229,7 @@ void conj_transpose_jacobi(
             return max_block_size <= compiled_block_size;
         },
         syn::value_list<int, true, config::min_warps_per_block>(),
-        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        syn::type_list<>(), exec, num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());
 }

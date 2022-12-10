@@ -78,6 +78,7 @@ namespace jacobi {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
+              std::shared_ptr<const DefaultExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -96,7 +97,7 @@ void generate(syn::value_list<int, max_block_size>,
         if (block_precisions) {
             kernel::adaptive_generate<max_block_size, subwarp_size,
                                       warps_per_block>
-                <<<grid_size, block_size, 0, 0>>>(
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx->get_size()[0], mtx->get_const_row_ptrs(),
                     mtx->get_const_col_idxs(),
                     as_cuda_type(mtx->get_const_values()),
@@ -105,7 +106,7 @@ void generate(syn::value_list<int, max_block_size>,
                     block_precisions, block_ptrs, num_blocks);
         } else {
             kernel::generate<max_block_size, subwarp_size, warps_per_block>
-                <<<grid_size, block_size, 0, 0>>>(
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx->get_size()[0], mtx->get_const_row_ptrs(),
                     mtx->get_const_col_idxs(),
                     as_cuda_type(mtx->get_const_values()),
@@ -120,6 +121,7 @@ void generate(syn::value_list<int, max_block_size>,
     void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,        \
                   ValueType, IndexType>(                                     \
         syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                         \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
         const matrix::Csr<ValueType, IndexType>*, remove_complex<ValueType>, \
         ValueType*,                                                          \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,  \
