@@ -597,10 +597,15 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
 }
 
+#if CUDA_VERSION < 11021
+constexpr auto default_csr_alg = CUSPARSE_MV_ALG_DEFAULT;
+#else
+constexpr auto default_csr_alg = CUSPARSE_SPMV_ALG_DEFAULT;
+#endif
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
-          cusparseSpMVAlg_t Alg = CUSPARSE_MV_ALG_DEFAULT>
+          cusparseSpMVAlg_t Alg = default_csr_alg>
 class CusparseGenericCsr
     : public gko::EnableLinOp<CusparseGenericCsr<ValueType, IndexType, Alg>,
                               CusparseBase>,
@@ -759,7 +764,7 @@ protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              CUSPARSE_MV_ALG_DEFAULT);
+                              default_csr_alg);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
