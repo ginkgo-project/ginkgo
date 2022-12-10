@@ -121,20 +121,19 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         return;
     }
     if (alpha == nullptr && beta == nullptr) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::abstract_classical_spmv<subwarp_size>),
-            grid, block, 0, 0, a->get_size()[0],
-            as_hip_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_hip_type(a->get_const_row_ptrs()), acc::as_hip_range(b_vals),
-            acc::as_hip_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_hip_type(a->get_const_value()),
+                a->get_const_col_idxs(), as_hip_type(a->get_const_row_ptrs()),
+                acc::as_hip_range(b_vals), acc::as_hip_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::abstract_classical_spmv<subwarp_size>),
-            grid, block, 0, 0, a->get_size()[0],
-            as_hip_type(alpha->get_const_values()),
-            as_hip_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_hip_type(a->get_const_row_ptrs()), acc::as_hip_range(b_vals),
-            as_hip_type(beta->get_const_values()), acc::as_hip_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_hip_type(alpha->get_const_values()),
+                as_hip_type(a->get_const_value()), a->get_const_col_idxs(),
+                as_hip_type(a->get_const_row_ptrs()), acc::as_hip_range(b_vals),
+                as_hip_type(beta->get_const_values()),
+                acc::as_hip_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }

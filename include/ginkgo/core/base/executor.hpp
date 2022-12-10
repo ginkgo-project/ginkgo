@@ -165,6 +165,8 @@ struct hipblasContext;
 
 struct hipsparseContext;
 
+struct ihipStream_t;
+
 
 namespace gko {
 
@@ -1741,7 +1743,8 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_hip_alloc_mode);
+        allocation_mode alloc_mode = default_hip_alloc_mode,
+        ihipStream_t* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1847,6 +1850,8 @@ public:
         return this->get_exec_info().closest_pu_ids;
     }
 
+    ihipStream_t* get_stream() const { return stream_; }
+
 protected:
     void set_gpu_property();
 
@@ -1854,10 +1859,12 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                allocation_mode alloc_mode = default_hip_alloc_mode)
+                allocation_mode alloc_mode = default_hip_alloc_mode,
+                ihipStream_t* stream = nullptr)
         : EnableDeviceReset{device_reset},
           master_(master),
-          alloc_mode_(alloc_mode)
+          alloc_mode_(alloc_mode),
+          stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1906,6 +1913,7 @@ private:
     handle_manager<hipsparseContext> hipsparse_handle_;
 
     allocation_mode alloc_mode_;
+    ihipStream_t* stream_;
 };
 
 

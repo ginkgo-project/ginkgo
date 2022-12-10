@@ -120,8 +120,8 @@ protected:
 
 TEST_F(Sorting, HipBitonicSortWarp)
 {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sort_warp), 1, config::warp_size, 0,
-                       0, ddata.get_data());
+    test_sort_warp<<<1, config::warp_size, 0, hip->get_stream()>>>(
+        ddata.get_data());
     ddata.set_executor(ref);
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_warp.get_const_data();
@@ -133,8 +133,8 @@ TEST_F(Sorting, HipBitonicSortWarp)
 
 TEST_F(Sorting, HipBitonicSortShared)
 {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sort_shared), 1, num_threads, 0, 0,
-                       ddata.get_data());
+    test_sort_shared<<<1, num_threads, 0, hip->get_stream()>>>(
+        ddata.get_data());
     ddata.set_executor(ref);
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_shared.get_const_data();

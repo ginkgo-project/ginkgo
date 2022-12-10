@@ -96,19 +96,15 @@ void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim =
         static_cast<uint32>(ceildiv(num_rows, block_dim / subwarp_size));
     if (is_sorted) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                kernel::find_missing_diagonal_elements<true, subwarp_size>),
-            grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
-            hip_old_row_ptrs, hip_row_ptrs_add,
-            as_hip_type(needs_change_device.get_data()));
+        kernel::find_missing_diagonal_elements<true, subwarp_size>
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                num_rows, num_cols, hip_old_col_idxs, hip_old_row_ptrs,
+                hip_row_ptrs_add, as_hip_type(needs_change_device.get_data()));
     } else {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                kernel::find_missing_diagonal_elements<false, subwarp_size>),
-            grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
-            hip_old_row_ptrs, hip_row_ptrs_add,
-            as_hip_type(needs_change_device.get_data()));
+        kernel::find_missing_diagonal_elements<false, subwarp_size>
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                num_rows, num_cols, hip_old_col_idxs, hip_old_row_ptrs,
+                hip_row_ptrs_add, as_hip_type(needs_change_device.get_data()));
     }
     needs_change_host = needs_change_device;
     if (!needs_change_host.get_const_data()[0]) {
@@ -129,16 +125,16 @@ void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
     auto hip_new_values = as_hip_type(new_values.get_data());
     auto hip_new_col_idxs = as_hip_type(new_col_idxs.get_data());
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::add_missing_diagonal_elements<subwarp_size>),
-        grid_dim, block_dim, 0, 0, num_rows, hip_old_values, hip_old_col_idxs,
-        hip_old_row_ptrs, hip_new_values, hip_new_col_idxs, hip_row_ptrs_add);
+    kernel::add_missing_diagonal_elements<subwarp_size>
+        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+            num_rows, hip_old_values, hip_old_col_idxs, hip_old_row_ptrs,
+            hip_new_values, hip_new_col_idxs, hip_row_ptrs_add);
 
     const auto grid_dim_row_ptrs_update =
         static_cast<uint32>(ceildiv(num_rows, block_dim));
-    hipLaunchKernelGGL(kernel::update_row_ptrs, grid_dim_row_ptrs_update,
-                       block_dim, 0, 0, num_rows + 1, hip_old_row_ptrs,
-                       hip_row_ptrs_add);
+    kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim, 0,
+                              exec->get_stream()>>>(
+        num_rows + 1, hip_old_row_ptrs, hip_row_ptrs_add);
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values);
@@ -163,12 +159,12 @@ void initialize_row_ptrs_l_u(
     const auto grid_dim = number_blocks;
 
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::count_nnz_per_l_u_row, grid_dim, block_size,
-                           0, 0, num_rows,
-                           as_hip_type(system_matrix->get_const_row_ptrs()),
-                           as_hip_type(system_matrix->get_const_col_idxs()),
-                           as_hip_type(system_matrix->get_const_values()),
-                           as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
+        kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0,
+                                        exec->get_stream()>>>(
+            num_rows, as_hip_type(system_matrix->get_const_row_ptrs()),
+            as_hip_type(system_matrix->get_const_col_idxs()),
+            as_hip_type(system_matrix->get_const_values()),
+            as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
     }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
@@ -191,17 +187,16 @@ void initialize_l_u(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::initialize_l_u, grid_dim, block_size, 0, 0,
-                           num_rows,
-                           as_hip_type(system_matrix->get_const_row_ptrs()),
-                           as_hip_type(system_matrix->get_const_col_idxs()),
-                           as_hip_type(system_matrix->get_const_values()),
-                           as_hip_type(csr_l->get_const_row_ptrs()),
-                           as_hip_type(csr_l->get_col_idxs()),
-                           as_hip_type(csr_l->get_values()),
-                           as_hip_type(csr_u->get_const_row_ptrs()),
-                           as_hip_type(csr_u->get_col_idxs()),
-                           as_hip_type(csr_u->get_values()));
+        kernel::initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
+            num_rows, as_hip_type(system_matrix->get_const_row_ptrs()),
+            as_hip_type(system_matrix->get_const_col_idxs()),
+            as_hip_type(system_matrix->get_const_values()),
+            as_hip_type(csr_l->get_const_row_ptrs()),
+            as_hip_type(csr_l->get_col_idxs()),
+            as_hip_type(csr_l->get_values()),
+            as_hip_type(csr_u->get_const_row_ptrs()),
+            as_hip_type(csr_u->get_col_idxs()),
+            as_hip_type(csr_u->get_values()));
     }
 }
 
@@ -223,12 +218,12 @@ void initialize_row_ptrs_l(
     const auto grid_dim = number_blocks;
 
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::count_nnz_per_l_row, grid_dim, block_size, 0,
-                           0, num_rows,
-                           as_hip_type(system_matrix->get_const_row_ptrs()),
-                           as_hip_type(system_matrix->get_const_col_idxs()),
-                           as_hip_type(system_matrix->get_const_values()),
-                           as_hip_type(l_row_ptrs));
+        kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0,
+                                      exec->get_stream()>>>(
+            num_rows, as_hip_type(system_matrix->get_const_row_ptrs()),
+            as_hip_type(system_matrix->get_const_col_idxs()),
+            as_hip_type(system_matrix->get_const_values()),
+            as_hip_type(l_row_ptrs));
     }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
@@ -249,14 +244,13 @@ void initialize_l(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::initialize_l, grid_dim, block_size, 0, 0,
-                           num_rows,
-                           as_hip_type(system_matrix->get_const_row_ptrs()),
-                           as_hip_type(system_matrix->get_const_col_idxs()),
-                           as_hip_type(system_matrix->get_const_values()),
-                           as_hip_type(csr_l->get_const_row_ptrs()),
-                           as_hip_type(csr_l->get_col_idxs()),
-                           as_hip_type(csr_l->get_values()), diag_sqrt);
+        kernel::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
+            num_rows, as_hip_type(system_matrix->get_const_row_ptrs()),
+            as_hip_type(system_matrix->get_const_col_idxs()),
+            as_hip_type(system_matrix->get_const_values()),
+            as_hip_type(csr_l->get_const_row_ptrs()),
+            as_hip_type(csr_l->get_col_idxs()),
+            as_hip_type(csr_l->get_values()), diag_sqrt);
     }
 }
 

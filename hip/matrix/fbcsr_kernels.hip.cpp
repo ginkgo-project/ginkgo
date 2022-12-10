@@ -254,7 +254,8 @@ void fill_in_dense(std::shared_ptr<const HipExecutor> exec,
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
     if (num_blocks > 0) {
-        kernel::fill_in_dense<<<num_blocks, default_block_size>>>(
+        kernel::fill_in_dense<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
             source->get_const_row_ptrs(), source->get_const_col_idxs(),
             as_hip_type(source->get_const_values()),
             as_hip_type(result->get_values()), result->get_stride(),
@@ -275,7 +276,8 @@ void convert_to_csr(const std::shared_ptr<const HipExecutor> exec,
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
     if (num_blocks > 0) {
-        kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
+        kernel::convert_to_csr<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
             source->get_const_row_ptrs(), source->get_const_col_idxs(),
             as_hip_type(source->get_const_values()), result->get_row_ptrs(),
             result->get_col_idxs(), as_hip_type(result->get_values()),
@@ -308,9 +310,10 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
     if (grid_size > 0 && is_complex<ValueType>()) {
-        kernel::conjugate<<<grid_size, default_block_size>>>(
-            trans->get_num_stored_elements(),
-            as_device_type(trans->get_values()));
+        kernel::
+            conjugate<<<grid_size, default_block_size, 0, exec->get_stream()>>>(
+                trans->get_num_stored_elements(),
+                as_device_type(trans->get_values()));
     }
 }
 
@@ -333,9 +336,10 @@ void is_sorted_by_column_index(
         static_cast<IndexType>(to_check->get_num_block_rows());
     const auto num_blocks = ceildiv(num_brows, block_size);
     if (num_blocks > 0) {
-        kernel::check_unsorted<<<num_blocks, block_size>>>(
-            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-            num_brows, gpu_array.get_data());
+        kernel::
+            check_unsorted<<<num_blocks, block_size, 0, exec->get_stream()>>>(
+                to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+                num_brows, gpu_array.get_data());
     }
     *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
