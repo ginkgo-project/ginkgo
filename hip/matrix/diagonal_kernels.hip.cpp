@@ -78,10 +78,10 @@ void apply_to_csr(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::apply_to_csr, grid_dim, default_block_size,
-                           0, 0, num_rows, as_hip_type(diag_values),
-                           as_hip_type(csr_row_ptrs), as_hip_type(csr_values),
-                           inverse);
+        kernel::apply_to_csr<<<grid_dim, default_block_size, 0,
+                               exec->get_stream()>>>(
+            num_rows, as_hip_type(diag_values), as_hip_type(csr_row_ptrs),
+            as_hip_type(csr_values), inverse);
     }
 }
 

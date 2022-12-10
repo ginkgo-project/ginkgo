@@ -75,20 +75,19 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
     // pick sample, build searchtree
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), 1,
-                       bucket_count, 0, 0, as_hip_type(values), size,
-                       as_hip_type(tree));
+    kernel::build_searchtree<<<1, bucket_count, 0, exec->get_stream()>>>(
+        as_hip_type(values), size, as_hip_type(tree));
     // determine bucket sizes
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), num_blocks,
-                           default_block_size, 0, 0, as_hip_type(values), size,
-                           as_hip_type(tree), partial_counts, oracles,
-                           items_per_thread);
+        kernel::count_buckets<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+            as_hip_type(values), size, as_hip_type(tree), partial_counts,
+            oracles, items_per_thread);
     }
     // compute prefix sum and total sum over block-local values
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum), bucket_count,
-                       default_block_size, 0, 0, partial_counts, total_counts,
-                       num_blocks);
+    kernel::block_prefix_sum<<<bucket_count, default_block_size, 0,
+                               exec->get_stream()>>>(partial_counts,
+                                                     total_counts, num_blocks);
     // compute prefix sum over bucket counts
     components::prefix_sum(exec, total_counts, bucket_count + 1);
 }
@@ -109,8 +108,8 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
     std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), 1,
-                       config::warp_size, 0, 0, prefix_sum, rank);
+    kernel::find_bucket<<<1, config::warp_size, 0, exec->get_stream()>>>(
+        prefix_sum, rank);
     IndexType values[3]{};
     exec->get_master()->copy_from(exec, 3, prefix_sum, values);
     return {values[0], values[1], values[2]};

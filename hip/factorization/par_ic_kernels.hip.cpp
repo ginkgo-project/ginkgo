@@ -69,9 +69,9 @@ void init_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto l_row_ptrs = l->get_const_row_ptrs();
     auto l_vals = l->get_values();
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::ic_init), num_blocks,
-                           default_block_size, 0, 0, l_row_ptrs,
-                           as_hip_type(l_vals), num_rows);
+        kernel::
+            ic_init<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                l_row_ptrs, as_hip_type(l_vals), num_rows);
     }
 }
 
@@ -89,10 +89,9 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = ceildiv(nnz, default_block_size);
     if (num_blocks > 0) {
         for (size_type i = 0; i < iterations; ++i) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::ic_sweep), num_blocks,
-                default_block_size, 0, 0, a_lower->get_const_row_idxs(),
-                a_lower->get_const_col_idxs(),
+            kernel::ic_sweep<<<num_blocks, default_block_size, 0,
+                               exec->get_stream()>>>(
+                a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
                 as_hip_type(a_lower->get_const_values()),
                 l->get_const_row_ptrs(), l->get_const_col_idxs(),
                 as_hip_type(l->get_values()),

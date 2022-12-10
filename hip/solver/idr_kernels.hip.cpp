@@ -78,22 +78,24 @@ namespace {
 
 
 template <typename ValueType>
-void initialize_m(const size_type nrhs, matrix::Dense<ValueType>* m,
+void initialize_m(std::shared_ptr<const DefaultExecutor> exec,
+                  const size_type nrhs, matrix::Dense<ValueType>* m,
                   array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
 
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(initialize_m_kernel), grid_dim,
-                       default_block_size, 0, 0, subspace_dim, nrhs,
-                       as_hip_type(m->get_values()), m_stride,
-                       as_hip_type(stop_status->get_data()));
+    initialize_m_kernel<<<grid_dim, default_block_size, 0,
+                          exec->get_stream()>>>(
+        subspace_dim, nrhs, as_hip_type(m->get_values()), m_stride,
+        as_hip_type(stop_status->get_data()));
 }
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
+void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
+                                 matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
     if (!deterministic) {
@@ -108,20 +110,21 @@ void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
 
 
 template <typename ValueType>
-void orthonormalize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors)
+void orthonormalize_subspace_vectors(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::Dense<ValueType>* subspace_vectors)
 {
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(
-            orthonormalize_subspace_vectors_kernel<default_block_size>),
-        1, default_block_size, 0, 0, subspace_vectors->get_size()[0],
-        subspace_vectors->get_size()[1],
-        as_hip_type(subspace_vectors->get_values()),
-        subspace_vectors->get_stride());
+    orthonormalize_subspace_vectors_kernel<default_block_size>
+        <<<1, default_block_size, 0, exec->get_stream()>>>(
+            subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
+            as_hip_type(subspace_vectors->get_values()),
+            subspace_vectors->get_stride());
 }
 
 
 template <typename ValueType>
-void solve_lower_triangular(const size_type nrhs,
+void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
+                            const size_type nrhs,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
                             matrix::Dense<ValueType>* c,
@@ -130,12 +133,12 @@ void solve_lower_triangular(const size_type nrhs,
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim = ceildiv(nrhs, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(solve_lower_triangular_kernel), grid_dim,
-                       default_block_size, 0, 0, subspace_dim, nrhs,
-                       as_hip_type(m->get_const_values()), m->get_stride(),
-                       as_hip_type(f->get_const_values()), f->get_stride(),
-                       as_hip_type(c->get_values()), c->get_stride(),
-                       stop_status->get_const_data());
+    solve_lower_triangular_kernel<<<grid_dim, default_block_size, 0,
+                                    exec->get_stream()>>>(
+        subspace_dim, nrhs, as_hip_type(m->get_const_values()), m->get_stride(),
+        as_hip_type(f->get_const_values()), f->get_stride(),
+        as_hip_type(c->get_values()), c->get_stride(),
+        stop_status->get_const_data());
 }
 
 
@@ -164,9 +167,9 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
-            hipLaunchKernelGGL(
-                multidot_kernel, grid_dim, block_dim, 0, 0, size, nrhs,
-                as_hip_type(p_i), as_hip_type(g_k->get_values()),
+
+            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                size, nrhs, as_hip_type(p_i), as_hip_type(g_k->get_values()),
                 g_k->get_stride(), as_hip_type(alpha->get_values()),
                 stop_status->get_const_data());
         } else {
@@ -174,23 +177,22 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
                          g_k->get_values(), g_k->get_stride(),
                          alpha->get_values());
         }
-        hipLaunchKernelGGL(
-            update_g_k_and_u_kernel<default_block_size>,
-            ceildiv(size * g_k->get_stride(), default_block_size),
-            default_block_size, 0, 0, k, i, size, nrhs,
-            as_hip_type(alpha->get_const_values()),
-            as_hip_type(m->get_const_values()), m->get_stride(),
-            as_hip_type(g->get_const_values()), g->get_stride(),
-            as_hip_type(g_k->get_values()), g_k->get_stride(),
-            as_hip_type(u->get_values()), u->get_stride(),
-            stop_status->get_const_data());
+        update_g_k_and_u_kernel<default_block_size>
+            <<<ceildiv(size * g_k->get_stride(), default_block_size),
+               default_block_size, 0, exec->get_stream()>>>(
+                k, i, size, nrhs, as_hip_type(alpha->get_const_values()),
+                as_hip_type(m->get_const_values()), m->get_stride(),
+                as_hip_type(g->get_const_values()), g->get_stride(),
+                as_hip_type(g_k->get_values()), g_k->get_stride(),
+                as_hip_type(u->get_values()), u->get_stride(),
+                stop_status->get_const_data());
     }
-    hipLaunchKernelGGL(update_g_kernel<default_block_size>,
-                       ceildiv(size * g_k->get_stride(), default_block_size),
-                       default_block_size, 0, 0, k, size, nrhs,
-                       as_hip_type(g_k->get_const_values()), g_k->get_stride(),
-                       as_hip_type(g->get_values()), g->get_stride(),
-                       stop_status->get_const_data());
+    update_g_kernel<default_block_size>
+        <<<ceildiv(size * g_k->get_stride(), default_block_size),
+           default_block_size, 0, exec->get_stream()>>>(
+            k, size, nrhs, as_hip_type(g_k->get_const_values()),
+            g_k->get_stride(), as_hip_type(g->get_values()), g->get_stride(),
+            stop_status->get_const_data());
 }
 
 
@@ -217,11 +219,10 @@ void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            hipLaunchKernelGGL(multidot_kernel, grid_dim, block_dim, 0, 0, size,
-                               nrhs, as_hip_type(p_i),
-                               as_hip_type(g_k->get_const_values()),
-                               g_k->get_stride(), as_hip_type(m_i),
-                               stop_status->get_const_data());
+            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                size, nrhs, as_hip_type(p_i),
+                as_hip_type(g_k->get_const_values()), g_k->get_stride(),
+                as_hip_type(m_i), stop_status->get_const_data());
         } else {
             hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
                          g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -244,15 +245,15 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim = ceildiv(size * x->get_stride(), default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(update_x_r_and_f_kernel), grid_dim,
-                       default_block_size, 0, 0, k, size, subspace_dim, nrhs,
-                       as_hip_type(m->get_const_values()), m->get_stride(),
-                       as_hip_type(g->get_const_values()), g->get_stride(),
-                       as_hip_type(u->get_const_values()), u->get_stride(),
-                       as_hip_type(f->get_values()), f->get_stride(),
-                       as_hip_type(r->get_values()), r->get_stride(),
-                       as_hip_type(x->get_values()), x->get_stride(),
-                       stop_status->get_const_data());
+    update_x_r_and_f_kernel<<<grid_dim, default_block_size, 0,
+                              exec->get_stream()>>>(
+        k, size, subspace_dim, nrhs, as_hip_type(m->get_const_values()),
+        m->get_stride(), as_hip_type(g->get_const_values()), g->get_stride(),
+        as_hip_type(u->get_const_values()), u->get_stride(),
+        as_hip_type(f->get_values()), f->get_stride(),
+        as_hip_type(r->get_values()), r->get_stride(),
+        as_hip_type(x->get_values()), x->get_stride(),
+        stop_status->get_const_data());
     components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
                            zero<ValueType>());
 }
@@ -267,9 +268,9 @@ void initialize(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
                 array<stopping_status>* stop_status)
 {
-    initialize_m(nrhs, m, stop_status);
-    initialize_subspace_vectors(subspace_vectors, deterministic);
-    orthonormalize_subspace_vectors(subspace_vectors);
+    initialize_m(exec, nrhs, m, stop_status);
+    initialize_subspace_vectors(exec, subspace_vectors, deterministic);
+    orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
@@ -284,18 +285,18 @@ void step_1(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType>* v,
             const array<stopping_status>* stop_status)
 {
-    solve_lower_triangular(nrhs, m, f, c, stop_status);
+    solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
     const auto num_rows = v->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim =
         ceildiv(v->get_stride() * num_rows, default_block_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(step_1_kernel), grid_dim, default_block_size, 0, 0, k,
-        num_rows, subspace_dim, nrhs, as_hip_type(residual->get_const_values()),
-        residual->get_stride(), as_hip_type(c->get_const_values()),
-        c->get_stride(), as_hip_type(g->get_const_values()), g->get_stride(),
+    step_1_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
+        k, num_rows, subspace_dim, nrhs,
+        as_hip_type(residual->get_const_values()), residual->get_stride(),
+        as_hip_type(c->get_const_values()), c->get_stride(),
+        as_hip_type(g->get_const_values()), g->get_stride(),
         as_hip_type(v->get_values()), v->get_stride(),
         stop_status->get_const_data());
 }
@@ -318,9 +319,8 @@ void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
 
     const auto grid_dim =
         ceildiv(u->get_stride() * num_rows, default_block_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(step_2_kernel), grid_dim, default_block_size, 0, 0, k,
-        num_rows, subspace_dim, nrhs, as_hip_type(omega->get_const_values()),
+    step_2_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
+        k, num_rows, subspace_dim, nrhs, as_hip_type(omega->get_const_values()),
         as_hip_type(preconditioned_vector->get_const_values()),
         preconditioned_vector->get_stride(), as_hip_type(c->get_const_values()),
         c->get_stride(), as_hip_type(u->get_values()), u->get_stride(),
@@ -355,9 +355,9 @@ void compute_omega(
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(compute_omega_kernel), grid_dim, config::warp_size, 0,
-        0, nrhs, as_hip_type(kappa), as_hip_type(tht->get_const_values()),
+    compute_omega_kernel<<<grid_dim, config::warp_size, 0,
+                           exec->get_stream()>>>(
+        nrhs, as_hip_type(kappa), as_hip_type(tht->get_const_values()),
         as_hip_type(residual_norm->get_const_values()),
         as_hip_type(omega->get_values()), stop_status->get_const_data());
 }

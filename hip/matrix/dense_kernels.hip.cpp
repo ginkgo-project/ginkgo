@@ -225,10 +225,10 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::fill_in_coo, grid_dim, default_block_size, 0,
-                           0, num_rows, num_cols, stride,
-                           as_hip_type(source->get_const_values()), row_ptrs,
-                           row_idxs, col_idxs, as_hip_type(values));
+        kernel::fill_in_coo<<<grid_dim, default_block_size, 0,
+                              exec->get_stream()>>>(
+            num_rows, num_cols, stride, as_hip_type(source->get_const_values()),
+            row_ptrs, row_idxs, col_idxs, as_hip_type(values));
     }
 }
 
@@ -253,9 +253,9 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(
-            kernel::fill_in_csr, grid_dim, default_block_size, 0, 0, num_rows,
-            num_cols, stride, as_hip_type(source->get_const_values()),
+        kernel::fill_in_csr<<<grid_dim, default_block_size, 0,
+                              exec->get_stream()>>>(
+            num_rows, num_cols, stride, as_hip_type(source->get_const_values()),
             as_hip_type(row_ptrs), as_hip_type(col_idxs), as_hip_type(values));
     }
 }
@@ -282,10 +282,11 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(
-            kernel::fill_in_ell, grid_dim, default_block_size, 0, 0, num_rows,
-            num_cols, source_stride, as_hip_type(source->get_const_values()),
-            max_nnz_per_row, result_stride, col_idxs, as_hip_type(values));
+        kernel::fill_in_ell<<<grid_dim, default_block_size, 0,
+                              exec->get_stream()>>>(
+            num_rows, num_cols, source_stride,
+            as_hip_type(source->get_const_values()), max_nnz_per_row,
+            result_stride, col_idxs, as_hip_type(values));
     }
 }
 
@@ -302,7 +303,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     if (num_block_rows > 0) {
         const auto num_blocks =
             ceildiv(num_block_rows, default_block_size / config::warp_size);
-        kernel::convert_to_fbcsr<<<num_blocks, default_block_size>>>(
+        kernel::convert_to_fbcsr<<<num_blocks, default_block_size, 0,
+                                   exec->get_stream()>>>(
             num_block_rows, result->get_num_block_cols(), source->get_stride(),
             result->get_block_size(), as_hip_type(source->get_const_values()),
             result->get_const_row_ptrs(), result->get_col_idxs(),
@@ -324,10 +326,10 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
     if (num_block_rows > 0) {
         const auto num_blocks =
             ceildiv(num_block_rows, default_block_size / config::warp_size);
-        kernel::
-            count_nonzero_blocks_per_row<<<num_blocks, default_block_size>>>(
-                num_block_rows, num_block_cols, source->get_stride(), bs,
-                as_hip_type(source->get_const_values()), result);
+        kernel::count_nonzero_blocks_per_row<<<num_blocks, default_block_size,
+                                               0, exec->get_stream()>>>(
+            num_block_rows, num_block_cols, source->get_stride(), bs,
+            as_hip_type(source->get_const_values()), result);
     }
 }
 
@@ -355,12 +357,12 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
 
     auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::fill_in_hybrid, grid_dim, default_block_size,
-                           0, 0, num_rows, num_cols, source_stride,
-                           as_hip_type(source->get_const_values()),
-                           ell_max_nnz_per_row, ell_stride, ell_col_idxs,
-                           as_hip_type(ell_values), coo_row_ptrs, coo_row_idxs,
-                           coo_col_idxs, as_hip_type(coo_values));
+        kernel::fill_in_hybrid<<<grid_dim, default_block_size, 0,
+                                 exec->get_stream()>>>(
+            num_rows, num_cols, source_stride,
+            as_hip_type(source->get_const_values()), ell_max_nnz_per_row,
+            ell_stride, ell_col_idxs, as_hip_type(ell_values), coo_row_ptrs,
+            coo_row_idxs, coo_col_idxs, as_hip_type(coo_values));
     }
 }
 
@@ -386,11 +388,11 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
 
     auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::fill_in_sellp, grid_dim, default_block_size,
-                           0, 0, num_rows, num_cols, slice_size, stride,
-                           as_hip_type(source->get_const_values()),
-                           as_hip_type(slice_sets), as_hip_type(col_idxs),
-                           as_hip_type(vals));
+        kernel::fill_in_sellp<<<grid_dim, default_block_size, 0,
+                                exec->get_stream()>>>(
+            num_rows, num_cols, slice_size, stride,
+            as_hip_type(source->get_const_values()), as_hip_type(slice_sets),
+            as_hip_type(col_idxs), as_hip_type(vals));
     }
 }
 
@@ -414,10 +416,10 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::fill_in_sparsity_csr, grid_dim,
-                           default_block_size, 0, 0, num_rows, num_cols, stride,
-                           as_hip_type(source->get_const_values()),
-                           as_hip_type(row_ptrs), as_hip_type(col_idxs));
+        kernel::fill_in_sparsity_csr<<<grid_dim, default_block_size, 0,
+                                       exec->get_stream()>>>(
+            num_rows, num_cols, stride, as_hip_type(source->get_const_values()),
+            as_hip_type(row_ptrs), as_hip_type(col_idxs));
     }
 }
 

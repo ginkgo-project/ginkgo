@@ -79,9 +79,8 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), num_blocks,
-                           config::warp_size, 0, 0, dresult.get_data(), offset,
-                           size);
+        kernel<<<num_blocks, config::warp_size, 0, hip->get_stream()>>>(
+            dresult.get_data(), offset, size);
         result = dresult;
         auto success = *result.get_const_data();
 
