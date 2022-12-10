@@ -68,7 +68,8 @@ protected:
     template <typename Kernel>
     void test(Kernel kernel)
     {
-        kernel<<<1, config::warp_size>>>(dresult.get_data());
+        kernel<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+            dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 
@@ -78,7 +79,8 @@ protected:
     template <typename Kernel>
     void test_subwarp(Kernel kernel)
     {
-        kernel<<<1, config::warp_size / 2>>>(dresult.get_data());
+        kernel<<<1, config::warp_size / 2, 0, cuda->get_stream()>>>(
+            dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 

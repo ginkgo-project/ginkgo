@@ -304,7 +304,8 @@ void fallback_transpose(const std::shared_ptr<const DefaultExecutor> exec,
                                      out_num_row_blocks, out_row_ptrs);
     const auto grid_size = ceildiv(nnzb * bs * bs, default_block_size);
     if (grid_size > 0) {
-        kernel::permute_transpose<<<grid_size, default_block_size>>>(
+        kernel::permute_transpose<<<grid_size, default_block_size, 0,
+                                    exec->get_stream()>>>(
             in_vals, out_vals, bs, nnzb, permutation.get_const_data());
     }
 }

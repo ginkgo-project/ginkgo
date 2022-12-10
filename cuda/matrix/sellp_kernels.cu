@@ -74,7 +74,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid(ceildiv(a->get_size()[0], block_size), b->get_size()[1]);
 
     if (grid.x > 0 && grid.y > 0) {
-        spmv_kernel<<<grid, block_size>>>(
+        spmv_kernel<<<grid, block_size, 0, exec->get_stream()>>>(
             a->get_size()[0], b->get_size()[1], b->get_stride(),
             c->get_stride(), a->get_slice_size(), a->get_const_slice_sets(),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -97,7 +97,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid(ceildiv(a->get_size()[0], block_size), b->get_size()[1]);
 
     if (grid.x > 0 && grid.y > 0) {
-        advanced_spmv_kernel<<<grid, block_size>>>(
+        advanced_spmv_kernel<<<grid, block_size, 0, exec->get_stream()>>>(
             a->get_size()[0], b->get_size()[1], b->get_stride(),
             c->get_stride(), a->get_slice_size(), a->get_const_slice_sets(),
             as_cuda_type(alpha->get_const_values()),

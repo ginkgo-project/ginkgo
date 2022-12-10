@@ -72,7 +72,8 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_elements, static_cast<size_type>(block_size)));
     for (size_type i = 0; i < iterations; ++i) {
         if (grid_dim > 0) {
-            kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
+            kernel::compute_l_u_factors<<<grid_dim, block_size, 0,
+                                          exec->get_stream()>>>(
                 num_elements, system_matrix->get_const_row_idxs(),
                 system_matrix->get_const_col_idxs(),
                 as_cuda_type(system_matrix->get_const_values()),

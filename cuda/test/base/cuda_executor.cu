@@ -177,7 +177,7 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
 
     cuda->copy_from(omp, 2, orig, copy);
 
-    check_data<<<1, 1>>>(copy);
+    check_data<<<1, 1, 0, cuda->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
     cuda->free(copy);
 }
@@ -198,10 +198,10 @@ TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
 
     cuda3->copy_from(omp, 2, orig, copy);
 
-    check_data<<<1, 1>>>(copy);
+    check_data<<<1, 1, 0, cuda3->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda3->synchronize());
     copy[0] = 4;
-    check_data2<<<1, 1>>>(copy);
+    check_data2<<<1, 1, 0, cuda3->get_stream()>>>(copy);
     cuda3->free(copy);
 }
 
@@ -216,7 +216,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
 {
     int copy[2];
     auto orig = cuda->alloc<int>(2);
-    init_data<<<1, 1>>>(orig);
+    init_data<<<1, 1, 0, cuda->get_stream()>>>(orig);
 
     omp->copy_from(cuda, 2, orig, copy);
 
@@ -258,7 +258,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     int copy[2];
     auto orig = cuda->alloc<int>(2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    init_data<<<1, 1>>>(orig);
+    init_data<<<1, 1, 0, cuda->get_stream()>>>(orig);
 
     auto copy_cuda2 = cuda2->alloc<int>(2);
     cuda2->copy_from(cuda, 2, orig, copy_cuda2);
@@ -266,7 +266,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
-    check_data<<<1, 1>>>(copy_cuda2);
+    check_data<<<1, 1, 0, cuda2->get_stream()>>>(copy_cuda2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());

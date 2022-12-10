@@ -118,16 +118,20 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         return;
     }
     if (alpha == nullptr && beta == nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(a->get_const_value()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_cuda_type(a->get_const_value()),
+                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+                acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_ptrs()), acc::as_cuda_range(b_vals),
-            as_cuda_type(beta->get_const_values()), acc::as_cuda_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
+                acc::as_cuda_range(b_vals),
+                as_cuda_type(beta->get_const_values()),
+                acc::as_cuda_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }

@@ -117,7 +117,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
-            abstract_spmv<<<coo_grid, coo_block>>>(
+            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
                 as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -127,7 +127,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
-            abstract_spmm<<<coo_grid, coo_block>>>(
+            abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
                 b_ncols, as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -155,7 +155,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
         if (b_ncols < 4) {
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            abstract_spmv<<<coo_grid, coo_block>>>(
+            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_idxs()),
@@ -166,7 +166,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
-            abstract_spmm<<<coo_grid, coo_block>>>(
+            abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_idxs()), b_ncols,

@@ -76,21 +76,24 @@ namespace {
 
 
 template <typename ValueType>
-void initialize_m(const size_type nrhs, matrix::Dense<ValueType>* m,
+void initialize_m(std::shared_ptr<const DefaultExecutor> exec,
+                  const size_type nrhs, matrix::Dense<ValueType>* m,
                   array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
 
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
-    initialize_m_kernel<<<grid_dim, default_block_size>>>(
+    initialize_m_kernel<<<grid_dim, default_block_size, 0,
+                          exec->get_stream()>>>(
         subspace_dim, nrhs, as_cuda_type(m->get_values()), m_stride,
         as_cuda_type(stop_status->get_data()));
 }
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
+void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
+                                 matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
     if (!deterministic) {
@@ -105,10 +108,12 @@ void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
 
 
 template <typename ValueType>
-void orthonormalize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors)
+void orthonormalize_subspace_vectors(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::Dense<ValueType>* subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>
-        <<<1, default_block_size>>>(
+        <<<1, default_block_size, 0, exec->get_stream()>>>(
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
             as_cuda_type(subspace_vectors->get_values()),
             subspace_vectors->get_stride());
@@ -116,7 +121,8 @@ void orthonormalize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors)
 
 
 template <typename ValueType>
-void solve_lower_triangular(const size_type nrhs,
+void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
+                            const size_type nrhs,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
                             matrix::Dense<ValueType>* c,
@@ -125,7 +131,8 @@ void solve_lower_triangular(const size_type nrhs,
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim = ceildiv(nrhs, default_block_size);
-    solve_lower_triangular_kernel<<<grid_dim, default_block_size>>>(
+    solve_lower_triangular_kernel<<<grid_dim, default_block_size, 0,
+                                    exec->get_stream()>>>(
         subspace_dim, nrhs, as_cuda_type(m->get_const_values()),
         m->get_stride(), as_cuda_type(f->get_const_values()), f->get_stride(),
         as_cuda_type(c->get_values()), c->get_stride(),
@@ -158,7 +165,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim>>>(
+            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 size, nrhs, as_cuda_type(p_i), as_cuda_type(g_k->get_values()),
                 g_k->get_stride(), as_cuda_type(alpha->get_values()),
                 stop_status->get_const_data());
@@ -169,7 +176,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
         }
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k->get_stride(), default_block_size),
-               default_block_size>>>(
+               default_block_size, 0, exec->get_stream()>>>(
                 k, i, size, nrhs, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(m->get_const_values()), m->get_stride(),
                 as_cuda_type(g->get_const_values()), g->get_stride(),
@@ -179,7 +186,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
     }
     update_g_kernel<default_block_size>
         <<<ceildiv(size * g_k->get_stride(), default_block_size),
-           default_block_size>>>(
+           default_block_size, 0, exec->get_stream()>>>(
             k, size, nrhs, as_cuda_type(g_k->get_const_values()),
             g_k->get_stride(), as_cuda_type(g->get_values()), g->get_stride(),
             stop_status->get_const_data());
@@ -209,7 +216,7 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim>>>(
+            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 size, nrhs, as_cuda_type(p_i),
                 as_cuda_type(g_k->get_const_values()), g_k->get_stride(),
                 as_cuda_type(m_i), stop_status->get_const_data());
@@ -235,7 +242,8 @@ void update_x_r_and_f(std::shared_ptr<const CudaExecutor> exec,
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim = ceildiv(size * x->get_stride(), default_block_size);
-    update_x_r_and_f_kernel<<<grid_dim, default_block_size>>>(
+    update_x_r_and_f_kernel<<<grid_dim, default_block_size, 0,
+                              exec->get_stream()>>>(
         k, size, subspace_dim, nrhs, as_cuda_type(m->get_const_values()),
         m->get_stride(), as_cuda_type(g->get_const_values()), g->get_stride(),
         as_cuda_type(u->get_const_values()), u->get_stride(),
@@ -257,9 +265,9 @@ void initialize(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
                 array<stopping_status>* stop_status)
 {
-    initialize_m(nrhs, m, stop_status);
-    initialize_subspace_vectors(subspace_vectors, deterministic);
-    orthonormalize_subspace_vectors(subspace_vectors);
+    initialize_m(exec, nrhs, m, stop_status);
+    initialize_subspace_vectors(exec, subspace_vectors, deterministic);
+    orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
@@ -274,13 +282,13 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType>* v,
             const array<stopping_status>* stop_status)
 {
-    solve_lower_triangular(nrhs, m, f, c, stop_status);
+    solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
     const auto num_rows = v->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
-    step_1_kernel<<<grid_dim, default_block_size>>>(
+    step_1_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
         k, num_rows, subspace_dim, nrhs,
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
         as_cuda_type(c->get_const_values()), c->get_stride(),
@@ -306,7 +314,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
     const auto subspace_dim = u->get_size()[1] / nrhs;
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
-    step_2_kernel<<<grid_dim, default_block_size>>>(
+    step_2_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
         k, num_rows, subspace_dim, nrhs,
         as_cuda_type(omega->get_const_values()),
         as_cuda_type(preconditioned_vector->get_const_values()),
@@ -344,7 +352,8 @@ void compute_omega(
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    compute_omega_kernel<<<grid_dim, config::warp_size>>>(
+    compute_omega_kernel<<<grid_dim, config::warp_size, 0,
+                           exec->get_stream()>>>(
         nrhs, as_cuda_type(kappa), as_cuda_type(tht->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(omega->get_values()), stop_status->get_const_data());

@@ -73,8 +73,8 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-        kernel<<<num_blocks, config::warp_size>>>(dresult.get_data(), offset,
-                                                  size);
+        kernel<<<num_blocks, config::warp_size, 0, cuda->get_stream()>>>(
+            dresult.get_data(), offset, size);
         result = dresult;
         auto success = *result.get_const_data();
 

@@ -1091,9 +1091,9 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     kernel::build_csr_lookup<config::warp_size>
-        <<<num_blocks, default_block_size>>>(row_ptrs, col_idxs, num_rows,
-                                             allowed, storage_offsets, row_desc,
-                                             storage);
+        <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            row_ptrs, col_idxs, num_rows, allowed, storage_offsets, row_desc,
+            storage);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);

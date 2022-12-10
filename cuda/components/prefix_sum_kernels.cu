@@ -56,15 +56,15 @@ void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
         auto block_sums = block_sum_array.get_data();
         if (num_blocks > 0) {
             start_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                        block_sums);
+                <<<num_blocks, prefix_sum_block_size, 0, exec->get_stream()>>>(
+                    num_entries, counts, block_sums);
         }
         // add the total sum of the previous block only when the number of
         // blocks is larger than 1.
         if (num_blocks > 1) {
             finalize_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                        block_sums);
+                <<<num_blocks, prefix_sum_block_size, 0, exec->get_stream()>>>(
+                    num_entries, counts, block_sums);
         }
     }
 }

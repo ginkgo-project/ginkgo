@@ -120,7 +120,8 @@ protected:
 
 TEST_F(Sorting, CudaBitonicSortWarp)
 {
-    test_sort_warp<<<1, config::warp_size>>>(ddata.get_data());
+    test_sort_warp<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+        ddata.get_data());
     ddata.set_executor(ref);
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_warp.get_const_data();
@@ -131,7 +132,8 @@ TEST_F(Sorting, CudaBitonicSortWarp)
 
 TEST_F(Sorting, CudaBitonicSortShared)
 {
-    test_sort_shared<<<1, num_threads>>>(ddata.get_data());
+    test_sort_shared<<<1, num_threads, 0, cuda->get_stream()>>>(
+        ddata.get_data());
     ddata.set_executor(ref);
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_shared.get_const_data();

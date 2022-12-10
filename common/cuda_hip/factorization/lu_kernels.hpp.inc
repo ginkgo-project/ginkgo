@@ -169,7 +169,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     if (num_rows > 0) {
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::initialize<<<num_blocks, default_block_size>>>(
+        kernel::initialize<<<num_blocks, default_block_size, 0,
+                             exec->get_stream()>>>(
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             as_device_type(mtx->get_const_values()),
             factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
@@ -195,7 +196,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                                int{});
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::factorize<<<num_blocks, default_block_size>>>(
+        kernel::factorize<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
             factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
             lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
             as_device_type(factors->get_values()), tmp_storage.get_data(),
