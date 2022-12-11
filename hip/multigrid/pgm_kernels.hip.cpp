@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 
+#include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
 
 
