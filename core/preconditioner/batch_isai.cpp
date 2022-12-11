@@ -256,40 +256,13 @@ void batch_isai_extension(
         const auto offset = exec->copy_val_to_host(
             first_approx_inv->get_const_row_ptrs() + lin_sys_row);
 
-        IndexType zero_val = zero<IndexType>();
-
-        exec->copy_from(exec->get_master().get(), 1, &zero_val,
-                        csr_pattern_row_ptrs_arr.get_data());
-
         exec->copy(
             size,
             num_matches_per_row_for_each_csr_sys.get_const_data() + offset,
-            csr_pattern_row_ptrs_arr.get_data() + 1);
+            csr_pattern_row_ptrs_arr.get_data());
 
-        gko::array<IndexType> csr_pattern_row_ptrs_arr_host(exec->get_master(),
-                                                            size + 1);
-        exec->get_master()->copy_from(exec.get(), size + 1,
-                                      csr_pattern_row_ptrs_arr.get_const_data(),
-                                      csr_pattern_row_ptrs_arr_host.get_data());
-
-        /* //Gives wrong prefix sum
         exec->run(batch_isai::make_prefix_sum(
             csr_pattern_row_ptrs_arr.get_data(), size + 1));
-
-
-        exec->get_master()->copy_from(exec.get(), size + 1,
-                                  csr_pattern_row_ptrs_arr.get_const_data(),
-                                  csr_pattern_row_ptrs_arr_host.get_data());
-        */
-
-        for (int i = 1; i < size + 1; i++) {
-            csr_pattern_row_ptrs_arr_host.get_data()[i] +=
-                csr_pattern_row_ptrs_arr_host.get_data()[i - 1];
-        }
-
-        exec->copy_from(exec->get_master().get(), size + 1,
-                        csr_pattern_row_ptrs_arr_host.get_const_data(),
-                        csr_pattern_row_ptrs_arr.get_data());
 
         // extract csr pattern
         IndexType csr_nnz = exec->copy_val_to_host(
