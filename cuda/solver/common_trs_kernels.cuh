@@ -552,17 +552,17 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
         sptrsv_naive_legacy_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                as_cuda_type(matrix->get_const_values()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+                as_device_type(matrix->get_const_values()),
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
                 unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                as_cuda_type(matrix->get_const_values()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+                as_device_type(matrix->get_const_values()),
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
                 unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     }
 

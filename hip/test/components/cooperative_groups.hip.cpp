@@ -332,7 +332,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
 
     cg_shuffle_sum<thrust::complex<double>>
         <<<1, config::warp_size, 0, hip->get_stream()>>>(
-            num, as_hip_type(dvalue.get_data()));
+            num, as_device_type(dvalue.get_data()));
 
     value = dvalue;
     GKO_ASSERT_ARRAY_EQ(value, answer);

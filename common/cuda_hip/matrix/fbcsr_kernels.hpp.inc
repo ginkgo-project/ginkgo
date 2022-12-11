@@ -309,3 +309,92 @@ void fallback_transpose(const std::shared_ptr<const DefaultExecutor> exec,
             in_vals, out_vals, bs, nnzb, permutation.get_const_data());
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Fbcsr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    if (num_blocks > 0) {
+        kernel::fill_in_dense<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+            source->get_const_row_ptrs(), source->get_const_col_idxs(),
+            as_device_type(source->get_const_values()),
+            as_device_type(result->get_values()), result->get_stride(),
+            source->get_num_block_rows(), source->get_block_size());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Fbcsr<ValueType, IndexType>* const source,
+                    matrix::Csr<ValueType, IndexType>* const result)
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    if (num_blocks > 0) {
+        kernel::convert_to_csr<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
+            source->get_const_row_ptrs(), source->get_const_col_idxs(),
+            as_device_type(source->get_const_values()), result->get_row_ptrs(),
+            result->get_col_idxs(), as_device_type(result->get_values()),
+            source->get_num_block_rows(), source->get_block_size());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Fbcsr<ValueType, IndexType>* const to_check,
+    bool* const is_sorted)
+{
+    *is_sorted = true;
+    auto gpu_array = array<bool>(exec, 1);
+    // need to initialize the GPU value to true
+    exec->copy_from(exec->get_master(), 1, is_sorted, gpu_array.get_data());
+    auto block_size = default_block_size;
+    const auto num_brows =
+        static_cast<IndexType>(to_check->get_num_block_rows());
+    const auto num_blocks = ceildiv(num_brows, block_size);
+    if (num_blocks > 0) {
+        kernel::
+            check_unsorted<<<num_blocks, block_size, 0, exec->get_stream()>>>(
+                to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+                num_brows, gpu_array.get_data());
+    }
+    *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(const std::shared_ptr<const DefaultExecutor> exec,
+                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Fbcsr<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);

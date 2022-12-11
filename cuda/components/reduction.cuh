@@ -84,7 +84,8 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
 
         reduce_add_array<<<grid_dim, default_reduce_block_size, 0,
                            exec->get_stream()>>>(
-            size, as_cuda_type(source), as_cuda_type(block_results.get_data()));
+            size, as_device_type(source),
+            as_device_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
     }
@@ -92,8 +93,8 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
     auto d_result = array<ValueType>(exec, 1);
 
     reduce_add_array<<<1, default_reduce_block_size, 0, exec->get_stream()>>>(
-        grid_dim, as_cuda_type(block_results_val),
-        as_cuda_type(d_result.get_data()));
+        grid_dim, as_device_type(block_results_val),
+        as_device_type(d_result.get_data()));
     auto answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;
 }

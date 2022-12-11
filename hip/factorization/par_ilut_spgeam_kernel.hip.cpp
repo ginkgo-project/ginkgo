@@ -140,12 +140,12 @@ void add_candidates(syn::value_list<int, subwarp_size>,
         // fill columns and values
         kernel::tri_spgeam_init<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                lu_row_ptrs, lu_col_idxs, as_hip_type(lu_vals), a_row_ptrs,
-                a_col_idxs, as_hip_type(a_vals), l_row_ptrs, l_col_idxs,
-                as_hip_type(l_vals), u_row_ptrs, u_col_idxs,
-                as_hip_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
-                as_hip_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
-                as_hip_type(u_new_vals), num_rows);
+                lu_row_ptrs, lu_col_idxs, as_device_type(lu_vals), a_row_ptrs,
+                a_col_idxs, as_device_type(a_vals), l_row_ptrs, l_col_idxs,
+                as_device_type(l_vals), u_row_ptrs, u_col_idxs,
+                as_device_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
+                as_device_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
+                as_device_type(u_new_vals), num_rows);
     }
 }
 

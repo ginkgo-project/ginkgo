@@ -219,3 +219,116 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmm(
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Coo<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+{
+    dense::fill(exec, c, zero<ValueType>());
+    spmv2(exec, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Coo<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
+{
+    dense::scale(exec, beta, c);
+    advanced_spmv2(exec, alpha, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spmv2(std::shared_ptr<const DefaultExecutor> exec,
+           const matrix::Coo<ValueType, IndexType>* a,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+{
+    const auto nnz = a->get_num_stored_elements();
+    const auto b_ncols = b->get_size()[1];
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0 && b_ncols > 0) {
+        // TODO: b_ncols needs to be tuned for ROCm.
+        if (b_ncols < 4) {
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+
+            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                nnz, num_lines, as_device_type(a->get_const_values()),
+                a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_idxs()),
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(c->get_values()), c->get_stride());
+        } else {
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                ceildiv(b_ncols, config::warp_size));
+
+            abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                nnz, num_elems, as_device_type(a->get_const_values()),
+                a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_idxs()), b_ncols,
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(c->get_values()), c->get_stride());
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Dense<ValueType>* alpha,
+                    const matrix::Coo<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c)
+{
+    const auto nnz = a->get_num_stored_elements();
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
+    const auto b_ncols = b->get_size()[1];
+
+    if (nwarps > 0 && b_ncols > 0) {
+        // TODO: b_ncols needs to be tuned for ROCm.
+        if (b_ncols < 4) {
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
+
+            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                nnz, num_lines, as_device_type(alpha->get_const_values()),
+                as_device_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_idxs()),
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(c->get_values()), c->get_stride());
+        } else {
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                ceildiv(b_ncols, config::warp_size));
+
+            abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                nnz, num_elems, as_device_type(alpha->get_const_values()),
+                as_device_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_idxs()), b_ncols,
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(c->get_values()), c->get_stride());
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);

@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+namespace kernel {
+
+
 // grid_nrows is the number of rows handled in the whole grid at the same time.
 // Thus, the threads whose index is larger than grid_nrows * nrhs are not used.
 // Let the thread handle the same col (has same scalar) in whole loop.
@@ -106,3 +109,93 @@ __global__ __launch_bounds__(default_block_size) void kcycle_check_stop_kernel(
         *is_stop = false;
     }
 }
+
+
+}  // namespace kernel
+
+
+template <typename ValueType>
+void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Dense<ValueType>* rho,
+                   const matrix::Dense<ValueType>* v,
+                   matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* d,
+                   matrix::Dense<ValueType>* e)
+{
+    const auto nrows = e->get_size()[0];
+    const auto nrhs = e->get_size()[1];
+    constexpr int max_size = (1U << 31) - 1;
+    const size_type grid_nrows =
+        max_size / nrhs < nrows ? max_size / nrhs : nrows;
+    const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
+    if (grid > 0) {
+        kernel::kcycle_step_1_kernel<<<grid, default_block_size, 0,
+                                       exec->get_stream()>>>(
+            nrows, nrhs, e->get_stride(), grid_nrows,
+            as_device_type(alpha->get_const_values()),
+            as_device_type(rho->get_const_values()),
+            as_device_type(v->get_const_values()),
+            as_device_type(g->get_values()), as_device_type(d->get_values()),
+            as_device_type(e->get_values()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
+
+
+template <typename ValueType>
+void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Dense<ValueType>* rho,
+                   const matrix::Dense<ValueType>* gamma,
+                   const matrix::Dense<ValueType>* beta,
+                   const matrix::Dense<ValueType>* zeta,
+                   const matrix::Dense<ValueType>* d,
+                   matrix::Dense<ValueType>* e)
+{
+    const auto nrows = e->get_size()[0];
+    const auto nrhs = e->get_size()[1];
+    constexpr int max_size = (1U << 31) - 1;
+    const size_type grid_nrows =
+        max_size / nrhs < nrows ? max_size / nrhs : nrows;
+    const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
+    if (grid > 0) {
+        kernel::kcycle_step_2_kernel<<<grid, default_block_size, 0,
+                                       exec->get_stream()>>>(
+            nrows, nrhs, e->get_stride(), grid_nrows,
+            as_device_type(alpha->get_const_values()),
+            as_device_type(rho->get_const_values()),
+            as_device_type(gamma->get_const_values()),
+            as_device_type(beta->get_const_values()),
+            as_device_type(zeta->get_const_values()),
+            as_device_type(d->get_const_values()),
+            as_device_type(e->get_values()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
+
+
+template <typename ValueType>
+void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Dense<ValueType>* old_norm,
+                       const matrix::Dense<ValueType>* new_norm,
+                       const ValueType rel_tol, bool& is_stop)
+{
+    gko::array<bool> dis_stop(exec, 1);
+    components::fill_array(exec, dis_stop.get_data(), dis_stop.get_num_elems(),
+                           true);
+    const auto nrhs = new_norm->get_size()[1];
+    const auto grid = ceildiv(nrhs, default_block_size);
+    if (grid > 0) {
+        kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
+                                           exec->get_stream()>>>(
+            nrhs, as_device_type(old_norm->get_const_values()),
+            as_device_type(new_norm->get_const_values()), rel_tol,
+            as_device_type(dis_stop.get_data()));
+    }
+    is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL);

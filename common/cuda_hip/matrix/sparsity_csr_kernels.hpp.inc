@@ -108,3 +108,61 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::SparsityCsr<ValueType, IndexType>* input,
+                   matrix::Dense<ValueType>* output) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_num_diagonal_elements(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
+    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void remove_diagonal_elements(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs,
+    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::SparsityCsr<ValueType, IndexType>* orig,
+               matrix::SparsityCsr<ValueType, IndexType>* trans)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
+    bool* is_sorted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);

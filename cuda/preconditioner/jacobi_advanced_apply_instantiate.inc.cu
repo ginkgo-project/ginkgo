@@ -95,16 +95,16 @@ void advanced_apply(
             kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
                                             warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    as_cuda_type(blocks), storage_scheme, block_precisions,
-                    block_pointers, num_blocks, as_cuda_type(alpha),
-                    as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
+                    as_device_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_device_type(alpha),
+                    as_device_type(b), b_stride, as_device_type(x), x_stride);
         } else {
             kernel::advanced_apply<max_block_size, subwarp_size,
                                    warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    as_cuda_type(blocks), storage_scheme, block_pointers,
-                    num_blocks, as_cuda_type(alpha), as_cuda_type(b), b_stride,
-                    as_cuda_type(x), x_stride);
+                    as_device_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_device_type(alpha), as_device_type(b),
+                    b_stride, as_device_type(x), x_stride);
         }
     }
 }

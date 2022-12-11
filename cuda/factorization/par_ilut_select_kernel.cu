@@ -79,8 +79,8 @@ void sampleselect_filter(std::shared_ptr<const DefaultExecutor> exec,
     if (num_blocks > 0) {
         kernel::filter_bucket<<<num_blocks, default_block_size, 0,
                                 exec->get_stream()>>>(
-            as_cuda_type(values), size, bucket, oracles, partial_counts,
-            as_cuda_type(out), items_per_thread);
+            as_device_type(values), size, bucket, oracles, partial_counts,
+            as_device_type(out), items_per_thread);
     }
 }
 

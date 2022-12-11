@@ -100,18 +100,18 @@ void residual_norm(std::shared_ptr<const CudaExecutor> exec,
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_cuda_type(device_storage->get_data()));
+        as_device_type(device_storage->get_data()));
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            tau->get_size()[1], as_cuda_type(rel_residual_goal),
-            as_cuda_type(tau->get_const_values()),
-            as_cuda_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_cuda_type(stop_status->get_data()),
-            as_cuda_type(device_storage->get_data()));
+            tau->get_size()[1], as_device_type(rel_residual_goal),
+            as_device_type(tau->get_const_values()),
+            as_device_type(orig_tau->get_const_values()), stoppingId,
+            setFinalized, as_device_type(stop_status->get_data()),
+            as_device_type(device_storage->get_data()));
     }
 
     /* Represents all_converged, one_changed */
@@ -179,7 +179,7 @@ void implicit_residual_norm(
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_cuda_type(device_storage->get_data()));
+        as_device_type(device_storage->get_data()));
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
@@ -187,11 +187,11 @@ void implicit_residual_norm(
     if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size, 0,
                                         exec->get_stream()>>>(
-            tau->get_size()[1], as_cuda_type(rel_residual_goal),
-            as_cuda_type(tau->get_const_values()),
-            as_cuda_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_cuda_type(stop_status->get_data()),
-            as_cuda_type(device_storage->get_data()));
+            tau->get_size()[1], as_device_type(rel_residual_goal),
+            as_device_type(tau->get_const_values()),
+            as_device_type(orig_tau->get_const_values()), stoppingId,
+            setFinalized, as_device_type(stop_status->get_data()),
+            as_device_type(device_storage->get_data()));
     }
 
     /* Represents all_converged, one_changed */

@@ -94,14 +94,14 @@ void apply(syn::value_list<int, max_block_size>,
             kernel::adaptive_apply<max_block_size, subwarp_size,
                                    warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    as_hip_type(blocks), storage_scheme, block_precisions,
-                    block_pointers, num_blocks, as_hip_type(b), b_stride,
-                    as_hip_type(x), x_stride);
+                    as_device_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_device_type(b), b_stride,
+                    as_device_type(x), x_stride);
         } else {
             kernel::apply<max_block_size, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    as_hip_type(blocks), storage_scheme, block_pointers,
-                    num_blocks, as_hip_type(b), b_stride, as_hip_type(x),
+                    as_device_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_device_type(b), b_stride, as_device_type(x),
                     x_stride);
         }
     }
