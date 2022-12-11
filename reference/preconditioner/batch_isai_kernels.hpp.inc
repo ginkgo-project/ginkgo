@@ -319,3 +319,57 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
         }
     }
 }
+
+
+template <typename ValueType>
+inline void match_for_csr(
+    const int* const inv_col_idxs, const int inv_row_st, const int inv_row_end,
+    const int* const sys_col_idxs, const int sys_row_st, const int sys_row_end,
+    const int csr_pattern_row_start, int* const csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    int l = inv_row_st;
+    int m = sys_row_st;
+    int j = csr_pattern_row_start;
+
+    while (l < inv_row_end && m < sys_row_end) {
+        if (inv_col_idxs[l] == sys_col_idxs[m]) {
+            csr_pattern_values[j] =
+                static_cast<gko::remove_complex<ValueType>>(m);
+            csr_pattern_col_idxs[j] = l - inv_row_st;
+            j++;
+
+            l++;
+            m++;
+        } else if (inv_col_idxs[l] > sys_col_idxs[m]) {
+            m++;
+        } else {
+            l++;
+        }
+    }
+}
+
+
+template <typename ValueType>
+void extract_csr_row_impl(
+    const int lin_sys_row, const int inv_nz, const int* const inv_row_ptrs,
+    const int* const inv_col_idxs, const int* const sys_row_ptrs,
+    const int* const sys_col_idxs, const int* const csr_pattern_row_ptrs,
+    int* const csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const csr_pattern_values)
+{
+    const int col_idx = inv_col_idxs[inv_nz];
+    const int sys_row = col_idx;
+    const int sys_row_st = sys_row_ptrs[sys_row];
+    const int sys_row_end = sys_row_ptrs[sys_row + 1];
+
+    const int inv_row_st = inv_row_ptrs[lin_sys_row];
+    const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
+
+    const int csr_pattern_row_start = csr_pattern_row_ptrs[inv_nz - inv_row_st];
+
+    match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
+                             sys_col_idxs, sys_row_st, sys_row_end,
+                             csr_pattern_row_start, csr_pattern_col_idxs,
+                             csr_pattern_values);
+}
