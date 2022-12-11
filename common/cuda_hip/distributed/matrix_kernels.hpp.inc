@@ -86,12 +86,12 @@ void build_local_nonlocal(
     auto input_row_idxs = input.get_const_row_idxs();
     auto input_col_idxs = input.get_const_col_idxs();
     array<size_type> row_range_ids{exec, num_input_elements};
-    thrust::upper_bound(thrust::device, row_range_bounds + 1,
+    thrust::upper_bound(thrust_policy(exec), row_range_bounds + 1,
                         row_range_bounds + num_row_ranges + 1, input_row_idxs,
                         input_row_idxs + num_input_elements,
                         row_range_ids.get_data());
     array<size_type> col_range_ids{exec, input.get_num_elems()};
-    thrust::upper_bound(thrust::device, col_range_bounds + 1,
+    thrust::upper_bound(thrust_policy(exec), col_range_bounds + 1,
                         col_range_bounds + num_col_ranges + 1, input_col_idxs,
                         input_col_idxs + num_input_elements,
                         col_range_ids.get_data());
@@ -100,7 +100,7 @@ void build_local_nonlocal(
     auto range_ids_it = thrust::make_zip_iterator(thrust::make_tuple(
         row_range_ids.get_const_data(), col_range_ids.get_const_data()));
     auto num_elements_pair = thrust::transform_reduce(
-        thrust::device, range_ids_it, range_ids_it + num_input_elements,
+        thrust_policy(exec), range_ids_it, range_ids_it + num_input_elements,
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -156,7 +156,7 @@ void build_local_nonlocal(
             return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
-        thrust::device, local_it, local_it + input.get_num_elems(),
+        thrust_policy(exec), local_it, local_it + input.get_num_elems(),
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(local_row_idxs.get_data(),
                                                      local_col_idxs.get_data(),
@@ -185,7 +185,7 @@ void build_local_nonlocal(
                                       input.col_range);
         });
     thrust::copy_if(
-        thrust::device, non_local_it, non_local_it + input.get_num_elems(),
+        thrust_policy(exec), non_local_it, non_local_it + input.get_num_elems(),
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_global_col_idxs.get_data(),
@@ -207,7 +207,8 @@ void build_local_nonlocal(
     auto key_it = thrust::make_zip_iterator(
         thrust::make_tuple(non_local_col_part_ids.get_data(),
                            sorted_non_local_global_col_idxs.get_data()));
-    thrust::sort_by_key(thrust::device, key_it, key_it + num_non_local_elements,
+    thrust::sort_by_key(thrust_policy(exec), key_it,
+                        key_it + num_non_local_elements,
                         non_local_col_range_ids.get_data());
 
     // 2. remove duplicate columns, now the new column i has global index
@@ -215,7 +216,7 @@ void build_local_nonlocal(
     auto non_local_global_col_idxs_begin =
         sorted_non_local_global_col_idxs.get_data();
     auto non_local_global_col_idxs_end = thrust::get<0>(thrust::unique_by_key(
-        thrust::device, non_local_global_col_idxs_begin,
+        thrust_policy(exec), non_local_global_col_idxs_begin,
         non_local_global_col_idxs_begin + num_non_local_elements,
         thrust::make_zip_iterator(
             thrust::make_tuple(non_local_col_part_ids.get_data(),
@@ -234,10 +235,10 @@ void build_local_nonlocal(
     // column index. Then I'm using binary searches to find the new local column
     // index.
     array<LocalIndexType> permutation{exec, num_non_local_cols};
-    thrust::sequence(thrust::device, permutation.get_data(),
+    thrust::sequence(thrust_policy(exec), permutation.get_data(),
                      permutation.get_data() + num_non_local_cols);
     thrust::sort_by_key(
-        thrust::device, non_local_global_col_idxs_begin,
+        thrust_policy(exec), non_local_global_col_idxs_begin,
         non_local_global_col_idxs_begin + num_non_local_cols,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_col_part_ids.get_data(), permutation.get_data())));
@@ -250,14 +251,14 @@ void build_local_nonlocal(
     // https://github.com/NVIDIA/thrust/issues/1415
     // TODO: compute lower bounds on-the-fly if available
     thrust::lower_bound(
-        thrust::device, non_local_global_col_idxs_begin,
+        thrust_policy(exec), non_local_global_col_idxs_begin,
         non_local_global_col_idxs_begin + num_non_local_cols,
         non_local_global_col_idxs.get_data(),
         non_local_global_col_idxs.get_data() + num_non_local_elements,
         lower_bounds.get_data());
     auto permutation_data = permutation.get_data();
     thrust::transform(
-        thrust::device, lower_bounds.get_data(),
+        thrust_policy(exec), lower_bounds.get_data(),
         lower_bounds.get_data() + num_non_local_elements,
         non_local_col_idxs.get_data(),
         [permutation_data] __host__ __device__(const size_type lower_bound) {
@@ -269,7 +270,7 @@ void build_local_nonlocal(
     auto transform_it = thrust::make_zip_iterator(thrust::make_tuple(
         non_local_to_global.get_data(), non_local_col_range_ids.get_data()));
     thrust::transform(
-        thrust::device, transform_it, transform_it + num_non_local_cols,
+        thrust_policy(exec), transform_it, transform_it + num_non_local_cols,
         local_gather_idxs.get_data(),
         [map_to_local_col] __host__ __device__(
             const thrust::tuple<GlobalIndexType, size_type>& tuple) {
@@ -278,8 +279,8 @@ void build_local_nonlocal(
         });
 
     auto recv_sizes_ptr = recv_sizes.get_data();
-    thrust::fill_n(thrust::device, recv_sizes_ptr, num_parts, 0);
-    thrust::for_each_n(thrust::device, non_local_col_part_ids.get_data(),
+    thrust::fill_n(thrust_policy(exec), recv_sizes_ptr, num_parts, 0);
+    thrust::for_each_n(thrust_policy(exec), non_local_col_part_ids.get_data(),
                        num_non_local_cols,
                        [recv_sizes_ptr] __device__(const size_type part) {
                            atomic_add(recv_sizes_ptr + part, 1);

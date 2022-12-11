@@ -45,7 +45,7 @@ void build_local(
     const auto num_ranges = partition->get_num_ranges();
 
     array<size_type> range_id{exec, input.get_num_elems()};
-    thrust::upper_bound(thrust::device, range_bounds + 1,
+    thrust::upper_bound(thrust_policy(exec), range_bounds + 1,
                         range_bounds + num_ranges + 1,
                         input.get_const_row_idxs(),
                         input.get_const_row_idxs() + input.get_num_elems(),
@@ -85,7 +85,7 @@ void build_local(
         [part_ids, local_part] __host__ __device__(const size_type rid) {
             return part_ids[rid] == local_part;
         };
-    thrust::scatter_if(thrust::device, input.get_const_values(),
+    thrust::scatter_if(thrust_policy(exec), input.get_const_values(),
                        input.get_const_values() + input.get_num_elems(),
                        flat_idx_it, range_id.get_data(),
                        local_mtx->get_values(), is_local_row);

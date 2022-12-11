@@ -67,6 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/hipsparse_block_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
+#include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"

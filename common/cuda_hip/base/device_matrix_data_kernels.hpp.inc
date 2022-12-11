@@ -39,12 +39,12 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     // due to overly generic assignment operator and constructor leading to
     // ambiguities. So we need to use our own fake_complex type
     using device_value_type = device_member_type<ValueType>;
-    auto value_ptr = thrust::device_pointer_cast(
-        reinterpret_cast<const device_value_type*>(values.get_const_data()));
+    auto value_ptr =
+        reinterpret_cast<const device_value_type*>(values.get_const_data());
     auto size = values.get_num_elems();
     // count nonzeros
     auto nnz =
-        thrust::count_if(thrust::device, value_ptr, value_ptr + size,
+        thrust::count_if(thrust_policy(exec), value_ptr, value_ptr + size,
                          [] __device__(device_value_type value) {
                              return is_nonzero(fake_complex_unpack(value));
                          });
@@ -57,15 +57,12 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
         // copy nonzeros
         auto it = thrust::make_zip_iterator(thrust::make_tuple(
-            thrust::device_pointer_cast(row_idxs.get_const_data()),
-            thrust::device_pointer_cast(col_idxs.get_const_data()), value_ptr));
+            row_idxs.get_const_data(), col_idxs.get_const_data(), value_ptr));
         auto out_it = thrust::make_zip_iterator(thrust::make_tuple(
-            thrust::device_pointer_cast(new_row_idxs.get_data()),
-            thrust::device_pointer_cast(new_col_idxs.get_data()),
-            thrust::device_pointer_cast(
-                reinterpret_cast<device_value_type*>(new_values.get_data()))));
+            new_row_idxs.get_data(), new_col_idxs.get_data(),
+            reinterpret_cast<device_value_type*>(new_values.get_data())));
         thrust::copy_if(
-            thrust::device, it, it + size, out_it,
+            thrust_policy(exec), it, it + size, out_it,
             [] __device__(tuple_type entry) {
                 return is_nonzero(fake_complex_unpack(thrust::get<2>(entry)));
             });
@@ -91,7 +88,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     const auto cols = col_idxs.get_const_data();
     auto iota = thrust::make_counting_iterator(size_type{});
     const auto new_size = static_cast<size_type>(thrust::count_if(
-        thrust::device, iota, iota + size,
+        thrust_policy(exec), iota, iota + size,
         [rows, cols] __device__(size_type i) {
             const auto prev_row =
                 i > 0 ? rows[i - 1] : invalid_index<IndexType>();
@@ -105,19 +102,16 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
         array<IndexType> new_row_idxs{exec, new_size};
         array<IndexType> new_col_idxs{exec, new_size};
         // reduce duplicates
-        auto in_locs = thrust::make_zip_iterator(
-            thrust::make_tuple(thrust::device_pointer_cast(rows),
-                               thrust::device_pointer_cast(cols)));
-        auto in_vals = thrust::device_pointer_cast(
-            reinterpret_cast<const device_value_type*>(
-                values.get_const_data()));
+        auto in_locs =
+            thrust::make_zip_iterator(thrust::make_tuple(rows, cols));
+        auto in_vals =
+            reinterpret_cast<const device_value_type*>(values.get_const_data());
         auto out_locs = thrust::make_zip_iterator(thrust::make_tuple(
-            thrust::device_pointer_cast(new_row_idxs.get_data()),
-            thrust::device_pointer_cast(new_col_idxs.get_data())));
-        auto out_vals = thrust::device_pointer_cast(
-            reinterpret_cast<device_value_type*>(new_values.get_data()));
-        thrust::reduce_by_key(thrust::device, in_locs, in_locs + size, in_vals,
-                              out_locs, out_vals);
+            new_row_idxs.get_data(), new_col_idxs.get_data()));
+        auto out_vals =
+            reinterpret_cast<device_value_type*>(new_values.get_data());
+        thrust::reduce_by_key(thrust_policy(exec), in_locs, in_locs + size,
+                              in_vals, out_locs, out_vals);
         // swap out storage
         values = std::move(new_values);
         row_idxs = std::move(new_row_idxs);
@@ -138,11 +132,10 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     // ambiguities. So we need to use our own fake_complex type
     using device_value_type = device_member_type<ValueType>;
     auto it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(data.get_row_idxs()),
-                           thrust::device_pointer_cast(data.get_col_idxs())));
-    auto vals = thrust::device_pointer_cast(
-        reinterpret_cast<device_value_type*>(data.get_values()));
-    thrust::sort_by_key(thrust::device, it, it + data.get_num_elems(), vals);
+        thrust::make_tuple(data.get_row_idxs(), data.get_col_idxs()));
+    auto vals = reinterpret_cast<device_value_type*>(data.get_values());
+    thrust::sort_by_key(thrust_policy(exec), it, it + data.get_num_elems(),
+                        vals);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

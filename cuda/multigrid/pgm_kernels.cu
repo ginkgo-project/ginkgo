@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 
+#include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
 
 
