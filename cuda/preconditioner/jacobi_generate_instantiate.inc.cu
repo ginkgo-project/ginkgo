@@ -100,17 +100,17 @@ void generate(syn::value_list<int, max_block_size>,
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx->get_size()[0], mtx->get_const_row_ptrs(),
                     mtx->get_const_col_idxs(),
-                    as_cuda_type(mtx->get_const_values()),
-                    as_cuda_type(accuracy), as_cuda_type(block_data),
-                    storage_scheme, as_cuda_type(conditioning),
+                    as_device_type(mtx->get_const_values()),
+                    as_device_type(accuracy), as_device_type(block_data),
+                    storage_scheme, as_device_type(conditioning),
                     block_precisions, block_ptrs, num_blocks);
         } else {
             kernel::generate<max_block_size, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx->get_size()[0], mtx->get_const_row_ptrs(),
                     mtx->get_const_col_idxs(),
-                    as_cuda_type(mtx->get_const_values()),
-                    as_cuda_type(block_data), storage_scheme, block_ptrs,
+                    as_device_type(mtx->get_const_values()),
+                    as_device_type(block_data), storage_scheme, block_ptrs,
                     num_blocks);
         }
     }

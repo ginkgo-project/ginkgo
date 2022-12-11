@@ -88,8 +88,8 @@ void initialize_m(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
     initialize_m_kernel<<<grid_dim, default_block_size, 0,
                           exec->get_stream()>>>(
-        subspace_dim, nrhs, as_hip_type(m->get_values()), m_stride,
-        as_hip_type(stop_status->get_data()));
+        subspace_dim, nrhs, as_device_type(m->get_values()), m_stride,
+        as_device_type(stop_status->get_data()));
 }
 
 
@@ -117,7 +117,7 @@ void orthonormalize_subspace_vectors(
     orthonormalize_subspace_vectors_kernel<default_block_size>
         <<<1, default_block_size, 0, exec->get_stream()>>>(
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
-            as_hip_type(subspace_vectors->get_values()),
+            as_device_type(subspace_vectors->get_values()),
             subspace_vectors->get_stride());
 }
 
@@ -135,15 +135,15 @@ void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = ceildiv(nrhs, default_block_size);
     solve_lower_triangular_kernel<<<grid_dim, default_block_size, 0,
                                     exec->get_stream()>>>(
-        subspace_dim, nrhs, as_hip_type(m->get_const_values()), m->get_stride(),
-        as_hip_type(f->get_const_values()), f->get_stride(),
-        as_hip_type(c->get_values()), c->get_stride(),
+        subspace_dim, nrhs, as_device_type(m->get_const_values()),
+        m->get_stride(), as_device_type(f->get_const_values()), f->get_stride(),
+        as_device_type(c->get_values()), c->get_stride(),
         stop_status->get_const_data());
 }
 
 
 template <typename ValueType>
-void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
+void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                     const size_type nrhs, const size_type k,
                     const matrix::Dense<ValueType>* p,
                     const matrix::Dense<ValueType>* m,
@@ -167,10 +167,10 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
-
             multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                size, nrhs, as_hip_type(p_i), as_hip_type(g_k->get_values()),
-                g_k->get_stride(), as_hip_type(alpha->get_values()),
+                size, nrhs, as_device_type(p_i),
+                as_device_type(g_k->get_values()), g_k->get_stride(),
+                as_device_type(alpha->get_values()),
                 stop_status->get_const_data());
         } else {
             hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
@@ -180,24 +180,24 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k->get_stride(), default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
-                k, i, size, nrhs, as_hip_type(alpha->get_const_values()),
-                as_hip_type(m->get_const_values()), m->get_stride(),
-                as_hip_type(g->get_const_values()), g->get_stride(),
-                as_hip_type(g_k->get_values()), g_k->get_stride(),
-                as_hip_type(u->get_values()), u->get_stride(),
+                k, i, size, nrhs, as_device_type(alpha->get_const_values()),
+                as_device_type(m->get_const_values()), m->get_stride(),
+                as_device_type(g->get_const_values()), g->get_stride(),
+                as_device_type(g_k->get_values()), g_k->get_stride(),
+                as_device_type(u->get_values()), u->get_stride(),
                 stop_status->get_const_data());
     }
     update_g_kernel<default_block_size>
         <<<ceildiv(size * g_k->get_stride(), default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
-            k, size, nrhs, as_hip_type(g_k->get_const_values()),
-            g_k->get_stride(), as_hip_type(g->get_values()), g->get_stride(),
+            k, size, nrhs, as_device_type(g_k->get_const_values()),
+            g_k->get_stride(), as_device_type(g->get_values()), g->get_stride(),
             stop_status->get_const_data());
 }
 
 
 template <typename ValueType>
-void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
+void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
               const array<stopping_status>* stop_status)
@@ -220,9 +220,9 @@ void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
             multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                size, nrhs, as_hip_type(p_i),
-                as_hip_type(g_k->get_const_values()), g_k->get_stride(),
-                as_hip_type(m_i), stop_status->get_const_data());
+                size, nrhs, as_device_type(p_i),
+                as_device_type(g_k->get_const_values()), g_k->get_stride(),
+                as_device_type(m_i), stop_status->get_const_data());
         } else {
             hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
                          g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -232,7 +232,7 @@ void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
 
 
 template <typename ValueType>
-void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
+void update_x_r_and_f(std::shared_ptr<const DefaultExecutor> exec,
                       const size_type nrhs, const size_type k,
                       const matrix::Dense<ValueType>* m,
                       const matrix::Dense<ValueType>* g,
@@ -247,12 +247,12 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim = ceildiv(size * x->get_stride(), default_block_size);
     update_x_r_and_f_kernel<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-        k, size, subspace_dim, nrhs, as_hip_type(m->get_const_values()),
-        m->get_stride(), as_hip_type(g->get_const_values()), g->get_stride(),
-        as_hip_type(u->get_const_values()), u->get_stride(),
-        as_hip_type(f->get_values()), f->get_stride(),
-        as_hip_type(r->get_values()), r->get_stride(),
-        as_hip_type(x->get_values()), x->get_stride(),
+        k, size, subspace_dim, nrhs, as_device_type(m->get_const_values()),
+        m->get_stride(), as_device_type(g->get_const_values()), g->get_stride(),
+        as_device_type(u->get_const_values()), u->get_stride(),
+        as_device_type(f->get_values()), f->get_stride(),
+        as_device_type(r->get_values()), r->get_stride(),
+        as_device_type(x->get_values()), x->get_stride(),
         stop_status->get_const_data());
     components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
                            zero<ValueType>());
@@ -263,8 +263,8 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType>* m,
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
+                const size_type nrhs, matrix::Dense<ValueType>* m,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
                 array<stopping_status>* stop_status)
 {
@@ -277,7 +277,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
+void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* m,
             const matrix::Dense<ValueType>* f,
             const matrix::Dense<ValueType>* residual,
@@ -290,14 +290,13 @@ void step_1(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
     const auto num_rows = v->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
 
-    const auto grid_dim =
-        ceildiv(v->get_stride() * num_rows, default_block_size);
+    const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_1_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
         k, num_rows, subspace_dim, nrhs,
-        as_hip_type(residual->get_const_values()), residual->get_stride(),
-        as_hip_type(c->get_const_values()), c->get_stride(),
-        as_hip_type(g->get_const_values()), g->get_stride(),
-        as_hip_type(v->get_values()), v->get_stride(),
+        as_device_type(residual->get_const_values()), residual->get_stride(),
+        as_device_type(c->get_const_values()), c->get_stride(),
+        as_device_type(g->get_const_values()), g->get_stride(),
+        as_device_type(v->get_values()), v->get_stride(),
         stop_status->get_const_data());
 }
 
@@ -305,7 +304,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
+void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* omega,
             const matrix::Dense<ValueType>* preconditioned_vector,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
@@ -317,13 +316,14 @@ void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 
-    const auto grid_dim =
-        ceildiv(u->get_stride() * num_rows, default_block_size);
+    const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_2_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
-        k, num_rows, subspace_dim, nrhs, as_hip_type(omega->get_const_values()),
-        as_hip_type(preconditioned_vector->get_const_values()),
-        preconditioned_vector->get_stride(), as_hip_type(c->get_const_values()),
-        c->get_stride(), as_hip_type(u->get_values()), u->get_stride(),
+        k, num_rows, subspace_dim, nrhs,
+        as_device_type(omega->get_const_values()),
+        as_device_type(preconditioned_vector->get_const_values()),
+        preconditioned_vector->get_stride(),
+        as_device_type(c->get_const_values()), c->get_stride(),
+        as_device_type(u->get_values()), u->get_stride(),
         stop_status->get_const_data());
 }
 
@@ -331,7 +331,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
+void step_3(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* p,
             matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
             matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
@@ -349,7 +349,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 template <typename ValueType>
 void compute_omega(
-    std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
+    std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
@@ -357,9 +357,9 @@ void compute_omega(
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel<<<grid_dim, config::warp_size, 0,
                            exec->get_stream()>>>(
-        nrhs, as_hip_type(kappa), as_hip_type(tht->get_const_values()),
-        as_hip_type(residual_norm->get_const_values()),
-        as_hip_type(omega->get_values()), stop_status->get_const_data());
+        nrhs, as_device_type(kappa), as_device_type(tht->get_const_values()),
+        as_device_type(residual_norm->get_const_values()),
+        as_device_type(omega->get_values()), stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

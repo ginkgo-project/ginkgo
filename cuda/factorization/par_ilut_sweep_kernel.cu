@@ -97,13 +97,14 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
         kernel::sweep<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 a->get_const_row_ptrs(), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_values()), l->get_const_row_ptrs(),
+                as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
                 l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
-                as_cuda_type(l->get_values()),
+                as_device_type(l->get_values()),
                 static_cast<IndexType>(l->get_num_stored_elements()),
                 u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
-                as_cuda_type(u->get_values()), u_csc->get_const_row_ptrs(),
-                u_csc->get_const_col_idxs(), as_cuda_type(u_csc->get_values()),
+                as_device_type(u->get_values()), u_csc->get_const_row_ptrs(),
+                u_csc->get_const_col_idxs(),
+                as_device_type(u_csc->get_values()),
                 static_cast<IndexType>(u->get_num_stored_elements()));
     }
 }

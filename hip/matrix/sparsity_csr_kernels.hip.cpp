@@ -123,16 +123,18 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
-                a->get_size()[0], as_hip_type(a->get_const_value()),
-                a->get_const_col_idxs(), as_hip_type(a->get_const_row_ptrs()),
+                a->get_size()[0], as_device_type(a->get_const_value()),
+                a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_ptrs()),
                 acc::as_hip_range(b_vals), acc::as_hip_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
-                a->get_size()[0], as_hip_type(alpha->get_const_values()),
-                as_hip_type(a->get_const_value()), a->get_const_col_idxs(),
-                as_hip_type(a->get_const_row_ptrs()), acc::as_hip_range(b_vals),
-                as_hip_type(beta->get_const_values()),
+                a->get_size()[0], as_device_type(alpha->get_const_values()),
+                as_device_type(a->get_const_value()), a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_ptrs()),
+                acc::as_hip_range(b_vals),
+                as_device_type(beta->get_const_values()),
                 acc::as_hip_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -176,64 +178,6 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
-    std::shared_ptr<const HipExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(
-    std::shared_ptr<const HipExecutor> exec, const IndexType* row_ptrs,
-    const IndexType* col_idxs,
-    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const HipExecutor> exec,
-               const matrix::SparsityCsr<ValueType, IndexType>* orig,
-               matrix::SparsityCsr<ValueType, IndexType>* trans)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(
-    std::shared_ptr<const HipExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
-    bool* is_sorted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace sparsity_csr

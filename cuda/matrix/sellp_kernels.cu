@@ -65,53 +65,6 @@ constexpr int default_block_size = 512;
 #include "common/cuda_hip/matrix/sellp_kernels.hpp.inc"
 
 
-template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Sellp<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
-{
-    const auto block_size = default_block_size;
-    const dim3 grid(ceildiv(a->get_size()[0], block_size), b->get_size()[1]);
-
-    if (grid.x > 0 && grid.y > 0) {
-        spmv_kernel<<<grid, block_size, 0, exec->get_stream()>>>(
-            a->get_size()[0], b->get_size()[1], b->get_stride(),
-            c->get_stride(), a->get_slice_size(), a->get_const_slice_sets(),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Sellp<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
-{
-    const auto block_size = default_block_size;
-    const dim3 grid(ceildiv(a->get_size()[0], block_size), b->get_size()[1]);
-
-    if (grid.x > 0 && grid.y > 0) {
-        advanced_spmv_kernel<<<grid, block_size, 0, exec->get_stream()>>>(
-            a->get_size()[0], b->get_size()[1], b->get_stride(),
-            c->get_stride(), a->get_slice_size(), a->get_const_slice_sets(),
-            as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_cuda_type(b->get_const_values()),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()));
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
-
-
 }  // namespace sellp
 }  // namespace cuda
 }  // namespace kernels

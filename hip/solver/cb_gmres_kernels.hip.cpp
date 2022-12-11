@@ -87,12 +87,12 @@ void zero_matrix(std::shared_ptr<const DefaultExecutor> exec, size_type m,
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(n, block_size);
     zero_matrix_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-        m, n, stride, as_hip_type(array));
+        m, n, stride, as_device_type(array));
 }
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const HipExecutor> exec,
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType>* b,
                 matrix::Dense<ValueType>* residual,
                 matrix::Dense<ValueType>* givens_sin,
@@ -105,22 +105,21 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
-
     initialize_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             b->get_size()[0], b->get_size()[1], krylov_dim,
-            as_hip_type(b->get_const_values()), b->get_stride(),
-            as_hip_type(residual->get_values()), residual->get_stride(),
-            as_hip_type(givens_sin->get_values()), givens_sin->get_stride(),
-            as_hip_type(givens_cos->get_values()), givens_cos->get_stride(),
-            as_hip_type(stop_status->get_data()));
+            as_device_type(b->get_const_values()), b->get_stride(),
+            as_device_type(residual->get_values()), residual->get_stride(),
+            as_device_type(givens_sin->get_values()), givens_sin->get_stride(),
+            as_device_type(givens_cos->get_values()), givens_cos->get_stride(),
+            as_device_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
-void restart(std::shared_ptr<const HipExecutor> exec,
+void restart(std::shared_ptr<const DefaultExecutor> exec,
              const matrix::Dense<ValueType>* residual,
              matrix::Dense<remove_complex<ValueType>>* residual_norm,
              matrix::Dense<ValueType>* residual_norm_collection,
@@ -147,7 +146,7 @@ void restart(std::shared_ptr<const HipExecutor> exec,
         <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
             residual->get_size()[0], residual->get_size()[1], krylov_dim,
             acc::as_hip_range(krylov_bases),
-            as_hip_type(residual_norm_collection->get_values()),
+            as_device_type(residual_norm_collection->get_values()),
             residual_norm_collection->get_stride());
     kernels::hip::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                 reduction_tmp);
@@ -159,12 +158,11 @@ void restart(std::shared_ptr<const HipExecutor> exec,
         const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                                  exec->get_num_multiprocessor() * 2);
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
-
         multinorminf_without_stop_kernel<<<grid_size_nrm, block_size_nrm, 0,
                                            exec->get_stream()>>>(
-            num_rows, num_rhs, as_hip_type(residual->get_const_values()),
+            num_rows, num_rhs, as_device_type(residual->get_const_values()),
             residual->get_stride(),
-            as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi), 0);
+            as_device_type(arnoldi_norm->get_values() + 2 * stride_arnoldi), 0);
     }
 
     if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
@@ -172,10 +170,10 @@ void restart(std::shared_ptr<const HipExecutor> exec,
             <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
                 num_rhs, krylov_dim + 1,
-                as_hip_type(residual_norm->get_const_values()),
+                as_device_type(residual_norm->get_const_values()),
                 residual_norm->get_stride(),
-                as_hip_type(arnoldi_norm->get_const_values() +
-                            2 * stride_arnoldi),
+                as_device_type(arnoldi_norm->get_const_values() +
+                               2 * stride_arnoldi),
                 stride_arnoldi, acc::as_hip_range(krylov_bases));
     }
 
@@ -185,20 +183,21 @@ void restart(std::shared_ptr<const HipExecutor> exec,
     restart_2_kernel<block_size>
         <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
             residual->get_size()[0], residual->get_size()[1],
-            as_hip_type(residual->get_const_values()), residual->get_stride(),
-            as_hip_type(residual_norm->get_const_values()),
-            as_hip_type(residual_norm_collection->get_values()),
+            as_device_type(residual->get_const_values()),
+            residual->get_stride(),
+            as_device_type(residual_norm->get_const_values()),
+            as_device_type(residual_norm_collection->get_values()),
             acc::as_hip_range(krylov_bases),
-            as_hip_type(next_krylov_basis->get_values()),
+            as_device_type(next_krylov_basis->get_values()),
             next_krylov_basis->get_stride(),
-            as_hip_type(final_iter_nums->get_data()));
+            as_device_type(final_iter_nums->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
-void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
+void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                         matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3dim krylov_bases,
                         matrix::Dense<ValueType>* hessenberg_iter,
@@ -237,11 +236,11 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());
-
     multinorm2_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
         dim_size[0], dim_size[1],
-        as_hip_type(next_krylov_basis->get_const_values()), stride_next_krylov,
-        as_hip_type(arnoldi_norm->get_values()), as_hip_type(stop_status));
+        as_device_type(next_krylov_basis->get_const_values()),
+        stride_next_krylov, as_device_type(arnoldi_norm->get_values()),
+        as_device_type(stop_status));
     // nrmP = norm(next_krylov_basis
     zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
@@ -249,18 +248,19 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         multidot_kernel<default_dot_dim>
             <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
-                as_hip_type(next_krylov_basis->get_const_values()),
+                as_device_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov, acc::as_hip_range(krylov_bases),
-                as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_hip_type(stop_status));
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg, as_device_type(stop_status));
     } else {
         singledot_kernel<singledot_block_size>
             <<<grid_size_iters_single, block_size_iters_single, 0,
                exec->get_stream()>>>(
-                dim_size[0], as_hip_type(next_krylov_basis->get_const_values()),
+                dim_size[0],
+                as_device_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov, acc::as_hip_range(krylov_bases),
-                as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_hip_type(stop_status));
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg, as_device_type(stop_status));
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -269,10 +269,10 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
             iter + 1, dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
             acc::as_hip_range(krylov_bases),
-            as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-            as_hip_type(stop_status));
+            as_device_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_device_type(stop_status));
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -284,25 +284,24 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                                arnoldi_norm->get_values() + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
     }
-
     multinorm2_inf_kernel<use_scalar>
         <<<grid_size, block_size, 0, exec->get_stream()>>>(
             dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_const_values()),
+            as_device_type(next_krylov_basis->get_const_values()),
             stride_next_krylov,
-            as_hip_type(arnoldi_norm->get_values() + stride_arnoldi),
-            as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
-            as_hip_type(stop_status));
+            as_device_type(arnoldi_norm->get_values() + stride_arnoldi),
+            as_device_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
+            as_device_type(stop_status));
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
     check_arnoldi_norms<default_block_size>
         <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
            exec->get_stream()>>>(
-            dim_size[1], as_hip_type(arnoldi_norm->get_values()),
-            stride_arnoldi, as_hip_type(hessenberg_iter->get_values()),
+            dim_size[1], as_device_type(arnoldi_norm->get_values()),
+            stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
             stride_hessenberg, iter + 1, acc::as_hip_range(krylov_bases),
-            as_hip_type(stop_status), as_hip_type(reorth_status),
-            as_hip_type(num_reorth->get_data()));
+            as_device_type(stop_status), as_device_type(reorth_status),
+            as_device_type(num_reorth->get_data()));
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
@@ -312,19 +311,19 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
             multidot_kernel<default_dot_dim>
                 <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                     dim_size[0], dim_size[1],
-                    as_hip_type(next_krylov_basis->get_const_values()),
+                    as_device_type(next_krylov_basis->get_const_values()),
                     stride_next_krylov, acc::as_hip_range(krylov_bases),
-                    as_hip_type(buffer_iter->get_values()), stride_buffer,
-                    as_hip_type(stop_status));
+                    as_device_type(buffer_iter->get_values()), stride_buffer,
+                    as_device_type(stop_status));
         } else {
             singledot_kernel<singledot_block_size>
                 <<<grid_size_iters_single, block_size_iters_single, 0,
                    exec->get_stream()>>>(
                     dim_size[0],
-                    as_hip_type(next_krylov_basis->get_const_values()),
+                    as_device_type(next_krylov_basis->get_const_values()),
                     stride_next_krylov, acc::as_hip_range(krylov_bases),
-                    as_hip_type(buffer_iter->get_values()), stride_buffer,
-                    as_hip_type(stop_status));
+                    as_device_type(buffer_iter->get_values()), stride_buffer,
+                    as_device_type(stop_status));
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -333,11 +332,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
                 iter + 1, dim_size[0], dim_size[1],
-                as_hip_type(next_krylov_basis->get_values()),
+                as_device_type(next_krylov_basis->get_values()),
                 stride_next_krylov, acc::as_hip_range(krylov_bases),
-                as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_hip_type(buffer_iter->get_const_values()), stride_buffer,
-                as_hip_type(stop_status), as_hip_type(reorth_status));
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg,
+                as_device_type(buffer_iter->get_const_values()), stride_buffer,
+                as_device_type(stop_status), as_device_type(reorth_status));
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -349,25 +349,24 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                 exec, arnoldi_norm->get_values() + 2 * stride_arnoldi,
                 dim_size[1], zero<non_complex>());
         }
-
         multinorm2_inf_kernel<use_scalar>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
-                as_hip_type(next_krylov_basis->get_const_values()),
+                as_device_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov,
-                as_hip_type(arnoldi_norm->get_values() + stride_arnoldi),
-                as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
-                as_hip_type(stop_status));
+                as_device_type(arnoldi_norm->get_values() + stride_arnoldi),
+                as_device_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
+                as_device_type(stop_status));
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth->get_data(), 1,
                                zero<size_type>());
         check_arnoldi_norms<default_block_size>
             <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
                exec->get_stream()>>>(
-                dim_size[1], as_hip_type(arnoldi_norm->get_values()),
-                stride_arnoldi, as_hip_type(hessenberg_iter->get_values()),
+                dim_size[1], as_device_type(arnoldi_norm->get_values()),
+                stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, iter + 1, acc::as_hip_range(krylov_bases),
-                as_hip_type(stop_status), as_hip_type(reorth_status),
+                as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth->get_data());
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
         // num_reorth_host := number of next_krylov vector to be
@@ -377,17 +376,17 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
             iter, dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
             acc::as_hip_range(krylov_bases),
-            as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-            as_hip_type(stop_status));
+            as_device_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_device_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
 }
 
 template <typename ValueType>
-void givens_rotation(std::shared_ptr<const HipExecutor> exec,
+void givens_rotation(std::shared_ptr<const DefaultExecutor> exec,
                      matrix::Dense<ValueType>* givens_sin,
                      matrix::Dense<ValueType>* givens_cos,
                      matrix::Dense<ValueType>* hessenberg_iter,
@@ -405,19 +404,19 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
     givens_rotation_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
-            iter, as_hip_type(hessenberg_iter->get_values()),
+            iter, as_device_type(hessenberg_iter->get_values()),
             hessenberg_iter->get_stride(),
-            as_hip_type(givens_sin->get_values()), givens_sin->get_stride(),
-            as_hip_type(givens_cos->get_values()), givens_cos->get_stride(),
-            as_hip_type(residual_norm->get_values()),
-            as_hip_type(residual_norm_collection->get_values()),
+            as_device_type(givens_sin->get_values()), givens_sin->get_stride(),
+            as_device_type(givens_cos->get_values()), givens_cos->get_stride(),
+            as_device_type(residual_norm->get_values()),
+            as_device_type(residual_norm_collection->get_values()),
             residual_norm_collection->get_stride(),
             stop_status->get_const_data());
 }
 
 
 template <typename ValueType, typename Accessor3d>
-void arnoldi(std::shared_ptr<const HipExecutor> exec,
+void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
              matrix::Dense<ValueType>* next_krylov_basis,
              matrix::Dense<ValueType>* givens_sin,
              matrix::Dense<ValueType>* givens_cos,
@@ -435,8 +434,8 @@ void arnoldi(std::shared_ptr<const HipExecutor> exec,
         static_cast<unsigned int>(
             ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
         default_block_size, 0, exec->get_stream()>>>(
-        as_hip_type(final_iter_nums->get_data()), stop_status->get_const_data(),
-        final_iter_nums->get_num_elems());
+        as_device_type(final_iter_nums->get_data()),
+        stop_status->get_const_data(), final_iter_nums->get_num_elems());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),
@@ -462,15 +461,14 @@ void solve_upper_triangular(
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
-
     solve_upper_triangular_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             hessenberg->get_size()[1], num_rhs,
-            as_hip_type(residual_norm_collection->get_const_values()),
+            as_device_type(residual_norm_collection->get_const_values()),
             residual_norm_collection->get_stride(),
-            as_hip_type(hessenberg->get_const_values()),
-            hessenberg->get_stride(), as_hip_type(y->get_values()),
-            y->get_stride(), as_hip_type(final_iter_nums->get_const_data()));
+            as_device_type(hessenberg->get_const_values()),
+            hessenberg->get_stride(), as_device_type(y->get_values()),
+            y->get_stride(), as_device_type(final_iter_nums->get_const_data()));
 }
 
 
@@ -494,17 +492,17 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
     calculate_Qy_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             num_rows, num_cols, acc::as_hip_range(krylov_bases),
-            as_hip_type(y->get_const_values()), y->get_stride(),
-            as_hip_type(before_preconditioner->get_values()),
+            as_device_type(y->get_const_values()), y->get_stride(),
+            as_device_type(before_preconditioner->get_values()),
             stride_before_preconditioner,
-            as_hip_type(final_iter_nums->get_const_data()));
+            as_device_type(final_iter_nums->get_const_data()));
     // Calculate qy
     // before_preconditioner = krylov_bases * y
 }
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void solve_krylov(std::shared_ptr<const HipExecutor> exec,
+void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* residual_norm_collection,
                   ConstAccessor3d krylov_bases,
                   const matrix::Dense<ValueType>* hessenberg,
@@ -525,7 +523,6 @@ void solve_krylov(std::shared_ptr<const HipExecutor> exec,
     calculate_qy(exec, krylov_bases, num_krylov_bases, y, before_preconditioner,
                  final_iter_nums);
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
     GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);

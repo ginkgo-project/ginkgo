@@ -82,8 +82,8 @@ void sampleselect_filter(std::shared_ptr<const DefaultExecutor> exec,
     if (num_blocks > 0) {
         kernel::filter_bucket<<<num_blocks, default_block_size, 0,
                                 exec->get_stream()>>>(
-            as_hip_type(values), size, bucket, oracles, partial_counts,
-            as_hip_type(out), items_per_thread);
+            as_device_type(values), size, bucket, oracles, partial_counts,
+            as_device_type(out), items_per_thread);
     }
 }
 
@@ -178,7 +178,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
     kernel::basecase_select<<<1, kernel::basecase_block_size, 0,
                               exec->get_stream()>>>(
-        as_hip_type(tmp22), bucket.size, rank, as_hip_type(out_ptr));
+        as_device_type(tmp22), bucket.size, rank, as_device_type(out_ptr));
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

@@ -162,7 +162,7 @@ void abstract_spmv(syn::value_list<int, info>,
                     nrows, num_worker_per_row, acc::as_hip_range(a_vals),
                     a->get_const_col_idxs(), stride,
                     num_stored_elements_per_row, acc::as_hip_range(b_vals),
-                    as_hip_type(c->get_values()), c->get_stride());
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid_size.x > 0 && grid_size.y > 0) {
@@ -173,8 +173,8 @@ void abstract_spmv(syn::value_list<int, info>,
                     nrows, num_worker_per_row, acc::as_hip_range(alpha_val),
                     acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
                     num_stored_elements_per_row, acc::as_hip_range(b_vals),
-                    as_hip_type(beta->get_const_values()),
-                    as_hip_type(c->get_values()), c->get_stride());
+                    as_device_type(beta->get_const_values()),
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
