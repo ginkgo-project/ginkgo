@@ -88,8 +88,8 @@ protected:
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 3;
-    const index_type nrows_small = 10;
     const index_type nrows_big = 150;
+    const index_type nrows_small = 10;
     const index_type min_nnz_row_small = 3;
     const index_type min_nnz_row_big = 30;
 
@@ -211,13 +211,13 @@ protected:
             GKO_NOT_IMPLEMENTED;
         }
 
-
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
                              .with_sparsity_power(spy_power)
                              .with_isai_input_matrix_type(batch_isai_type)
                              .on(exec);
         auto prec = prec_fact->generate(mtx);
+
         auto approx_inv = prec->get_const_approximate_inverse();
         auto approx_inv_vec = approx_inv->unbatch();
 
@@ -355,6 +355,7 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 //         2, std::string("general"), false);
 // }
 
+
 // TYPED_TEST(BatchIsai,
 // ExtendedGeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
 // {
@@ -362,6 +363,7 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 //         2, std::string("general"), true);
 // }
 
+// TODO: Fix bug in normal isai
 // TYPED_TEST(BatchIsai,
 // GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy3)
 // {
@@ -495,6 +497,7 @@ TYPED_TEST(BatchIsai,
 //         2, std::string("general"), true);
 // }
 
+// TODO: Fix bug in normal isai
 // TYPED_TEST(BatchIsai,
 //            GeneralBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy3)
 // {
