@@ -116,7 +116,8 @@ public:
 
         /**
          * @brief Optimization parameter that skips the sorting of the input
-         *        matrix (only skip if it is known that it is already sorted).
+         *        matrix (only skip if it is known that it is already sorted)
+         * (in reference to BatchCsr matrix format).
          *
          * The triangular solve algorithm requires the input matrix to be
          * sorted. If it is, this parameter can be set to `true` to skip the
