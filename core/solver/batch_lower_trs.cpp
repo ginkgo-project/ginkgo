@@ -99,17 +99,10 @@ void BatchLowerTrs<ValueType>::apply_impl(const BatchLinOp* b,
         exec, this->system_matrix_.get()));  // any way to avoid extra copy if
                                              // matrix is already sorted ??
 
-    if (parameters_.skip_sorting !=
-        true) {  // Note: dynamic cast now happens twice - here and then
-                 // dispatch on matrix type- individual backends.
-
+    if (parameters_.skip_sorting != true) {
         if (auto amat = dynamic_cast<matrix::BatchCsr<ValueType>*>(
                 system_matrix_new.get())) {
             amat->sort_by_column_index();
-
-        } else if (auto amat = dynamic_cast<matrix::BatchEll<ValueType>*>(
-                       system_matrix_new.get())) {
-            // amat->sort_by_column_index();
         }
     }
 

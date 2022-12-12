@@ -50,8 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-// TODO: Add tests for non-sorted input matrix
-// TODO: Add tests for input matrices in dense and ell format
+// TODO: Add tests for non-sorted csr input matrix
 template <typename T>
 class BatchUpperTrs : public ::testing::Test {
 protected:
