@@ -69,20 +69,4 @@ int& amd_device::get_num_execs(int i)
 }
 
 
-namespace log {
-
-
-static std::atomic<int> global_logger_refcount{};
-
-
-void inc_global_logger_refcount() { global_logger_refcount.fetch_add(1); }
-
-
-void dec_global_logger_refcount() { global_logger_refcount.fetch_add(-1); }
-
-
-bool propagate_to_exec() { return global_logger_refcount.load() > 0; }
-
-
-}  // namespace log
 }  // namespace gko

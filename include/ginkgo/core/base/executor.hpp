@@ -847,6 +847,18 @@ public:
         return this->verify_memory_from(other.get());
     }
 
+    /** Sets the logger propagation mode for this executor. */
+    void set_log_propagate_mode(log::propagate_mode mode)
+    {
+        log_propagate_mode_ = mode;
+    };
+
+    /** Returns the logger propagation mode for this executor. */
+    log::propagate_mode get_log_propagate_mode() const
+    {
+        return log_propagate_mode_;
+    }
+
     virtual scoped_device_id_guard get_scoped_device_id_guard() const = 0;
 
 protected:
@@ -1064,6 +1076,8 @@ protected:
     exec_info& get_exec_info() { return this->exec_info_; }
 
     exec_info exec_info_;
+
+    log::propagate_mode log_propagate_mode_{log::propagate_mode::none};
 
 private:
     /**
