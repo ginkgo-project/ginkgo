@@ -105,18 +105,17 @@ protected:
     {
         auto mc64 = dynamic_cast<const reorder::Mc64<double, int>*>(
             parameters_.reordering.get());
-        auto pb = as<matrix::Dense<double>>(b)->row_permute(
-            mc64->get_permutation().get());
-        mc64->get_row_scaling()->apply(pb.get(), pb.get());
-        auto px = as<matrix::Dense<double>>(
-            as<matrix::Dense<double>>(x)->inverse_row_permute(
-                mc64->get_inverse_permutation().get()));
+        as<matrix::Dense<double>>(b)->row_permute(mc64->get_permutation().get(),
+                                                  permuted_b_.get());
+        mc64->get_row_scaling()->apply(permuted_b_.get(), permuted_b_.get());
+        as<matrix::Dense<double>>(x)->inverse_row_permute(
+            mc64->get_inverse_permutation().get(), permuted_x_.get());
 
-        solver_->apply(pb.get(), px.get());
+        solver_->apply(permuted_b_.get(), permuted_x_.get());
 
-        px = as<matrix::Dense<double>>(
-            px->row_permute(mc64->get_inverse_permutation().get()));
-        mc64->get_col_scaling()->apply(px.get(), x);
+        permuted_x_->row_permute(mc64->get_inverse_permutation().get(),
+                                 permuted_b_.get());
+        mc64->get_col_scaling()->apply(permuted_b_.get(), x);
     }
 
     void apply_dense_impl(const matrix::Dense<ValueType>* b,
@@ -151,6 +150,10 @@ protected:
                     as<matrix::Csr<double, int>>(PA->inverse_column_permute(
                         mc64->get_inverse_permutation().get())));
                 // system_matrix_ = gko::share(PA);
+                permuted_b_ = matrix::Dense<double>::create(
+                    factory->get_executor(), gko::dim<2>{PA->get_size()[0], 1});
+                permuted_x_ = matrix::Dense<double>::create(
+                    factory->get_executor(), gko::dim<2>{PA->get_size()[0], 1});
             }
         }
         if (parameters_.solver) {
@@ -164,6 +167,9 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> solver_{};
+
+    std::shared_ptr<matrix::Dense<ValueType>> permuted_b_{};
+    std::shared_ptr<matrix::Dense<ValueType>> permuted_x_{};
 
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
