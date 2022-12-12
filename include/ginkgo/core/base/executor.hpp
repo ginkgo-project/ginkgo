@@ -1330,6 +1330,14 @@ public:
         return {this, 0};
     }
 
+    void run(const Operation& op) const override
+    {
+        this->template log<log::Logger::operation_launched>(this, &op);
+        op.run(std::static_pointer_cast<const ReferenceExecutor>(
+            this->shared_from_this()));
+        this->template log<log::Logger::operation_completed>(this, &op);
+    }
+
 protected:
     ReferenceExecutor()
     {
