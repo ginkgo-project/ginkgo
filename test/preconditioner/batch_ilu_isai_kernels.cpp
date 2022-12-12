@@ -224,6 +224,7 @@ TEST_F(BatchIluIsai, IluIsaiGenerateIsEquivalentToReference)
                               2, 2);
 }
 
+
 TEST_F(BatchIluIsai, IluExtendedIsaiGenerateIsEquivalentToReference)
 {
     test_generate_eqvt_to_ref(gko::preconditioner::batch_ilu_type::exact_ilu,
@@ -253,6 +254,7 @@ TEST_F(BatchIluIsai, IluIsaiSpmvSimpleApplyIsEquivalentToReference)
         apply_type, 2, gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
 }
 
+
 TEST_F(BatchIluIsai, IluExtendedIsaiSpmvSimpleApplyIsEquivalentToReference)
 {
     const auto apply_type =
@@ -270,6 +272,7 @@ TEST_F(BatchIluIsai, IluExtendedIsaiSpmvSimpleApplyIsEquivalentToReference)
                            gko::preconditioner::batch_ilu_type::parilu, 70, 2,
                            2, true);
 }
+
 
 // TODO: Implement batch_csr spgemm
 // TEST_F(BatchIluIsai, IluIsaiSpmvWithSpgemmApplyIsEquivalentToReference)
@@ -289,6 +292,7 @@ TEST_F(BatchIluIsai, IluExtendedIsaiSpmvSimpleApplyIsEquivalentToReference)
 //         apply_type, 2, gko::preconditioner::batch_ilu_type::parilu, 30, 2,
 //         2);
 // }
+
 
 // TODO: Implement batch_csr spgemm
 // TEST_F(BatchIluIsai,
@@ -326,6 +330,7 @@ TEST_F(BatchIluIsai, IluIsaiRelaxtionStepsSimpleApplyIsEquivalentToReference)
     test_apply_eqvt_to_ref(
         apply_type, 2, gko::preconditioner::batch_ilu_type::parilu, 30, 2, 2);
 }
+
 
 TEST_F(BatchIluIsai,
        IluExtendedIsaiRelaxtionStepsSimpleApplyIsEquivalentToReference)
