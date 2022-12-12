@@ -1057,6 +1057,11 @@ private:
             op_omp_();
         }
 
+        void run(std::shared_ptr<const ReferenceExecutor>) const override
+        {
+            op_omp_();
+        }
+
         void run(std::shared_ptr<const CudaExecutor>) const override
         {
             op_cuda_();
