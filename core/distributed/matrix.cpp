@@ -201,7 +201,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                                   recv_sizes_.data());
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
                      recv_offsets_.begin() + 1);
-    comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
+    comm.all_to_all(exec->get_master(), recv_sizes_.data(), 1,
+                    send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
@@ -216,7 +217,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec->get_master());
     }
     gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.all_to_all_v(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
+                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
                       recv_offsets_.data(), gather_idxs_.get_data(),
                       send_sizes_.data(), send_offsets_.data());
     if (use_host_buffer || comm.force_host_buffer()) {

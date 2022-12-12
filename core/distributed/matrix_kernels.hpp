@@ -72,10 +72,10 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const device_matrix_data<ValueType, GlobalIndexType>& input,           \
         const device_matrix_data<ValueType, GlobalIndexType>& non_local_input, \
-        const distributed::Partition<LocalIndexType, GlobalIndexType>*         \
-            row_partition,                                                     \
-        const distributed::Partition<LocalIndexType, GlobalIndexType>*         \
-            col_partition,                                                     \
+        const experimental::distributed::Partition<                            \
+            LocalIndexType, GlobalIndexType>* row_partition,                   \
+        const experimental::distributed::Partition<                            \
+            LocalIndexType, GlobalIndexType>* col_partition,                   \
         comm_index_type local_part, array<LocalIndexType>& local_row_idxs,     \
         array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values, \
         array<LocalIndexType>& non_local_row_idxs,                             \
@@ -86,15 +86,15 @@ namespace kernels {
         array<GlobalIndexType>& non_local_to_global)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
-    using comm_index_type = distributed::exeperimental::comm_index_type; \
-    template <typename ValueType, typename LocalIndexType,               \
-              typename GlobalIndexType>                                  \
-    GKO_DECLARE_BUILD_LOCAL_NONLOCAL(ValueType, LocalIndexType,          \
-                                     GlobalIndexType);                   \
-    template <typename ValueType, typename LocalIndexType,               \
-              typename GlobalIndexType>                                  \
-    GKO_DECLARE_BUILD_LOCAL_NONLOCAL2(ValueType, LocalIndexType,         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    using comm_index_type = experimental::distributed::comm_index_type; \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_BUILD_LOCAL_NONLOCAL(ValueType, LocalIndexType,         \
+                                     GlobalIndexType);                  \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_BUILD_LOCAL_NONLOCAL2(ValueType, LocalIndexType,        \
                                       GlobalIndexType)
 
 
