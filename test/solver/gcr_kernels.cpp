@@ -48,7 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -58,12 +60,16 @@ protected:
     using Solver = gko::solver::Gcr<value_type>;
     using norm_type = gko::remove_complex<value_type>;
     using NormVector = gko::matrix::Dense<norm_type>;
+    using mtx_data = gko::matrix_data<value_type, int>;
     template <typename T>
     using Dense = typename gko::matrix::Dense<T>;
 
     Gcr() : rand_engine(30)
     {
-        mtx = gen_mtx(15, 15);
+        mtx = gen_mtx(123, 123);
+        mtx->write(data);
+        gko::utils::make_spd(data, 1.0001);
+        mtx->read(data);
         d_mtx = gko::clone(exec, mtx);
         exec_gcr_factory =
             Solver::build()
@@ -138,6 +144,7 @@ protected:
     std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
+    mtx_data data;
     std::shared_ptr<Mtx> d_mtx;
     std::unique_ptr<Solver::Factory> exec_gcr_factory;
     std::unique_ptr<Solver::Factory> ref_gcr_factory;
@@ -220,7 +227,7 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
 
 TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 {
-    int m = 15;
+    int m = 123;
     int n = 1;
     auto ref_solver = ref_gcr_factory->generate(mtx);
     auto exec_solver = exec_gcr_factory->generate(d_mtx);
@@ -239,7 +246,7 @@ TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Gcr, GcrApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 15;
+    int m = 123;
     int n = 5;
     auto ref_solver = ref_gcr_factory->generate(mtx);
     auto exec_solver = exec_gcr_factory->generate(d_mtx);
