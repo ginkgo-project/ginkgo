@@ -41,7 +41,6 @@ __device__ __forceinline__ void naive_lower_trsv(
     const int* const __restrict__ col_idxs = L_entry.col_idxs;
     const ValueType* const __restrict__ mat_values_entry = L_entry.values;
 
-
     if (threadIdx.x == 0) {
         // L * x = b
         for (int row_idx = 0; row_idx < num_rows; row_idx++) {
@@ -62,7 +61,8 @@ __device__ __forceinline__ void naive_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    // TODO
+    assert(0);
 }
 
 template <typename ValueType>
@@ -71,8 +71,6 @@ __device__ __forceinline__ void naive_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    // assert(0);  // TODO
-
     const int num_rows = L_entry.num_rows;
 
     if (threadIdx.x == 0) {
@@ -115,7 +113,7 @@ __device__ __forceinline__ void independent_thread_scheduling_lower_trsv(
             }
             sum += mat_values_entry[i] * load(x_entry, col_index);
         }
-        ValueType val = b_entry[row_index] - sum;
+        ValueType val = (b_entry[row_index] - sum) / mat_values_entry[end];
         store(x_entry, row_index, val);
     }
 }
@@ -126,7 +124,8 @@ __device__ __forceinline__ void independent_thread_scheduling_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    // TODO
+    assert(0);
 }
 
 template <typename ValueType>
@@ -135,7 +134,24 @@ __device__ __forceinline__ void independent_thread_scheduling_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    const int num_rows = L_entry.num_rows;
+
+    for (int row_idx = threadIdx.x; row_idx < num_rows;
+         row_idx += static_cast<int>(blockDim.x)) {
+        ValueType sum = zero<ValueType>();
+
+        for (int col_idx = 0; col_idx < row_idx; col_idx++) {
+            while (!is_finite(load(x_entry, col_idx))) {
+            }
+
+            sum += L_entry.values[row_idx * L_entry.stride + col_idx] *
+                   load(x_entry, col_idx);
+        }
+
+        ValueType val = (b_entry[row_idx] - sum) /
+                        L_entry.values[row_idx * L_entry.stride + row_idx];
+        store(x_entry, row_idx, val);
+    }
 }
 
 template <typename ValueType>
@@ -183,7 +199,8 @@ __device__ __forceinline__ void warp_synchronous_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    // TODO
+    assert(0);
 }
 
 template <typename ValueType>
@@ -192,7 +209,31 @@ __device__ __forceinline__ void warp_synchronous_lower_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    assert(0);  // TODO
+    const int num_rows = L_entry.num_rows;
+
+    for (int row_idx = threadIdx.x; row_idx < num_rows;
+         row_idx += static_cast<int>(blockDim.x)) {
+        ValueType sum = zero<ValueType>();
+
+        int col_idx = 0;
+        bool completed = false;
+
+        while (!completed) {
+            if (col_idx < row_idx && is_finite(load(x_entry, col_idx))) {
+                sum += L_entry.values[row_idx * L_entry.stride + col_idx] *
+                       load(x_entry, col_idx);
+                col_idx++;
+            }
+
+            if (col_idx == row_idx) {
+                ValueType val =
+                    (b_entry[row_idx] - sum) /
+                    L_entry.values[row_idx * L_entry.stride + row_idx];
+                store(x_entry, row_idx, val);
+                completed = true;
+            }
+        }
+    }
 }
 
 
