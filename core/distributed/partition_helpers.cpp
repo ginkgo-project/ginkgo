@@ -68,24 +68,12 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
     auto mpi_exec = exec->get_master();
     array<GlobalIndexType> ranges_start_end(mpi_exec, comm.size() * 2);
     ranges_start_end.fill(invalid_index<GlobalIndexType>());
-    MPI_Datatype tmp;
-    MPI_Type_vector(2, 1, comm.size(),
-                    mpi::type_impl<GlobalIndexType>::get_type(), &tmp);
-    MPI_Type_commit(&tmp);
-    comm.all_gather(
-        mpi_exec, range, 1,
-        mpi::contiguous_type(2, mpi::type_impl<GlobalIndexType>::get_type())
-            .get(),
-        ranges_start_end.get_data(), 1, tmp);
-    MPI_Type_free(&tmp);
-    if (comm.rank() == 0) {
-        std::cout << ranges_start_end.get_num_elems() << " ";
-        for (int i = 0; i < comm.size() * 2; ++i) {
-            std::cout << ranges_start_end.get_data()[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-    comm.synchronize();
+    std::vector<mpi::request> reqs;
+    reqs.push_back(comm.i_all_gather(mpi_exec, &range[0], 1,
+                                     ranges_start_end.get_data(), 1));
+    reqs.push_back(comm.i_all_gather(
+        mpi_exec, &range[1], 1, ranges_start_end.get_data() + comm.size(), 1));
+    mpi::wait_all(reqs);
     ranges_start_end.set_executor(exec);
 
     // make_sort_by_range_start
@@ -110,7 +98,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                ranges.get_data() + 1);
 
     return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
-        exec, ranges);
+        exec, ranges, part_ids);
 }
 
 #define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE(_local_type,          \
