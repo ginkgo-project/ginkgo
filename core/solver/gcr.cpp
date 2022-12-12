@@ -225,7 +225,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // normalise
         auto Ap_norm = Ap_norms->create_submatrix(
             span{restart_iter, restart_iter + 1}, span{0, num_rhs});
-        Ap->compute_conj_dot(Ap.get(), Ap_norm.get());
+        Ap->compute_squared_norm2(Ap_norm.get());
 
         // tmp = alpha / Ap_norm
         // x = x + tmp * p
