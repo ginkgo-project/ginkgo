@@ -207,6 +207,11 @@ find_package(PerfStubs QUIET)
 if(PerfStubs_FOUND)
     set(GINKGO_HAVE_TAU 1)
 endif()
+# Automatically detect ROCTX (see hip.cmake)
+set(GINKGO_HAVE_ROCTX 0)
+if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
+    set(GINKGO_HAVE_ROCTX 1)
+endif()
 
 # Switch off HWLOC for Windows and MacOS
 if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))

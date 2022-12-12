@@ -74,10 +74,6 @@ if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
-if(GINKGO_HAVE_TAU)
-    target_sources(ginkgo PRIVATE log/tau.cpp)
-endif()
-
 if(GINKGO_BUILD_MPI)
     target_sources(ginkgo
         PRIVATE

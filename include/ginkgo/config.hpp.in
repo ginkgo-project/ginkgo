@@ -88,6 +88,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is ROCTX available for Profiling? */
+// clang-format off
+#define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@
+// clang-format on
+
+
 /* Is MPI available ? */
 // clang-format off
 #cmakedefine01 GINKGO_BUILD_MPI
