@@ -52,17 +52,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_COMPILING_DPCPP
 
 //TODO: Add tests for non-sorted input matrix
-//TODO: Add tests for matrix in dense and ell format
+//TODO: Add tests for matrix in ell format
 class BatchLowerTrs : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
     using BCsr = gko::matrix::BatchCsr<value_type, int>;
     using Csr = BCsr::unbatch_type;
     using BDense = gko::matrix::BatchDense<value_type>;
+    using Dense = BDense::unbatch_type;
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using solver_type = gko::solver::BatchLowerTrs<value_type>;
 
-    BatchLowerTrs() : csr_lower_mat(get_csr_lower_matrix()) 
+    BatchLowerTrs() : csr_lower_mat(get_csr_lower_matrix()), dense_lower_mat(get_dense_lower_matrix()) 
     {
         set_up_data();
     }
@@ -75,6 +76,7 @@ protected:
     const index_type nrows = 300;
     
     std::shared_ptr<BCsr> csr_lower_mat;
+    std::shared_ptr<BDense> dense_lower_mat;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
     std::shared_ptr<BDiag> left_scale;
@@ -90,6 +92,18 @@ protected:
                 ref);
 
         return BCsr::create(ref, nbatch, unbatch_mat.get());
+    }
+
+    std::unique_ptr<BDense> get_dense_lower_matrix()
+    {
+        auto unbatch_mat =
+            gko::test::generate_random_triangular_matrix<Dense>(
+                nrows, false, true,
+                std::uniform_int_distribution<>(nrows, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                ref);
+
+        return BDense::create(ref, nbatch, unbatch_mat.get());
     }
 
     void set_up_data()
@@ -139,7 +153,6 @@ TEST_F(BatchLowerTrs, CsrSolveIsEquivalentToReference)
 }
 
 
-
 TEST_F(BatchLowerTrs, CsrSolveWithScalingIsEquivalentToReference)
 {
     using solver_type = gko::solver::BatchLowerTrs<value_type>;
@@ -158,6 +171,46 @@ TEST_F(BatchLowerTrs, CsrSolveWithScalingIsEquivalentToReference)
     d_lower_trs->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
+
+}
+
+
+TEST_F(BatchLowerTrs, DenseSolveIsEquivalentToReference)
+{
+    using solver_type = gko::solver::BatchLowerTrs<value_type>;
+    auto d_dense_lower_mat = gko::share(gko::clone(exec, dense_lower_mat.get()));
+    auto d_b = gko::share(gko::clone(exec, b.get()));
+    auto d_x = gko::share(gko::clone(exec, x.get()));
+
+    auto lower_trs = solver_type::build().with_skip_sorting(true).on(ref)->generate(dense_lower_mat);
+    auto d_lower_trs = solver_type::build().with_skip_sorting(true).on(exec)->generate(d_dense_lower_mat);
+
+    lower_trs->apply(b.get(), x.get());
+    d_lower_trs->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 1000* eps);
+
+}
+
+
+TEST_F(BatchLowerTrs, DenseSolveWithScalingIsEquivalentToReference)
+{
+    using solver_type = gko::solver::BatchLowerTrs<value_type>;
+    auto d_dense_lower_mat = gko::share(gko::clone(exec, dense_lower_mat.get()));
+    auto d_b = gko::share(gko::clone(exec, b.get()));
+    auto d_x = gko::share(gko::clone(exec, x.get()));
+    auto d_left_scale =  gko::share(gko::clone(exec, left_scale.get()));
+    auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
+
+    auto lower_trs = solver_type::build().with_skip_sorting(true).with_left_scaling_op(left_scale)
+    .with_right_scaling_op(right_scale).on(ref)->generate(dense_lower_mat);
+    auto d_lower_trs = solver_type::build().with_skip_sorting(true)
+    .with_left_scaling_op(d_left_scale).with_right_scaling_op(d_right_scale).on(exec)->generate(d_dense_lower_mat);
+
+    lower_trs->apply(b.get(), x.get());
+    d_lower_trs->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 1000 * eps);
 
 }
 
