@@ -56,7 +56,7 @@ struct DummyLogger : public gko::log::Logger {
     void on_criterion_check_completed(
         const gko::stop::Criterion* criterion,
         const gko::size_type& num_iterations, const gko::LinOp* residual,
-        const gko::LinOp* residual_norm, const gko::LinOp* solutino,
+        const gko::LinOp* residual_norm, const gko::LinOp* solution,
         const gko::uint8& stopping_id, const bool& set_finalized,
         const gko::array<gko::stopping_status>* status, const bool& one_changed,
         const bool& all_converged) const override
