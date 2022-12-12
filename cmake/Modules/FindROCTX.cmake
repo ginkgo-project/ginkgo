@@ -1,5 +1,5 @@
 #.rst:
-# FindNUMA
+# FindROCTX
 # -------
 #
 # Find the ROCTX headers and library, usually provided by ROCm.

@@ -106,9 +106,12 @@ target_include_directories(ginkgo_hip
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand roc::roctx)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
+endif()
+if (GINKGO_HAVE_ROCTX)
+    target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
 endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
