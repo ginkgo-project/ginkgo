@@ -52,10 +52,14 @@ enum class profile_event_category {
 };
 
 
+/** The Ginkgo yellow background color as packed 24 bit RGB value. */
+constexpr uint32 color_yellow_rgb = 0xFFCB05U;
+
+
 std::shared_ptr<Logger> get_tau_hook(bool initialize = true);
 
 
-std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb = 0xFFCB05U);
+std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb = color_yellow_rgb);
 
 
 std::shared_ptr<Logger> create_roctx_hook();
