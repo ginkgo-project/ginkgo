@@ -67,7 +67,8 @@ protected:
     BatchUpperTrs()
         : exec(gko::ReferenceExecutor::create()),
           csr_upper_mat(get_csr_upper_matrix()),
-          dense_upper_mat(get_dense_upper_matrix())
+          dense_upper_mat(get_dense_upper_matrix()),
+          ell_upper_mat(get_ell_upper_matrix())
     {
         setup_ref_scaling_test();
         setup_rhs_and_sol();
@@ -84,6 +85,7 @@ protected:
 
     std::shared_ptr<BCsr> csr_upper_mat;
     std::shared_ptr<BDense> dense_upper_mat;
+    std::shared_ptr<BEll> ell_upper_mat;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
     std::shared_ptr<BDense> expected_sol;
@@ -138,6 +140,61 @@ protected:
         vals[24] = 0.0; vals[25] = 0.0;   vals[26] = 1.0; vals[27] = 4.0;
         vals[28] = 0.0; vals[29] = 0.0;   vals[30] = 0.0; vals[31] = 5.0;
         // clang-format on
+        return mat;
+    }
+
+    std::unique_ptr<BEll> get_ell_upper_matrix()
+    {
+        auto mat = BEll::create(
+            exec, gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, nrows)),
+            gko::batch_stride(nbatch, 3), gko::batch_stride(nbatch, 4));
+
+        int* const col_idxs = mat->get_col_idxs();
+        value_type* const vals = mat->get_values();
+
+        //clang-format off
+        // col_idxs and values are stored in column major order (column stride =
+        // 4, nnz_stored_per_row = 3)
+        col_idxs[0] = 0;
+        col_idxs[4] = 1;
+        col_idxs[8] = 2;
+        col_idxs[1] = 1;
+        col_idxs[5] = gko::invalid_index<int>();
+        col_idxs[9] = gko::invalid_index<int>();
+        col_idxs[2] = 2;
+        col_idxs[6] = 3;
+        col_idxs[10] = gko::invalid_index<int>();
+        col_idxs[3] = 3;
+        col_idxs[7] = gko::invalid_index<int>();
+        col_idxs[11] = gko::invalid_index<int>();
+
+        vals[0] = 2;
+        vals[4] = 1;
+        vals[8] = 4;
+        vals[1] = 2;
+        vals[5] = 0;
+        vals[9] = 0;
+        vals[2] = 5;
+        vals[6] = 7;
+        vals[10] = 0;
+        vals[3] = 1;
+        vals[7] = 0;
+        vals[11] = 0;
+
+        vals[12] = 1;
+        vals[16] = 3;
+        vals[20] = 1;
+        vals[13] = 4;
+        vals[17] = 0;
+        vals[21] = 0;
+        vals[14] = 1;
+        vals[18] = 4;
+        vals[22] = 0;
+        vals[15] = 5;
+        vals[19] = 0;
+        vals[23] = 0;
+        //clang-format on
+
         return mat;
     }
 
@@ -232,5 +289,32 @@ TYPED_TEST(BatchUpperTrs, DenseMatrixTriSolveWithScalingIsCorrect)
     upper_trs_solver->apply(this->b.get(), this->x.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
 }
+
+TYPED_TEST(BatchUpperTrs, EllMatrixTriSolveIsCorrect)
+{
+    using solver_type = typename TestFixture::solver_type;
+    auto upper_trs_solver = solver_type::build()
+                                .with_skip_sorting(true)
+                                .on(this->exec)
+                                ->generate(this->ell_upper_mat);
+    upper_trs_solver->apply(this->b.get(), this->x.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+}
+
+// TODO: Implement scaling for BatchEll matrix format (two-sided batch transform
+// does not support batch scaling)
+// TYPED_TEST(BatchUpperTrs, EllMatrixTriSolveWithScalingIsCorrect)
+// {
+//     using solver_type = typename TestFixture::solver_type;
+
+//     auto upper_trs_solver = solver_type::build()
+//                                 .with_skip_sorting(true)
+//                                 .with_left_scaling_op(this->left_scale)
+//                                 .with_right_scaling_op(this->right_scale)
+//                                 .on(this->exec)
+//                                 ->generate(this->ell_upper_mat);
+//     upper_trs_solver->apply(this->b.get(), this->x.get());
+//     GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+// }
 
 }  // namespace

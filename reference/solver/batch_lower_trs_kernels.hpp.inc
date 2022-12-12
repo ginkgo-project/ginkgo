@@ -63,7 +63,38 @@ template <typename ValueType>
 inline void lower_trsv(
     const gko::batch_ell::BatchEntry<const ValueType>& L_entry,
     const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
-    const gko::batch_dense::BatchEntry<ValueType>& x_entry) GKO_NOT_IMPLEMENTED;
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry)
+{
+    const auto nrows = L_entry.num_rows;
+    const auto nrhs = b_entry.num_rhs;
+    const auto nnz_stored_per_row = L_entry.num_stored_elems_per_row;
+    const auto stride = L_entry.stride;
+
+    for (int rhs_idx = 0; rhs_idx < nrhs; rhs_idx++) {
+        for (int row_idx = 0; row_idx < nrows; row_idx++) {
+            ValueType sum = zero<ValueType>();
+            ValueType diag_val = zero<ValueType>();
+            for (int idx = 0; idx < nnz_stored_per_row; idx++) {
+                const auto col_idx = L_entry.col_idxs[row_idx + idx * stride];
+
+                if (col_idx != invalid_index<int>()) {
+                    if (col_idx == row_idx) {
+                        diag_val = L_entry.values[row_idx + idx * stride];
+                    } else {
+                        sum +=
+                            L_entry.values[row_idx + idx * stride] *
+                            x_entry.values[col_idx * x_entry.stride + rhs_idx];
+                        ;
+                    }
+                }
+            }
+
+            x_entry.values[row_idx * x_entry.stride + rhs_idx] =
+                (b_entry.values[row_idx * b_entry.stride + rhs_idx] - sum) /
+                diag_val;
+        }
+    }
+}
 
 template <typename ValueType>
 inline void lower_trsv(
