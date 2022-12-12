@@ -65,6 +65,13 @@ std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb = color_yellow_rgb);
 std::shared_ptr<Logger> create_roctx_hook();
 
 
+/**
+ * Sets the name for an object to be profiled. Every instance of that object in
+ * the profile will be replaced by the name instead of its runtime type.
+ */
+void set_profiled_object_name(const PolymorphicObject* obj, std::string name);
+
+
 }  // namespace log
 }  // namespace gko
 

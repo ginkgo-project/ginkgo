@@ -46,6 +46,30 @@ namespace gko {
 namespace log {
 
 
+std::mutex profiler_name_mutex{};
+std::unordered_map<const PolymorphicObject*, std::string> profiler_name_map;
+
+
+void set_profiled_object_name(const PolymorphicObject* obj, std::string name)
+{
+    std::lock_guard<std::mutex> lock(profiler_name_mutex);
+    profiler_name_map[obj] = name;
+}
+
+
+std::string stringify_object(const PolymorphicObject* obj)
+{
+    {
+        std::lock_guard<std::mutex> lock(profiler_name_mutex);
+        auto it = profiler_name_map.find(obj);
+        if (it != profiler_name_map.end()) {
+            return it->second;
+        }
+    }
+    return name_demangling::get_dynamic_type(*obj);
+}
+
+
 using hook_function = std::function<void(const char*, profile_event_category)>;
 
 
@@ -122,8 +146,8 @@ public:
         const PolymorphicObject* to) const override
     {
         std::stringstream ss;
-        ss << "copy(" << name_demangling::get_dynamic_type(*from) << ","
-           << name_demangling::get_dynamic_type(*to) << ")";
+        ss << "copy(" << stringify_object(from) << "," << stringify_object(to)
+           << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::object);
     }
 
@@ -132,8 +156,8 @@ public:
         const PolymorphicObject* to) const override
     {
         std::stringstream ss;
-        ss << "copy(" << name_demangling::get_dynamic_type(*from) << ","
-           << name_demangling::get_dynamic_type(*to) << ")";
+        ss << "copy(" << stringify_object(from) << "," << stringify_object(to)
+           << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::object);
     }
 
@@ -142,8 +166,8 @@ public:
         const PolymorphicObject* to) const override
     {
         std::stringstream ss;
-        ss << "move(" << name_demangling::get_dynamic_type(*from) << ","
-           << name_demangling::get_dynamic_type(*to) << ")";
+        ss << "move(" << stringify_object(from) << "," << stringify_object(to)
+           << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::object);
     }
 
@@ -152,8 +176,8 @@ public:
         const PolymorphicObject* to) const override
     {
         std::stringstream ss;
-        ss << "move(" << name_demangling::get_dynamic_type(*from) << ","
-           << name_demangling::get_dynamic_type(*to) << ")";
+        ss << "move(" << stringify_object(from) << "," << stringify_object(to)
+           << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::object);
     }
 
@@ -162,7 +186,7 @@ public:
                                 const LinOp* x) const override
     {
         std::stringstream ss;
-        ss << "apply(" << name_demangling::get_dynamic_type(*A) << ")";
+        ss << "apply(" << stringify_object(A) << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     }
 
@@ -170,7 +194,7 @@ public:
                                   const LinOp* x) const override
     {
         std::stringstream ss;
-        ss << "apply(" << name_demangling::get_dynamic_type(*A) << ")";
+        ss << "apply(" << stringify_object(A) << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::linop);
     }
 
@@ -179,7 +203,7 @@ public:
                                          const LinOp* x) const override
     {
         std::stringstream ss;
-        ss << "advanced_apply(" << name_demangling::get_dynamic_type(*A) << ")";
+        ss << "advanced_apply(" << stringify_object(A) << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     }
 
@@ -188,7 +212,7 @@ public:
                                            const LinOp* x) const override
     {
         std::stringstream ss;
-        ss << "advanced_apply(" << name_demangling::get_dynamic_type(*A) << ")";
+        ss << "advanced_apply(" << stringify_object(A) << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::linop);
     }
 
@@ -197,7 +221,7 @@ public:
                                            const LinOp* input) const override
     {
         std::stringstream ss;
-        ss << "generate(" << name_demangling::get_dynamic_type(*factory) << ")";
+        ss << "generate(" << stringify_object(factory) << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::factory);
     }
 
@@ -206,7 +230,7 @@ public:
                                              const LinOp* output) const override
     {
         std::stringstream ss;
-        ss << "generate(" << name_demangling::get_dynamic_type(*factory) << ")";
+        ss << "generate(" << stringify_object(factory) << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::factory);
     }
 
@@ -220,7 +244,7 @@ public:
                                     const bool& set_finalized) const override
     {
         std::stringstream ss;
-        ss << "check(" << name_demangling::get_dynamic_type(*criterion) << ")";
+        ss << "check(" << stringify_object(criterion) << ")";
         this->begin_hook_(ss.str().c_str(), profile_event_category::criterion);
     }
 
@@ -232,7 +256,7 @@ public:
         const bool& one_changed, const bool& all_converged) const override
     {
         std::stringstream ss;
-        ss << "check(" << name_demangling::get_dynamic_type(*criterion) << ")";
+        ss << "check(" << stringify_object(criterion) << ")";
         this->end_hook_(ss.str().c_str(), profile_event_category::criterion);
     }
 
@@ -254,21 +278,15 @@ std::shared_ptr<Logger> get_tau_hook(bool initialize)
     static std::shared_ptr<Logger> logger;
     std::lock_guard<std::mutex> lock{profiler_hook_mutex};
     if (!logger) {
-        inc_global_logger_refcount();
         if (initialize) {
             init_tau();
             logger = std::shared_ptr<ProfilerHook>(
-                new ProfilerHook{begin_tau, end_tau}, [](auto ptr) {
+                new ProfilerHook{begin_tau, end_tau}, [](ProfilerHook* ptr) {
                     delete ptr;
                     finalize_tau();
-                    dec_global_logger_refcount();
                 });
         } else {
-            logger = std::shared_ptr<ProfilerHook>(
-                new ProfilerHook{begin_tau, end_tau}, [](auto ptr) {
-                    delete ptr;
-                    dec_global_logger_refcount();
-                });
+            logger = std::make_shared<ProfilerHook>(begin_tau, end_tau);
         }
     }
     return logger;
@@ -277,24 +295,14 @@ std::shared_ptr<Logger> get_tau_hook(bool initialize)
 
 std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb)
 {
-    inc_global_logger_refcount();
     init_nvtx();
-    return std::shared_ptr<ProfilerHook>(
-        new ProfilerHook{begin_nvtx_fn(color_rgb), end_nvtx}, [](auto ptr) {
-            delete ptr;
-            dec_global_logger_refcount();
-        });
+    return std::make_shared<ProfilerHook>(begin_nvtx_fn(color_rgb), end_nvtx);
 }
 
 
 std::shared_ptr<Logger> create_roctx_hook()
 {
-    inc_global_logger_refcount();
-    return std::shared_ptr<ProfilerHook>(
-        new ProfilerHook{begin_roctx, end_roctx}, [](auto ptr) {
-            delete ptr;
-            dec_global_logger_refcount();
-        });
+    return std::make_shared<ProfilerHook>(begin_roctx, end_roctx);
 }
 
 
