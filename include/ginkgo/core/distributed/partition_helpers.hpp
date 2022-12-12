@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -69,6 +70,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
