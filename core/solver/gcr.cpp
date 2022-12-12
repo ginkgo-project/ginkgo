@@ -154,8 +154,8 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // A_precon_residual = A*precon_residual
     this->get_system_matrix()->apply(precon_residual, A_precon_residual);
 
-    // p(:, 1) = precon_residual
-    // Ap(:,1) = A_precon_residual(:,1)
+    // p(:, 1) = precon_residual(:, 1)
+    // Ap(:, 1) = A_precon_residual(:, 1)
     // final_iter_nums = {0, ..., 0}
     // apply preconditioner to residual
     exec->run(gcr::make_restart(precon_residual, A_precon_residual,
@@ -170,10 +170,22 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     int total_iter = -1;
     size_type restart_iter = 0;
 
-    // do an unpreconditioned solve for now
-    //    auto before_preconditioner = Vector::create_with_config_of(dense_x);
-    //    auto after_preconditioner = Vector::create_with_config_of(dense_x);
-
+    /* Memory movement summary for average iteration with krylov_dim d:
+     * (5d+25+6/d)n * values + matrix/preconditioner stroage
+     * 1x SpMV:                       2n * values + storage
+     * 1x Preconditioner:             2n * values + storage
+     * MGS:                   (5d + 21)n = sum k=0 to d-1 of (10k+26)n/d
+     *       1x dots             2(k+1)n in iteration k (0-based)
+     *       1x scals            2(k+1)n in iteration k (0-based)
+     *       2x axpys            6(k+1)n in iteration k (0-based)
+     *       1x norm2                  n
+     *       1x dot                   2n
+     *       1x sq_norm2               n
+     *       1x step 1 (scal, axpys)  8n
+     *       2x copy                  4n
+     * Restart:                   (6/d)n  (every dth iteration)
+     *       3x copy                  6n
+     */
     while (true) {
         ++total_iter;
         // compute residual norm
@@ -194,7 +206,9 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // If krylov_dim reached, restart with new initial guess
         if (restart_iter == krylov_dim) {
             // Restart
-            // current residual already preconditioned
+            // p(:, 1) = precon_residual(:, 1)
+            // Ap(:, 1) = A_precon_residual(:, 1)
+            // final_iter_nums = {0, ..., 0}
             exec->run(gcr::make_restart(precon_residual, A_precon_residual,
                                         krylov_bases_p, mapped_krylov_bases_Ap,
                                         final_iter_nums.get_data()));
