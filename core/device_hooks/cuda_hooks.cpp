@@ -156,10 +156,11 @@ scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
 namespace log {
 
 
-void init_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
+void init_nvtx() GKO_NOT_COMPILED(cuda);
 
 
-void begin_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
+std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
+    uint32_t color_rgb) GKO_NOT_COMPILED(cuda);
 
 
 void end_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
