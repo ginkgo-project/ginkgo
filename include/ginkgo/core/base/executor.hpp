@@ -1155,6 +1155,8 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
+    using Executor::run;
+
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
