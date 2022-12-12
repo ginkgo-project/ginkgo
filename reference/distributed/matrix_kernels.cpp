@@ -49,9 +49,9 @@ void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const device_matrix_data<ValueType, GlobalIndexType>& non_local_input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
     comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
     array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
@@ -63,7 +63,7 @@ void build_local_nonlocal(
     array<GlobalIndexType>& non_local_to_global)
 {
     using partition_type =
-        distributed::Partition<LocalIndexType, GlobalIndexType>;
+        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
     auto input_row_idxs = input.get_const_row_idxs();
     auto input_col_idxs = input.get_const_col_idxs();
