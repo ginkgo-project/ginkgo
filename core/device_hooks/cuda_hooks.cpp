@@ -53,10 +53,10 @@ version version_info::get_cuda_version() noexcept
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, CUstream_st* stream)
 {
     return std::shared_ptr<CudaExecutor>(new CudaExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
+        device_id, std::move(master), device_reset, alloc_mode, stream));
 }
 
 
