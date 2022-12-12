@@ -53,7 +53,8 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
     array<GlobalIndexType> ranges_start_end(exec->get_master(),
                                             comm.size() * 2);
     ranges_start_end.fill(0);
-    comm.all_gather(range, 2, ranges_start_end.get_data(), 2);
+    comm.all_gather(exec->get_master(), range, 2, ranges_start_end.get_data(),
+                    2);
 
     // remove duplicates
     array<GlobalIndexType> ranges(exec->get_master(), comm.size() + 1);
