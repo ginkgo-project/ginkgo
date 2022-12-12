@@ -12,11 +12,6 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS(_type)          \
-    void compress_start_ends(std::shared_ptr<const DefaultExecutor> exec, \
-                             const array<_type>& range_start_ends,        \
-                             array<_type>& ranges)
-
 #define GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(_type) \
     void sort_by_range_start(                                    \
         std::shared_ptr<const DefaultExecutor> exec,             \
@@ -31,8 +26,6 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    template <typename GlobalIndexType>                                 \
-    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS(GlobalIndexType); \
     template <typename GlobalIndexType>                                 \
     GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(GlobalIndexType); \
     template <typename GlobalIndexType>                                 \

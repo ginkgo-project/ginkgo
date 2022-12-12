@@ -12,24 +12,6 @@ namespace partition_helpers {
 
 
 template <typename GlobalIndexType>
-void compress_start_ends(std::shared_ptr<const DefaultExecutor> exec,
-                         const array<GlobalIndexType>& range_start_ends,
-                         array<GlobalIndexType>& ranges)
-{
-    if (ranges.get_num_elems() && range_start_ends.get_num_elems()) {
-        auto num_ranges = ranges.get_num_elems() - 1;
-        ranges.get_data()[0] = range_start_ends.get_const_data()[0];
-        std::copy_n(range_start_ends.get_const_data() + num_ranges, num_ranges,
-                    ranges.get_data() + 1);
-    }
-}
-
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_START_ENDS);
-
-
-template <typename GlobalIndexType>
 void sort_by_range_start(
     std::shared_ptr<const DefaultExecutor> exec,
     array<GlobalIndexType>& range_start_ends,
