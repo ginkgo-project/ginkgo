@@ -283,12 +283,14 @@ void CudaExecutor::init_handles()
         const auto id = this->get_device_id();
         detail::cuda_scoped_device_id_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(
-            kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
+            kernels::cuda::cublas::init(this->get_stream()),
+            [id](cublasHandle_t handle) {
                 detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cublas::destroy(handle);
             });
         this->cusparse_handle_ = handle_manager<cusparseContext>(
-            kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
+            kernels::cuda::cusparse::init(this->get_stream()),
+            [id](cusparseHandle_t handle) {
                 detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
             });

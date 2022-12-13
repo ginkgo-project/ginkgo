@@ -72,11 +72,13 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 
 inline hiprandGenerator_t rand_generator(int64 seed,
-                                         hiprandRngType generator_type)
+                                         hiprandRngType generator_type,
+                                         hipStream_t stream)
 {
     hiprandGenerator_t gen;
-    hiprandCreateGenerator(&gen, generator_type);
-    hiprandSetPseudoRandomGeneratorSeed(gen, seed);
+    GKO_ASSERT_NO_HIPRAND_ERRORS(hiprandCreateGenerator(&gen, generator_type));
+    GKO_ASSERT_NO_HIPRAND_ERRORS(
+        hiprandSetPseudoRandomGeneratorSeed(gen, seed));
     return gen;
 }
 

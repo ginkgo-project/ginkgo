@@ -264,12 +264,13 @@ GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_NORM2
 
 
-inline hipblasContext* init()
+inline hipblasContext* init(hipStream_t stream)
 {
     hipblasHandle_t handle;
     GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasCreate(&handle));
     GKO_ASSERT_NO_HIPBLAS_ERRORS(
         hipblasSetPointerMode(handle, HIPBLAS_POINTER_MODE_DEVICE));
+    GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(handle, stream));
     return reinterpret_cast<hipblasContext*>(handle);
 }
 
