@@ -394,8 +394,8 @@ protected:
           stride_(batch_stride(num_batch_entries, ell_mat->get_stride())),
           values_(exec, ell_mat->get_num_stored_elements_per_row() *
                             ell_mat->get_stride() * num_batch_entries),
-          col_idxs_(exec,
-                    ell_mat->get_num_stored_elements() * ell_mat->get_stride())
+          col_idxs_(exec, ell_mat->get_num_stored_elements_per_row() *
+                              ell_mat->get_stride())
     {
         batch_duplicator(exec, num_batch_entries, col_idxs_.get_num_elems(),
                          ell_mat, this);
