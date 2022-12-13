@@ -52,12 +52,13 @@ namespace cuda {
 namespace cusparse {
 
 
-inline cusparseHandle_t init()
+inline cusparseHandle_t init(cudaStream_t stream)
 {
     cusparseHandle_t handle{};
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetStream(handle, stream));
     return handle;
 }
 

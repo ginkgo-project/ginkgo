@@ -100,7 +100,8 @@ void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (!deterministic) {
         auto gen = hiprand::rand_generator(std::random_device{}(),
-                                           HIPRAND_RNG_PSEUDO_DEFAULT);
+                                           HIPRAND_RNG_PSEUDO_DEFAULT,
+                                           exec->get_stream());
         hiprand::rand_vector(
             gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),

@@ -294,12 +294,14 @@ void HipExecutor::init_handles()
         const auto id = this->get_device_id();
         detail::hip_scoped_device_id_guard g(id);
         this->hipblas_handle_ = handle_manager<hipblasContext>(
-            kernels::hip::hipblas::init(), [id](hipblasContext* handle) {
+            kernels::hip::hipblas::init(this->get_stream()),
+            [id](hipblasContext* handle) {
                 detail::hip_scoped_device_id_guard g(id);
                 kernels::hip::hipblas::destroy_hipblas_handle(handle);
             });
         this->hipsparse_handle_ = handle_manager<hipsparseContext>(
-            kernels::hip::hipsparse::init(), [id](hipsparseContext* handle) {
+            kernels::hip::hipsparse::init(this->get_stream()),
+            [id](hipsparseContext* handle) {
                 detail::hip_scoped_device_id_guard g(id);
                 kernels::hip::hipsparse::destroy_hipsparse_handle(handle);
             });

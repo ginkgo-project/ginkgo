@@ -558,12 +558,13 @@ GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE
 
 
-inline hipsparseContext* init()
+inline hipsparseContext* init(hipStream_t stream)
 {
     hipsparseHandle_t handle{};
     GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreate(&handle));
     GKO_ASSERT_NO_HIPSPARSE_ERRORS(
         hipsparseSetPointerMode(handle, HIPSPARSE_POINTER_MODE_DEVICE));
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetStream(handle, stream));
     return reinterpret_cast<hipsparseContext*>(handle);
 }
 

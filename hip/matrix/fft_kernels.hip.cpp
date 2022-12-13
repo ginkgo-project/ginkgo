@@ -113,9 +113,10 @@ class hipfft_handle {
 public:
     operator hipfftHandle() const { return *handle_; }
 
-    hipfft_handle() : handle_{new hipfftHandle{}}
+    hipfft_handle(hipStream_t stream) : handle_{new hipfftHandle{}}
     {
         GKO_ASSERT_NO_HIPFFT_ERRORS(hipfftCreate(handle_.get()));
+        GKO_ASSERT_NO_HIPFFT_ERRORS(hipfftSetStream(*handle_, stream));
     }
 
     template <int d, typename InValueType, typename OutValueType>
@@ -178,7 +179,7 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
          matrix::Dense<std::complex<ValueType>>* x, bool inverse,
          array<char>& buffer)
 {
-    hipfft_handle handle;
+    hipfft_handle handle{exec->get_stream()};
     handle.template setup<1, std::complex<ValueType>, std::complex<ValueType>>(
         {b->get_size()[0]}, b->get_stride(), x->get_stride(), b->get_size()[1],
         buffer);
@@ -194,7 +195,7 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
           size_type size2, bool inverse, array<char>& buffer)
 {
-    hipfft_handle handle;
+    hipfft_handle handle{exec->get_stream()};
     handle.template setup<2, std::complex<ValueType>, std::complex<ValueType>>(
         {size1, size2}, b->get_stride(), x->get_stride(), b->get_size()[1],
         buffer);
@@ -210,7 +211,7 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
           size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
-    hipfft_handle handle;
+    hipfft_handle handle{exec->get_stream()};
     handle.template setup<3, std::complex<ValueType>, std::complex<ValueType>>(
         {size1, size2, size3}, b->get_stride(), x->get_stride(),
         b->get_size()[1], buffer);
