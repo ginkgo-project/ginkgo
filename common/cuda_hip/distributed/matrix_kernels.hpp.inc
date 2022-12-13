@@ -51,6 +51,24 @@ struct input_type {
     {}
 };
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void build_local_nonlocal_scatter_pattern(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<GlobalIndexType>& row_indices,
+    const array<GlobalIndexType>& col_indices,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        row_partition,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<LocalIndexType>& local_scatter,
+    array<LocalIndexType>& non_local_scatter)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
