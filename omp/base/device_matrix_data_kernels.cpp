@@ -176,6 +176,36 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
+                    device_matrix_data<ValueType, IndexType>& data,
+                    array<int>& scatter_pattern)
+{
+    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
+                                                       data.get_num_elems()};
+    soa_to_aos(exec, data, tmp);
+
+    array<matrix_data_entry<IndexType, IndexType>> reorder_idx{
+        exec, data.get_num_elems()};
+
+    for (IndexType i = 0; i < data.get_num_elems(); ++i) {
+        reorder_idx.get_data()[i] = matrix_data_entry<IndexType, IndexType>{
+            tmp.get_const_data()[i].row, tmp.get_const_data()[i].column, i};
+    }
+    std::sort(reorder_idx.get_data(),
+              reorder_idx.get_data() + reorder_idx.get_num_elems());
+
+    scatter_pattern.resize_and_reset(data.get_num_elems());
+    for (IndexType i = 0; i < data.get_num_elems(); ++i) {
+        scatter_pattern.get_data()[i] = reorder_idx.get_const_data()[i].value;
+    }
+
+    aos_to_soa(exec, tmp.scatter(scatter_pattern), data);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL_WITH_SCATTER);
+
 
 template <typename ValueType, typename SortingIndexType, typename IndexType>
 void sort_row_major_with_scatter(std::shared_ptr<const DefaultExecutor> exec,
