@@ -115,8 +115,8 @@ protected:
           parameters_{factory->get_parameters()}
     {
 #if GINKGO_BUILD_MPI
-        using dist_mat =
-            distributed::Matrix<ValueType, IndexType, GlobalIndexType>;
+        using dist_mat = experimental::distributed::Matrix<ValueType, IndexType,
+                                                           GlobalIndexType>;
 #endif
         using base_mat = matrix::Csr<ValueType, IndexType>;
         if (parameters_.generated_inner_solvers[0]) {

@@ -59,7 +59,7 @@ template <typename ValueType, typename IndexType, typename GlobalIndexType>
 void Schwarz<ValueType, IndexType, GlobalIndexType>::apply_impl(const LinOp* b,
                                                                 LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -85,7 +85,7 @@ template <typename ValueType, typename IndexType, typename GlobalIndexType>
 void Schwarz<ValueType, IndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
@@ -114,7 +114,8 @@ void Schwarz<ValueType, IndexType, GlobalIndexType>::generate(
 {
     using base_mat = matrix::Csr<ValueType, IndexType>;
 #if GINKGO_BUILD_MPI
-    using dist_mat = distributed::Matrix<ValueType, IndexType, GlobalIndexType>;
+    using dist_mat = experimental::distributed::Matrix<ValueType, IndexType,
+                                                       GlobalIndexType>;
 #endif
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     if (dynamic_cast<const base_mat*>(system_matrix) != nullptr) {
@@ -129,8 +130,7 @@ void Schwarz<ValueType, IndexType, GlobalIndexType>::generate(
 
         if (parameters_.inner_solver) {
             this->inner_solvers_.emplace_back(
-                parameters_.inner_solver->generate(
-                    mat->get_const_local_diag()));
+                parameters_.inner_solver->generate(mat->get_local_matrix()));
         }
         if (this->inner_solvers_.size() < 1) {
             GKO_NOT_IMPLEMENTED;
