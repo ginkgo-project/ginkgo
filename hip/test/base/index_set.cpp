@@ -44,27 +44,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
 
 
-class index_set : public ::testing::Test {
+class index_set : public HipTestFixture {
 protected:
     using T = int;
-    index_set()
-        : exec(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, gko::ReferenceExecutor::create()))
-    {}
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     static void assert_equal_index_sets(gko::index_set<T>& a,
                                         gko::index_set<T>& b)
@@ -80,24 +68,21 @@ protected:
             }
         }
     }
-
-    std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<gko::HipExecutor> hip;
 };
 
 
 TEST_F(index_set, CanBeCopiedBetweenExecutors)
 {
-    auto idx_arr = gko::array<T>{exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::array<T>{exec, {0, 4, 6}};
-    auto end_comp = gko::array<T>{exec, {3, 5, 10}};
-    auto superset_comp = gko::array<T>{exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<T>{ref, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<T>{ref, {0, 4, 6}};
+    auto end_comp = gko::array<T>{ref, {3, 5, 10}};
+    auto superset_comp = gko::array<T>{ref, {0, 3, 4, 8}};
 
-    auto idx_set = gko::index_set<T>{exec, 10, idx_arr};
-    auto hip_idx_set = gko::index_set<T>(hip, idx_set);
-    auto host_idx_set = gko::index_set<T>(exec, hip_idx_set);
+    auto idx_set = gko::index_set<T>{ref, 10, idx_arr};
+    auto hip_idx_set = gko::index_set<T>(exec, idx_set);
+    auto host_idx_set = gko::index_set<T>(ref, hip_idx_set);
 
-    ASSERT_EQ(hip_idx_set.get_executor(), hip);
+    ASSERT_EQ(hip_idx_set.get_executor(), exec);
     this->assert_equal_index_sets(host_idx_set, idx_set);
 }
 

@@ -57,12 +57,10 @@ using namespace gko::kernels::cuda;
 using namespace cooperative_groups;
 
 
-class Merging : public ::testing::Test {
+class Merging : public CudaTestFixture {
 protected:
     Merging()
-        : ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref)),
-          rng(123456),
+        : rng(123456),
           rng_runs{100},
           max_size{1637},
           sizes{0,  1,  2,   3,   4,   10,  15,   16,
@@ -77,15 +75,15 @@ protected:
           refidxs2(ref),
           refidxs3(ref),
           refdata(ref, 2 * max_size),
-          ddata1(cuda),
-          ddata2(cuda),
-          didxs1(cuda, 2 * max_size),
-          didxs2(cuda, 2 * max_size),
-          didxs3(cuda, 2 * max_size),
-          drefidxs1(cuda, 2 * max_size),
-          drefidxs2(cuda, 2 * max_size),
-          drefidxs3(cuda, 2 * max_size),
-          doutdata(cuda, 2 * max_size)
+          ddata1(exec),
+          ddata2(exec),
+          didxs1(exec, 2 * max_size),
+          didxs2(exec, 2 * max_size),
+          didxs3(exec, 2 * max_size),
+          drefidxs1(exec, 2 * max_size),
+          drefidxs2(exec, 2 * max_size),
+          drefidxs3(exec, 2 * max_size),
+          doutdata(exec, 2 * max_size)
     {}
 
     void init_data(int rng_run)
@@ -120,8 +118,6 @@ protected:
         ASSERT_TRUE(std::equal(out_ptr, out_end, ref_ptr));
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> cuda;
     std::default_random_engine rng;
 
     int rng_runs;
@@ -162,7 +158,7 @@ TEST_F(Merging, MergeStep)
 {
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
-        test_merge_step<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+        test_merge_step<<<1, config::warp_size, 0, exec->get_stream()>>>(
             ddata1.get_const_data(), ddata2.get_const_data(),
             doutdata.get_data());
 
@@ -190,7 +186,7 @@ TEST_F(Merging, FullMerge)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            test_merge<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+            test_merge<<<1, config::warp_size, 0, exec->get_stream()>>>(
                 ddata1.get_const_data(), ddata2.get_const_data(), size,
                 doutdata.get_data());
 
@@ -216,7 +212,7 @@ TEST_F(Merging, SequentialFullMerge)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            test_sequential_merge<<<1, 1, 0, cuda->get_stream()>>>(
+            test_sequential_merge<<<1, 1, 0, exec->get_stream()>>>(
                 ddata1.get_const_data(), ddata2.get_const_data(), size,
                 doutdata.get_data());
 
@@ -261,7 +257,7 @@ TEST_F(Merging, FullMergeIdxs)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            test_merge_idxs<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+            test_merge_idxs<<<1, config::warp_size, 0, exec->get_stream()>>>(
                 ddata1.get_const_data(), ddata2.get_const_data(), size,
                 doutdata.get_data(), didxs1.get_data(), didxs2.get_data(),
                 didxs3.get_data(), drefidxs1.get_data(), drefidxs2.get_data(),

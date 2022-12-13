@@ -60,13 +60,9 @@ namespace {
 using namespace gko::kernels::hip;
 
 
-class CooperativeGroups : public ::testing::Test {
+class CooperativeGroups : public HipTestFixture {
 protected:
-    CooperativeGroups()
-        : ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, ref)),
-          result(ref, 1),
-          dresult(hip)
+    CooperativeGroups() : result(ref, 1), dresult(exec)
     {
         *result.get_data() = true;
         dresult = result;
@@ -75,7 +71,7 @@ protected:
     template <typename Kernel>
     void test(Kernel kernel)
     {
-        kernel<<<1, config::warp_size, 0, hip->get_stream()>>>(
+        kernel<<<1, config::warp_size, 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
@@ -86,7 +82,7 @@ protected:
     template <typename Kernel>
     void test_subwarp(Kernel kernel)
     {
-        kernel<<<1, config::warp_size / 2, 0, hip->get_stream()>>>(
+        kernel<<<1, config::warp_size / 2, 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
@@ -94,8 +90,6 @@ protected:
         ASSERT_TRUE(success);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> hip;
     gko::array<bool> result;
     gko::array<bool> dresult;
 };
@@ -299,14 +293,14 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
     std::memcpy(&x_dbl, &x, sizeof(x_dbl));
     gko::array<double> value(ref, config::warp_size);
     gko::array<double> answer(ref, config::warp_size);
-    gko::array<double> dvalue(hip);
+    gko::array<double> dvalue(exec);
     for (int i = 0; i < value.get_num_elems(); i++) {
         value.get_data()[i] = x_dbl;
         answer.get_data()[i] = value.get_data()[i] * (1 << num);
     }
     dvalue = value;
 
-    cg_shuffle_sum<double><<<1, config::warp_size, 0, hip->get_stream()>>>(
+    cg_shuffle_sum<double><<<1, config::warp_size, 0, exec->get_stream()>>>(
         num, dvalue.get_data());
 
     value = dvalue;
@@ -322,7 +316,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
     std::memcpy(&x_dbl, &x, sizeof(x_dbl));
     gko::array<std::complex<double>> value(ref, config::warp_size);
     gko::array<std::complex<double>> answer(ref, config::warp_size);
-    gko::array<std::complex<double>> dvalue(hip);
+    gko::array<std::complex<double>> dvalue(exec);
     for (int i = 0; i < value.get_num_elems(); i++) {
         value.get_data()[i] = std::complex<double>{x_dbl, x_dbl};
         answer.get_data()[i] =
@@ -331,7 +325,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
     dvalue = value;
 
     cg_shuffle_sum<thrust::complex<double>>
-        <<<1, config::warp_size, 0, hip->get_stream()>>>(
+        <<<1, config::warp_size, 0, exec->get_stream()>>>(
             num, as_device_type(dvalue.get_data()));
 
     value = dvalue;

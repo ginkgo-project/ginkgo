@@ -37,12 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils/assertions.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
 
 
-class Rcm : public ::testing::Test {
+class Rcm : public CudaTestFixture {
 protected:
     using v_type = double;
     using i_type = int;
@@ -52,9 +53,7 @@ protected:
 
 
     Rcm()
-        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
-                                         true)),
-          // clang-format off
+        :  // clang-format off
           p_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},
                                          {2.0, 5.0, 1.5, 0.0, 0.0},
                                          {0.0, 1.5, 1.5, 1.1, 0.0},
@@ -66,7 +65,6 @@ protected:
           reorder_op(rcm_factory->generate(p_mtx))
     {}
 
-    std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<reorder_type::Factory> rcm_factory;
     std::shared_ptr<CsrMtx> p_mtx;
     std::unique_ptr<reorder_type> reorder_op;

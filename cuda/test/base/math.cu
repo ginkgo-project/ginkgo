@@ -110,19 +110,14 @@ __global__ void test_complex_is_finite(bool* result)
 }
 
 
-class IsFinite : public ::testing::Test {
+class IsFinite : public CudaTestFixture {
 protected:
-    IsFinite()
-        : ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref))
-    {}
-
     template <typename T>
     bool test_real_is_finite_kernel()
     {
-        gko::array<bool> result(cuda, 1);
+        gko::array<bool> result(exec, 1);
         test_real_is_finite<T>
-            <<<1, 1, 0, cuda->get_stream()>>>(result.get_data());
+            <<<1, 1, 0, exec->get_stream()>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
@@ -130,15 +125,12 @@ protected:
     template <typename T>
     bool test_complex_is_finite_kernel()
     {
-        gko::array<bool> result(cuda, 1);
+        gko::array<bool> result(exec, 1);
         test_complex_is_finite<T>
-            <<<1, 1, 0, cuda->get_stream()>>>(result.get_data());
+            <<<1, 1, 0, exec->get_stream()>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> cuda;
 };
 
 
