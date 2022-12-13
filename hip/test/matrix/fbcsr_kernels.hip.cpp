@@ -53,7 +53,7 @@ namespace {
 
 
 template <typename T>
-class Fbcsr : public ::testing::Test {
+class Fbcsr : public HipTestFixture {
 protected:
     using value_type = T;
     using index_type = int;
@@ -61,13 +61,8 @@ protected:
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
 
-    Fbcsr() : distb(), engine(42) {}
-
-    void SetUp()
+    Fbcsr() : distb(), engine(42)
     {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
         const index_type rand_brows = 100;
         const index_type rand_bcols = 70;
         const int block_size = 3;
@@ -75,16 +70,6 @@ protected:
             ref, rand_brows, rand_bcols, block_size, false, false,
             std::default_random_engine(43));
     }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::unique_ptr<const Mtx> rsorted_ref;
 
@@ -96,7 +81,7 @@ protected:
         return gko::test::detail::get_rand_value<T>(distb, engine);
     }
 
-    void generate_sin(Dense* const x)
+    void generate_sin(gko::ptr_param<Dense> x)
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
@@ -118,7 +103,7 @@ TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(this->ref);
     auto refmat = sample.generate_fbcsr();
-    auto hipmat = gko::clone(this->hip, refmat);
+    auto hipmat = gko::clone(this->exec, refmat);
     MatData refdata;
     MatData hipdata;
 
@@ -134,7 +119,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto trans_ref_linop = this->rsorted_ref->transpose();
     std::unique_ptr<const Mtx> trans_ref =
@@ -154,7 +139,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     const index_type rand_brows = 50;
     const index_type rand_bcols = 40;
     const int block_size = 7;
@@ -181,16 +166,16 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
-    this->generate_sin(x_ref.get());
-    auto x_hip = Dense::create(this->hip);
+    this->generate_sin(x_ref);
+    auto x_hip = Dense::create(this->exec);
     x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
-    auto prod_hip = Dense::create(this->hip, prod_ref->get_size());
+    auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
     rand_hip->apply(x_hip, prod_hip);
     this->rsorted_ref->apply(x_ref, prod_ref);
@@ -205,16 +190,16 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
-    this->generate_sin(x_ref.get());
-    auto x_hip = Dense::create(this->hip);
+    this->generate_sin(x_ref);
+    auto x_hip = Dense::create(this->exec);
     x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
-    auto prod_hip = Dense::create(this->hip, prod_ref->get_size());
+    auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
     rand_hip->apply(x_hip, prod_hip);
     this->rsorted_ref->apply(x_ref, prod_ref);
@@ -230,26 +215,26 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
-    this->generate_sin(x_ref.get());
-    auto x_hip = Dense::create(this->hip);
+    this->generate_sin(x_ref);
+    auto x_hip = Dense::create(this->exec);
     x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
-    this->generate_sin(prod_ref.get());
-    auto prod_hip = Dense::create(this->hip);
+    this->generate_sin(prod_ref);
+    auto prod_hip = Dense::create(this->exec);
     prod_hip->copy_from(prod_ref);
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->hip);
+    auto alpha = Dense::create(this->exec);
     alpha->copy_from(alpha_ref);
-    auto beta = Dense::create(this->hip);
+    auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
     rand_hip->apply(alpha, x_hip, beta, prod_hip);
@@ -266,26 +251,26 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
-    this->generate_sin(x_ref.get());
-    auto x_hip = Dense::create(this->hip);
+    this->generate_sin(x_ref);
+    auto x_hip = Dense::create(this->exec);
     x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
-    this->generate_sin(prod_ref.get());
-    auto prod_hip = Dense::create(this->hip);
+    this->generate_sin(prod_ref);
+    auto prod_hip = Dense::create(this->exec);
     prod_hip->copy_from(prod_ref);
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->hip);
+    auto alpha = Dense::create(this->exec);
     alpha->copy_from(alpha_ref);
-    auto beta = Dense::create(this->hip);
+    auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
     rand_hip->apply(alpha, x_hip, beta, prod_hip);
@@ -301,7 +286,7 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
     auto trans_ref_linop = this->rsorted_ref->conj_transpose();
     std::unique_ptr<const Mtx> trans_ref =
@@ -319,7 +304,7 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
 TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
 
     ASSERT_TRUE(rand_hip->is_sorted_by_column_index());
@@ -333,8 +318,8 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     auto mat = this->rsorted_ref->clone();
     index_type* const colinds = mat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
-    auto unsrt_hip = Mtx::create(this->hip);
-    unsrt_hip->copy_from(mat);
+    auto unsrt_hip = Mtx::create(this->exec);
+    unsrt_hip->move_from(mat);
 
     ASSERT_FALSE(unsrt_hip->is_sorted_by_column_index());
 }
@@ -346,7 +331,7 @@ TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
     using value_type = typename Mtx::value_type;
     auto rand_ref = Mtx::create(this->ref);
     rand_ref->copy_from(this->rsorted_ref);
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
 
     rand_ref->compute_absolute_inplace();
@@ -361,7 +346,7 @@ TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
-    auto rand_hip = Mtx::create(this->hip);
+    auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
 
     auto abs_mtx = this->rsorted_ref->compute_absolute();

@@ -54,26 +54,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class UpperTrs : public ::testing::Test {
+class UpperTrs : public CudaTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
 
     UpperTrs() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -97,11 +83,11 @@ protected:
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx);
-        d_csr_mtx = CsrMtx::create(cuda);
-        d_x = gko::clone(cuda, x);
+        d_csr_mtx = CsrMtx::create(exec);
+        d_x = gko::clone(exec, x);
         d_csr_mtx->copy_from(csr_mtx);
         b2 = Mtx::create(ref);
-        d_b2 = gko::clone(cuda, b);
+        d_b2 = gko::clone(exec, b);
         b2->copy_from(b);
     }
 
@@ -114,8 +100,6 @@ protected:
     std::shared_ptr<Mtx> d_b2;
     std::shared_ptr<Mtx> d_x;
     std::shared_ptr<CsrMtx> d_csr_mtx;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
     std::default_random_engine rand_engine;
 };
 
@@ -125,7 +109,7 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
     bool trans_flag = true;
     bool expected_flag = false;
 
-    gko::kernels::cuda::upper_trs::should_perform_transpose(cuda, trans_flag);
+    gko::kernels::cuda::upper_trs::should_perform_transpose(exec, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
@@ -138,7 +122,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
     auto d_upper_trs_factory =
         gko::solver::UpperTrs<>::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .on(cuda);
+            .on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
@@ -153,7 +137,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
-    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
@@ -173,12 +157,12 @@ TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
         gko::solver::UpperTrs<>::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(3u)
-            .on(cuda);
+            .on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    auto db2_strided = Mtx::create(exec, b->get_size(), 4);
     d_b2->convert_to(db2_strided);
-    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
 
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
@@ -193,17 +177,17 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_upper_trs_factory =
-        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    auto db2_strided = Mtx::create(exec, b->get_size(), 4);
     d_b2->convert_to(db2_strided);
     // The cuSPARSE Generic SpSM implementation uses the wrong stride here
     // so the input and output stride need to match
 #if CUDA_VERSION >= 11030
-    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
+    auto dx_strided = Mtx::create(exec, x->get_size(), 4);
 #else
-    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
 #endif
 
     solver->apply(b2, x);
@@ -216,7 +200,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 TEST_F(UpperTrs, CudaApplyThrowsWithWrongNumRHS)
 {
     initialize_data(50, 3);
-    auto d_lower_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
+    auto d_lower_trs_factory = gko::solver::UpperTrs<>::build().on(exec);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
     ASSERT_THROW(d_solver->apply(d_b2, d_x), gko::ValueMismatch);

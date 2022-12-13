@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 
 
-#include <gtest/gtest.h>
+#include "cuda/test/utils.hpp"
 
 
 namespace {
@@ -81,20 +81,16 @@ protected:
 };
 
 
-class EnableLinOp : public ::testing::Test {
+class EnableLinOp : public CudaTestFixture {
 protected:
     EnableLinOp()
-        : ref{gko::ReferenceExecutor::create()},
-          cuda{gko::CudaExecutor::create(0, ref)},
-          op{DummyLinOp::create(cuda, gko::dim<2>{3, 5})},
+        : op{DummyLinOp::create(exec, gko::dim<2>{3, 5})},
           alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
           b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
           x{DummyLinOp::create(ref, gko::dim<2>{3, 4})}
     {}
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
     std::unique_ptr<DummyLinOp> op;
     std::unique_ptr<DummyLinOp> alpha;
     std::unique_ptr<DummyLinOp> beta;
@@ -107,8 +103,8 @@ TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
 {
     op->apply(b, x);
 
-    ASSERT_EQ(op->last_b_access, cuda);
-    ASSERT_EQ(op->last_x_access, cuda);
+    ASSERT_EQ(op->last_b_access, exec);
+    ASSERT_EQ(op->last_x_access, exec);
 }
 
 
@@ -117,7 +113,7 @@ TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
     op->apply(b, x);
 
     ASSERT_EQ(b->last_access, nullptr);
-    ASSERT_EQ(x->last_access, cuda);
+    ASSERT_EQ(x->last_access, exec);
 }
 
 
@@ -125,10 +121,10 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 {
     op->apply(alpha, b, beta, x);
 
-    ASSERT_EQ(op->last_alpha_access, cuda);
-    ASSERT_EQ(op->last_b_access, cuda);
-    ASSERT_EQ(op->last_beta_access, cuda);
-    ASSERT_EQ(op->last_x_access, cuda);
+    ASSERT_EQ(op->last_alpha_access, exec);
+    ASSERT_EQ(op->last_b_access, exec);
+    ASSERT_EQ(op->last_beta_access, exec);
+    ASSERT_EQ(op->last_x_access, exec);
 }
 
 
@@ -139,7 +135,7 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
     ASSERT_EQ(alpha->last_access, nullptr);
     ASSERT_EQ(b->last_access, nullptr);
     ASSERT_EQ(beta->last_access, nullptr);
-    ASSERT_EQ(x->last_access, cuda);
+    ASSERT_EQ(x->last_access, exec);
 }
 
 

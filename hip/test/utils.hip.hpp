@@ -53,6 +53,26 @@ auto no_reset_exec =
 #endif
 
 
+class HipTestFixture : public ::testing::Test {
+protected:
+    HipTestFixture()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::HipExecutor::create(0, ref))
+    {}
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            // ensure that previous calls finished and didn't throw an error
+            exec->synchronize();
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::HipExecutor> exec;
+};
+
+
 }  // namespace
 
 

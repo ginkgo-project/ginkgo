@@ -53,13 +53,9 @@ namespace {
 using namespace gko::kernels::cuda;
 
 
-class CooperativeGroups : public ::testing::Test {
+class CooperativeGroups : public CudaTestFixture {
 protected:
-    CooperativeGroups()
-        : ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref)),
-          result(ref, 1),
-          dresult(cuda)
+    CooperativeGroups() : result(ref, 1), dresult(exec)
     {
         *result.get_data() = true;
         dresult = result;
@@ -68,7 +64,7 @@ protected:
     template <typename Kernel>
     void test(Kernel kernel)
     {
-        kernel<<<1, config::warp_size, 0, cuda->get_stream()>>>(
+        kernel<<<1, config::warp_size, 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
@@ -79,7 +75,7 @@ protected:
     template <typename Kernel>
     void test_subwarp(Kernel kernel)
     {
-        kernel<<<1, config::warp_size / 2, 0, cuda->get_stream()>>>(
+        kernel<<<1, config::warp_size / 2, 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
@@ -87,8 +83,6 @@ protected:
         ASSERT_TRUE(success);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> cuda;
     gko::array<bool> result;
     gko::array<bool> dresult;
 };

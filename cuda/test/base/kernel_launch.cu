@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
-#include "core/test/utils.hpp"
+#include "cuda/test/utils.hpp"
 
 
 using gko::dim;
@@ -87,21 +87,18 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace gko
 
 
-class KernelLaunch : public ::testing::Test {
+class KernelLaunch : public CudaTestFixture {
 protected:
     KernelLaunch()
-        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
-                                         false, gko::allocation_mode::device)),
-          zero_array(exec->get_master(), 16),
-          iota_array(exec->get_master(), 16),
-          iota_transp_array(exec->get_master(), 16),
+        : zero_array(ref, 16),
+          iota_array(ref, 16),
+          iota_transp_array(ref, 16),
           iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
           zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 6)),
           zero_dense2(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense =
-            gko::matrix::Dense<>::create(exec->get_master(), dim<2>{4, 4});
+        auto ref_iota_dense = gko::matrix::Dense<>::create(ref, dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;
@@ -116,7 +113,6 @@ protected:
         iota_transp_array.set_executor(exec);
     }
 
-    std::shared_ptr<gko::CudaExecutor> exec;
     gko::array<int> zero_array;
     gko::array<int> iota_array;
     gko::array<int> iota_transp_array;
