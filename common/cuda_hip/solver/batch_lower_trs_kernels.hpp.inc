@@ -259,11 +259,11 @@ __device__ __forceinline__ void warp_synchronous_lower_trsv(
         int idx = 0;
 
         while (!completed) {
-            const auto col_idx = L_entry.col_idxs[row_idx + idx * stride];
-
-            if (idx > nnz_stored_per_row) {
+            if (idx >= nnz_stored_per_row) {
                 break;
             }
+
+            const auto col_idx = L_entry.col_idxs[row_idx + idx * stride];
 
             if (col_idx < row_idx & is_finite(load(x_entry, col_idx))) {
                 sum += L_entry.values[row_idx + idx * stride] *
