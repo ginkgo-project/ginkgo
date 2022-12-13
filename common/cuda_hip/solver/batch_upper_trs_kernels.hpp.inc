@@ -61,8 +61,31 @@ __device__ __forceinline__ void naive_upper_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    // TODO
-    assert(0);
+    const auto nrows = U_entry.num_rows;
+    const auto nnz_stored_per_row = U_entry.num_stored_elems_per_row;
+    const auto stride = U_entry.stride;
+
+    if (threadIdx.x == 0) {
+        for (int row_idx = nrows - 1; row_idx >= 0; row_idx--) {
+            ValueType sum = zero<ValueType>();
+            ValueType diag_val = zero<ValueType>();
+
+            for (int idx = 0; idx < nnz_stored_per_row; idx++) {
+                const auto col_idx = U_entry.col_idxs[row_idx + idx * stride];
+
+                if (col_idx == invalid_index<int>()) {
+                    break;
+                } else if (col_idx == row_idx) {
+                    diag_val = U_entry.values[row_idx + idx * stride];
+                } else if (col_idx > row_idx) {
+                    sum += U_entry.values[row_idx + idx * stride] *
+                           x_entry[col_idx];
+                }
+            }
+
+            x_entry[row_idx] = (b_entry[row_idx] - sum) / diag_val;
+        }
+    }
 }
 
 template <typename ValueType>
@@ -124,8 +147,33 @@ __device__ __forceinline__ void independent_thread_scheduling_upper_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    // TODO
-    assert(0);
+    const auto nrows = U_entry.num_rows;
+    const auto nnz_stored_per_row = U_entry.num_stored_elems_per_row;
+    const auto stride = U_entry.stride;
+
+    for (int row_idx = nrows - 1 - static_cast<int>(threadIdx.x); row_idx >= 0;
+         row_idx -= static_cast<int>(blockDim.x)) {
+        ValueType sum = zero<ValueType>();
+        ValueType diag_val = zero<ValueType>();
+
+        for (int idx = 0; idx < nnz_stored_per_row; idx++) {
+            const auto col_idx = U_entry.col_idxs[row_idx + idx * stride];
+
+            if (col_idx == invalid_index<int>()) {
+                break;
+            } else if (col_idx == row_idx) {
+                diag_val = U_entry.values[row_idx + idx * stride];
+            } else if (col_idx > row_idx) {
+                while (!is_finite(load(x_entry, col_idx))) {
+                }
+                sum += U_entry.values[row_idx + idx * stride] *
+                       load(x_entry, col_idx);
+            }
+        }
+
+        ValueType val = (b_entry[row_idx] - sum) / diag_val;
+        store(x_entry, row_idx, val);
+    }
 }
 
 template <typename ValueType>
@@ -198,8 +246,42 @@ __device__ __forceinline__ void warp_synchronous_upper_trsv(
     const ValueType* const __restrict__ b_entry,
     ValueType* const __restrict__ x_entry)
 {
-    // TODO
-    assert(0);
+    const auto nrows = U_entry.num_rows;
+    const auto nnz_stored_per_row = U_entry.num_stored_elems_per_row;
+    const auto stride = U_entry.stride;
+
+    for (int row_idx = nrows - 1 - static_cast<int>(threadIdx.x); row_idx >= 0;
+         row_idx -= static_cast<int>(blockDim.x)) {
+        ValueType sum = zero<ValueType>();
+        ValueType diag_val = zero<ValueType>();
+
+        bool completed = false;
+        int idx = 0;
+
+        while (!completed) {
+            if (idx >= nnz_stored_per_row) {
+                break;
+            }
+
+            const auto col_idx = U_entry.col_idxs[row_idx + idx * stride];
+
+            if (col_idx == invalid_index<int>()) {
+                ValueType val = (b_entry[row_idx] - sum) / diag_val;
+                store(x_entry, row_idx, val);
+                completed = true;
+            } else if (col_idx > row_idx & is_finite(load(x_entry, col_idx))) {
+                sum += U_entry.values[row_idx + idx * stride] *
+                       load(x_entry, col_idx);
+                idx++;
+            } else if (col_idx == row_idx) {
+                diag_val = U_entry.values[row_idx + idx * stride];
+                idx++;
+            }
+        }
+
+        ValueType val = (b_entry[row_idx] - sum) / diag_val;
+        store(x_entry, row_idx, val);
+    }
 }
 
 template <typename ValueType>
