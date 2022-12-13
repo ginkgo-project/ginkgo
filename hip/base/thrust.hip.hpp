@@ -33,9 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_BASE_THRUST_HIP_HPP_
 #define GKO_HIP_BASE_THRUST_HIP_HPP_
 
+#include <ginkgo/config.hpp>
+
 
 #include <thrust/execution_policy.h>
+#if GINKGO_HIP_PLATFORM_HCC
 #include <thrust/system/hip/detail/execution_policy.h>
+#else
+#include <thrust/system/cuda/detail/execution_policy.h>
+#endif
 
 
 namespace gko {
@@ -45,7 +51,11 @@ namespace hip {
 
 inline auto thrust_policy(std::shared_ptr<const HipExecutor> exec)
 {
+#if GINKGO_HIP_PLATFORM_HCC
     return thrust::hip::par.on(exec->get_stream());
+#else
+    return thrust::cuda::par.on(exec->get_stream());
+#endif
 }
 
 
