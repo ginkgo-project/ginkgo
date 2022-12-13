@@ -80,15 +80,13 @@ inline void upper_trsv(
             for (int idx = 0; idx < nnz_stored_per_row; idx++) {
                 const auto col_idx = U_entry.col_idxs[row_idx + idx * stride];
 
-                if (col_idx != invalid_index<int>()) {
-                    if (col_idx == row_idx) {
-                        diag_val = U_entry.values[row_idx + idx * stride];
-                    } else {
-                        sum +=
-                            U_entry.values[row_idx + idx * stride] *
-                            x_entry.values[col_idx * x_entry.stride + rhs_idx];
-                        ;
-                    }
+                if (col_idx == invalid_index<int>()) {
+                    break;
+                } else if (col_idx == row_idx) {
+                    diag_val = U_entry.values[row_idx + idx * stride];
+                } else if (col_idx > row_idx) {
+                    sum += U_entry.values[row_idx + idx * stride] *
+                           x_entry.values[col_idx * x_entry.stride + rhs_idx];
                 }
             }
 
