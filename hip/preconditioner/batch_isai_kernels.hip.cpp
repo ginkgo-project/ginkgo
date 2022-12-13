@@ -171,7 +171,7 @@ void extract_csr_sys_pattern(
 
     hipLaunchKernelGGL(
         extract_csr_sys_pattern_kernel<ValueType>, grid, block, 0, 0,
-        lin_sys_row, size, first_approx_inv->get_const_row_ptrs(),
+        lin_sys_row, first_approx_inv->get_const_row_ptrs(),
         first_approx_inv->get_const_col_idxs(),
         first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),
