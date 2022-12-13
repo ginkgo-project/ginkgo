@@ -114,7 +114,8 @@ void Schwarz<ValueType, IndexType, GlobalIndexType>::generate(
 {
     using base_mat = matrix::Csr<ValueType, IndexType>;
 #if GINKGO_BUILD_MPI
-    using dist_mat = distributed::Matrix<ValueType, IndexType, GlobalIndexType>;
+    using dist_mat = experimental::distributed::Matrix<ValueType, IndexType,
+                                                       GlobalIndexType>;
 #endif
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     if (dynamic_cast<const base_mat*>(system_matrix) != nullptr) {
