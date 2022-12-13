@@ -104,7 +104,8 @@ void BatchUpperTrs<ValueType>::apply_impl(const BatchLinOp* b,
                 system_matrix_new.get())) {
             amat->sort_by_column_index();
         }
-    }
+    }  // Note: The algorithm assumes that column indices (for each row) of
+       // batchell are already sorted.
 
     const bool to_scale = std::dynamic_pointer_cast<const BDiag>(
                               this->parameters_.left_scaling_op) &&
