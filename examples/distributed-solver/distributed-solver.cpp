@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Add the string manipulation header to handle strings.
 #include <string>
 
+#include <ginkgo/core/distributed/local_factory.hpp>
+
 
 int main(int argc, char* argv[])
 {
@@ -224,6 +226,12 @@ int main(int argc, char* argv[])
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_baseline(gko::stop::mode::absolute)
                     .with_reduction_factor(1e-4)
+                    .on(exec))
+            .with_preconditioner(
+                gko::experimental::distributed::LocalFactory::build()
+                    .with_local_factory(
+                        gko::preconditioner::Jacobi<ValueType>::build().on(
+                            exec))
                     .on(exec))
             .on(exec)
             ->generate(A);

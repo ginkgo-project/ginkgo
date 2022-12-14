@@ -89,7 +89,8 @@ class Vector
       public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase {
+      public DistributedBase,
+      public GetLocal {
     friend class EnableCreateMethod<Vector>;
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
@@ -428,6 +429,13 @@ public:
      * @return a constant pointer to the underlying local_vector_type vectors
      */
     const local_vector_type* get_local_vector() const;
+
+    const LinOp* get_const_local() const override
+    {
+        return this->get_local_vector();
+    }
+
+    LinOp* get_local() override { return &local_; }
 
     /**
      * Create a real view of the (potentially) complex original multi-vector.

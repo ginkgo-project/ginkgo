@@ -72,8 +72,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -268,7 +268,8 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+      public DistributedBase,
+      public GetLocalShared {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
@@ -363,6 +364,13 @@ public:
      * @return  Shared pointer to the stored local matrix
      */
     std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+
+    std::shared_ptr<const LinOp> get_const_local() const override
+    {
+        return local_mtx_;
+    }
+
+    std::shared_ptr<LinOp> get_local() override { return local_mtx_; }
 
     /**
      * Get read access to the stored non-local matrix.

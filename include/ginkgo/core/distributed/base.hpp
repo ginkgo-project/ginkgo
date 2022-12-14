@@ -95,6 +95,21 @@ private:
 };
 
 
+class GetLocal {
+public:
+    virtual const LinOp* get_const_local() const = 0;
+
+    virtual LinOp* get_local() = 0;
+};
+
+class GetLocalShared {
+public:
+    virtual std::shared_ptr<const LinOp> get_const_local() const = 0;
+
+    virtual std::shared_ptr<LinOp> get_local() = 0;
+};
+
+
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko
