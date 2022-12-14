@@ -148,11 +148,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)
 
-#define GKO_STUB_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(_macro) \
-    template <typename ValueType, typename LocalIndexType,    \
-              typename GlobalIndexType>                       \
-    _macro(ValueType, LocalIndexType, GlobalIndexType)        \
-        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                    \
+#define GKO_STUB_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(_macro)                  \
+    template <typename LocalIndexType, typename GlobalIndexType>               \
+    _macro(LocalIndexType, GlobalIndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro)
 
 
