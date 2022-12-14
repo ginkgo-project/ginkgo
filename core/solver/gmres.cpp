@@ -76,6 +76,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
+        .with_flexible(this->get_parameters().flexible)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -90,6 +91,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
+        .with_flexible(this->get_parameters().flexible)
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -196,7 +198,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
-
+    const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
         ::gko::detail::get_local(dense_b)->get_size()[0];
@@ -206,6 +208,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(preconditioned_vector, dense_b);
     auto krylov_bases = this->create_workspace_op_with_type_of(
         ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    auto preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
+        ws::preconditioned_krylov_bases, dense_b,
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
         dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
     // rows: rows of Hessenberg matrix, columns: block for each entry
     auto hessenberg = this->template create_workspace_op<LocalVector>(
@@ -341,9 +347,16 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                     span{local_num_rows * (restart_iter + 1),
                                          local_num_rows * (restart_iter + 2)},
                                     span{0, num_rhs});
-        // preconditioned_vector = get_preconditioner() * this_krylov
+        auto preconditioned_krylov = create_submatrix_helper(
+            preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * restart_iter,
+                 local_num_rows * (restart_iter + 1)},
+            span{0, num_rhs});
+        auto preconditioned_krylov_vector =
+            is_flexible ? preconditioned_krylov.get() : preconditioned_vector;
+        // preconditioned_krylov_vector = get_preconditioner() * this_krylov
         this->get_preconditioner()->apply(this_krylov.get(),
-                                          preconditioned_vector);
+                                          preconditioned_krylov_vector);
 
         // Create view of current column in the hessenberg matrix:
         // hessenberg_iter = hessenberg(:, restart_iter);
@@ -352,8 +365,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             span{num_rhs * restart_iter, num_rhs * (restart_iter + 1)});
 
         // Start of Arnoldi
-        // next_krylov = A * preconditioned_vector
-        this->get_system_matrix()->apply(preconditioned_vector,
+        // next_krylov = A * preconditioned_krylov_vector
+        this->get_system_matrix()->apply(preconditioned_krylov_vector,
                                          next_krylov.get());
 
         for (size_type i = 0; i <= restart_iter; i++) {
@@ -414,6 +427,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto krylov_bases_small = create_submatrix_helper(
         krylov_bases, dim<2>{num_rows, num_rhs},
         span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
+    auto preconditioned_krylov_bases_small = create_submatrix_helper(
+        preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
+        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
@@ -422,15 +438,24 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     exec->run(gmres::make_solve_krylov(
         residual_norm_collection, hessenberg_small.get(), y,
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
-    // before_preconditioner = krylov_bases * y
-    exec->run(gmres::make_multi_axpy(
-        gko::detail::get_local(krylov_bases_small.get()), y,
-        gko::detail::get_local(before_preconditioner),
-        final_iter_nums.get_const_data(), stop_status.get_data()));
+    if (is_flexible) {
+        // after_preconditioner = preconditioned_krylov_bases * y
+        exec->run(gmres::make_multi_axpy(
+            gko::detail::get_local(preconditioned_krylov_bases_small.get()), y,
+            gko::detail::get_local(after_preconditioner),
+            final_iter_nums.get_const_data(), stop_status.get_data()));
+    } else {
+        // before_preconditioner = krylov_bases * y
+        exec->run(gmres::make_multi_axpy(
+            gko::detail::get_local(krylov_bases_small.get()), y,
+            gko::detail::get_local(before_preconditioner),
+            final_iter_nums.get_const_data(), stop_status.get_data()));
 
-    // x = x + get_preconditioner() * before_preconditioner
-    this->get_preconditioner()->apply(before_preconditioner,
-                                      after_preconditioner);
+        // after_preconditioner = get_preconditioner() * before_preconditioner
+        this->get_preconditioner()->apply(before_preconditioner,
+                                          after_preconditioner);
+    }
+    // x = x + after_preconditioner
     dense_x->add_scaled(one_op, after_preconditioner);
 }
 
@@ -463,7 +488,7 @@ int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_vectors(const Solver&)
 {
-    return 14;
+    return 15;
 }
 
 
@@ -484,7 +509,8 @@ std::vector<std::string> workspace_traits<Gmres<ValueType>>::op_names(
             "after_preconditioner",
             "one",
             "minus_one",
-            "next_krylov_norm_tmp"};
+            "next_krylov_norm_tmp",
+            "preconditioned_krylov_bases"};
 }
 
 
@@ -509,8 +535,12 @@ std::vector<int> workspace_traits<Gmres<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Gmres<ValueType>>::vectors(const Solver&)
 {
-    return {residual, preconditioned_vector, krylov_bases,
-            before_preconditioner, after_preconditioner};
+    return {residual,
+            preconditioned_vector,
+            krylov_bases,
+            before_preconditioner,
+            after_preconditioner,
+            preconditioned_krylov_bases};
 }
 
 
