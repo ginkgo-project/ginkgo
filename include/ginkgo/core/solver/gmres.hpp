@@ -132,6 +132,11 @@ public:
          * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+
+        /**
+         * Flexible GMRES
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -208,6 +213,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int minus_one = 12;
     // temporary norm vector of next_krylov to copy into hessenberg matrix
     constexpr static int next_krylov_norm_tmp = 13;
+    // preconditioned krylov basis multivector
+    constexpr static int preconditioned_krylov_bases = 14;
 
     // stopping status array
     constexpr static int stop = 0;
