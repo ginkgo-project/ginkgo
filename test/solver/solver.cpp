@@ -274,6 +274,36 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
 };
 
 
+template <unsigned dimension>
+struct FGmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(iteration_count)
+                               .on(exec))
+            .with_krylov_dim(dimension)
+            .with_flexible(true);
+    }
+
+    static typename solver_type::parameters_type build_preconditioned(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(iteration_count)
+                               .on(exec))
+            .with_preconditioner(
+                precond_type::build().with_max_block_size(1u).on(exec))
+            .with_krylov_dim(dimension)
+            .with_flexible(true);
+    }
+};
+
+
 struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     static constexpr bool will_not_allocate() { return false; }
 
@@ -855,8 +885,9 @@ using SolverTypes =
     ::testing::Types<Cg, Cgs, Fcg, Bicg, Bicgstab,
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
-                     Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>, LowerTrs,
-                     UpperTrs, LowerTrsUnitdiag, UpperTrsUnitdiag
+                     Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>,
+                     FGmres<2>, FGmres<10>, LowerTrs, UpperTrs,
+                     LowerTrsUnitdiag, UpperTrsUnitdiag
 #ifdef GKO_COMPILING_CUDA
                      ,
                      LowerTrsSyncfree, UpperTrsSyncfree,
