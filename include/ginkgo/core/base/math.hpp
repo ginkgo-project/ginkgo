@@ -658,7 +658,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
  * @return additive identity for T
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T zero()
+GKO_INLINE __host__ __device__ constexpr T zero()
 {
     return T{};
 }
@@ -686,7 +686,7 @@ GKO_INLINE __host__ constexpr T zero(const T&)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T one()
+GKO_INLINE __host__ __device__ constexpr T one()
 {
     return T(1);
 }
