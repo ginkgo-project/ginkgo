@@ -8,6 +8,7 @@
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
     - private_ci
+    - fairrs
 #    - nla-gpu  # TODO: enable when nla-gpu is available
 
 .use_gko-nocuda-nompi-gnu9-llvm8:
