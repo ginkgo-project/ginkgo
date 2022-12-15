@@ -209,16 +209,6 @@ scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
 }
 
 
-void CudaExecutor::run(const Operation& op) const
-{
-    this->template log<log::Logger::operation_launched>(this, &op);
-    detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    op.run(
-        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
-    this->template log<log::Logger::operation_completed>(this, &op);
-}
-
-
 int CudaExecutor::get_num_devices()
 {
     int deviceCount = 0;

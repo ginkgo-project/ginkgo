@@ -1057,6 +1057,11 @@ private:
             op_omp_();
         }
 
+        void run(std::shared_ptr<const ReferenceExecutor>) const override
+        {
+            op_omp_();
+        }
+
         void run(std::shared_ptr<const CudaExecutor>) const override
         {
             op_cuda_();
@@ -1150,9 +1155,12 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
+    using Executor::run;
+
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
+        auto scope_guard = get_scoped_device_id_guard();
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
@@ -1324,17 +1332,17 @@ public:
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
     }
 
+    scoped_device_id_guard get_scoped_device_id_guard() const override
+    {
+        return {this, 0};
+    }
+
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
         this->template log<log::Logger::operation_completed>(this, &op);
-    }
-
-    scoped_device_id_guard get_scoped_device_id_guard() const override
-    {
-        return {this, 0};
     }
 
 protected:
@@ -1408,8 +1416,6 @@ public:
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1613,8 +1619,6 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
-
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     /**
@@ -1812,8 +1816,6 @@ public:
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 

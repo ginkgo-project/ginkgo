@@ -210,16 +210,6 @@ void HipExecutor::synchronize() const
 }
 
 
-void HipExecutor::run(const Operation& op) const
-{
-    this->template log<log::Logger::operation_launched>(this, &op);
-    detail::hip_scoped_device_id_guard g(this->get_device_id());
-    op.run(
-        std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
-    this->template log<log::Logger::operation_completed>(this, &op);
-}
-
-
 scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};

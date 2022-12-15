@@ -54,60 +54,6 @@ namespace {
 using exec_ptr = std::shared_ptr<gko::Executor>;
 
 
-class ExampleOperation : public gko::Operation {
-public:
-    explicit ExampleOperation(int& val) : value(val) {}
-    void run(std::shared_ptr<const gko::OmpExecutor>) const override
-    {
-        value = 1;
-    }
-    void run(std::shared_ptr<const gko::CudaExecutor>) const override
-    {
-        value = 2;
-    }
-    void run(std::shared_ptr<const gko::HipExecutor>) const override
-    {
-        value = 3;
-    }
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
-    {
-        value = 4;
-    }
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
-    {
-        value = 5;
-    }
-
-    int& value;
-};
-
-
-TEST(OmpExecutor, RunsCorrectOperation)
-{
-    int value = 0;
-    exec_ptr omp = gko::OmpExecutor::create();
-
-    omp->run(ExampleOperation(value));
-
-    ASSERT_EQ(1, value);
-}
-
-
-TEST(OmpExecutor, RunsCorrectLambdaOperation)
-{
-    int value = 0;
-    auto omp_lambda = [&value]() { value = 1; };
-    auto cuda_lambda = [&value]() { value = 2; };
-    auto hip_lambda = [&value]() { value = 3; };
-    auto dpcpp_lambda = [&value]() { value = 4; };
-    exec_ptr omp = gko::OmpExecutor::create();
-
-    omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
-
-    ASSERT_EQ(1, value);
-}
-
-
 TEST(OmpExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
@@ -197,32 +143,6 @@ TEST(MachineTopology, CanBindToARangeofCores)
 
 
 #endif
-
-
-TEST(ReferenceExecutor, RunsCorrectOperation)
-{
-    int value = 0;
-    exec_ptr ref = gko::ReferenceExecutor::create();
-
-    ref->run(ExampleOperation(value));
-
-    ASSERT_EQ(5, value);
-}
-
-
-TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
-{
-    int value = 0;
-    auto omp_lambda = [&value]() { value = 1; };
-    auto cuda_lambda = [&value]() { value = 2; };
-    auto hip_lambda = [&value]() { value = 3; };
-    auto dpcpp_lambda = [&value]() { value = 4; };
-    exec_ptr ref = gko::ReferenceExecutor::create();
-
-    ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
-
-    ASSERT_EQ(1, value);
-}
 
 
 TEST(ReferenceExecutor, AllocatesAndFreesMemory)
@@ -325,34 +245,6 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 }
 
 
-TEST(CudaExecutor, RunsCorrectOperation)
-{
-    int value = 0;
-    exec_ptr cuda =
-        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
-
-    cuda->run(ExampleOperation(value));
-
-    ASSERT_EQ(2, value);
-}
-
-
-TEST(CudaExecutor, RunsCorrectLambdaOperation)
-{
-    int value = 0;
-    auto omp_lambda = [&value]() { value = 1; };
-    auto cuda_lambda = [&value]() { value = 2; };
-    auto hip_lambda = [&value]() { value = 3; };
-    auto dpcpp_lambda = [&value]() { value = 4; };
-    exec_ptr cuda =
-        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
-
-    cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
-
-    ASSERT_EQ(2, value);
-}
-
-
 TEST(CudaExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
@@ -400,32 +292,6 @@ TEST(CudaExecutor, CanSetDeviceResetBoolean)
 }
 
 
-TEST(HipExecutor, RunsCorrectOperation)
-{
-    int value = 0;
-    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-
-    hip->run(ExampleOperation(value));
-
-    ASSERT_EQ(3, value);
-}
-
-
-TEST(HipExecutor, RunsCorrectLambdaOperation)
-{
-    int value = 0;
-    auto omp_lambda = [&value]() { value = 1; };
-    auto cuda_lambda = [&value]() { value = 2; };
-    auto hip_lambda = [&value]() { value = 3; };
-    auto dpcpp_lambda = [&value]() { value = 4; };
-    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-
-    hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
-
-    ASSERT_EQ(3, value);
-}
-
-
 TEST(HipExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
@@ -470,32 +336,6 @@ TEST(HipExecutor, CanSetDeviceResetBoolean)
     hip->set_device_reset(true);
 
     ASSERT_EQ(true, hip->get_device_reset());
-}
-
-
-TEST(DpcppExecutor, RunsCorrectOperation)
-{
-    int value = 0;
-    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
-
-    dpcpp->run(ExampleOperation(value));
-
-    ASSERT_EQ(4, value);
-}
-
-
-TEST(DpcppExecutor, RunsCorrectLambdaOperation)
-{
-    int value = 0;
-    auto omp_lambda = [&value]() { value = 1; };
-    auto cuda_lambda = [&value]() { value = 2; };
-    auto hip_lambda = [&value]() { value = 3; };
-    auto dpcpp_lambda = [&value]() { value = 4; };
-    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
-
-    dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
-
-    ASSERT_EQ(4, value);
 }
 
 
@@ -754,12 +594,21 @@ TEST_F(ExecutorLogging, LogsCopy)
 }
 
 
+class ExampleOperation : public gko::Operation {
+public:
+    void run(std::shared_ptr<const gko::OmpExecutor>) const override {}
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override {}
+    void run(std::shared_ptr<const gko::HipExecutor>) const override {}
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override {}
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override {}
+};
+
+
 TEST_F(ExecutorLogging, LogsOperation)
 {
     auto before_logger = *logger;
-    int value = 0;
 
-    exec->run(ExampleOperation(value));
+    exec->run(ExampleOperation());
 
     ASSERT_EQ(logger->operation_launched, before_logger.operation_launched + 1);
     ASSERT_EQ(logger->operation_completed,
