@@ -29,8 +29,8 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
-    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
-      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+    - if [[ "${BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
@@ -52,6 +52,7 @@
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 .build_and_test_template:
@@ -70,8 +71,8 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
-    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
-      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+    - if [[ "${BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
@@ -123,6 +124,7 @@
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 

@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -67,7 +68,10 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using matrix_type = typename gko::matrix::Csr<value_type, index_type>;
+    using factory_type =
+        gko::experimental::factorization::Lu<value_type, index_type>;
+    using matrix_type = typename factory_type::matrix_type;
+    using sparsity_pattern_type = typename factory_type::sparsity_pattern_type;
 
     Lu()
         : storage_offsets{ref},
@@ -109,13 +113,19 @@ protected:
         dstorage = storage;
         drow_descs = row_descs;
         dmtx_lu = gko::clone(exec, mtx_lu);
+        mtx_lu_sparsity = sparsity_pattern_type::create(ref);
+        mtx_lu_sparsity->copy_from(mtx_lu.get());
+        dmtx_lu_sparsity = sparsity_pattern_type::create(exec);
+        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity.get());
     }
 
     gko::size_type num_rows;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> mtx_lu;
+    std::shared_ptr<sparsity_pattern_type> mtx_lu_sparsity;
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<matrix_type> dmtx_lu;
+    std::shared_ptr<sparsity_pattern_type> dmtx_lu_sparsity;
     gko::array<index_type> storage_offsets;
     gko::array<index_type> dstorage_offsets;
     gko::array<gko::int32> storage;
@@ -124,7 +134,22 @@ protected:
     gko::array<gko::int64> drow_descs;
 };
 
-TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+#ifdef GKO_COMPILING_OMP
+using Types = gko::test::ValueIndexTypes;
+#elif defined(GKO_COMPILING_CUDA)
+// CUDA don't support long indices for sorting, and the triangular solvers
+// seem broken
+using Types = ::testing::Types<std::tuple<float, gko::int32>,
+                               std::tuple<double, gko::int32>,
+                               std::tuple<std::complex<float>, gko::int32>,
+                               std::tuple<std::complex<double>, gko::int32>>;
+#else
+// HIP only supports real types and int32
+using Types = ::testing::Types<std::tuple<float, gko::int32>,
+                               std::tuple<double, gko::int32>>;
+#endif
+
+TYPED_TEST_SUITE(Lu, Types, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
@@ -246,4 +271,140 @@ TYPED_TEST(Lu, KernelFactorizeAmdIsEquivalentToRef)
         ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateWithKnownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_mtx,
+                          gko::matrices::location_ani4_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->mtx_lu_sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->dmtx_lu_sparsity)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateWithKnownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
+                          gko::matrices::location_ani4_amd_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->mtx_lu_sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->dmtx_lu_sparsity)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
 }

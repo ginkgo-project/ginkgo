@@ -124,7 +124,7 @@ class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
                 public EnablePreconditionedIterativeSolver<ValueType,
                                                            CbGmres<ValueType>> {
     friend class EnableLinOp<CbGmres>;
-    friend struct polymorphic_object_traits<CbGmres>;
+    friend class EnablePolymorphicObject<CbGmres, LinOp>;
 
 public:
     using value_type = ValueType;

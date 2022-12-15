@@ -77,7 +77,7 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
-    friend struct polymorphic_object_traits<Diagonal>;
+    friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
@@ -150,6 +150,24 @@ public:
         GKO_ASSERT_EQUAL_COLS(this, x);
 
         this->rapply_impl(b, x);
+    }
+
+    /**
+     * Applies the inverse of the diagonal matrix to a matrix b,
+     * which means scales the columns of b with the inverse of the according
+     * diagonal entries.
+     *
+     * @param b  the input vector(s) on which the inverse of the diagonal matrix
+     * is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    void inverse_apply(const LinOp* b, LinOp* x) const
+    {
+        GKO_ASSERT_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(b, x);
+        GKO_ASSERT_EQUAL_ROWS(this, x);
+
+        this->inverse_apply_impl(b, x);
     }
 
     void read(const mat_data& data) override;
@@ -238,6 +256,7 @@ protected:
 
     void rapply_impl(const LinOp* b, LinOp* x) const;
 
+    void inverse_apply_impl(const LinOp* b, LinOp* x) const;
 
 private:
     array<value_type> values_;

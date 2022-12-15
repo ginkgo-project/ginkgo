@@ -165,7 +165,7 @@ TYPED_TEST(Ir, CanBeCleared)
 }
 
 
-TYPED_TEST(Ir, ApplyUsesInitialGuessReturnsTrue)
+TYPED_TEST(Ir, DefaultApplyUsesInitialGuess)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
@@ -292,6 +292,28 @@ TYPED_TEST(Ir, CanSetInnerSolver)
 
     ASSERT_NE(inner_solver.get(), nullptr);
     ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TYPED_TEST(Ir, CanSetApplyWithInitialGuessMode)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
+        auto ir_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(3u).on(
+                        this->exec))
+                .with_default_initial_guess(guess)
+                .on(this->exec);
+        auto solver = ir_factory->generate(this->mtx);
+
+        ASSERT_EQ(solver->apply_uses_initial_guess(),
+                  guess == gko::solver::initial_guess_mode::provided);
+    }
 }
 
 

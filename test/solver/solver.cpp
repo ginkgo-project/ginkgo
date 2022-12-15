@@ -77,13 +77,13 @@ struct SimpleSolverTest {
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
     using precond_type = gko::preconditioner::Jacobi<value_type, index_type>;
 
-    static bool is_iterative() { return true; }
+    static constexpr bool is_iterative() { return true; }
 
-    static bool is_preconditionable() { return true; }
+    static constexpr bool is_preconditionable() { return true; }
 
-    static bool will_not_allocate() { return true; }
+    static constexpr bool will_not_allocate() { return true; }
 
-    static bool supports_wide_vectors() { return true; }
+    static constexpr bool requires_num_rhs() { return false; }
 
     static double tolerance() { return 1e4 * r<value_type>::value; }
 
@@ -152,7 +152,7 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 
 
 struct Bicg : SimpleSolverTest<gko::solver::Bicg<solver_value_type>> {
-    static bool will_not_allocate() { return false; }
+    static constexpr bool will_not_allocate() { return false; }
 };
 
 
@@ -216,7 +216,7 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 
 template <unsigned dimension>
 struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
-    static bool will_not_allocate() { return false; }
+    static constexpr bool will_not_allocate() { return false; }
 
     static double tolerance() { return 1e9 * r<value_type>::value; }
 
@@ -275,15 +275,15 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
 
 
 struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
-    static bool will_not_allocate() { return false; }
+    static constexpr bool will_not_allocate() { return false; }
 
-    static bool is_iterative() { return false; }
+    static constexpr bool is_iterative() { return false; }
 
-    static bool is_preconditionable() { return false; }
+    static constexpr bool is_preconditionable() { return false; }
 
 #ifdef GKO_COMPILING_CUDA
     // cuSPARSE bug related to inputs with more than 32 rhs
-    static bool supports_wide_vectors() { return false; }
+    static constexpr bool requires_num_rhs() { return true; }
 #endif
 
     static double tolerance() { return r<value_type>::value; }
@@ -295,11 +295,11 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
-        return solver_type::build().with_algorithm(
-            gko::solver::trisolve_algorithm::sparselib);
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_num_rhs(num_rhs);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -325,15 +325,15 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
 
 
 struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
-    static bool will_not_allocate() { return false; }
+    static constexpr bool will_not_allocate() { return false; }
 
-    static bool is_iterative() { return false; }
+    static constexpr bool is_iterative() { return false; }
 
-    static bool is_preconditionable() { return false; }
+    static constexpr bool is_preconditionable() { return false; }
 
 #ifdef GKO_COMPILING_CUDA
     // cuSPARSE bug related to inputs with more than 32 rhs
-    static bool supports_wide_vectors() { return false; }
+    static constexpr bool requires_num_rhs() { return true; }
 #endif
 
     static double tolerance() { return r<value_type>::value; }
@@ -345,11 +345,11 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
-        return solver_type::build().with_algorithm(
-            gko::solver::trisolve_algorithm::sparselib);
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_num_rhs(num_rhs);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -376,11 +376,11 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
 
 struct LowerTrsUnitdiag : LowerTrs {
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
 };
@@ -388,18 +388,18 @@ struct LowerTrsUnitdiag : LowerTrs {
 
 struct UpperTrsUnitdiag : UpperTrs {
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
 };
 
 
 struct LowerTrsSyncfree : LowerTrs {
-    static bool supports_wide_vectors() { return true; }
+    static constexpr bool requires_num_rhs() { return false; }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
@@ -412,7 +412,7 @@ struct LowerTrsSyncfree : LowerTrs {
 
 
 struct UpperTrsSyncfree : UpperTrs {
-    static bool supports_wide_vectors() { return true; }
+    static constexpr bool requires_num_rhs() { return false; }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
@@ -425,7 +425,7 @@ struct UpperTrsSyncfree : UpperTrs {
 
 
 struct LowerTrsSyncfreeUnitdiag : LowerTrs {
-    static bool supports_wide_vectors() { return true; }
+    static constexpr bool requires_num_rhs() { return false; }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
@@ -439,7 +439,7 @@ struct LowerTrsSyncfreeUnitdiag : LowerTrs {
 
 
 struct UpperTrsSyncfreeUnitdiag : UpperTrs {
-    static bool supports_wide_vectors() { return true; }
+    static constexpr bool requires_num_rhs() { return false; }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
@@ -555,11 +555,11 @@ protected:
             rand_engine};
     }
 
-    template <typename VecType = Vec>
-    test_pair<VecType> gen_in_vec(const test_pair<SolverType>& mtx, int nrhs,
+    template <typename VecType = Vec, typename MtxOrSolver>
+    test_pair<VecType> gen_in_vec(const test_pair<MtxOrSolver>& op, int nrhs,
                                   int stride)
     {
-        auto size = gko::dim<2>{mtx.ref->get_size()[1],
+        auto size = gko::dim<2>{op.ref->get_size()[1],
                                 static_cast<gko::size_type>(nrhs)};
         auto result = VecType::create(ref, size, stride);
         result->read(gen_dense_data<typename VecType::value_type,
@@ -581,11 +581,11 @@ protected:
                 exec};
     }
 
-    template <typename VecType = Vec>
-    test_pair<VecType> gen_out_vec(const test_pair<SolverType>& mtx, int nrhs,
+    template <typename VecType = Vec, typename MtxOrSolver>
+    test_pair<VecType> gen_out_vec(const test_pair<MtxOrSolver>& op, int nrhs,
                                    int stride)
     {
-        auto size = gko::dim<2>{mtx.ref->get_size()[0],
+        auto size = gko::dim<2>{op.ref->get_size()[0],
                                 static_cast<gko::size_type>(nrhs)};
         auto result = VecType::create(ref, size, stride);
         result->read(gen_dense_data<typename VecType::value_type,
@@ -677,6 +677,8 @@ protected:
                 Config::build_preconditioned(exec, 0).on(exec)->generate(
                     mtx.dev)});
         }
+        static_assert(!(Config::requires_num_rhs() && Config::is_iterative()),
+                      "Inconsistent config");
         if (Config::is_iterative()) {
             {
                 SCOPED_TRACE("Unpreconditioned solver with 4 iterations");
@@ -696,7 +698,52 @@ protected:
     }
 
     template <typename VecType = Vec, typename TestFunction>
-    void forall_vector_scenarios(const test_pair<SolverType>& solver,
+    void forall_solver_scenarios_with_nrhs(const test_pair<Mtx>& mtx,
+                                           const test_pair<VecType>& vec,
+                                           TestFunction fn)
+    {
+        auto guarded_fn = [&](auto solver) {
+            try {
+                fn(std::move(solver));
+                this->reset_rand();
+            } catch (std::exception& e) {
+                FAIL() << e.what();
+            }
+        };
+        const auto nrhs = vec.ref->get_size()[1] *
+                          (gko::is_complex<typename VecType::value_type>() &&
+                                   !gko::is_complex<value_type>()
+                               ? 2
+                               : 1);
+        // No 0x0 cleared/defaulted solvers, as they would be inconsistent with
+        // `vec`
+        {
+            SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
+            guarded_fn(test_pair<SolverType>{
+                Config::build(ref, nrhs).on(ref)->generate(mtx.ref), exec});
+        }
+        {
+            SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
+            guarded_fn(test_pair<SolverType>{
+                Config::build(ref, nrhs).on(ref)->generate(mtx.ref),
+                Config::build(exec, nrhs).on(exec)->generate(mtx.dev)});
+        }
+        if (Config::is_preconditionable()) {
+            SCOPED_TRACE("Preconditioned solver with 0 iterations");
+            guarded_fn(test_pair<SolverType>{
+                Config::build_preconditioned(ref, nrhs).on(ref)->generate(
+                    mtx.ref),
+                Config::build_preconditioned(exec, nrhs)
+                    .on(exec)
+                    ->generate(mtx.dev)});
+        }
+        static_assert(!(Config::requires_num_rhs() && Config::is_iterative()),
+                      "Inconsistent config");
+    }
+
+    template <typename VecType = Vec, typename MtxOrSolver,
+              typename TestFunction>
+    void forall_vector_scenarios(const test_pair<MtxOrSolver>& op,
                                  TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
@@ -709,26 +756,28 @@ protected:
         };
         {
             SCOPED_TRACE("Multivector with 0 columns");
-            guarded_fn(gen_in_vec<VecType>(solver, 0, 0),
-                       gen_out_vec<VecType>(solver, 0, 0));
+            guarded_fn(gen_in_vec<VecType>(op, 0, 0),
+                       gen_out_vec<VecType>(op, 0, 0));
         }
         {
             SCOPED_TRACE("Single vector");
-            guarded_fn(gen_in_vec<VecType>(solver, 1, 1),
-                       gen_out_vec<VecType>(solver, 1, 1));
+            guarded_fn(gen_in_vec<VecType>(op, 1, 1),
+                       gen_out_vec<VecType>(op, 1, 1));
         }
-        /*if (Config::is_iterative() && solver.ref->get_system_matrix()) {
+        // TODO this will need to move to a separate test, since it's
+        // incompatible with the mtx-or-solver parameter approach
+        /*if (Config::is_iterative() && mtx.ref->get_size()) {
             SCOPED_TRACE("Single vector with correct initial guess");
-            auto in = gen_in_vec<VecType>(solver, 1, 1);
-            auto out = gen_out_vec<VecType>(solver, 1, 1);
-            solver.ref->get_system_matrix()->apply(out.ref.get(), in.ref.get());
-            solver.dev->get_system_matrix()->apply(out.dev.get(), in.dev.get());
+            auto in = gen_in_vec<VecType>(mtx, 1, 1);
+            auto out = gen_out_vec<VecType>(mtx, 1, 1);
+            mtx.ref->apply(out.ref.get(), in.ref.get());
+            mtx.dev->apply(out.dev.get(), in.dev.get());
             guarded_fn(std::move(in), std::move(out));
         }*/
         {
             SCOPED_TRACE("Single strided vector");
-            guarded_fn(gen_in_vec<VecType>(solver, 1, 2),
-                       gen_out_vec<VecType>(solver, 1, 3));
+            guarded_fn(gen_in_vec<VecType>(op, 1, 2),
+                       gen_out_vec<VecType>(op, 1, 3));
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector
@@ -736,36 +785,57 @@ protected:
             using complex_vec = gko::to_complex<VecType>;
             {
                 SCOPED_TRACE("Single strided complex vector");
-                guarded_fn(gen_in_vec<complex_vec>(solver, 1, 2),
-                           gen_out_vec<complex_vec>(solver, 1, 3));
+                guarded_fn(gen_in_vec<complex_vec>(op, 1, 2),
+                           gen_out_vec<complex_vec>(op, 1, 3));
             }
             {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                guarded_fn(gen_in_vec<complex_vec>(solver, 2, 3),
-                           gen_out_vec<complex_vec>(solver, 2, 4));
+                guarded_fn(gen_in_vec<complex_vec>(op, 2, 3),
+                           gen_out_vec<complex_vec>(op, 2, 4));
             }
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(solver, 2, 2),
-                       gen_out_vec<VecType>(solver, 2, 2));
+            guarded_fn(gen_in_vec<VecType>(op, 2, 2),
+                       gen_out_vec<VecType>(op, 2, 2));
         }
         {
             SCOPED_TRACE("Strided multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(solver, 2, 3),
-                       gen_out_vec<VecType>(solver, 2, 4));
+            guarded_fn(gen_in_vec<VecType>(op, 2, 3),
+                       gen_out_vec<VecType>(op, 2, 4));
         }
-        if (Config::supports_wide_vectors()) {
+        {
             SCOPED_TRACE("Multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(solver, 40, 40),
-                       gen_out_vec<VecType>(solver, 40, 40));
+            guarded_fn(gen_in_vec<VecType>(op, 40, 40),
+                       gen_out_vec<VecType>(op, 40, 40));
         }
-        if (Config::supports_wide_vectors()) {
+        {
             SCOPED_TRACE("Strided multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(solver, 40, 43),
-                       gen_out_vec<VecType>(solver, 40, 45));
+            guarded_fn(gen_in_vec<VecType>(op, 40, 43),
+                       gen_out_vec<VecType>(op, 40, 45));
         }
     }
+
+    template <typename VecType = Vec, typename TestFunction>
+    void forall_vector_and_solver_scenarios(const test_pair<Mtx>& mtx,
+                                            TestFunction fn)
+    {
+        if (Config::requires_num_rhs()) {
+            forall_vector_scenarios<VecType>(
+                mtx, [this, &mtx, &fn](auto b, auto x) {
+                    forall_solver_scenarios_with_nrhs(
+                        mtx, b,
+                        [this, &fn, &b, &x](auto solver) { fn(solver, b, x); });
+                });
+        } else {
+            forall_solver_scenarios(mtx, [this, &mtx, &fn](auto solver) {
+                forall_vector_scenarios<VecType>(
+                    solver,
+                    [this, &solver, &fn](auto b, auto x) { fn(solver, b, x); });
+            });
+        }
+    }
+
 
     void assert_empty_state(const SolverType* solver,
                             std::shared_ptr<const gko::Executor> expected_exec)
@@ -800,15 +870,13 @@ TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
     this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            this->forall_vector_scenarios(
-                solver, [this, &solver](auto b, auto x) {
-                    solver.ref->apply(b.ref.get(), x.ref.get());
-                    solver.dev->apply(b.dev.get(), x.dev.get());
+        this->forall_vector_and_solver_scenarios(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                solver.ref->apply(b.ref.get(), x.ref.get());
+                solver.dev->apply(b.dev.get(), x.dev.get());
 
-                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
-                });
-        });
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
+            });
     });
 }
 
@@ -819,9 +887,8 @@ TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
         GTEST_SKIP();
     }
     this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            this->forall_vector_scenarios(solver, [this, &solver](auto b,
-                                                                  auto x) {
+        this->forall_vector_and_solver_scenarios(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
                 solver.dev->apply(b.dev.get(), x.dev.get());
                 auto logger = std::make_shared<FailOnAllocationFreeLogger>();
 
@@ -829,7 +896,6 @@ TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
                 solver.dev->apply(b.dev.get(), x.dev.get());
                 this->exec->remove_logger(logger.get());
             });
-        });
     });
 }
 
@@ -837,20 +903,18 @@ TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
 TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 {
     this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            this->forall_vector_scenarios(
-                solver, [this, &solver](auto b, auto x) {
-                    auto alpha = this->gen_scalar();
-                    auto beta = this->gen_scalar();
+        this->forall_vector_and_solver_scenarios(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                auto alpha = this->gen_scalar();
+                auto beta = this->gen_scalar();
 
-                    solver.ref->apply(alpha.ref.get(), b.ref.get(),
-                                      beta.ref.get(), x.ref.get());
-                    solver.dev->apply(alpha.dev.get(), b.dev.get(),
-                                      beta.dev.get(), x.dev.get());
+                solver.ref->apply(alpha.ref.get(), b.ref.get(), beta.ref.get(),
+                                  x.ref.get());
+                solver.dev->apply(alpha.dev.get(), b.dev.get(), beta.dev.get(),
+                                  x.dev.get());
 
-                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
-                });
-        });
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
+            });
     });
 }
 
@@ -859,15 +923,13 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
     this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            this->template forall_vector_scenarios<MixedVec>(
-                solver, [this, &solver](auto b, auto x) {
-                    solver.ref->apply(b.ref.get(), x.ref.get());
-                    solver.dev->apply(b.dev.get(), x.dev.get());
+        this->template forall_vector_and_solver_scenarios<MixedVec>(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                solver.ref->apply(b.ref.get(), x.ref.get());
+                solver.dev->apply(b.dev.get(), x.dev.get());
 
-                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
-                });
-        });
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
+            });
     });
 }
 
@@ -876,20 +938,18 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
     this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            this->template forall_vector_scenarios<MixedVec>(
-                solver, [this, &solver](auto b, auto x) {
-                    auto alpha = this->template gen_scalar<MixedVec>();
-                    auto beta = this->template gen_scalar<MixedVec>();
+        this->template forall_vector_and_solver_scenarios<MixedVec>(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                auto alpha = this->template gen_scalar<MixedVec>();
+                auto beta = this->template gen_scalar<MixedVec>();
 
-                    solver.ref->apply(alpha.ref.get(), b.ref.get(),
-                                      beta.ref.get(), x.ref.get());
-                    solver.dev->apply(alpha.dev.get(), b.dev.get(),
-                                      beta.dev.get(), x.dev.get());
+                solver.ref->apply(alpha.ref.get(), b.ref.get(), beta.ref.get(),
+                                  x.ref.get());
+                solver.dev->apply(alpha.dev.get(), b.dev.get(), beta.dev.get(),
+                                  x.dev.get());
 
-                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
-                });
-        });
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
+            });
     });
 }
 

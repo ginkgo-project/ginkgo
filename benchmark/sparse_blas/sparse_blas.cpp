@@ -231,8 +231,8 @@ public:
 
     gko::size_type get_flops() const override
     {
-        auto host_mtx = Mtx::create(mtx_->get_executor());
-        auto host_mtx2 = Mtx::create(mtx_->get_executor());
+        auto host_mtx = Mtx::create(mtx_->get_executor()->get_master());
+        auto host_mtx2 = Mtx::create(mtx_->get_executor()->get_master());
         host_mtx->copy_from(mtx_);
         host_mtx2->copy_from(mtx2_.get());
         // count the individual products a_ik * b_kj

@@ -105,7 +105,7 @@ function(ginkgo_install)
     endif()
 
     # Install CMake modules
-    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules"
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules/"
         DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
         FILES_MATCHING PATTERN "*.cmake"
         )

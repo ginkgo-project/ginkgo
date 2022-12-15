@@ -1,8 +1,8 @@
 ![Ginkgo](/assets/logo.png)
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/develop)
-[![OSX-build](https://github.com/ginkgo-project/ginkgo/workflows/OSX-build/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AOSX-build)
-[![Windows-build](https://github.com/ginkgo-project/ginkgo/workflows/windows-build/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AWindows-build)
+[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)
+[![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)
 [![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
@@ -42,10 +42,12 @@ For Ginkgo core library:
     *   _clang 3.9+_
     *   _Intel compiler 2018+_
     *   _Apple LLVM 8.0+_
+    *   _Cray Compiler 14.0.1+_
+    *   _NVHPC Compiler 22.7+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.2+_
+*   _CUDA 9.2+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)

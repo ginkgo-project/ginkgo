@@ -94,7 +94,7 @@ class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<LowerTrs>;
-    friend struct polymorphic_object_traits<LowerTrs>;
+    friend class EnablePolymorphicObject<LowerTrs, LinOp>;
     friend class UpperTrs<ValueType, IndexType>;
 
 public:
@@ -111,11 +111,8 @@ public:
         /**
          * Number of right hand sides.
          *
-         * @note This value is currently a dummy value which is not used by the
-         *       analysis step. It is possible that future algorithms (cusparse
-         *       csrsm2) make use of the number of right hand sides for a more
-         *       sophisticated implementation. Hence this parameter is left
-         *       here. But currently, there is no need to use it.
+         * @note This value is currently only required for the CUDA
+         *       trisolve_algorithm::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
@@ -247,7 +244,7 @@ class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<UpperTrs>;
-    friend struct polymorphic_object_traits<UpperTrs>;
+    friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;
 
 public:
@@ -264,11 +261,8 @@ public:
         /**
          * Number of right hand sides.
          *
-         * @note This value is currently a dummy value which is not used by the
-         *       analysis step. It is possible that future algorithms (cusparse
-         *       csrsm2) make use of the number of right hand sides for a more
-         *       sophisticated implementation. Hence this parameter is left
-         *       here. But currently, there is no need to use it.
+         * @note This value is currently only required for the CUDA
+         *       trisolve_algorithm::sparselib algorithm.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 

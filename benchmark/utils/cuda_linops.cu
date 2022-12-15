@@ -129,7 +129,7 @@ class CusparseCsrmp
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CusparseCsrmp<ValueType, IndexType>> {
     friend class gko::EnableCreateMethod<CusparseCsrmp>;
-    friend class gko::polymorphic_object_traits<CusparseCsrmp>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrmp, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -203,7 +203,7 @@ class CusparseCsr
       public gko::EnableCreateMethod<CusparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsr>;
-    friend class gko::polymorphic_object_traits<CusparseCsr>;
+    friend class gko::EnablePolymorphicObject<CusparseCsr, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -278,7 +278,7 @@ class CusparseCsrmm
       public gko::EnableCreateMethod<CusparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrmm>;
-    friend class gko::polymorphic_object_traits<CusparseCsrmm>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrmm, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -349,6 +349,9 @@ private:
 #endif  // CUDA_VERSION < 11000
 
 
+#if CUDA_VERSION < 11021
+
+
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class CusparseCsrEx
@@ -357,7 +360,7 @@ class CusparseCsrEx
       public gko::EnableCreateMethod<CusparseCsrEx<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrEx>;
-    friend class gko::polymorphic_object_traits<CusparseCsrEx>;
+    friend class gko::EnablePolymorphicObject<CusparseCsrEx, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -448,6 +451,9 @@ private:
 };
 
 
+#endif  // CUDA_VERSION < 11021
+
+
 #if CUDA_VERSION < 11000
 
 
@@ -463,7 +469,7 @@ class CusparseHybrid
           CusparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseHybrid>;
-    friend class gko::polymorphic_object_traits<CusparseHybrid>;
+    friend class gko::EnablePolymorphicObject<CusparseHybrid, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -591,10 +597,15 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
 }
 
+#if CUDA_VERSION < 11021
+constexpr auto default_csr_alg = CUSPARSE_MV_ALG_DEFAULT;
+#else
+constexpr auto default_csr_alg = CUSPARSE_SPMV_ALG_DEFAULT;
+#endif
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
-          cusparseSpMVAlg_t Alg = CUSPARSE_MV_ALG_DEFAULT>
+          cusparseSpMVAlg_t Alg = default_csr_alg>
 class CusparseGenericCsr
     : public gko::EnableLinOp<CusparseGenericCsr<ValueType, IndexType, Alg>,
                               CusparseBase>,
@@ -602,7 +613,7 @@ class CusparseGenericCsr
           CusparseGenericCsr<ValueType, IndexType, Alg>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCsr>;
-    friend class gko::polymorphic_object_traits<CusparseGenericCsr>;
+    friend class gko::EnablePolymorphicObject<CusparseGenericCsr, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -694,7 +705,7 @@ class CusparseGenericCoo
       public gko::EnableCreateMethod<CusparseGenericCoo<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCoo>;
-    friend class gko::polymorphic_object_traits<CusparseGenericCoo>;
+    friend class gko::EnablePolymorphicObject<CusparseGenericCoo, CusparseBase>;
 
 public:
     using coo = gko::matrix::Coo<ValueType, IndexType>;
@@ -753,7 +764,7 @@ protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              CUSPARSE_MV_ALG_DEFAULT);
+                              default_csr_alg);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
@@ -784,8 +795,12 @@ private:
 }  // namespace detail
 
 
+#if CUDA_VERSION < 11021
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_csrex,
                             detail::CusparseCsrEx<etype, itype>);
+#else
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csrex);
+#endif
 
 #if CUDA_VERSION < 11000
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_csr, detail::CusparseCsr<etype, itype>);
@@ -805,9 +820,13 @@ STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmm);
     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__)))
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcsr,
                             detail::CusparseGenericCsr<etype, itype>);
-IMPL_CREATE_SPARSELIB_LINOP(
-    cusparse_gcsr2,
-    detail::CusparseGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>);
+#if CUDA_VERSION >= 11021
+constexpr auto csr_algo = CUSPARSE_SPMV_CSR_ALG2;
+#else
+constexpr auto csr_algo = CUSPARSE_CSRMV_ALG2;
+#endif
+IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcsr2,
+                            detail::CusparseGenericCsr<etype, itype, csr_algo>);
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_gcoo,
                             detail::CusparseGenericCoo<etype, itype>);
 #else

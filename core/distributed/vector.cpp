@@ -92,7 +92,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -103,7 +103,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -115,12 +115,42 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, {}},
+    : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
       DistributedBase{comm},
       local_{exec}
 {
     this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
+    const Vector* other)
+{
+    // De-referencing `other` before calling the functions (instead of
+    // using operator `->`) is currently required to be compatible with
+    // CUDA 10.1.
+    // Otherwise, it results in a compile error.
+    return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
+    const Vector<ValueType>* other, std::shared_ptr<const Executor> exec)
+{
+    return (*other).create_with_type_of_impl(exec, {}, {}, 0);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
+    const Vector<ValueType>* other, std::shared_ptr<const Executor> exec,
+    const dim<2>& global_size, const dim<2>& local_size, size_type stride)
+{
+    return (*other).create_with_type_of_impl(exec, global_size, local_size,
+                                             stride);
 }
 
 
@@ -517,6 +547,26 @@ Vector<ValueType>::create_real_view()
     return real_type::create(this->get_executor(), this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
                              local_.create_real_view().get());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_same_config()
+    const
+{
+    return Vector::create(
+        this->get_executor(), this->get_communicator(), this->get_size(),
+        this->get_local_vector()->get_size(), this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride) const
+{
+    return Vector::create(exec, this->get_communicator(), global_size,
+                          local_size, stride);
 }
 
 

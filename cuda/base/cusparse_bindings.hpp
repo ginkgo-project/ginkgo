@@ -199,6 +199,7 @@ inline void spmm(cusparseHandle_t handle, cusparseOperation_t opA,
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
+
 #define GKO_BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                    \
     inline void spmv_mp(cusparseHandle_t handle, cusparseOperation_t transA, \
                         int32 m, int32 n, int32 nnz, const ValueType* alpha, \
@@ -296,6 +297,9 @@ GKO_BIND_CUSPARSE64_SPMM(ValueType, detail::not_implemented);
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11021)
+
+
 template <typename ValueType, typename IndexType>
 inline void spmv(cusparseHandle_t handle, cusparseAlgMode_t alg,
                  cusparseOperation_t transA, IndexType m, IndexType n,
@@ -380,6 +384,9 @@ GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE(std::complex<double>);
 #undef GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE
 
 
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11021)
+
+
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
@@ -406,12 +413,6 @@ GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_CUSPARSE32_SPMV
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 template <typename ValueType, typename IndexType>
@@ -947,6 +948,9 @@ inline void destroy(cusparseSpSMDescr_t info)
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11031)
+
+
 inline csrsm2Info_t create_solve_info()
 {
     csrsm2Info_t info{};
@@ -959,6 +963,9 @@ inline void destroy(csrsm2Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrsm2Info(info));
 }
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11031)
 
 
 inline csrilu02Info_t create_ilu0_info()
@@ -987,6 +994,9 @@ inline void destroy(csric02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
 }
+
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION < 11031))
 
 
 #define GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(ValueType, CusparseName)            \
@@ -1144,7 +1154,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
+#else  // if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
 
 
 template <typename ValueType>

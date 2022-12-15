@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void initialize_1_kernel(
+__global__ __launch_bounds__(block_size) void initialize_kernel(
     size_type num_rows, size_type num_cols, size_type krylov_dim,
     const ValueType* __restrict__ b, size_type stride_b,
     ValueType* __restrict__ residual, size_type stride_residual,

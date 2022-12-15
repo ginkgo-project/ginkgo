@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -84,6 +85,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     cusparseHandle_t handle;
     cusparseSpSMDescr_t spsm_descr;
     cusparseSpMatDescr_t descr_a;
+    size_type num_rhs;
 
     // Implicit parameter in spsm_solve, therefore stored here.
     array<char> work;
@@ -94,8 +96,12 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         : handle{exec->get_cusparse_handle()},
           spsm_descr{},
           descr_a{},
+          num_rhs{num_rhs},
           work{exec}
     {
+        if (num_rhs == 0) {
+            return;
+        }
         cusparse::pointer_mode_guard pm_guard(handle);
         spsm_descr = cusparse::create_spsm_descr();
         descr_a = cusparse::create_csr(
@@ -143,6 +149,17 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
                matrix::Dense<ValueType>*) const
     {
+        if (input->get_size()[1] != num_rhs) {
+            throw gko::ValueMismatch{
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                input->get_size()[1],
+                num_rhs,
+                "the dimensions of the multivector do not match the value "
+                "provided at generation time. Check the value specified in "
+                ".with_num_rhs(...)."};
+        }
         cusparse::pointer_mode_guard pm_guard(handle);
         auto descr_b = cusparse::create_dnmat(
             input->get_size(), input->get_stride(),
@@ -191,6 +208,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     csrsm2Info_t solve_info;
     cusparseSolvePolicy_t policy;
     cusparseMatDescr_t factor_descr;
+    size_type num_rhs;
     mutable array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
@@ -202,8 +220,12 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
           solve_info{},
           policy{},
           factor_descr{},
+          num_rhs{num_rhs},
           work{exec}
     {
+        if (num_rhs == 0) {
+            return;
+        }
         cusparse::pointer_mode_guard pm_guard(handle);
         factor_descr = cusparse::create_mat_descr();
         solve_info = cusparse::create_solve_info();
@@ -243,6 +265,17 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
                matrix::Dense<ValueType>*) const
     {
+        if (input->get_size()[1] != num_rhs) {
+            throw gko::ValueMismatch{
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                input->get_size()[1],
+                num_rhs,
+                "the dimensions of the multivector do not match the value "
+                "provided at generation time. Check the value specified in "
+                ".with_num_rhs(...)."};
+        }
         cusparse::pointer_mode_guard pm_guard(handle);
         dense::copy(exec, input, output);
         cusparse::csrsm2_solve(

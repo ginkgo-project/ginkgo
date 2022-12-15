@@ -81,15 +81,6 @@ protected:
         }
     }
 
-    static void assert_equal_arrays(const T num_elems, const T* a, const T* b)
-    {
-        if (num_elems > 0) {
-            for (auto i = 0; i < num_elems; ++i) {
-                EXPECT_EQ(a[i], b[i]);
-            }
-        }
-    }
-
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::CudaExecutor> cuda;
 };

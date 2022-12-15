@@ -30,6 +30,8 @@ PR_JSON=$(api_get $PR_URL)
 echo -n .
 PR_MERGED=$(echo "$PR_JSON" | jq -r .merged)
 echo -n .
+PR_NUMBER=$(echo "$PR_JSON" | jq -r .number)
+echo -n .
 ISSUE_URL=$(echo "$PR_JSON" | jq -er ".issue_url")
 echo -n .
 BASE_REPO=$(echo "$PR_JSON" | jq -er .base.repo.full_name)

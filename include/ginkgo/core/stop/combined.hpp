@@ -53,7 +53,7 @@ namespace stop {
  * @ingroup stop
  */
 class Combined : public EnablePolymorphicObject<Combined, Criterion> {
-    friend struct polymorphic_object_traits<Combined>;
+    friend class EnablePolymorphicObject<Combined, Criterion>;
 
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -125,7 +125,6 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer&& factories)
     switch (factories.size()) {
     case 0:
         GKO_NOT_SUPPORTED(nullptr);
-        return nullptr;
     case 1:
         if (factories[0] == nullptr) {
             GKO_NOT_SUPPORTED(nullptr);
@@ -135,7 +134,6 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer&& factories)
         if (factories[0] == nullptr) {
             // first factory must be valid to capture executor
             GKO_NOT_SUPPORTED(nullptr);
-            return nullptr;
         } else {
             auto exec = factories[0]->get_executor();
             return Combined::build()

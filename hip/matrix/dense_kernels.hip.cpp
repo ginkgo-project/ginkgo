@@ -379,7 +379,6 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
 
     auto vals = result->get_values();
     auto col_idxs = result->get_col_idxs();
-    auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
 
     const auto slice_size = result->get_slice_size();
@@ -390,8 +389,8 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
         hipLaunchKernelGGL(kernel::fill_in_sellp, grid_dim, default_block_size,
                            0, 0, num_rows, num_cols, slice_size, stride,
                            as_hip_type(source->get_const_values()),
-                           as_hip_type(slice_lengths), as_hip_type(slice_sets),
-                           as_hip_type(col_idxs), as_hip_type(vals));
+                           as_hip_type(slice_sets), as_hip_type(col_idxs),
+                           as_hip_type(vals));
     }
 }
 

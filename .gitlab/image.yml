@@ -8,6 +8,12 @@
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
     - private_ci
+#    - nla-gpu  # TODO: enable when nla-gpu is available
+
+.use_gko-nocuda-nompi-gnu9-llvm8:
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  tags:
+    - private_ci
     - cpu
     - amdci
 
@@ -68,27 +74,22 @@
   tags:
     - private_ci
     - amdci
-    - gpu
+#    - nla-gpu  # TODO: enable when nla-gpu is available
 
-.use_gko-rocm45-mvapich2-gnu8-llvm8:
+
+.use_gko-rocm45-nompi-gnu8-llvm8:
   image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
   tags:
     - private_ci
     - amdci
     - gpu
 
-.use_gko-rocm502-openmpi-gnu11-llvm11:
+.use_gko-rocm502-nompi-gnu11-llvm11:
   image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amdci
     - gpu
-
-.use_gko-rocm502-openmpi-gnu11-llvm11-multi-gpu:
-  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
-  tags:
-    - private_ci
-    - nla-gpu
 
 .use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:latest

@@ -50,7 +50,7 @@ __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
 
 // Must be called with at least `num_rows * stride_krylov` threads in total.
 template <size_type block_size, typename ValueType, typename Accessor3d>
-__global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
+__global__ __launch_bounds__(block_size) void restart_1_kernel(
     size_type num_rows, size_type num_rhs, size_type krylov_dim,
     Accessor3d krylov_bases, ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_nc)
@@ -82,7 +82,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
 
 // Must be called with at least `num_rows * num_rhs` threads in total.
 template <size_type block_size, typename ValueType, typename Accessor3d>
-__global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
+__global__ __launch_bounds__(block_size) void restart_2_kernel(
     size_type num_rows, size_type num_rhs,
     const ValueType* __restrict__ residual, size_type stride_residual,
     const remove_complex<ValueType>* __restrict__ residual_norm,

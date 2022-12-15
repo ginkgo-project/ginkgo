@@ -20,58 +20,6 @@ include:
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
 
-status_pending:
-  stage: init-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"pending\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  allow_failure:
-    exit_codes: 3
-
-status_success:
-  stage: finalize-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  # we always exit with the code 3 such that it will process when retrying
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"success\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  allow_failure:
-    exit_codes: 3
-
-status_failure:
-  stage: finalize-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  # we always exit with the code 3 such that it will process when retrying
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  when: on_failure
-  allow_failure:
-    exit_codes: 3
-
-
 sync:
   stage: sync
   extends:
@@ -116,7 +64,7 @@ trigger_pipeline:
           echo "Skipping the full pipeline and making the full pipeline succeed"
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
+            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
           echo "If you want to run the full tests, remove 1:ST:skip-full-test and add 1:ST:ready-to-merge or 1:ST:run-full-test to the pull request. Then rerun this job or start a new pipeline."
         elif [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
           echo "Running full pipeline."
@@ -127,7 +75,7 @@ trigger_pipeline:
           echo "Didn't find required labels, so we're making the full pipeline fail."
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
+            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
           echo "To skip the full pipeline for this pull request, rerun this job or start a new pipeline after adding the label 1:ST:skip-full-test."
           echo "To run the full pipeline for this pull request, rerun this job or start a new pipeline after adding one of the 1:ST:run-full-test or 1:ST:ready-to-merge labels."
         fi
@@ -341,6 +289,38 @@ build/cuda102/nompi/intel/cuda/debug/static:
     CUDA_ARCH: 35
 
 # cuda 11.0 and friends on HoreKa with tests
+build/cuda110/mvapich2/gcc/cuda/debug/shared:
+  extends:
+    - .build_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+    CUDA_ARCH: 80
+    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
+    KEEP_CONTAINER: "ON"
+    USE_SLURM: 0
+
+test/cuda110/mvapich2/gcc/cuda/debug/shared:
+  extends:
+    - .horeka_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  variables:
+    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
+    SLURM_PARTITION: "accelerated"
+    SLURM_GRES: "gpu:4"
+    SLURM_TIME: "01:00:00"
+  dependencies: null
+  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
+
+
 build/cuda110/nompi/clang/cuda/release/static:
   extends:
     - .build_template
@@ -369,7 +349,7 @@ test/cuda110/nompi/clang/cuda/release/static:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "00:45:00"
+    SLURM_TIME: "01:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
@@ -403,7 +383,7 @@ test/cuda110/nompi/intel/cuda/debug/static:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "00:45:00"
+    SLURM_TIME: "01:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
@@ -440,41 +420,42 @@ build/amd/nompi/gcc/rocm40/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/openmpi/clang/rocm40/release/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm40-openmpi-gnu8-llvm50
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_MPI: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+# TODO: enable when nla-gpu is available
+#build/amd/openmpi/clang/rocm40/release/static:
+#  extends:
+#    - .build_and_test_template
+#    - .default_variables
+#    - .quick_test_condition
+#    - .use_gko-rocm40-openmpi-gnu8-llvm50
+#  variables:
+#    C_COMPILER: "clang"
+#    CXX_COMPILER: "clang++"
+#    BUILD_OMP: "ON"
+#    BUILD_HIP: "ON"
+#    BUILD_MPI: "ON"
+#    MPI_AS_ROOT: "ON"
+#    BUILD_TYPE: "Release"
+#    BUILD_SHARED_LIBS: "OFF"
 
 # ROCm 4.5 and friends
-build/amd/mvapich2/gcc/rocm45/release/shared:
+build/amd/nompi/gcc/rocm45/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-rocm45-mvapich2-gnu8-llvm8
+    - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
-build/amd/mvapich2/clang/rocm45/debug/shared:
+build/amd/nompi/clang/rocm45/debug/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-rocm45-mvapich2-gnu8-llvm8
+    - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
@@ -484,12 +465,12 @@ build/amd/mvapich2/clang/rocm45/debug/shared:
     BUILD_TYPE: "Debug"
 
 # ROCm 5.0.2 and friends
-build/amd/openmpi/gcc/rocm502/debug/static:
+build/amd/nompi/gcc/rocm502/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-openmpi-gnu11-llvm11
+    - .use_gko-rocm502-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
@@ -497,19 +478,17 @@ build/amd/openmpi/gcc/rocm502/debug/static:
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
 
-build/amd/openmpi/clang/rocm502/release/shared:
+build/amd/nompi/clang/rocm502/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm502-openmpi-gnu11-llvm11-multi-gpu
+    - .quick_test_condition
+    - .use_gko-rocm502-nompi-gnu11-llvm11
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
@@ -519,7 +498,7 @@ build/amd/nompi/gcc/rocm502_wo_omp/release/shared:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-openmpi-gnu11-llvm11
+    - .use_gko-rocm502-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "OFF"
     BUILD_MPI: "OFF"
@@ -533,7 +512,7 @@ build/nocuda/nompi/gcc/core/debug/static:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
@@ -545,7 +524,7 @@ build/nocuda/nompi/clang/core/release/shared:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
@@ -556,7 +535,7 @@ build/nocuda/nompi/gcc/omp/release/shared:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
@@ -622,7 +601,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_MPI: "ON"
     MPI_AS_ROOT: "ON"
@@ -635,7 +614,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
@@ -760,7 +739,7 @@ subdir-build:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
@@ -773,7 +752,7 @@ export-build:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
     EXPORT_BUILD_DIR: "ON"
@@ -894,7 +873,7 @@ gh-pages:
     - git diff --quiet HEAD ||
       (git commit -m "Update documentation from ginkgo-project/ginkgo@${CURRENT_SHA}" && git push)
   dependencies: null
-  needs: [ "sync" ]
+  needs: []
 
 
 threadsanitizer:

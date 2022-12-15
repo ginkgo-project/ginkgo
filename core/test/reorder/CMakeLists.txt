@@ -1,1 +1,2 @@
 ginkgo_create_test(rcm)
+ginkgo_create_test(scaled_reordered)

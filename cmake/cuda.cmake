@@ -21,13 +21,44 @@ cas_variable_cuda_architectures(GINKGO_CUDA_ARCH_FLAGS
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
+    find_package(NVHPC REQUIRED
+        HINTS
+        $ENV{NVIDIA_PATH}
+        ${CMAKE_CUDA_COMPILER}/../../..
+        )
+
+    set(CUDA_RUNTIME_LIBS_DYNAMIC ${NVHPC_CUDART_LIBRARY})
+    set(CUDA_RUNTIME_LIBS_STATIC ${NVHPC_CUDART_LIBRARY_STATIC})
+    set(CUBLAS ${NVHPC_CUBLAS_LIBRARY})
+    set(CUSPARSE ${NVHPC_CUSPARSE_LIBRARY})
+    set(CURAND ${NVHPC_CURAND_LIBRARY})
+    set(CUFFT ${NVHPC_CUFFT_LIBRARY})
+else()
+    find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+    # CUDA 10.1/10.2 put cublas, cublasLt, cudnn in /usr/lib/<arch>-linux-gnu/, but
+    # others (<= 10.0 or >= 11) put them in cuda own directory
+    # If the environment installs several cuda including 10.1/10.2, cmake will find
+    # the 10.1/10.2 .so files when searching others cuda in the default path.
+    # CMake already puts /usr/lib/<arch>-linux-gnu/ after cuda own directory in the
+    # `CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES`, so we always put NO_DEFAULT_PATH here.
+    find_library(CUBLAS cublas
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
+    find_library(CUSPARSE cusparse
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    find_library(CURAND curand
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    find_library(CUFFT cufft
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+endif()
+
 # MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
 # to force nvcc to use dynamic cudart library in MSVC.
-find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
-        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
-        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 if(MSVC)
     if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared")
         set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
@@ -37,21 +68,6 @@ if(MSVC)
 else()
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 endif()
-
-# CUDA 10.1/10.2 put cublas, cublasLt, cudnn in /usr/lib/<arch>-linux-gnu/, but
-# others (<= 10.0 or >= 11) put them in cuda own directory
-# If the environment installs several cuda including 10.1/10.2, cmake will find
-# the 10.1/10.2 .so files when searching others cuda in the default path.
-# CMake already puts /usr/lib/<arch>-linux-gnu/ after cuda own directory in the
-# `CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES`, so we always put NO_DEFAULT_PATH here.
-find_library(CUBLAS cublas
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
-find_library(CUSPARSE cusparse
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-find_library(CURAND curand
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-find_library(CUFFT cufft
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
     set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE STRING "" FORCE)

@@ -7,6 +7,7 @@ Boman Erik <egboman@sandia.gov> Sandia National Laboratories
 Castelli Fabian <fabian.castelli@kit.edu> Karlsruhe Institute of Technology
 Chen Yenchen <yanjen224@gmail.com> National Taiwan University
 Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
+Conen Niklas <niklas.conen@student.kit.edu> Karlsruhe Institute of Technology
 Drzaic Jelena <jelena.drzaic1@gmail.com> University of Zagreb
 Flegar Goran <flegar@uji.es> Universitat Jaume I
 Göbel Fritz <goebel.fritz@gmail.com> Karlsruhe Institute of Technology

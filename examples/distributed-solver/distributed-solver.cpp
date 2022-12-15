@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
-                      << " [executor] [num_grid_points] " << std::endl;
+                      << " [executor] [num_grid_points] [num_iterations] "
+                      << std::endl;
         }
         std::exit(-1);
     }
@@ -104,6 +105,8 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
+    const auto num_iters =
+        static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
 
     // Pick the requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -216,7 +219,8 @@ int main(int argc, char* argv[])
     auto Ainv =
         solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_baseline(gko::stop::mode::absolute)
                     .with_reduction_factor(1e-4)

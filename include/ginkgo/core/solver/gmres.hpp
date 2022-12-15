@@ -76,7 +76,7 @@ class Gmres
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Gmres>;
-    friend struct polymorphic_object_traits<Gmres>;
+    friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -139,8 +139,8 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x) const;
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
@@ -206,6 +206,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int one = 11;
     // constant -1.0 scalar
     constexpr static int minus_one = 12;
+    // temporary norm vector of next_krylov to copy into hessenberg matrix
+    constexpr static int next_krylov_norm_tmp = 13;
 
     // stopping status array
     constexpr static int stop = 0;

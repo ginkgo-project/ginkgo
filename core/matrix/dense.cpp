@@ -1657,15 +1657,14 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
 {
     row_major_range range_this{this->get_values(), this->get_size()[0],
                                this->get_size()[1], this->get_stride()};
-    auto range_result = range_this(rows, columns);
+    auto sub_range = range_this(rows, columns);
     size_type storage_size =
-        rows.length() > 0
-            ? range_result.length(0) * this->get_stride() - columns.begin
-            : 0;
+        rows.length() > 0 ? sub_range.length(1) +
+                                (sub_range.length(0) - 1) * this->get_stride()
+                          : 0;
     return Dense::create(
-        this->get_executor(),
-        dim<2>{range_result.length(0), range_result.length(1)},
-        make_array_view(this->get_executor(), storage_size, range_result->data),
+        this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
+        make_array_view(this->get_executor(), storage_size, sub_range->data),
         stride);
 }
 

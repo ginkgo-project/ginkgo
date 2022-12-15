@@ -450,4 +450,43 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
 }
 
 
+TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    auto ref_solver =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
+        auto solver =
+            gko::solver::Ir<value_type>::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(
+                        this->exec))
+                .with_default_initial_guess(guess)
+                .on(this->exec)
+                ->generate(this->mtx);
+        auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
+        std::shared_ptr<Mtx> ref_x = nullptr;
+        if (guess == initial_guess_mode::provided) {
+            ref_x = x->clone();
+        } else if (guess == initial_guess_mode::rhs) {
+            ref_x = b->clone();
+        } else {
+            ref_x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+        }
+        solver->apply(lend(b), lend(x));
+        ref_solver->apply(lend(b), lend(ref_x));
+
+        GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
+    }
+}
+
+
 }  // namespace
