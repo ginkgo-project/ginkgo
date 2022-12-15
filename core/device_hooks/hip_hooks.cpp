@@ -53,17 +53,11 @@ version version_info::get_hip_version() noexcept
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
-{
-    return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
-}
+    allocation_mode alloc_mode) GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
-{
-    // This method is always called, so cannot throw when not compiled.
-}
+    GKO_NOT_COMPILED(hip);
 
 
 void OmpExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
@@ -74,7 +68,7 @@ void OmpExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
 void HipExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
-    // If the nvidia module was not compiled, the library couldn't have
+    // If the hip module was not compiled, the library couldn't have
     // allocated the memory, so there is no need to deallocate it.
 }
 

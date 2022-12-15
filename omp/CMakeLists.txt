@@ -2,6 +2,7 @@ add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
     base/device_matrix_data_kernels.cpp
+    base/executor.cpp
     base/index_set_kernels.cpp
     base/scoped_device_id.cpp
     base/version.cpp

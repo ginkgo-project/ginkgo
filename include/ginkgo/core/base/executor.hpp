@@ -1262,10 +1262,7 @@ public:
     /**
      * Creates a new OmpExecutor.
      */
-    static std::shared_ptr<OmpExecutor> create()
-    {
-        return std::shared_ptr<OmpExecutor>(new OmpExecutor());
-    }
+    static std::shared_ptr<OmpExecutor> create();
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1327,10 +1324,7 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
-    static std::shared_ptr<ReferenceExecutor> create()
-    {
-        return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
-    }
+    static std::shared_ptr<ReferenceExecutor> create();
 
     scoped_device_id_guard get_scoped_device_id_guard() const override
     {

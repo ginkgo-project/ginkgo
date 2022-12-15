@@ -52,17 +52,11 @@ version version_info::get_cuda_version() noexcept
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
-{
-    return std::shared_ptr<CudaExecutor>(new CudaExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
-}
+    allocation_mode alloc_mode) GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
-{
-    // This method is always called, so cannot throw when not compiled.
-}
+    GKO_NOT_COMPILED(cuda);
 
 
 void OmpExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,

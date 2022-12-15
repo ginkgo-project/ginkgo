@@ -53,17 +53,11 @@ version version_info::get_dpcpp_version() noexcept
 
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type,
-    dpcpp_queue_property property)
-{
-    return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type, property));
-}
+    dpcpp_queue_property property) GKO_NOT_COMPILED(dpcpp);
 
 
 void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
-{
-    // This method is always called, so cannot throw when not compiled.
-}
+    GKO_NOT_COMPILED(dpcpp);
 
 
 void OmpExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
@@ -82,7 +76,7 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 void DpcppExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
-    // If the nvidia module was not compiled, the library couldn't have
+    // If the dpcpp module was not compiled, the library couldn't have
     // allocated the memory, so there is no need to deallocate it.
 }
 
