@@ -96,8 +96,8 @@ void BatchUpperTrs<ValueType>::apply_impl(const BatchLinOp* b,
 
     auto exec = this->get_executor();
     auto system_matrix_new = gko::share(gko::clone(
-        exec, this->system_matrix_.get()));  // any way to avoid extra copy if
-                                             // matrix is already sorted ??
+        exec, this->system_matrix_.get()));  // TODO: avoid extra copy if
+                                             // matrix is already sorted
 
     if (parameters_.skip_sorting != true) {
         if (auto amat = dynamic_cast<matrix::BatchCsr<ValueType>*>(

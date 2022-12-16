@@ -42,6 +42,9 @@ namespace gko {
 namespace kernels {
 namespace batch_upper_trs {
 
+// TODO: Try to reduce code duplication (similar to batch dispatcher for batch
+// iterative solvers), for instance, the function dispatch on matrix type is
+// currently duplicated across all backends
 
 /**
  * Calculates the amount of in-solver storage needed by batch-upper-trs.
