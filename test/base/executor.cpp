@@ -104,6 +104,21 @@ TEST_F(Executor, RunsCorrectOperation)
 }
 
 
+void host_operation(int& value) { value = 1234; }
+
+GKO_REGISTER_HOST_OPERATION(host_operation, host_operation);
+
+
+TEST_F(Executor, RunsCorrectHostOperation)
+{
+    int value = 0;
+
+    exec->run(make_host_operation(value));
+
+    ASSERT_EQ(1234, value);
+}
+
+
 #ifndef GKO_COMPILING_REFERENCE
 
 
