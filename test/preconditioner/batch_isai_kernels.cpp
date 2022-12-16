@@ -235,7 +235,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
         this->general_mtx_small);
 }
 
-
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -251,6 +251,8 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
         this->general_mtx_small);
 }
 
+
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -267,6 +269,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 }
 
 
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -379,6 +382,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy1)
 }
 
 
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy1)
 // {
 //     this->test_apply_eqvt_to_ref(
@@ -395,6 +399,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy2)
 }
 
 
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy2)
 // {
 //     this->test_apply_eqvt_to_ref(
@@ -411,6 +416,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy3)
 }
 
 
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy3)
 // {
 //     this->test_apply_eqvt_to_ref(
