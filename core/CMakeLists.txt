@@ -1,4 +1,4 @@
-add_subdirectory(device_hooks)  # placeholders for disabled modules
+add_subdirectory(device_hooks) # placeholders for disabled modules
 
 add_library(ginkgo "")
 target_sources(ginkgo
@@ -15,18 +15,15 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/version.cpp
     distributed/partition.cpp
+    distributed/repartition.cpp
     factorization/elimination_forest.cpp
-    factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
-    factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
-    factorization/symbolic.cpp
     log/convergence.cpp
-    log/distributed_stream.cpp
     log/logger.cpp
     log/performance_hint.cpp
     log/record.cpp
@@ -44,18 +41,16 @@ target_sources(ginkgo
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
     matrix/row_gatherer.cpp
-    multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    preconditioner/schwarz.cpp
     reorder/rcm.cpp
-    reorder/scaled_reordered.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
-    solver/direct.cpp
     solver/fcg.cpp
     solver/gmres.cpp
     solver/idr.cpp
@@ -70,17 +65,16 @@ target_sources(ginkgo
     stop/time.cpp)
 
 if(GINKGO_HAVE_PAPI_SDE)
-    target_sources(ginkgo PRIVATE log/papi.cpp)
+  target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
-if (GINKGO_BUILD_MPI)
-    target_sources(ginkgo
-        PRIVATE
-        mpi/exception.cpp
-        distributed/coarse_gen.cpp
-        distributed/matrix.cpp
-        distributed/vector.cpp
-        distributed/preconditioner/schwarz.cpp)
+if(GINKGO_BUILD_MPI)
+  target_sources(
+    ginkgo
+    PRIVATE mpi/exception.cpp distributed/coarse_gen.cpp distributed/matrix.cpp
+            distributed/preconditioner/schwarz.cpp
+            distributed/partition_helpers.cpp
+            distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
@@ -89,34 +83,33 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+target_link_libraries(ginkgo PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda
+                                    ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
-if (GINKGO_HAVE_PAPI_SDE)
-    target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
-    list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
-    get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
-    list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+if(GINKGO_HAVE_PAPI_SDE)
+  target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+  list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
+  get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
+  list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
 endif()
 
-if (GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+if(GINKGO_BUILD_MPI)
+  target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
-# Since we have a public dependency on HIP, this dependency appears
-# here as well
-if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
+# Since we have a public dependency on HIP, this dependency appears here as well
+if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+  list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
 endif()
 
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
 
-if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo "")
+if(GINKGO_CHECK_CIRCULAR_DEPS)
+  ginkgo_check_headers(ginkgo "")
 endif()
 
 if(GINKGO_BUILD_TESTS)
-    add_subdirectory(test)
+  add_subdirectory(test)
 endif()

@@ -505,16 +505,15 @@ void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
 
     exec->synchronize();
 
-    auto use_host_buffer =
-        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_reduction_buffer_->get_values(),
+        comm.all_reduce(exec, host_reduction_buffer_->get_values(),
                         static_cast<int>(size), MPI_SUM);
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
-        comm.all_reduce(dense_res->get_values(), static_cast<int>(size),
+        comm.all_reduce(exec, dense_res->get_values(), static_cast<int>(size),
                         MPI_SUM);
     }
 

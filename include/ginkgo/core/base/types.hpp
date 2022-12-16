@@ -625,6 +625,10 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>, int64, int64)
 #endif
 
+#define GKO_INSTANTIATE_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(_macro) \
+    template _macro(int32, int32);                                   \
+    template _macro(int32, int64);                                   \
+    template _macro(int64, int64)
 
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
@@ -679,6 +683,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<float>, std::complex<float>);    \
     template _macro(std::complex<double>, std::complex<double>)
 #endif
+
+
+#define GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro) \
+    template _macro(int32, int64);                        \
+    template _macro(int64, int32)
 
 
 /**

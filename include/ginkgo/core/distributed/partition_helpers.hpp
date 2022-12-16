@@ -30,33 +30,51 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/precision_conversion_kernels.hpp"
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HELPERS_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HELPERS_HPP_
 
 
-#include "common/unified/base/kernel_launch.hpp"
+#include <ginkgo/config.hpp>
+
+
+#if GINKGO_BUILD_MPI
+
+
+#include <ginkgo/core/base/mpi.hpp>
 
 
 namespace gko {
-namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-namespace components {
+namespace experimental {
+namespace distributed {
+
+template <typename LocalIndexType, typename GlobalIndexType>
+class Partition;
 
 
-template <typename SourceType, typename TargetType>
-void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
-                       size_type size, const SourceType* in, TargetType* out)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
-        size, in, out);
-}
+/**
+ * Builds a partition from the local range
+ *
+ * @param exec  the Executor on which the partition should be built
+ * @param local_start the start index of the local range
+ * @param local_end the end index of the local range
+ *
+ * @return a Partition where each range has the individual local_start
+ * and local_ends
+ */
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+build_partition_from_local_range(std::shared_ptr<const Executor> exec,
+                                 LocalIndexType local_start,
+                                 LocalIndexType local_end,
+                                 mpi::communicator comm);
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
-GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
-
-}  // namespace components
-}  // namespace GKO_DEVICE_NAMESPACE
-}  // namespace kernels
+}  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
+
+
+#endif
+
+
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HELPERS_HPP_

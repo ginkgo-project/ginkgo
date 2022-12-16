@@ -72,8 +72,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -314,6 +314,25 @@ public:
         const Partition<local_index_type, global_index_type>* partition);
 
     /**
+     * Reads a square matrix from local and non_local device_matrix_data
+     * structure and a global partition.
+     *
+     * The global size of the final matrix is inferred from the size of the
+     * partition. Both the number of rows and columns of the device_matrix_data
+     * are ignored.
+     *
+     * @note The matrix data can contain entries for rows other than those owned
+     *        by the process. Entries for those rows are discarded.
+     *
+     * @param data  The device_matrix_data structure.
+     * @param partition  The global row and column partition.
+     */
+    void read_distributed(
+        const device_matrix_data<value_type, global_index_type>& data,
+        const device_matrix_data<value_type, global_index_type>& non_local_data,
+        const Partition<local_index_type, global_index_type>* row_partition);
+
+    /**
      * Reads a square matrix from the matrix_data structure and a global
      * partition.
      *
@@ -359,6 +378,14 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* row_partition,
         const Partition<local_index_type, global_index_type>* col_partition);
+
+    void build_scatter_pattern(
+        const array<GlobalIndexType>& row_indices,
+        const array<GlobalIndexType>& column_indices,
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition,
+        array<local_index_type>& local_values,
+        array<local_index_type>& non_local_values);
 
     /**
      * Get read access to the row partition of the matrix.
@@ -410,6 +437,11 @@ public:
     std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
         return non_local_mtx_;
+    }
+
+    const GlobalIndexType* get_non_local_to_global() const
+    {
+        return non_local_to_global_.get_const_data();
     }
 
     /**

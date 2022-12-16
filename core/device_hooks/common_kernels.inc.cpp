@@ -148,6 +148,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)
 
+#define GKO_STUB_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(_macro)                  \
+    template <typename LocalIndexType, typename GlobalIndexType>               \
+    _macro(LocalIndexType, GlobalIndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro)
+
+
 #define GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
     template <typename ValueType, typename LocalIndexType, \
               typename GlobalIndexType>                    \
@@ -164,6 +170,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template <typename SourceType, typename TargetType>               \
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
+
+#define GKO_STUB_VALUE_AND_INDEX_CONVERSION(_macro)                   \
+    template <typename SourceType, typename TargetType>               \
+    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro)
 
 #define GKO_STUB_VALUE_CONVERSION_OR_COPY(_macro)                     \
     template <typename SourceType, typename TargetType>               \
@@ -186,7 +198,7 @@ namespace GKO_HOOK_MODULE {
 namespace components {
 
 
-GKO_STUB_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 // explicitly instantiate for size_type, as this is
 // used in the SellP format
@@ -205,6 +217,8 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL_WITH_SCATTER);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL);
 
@@ -267,7 +281,10 @@ namespace distributed_matrix {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL2);
 
+GKO_STUB_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
 
 }  // namespace distributed_matrix
 
