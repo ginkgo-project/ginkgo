@@ -554,40 +554,6 @@ void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_squared_norm2(LinOp* result) const
-{
-    array<char> tmp{this->get_executor()};
-    this->compute_squared_norm2(result, tmp);
-}
-
-
-template <typename ValueType>
-void Vector<ValueType>::compute_squared_norm2(LinOp* result,
-                                              array<char>& tmp) const
-{
-    using NormVector = typename local_vector_type::absolute_type;
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    const auto comm = this->get_communicator();
-    auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
-                                                 dense_res.get(), tmp));
-    exec->synchronize();
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
-    if (use_host_buffer) {
-        host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
-        host_norm_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
-        dense_res->copy_from(host_norm_buffer_.get());
-    } else {
-        comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
-    }
-}
-
-
-template <typename ValueType>
 ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 {
     return local_.at(row, col);
