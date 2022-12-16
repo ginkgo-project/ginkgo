@@ -39,6 +39,7 @@ namespace factorization {
 
 /**
  * Computes the symbolic Cholesky factorization of the given matrix.
+ *
  * @param mtx  the input matrix
  * @param factors  the output factors stored in a combined pattern
  */
@@ -49,6 +50,7 @@ void symbolic_cholesky(
 
 /**
  * Computes the symbolic LU factorization of the given matrix.
+ *
  * @param mtx  the input matrix
  * @param factors  the output factors stored in a combined pattern
  */
