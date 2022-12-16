@@ -338,7 +338,7 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 }
 
 
-// NOTE: Reference Batched isai (batchcsr iterative solve takes a lot of time)
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TYPED_TEST(BatchIsai,
 // ExtendedGeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 // {
@@ -473,7 +473,7 @@ TYPED_TEST(BatchIsai,
 }
 
 
-// NOTE: Reference Batched isai (batchcsr iterative solve takes a lot of time)
+// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
 // TYPED_TEST(BatchIsai,
 //            ExtendedGeneralBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy1)
 // {

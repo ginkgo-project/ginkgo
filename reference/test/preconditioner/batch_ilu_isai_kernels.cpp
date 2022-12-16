@@ -103,22 +103,6 @@ protected:
             std::uniform_int_distribution<>(min_nnz_row, nrows),
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
             exec);
-        // auto mat = Mtx::create(exec, nbatch, gko::dim<2>(nrows, nrows), 8);
-        // index_type* const row_ptrs = mat->get_row_ptrs();
-        // index_type* const col_idxs = mat->get_col_idxs();
-        // value_type* const vals = mat->get_values();
-        // // clang-format off
-        // row_ptrs[0] = 0; row_ptrs[1] = 2; row_ptrs[2] = 4; row_ptrs[3] = 6;
-        // row_ptrs[4] = 8; col_idxs[0] = 0; col_idxs[1] = 2; col_idxs[2] = 0;
-        // col_idxs[3] = 1; col_idxs[4] = 0; col_idxs[5] = 2; col_idxs[6] = 1,
-        // col_idxs[7] = 3; vals[0] = 2.0; vals[1] = 0.25; vals[2] = -1.0;
-        // vals[3] = -3.0; vals[4] = 2.0; vals[5] = 0.2; vals[6] = -1.5; vals[7]
-        // = 0.55; vals[8] = -1.0; vals[9] = 4.0; vals[10] = 2.0; vals[11] =
-        // -0.25;
-        // vals[12] = -1.45; vals[13] = 0.45; vals[14] = -5.0; vals[15] = 8.0;
-
-        // // clang-format on
-        // return mat;
     }
 
     // TODO: Add tests for non-sorted input matrix
@@ -429,20 +413,6 @@ TYPED_TEST(BatchIluIsai, BatchIluIsaiGenerationIsEquivalentToUnbatched)
         gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2);
 }
 
-TYPED_TEST(BatchIluIsai, BatchIluExtendedIsaiGenerationIsEquivalentToUnbatched)
-{
-    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, true);
-
-    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, true);
-
-    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, true);
-
-    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, true);
-}
 
 TYPED_TEST(BatchIluIsai,
            BatchIluIsaiWithApplyTypeRelxationStepsSimpleIsEquivalentToUnbatched)
@@ -467,31 +437,6 @@ TYPED_TEST(BatchIluIsai,
         gko::preconditioner::batch_ilu_isai_apply::
             relaxation_steps_isai_simple);
 }
-
-// NOTE: Large difference
-// TYPED_TEST(BatchIluIsai,
-//            BatchIluExtendedIsaiWithApplyTypeRelxationStepsSimpleIsEquivalentToUnbatched)
-// {
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_simple, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_simple, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_simple, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_simple, true);
-// }
 
 
 // TODO: Implement BatchCsr Spegmm
@@ -520,32 +465,6 @@ TYPED_TEST(BatchIluIsai,
 // }
 
 
-// TODO: Implement BatchCsr Spegmm
-// TYPED_TEST(BatchIluIsai,
-//            BatchIluExtendedIsaiWithApplyTypeRelxationStepsSpgemmIsEquivalentToUnbatched)
-// {
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_with_spgemm, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_with_spgemm, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_with_spgemm, true);
-
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::
-//             relaxation_steps_isai_with_spgemm, true);
-// }
-
-
 TYPED_TEST(BatchIluIsai,
            BatchIluIsaiWithApplyTypeSpmvSimpleIsEquivalentToUnbatched)
 {
@@ -564,27 +483,6 @@ TYPED_TEST(BatchIluIsai,
     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
         gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple);
-}
-
-
-TYPED_TEST(BatchIluIsai,
-           BatchIluExtendedIsaiWithApplyTypeSpmvSimpleIsEquivalentToUnbatched)
-{
-    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
-        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
-
-    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, 3,
-        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
-
-    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, 3,
-        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
-
-    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-        gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
-        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
 }
 
 
@@ -610,30 +508,40 @@ TYPED_TEST(BatchIluIsai,
 // }
 
 
-// TODO: Implement BatchCsr Spegmm
-// TYPED_TEST(BatchIluIsai,
-//            BatchIluExtendedIsaiWithApplyTypeSpmvSpgemmIsEquivalentToUnbatched)
-// {
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm,
-//         true);
+TYPED_TEST(BatchIluIsai, BatchIluExtendedIsaiGenerationIsEquivalentToUnbatched)
+{
+    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, true);
 
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm,
-//         true);
+    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, true);
 
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm,
-//         true);
+    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, true);
 
-//     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
-//         gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
-//         gko::preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm,
-//         true);
-// }
+    this->test_batch_ilu_isai_generation_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, true);
+}
+
+
+TYPED_TEST(BatchIluIsai, BatchIluExtendedIsaiApplyIsEquivalentToUnbatched)
+{
+    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
+        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
+
+    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::exact_ilu, 10, 1, 2, 3,
+        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
+
+    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::parilu, 10, 2, 3, 3,
+        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
+
+    this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
+        gko::preconditioner::batch_ilu_type::parilu, 10, 1, 2, 3,
+        gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple, true);
+}
 
 
 }  // namespace
