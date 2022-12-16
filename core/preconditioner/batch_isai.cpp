@@ -75,132 +75,6 @@ GKO_REGISTER_OPERATION(write_large_sys_solution_to_inverse,
 namespace detail {
 
 template <typename ValueType, typename IndexType>
-void print_csr_matrix(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> csr_mat)
-{
-    auto csr_mat_host =
-        gko::share(gko::clone(exec->get_master(), csr_mat.get()));
-
-    const auto nbatch = csr_mat_host->get_num_batch_entries();
-    const auto nrows = csr_mat_host->get_size().at(0)[0];
-    const auto nnz = csr_mat_host->get_num_stored_elements() / nbatch;
-
-    std::cout << "nrows: " << nrows << "  nnz: " << nnz << std::endl;
-
-    for (int i = 0; i < nrows + 1; i++) {
-        std::cout << "row_ptrs[" << i
-                  << "]: " << csr_mat_host->get_const_row_ptrs()[i]
-                  << std::endl;
-    }
-
-    for (int i = 0; i < nnz; i++) {
-        std::cout << "col_idxs[" << i
-                  << "]: " << csr_mat_host->get_const_col_idxs()[i]
-                  << std::endl;
-    }
-
-    for (int k = 0; k < nbatch; k++) {
-        std::cout << "batch id: " << k << std::endl;
-        for (int i = 0; i < nnz; i++) {
-            std::cout << "vals[" << i
-                      << "]: " << csr_mat_host->get_const_values()[i + nnz * k]
-                      << std::endl;
-        }
-    }
-}
-
-template <typename ValueType, typename IndexType>
-void print_csr_matrix(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> csr_mat)
-{
-    auto csr_mat_host =
-        gko::share(gko::clone(exec->get_master(), csr_mat.get()));
-
-    const auto nrows = csr_mat_host->get_size()[0];
-    const auto nnz = csr_mat_host->get_num_stored_elements();
-
-    std::cout << "nrows: " << nrows << "  nnz: " << nnz << std::endl;
-
-    for (int i = 0; i < nrows + 1; i++) {
-        std::cout << "row_ptrs[" << i
-                  << "]: " << csr_mat_host->get_const_row_ptrs()[i]
-                  << std::endl;
-    }
-
-    for (int i = 0; i < nnz; i++) {
-        std::cout << "col_idxs[" << i
-                  << "]: " << csr_mat_host->get_const_col_idxs()[i]
-                  << std::endl;
-    }
-
-    for (int i = 0; i < nnz; i++) {
-        std::cout << "vals[" << i
-                  << "]: " << csr_mat_host->get_const_values()[i] << std::endl;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void print_csr_matrix(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<matrix::Csr<ValueType, IndexType>> csr_mat)
-{
-    auto csr_mat_host =
-        gko::share(gko::clone(exec->get_master(), csr_mat.get()));
-
-    const auto nrows = csr_mat_host->get_size()[0];
-    const auto nnz = csr_mat_host->get_num_stored_elements();
-
-    std::cout << "nrows: " << nrows << "  nnz: " << nnz << std::endl;
-
-    for (int i = 0; i < nrows + 1; i++) {
-        std::cout << "row_ptrs[" << i
-                  << "]: " << csr_mat_host->get_const_row_ptrs()[i]
-                  << std::endl;
-    }
-
-    for (int i = 0; i < nnz; i++) {
-        std::cout << "col_idxs[" << i
-                  << "]: " << csr_mat_host->get_const_col_idxs()[i]
-                  << std::endl;
-    }
-
-    for (int i = 0; i < nnz; i++) {
-        std::cout << "vals[" << i
-                  << "]: " << csr_mat_host->get_const_values()[i] << std::endl;
-    }
-}
-
-template <typename ValueType>
-void print_dense_matrix(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<matrix::BatchDense<ValueType>> dense_mat)
-{
-    auto dense_mat_host =
-        gko::share(gko::clone(exec->get_master(), dense_mat.get()));
-
-    const auto nbatch = dense_mat_host->get_num_batch_entries();
-    const auto nrows = dense_mat_host->get_size().at(0)[0];
-    const auto ncols = dense_mat_host->get_size().at(0)[1];
-
-    const auto stride = 1;  // already know this)
-    assert(ncols == 1);
-
-    for (int k = 0; k < nbatch; k++) {
-        std::cout << "batch id: " << k << std::endl;
-        for (int i = 0; i < nrows * stride; i++) {
-            std::cout
-                << "vals[" << i << "]: "
-                << dense_mat_host->get_const_values()[i + nrows * stride * k]
-                << std::endl;
-        }
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
 void batch_isai_extension(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> first_sys_csr,
@@ -244,12 +118,6 @@ void batch_isai_extension(
             continue;
         }
 
-        // std::cout << std::endl
-        //           << std::endl
-        //           << "nrows: " << nrows << " lin_sys_row: " << lin_sys_row
-        //           << "  size: " << size << "  rhs_one_idx: " << rhs_one_idx
-        //           << std::endl;
-
         // row_ptrs for csr pattern
         array<IndexType> csr_pattern_row_ptrs_arr(exec, size + 1);
 
@@ -292,14 +160,8 @@ void batch_isai_extension(
         exec->copy(csr_nnz, csr_pattern_transposed->get_const_col_idxs(),
                    batch_csr_mats->get_col_idxs());
 
-        // std::cout << " sys_csr: " << std::endl;
-        // print_csr_matrix(exec, sys_csr);
-
         exec->run(batch_isai::make_fill_batch_csr_sys_with_values(
             csr_pattern_transposed.get(), sys_csr.get(), batch_csr_mats.get()));
-
-        //  std::cout << "batch csr sys to be solved: " << std::endl;
-        //  print_csr_matrix(exec, batch_csr_mats);
 
         auto b = gko::share(BDense::create(
             exec, gko::batch_dim<2>(nbatch, gko::dim<2>(size, 1))));
@@ -308,10 +170,6 @@ void batch_isai_extension(
 
         exec->run(batch_isai::make_initialize_b_and_x_vectors(
             rhs_one_idx, b.get(), x.get()));
-
-        //  std::cout << "The rhs: " << std::endl;
-        //  print_dense_matrix(exec, b);
-
 
         if (input_matrix_type_isai ==
             gko::preconditioner::batch_isai_input_matrix_type::lower_tri) {
@@ -348,10 +206,6 @@ void batch_isai_extension(
         } else {
             GKO_NOT_SUPPORTED(input_matrix_type_isai);
         }
-
-
-        // std::cout << "The sol: " << std::endl;
-        // print_dense_matrix(exec, x);
 
         // write solution back to approx inv
         exec->run(batch_isai::make_write_large_sys_solution_to_inverse(
@@ -421,6 +275,15 @@ void BatchIsai<ValueType, IndexType>::generate_precond()
     exec->copy(first_approx_inv_nnz, first_approx_inv->get_const_col_idxs(),
                approx_inv_->get_col_idxs());
 
+    // Say spy(laiA) = S
+    // laiA * A = I on S
+    // For each row i => solve laiA[i,J] * A[J,J] = I[i,J] where J = set of non
+    // zero columns in ith row of laiA i.e. S(i,:)
+
+    // Instead of doing repeated computations for each matrix in the batch to
+    // extract a submatrix corresponding to a particular row,
+    // we first extract and store the common pattern and then simply create the
+    // submatrices based on that common pattern
 
     // arrays to store extracted submatrix pattern
     gko::array<IndexType> dense_mat_pattern(
@@ -434,6 +297,8 @@ void BatchIsai<ValueType, IndexType>::generate_precond()
         exec, first_approx_inv->get_num_stored_elements());
     num_matches_per_row_for_each_csr_sys.fill(static_cast<IndexType>(-1));
 
+    // For rows of the inverse having nnz <= 32, we extract and store the
+    // corresponding linear system in dense format
     exec->run(batch_isai::make_extract_dense_linear_sys_pattern(
         first_sys_csr.get(), first_approx_inv.get(),
         dense_mat_pattern.get_data(), rhs_one_idxs.get_data(), sizes.get_data(),
@@ -444,6 +309,8 @@ void BatchIsai<ValueType, IndexType>::generate_precond()
         dense_mat_pattern.get_const_data(), rhs_one_idxs.get_const_data(),
         sizes.get_const_data(), this->parameters_.isai_input_matrix_type));
 
+    // For rows of the inverse having nnz > 32, we extract and store the
+    // corresponding linear system in csr format
     detail::batch_isai_extension(exec, first_sys_csr, first_approx_inv, sys_csr,
                                  approx_inv_, sizes, rhs_one_idxs,
                                  num_matches_per_row_for_each_csr_sys,

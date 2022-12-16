@@ -53,9 +53,6 @@ enum class batch_isai_input_matrix_type { lower_tri, upper_tri, general };
  * A batch of (left) incomplete sparse approximate inverse preconditioners for a
  * batch of matrices.
  *
- * Currently, BatchIsai preconditioner only supports approximate inverse
- * sparsity patterns with number of non-zeroes per row less than or equal to 32.
- *
  * Note: Batched Preconditioners do not support user facing apply.
  *
  * @tparam ValueType  precision of matrix elements
