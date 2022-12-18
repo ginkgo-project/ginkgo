@@ -116,15 +116,19 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
         SCOPED_TRACE(pair.first);
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
-        auto forest = gko::factorization::compute_elim_forest(mtx.get());
-        auto dforest = gko::factorization::compute_elim_forest(dmtx.get());
+        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+            forest;
+        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+            dforest;
+        gko::factorization::compute_elim_forest(mtx.get(), forest);
+        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
         gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
         gko::array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
 
         gko::kernels::reference::cholesky::cholesky_symbolic_count(
-            this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
+            this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
         gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_count(
-            this->exec, dmtx.get(), dforest, drow_nnz.get_data(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, drow_nnz.get_data(), this->dtmp);
 
         GKO_ASSERT_ARRAY_EQ(drow_nnz, row_nnz);
     }
@@ -141,10 +145,12 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto num_rows = mtx->get_size()[0];
-        const auto forest = gko::factorization::compute_elim_forest(mtx.get());
+        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+            forest;
+        gko::factorization::compute_elim_forest(mtx.get(), forest);
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::cholesky_symbolic_count(
-            this->ref, mtx.get(), forest, row_ptrs.get_data(), this->tmp);
+            this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
         gko::kernels::reference::components::prefix_sum(
             this->ref, row_ptrs.get_data(), num_rows + 1);
         const auto nnz =
@@ -157,16 +163,17 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
             gko::array<value_type>{this->exec, nnz},
             gko::array<index_type>{this->exec, nnz}, row_ptrs);
         // need to call the device kernels to initialize dtmp
-        const auto dforest =
-            gko::factorization::compute_elim_forest(dmtx.get());
+        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+            dforest;
+        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
         gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
         gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_count(
-            this->exec, dmtx.get(), dforest, dtmp_ptrs.get_data(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, dtmp_ptrs.get_data(), this->dtmp);
 
         gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
-            this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
+            this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
         gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_factorize(
-            this->exec, dmtx.get(), dforest, dl_factor.get(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, dl_factor.get(), this->dtmp);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dl_factor, l_factor);
     }

@@ -63,8 +63,9 @@ struct elimination_forest {
 
 
 template <typename ValueType, typename IndexType>
-elimination_forest<IndexType> compute_elim_forest(
-    const matrix::Csr<ValueType, IndexType>* mtx);
+void compute_elim_forest(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<elimination_forest<IndexType>>& forest);
 
 
 }  // namespace factorization

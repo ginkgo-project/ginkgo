@@ -118,7 +118,8 @@ TYPED_TEST(Lu, SymbolicCholeskyWorks)
     this->setup(gko::matrices::location_ani1_mtx,
                 gko::matrices::location_ani1_lu_mtx);
 
-    auto lu = gko::factorization::symbolic_cholesky(this->mtx.get());
+    std::unique_ptr<gko::matrix::Csr<value_type, index_type>> lu;
+    gko::factorization::symbolic_cholesky(this->mtx.get(), lu);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
 }
@@ -131,7 +132,8 @@ TYPED_TEST(Lu, SymbolicLUWorks)
     this->setup(gko::matrices::location_ani1_nonsymm_mtx,
                 gko::matrices::location_ani1_nonsymm_lu_mtx);
 
-    auto lu = gko::factorization::symbolic_lu(this->mtx.get());
+    std::unique_ptr<gko::matrix::Csr<value_type, index_type>> lu;
+    gko::factorization::symbolic_lu(this->mtx.get(), lu);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
 }
