@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
+#include "ginkgo/core/matrix/row_gatherer.hpp"
 
 
 namespace gko {
@@ -72,8 +73,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -546,7 +547,7 @@ private:
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
-    array<local_index_type> gather_idxs_;
+    std::unique_ptr<gko::matrix::RowGatherer<local_index_type>> gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;

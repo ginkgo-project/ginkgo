@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -82,7 +83,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
-      gather_idxs_{exec},
+      gather_idxs_(gko::matrix::RowGatherer<local_index_type>::create(exec)),
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -108,7 +109,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_.get());
     result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
-    result->gather_idxs_ = this->gather_idxs_;
+    result->gather_idxs_->copy_from(this->gather_idxs_.get());
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
@@ -127,7 +128,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_.get());
     result->non_local_mtx_->move_from(this->non_local_mtx_.get());
-    result->gather_idxs_ = std::move(this->gather_idxs_);
+    result->gather_idxs_->move_from(this->gather_idxs_.get());
     result->send_offsets_ = std::move(this->send_offsets_);
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
@@ -209,18 +210,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
+    auto gatherer_exec = use_host_buffer ? exec->get_master() : exec;
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
-        gather_idxs_.clear();
-        gather_idxs_.set_executor(exec->get_master());
     }
-    gather_idxs_.resize_and_reset(send_offsets_.back());
+    gather_idxs_ = gko::matrix::RowGatherer<local_index_type>::create(
+        gatherer_exec, gko::dim<2>(send_offsets_.back(), num_local_rows));
     comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
                       recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                      recv_offsets_.data(), gather_idxs_.get_data(),
+                      recv_offsets_.data(), gather_idxs_->get_row_idxs(),
                       send_sizes_.data(), send_offsets_.data());
     if (use_host_buffer) {
-        gather_idxs_.set_executor(exec);
+        gather_idxs_ = gko::clone(exec, gather_idxs_.get());
     }
 }
 
@@ -273,7 +274,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
 
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
+    gather_idxs_->apply(local_b, send_buffer_.get());
 
     auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
     if (use_host_buffer) {
@@ -401,7 +402,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         this->set_size(other.get_size());
         local_mtx_->copy_from(other.local_mtx_.get());
         non_local_mtx_->copy_from(other.non_local_mtx_.get());
-        gather_idxs_ = other.gather_idxs_;
+        gather_idxs_->copy_from(other.gather_idxs_.get());
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
         send_sizes_ = other.send_sizes_;
@@ -425,7 +426,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         other.set_size({});
         local_mtx_->move_from(other.local_mtx_.get());
         non_local_mtx_->move_from(other.non_local_mtx_.get());
-        gather_idxs_ = std::move(other.gather_idxs_);
+        gather_idxs_->move_from(other.gather_idxs_.get());
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);
         send_sizes_ = std::move(other.send_sizes_);
