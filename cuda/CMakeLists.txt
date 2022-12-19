@@ -9,6 +9,7 @@ target_sources(ginkgo_cuda
     base/version.cpp
     components/prefix_sum_kernels.cu
     distributed/matrix_kernels.cu
+    distributed/partition_helpers_kernels.cu
     distributed/partition_kernels.cu
     distributed/vector_kernels.cu
     factorization/cholesky_kernels.cu
