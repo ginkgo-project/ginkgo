@@ -141,8 +141,7 @@ protected:
         d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
     }
 
-    auto seed = std::random_device{}();
-    std::default_random_engine rand_engine(seed);
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     mtx_data data;
