@@ -282,16 +282,14 @@ protected:
           system_matrix_{system_matrix}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
-        this->generate_precond(lend(system_matrix));
+        this->generate_precond();
     }
 
     /**
      * Generates the preconditoner.
      *
-     * @param system_matrix  the source matrix used to generate the
-     *                       preconditioner
      */
-    void generate_precond(const BatchLinOp* system_matrix);
+    void generate_precond();
 
     // Since there is no guarantee that the complete generation of the
     // preconditioner would occur outside the solver kernel, that is in the
@@ -311,6 +309,8 @@ protected:
 
 
 private:
+    // Note: Storing the system matrix is necessary because it is being used in
+    // the transpose and conjugate transpose.
     std::shared_ptr<const BatchLinOp> system_matrix_;
     // Note: Make these two const to avoid cloning the isai precond's approx inv
     std::shared_ptr<const matrix::BatchCsr<ValueType, IndexType>>
