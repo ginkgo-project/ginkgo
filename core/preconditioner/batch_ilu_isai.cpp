@@ -70,13 +70,12 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
 
     auto batch_ilu_precond = batch_ilu_factory->generate(sys_smart_ptr);
 
-    std::pair<std::shared_ptr<const matrix_type>,
-              std::shared_ptr<const matrix_type>>
+    auto
         l_and_u_factors =
             batch_ilu_precond->generate_split_factors_from_factored_matrix();
 
-    std::shared_ptr<const matrix_type> l_factor = l_and_u_factors.first;
-    std::shared_ptr<const matrix_type> u_factor = l_and_u_factors.second;
+    auto l_factor = l_and_u_factors.first;
+    auto u_factor = l_and_u_factors.second;
     this->lower_factor_ = l_factor;
     this->upper_factor_ = u_factor;
 
