@@ -82,6 +82,8 @@ int main(int argc, char* argv[])
     using mg = gko::solver::Multigrid;
     using ir = gko::solver::Ir<ValueType>;
     using ic = gko::preconditioner::Ic<>;
+    using isai = gko::preconditioner::Isai<gko::preconditioner::isai_type::spd,
+                                           ValueType, LocalIndexType>;
 
     const gko::experimental::mpi::environment env(argc, argv);
 
@@ -278,6 +280,7 @@ int main(int argc, char* argv[])
     //
     auto bj_solver = gko::share(bj::build().with_max_block_size(32u).on(exec));
     auto ic_solver = gko::share(ic::build().on(exec));
+    auto isai_solver = gko::share(isai::build().on(exec));
     auto coarse_gen_fac = gko::share(coarse_gen::build().on(exec));
     auto mg_coarsest_solver = gko::share(
         solver::build()
@@ -286,7 +289,7 @@ int main(int argc, char* argv[])
             .on(exec));
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(bj_solver)
+            .with_solver(isai_solver)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
@@ -305,7 +308,7 @@ int main(int argc, char* argv[])
     auto Ainv =
         solver::build()
             .with_preconditioner(schwarz::build()
-                                     .with_local_solver(bj_solver)
+                                     .with_local_solver(isai_solver)
                                      // .with_coarse_solvers(coarse_solver)
                                      .on(exec))
             .with_criteria(iter_stop, tol_stop)
