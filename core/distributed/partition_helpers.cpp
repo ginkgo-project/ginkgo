@@ -48,7 +48,6 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 
 
 }  // namespace
@@ -74,8 +73,9 @@ std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                                  mpi::communicator comm, span local_range)
 {
-    GlobalIndexType range[2] = {static_cast<GlobalIndexType>(local_range.begin),
-                                static_cast<GlobalIndexType>(local_range.end)};
+    std::array<GlobalIndexType, 2> range{
+        static_cast<GlobalIndexType>(local_range.begin),
+        static_cast<GlobalIndexType>(local_range.end)};
 
     // make all range_start_ends available on each rank
     auto mpi_exec = exec->get_master();
