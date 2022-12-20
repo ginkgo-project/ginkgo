@@ -87,10 +87,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void fill_coarse(
-    std::shared_ptr<const DefaultExecutor> exec, const int rank,
+    std::shared_ptr<const DefaultExecutor> exec, const comm_index_type rank,
     const device_matrix_data<ValueType, GlobalIndexType>& fine_matrix_data,
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>&
-        fine_partition,
+    std::shared_ptr<const experimental::distributed::Partition<LocalIndexType,
+                                                               GlobalIndexType>>
+        fine_row_partition,
+    std::shared_ptr<const experimental::distributed::Partition<LocalIndexType,
+                                                               GlobalIndexType>>
+        fine_col_partition,
     const array<GlobalIndexType>& fine_row_ptrs,
     device_matrix_data<ValueType, GlobalIndexType>& coarse_data,
     device_matrix_data<ValueType, GlobalIndexType>& restrict_data,

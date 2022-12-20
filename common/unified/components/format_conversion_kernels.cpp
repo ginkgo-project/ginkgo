@@ -96,6 +96,36 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS64);
 
 
+template <typename IndexType, typename RowPtrType>
+void convert_idxs_to_ptrs_with_offset(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* idxs,
+    const IndexType* offset, size_type num_idxs, size_type num_blocks,
+    RowPtrType* ptrs)
+{
+    if (num_idxs == 0) {
+        fill_array(exec, ptrs, num_blocks + 1, RowPtrType{});
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto i, auto num_idxs, auto num_blocks, auto offset,
+                          auto idxs, auto ptrs) {
+                auto begin = i == 0 ? IndexType{} : idxs[i - 1];
+                auto end = i == num_idxs ? num_blocks : idxs[i];
+                for (auto block = begin; block < end; block++) {
+                    ptrs[block + 1 - offset[0]] = i;
+                }
+                if (i == 0) {
+                    ptrs[0] = 0;
+                }
+            },
+            num_idxs + 1, num_idxs, num_blocks, offset, idxs, ptrs);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET32);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS_OFFSET64);
+
+
 template <typename RowPtrType>
 void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,
                            const RowPtrType* ptrs, size_type num_blocks,
