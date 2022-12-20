@@ -44,14 +44,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace log {
 namespace detail {
 
 
 template <typename T, typename F>
-void mpi_sequential_region(const mpi::window<T>& window, F&& f)
+void mpi_sequential_region(const experimental::mpi::window<T>& window, F&& f)
 {
-    window.lock(0, mpi::window<T>::lock_type::exclusive);
+    window.lock(0, experimental::mpi::window<T>::lock_type::exclusive);
     f();
     window.unlock(0);
 }
@@ -71,7 +72,7 @@ void mpi_sequential_region(const mpi::window<T>& window, F&& f)
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class DistributedStream : public Logger {
+class DistributedStream : public gko::log::Logger {
 public:
     /* Executor events */
     void on_allocation_started(const Executor* exec,
@@ -204,8 +205,10 @@ public:
      * shouldn't be a problem.
      */
     static std::unique_ptr<DistributedStream> create(
-        mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
-        const Logger::mask_type& enabled_events = Logger::all_events_mask,
+        experimental::mpi::communicator comm =
+            experimental::mpi::communicator(MPI_COMM_WORLD),
+        const gko::log::Logger::mask_type& enabled_events =
+            gko::log::Logger::all_events_mask,
         std::ostream& os = std::cerr, bool verbose = false,
         bool uses_separate_streams = false)
     {
@@ -226,12 +229,12 @@ protected:
      *                               separate stream. This can be the case, if
      *                               each rank uses different output files.
      */
-    explicit DistributedStream(const mpi::communicator& comm,
-                               const Logger::mask_type& enabled_events,
-                               std::ostream& os, bool verbose,
-                               bool uses_separate_streams)
+    explicit DistributedStream(
+        const experimental::mpi::communicator& comm,
+        const gko::log::Logger::mask_type& enabled_events, std::ostream& os,
+        bool verbose, bool uses_separate_streams)
         : Logger(enabled_events),
-          local_logger_(Stream<ValueType>::create(
+          local_logger_(gko::log::Stream<ValueType>::create(
               enabled_events, os, verbose,
               "[LOG][Rank " + std::to_string(comm.rank()) + "] >>> ")),
           window_(ReferenceExecutor::create(), nullptr, 0, comm)
@@ -247,13 +250,14 @@ protected:
 
 
 private:
-    std::unique_ptr<Stream<ValueType>> local_logger_;
-    mpi::window<int> window_;
+    std::unique_ptr<gko::log::Stream<ValueType>> local_logger_;
+    experimental::mpi::window<int> window_;
     std::function<void(std::function<void()>)> region_wrapper_;
 };
 
 
 }  // namespace log
+}  // namespace experimental
 }  // namespace gko
 
 

@@ -185,8 +185,8 @@ LinOpType* get_local(LinOpType* op)
     LinOpType* local = nullptr;
 #if GINKGO_BUILD_MPI
     if (is_distributed(op)) {
-        run<gko::distributed::Vector, float, double, std::complex<float>,
-            std::complex<double>>(
+        run<gko::experimental::distributed::Vector, float, double,
+            std::complex<float>, std::complex<double>>(
             op, [&](auto vector_op) { local = get_local(vector_op); });
     } else
 #endif
@@ -210,7 +210,7 @@ template <
     typename = std::enable_if<std::is_same<LinOp, std::decay_t<T>>::value>>
 void dispatch_distributed_matrix(T* obj, func f, Args... args)
 {
-    using namespace gko::distributed;
+    using namespace gko::experimental::distributed;
     gko::run<Matrix<float, int32, int32>, Matrix<float, int32, int64>,
              Matrix<float, int64, int64>, Matrix<double, int32, int32>,
              Matrix<double, int32, int64>, Matrix<double, int64, int64>,
