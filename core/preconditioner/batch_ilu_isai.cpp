@@ -44,11 +44,10 @@ namespace preconditioner {
 
 
 template <typename ValueType, typename IndexType>
-void BatchIluIsai<ValueType, IndexType>::generate_precond(
-    const BatchLinOp* const system_matrix)
+void BatchIluIsai<ValueType, IndexType>::generate_precond()
 {
     // generate entire batch of preconditioners
-    if (!system_matrix->get_size().stores_equal_sizes()) {
+    if (!this->system_matrix_->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
 
@@ -61,18 +60,10 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
             .with_parilu_num_sweeps(this->parameters_.parilu_num_sweeps)
             .on(exec);
 
-    // Note: Use a custom deleter to prevent memory deallocation when the
-    // control returns to calling function and smart pointer goes out of scope
-    // When this smart pointer is assigned to another shared ptr, its deleter is
-    // also copied.
-    std::shared_ptr<const BatchLinOp> sys_smart_ptr(
-        system_matrix, [](const BatchLinOp* plain_ptr) {});
+    auto batch_ilu_precond = batch_ilu_factory->generate(this->system_matrix_);
 
-    auto batch_ilu_precond = batch_ilu_factory->generate(sys_smart_ptr);
-
-    auto
-        l_and_u_factors =
-            batch_ilu_precond->generate_split_factors_from_factored_matrix();
+    auto l_and_u_factors =
+        batch_ilu_precond->generate_split_factors_from_factored_matrix();
 
     auto l_factor = l_and_u_factors.first;
     auto u_factor = l_and_u_factors.second;
@@ -121,8 +112,8 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
         // z = lai_U * lai_L * r
         // z = mult_inv * r
         // Therefore, mult_inv = lai_U * lai_L
-        this->mult_inv_ =
-            gko::share(matrix_type::create(exec, system_matrix->get_size()));
+        this->mult_inv_ = gko::share(
+            matrix_type::create(exec, this->system_matrix_->get_size()));
         this->upper_factor_isai_->apply(this->lower_factor_isai_.get(),
                                         this->mult_inv_.get());
     } else if (this->parameters_.apply_type ==
@@ -139,20 +130,20 @@ void BatchIluIsai<ValueType, IndexType>::generate_precond(
 
         using vec_type = gko::matrix::BatchDense<ValueType>;
         auto one = gko::batch_initialize<vec_type>(
-            system_matrix->get_num_batch_entries(), {1.0}, exec);
+            this->system_matrix_->get_num_batch_entries(), {1.0}, exec);
         auto neg_one = gko::batch_initialize<vec_type>(
-            system_matrix->get_num_batch_entries(), {-1.0}, exec);
+            this->system_matrix_->get_num_batch_entries(), {-1.0}, exec);
 
-        this->iter_mat_lower_solve_ =
-            gko::share(matrix_type::create(exec, system_matrix->get_size()));
+        this->iter_mat_lower_solve_ = gko::share(
+            matrix_type::create(exec, this->system_matrix_->get_size()));
         this->lower_factor_isai_->apply(this->lower_factor_.get(),
                                         this->iter_mat_lower_solve_.get());
         this->iter_mat_lower_solve_->add_scaled_identity(
             one.get(),
             neg_one.get());  //  M <- a I + b M, thus a = one, b = neg_one
 
-        this->iter_mat_upper_solve_ =
-            gko::share(matrix_type::create(exec, system_matrix->get_size()));
+        this->iter_mat_upper_solve_ = gko::share(
+            matrix_type::create(exec, this->system_matrix_->get_size()));
         this->upper_factor_isai_->apply(this->upper_factor_.get(),
                                         this->iter_mat_upper_solve_.get());
         this->iter_mat_upper_solve_->add_scaled_identity(one.get(),
