@@ -56,23 +56,23 @@ GKO_REGISTER_OPERATION(fill_values_dense_mat_and_solve,
 
 
 template <typename ValueType, typename IndexType>
-void BatchIsai<ValueType, IndexType>::generate_precond(
-    const BatchLinOp* const system_matrix)
+void BatchIsai<ValueType, IndexType>::generate_precond()
 {
     using unbatch_type = matrix::Csr<ValueType, IndexType>;
     // generate entire batch of factorizations
-    if (!system_matrix->get_size().stores_equal_sizes()) {
+    if (!this->system_matrix_->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
     auto exec = this->get_executor();
 
     std::shared_ptr<matrix_type> sys_csr;
 
-    if (auto temp_csr = dynamic_cast<const matrix_type*>(system_matrix)) {
+    if (auto temp_csr =
+            dynamic_cast<const matrix_type*>(this->system_matrix_.get())) {
         sys_csr = gko::share(gko::clone(exec, temp_csr));
     } else {
         sys_csr = gko::share(matrix_type::create(exec));
-        as<ConvertibleTo<matrix_type>>(system_matrix)
+        as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
             ->convert_to(sys_csr.get());
     }
 
