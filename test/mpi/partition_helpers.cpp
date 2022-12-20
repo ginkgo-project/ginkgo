@@ -60,8 +60,8 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRanges)
 
     auto part =
         gko::experimental::distributed::build_partition_from_local_range<
-            gko::int32, itype>(this->exec, local_range[this->comm.rank()],
-                               this->comm);
+            gko::int32, itype>(this->exec, this->comm,
+                               local_range[this->comm.rank()]);
 
     GKO_ASSERT_ARRAY_EQ(
         expects_ranges,
@@ -73,6 +73,7 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRanges)
                                    part->get_part_ids()));
 }
 
+
 TYPED_TEST(PartitionHelpers, CanBuildFromLocalRangesUnsorted)
 {
     using itype = typename TestFixture::index_type;
@@ -82,8 +83,8 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRangesUnsorted)
 
     auto part =
         gko::experimental::distributed::build_partition_from_local_range<
-            gko::int32, itype>(this->exec, local_range[this->comm.rank()],
-                               this->comm);
+            gko::int32, itype>(this->exec, this->comm,
+                               local_range[this->comm.rank()]);
 
     GKO_ASSERT_ARRAY_EQ(
         expects_ranges,
@@ -100,12 +101,35 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRangesThrowsOnGap)
 {
     using itype = typename TestFixture::index_type;
     gko::span local_range[] = {{4u, 6u}, {9u, 11u}, {0u, 4u}};
+    // Hack because of multiple template arguments in macro
     auto build_from_local_ranges = [](auto... args) {
         return gko::experimental::distributed::build_partition_from_local_range<
             gko::int32, itype>(args...);
     };
 
-    ASSERT_THROW(build_from_local_ranges(
-                     this->exec, local_range[this->comm.rank()], this->comm),
+    ASSERT_THROW(build_from_local_ranges(this->exec, this->comm,
+                                         local_range[this->comm.rank()]),
                  gko::Error);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanBuildFromLocalSize)
+{
+    using itype = typename TestFixture::index_type;
+    gko::size_type local_range[] = {4, 5, 3};
+    gko::array<itype> expects_ranges{this->exec, {0, 4, 9, 12}};
+    gko::array<comm_index_type> expects_pid{this->exec, {0, 1, 2}};
+
+    auto part = gko::experimental::distributed::build_partition_from_local_size<
+        gko::int32, itype>(this->exec, this->comm,
+                           local_range[this->comm.rank()]);
+
+    GKO_ASSERT_ARRAY_EQ(
+        expects_ranges,
+        gko::make_const_array_view(this->exec, expects_ranges.get_num_elems(),
+                                   part->get_range_bounds()));
+    GKO_ASSERT_ARRAY_EQ(
+        expects_pid,
+        gko::make_const_array_view(this->exec, expects_pid.get_num_elems(),
+                                   part->get_part_ids()));
 }
