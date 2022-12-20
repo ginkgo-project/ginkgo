@@ -81,7 +81,7 @@ TEST_F(BatchIsaiFactory, CanSetIsaiType)
 {
     auto batch_isai_factory =
         batch_isai_prec::build()
-            .with_isai_input_matrix_type(this->isai_input_matrix_type)
+            .with_isai_input_matrix_type(gko::preconditioner::batch_isai_input_matrix_type::lower_tri)
             .on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().isai_input_matrix_type,
@@ -91,7 +91,7 @@ TEST_F(BatchIsaiFactory, CanSetIsaiType)
 TEST_F(BatchIsaiFactory, CanSetSorting)
 {
     auto batch_isai_factory = batch_isai_prec::build()
-                                  .with_skip_sorting(this->skip_sorting)
+                                  .with_skip_sorting(true)
                                   .on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().skip_sorting,
@@ -102,7 +102,7 @@ TEST_F(BatchIsaiFactory, CanSetSorting)
 TEST_F(BatchIsaiFactory, CanSetNumSparsityPower)
 {
     auto batch_isai_factory = batch_isai_prec::build()
-                                  .with_sparsity_power(this->sparsity_power)
+                                  .with_sparsity_power(3)
                                   .on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().sparsity_power,

@@ -84,7 +84,7 @@ TEST_F(BatchIluIsaiFactory, KnowsItsExecutor)
 TEST_F(BatchIluIsaiFactory, CanSetApplyType)
 {
     auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
-                                      .with_apply_type(this->apply_type)
+                                      .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::                       relaxation_steps_isai_simple)
                                       .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters().apply_type,
@@ -94,7 +94,7 @@ TEST_F(BatchIluIsaiFactory, CanSetApplyType)
 TEST_F(BatchIluIsaiFactory, CanSetIluType)
 {
     auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
-                                      .with_ilu_type(this->ilu_type)
+                                      .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
                                       .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters().ilu_type,
@@ -105,7 +105,7 @@ TEST_F(BatchIluIsaiFactory, CanSetNumSweeps)
 {
     auto batch_ilu_isai_factory =
         batch_ilu_isai_prec::build()
-            .with_parilu_num_sweeps(this->parilu_num_sweeps)
+            .with_parilu_num_sweeps(20)
             .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters().parilu_num_sweeps,
@@ -115,7 +115,7 @@ TEST_F(BatchIluIsaiFactory, CanSetNumSweeps)
 TEST_F(BatchIluIsaiFactory, CanSetSorting)
 {
     auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
-                                      .with_skip_sorting(this->skip_sorting)
+                                      .with_skip_sorting(true)
                                       .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters().skip_sorting,
@@ -126,7 +126,7 @@ TEST_F(BatchIluIsaiFactory, CanSetLowerIsaiSpy)
 {
     auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
                                       .with_lower_factor_isai_sparsity_power(
-                                          this->lower_factor_isai_spy_power)
+                                          2)
                                       .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters()
@@ -139,7 +139,7 @@ TEST_F(BatchIluIsaiFactory, CanSetUpperIsaiSpy)
 {
     auto batch_ilu_isai_factory = batch_ilu_isai_prec::build()
                                       .with_upper_factor_isai_sparsity_power(
-                                          this->upper_factor_isai_spy_power)
+                                          3)
                                       .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters()
@@ -151,7 +151,7 @@ TEST_F(BatchIluIsaiFactory, CanSetRelaxationSteps)
 {
     auto batch_ilu_isai_factory =
         batch_ilu_isai_prec::build()
-            .with_num_relaxation_steps(this->num_relaxation_steps)
+            .with_num_relaxation_steps(5)
             .on(this->exec);
 
     ASSERT_EQ(batch_ilu_isai_factory->get_parameters().num_relaxation_steps,
