@@ -210,7 +210,6 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
-
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
     // with a local block diagonal preconditioner.
