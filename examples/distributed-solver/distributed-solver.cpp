@@ -262,7 +262,7 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
-    const gko::remove_complex<ValueType> reduction_factor{1e-16};
+    const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     auto iter_stop = gko::share(
@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
     //
-    auto bj_solver = gko::share(bj::build().with_max_block_size(1u).on(exec));
+    auto bj_solver = gko::share(bj::build().with_max_block_size(32u).on(exec));
     auto ic_solver = gko::share(ic::build().on(exec));
     auto coarse_gen_fac = gko::share(coarse_gen::build().on(exec));
     auto mg_coarsest_solver = gko::share(
@@ -301,15 +301,16 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
-    auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv = solver::build()
-                    .with_preconditioner(schwarz::build()
-                                             .with_local_solver(ic_solver)
-                                             .with_coarse_solvers(coarse_solver)
-                                             .on(exec))
-                    .with_criteria(iter_stop, tol_stop)
-                    .on(exec)
-                    ->generate(A);
+    // auto coarse_solver = gko::share(coarse_fac->generate(A));
+    auto Ainv =
+        solver::build()
+            .with_preconditioner(schwarz::build()
+                                     .with_local_solver(bj_solver)
+                                     // .with_coarse_solvers(coarse_solver)
+                                     .on(exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec)
+            ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.
