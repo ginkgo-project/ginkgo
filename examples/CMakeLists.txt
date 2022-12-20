@@ -53,7 +53,7 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-solver)
+    list(APPEND EXAMPLES_LIST distributed-solver distributed-preconditioned-solver)
 endif()
 
 find_package(Kokkos QUIET)
