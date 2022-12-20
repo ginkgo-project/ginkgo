@@ -118,6 +118,7 @@ GKO_REGISTER_OPERATION(check_diagonal_entries,
 }  // anonymous namespace
 }  // namespace csr
 
+
 namespace detail {
 /**
  *
@@ -134,7 +135,7 @@ std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> extend_sparsity(
     int power)
 {
     using csr = gko::matrix::Csr<ValueType, IndexType>;
-    GKO_ASSERT_EQ(power >= 1, true);
+    GKO_ASSERT(power >= 1);
     if (power == 1) {
         // copy the matrix, as it will be used to store the inverse
         return {std::move(mtx->clone())};
