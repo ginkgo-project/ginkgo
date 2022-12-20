@@ -32,20 +32,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
+#include <numeric>
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace distributed {
-namespace partition_helpers {
+namespace components {
 namespace {
 
 
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+
+
+}  // namespace
+}  // namespace components
+
+
+namespace partition_helpers {
+namespace {
+
+
 GKO_REGISTER_OPERATION(sort_by_range_start,
                        partition_helpers::sort_by_range_start);
 GKO_REGISTER_OPERATION(check_consecutive_ranges,
@@ -59,7 +72,7 @@ GKO_REGISTER_OPERATION(check_consecutive_ranges,
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 build_partition_from_local_range(std::shared_ptr<const Executor> exec,
-                                 span local_range, mpi::communicator comm)
+                                 mpi::communicator comm, span local_range)
 {
     GlobalIndexType range[2] = {static_cast<GlobalIndexType>(local_range.begin),
                                 static_cast<GlobalIndexType>(local_range.end)};
@@ -78,8 +91,8 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 
     // make_sort_by_range_start
     array<comm_index_type> part_ids(exec, comm.size());
-    exec->run(partition_helpers::make_fill_seq_array(part_ids.get_data(),
-                                                     part_ids.get_num_elems()));
+    exec->run(components::make_fill_seq_array(part_ids.get_data(),
+                                              part_ids.get_num_elems()));
     exec->run(partition_helpers::make_sort_by_range_start(ranges_start_end,
                                                           part_ids));
 
@@ -105,9 +118,37 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                                                      _global_type)         \
     std::unique_ptr<Partition<_local_type, _global_type>>                  \
     build_partition_from_local_range(std::shared_ptr<const Executor> exec, \
-                                     span local_range, mpi::communicator comm)
+                                     mpi::communicator comm, span local_range)
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE);
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+build_partition_from_local_size(std::shared_ptr<const Executor> exec,
+                                mpi::communicator comm, size_type local_size)
+{
+    auto local_size_gi = static_cast<GlobalIndexType>(local_size);
+    std::vector<GlobalIndexType> sizes(comm.size());
+    comm.all_gather(exec, &local_size_gi, 1, sizes.data(), 1);
+
+    std::vector<GlobalIndexType> offsets(comm.size() + 1);
+    offsets[0] = 0;
+    std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
+
+    auto ranges =
+        make_array_view(exec->get_master(), offsets.size(), offsets.data());
+    return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
+        exec, ranges);
+}
+
+#define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_SIZE(_local_type, _global_type) \
+    std::unique_ptr<Partition<_local_type, _global_type>>                      \
+    build_partition_from_local_size(std::shared_ptr<const Executor> exec,      \
+                                    mpi::communicator comm,                    \
+                                    size_type local_range)
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_SIZE);
 
 
 }  // namespace distributed

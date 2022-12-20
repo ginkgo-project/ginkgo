@@ -56,7 +56,8 @@ class Partition;
  * Builds a partition from a local range.
  *
  * @param exec  the Executor on which the partition should be built.
- * @param local_range the start and end indices of the local range
+ * @param local_range the start and end indices of the local range.
+ * @param comm  the communicator used to determine the global partition.
  *
  * @warning The local ranges have to be continuous and ascending. This means
  *          that for a process `i` with `range[i] = [s_i, e_i)` then for process
@@ -68,7 +69,25 @@ class Partition;
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 build_partition_from_local_range(std::shared_ptr<const Executor> exec,
-                                 span local_range, mpi::communicator comm);
+                                 mpi::communicator comm, span local_range);
+
+
+/**
+ * Builds a partition from a local size.
+ *
+ * @param exec  the Executor on which the partition should be built.
+ * @param local_range the number of the locally owned indices
+ * @param comm  the communicator used to determine the global partition.
+ *
+ * @return a Partition where each range has the specified local size. More
+ *         specifically, if this is called on process i with local_size `s_i`,
+ *         then the range `i` has size `s_i`, and range `r_i = [start, start +
+ *         s_i)`, where `start = sum_j^(i-1) s_j`.
+ */
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+build_partition_from_local_size(std::shared_ptr<const Executor> exec,
+                                mpi::communicator comm, size_type local_size);
 
 
 }  // namespace distributed
