@@ -44,6 +44,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
+using gko::experimental::distributed::comm_index_type;
+
+
+// TODO: remove with c++17
+template<typename T>
+T clamp(const T&v, const T& lo, const T& hi){
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+
+
+template <typename IndexType>
+std::vector<IndexType> create_iota(IndexType min, IndexType max)
+{
+    std::vector<IndexType> iota(clamp(max - min, 0ul, max));
+    std::iota(iota.begin(), iota.end(), min);
+    return iota;
+}
+
+
 template <typename IndexType>
 std::pair<std::vector<IndexType>, std::vector<IndexType>> create_ranges(
     gko::size_type num_ranges)
@@ -71,13 +90,9 @@ std::vector<std::size_t> sample_unique(std::size_t min, std::size_t max,
                                        gko::size_type n)
 {
     std::default_random_engine engine;
-    std::vector<std::size_t> values(std::clamp(max - min, 0ul, max));
-    std::iota(values.begin(), values.end(), min);
-
+    auto values = create_iota(min, max);
     std::shuffle(values.begin(), values.end(), engine);
-
-    values.erase(values.begin() + std::clamp(n, 0ul, values.size()), values.end());
-
+    values.erase(values.begin() + clamp(n, 0ul, values.size()), values.end());
     return values;
 }
 
@@ -141,7 +156,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
     auto full_range_ends = create_ranges<index_type>(100);
     auto removal_idxs = sample_unique(0, full_range_ends.first.size(), 4);
     auto start_ends = concat_start_end(
-        this->ref,
+        this->exec,
         std::make_pair(remove_indices(full_range_ends.first, removal_idxs),
                        remove_indices(full_range_ends.second, removal_idxs)));
     bool result = true;
@@ -170,7 +185,7 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
 TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
 {
     using index_type = typename TestFixture::index_type;
-    auto start_ends = gko::array<index_type >(this->exec, {1});
+    auto start_ends = gko::array<index_type>(this->exec, {1});
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
