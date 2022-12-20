@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 /**
  * @brief The Preconditioner namespace.
@@ -136,7 +137,8 @@ protected:
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           local_system_matrix_{std::move(
-              as<distributed::Matrix<ValueType, IndexType>>(system_matrix.get())
+              as<experimental::distributed::Matrix<ValueType, IndexType>>(
+                  system_matrix.get())
                   ->get_local_matrix())},
           coarse_solvers_{parameters_.coarse_solvers}
     {
@@ -171,6 +173,7 @@ private:
 
 }  // namespace preconditioner
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
