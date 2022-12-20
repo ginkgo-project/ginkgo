@@ -168,7 +168,6 @@ BatchIlu<ValueType, IndexType>::generate_split_factors_from_factored_matrix()
         exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
         std::move(sys_rows_view));
 
-
     // initialize L and U factors
     array<IndexType> l_row_ptrs(exec, num_rows + 1);
     array<IndexType> u_row_ptrs(exec, num_rows + 1);
@@ -188,7 +187,6 @@ BatchIlu<ValueType, IndexType>::generate_split_factors_from_factored_matrix()
                l_factor->get_row_ptrs());
     exec->copy(num_rows + 1, u_row_ptrs.get_const_data(),
                u_factor->get_row_ptrs());
-
 
     // fill batch_L and batch_U col_idxs and values
     array<IndexType> l_col_holders(exec, l_nnz);
