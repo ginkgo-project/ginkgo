@@ -40,16 +40,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
 
 using gko::experimental::distributed::comm_index_type;
 
+template <typename IndexType>
+using range_container =
+    std::pair<std::vector<IndexType>, std::vector<IndexType>>;
+
 
 // TODO: remove with c++17
-template<typename T>
-T clamp(const T&v, const T& lo, const T& hi){
+template <typename T>
+T clamp(const T& v, const T& lo, const T& hi)
+{
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
@@ -57,15 +63,15 @@ T clamp(const T&v, const T& lo, const T& hi){
 template <typename IndexType>
 std::vector<IndexType> create_iota(IndexType min, IndexType max)
 {
-    std::vector<IndexType> iota(clamp(max - min, 0ul, max));
+    std::vector<IndexType> iota(
+        clamp(max - min, static_cast<IndexType>(0), max));
     std::iota(iota.begin(), iota.end(), min);
     return iota;
 }
 
 
 template <typename IndexType>
-std::pair<std::vector<IndexType>, std::vector<IndexType>> create_ranges(
-    gko::size_type num_ranges)
+range_container<IndexType> create_ranges(gko::size_type num_ranges)
 {
     std::default_random_engine engine;
     std::uniform_int_distribution<IndexType> dist(5, 10);
@@ -113,7 +119,7 @@ std::vector<IndexType> remove_indices(const std::vector<IndexType>& source,
 template <typename IndexType>
 gko::array<IndexType> concat_start_end(
     std::shared_ptr<const gko::Executor> exec,
-    const std::pair<std::vector<IndexType>, std::vector<IndexType>>& start_ends)
+    const range_container<IndexType>& start_ends)
 {
     gko::size_type num_ranges = start_ends.first.size();
     gko::array<IndexType> concat(exec, num_ranges * 2);
@@ -126,6 +132,25 @@ gko::array<IndexType> concat_start_end(
     return concat;
 }
 
+
+template <typename IndexType>
+std::pair<range_container<IndexType>, std::vector<comm_index_type>>
+shuffle_range_and_pid(const range_container<IndexType>& ranges,
+                      const std::vector<comm_index_type>& pid)
+{
+    std::default_random_engine engine;
+
+    auto result = std::make_pair(ranges, pid);
+
+    auto num_ranges = result.second.size();
+    auto zip_it = gko::detail::make_zip_iterator(
+        result.first.first.begin(),
+        result.first.second.begin(),
+        result.second.begin());
+    std::shuffle(zip_it, zip_it + num_ranges, engine);
+
+    return result;
+}
 
 template <typename IndexType>
 class PartitionHelpers : public CommonTestFixture {
@@ -171,8 +196,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
 TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
 {
     using index_type = typename TestFixture::index_type;
-    auto start_ends = concat_start_end(
-        this->ref,create_ranges<index_type>(1));
+    auto start_ends = concat_start_end(this->ref, create_ranges<index_type>(1));
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
@@ -192,4 +216,44 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
         this->exec, start_ends, &result);
 
     ASSERT_TRUE(result);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanSortConsecutiveRanges)
+{
+    using index_type = typename TestFixture::index_type;
+    auto start_ends =
+        concat_start_end(this->exec, create_ranges<index_type>(100));
+    auto part_ids = create_iota<comm_index_type>(0, 100);
+    auto part_ids_arr = gko::array<comm_index_type>(
+        this->exec, part_ids.begin(), part_ids.end());
+    auto expected_start_ends = start_ends;
+    auto expected_part_ids = part_ids_arr;
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::sort_by_range_start(
+        this->exec, start_ends, part_ids_arr);
+
+    GKO_ASSERT_ARRAY_EQ(expected_start_ends, start_ends);
+    GKO_ASSERT_ARRAY_EQ(expected_part_ids, part_ids_arr);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanSortNonConsecutiveRanges)
+{
+    using index_type = typename TestFixture::index_type;
+    auto ranges = create_ranges<index_type>(100);
+    auto part_ids = create_iota(0, 100);
+    auto shuffled = shuffle_range_and_pid(ranges, part_ids);
+    auto expected_start_ends = concat_start_end(this->exec, ranges);
+    auto expected_part_ids = gko::array<comm_index_type>(
+        this->exec, part_ids.begin(), part_ids.end());
+    auto start_ends = concat_start_end(this->exec, shuffled.first);
+    auto part_ids_arr = gko::array<comm_index_type>(
+        this->exec, shuffled.second.begin(), shuffled.second.end());
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::sort_by_range_start(
+        this->exec, start_ends, part_ids_arr);
+
+    GKO_ASSERT_ARRAY_EQ(expected_start_ends, start_ends);
+    GKO_ASSERT_ARRAY_EQ(expected_part_ids, part_ids_arr);
 }
