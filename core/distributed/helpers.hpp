@@ -199,31 +199,6 @@ LinOpType* get_local(LinOpType* op)
 }
 
 
-/**
- * Extracts the correct Matrix instantiation for a given linop and calls a
- * function with it.
- *
- * @note internally this uses run(T*, func, Args...)
- */
-template <
-    typename T, typename func, typename... Args,
-    typename = std::enable_if<std::is_same<LinOp, std::decay_t<T>>::value>>
-void dispatch_distributed_matrix(T* obj, func f, Args... args)
-{
-    using namespace gko::experimental::distributed;
-    gko::run<Matrix<float, int32, int32>, Matrix<float, int32, int64>,
-             Matrix<float, int64, int64>, Matrix<double, int32, int32>,
-             Matrix<double, int32, int64>, Matrix<double, int64, int64>,
-             Matrix<std::complex<float>, int32, int32>,
-             Matrix<std::complex<float>, int32, int64>,
-             Matrix<std::complex<float>, int64, int64>,
-             Matrix<std::complex<double>, int32, int32>,
-             Matrix<std::complex<double>, int32, int64>,
-             Matrix<std::complex<double>, int64, int64>>(
-        obj, f, std::forward<Args>(args)...);
-}
-
-
 }  // namespace detail
 }  // namespace gko
 
