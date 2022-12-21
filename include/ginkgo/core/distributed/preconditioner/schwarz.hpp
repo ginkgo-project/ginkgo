@@ -34,6 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_DISTRIBUTED_PRECONDITIONER_SCHWARZ_HPP_
 
 
+#include <ginkgo/config.hpp>
+
+
+#if GINKGO_BUILD_MPI
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
@@ -177,4 +183,5 @@ private:
 }  // namespace gko
 
 
+#endif  // GINKGO_BUILD_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_PRECONDITIONER_SCHWARZ_HPP_
