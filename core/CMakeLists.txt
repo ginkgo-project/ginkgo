@@ -30,7 +30,6 @@ target_sources(ginkgo
     factorization/par_ilut.cpp
     factorization/symbolic.cpp
     log/convergence.cpp
-    log/distributed_stream.cpp
     log/logger.cpp
     log/performance_hint.cpp
     log/profiler_hook.cpp
