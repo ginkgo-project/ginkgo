@@ -225,15 +225,16 @@ int main(int argc, char* argv[])
 
     // Setup the local diagonal block preconditioner for use within the Schwarz
     // preconditioner
-    auto local_solver =
+    auto local_solver_factory =
         gko::share(bj::build().with_max_block_size(32u).on(exec));
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(
-                schwarz::build().with_local_solver(local_solver).on(exec))
-            .with_criteria(tol_stop, iter_stop)
-            .on(exec)
-            ->generate(A);
+    auto Ainv = solver::build()
+                    .with_preconditioner(
+                        schwarz::build()
+                            .with_local_solver_factory(local_solver_factory)
+                            .on(exec))
+                    .with_criteria(tol_stop, iter_stop)
+                    .on(exec)
+                    ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.

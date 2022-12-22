@@ -210,12 +210,8 @@ int main(int argc, char* argv[])
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
-    //
-    auto local_solver = gko::share(bj::build().on(exec));
     auto Ainv =
         solver::build()
-            .with_preconditioner(
-                schwarz::build().with_local_solver(local_solver).on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
                     exec),
