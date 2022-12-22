@@ -65,6 +65,8 @@ namespace preconditioner {
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
  *
+ * @note Currently overlaps are not supported (TODO).
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type of the preconditioner
  *
@@ -101,21 +103,7 @@ public:
          * Local solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            local_solver, nullptr);
-
-        /**
-         * Generated Local solvers.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_local_solver, nullptr);
-
-        /**
-         * Coarse solvers.
-         *
-         * Note: Coarse solvers need to be of type gko::solver::Multigrid.
-         */
-        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
-            coarse_solvers, nullptr);
+            local_solver_factory, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -145,8 +133,7 @@ protected:
           local_system_matrix_{std::move(
               as<experimental::distributed::Matrix<ValueType, IndexType>>(
                   system_matrix.get())
-                  ->get_local_matrix())},
-          coarse_solvers_{parameters_.coarse_solvers}
+                  ->get_local_matrix())}
     {
         this->generate();
     }
@@ -156,9 +143,6 @@ protected:
      *
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner
-     * @param skip_sorting  determines if the sorting of system_matrix can be
-     *                      skipped (therefore, marking that it is already
-     *                      sorted)
      */
     void generate();
 
@@ -173,7 +157,6 @@ protected:
 private:
     std::shared_ptr<const LinOp> local_system_matrix_;
     std::shared_ptr<const LinOp> local_solver_;
-    std::vector<std::shared_ptr<const LinOp>> coarse_solvers_;
 };
 
 
