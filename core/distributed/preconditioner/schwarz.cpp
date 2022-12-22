@@ -79,12 +79,6 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
     this->local_solver_->apply(gko::detail::get_local(dense_b),
                                gko::detail::get_local(dense_x));
-
-    if (coarse_solvers_[0]) {
-        for (auto& coarse : coarse_solvers_) {
-            coarse->apply(dense_b, dense_x);
-        }
-    }
 }
 
 
@@ -108,11 +102,11 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 template <typename ValueType, typename IndexType>
 void Schwarz<ValueType, IndexType>::generate()
 {
-    if (parameters_.generated_local_solver) {
-        this->local_solver_ = parameters_.generated_local_solver;
-    } else {
+    if (parameters_.local_solver_factory) {
         this->local_solver_ =
-            parameters_.local_solver->generate(local_system_matrix_);
+            parameters_.local_solver_factory->generate(local_system_matrix_);
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
