@@ -55,12 +55,14 @@ namespace gcr {
                     matrix::Dense<_type>* residual,              \
                     stopping_status* stop_status)
 
+
 #define GKO_DECLARE_GCR_RESTART_KERNEL(_type)                 \
     void restart(std::shared_ptr<const DefaultExecutor> exec, \
                  const matrix::Dense<_type>* residual,        \
                  matrix::Dense<_type>* A_residual,            \
                  matrix::Dense<_type>* p_bases,               \
                  matrix::Dense<_type>* Ap_bases, size_type* final_iter_nums)
+
 
 #define GKO_DECLARE_GCR_STEP_1_KERNEL(_type)                                   \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,                   \
@@ -70,6 +72,7 @@ namespace gcr {
                 const matrix::Dense<_type>* alpha,                             \
                 const stopping_status* stop_status)
 
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \
     template <typename ValueType>                 \
     GKO_DECLARE_GCR_INITIALIZE_KERNEL(ValueType); \
@@ -77,6 +80,8 @@ namespace gcr {
     GKO_DECLARE_GCR_RESTART_KERNEL(ValueType);    \
     template <typename ValueType>                 \
     GKO_DECLARE_GCR_STEP_1_KERNEL(ValueType)
+
+
 }  // namespace gcr
 
 

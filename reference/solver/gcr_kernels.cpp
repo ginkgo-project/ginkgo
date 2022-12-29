@@ -58,7 +58,6 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType>* residual,
                 stopping_status* stop_status)
 {
-    //    using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             residual->at(i, j) = b->at(i, j);
@@ -113,6 +112,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);
+
 
 }  // namespace gcr
 }  // namespace reference

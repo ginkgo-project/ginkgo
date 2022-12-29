@@ -49,6 +49,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 namespace gcr {
 
+
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType>* b,

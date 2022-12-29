@@ -53,12 +53,15 @@ namespace solver {
 namespace gcr {
 namespace {
 
+
 GKO_REGISTER_OPERATION(initialize, gcr::initialize);
 GKO_REGISTER_OPERATION(restart, gcr::restart);
 GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 
+
 }  // anonymous namespace
 }  // namespace gcr
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Gcr<ValueType>::transpose() const

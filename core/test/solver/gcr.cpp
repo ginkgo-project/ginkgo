@@ -122,8 +122,9 @@ TYPED_TEST(Gcr, GcrFactoryKnowsItsExecutor)
 TYPED_TEST(Gcr, GcrFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     auto gcr_solver = static_cast<Solver*>(this->solver.get());
+
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_NE(gcr_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(gcr_solver->get_system_matrix(), this->mtx);
 }
