@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
+#include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -302,6 +303,34 @@ struct FGmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
                 precond_type::build().with_max_block_size(1u).on(exec))
             .with_krylov_dim(dimension)
             .with_flexible(true);
+    }
+};
+
+
+template <unsigned dimension>
+struct Gcr : SimpleSolverTest<gko::solver::Gcr<solver_value_type>> {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(iteration_count)
+                               .on(exec))
+            .with_krylov_dim(dimension);
+    }
+
+    static typename solver_type::parameters_type build_preconditioned(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(iteration_count)
+                               .on(exec))
+            .with_preconditioner(
+                precond_type::build().with_max_block_size(1u).on(exec))
+            .with_krylov_dim(dimension);
     }
 };
 
@@ -890,7 +919,7 @@ using SolverTypes =
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>,
-                     FGmres<2>, FGmres<10>, LowerTrs, UpperTrs,
+                     FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, LowerTrs, UpperTrs,
                      LowerTrsUnitdiag, UpperTrsUnitdiag
 #ifdef GKO_COMPILING_CUDA
                      ,

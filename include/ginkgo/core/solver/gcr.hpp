@@ -186,15 +186,15 @@ struct workspace_traits<Gcr<ValueType>> {
     // preconditioned vector
     constexpr static int precon_residual = 1;
     constexpr static int A_precon_residual = 2;
-    // p basis TODO: rename this vector
+    // krylov bases (p in the algorithm)
     constexpr static int krylov_bases_p = 3;
-    // Ap basis TODO: rename this vector
+    // mapped krylov bases (Ap in the algorithm)
     constexpr static int mapped_krylov_bases_Ap = 4;
-    // alpha parameter
+    // tmp alpha parameter (alpha in the algorithm)
     constexpr static int tmp_alpha = 5;
-    // beta parameter
+    // tmp beta parameter (beta in the algorithm)
     constexpr static int tmp_beta = 6;
-    // TODO: rename this vector
+    // array of norms of Ap
     constexpr static int Ap_norms = 7;
     // residual norm scalar
     constexpr static int residual_norm = 8;
@@ -207,7 +207,7 @@ struct workspace_traits<Gcr<ValueType>> {
     constexpr static int stop = 0;
     // reduction tmp array
     constexpr static int tmp = 1;
-    // reduction tmp array
+    // final iteration number array
     constexpr static int final_iter_nums = 2;
 };
 
