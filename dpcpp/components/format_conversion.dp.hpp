@@ -71,7 +71,7 @@ template <size_type subgroup_size = config::warp_size>
 size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
-    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 8;
     size_type multiple = 8;
     if (nnz >= 2e8) {
         multiple = 256;

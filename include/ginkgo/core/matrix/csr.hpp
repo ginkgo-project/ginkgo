@@ -409,7 +409,7 @@ public:
          *             number of threads in a SIMD unit is 7
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(exec->get_num_computing_units() * 7, 32, false,
+            : load_balance(exec->get_num_computing_units() * 8, 32, false,
                            "intel")
         {}
 
@@ -599,7 +599,7 @@ public:
          *             number of threads in a SIMD unit is 7
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_computing_units() * 7, 32, false,
+            : automatical(exec->get_num_computing_units() * 8, 32, false,
                           "intel")
         {}
 
