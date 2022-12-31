@@ -56,21 +56,38 @@ protected:
         gko::experimental::distributed::preconditioner::Schwarz<value_type,
                                                                 index_type>;
     using Jacobi = gko::preconditioner::Jacobi<value_type, index_type>;
+    using Mtx = gko::experimental::distributed::Matrix<value_type, index_type>;
 
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
           jacobi_factory(Jacobi::build().on(exec)),
-          mtx(gko::matrix::Csr<value_type, index_type>::create(
-              exec, gko::dim<2>{5, 5}, 13)),
-          schwarz_factory(Schwarz::build()
-                              .with_local_solver_factory(jacobi_factory)
-                              .on(exec))
-    {}
+          mtx(Mtx::create(exec, MPI_COMM_WORLD))
+    {
+        schwarz = Schwarz::build()
+                      .with_local_solver_factory(jacobi_factory)
+                      .on(exec)
+                      ->generate(mtx);
+    }
+
+
+    template <typename T>
+    void init_array(T* arr, std::initializer_list<T> vals)
+    {
+        std::copy(std::begin(vals), std::end(vals), arr);
+    }
+
+    void assert_same_precond(const Schwarz* a, const Schwarz* b)
+    {
+        ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
+        ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
+        ASSERT_EQ(a->get_parameters().local_solver_factory,
+                  b->get_parameters().local_solver_factory);
+    }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<typename Schwarz::Factory> schwarz_factory;
+    std::unique_ptr<Schwarz> schwarz;
     std::shared_ptr<typename Jacobi::Factory> jacobi_factory;
-    std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
+    std::shared_ptr<Mtx> mtx;
 };
 
 TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueIndexTypes);
@@ -78,14 +95,66 @@ TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueIndexTypes);
 
 TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
 {
-    ASSERT_EQ(this->schwarz_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->schwarz->get_executor(), this->exec);
 }
 
 
 TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 {
-    ASSERT_EQ(this->schwarz_factory->get_parameters().local_solver_factory,
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory,
               this->jacobi_factory);
+}
+
+
+TYPED_TEST(SchwarzFactory, CanBeCloned)
+{
+    auto schwarz_clone = clone(this->schwarz);
+
+    this->assert_same_precond(lend(schwarz_clone), lend(this->schwarz));
+}
+
+
+TYPED_TEST(SchwarzFactory, CanBeCopied)
+{
+    using Jacobi = typename TestFixture::Jacobi;
+    using Schwarz = typename TestFixture::Schwarz;
+    using Mtx = typename TestFixture::Mtx;
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto copy = Schwarz::build()
+                    .with_local_solver_factory(bj)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
+
+    copy->copy_from(lend(this->schwarz));
+
+    this->assert_same_precond(lend(copy), lend(this->schwarz));
+}
+
+
+TYPED_TEST(SchwarzFactory, CanBeMoved)
+{
+    using Jacobi = typename TestFixture::Jacobi;
+    using Schwarz = typename TestFixture::Schwarz;
+    using Mtx = typename TestFixture::Mtx;
+    auto tmp = clone(this->schwarz);
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto copy = Schwarz::build()
+                    .with_local_solver_factory(bj)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
+
+    copy->copy_from(give(this->schwarz));
+
+    this->assert_same_precond(lend(copy), lend(tmp));
+}
+
+
+TYPED_TEST(SchwarzFactory, CanBeCleared)
+{
+    this->schwarz->clear();
+
+    ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory, nullptr);
 }
 
 
