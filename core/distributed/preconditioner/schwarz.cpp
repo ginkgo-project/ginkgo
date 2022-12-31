@@ -75,8 +75,6 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
     this->local_solver_->apply(gko::detail::get_local(dense_b),
                                gko::detail::get_local(dense_x));
 }
