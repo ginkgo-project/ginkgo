@@ -239,9 +239,7 @@ __device__ __forceinline__ void row_transformation(Group subwarpgrp,
 {
     const int local_id = subwarpgrp.thread_rank();
     const ValueType diag_ele = subwarpgrp.shfl(local_row[diag_pos], diag_pos);
-    // assert(diag_ele != zero<ValueType>());
-    assert(abs(diag_ele) !=
-           abs(zero<ValueType>()));  // temporary work-around for rocm-4.0
+    assert(diag_ele != zero<ValueType>());
     const ValueType multiplier = local_row[diag_pos] / diag_ele;
 
     for (int col = 0; col < size; col++) {

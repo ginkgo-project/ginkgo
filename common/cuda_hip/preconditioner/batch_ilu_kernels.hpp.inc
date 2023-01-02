@@ -90,11 +90,7 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
             if (col_index == curr_row_index) {
                 ValueType diag_ele =
                     batch_entry_values[diag_ptrs[curr_row_index]];
-                // assert(diag_ele != zero<ValueType>());
-                assert(abs(diag_ele) !=
-                       abs(zero<ValueType>()));  // Temporary work-around for !=
-                                                 // operator error (for complex
-                                                 // types) with rocm-4.0
+                assert(diag_ele != zero<ValueType>());
                 ValueType row_ele = batch_entry_values[i] / diag_ele;
                 row_ele_arr[row_below_index] = row_ele;
                 batch_entry_values[i] = row_ele;
