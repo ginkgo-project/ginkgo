@@ -44,6 +44,7 @@ namespace batch_upper_trs {
 namespace {
 
 #include "reference/solver/batch_upper_trs_kernels.hpp.inc"
+
 }  // namespace
 
 template <typename BatchMatrixType, typename ValueType>
