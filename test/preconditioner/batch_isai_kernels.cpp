@@ -133,7 +133,7 @@ protected:
 
         const auto approx_inv = prec->get_const_approximate_inverse().get();
         const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
-        const auto tol = 5000 * r<value_type>::value;
+        const auto tol = 500 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
     }
 
@@ -177,7 +177,7 @@ protected:
         gko::kernels::EXEC_NAMESPACE::batch_isai::apply_isai(
             exec, d_mtx.get(), d_approx_inv, d_rv.get(), d_z.get());
 
-        const auto tol = 5000 * r<value_type>::value;
+        const auto tol = 500 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
     }
 };
