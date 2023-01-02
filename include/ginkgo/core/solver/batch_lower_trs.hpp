@@ -123,7 +123,7 @@ public:
          * sorted. If it is, this parameter can be set to `true` to skip the
          * sorting for better performance.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchLowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
