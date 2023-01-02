@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
-#include "core/log/batch_logging.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
@@ -74,49 +74,8 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }  // namespace batch_lower_trs
 
 
-namespace omp {
-namespace batch_lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_lower_trs
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_lower_trs
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_lower_trs
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_lower_trs
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_lower_trs
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_lower_trs,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
