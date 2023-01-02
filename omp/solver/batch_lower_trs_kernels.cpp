@@ -44,6 +44,7 @@ namespace batch_lower_trs {
 namespace {
 
 #include "reference/solver/batch_lower_trs_kernels.hpp.inc"
+
 }  // namespace
 
 template <typename BatchMatrixType, typename ValueType>

@@ -242,6 +242,7 @@ void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_INITIALIZE_B_AND_X);
 
+
 template <typename ValueType, typename IndexType>
 void write_large_sys_solution_to_inverse(
     std::shared_ptr<const DefaultExecutor> exec, const int lin_sys_row,
