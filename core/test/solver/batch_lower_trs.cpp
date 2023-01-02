@@ -73,6 +73,17 @@ protected:
     std::unique_ptr<typename Solver::Factory> batchlowertrs_factory;
     std::unique_ptr<gko::BatchLinOp> solver;
 
+    /*
+        2  0  0  0
+        1  2  0  0
+        4  0  5  0
+        0  0  7  1
+
+        1  0  0  0
+        3  4  0  0
+        1  0  1  0
+        0  0  4  5
+    */
     std::unique_ptr<Mtx> get_csr_lower_matrix()
     {
         auto mat = Mtx::create(gko::as<const gko::ReferenceExecutor>(exec), 2,
@@ -80,6 +91,7 @@ protected:
         int* const row_ptrs = mat->get_row_ptrs();
         int* const col_idxs = mat->get_col_idxs();
         value_type* const vals = mat->get_values();
+
         // clang-format off
         row_ptrs[0] = 0;row_ptrs[1] = 1; row_ptrs[2] = 3;
         row_ptrs[3] = 5; row_ptrs[4] = 7;
