@@ -111,7 +111,7 @@ protected:
         const auto d_lower_factor_isai = d_prec->get_const_lower_factor_isai();
         const auto upper_factor_isai = prec->get_const_upper_factor_isai();
         const auto d_upper_factor_isai = d_prec->get_const_upper_factor_isai();
-        const auto tol = 5000 * r<value_type>::value;
+        const auto tol = 50 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(lower_factor_isai, d_lower_factor_isai, tol);
         GKO_ASSERT_BATCH_MTX_NEAR(upper_factor_isai, d_upper_factor_isai, tol);
     }
@@ -190,7 +190,7 @@ protected:
             d_prec->get_apply_type(), prec->get_num_relaxation_steps(),
             d_rv.get(), d_z.get());
 
-        const auto tol = 5000 * r<value_type>::value;
+        const auto tol = 50 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
     }
 };
