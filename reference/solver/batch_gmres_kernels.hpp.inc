@@ -372,7 +372,8 @@ inline void batch_entry_gmres_impl(
     // Note: restart - inner iterations and the outer iteration:  are
     // counted as (restart + 1) number of iterations instead of one.
     while (1) {
-        if (stop.check_converged(res_norms_entry.values)) {
+        if (stop.check_converged(res_norms_entry.values) ||
+            total_iter >= opts.max_its) {
             break;
         }
 
@@ -439,7 +440,8 @@ inline void batch_entry_gmres_impl(
 
             // y = Hessenburg(0 : inner_iter,0 : inner_iter) \ s(0 :
             // inner_iter) x = x + KrylovBasis(:, 0 : inner_iter ) * y
-            if (stop.check_converged(res_norms_entry.values)) {
+            if (stop.check_converged(res_norms_entry.values) ||
+                total_iter >= opts.max_its) {
                 update_x(inner_iter, gko::batch::to_const(H_entry),
                          gko::batch::to_const(s_entry),
                          gko::batch::to_const(V_entry), x_entry, y_entry);
