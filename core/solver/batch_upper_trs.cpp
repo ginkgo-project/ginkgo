@@ -57,12 +57,11 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchUpperTrs<ValueType>::transpose() const
 {
     return build()
-        .with_left_scaling_op(
-            share(as<BatchTransposable>(this->get_left_scaling_op())
-                      ->conj_transpose()))
-        .with_right_scaling_op(
-            share(as<BatchTransposable>(this->get_right_scaling_op())
-                      ->conj_transpose()))
+        .with_skip_sorting(this->parameters_.skip_sorting)
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
         .on(this->get_executor())
         ->generate(share(
             as<BatchTransposable>(this->get_system_matrix())->transpose()));
@@ -73,6 +72,7 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchUpperTrs<ValueType>::conj_transpose() const
 {
     return build()
+        .with_skip_sorting(this->parameters_.skip_sorting)
         .with_left_scaling_op(
             share(as<BatchTransposable>(this->get_left_scaling_op())
                       ->conj_transpose()))
