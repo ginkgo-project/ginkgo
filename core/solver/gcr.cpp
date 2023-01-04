@@ -106,11 +106,13 @@ void Gcr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                      matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                      VectorType* dense_x) const
 {
-    using Vector = matrix::Dense<ValueType>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Vector = VectorType;
+    using LocalVector = matrix::Dense<typename Vector::value_type>;
+    using NormVector = typename LocalVector::absolute_type;
     using ws = workspace_traits<Gcr>;
 
     constexpr uint8 RelativeStoppingId{1};
@@ -192,7 +194,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     while (true) {
         ++total_iter;
         // compute residual norm
-        residual->compute_norm2(residual_norm);
+        residual->compute_norm2(residual_norm, reduction_tmp);
         // Log current iteration
         this->template log<log::Logger::iteration_complete>(
             this, total_iter, residual, dense_x, residual_norm);
@@ -224,11 +226,11 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         auto p = krylov_bases_p->create_submatrix(
             span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
             span{0, num_rhs});
-        residual->compute_conj_dot(Ap.get(), tmp_alpha);
+        residual->compute_conj_dot(Ap.get(), tmp_alpha, reduction_tmp);
         // normalise
         auto Ap_norm = Ap_norms->create_submatrix(
             span{restart_iter, restart_iter + 1}, span{0, num_rhs});
-        Ap->compute_squared_norm2(Ap_norm.get());
+        Ap->compute_squared_norm2(Ap_norm.get(), reduction_tmp);
 
         // tmp = alpha / Ap_norm
         // x = x + tmp * p
@@ -262,7 +264,8 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             Ap_norm =
                 Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
             // beta = Ar*Ap/Ap*Ap
-            A_precon_residual->compute_conj_dot(Ap.get(), tmp_beta);
+            A_precon_residual->compute_conj_dot(Ap.get(), tmp_beta,
+                                                reduction_tmp);
             tmp_beta->inv_scale(Ap_norm.get());
             next_Ap->sub_scaled(tmp_beta, Ap.get());
             next_p->sub_scaled(tmp_beta, p.get());
