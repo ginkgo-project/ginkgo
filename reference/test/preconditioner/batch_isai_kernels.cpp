@@ -223,7 +223,7 @@ protected:
 
         for (size_t i = 0; i < nbatch; i++) {
             GKO_ASSERT_MTX_NEAR(approx_inv_vec[i], check_isai[i],
-                                100 * r<value_type>::value);
+                                10 * r<value_type>::value);
         }
     }
 
@@ -323,7 +323,7 @@ protected:
 
         auto xs = x->unbatch();
         for (size_t i = 0; i < umtxs.size(); i++) {
-            GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 100 * r<value_type>::value);
+            GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 10 * r<value_type>::value);
         }
     }
 };
@@ -338,7 +338,8 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems
 // TYPED_TEST(BatchIsai,
 // ExtendedGeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 // {
@@ -473,7 +474,8 @@ TYPED_TEST(BatchIsai,
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems
 // TYPED_TEST(BatchIsai,
 //            ExtendedGeneralBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy1)
 // {
