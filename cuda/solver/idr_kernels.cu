@@ -345,7 +345,7 @@ void compute_omega(
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel<<<grid_dim, config::warp_size>>>(
-        nrhs, kappa, as_cuda_type(tht->get_const_values()),
+        nrhs, as_cuda_type(kappa), as_cuda_type(tht->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(omega->get_values()),
         as_cuda_type(stop_status->get_const_data()));
