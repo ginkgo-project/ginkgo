@@ -81,7 +81,7 @@ void sampleselect_filter(const ValueType* values, IndexType size,
     if (num_blocks > 0) {
         hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
                            default_block_size, 0, 0, as_hip_type(values), size,
-                           bucket, oracles, partial_counts, out,
+                           bucket, oracles, partial_counts, as_hip_type(out),
                            items_per_thread);
     }
 }
@@ -176,8 +176,8 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     // base case
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), 1,
-                       kernel::basecase_block_size, 0, 0, tmp22, bucket.size,
-                       rank, out_ptr);
+                       kernel::basecase_block_size, 0, 0, as_hip_type(tmp22),
+                       bucket.size, rank, as_hip_type(out_ptr));
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

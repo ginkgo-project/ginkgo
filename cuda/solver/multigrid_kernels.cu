@@ -139,7 +139,7 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_check_stop_kernel<<<grid, default_block_size>>>(
             nrhs, as_cuda_type(old_norm->get_const_values()),
-            as_cuda_type(new_norm->get_const_values()), rel_tol,
+            as_cuda_type(new_norm->get_const_values()), as_cuda_type(rel_tol),
             as_cuda_type(dis_stop.get_data()));
     }
     is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
