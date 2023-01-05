@@ -124,7 +124,7 @@ protected:
         const auto d_upper_factor_isai = d_prec->get_const_upper_factor_isai();
         const auto tol = test_isai_extension == true
                              ? 1e+6 * r<value_type>::value
-                             : 5000 * r<value_type>::value;
+                             : 50 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(lower_factor_isai, d_lower_factor_isai, tol);
         GKO_ASSERT_BATCH_MTX_NEAR(upper_factor_isai, d_upper_factor_isai, tol);
     }
@@ -206,7 +206,7 @@ protected:
 
         const auto tol = test_isai_extension == true
                              ? 1e+6 * r<value_type>::value
-                             : 5000 * r<value_type>::value;
+                             : 50 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
     }
 };

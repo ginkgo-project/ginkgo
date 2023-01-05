@@ -181,7 +181,7 @@ protected:
 
         const auto approx_inv = prec->get_const_approximate_inverse().get();
         const auto d_approx_inv = d_prec->get_const_approximate_inverse().get();
-        const auto tol = 10000 * r<value_type>::value;
+        const auto tol = 500 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(approx_inv, d_approx_inv, tol);
     }
 
@@ -222,7 +222,7 @@ protected:
         gko::kernels::EXEC_NAMESPACE::batch_isai::apply_isai(
             exec, d_mtx.get(), d_approx_inv, d_rv.get(), d_zv.get());
 
-        const auto tol = 5000 * r<value_type>::value;
+        const auto tol = 500 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(zv, d_zv, tol);
     }
 };
@@ -235,7 +235,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
         this->general_mtx_small);
 }
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// Note: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -252,7 +252,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -269,7 +269,7 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 // {
 //     this->test_generate_eqvt_to_ref(
@@ -382,7 +382,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy1)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy1)
 // {
 //     this->test_apply_eqvt_to_ref(
@@ -399,7 +399,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy2)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy2)
 // {
 //     this->test_apply_eqvt_to_ref(
@@ -416,7 +416,7 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy3)
 }
 
 
-// NOTE: Reference Batched Isai (batchcsr iterative solve) takes a lot of time
+// NOTE: Test fails because the batched iterative solver does not converge for some systems
 // TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy3)
 // {
 //     this->test_apply_eqvt_to_ref(
