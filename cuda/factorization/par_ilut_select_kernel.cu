@@ -77,8 +77,8 @@ void sampleselect_filter(const ValueType* values, IndexType size,
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
     if (num_blocks > 0) {
         kernel::filter_bucket<<<num_blocks, default_block_size>>>(
-            as_cuda_type(values), size, bucket, oracles, partial_counts, out,
-            items_per_thread);
+            as_cuda_type(values), size, bucket, oracles, partial_counts,
+            as_cuda_type(out), items_per_thread);
     }
 }
 
@@ -172,7 +172,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     // base case
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
     kernel::basecase_select<<<1, kernel::basecase_block_size>>>(
-        tmp22, bucket.size, rank, out_ptr);
+        as_cuda_type(tmp22), bucket.size, rank, as_cuda_type(out_ptr));
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

@@ -110,7 +110,7 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
 
     if (grid_size > 0) {
         hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
-                           tau->get_size()[1], rel_residual_goal,
+                           tau->get_size()[1], as_hip_type(rel_residual_goal),
                            as_hip_type(tau->get_const_values()),
                            as_hip_type(orig_tau->get_const_values()),
                            stoppingId, setFinalized,
@@ -143,13 +143,12 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
-        size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-        const ValueType* __restrict__ tau,
-        const remove_complex<ValueType>* __restrict__ orig_tau,
-        uint8 stoppingId, bool setFinalized,
-        stopping_status* __restrict__ stop_status,
-        bool* __restrict__ device_storage)
+__launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
+    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
+    const ValueType* __restrict__ tau,
+    const remove_complex<ValueType>* __restrict__ orig_tau, uint8 stoppingId,
+    bool setFinalized, stopping_status* __restrict__ stop_status,
+    bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
@@ -192,7 +191,7 @@ void implicit_residual_norm(
     if (grid_size > 0) {
         hipLaunchKernelGGL(
             (implicit_residual_norm_kernel), grid_size, block_size, 0, 0,
-            tau->get_size()[1], rel_residual_goal,
+            tau->get_size()[1], as_hip_type(rel_residual_goal),
             as_hip_type(tau->get_const_values()),
             as_hip_type(orig_tau->get_const_values()), stoppingId, setFinalized,
             as_hip_type(stop_status->get_data()),
