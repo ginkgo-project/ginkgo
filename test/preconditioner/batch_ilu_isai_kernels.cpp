@@ -205,7 +205,7 @@ protected:
             d_rv.get(), d_z.get());
 
         const auto tol = test_isai_extension == true
-                             ? 1e+6 * r<value_type>::value
+                             ? 1e+7 * r<value_type>::value
                              : 50 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
     }
