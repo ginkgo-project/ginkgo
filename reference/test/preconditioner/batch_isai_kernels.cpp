@@ -340,6 +340,11 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 
 // NOTE: Test fails because the batched iterative solver does not converge for
 // some systems
+// Note: To ensure that the general isai extension implementation is correct, I
+// tested the kernels for cases where the iterative solver converges for all the
+// batched systems produced in the inverse generation process. To get such
+// cases, I reduced the row_size_limit to 2 and used a very small matrix as
+// input.
 // TYPED_TEST(BatchIsai,
 // ExtendedGeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 // {
