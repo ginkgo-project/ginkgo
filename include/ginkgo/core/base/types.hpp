@@ -452,14 +452,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<half>);                     \
     template _macro(std::complex<float>);                    \
     template <>                                              \
     _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<half>);                     \
     template _macro(std::complex<float>);                    \
     template _macro(std::complex<double>)
 #endif
@@ -481,11 +479,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(float, float);                                          \
     template <>                                                             \
     _macro(double, double) GKO_NOT_IMPLEMENTED;                             \
-    template _macro(std::complex<half>, std::complex<half>);                \
     template _macro(std::complex<float>, std::complex<float>);              \
     template <>                                                             \
     _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
-    template _macro(std::complex<half>, half);                              \
     template _macro(std::complex<float>, float);                            \
     template <>                                                             \
     _macro(std::complex<double>, double) GKO_NOT_IMPLEMENTED;
@@ -494,10 +490,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(half, half);                                 \
     template _macro(float, float);                               \
     template _macro(double, double);                             \
-    template _macro(std::complex<half>, std::complex<half>);     \
     template _macro(std::complex<float>, std::complex<float>);   \
     template _macro(std::complex<double>, std::complex<double>); \
-    template _macro(std::complex<half>, half);                   \
     template _macro(std::complex<float>, float);                 \
     template _macro(std::complex<double>, double)
 #endif
@@ -557,21 +551,17 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
-    template _macro(std::complex<half>, int32);                        \
     template _macro(std::complex<float>, int32);                       \
     template <>                                                        \
     _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED;           \
-    template _macro(std::complex<half>, int64);                        \
     template _macro(std::complex<float>, int64);                       \
     template <>                                                        \
     _macro(std::complex<double>, int64) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
-    template _macro(std::complex<half>, int32);                        \
     template _macro(std::complex<float>, int32);                       \
     template _macro(std::complex<double>, int32);                      \
-    template _macro(std::complex<half>, int64);                        \
     template _macro(std::complex<float>, int64);                       \
     template _macro(std::complex<double>, int64)
 #endif
@@ -628,9 +618,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)  \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
         _macro);                                                            \
-    template _macro(std::complex<half>, int32, int32);                      \
-    template _macro(std::complex<half>, int32, int64);                      \
-    template _macro(std::complex<half>, int64, int64);                      \
     template _macro(std::complex<float>, int32, int32);                     \
     template _macro(std::complex<float>, int32, int64);                     \
     template _macro(std::complex<float>, int64, int64);                     \
@@ -644,9 +631,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)  \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
         _macro);                                                            \
-    template _macro(std::complex<half>, int32, int32);                      \
-    template _macro(std::complex<half>, int32, int64);                      \
-    template _macro(std::complex<half>, int64, int64);                      \
     template _macro(std::complex<float>, int32, int32);                     \
     template _macro(std::complex<float>, int32, int64);                     \
     template _macro(std::complex<float>, int64, int64);                     \
@@ -694,11 +678,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(float, half);                               \
     template _macro(half, float);                               \
     template _macro(std::complex<float>, std::complex<double>); \
-    template _macro(std::complex<double>, std::complex<float>); \
-    template _macro(std::complex<half>, std::complex<double>);  \
-    template _macro(std::complex<double>, std::complex<half>);  \
-    template _macro(std::complex<float>, std::complex<half>);   \
-    template _macro(std::complex<half>, std::complex<float>)
+    template _macro(std::complex<double>, std::complex<float>)
 
 
 /**
@@ -715,7 +695,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(half, half);                                  \
     template _macro(float, float);                                \
     template _macro(double, double);                              \
-    template _macro(std::complex<half>, std::complex<half>);      \
     template _macro(std::complex<float>, std::complex<float>);    \
     template _macro(std::complex<double>, std::complex<double>)
 #endif
@@ -733,10 +712,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(half, half);                               \
     template _macro(float, float);                             \
     template _macro(double, double);                           \
-    template _macro(std::complex<half>, half);                 \
     template _macro(std::complex<float>, float);               \
     template _macro(std::complex<double>, double);             \
-    template _macro(std::complex<half>, std::complex<half>);   \
     template _macro(std::complex<float>, std::complex<float>); \
     template _macro(std::complex<double>, std::complex<double>)
 
@@ -760,7 +737,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(float, float);                                     \
     template _macro(double, double);                                   \
     template _macro(long double, long double);                         \
-    template _macro(std::complex<half>, std::complex<half>);           \
     template _macro(std::complex<float>, std::complex<float>);         \
     template _macro(std::complex<double>, std::complex<double>)
 
