@@ -390,10 +390,20 @@ struct next_precision_impl<double> {
     using type = half;
 };
 
-template <typename T>
-struct next_precision_impl<std::complex<T>> {
-    using type = std::complex<typename next_precision_impl<T>::type>;
+template <>
+struct next_precision_impl<std::complex<double>> {
+    using type = std::complex<float>;
 };
+
+template <>
+struct next_precision_impl<std::complex<float>> {
+    using type = std::complex<double>;
+};
+
+// template <typename T>
+// struct next_precision_impl<std::complex<T>> {
+//     using type = std::complex<typename next_precision_impl<T>::type>;
+// };
 
 
 template <typename T>
