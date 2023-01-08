@@ -778,19 +778,28 @@ static constexpr uint64 binary_format_magic()
 {
     constexpr auto is_int = std::is_same<IndexType, int32>::value;
     constexpr auto is_long = std::is_same<IndexType, int64>::value;
+    constexpr auto is_half = std::is_same<ValueType, half>::value;
     constexpr auto is_double = std::is_same<ValueType, double>::value;
     constexpr auto is_float = std::is_same<ValueType, float>::value;
     constexpr auto is_complex_double =
         std::is_same<ValueType, std::complex<double>>::value;
     constexpr auto is_complex_float =
         std::is_same<ValueType, std::complex<float>>::value;
+    constexpr auto is_complex_half =
+        std::is_same<ValueType, std::complex<half>>::value;
     static_assert(is_int || is_long, "invalid storage index type");
-    static_assert(
-        is_double || is_float || is_complex_double || is_complex_float,
-        "invalid storage value type");
+    static_assert(is_half || is_complex_half || is_double || is_float ||
+                      is_complex_double || is_complex_float,
+                  "invalid storage value type");
     constexpr auto index_bit = is_int ? 'I' : 'L';
     constexpr auto value_bit =
-        is_double ? 'D' : (is_float ? 'S' : (is_complex_double ? 'Z' : 'C'));
+        is_double
+            ? 'D'
+            : (is_float
+                   ? 'S'
+                   : (is_complex_double
+                          ? 'Z'
+                          : (is_complex_float ? 'C' : (is_half ? 'H' : 'X'))));
     constexpr uint64 shift = 256;
     constexpr uint64 type_bits = index_bit * shift + value_bit;
     return 'G' +

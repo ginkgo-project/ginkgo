@@ -67,7 +67,7 @@ template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution&& dist, Generator&& gen)
 {
-    return dist(gen);
+    return ValueType(dist(gen));
 }
 
 

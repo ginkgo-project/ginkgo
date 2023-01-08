@@ -340,9 +340,8 @@ public:
     {}
 
     explicit GKO_ATTRIBUTES half(int val) noexcept
-    : half(static_cast<float32>(val)) {
-        
-    }
+        : half(static_cast<float32>(val))
+    {}
 
     GKO_ATTRIBUTES operator float() const noexcept
     {
@@ -354,12 +353,12 @@ public:
 #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
-// #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-//     GKO_ATTRIBUTES operator __half() noexcept
-//     {
-//         return reinterpret_cast<const __half&>(*this);
-//     }
-// #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    //     GKO_ATTRIBUTES operator __half() noexcept
+    //     {
+    //         return reinterpret_cast<const __half&>(*this);
+    //     }
+    // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 
 
     GKO_ATTRIBUTES half& operator+=(const float& rhs)
@@ -447,32 +446,38 @@ public:
     }
 
 
-    GKO_ATTRIBUTES friend half operator+(half lhs, const float& rhs)
-    {
-        float flhs = lhs;
-        flhs += rhs;  // reuse compound assignment
-        return half(flhs);
-    }
+    // GKO_ATTRIBUTES friend half operator+(half lhs, const float& rhs)
+    // {
+    //     float flhs = lhs;
+    //     flhs += rhs;  // reuse compound assignment
+    //     return half(flhs);
+    // }
 
-    GKO_ATTRIBUTES friend half operator-(half lhs, const float& rhs)
-    {
-        float flhs = lhs;
-        flhs -= rhs;  // reuse compound assignment
-        return half(flhs);
-    }
+    // GKO_ATTRIBUTES friend half operator-(half lhs, const float& rhs)
+    // {
+    //     float flhs = lhs;
+    //     flhs -= rhs;  // reuse compound assignment
+    //     return half(flhs);
+    // }
 
-    GKO_ATTRIBUTES friend half operator*(half lhs, const float& rhs)
-    {
-        float flhs = lhs;
-        flhs *= rhs;  // reuse compound assignment
-        return half(flhs);
-    }
+    // GKO_ATTRIBUTES friend half operator*(half lhs, const float& rhs)
+    // {
+    //     float flhs = lhs;
+    //     flhs *= rhs;  // reuse compound assignment
+    //     return half(flhs);
+    // }
 
-    GKO_ATTRIBUTES friend half operator/(half lhs, const float& rhs)
+    // GKO_ATTRIBUTES friend half operator/(half lhs, const float& rhs)
+    // {
+    //     float flhs = lhs;
+    //     flhs /= rhs;  // reuse compound assignment
+    //     return half(flhs);
+    // }
+
+    GKO_ATTRIBUTES half& operator=(long long int val)
     {
-        float flhs = lhs;
-        flhs /= rhs;  // reuse compound assignment
-        return half(flhs);
+        this->float2half(float(val));
+        return *this;
     }
 
     GKO_ATTRIBUTES half& operator=(int val)
@@ -491,6 +496,12 @@ public:
     {
         this->float2half(static_cast<float>(val));
         return *this;
+    }
+
+    GKO_ATTRIBUTES half operator-() const
+    {
+        auto val = 0.0f - *this;
+        return half(val);
     }
 
 private:
@@ -657,6 +668,10 @@ public:
         : complex(static_cast<value_type>(real), static_cast<value_type>(imag))
     {}
 
+    template <typename T>
+    explicit complex(const T& real) : complex(static_cast<value_type>(real))
+    {}
+
     template <typename U>
     explicit complex(const complex<U>& other)
         : complex(static_cast<value_type>(other.real()),
@@ -672,6 +687,76 @@ public:
     {
         return std::complex<gko::float32>(static_cast<gko::float32>(real_),
                                           static_cast<gko::float32>(imag_));
+    }
+
+    complex& operator=(const int& __re)
+    {
+        real_ = __re;
+        imag_ = value_type();
+        return *this;
+    }
+
+    complex& operator=(const value_type& __re)
+    {
+        real_ = __re;
+        imag_ = value_type();
+        return *this;
+    }
+    complex& operator+=(const value_type& __re)
+    {
+        real_ += __re;
+        return *this;
+    }
+    complex& operator-=(const value_type& __re)
+    {
+        real_ -= __re;
+        return *this;
+    }
+    complex& operator*=(const value_type& __re)
+    {
+        real_ *= __re;
+        imag_ *= __re;
+        return *this;
+    }
+    complex& operator/=(const value_type& __re)
+    {
+        real_ /= __re;
+        imag_ /= __re;
+        return *this;
+    }
+
+    template <class _Xp>
+    complex& operator=(const complex<_Xp>& __c)
+    {
+        real_ = __c.real();
+        imag_ = __c.imag();
+        return *this;
+    }
+    template <class _Xp>
+    complex& operator+=(const complex<_Xp>& __c)
+    {
+        real_ += __c.real();
+        imag_ += __c.imag();
+        return *this;
+    }
+    template <class _Xp>
+    complex& operator-=(const complex<_Xp>& __c)
+    {
+        real_ -= __c.real();
+        imag_ -= __c.imag();
+        return *this;
+    }
+    template <class _Xp>
+    complex& operator*=(const complex<_Xp>& __c)
+    {
+        *this = *this * complex(__c.real(), __c.imag());
+        return *this;
+    }
+    template <class _Xp>
+    complex& operator/=(const complex<_Xp>& __c)
+    {
+        *this = *this / complex(__c.real(), __c.imag());
+        return *this;
     }
 
 private:

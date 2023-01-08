@@ -61,10 +61,8 @@ void atomic_add(ValueType& out, ValueType val)
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
     auto values = reinterpret_cast<gko::remove_complex<ValueType>*>(&out);
-#pragma omp atomic
-    values[0] += real(val);
-#pragma omp atomic
-    values[1] += imag(val);
+    atomic_add(values[0], real(val));
+    atomic_add(values[1], imag(val));
 }
 
 
@@ -89,13 +87,12 @@ void atomic_add(half& out, half val)
         assumed = old;
         auto answer = reinterpret<uint16_t>(reinterpret<half>(assumed) + val);
 #pragma omp atomic capture
-{
-        old = *address_as_converter;
-        *address_as_converter = (old == assumed) ? answer : old;
-}
+        {
+            old = *address_as_converter;
+            *address_as_converter = (old == assumed) ? answer : old;
+        }
     } while (assumed != old);
-
-}  // namespace omp
+}
 
 
 }  // namespace omp

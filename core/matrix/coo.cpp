@@ -146,6 +146,25 @@ void Coo<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
+    Coo<next_precision<next_precision<ValueType>>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->row_idxs_ = this->row_idxs_;
+    result->col_idxs_ = this->col_idxs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(
+    Coo<next_precision<next_precision<ValueType>>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();

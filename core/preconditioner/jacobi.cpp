@@ -319,7 +319,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                               ->extract_diagonal_linop());
         auto diag_vt =
             ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
-                template create<matrix::Diagonal<next_precision<ValueType>>>(
+                template create<matrix::Diagonal<previous_precision<ValueType>>>(
                     diag.get());
         if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);

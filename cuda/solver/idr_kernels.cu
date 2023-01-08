@@ -100,10 +100,10 @@ void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
         auto gen = curand::rand_generator(std::random_device{}(),
                                           CURAND_RNG_PSEUDO_DEFAULT,
                                           exec->get_stream());
-        curand::rand_vector(
-            gen,
-            subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
-            0.0, 1.0, subspace_vectors->get_values());
+        // curand::rand_vector(
+        //     gen,
+        //     subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
+        //     0.0, 1.0, subspace_vectors->get_values());
     }
 }
 

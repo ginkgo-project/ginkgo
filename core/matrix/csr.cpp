@@ -260,6 +260,26 @@ void Csr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+    convert_strategy_helper(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
     Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();

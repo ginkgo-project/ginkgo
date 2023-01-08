@@ -80,6 +80,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public EnableCreateMethod<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
+            public ConvertibleTo<Ell<next_precision<next_precision<ValueType>>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
@@ -93,7 +94,8 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Ell<to_complex<ValueType>, IndexType>;
-    friend class Ell<next_precision<ValueType>, IndexType>;
+    friend class Ell<previous_precision<ValueType>, IndexType>;
+    friend class Ell<previous_precision<previous_precision<ValueType>>, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
 
 public:
@@ -117,6 +119,11 @@ public:
         Ell<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(
+        Ell<next_precision<next_precision<ValueType>>, IndexType>* result) const override;
+
+    void move_to(Ell<next_precision<next_precision<ValueType>>, IndexType>* result) override;
 
     void convert_to(Dense<ValueType>* other) const override;
 

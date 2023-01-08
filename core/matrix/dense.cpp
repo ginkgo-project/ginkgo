@@ -586,6 +586,30 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 
 
 template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<next_precision<ValueType>>>* result) const
+{
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(
+    Dense<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
 template <typename IndexType>
 void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
 {
@@ -1343,7 +1367,8 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 #ifdef GINKGO_MIXED_PRECISION
     using fst_type = matrix::Dense<ValueType>;
     using snd_type = matrix::Dense<next_precision<ValueType>>;
-    run<fst_type*, snd_type*>(out, fn);
+    using trd_type = matrix::Dense<next_precision<next_precision<ValueType>>>;
+    run<fst_type*, snd_type*, trd_type*>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif
