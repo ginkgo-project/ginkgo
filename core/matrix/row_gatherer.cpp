@@ -64,7 +64,8 @@ RowGatherer<IndexType>::create_const(
 template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
-    run<Dense, float, double, std::complex<float>, std::complex<double>>(
+    run<Dense, gko::half, float, double, std::complex<gko::half>,
+        std::complex<float>, std::complex<double>>(
         in, [&](auto gather) { gather->row_gather(&row_idxs_, out); });
 }
 
@@ -72,9 +73,10 @@ template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
                                         const LinOp* beta, LinOp* out) const
 {
-    run<Dense, float, double, std::complex<float>, std::complex<double>>(
-        in,
-        [&](auto gather) { gather->row_gather(alpha, &row_idxs_, beta, out); });
+    run<Dense, gko::half, float, double, std::complex<gko::half>,
+        std::complex<float>, std::complex<double>>(in, [&](auto gather) {
+        gather->row_gather(alpha, &row_idxs_, beta, out);
+    });
 }
 
 
