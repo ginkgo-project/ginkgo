@@ -286,7 +286,7 @@ void MultigridState::generate(const LinOp* system_matrix_in,
         auto next_nrows = mg_level_list.at(i)->get_coarse_op()->get_size()[0];
         auto mg_level = mg_level_list.at(i);
 
-        run<gko::multigrid::EnableMultigridLevel, float, double,
+        run<gko::multigrid::EnableMultigridLevel, half, float, double,
             std::complex<float>, std::complex<double>>(
             mg_level,
             [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
@@ -343,7 +343,7 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
         return;
     }
     auto mg_level = multigrid->get_mg_level_list().at(level);
-    run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, half, float, double,
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
             using value_type =
@@ -488,7 +488,7 @@ void Multigrid::generate()
             break;
         }
 
-        run<gko::multigrid::EnableMultigridLevel, float, double,
+        run<gko::multigrid::EnableMultigridLevel, half, float, double,
             std::complex<float>, std::complex<double>>(
             mg_level,
             [this](auto mg_level, auto index, auto matrix) {
@@ -526,7 +526,7 @@ void Multigrid::generate()
     auto last_mg_level = mg_level_list_.back();
 
     // generate coarsest solver
-    run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, half, float, double,
         std::complex<float>, std::complex<double>>(
         last_mg_level,
         [this](auto mg_level, auto level, auto matrix) {
@@ -608,7 +608,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
             b, x);
     };
     auto first_mg_level = this->get_mg_level_list().front();
-    run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, half, float, double,
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);
 }
@@ -647,7 +647,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
             alpha, b, beta, x);
     };
     auto first_mg_level = this->get_mg_level_list().front();
-    run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, half, float, double,
         std::complex<float>, std::complex<double>>(first_mg_level, lambda,
                                                    alpha, b, beta, x);
 }
@@ -712,7 +712,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
 
     auto first_mg_level = this->get_mg_level_list().front();
 
-    run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, half, float, double,
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);
 }
