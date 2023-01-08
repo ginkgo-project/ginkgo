@@ -100,6 +100,8 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
+            public ConvertibleTo<
+                Csr<next_precision<next_precision<ValueType>>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
@@ -688,12 +690,21 @@ public:
         index_type max_length_per_row_;
     };
 
-    friend class Csr<next_precision<ValueType>, IndexType>;
+    friend class Csr<previous_precision<ValueType>, IndexType>;
+
+    friend class Csr<previous_precision<previous_precision<ValueType>>,
+                     IndexType>;
 
     void convert_to(
         Csr<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
+    void move_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
 
     void convert_to(Dense<ValueType>* other) const override;
 
