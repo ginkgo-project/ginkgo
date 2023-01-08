@@ -182,6 +182,27 @@ void Hybrid<ValueType, IndexType>::move_to(
 
 
 template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Hybrid<next_precision<next_precision<ValueType>>, IndexType>* result) const
+{
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
+    // TODO set strategy correctly
+    // There is no way to correctly clone the strategy like in
+    // Csr::convert_to
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(
+    Hybrid<next_precision<next_precision<ValueType>>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();

@@ -325,7 +325,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_NO_HALF(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>

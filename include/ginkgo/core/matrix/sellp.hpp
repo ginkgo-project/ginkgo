@@ -71,6 +71,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
+              public ConvertibleTo<Sellp<next_precision<next_precision<ValueType>>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public DiagonalExtractable<ValueType>,
@@ -102,12 +103,18 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Sellp>;
 
-    friend class Sellp<next_precision<ValueType>, IndexType>;
+    friend class Sellp<previous_precision<ValueType>, IndexType>;
+    friend class Sellp<previous_precision<previous_precision<ValueType>>, IndexType>;
 
     void convert_to(
         Sellp<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(
+        Sellp<next_precision<next_precision<ValueType>>, IndexType>* result) const override;
+
+    void move_to(Sellp<next_precision<next_precision<ValueType>>, IndexType>* result) override;
 
     void convert_to(Dense<ValueType>* other) const override;
 

@@ -78,6 +78,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableCreateMethod<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
+            public ConvertibleTo<Coo<next_precision<next_precision<ValueType>>, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
@@ -110,12 +111,19 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
 
-    friend class Coo<next_precision<ValueType>, IndexType>;
+    friend class Coo<previous_precision<ValueType>, IndexType>;
+
+    friend class Coo<previous_precision<previous_precision<ValueType>>, IndexType>;
 
     void convert_to(
         Coo<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(
+        Coo<next_precision<next_precision<ValueType>>, IndexType>* result) const override;
+
+    void move_to(Coo<next_precision<next_precision<ValueType>>, IndexType>* result) override;
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 

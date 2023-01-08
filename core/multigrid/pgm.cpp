@@ -176,7 +176,7 @@ void Pgm<ValueType, IndexType>::generate()
     auto abs_mtx = pgm_op->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
     auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+    auto half_scalar = initialize<matrix::Dense<real_type>>({half(0.5)}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
     abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);

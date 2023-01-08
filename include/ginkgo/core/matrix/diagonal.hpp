@@ -71,6 +71,7 @@ class Diagonal
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
+      public ConvertibleTo<Diagonal<next_precision<next_precision<ValueType>>>>,
       public Transposable,
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
@@ -101,7 +102,9 @@ public:
     using device_mat_data32 = device_matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Diagonal>;
 
-    friend class Diagonal<next_precision<ValueType>>;
+    friend class Diagonal<previous_precision<ValueType>>;
+
+    friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -110,6 +113,10 @@ public:
     void convert_to(Diagonal<next_precision<ValueType>>* result) const override;
 
     void move_to(Diagonal<next_precision<ValueType>>* result) override;
+
+    void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result) const override;
+
+    void move_to(Diagonal<next_precision<next_precision<ValueType>>>* result) override;
 
     void convert_to(Csr<ValueType, int32>* result) const override;
 

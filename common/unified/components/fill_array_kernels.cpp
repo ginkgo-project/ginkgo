@@ -61,7 +61,7 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
                     ValueType* array, size_type n)
 {
     run_kernel(
-        exec, [] GKO_KERNEL(auto idx, auto array) { array[idx] = idx; }, n,
+        exec, [] GKO_KERNEL(auto idx, auto array) { array[idx] = static_cast<long long int>(idx); }, n,
         array);
 }
 

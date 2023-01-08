@@ -221,7 +221,7 @@ struct cuda_type_impl<half> {
 
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename cuda_type_impl<T>::type>;
 };
 
 template <>

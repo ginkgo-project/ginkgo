@@ -127,6 +127,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public EnableCreateMethod<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
+              public ConvertibleTo<Fbcsr<next_precision<next_precision<ValueType>>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
@@ -175,12 +176,18 @@ public:
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
 
-    friend class Fbcsr<next_precision<ValueType>, IndexType>;
+    friend class Fbcsr<previous_precision<ValueType>, IndexType>;
+    friend class Fbcsr<previous_precision<previous_precision<ValueType>>, IndexType>;
 
     void convert_to(
         Fbcsr<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(
+        Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* result) const override;
+
+    void move_to(Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* result) override;
 
     void convert_to(Dense<ValueType>* other) const override;
 

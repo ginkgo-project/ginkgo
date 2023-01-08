@@ -61,6 +61,7 @@ target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 separate_arguments(OpenMP_SEP_FLAGS NATIVE_COMMAND "${OpenMP_CXX_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_SEP_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
+target_compile_definitions(ginkgo_omp PRIVATE GINKGO_COMPILE_KERNEL=1)
 
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)

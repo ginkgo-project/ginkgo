@@ -76,6 +76,11 @@ inline half abs(std::complex<half> a)
 }
 inline half sqrt(half a) { return half(sqrt(float(a))); }
 
+inline std::complex<half> sqrt(std::complex<half> a)
+{
+    return std::complex<half>(sqrt(std::complex<float>(a)));
+}
+
 }  // namespace reference
 }  // namespace kernels
 
@@ -96,6 +101,11 @@ inline half abs(std::complex<half> a)
     return half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
 }
 inline half sqrt(half a) { return half(sqrt(float(a))); }
+
+inline std::complex<half> sqrt(std::complex<half> a)
+{
+    return std::complex<half>(sqrt(std::complex<float>(a)));
+}
 
 
 }  // namespace omp
@@ -426,20 +436,11 @@ struct next_precision_impl<double> {
     using type = half;
 };
 
-template <>
-struct next_precision_impl<std::complex<double>> {
-    using type = std::complex<float>;
-};
 
-template <>
-struct next_precision_impl<std::complex<float>> {
-    using type = std::complex<double>;
+template <typename T>
+struct next_precision_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_impl<T>::type>;
 };
-
-// template <typename T>
-// struct next_precision_impl<std::complex<T>> {
-//     using type = std::complex<typename next_precision_impl<T>::type>;
-// };
 
 
 template <typename T>
@@ -545,7 +546,7 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  *       next_precision.
  */
 template <typename T>
-using previous_precision = next_precision<T>;
+using previous_precision = next_precision<next_precision<T>>;
 
 
 /**
