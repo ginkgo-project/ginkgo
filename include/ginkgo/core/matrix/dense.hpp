@@ -64,6 +64,15 @@ class SparsityCsr;
 
 class Empty {};
 
+template <typename ValueType>
+using next2_type = next_precision<next_precision<ValueType>>;
+
+
+// template <typename ValueType>
+// using conditional_type = typename std::conditional<
+//     std::is_same<ValueType, next2_type<ValueType>>::value, Empty,
+//     Dense<next2_type<ValueType>>>::type;
+
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
  *
@@ -83,11 +92,7 @@ template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
-      public std::conditional<
-          std::is_same<next_precision<next_precision<ValueType>>,
-                       ValueType>::value,
-          Empty,
-          ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>>,
+      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
@@ -276,6 +281,14 @@ public:
     }
 
     friend class Dense<next_precision<ValueType>>;
+
+    friend class Dense<next_precision<next_precision<ValueType>>>;
+
+    void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
+        const override;
+
+    void move_to(
+        Dense<next_precision<next_precision<ValueType>>>* result) override;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
