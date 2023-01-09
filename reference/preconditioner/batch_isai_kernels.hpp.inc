@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 inline void match_and_write(const int size, const int dense_sys_row,
                             const int aiA_row_st, const int aiA_row_end,
                             const int* const aiA_col_idxs, const int A_row_st,
