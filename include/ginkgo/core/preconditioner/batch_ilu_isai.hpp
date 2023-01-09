@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -132,12 +132,13 @@ public:
          * (L_left_isai * r)) using 2 spmvs
          * 2. batch_ilu_isai_apply::spmv_isai_with_spgemm -> z = ((U_left_isai *
          * L_left_isai) * r)  using an spgemm and an spmv
-         * 3. batch_ilu_isai_apply::relaxation_steps_isai_simple -> solving L * y = r and
-         * then U * z = y using isai-relaxation steps method i.e y_updated =
-         * L_left_isai * r + (I - L_left_isai * L) * y_old  (iterate)  Once y is
-         * obtained, z_updated = U_left_isai * y + (I - U_left_isai * U) * z_old
-         * 4. batch_ilu_isai_apply::relaxation_steps_isai_with_spgemm -> solving L * y = r
-         * and then U * z = y using isai-relaxation steps method with
+         * 3. batch_ilu_isai_apply::relaxation_steps_isai_simple -> solving L *
+         * y = r and then U * z = y using isai-relaxation steps method i.e
+         * y_updated = L_left_isai * r + (I - L_left_isai * L) * y_old (iterate)
+         * Once y is obtained, z_updated = U_left_isai * y + (I - U_left_isai *
+         * U) * z_old
+         * 4. batch_ilu_isai_apply::relaxation_steps_isai_with_spgemm -> solving
+         * L * y = r and then U * z = y using isai-relaxation steps method with
          * pre-computed iteration-matrices (which makes use of spgemm)
          *
          */
