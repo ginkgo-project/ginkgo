@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,8 @@ TEST_F(BatchIsaiFactory, CanSetIsaiType)
 {
     auto batch_isai_factory =
         batch_isai_prec::build()
-            .with_isai_input_matrix_type(gko::preconditioner::batch_isai_input_matrix_type::lower_tri)
+            .with_isai_input_matrix_type(
+                gko::preconditioner::batch_isai_input_matrix_type::lower_tri)
             .on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().isai_input_matrix_type,
@@ -90,9 +91,8 @@ TEST_F(BatchIsaiFactory, CanSetIsaiType)
 
 TEST_F(BatchIsaiFactory, CanSetSorting)
 {
-    auto batch_isai_factory = batch_isai_prec::build()
-                                  .with_skip_sorting(true)
-                                  .on(this->exec);
+    auto batch_isai_factory =
+        batch_isai_prec::build().with_skip_sorting(true).on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().skip_sorting,
               this->skip_sorting);
@@ -101,9 +101,8 @@ TEST_F(BatchIsaiFactory, CanSetSorting)
 
 TEST_F(BatchIsaiFactory, CanSetNumSparsityPower)
 {
-    auto batch_isai_factory = batch_isai_prec::build()
-                                  .with_sparsity_power(3)
-                                  .on(this->exec);
+    auto batch_isai_factory =
+        batch_isai_prec::build().with_sparsity_power(3).on(this->exec);
 
     ASSERT_EQ(batch_isai_factory->get_parameters().sparsity_power,
               this->sparsity_power);
