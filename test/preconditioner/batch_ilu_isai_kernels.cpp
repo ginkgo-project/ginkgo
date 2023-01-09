@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
+#include "core/preconditioner/batch_ilu_isai_kernels.hpp"
 
 
 #include <limits>
@@ -40,13 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
-#include "core/preconditioner/batch_ilu_isai_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 #include "test/utils/executor.hpp"
@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchIluIsai : public CommonTestFixture{
+class BatchIluIsai : public CommonTestFixture {
 protected:
     using value_type = double;
     using index_type = int;
@@ -65,8 +65,7 @@ protected:
     using prec_type = gko::preconditioner::BatchIluIsai<value_type>;
 
     BatchIluIsai()
-        : 
-          mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        : mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(min_nnz_row, nrows),
               std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
