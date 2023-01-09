@@ -345,7 +345,6 @@ test/cuda110/nompi/intel/cuda/debug/static:
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
-
 # cuda 11.4 and friends
 build/cuda114/nompi/gcc/cuda/debug/shared:
   extends:
