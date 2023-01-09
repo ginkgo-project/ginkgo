@@ -143,9 +143,9 @@ protected:
 
         gko::kernels::reference::batch_ilu::apply_ilu(
             ref, mtx.get(), factorized_mat, diag_locs, rv.get(), z.get());
-        gko::kernels::EXEC_NAMESPACE::batch_ilu::apply_ilu(exec, d_mtx.get(),
-                                                 d_factorized_mat, d_diag_locs,
-                                                 d_rv.get(), d_z.get());
+        gko::kernels::EXEC_NAMESPACE::batch_ilu::apply_ilu(
+            exec, d_mtx.get(), d_factorized_mat, d_diag_locs, d_rv.get(),
+            d_z.get());
 
         const auto tol = 5000 * r<value_type>::value;
         GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);

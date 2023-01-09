@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/batch_dense.hpp>
+#include "core/matrix/batch_diagonal_kernels.hpp"
 
 
 #include <algorithm>
@@ -43,10 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
-#include "core/matrix/batch_diagonal_kernels.hpp"
 #include "core/test/utils/batch.hpp"
 #include "test/utils/executor.hpp"
 
