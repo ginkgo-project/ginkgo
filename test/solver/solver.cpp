@@ -549,10 +549,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {
-            size,
-            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
-            rand_engine};
+        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename VecType = Vec, typename MtxOrSolver>
@@ -573,10 +570,7 @@ protected:
         return {gko::initialize<VecType>(
                     {gko::test::detail::get_rand_value<
                         typename VecType::value_type>(
-                        std::normal_distribution<
-                            gko::remove_complex<typename VecType::value_type>>(
-                            0.0, 1.0),
-                        rand_engine)},
+                        std::normal_distribution<>(0.0, 1.0), rand_engine)},
                     ref),
                 exec};
     }
