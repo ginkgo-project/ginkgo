@@ -291,6 +291,25 @@ void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 
 
 template <typename ValueType>
+void Vector<ValueType>::convert_to(
+    Vector<next_precision<next_precision<ValueType>>>* result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->set_size(this->get_size());
+    this->get_local_vector()->convert_to(&result->local_);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::move_to(
+    Vector<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::absolute_type>
 Vector<ValueType>::compute_absolute() const
 {

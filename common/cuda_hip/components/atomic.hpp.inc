@@ -110,15 +110,63 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         }                                                                    \
     };
 
+
+#define GKO_BIND_ATOMIC_HELPER_FAKE_STRUCTURE(CONVERTER_TYPE)               \
+    template <typename ValueType>                                           \
+    struct atomic_helper<                                                   \
+        ValueType,                                                          \
+        std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> {  \
+        __forceinline__ __device__ static ValueType atomic_add(             \
+            ValueType* __restrict__ addr, ValueType val)                    \
+        {                                                                   \
+            using c_type = CONVERTER_TYPE;                                  \
+            return atomic_wrapper(                                          \
+                addr, [&val](c_type& old, c_type assumed, c_type* c_addr) { \
+                    old = *c_addr;                                          \
+                    *c_addr = reinterpret<c_type>(                          \
+                        val + reinterpret<ValueType>(assumed));             \
+                });                                                         \
+        }                                                                   \
+        __forceinline__ __device__ static ValueType atomic_max(             \
+            ValueType* __restrict__ addr, ValueType val)                    \
+        {                                                                   \
+            using c_type = CONVERTER_TYPE;                                  \
+            return atomic_wrapper(                                          \
+                addr, [&val](c_type& old, c_type assumed, c_type* c_addr) { \
+                    if (reinterpret<ValueType>(assumed) < val) {            \
+                        old = *c_addr;                                      \
+                        *c_addr = reinterpret<c_type>(assumed);             \
+                    }                                                       \
+                });                                                         \
+        }                                                                   \
+                                                                            \
+    private:                                                                \
+        template <typename Callable>                                        \
+        __forceinline__ __device__ static ValueType atomic_wrapper(         \
+            ValueType* __restrict__ addr, Callable set_old)                 \
+        {                                                                   \
+            CONVERTER_TYPE* address_as_converter =                          \
+                reinterpret_cast<CONVERTER_TYPE*>(addr);                    \
+            CONVERTER_TYPE old = *address_as_converter;                     \
+            CONVERTER_TYPE assumed = old;                                   \
+            set_old(old, assumed, address_as_converter);                    \
+            return reinterpret<ValueType>(old);                             \
+        }                                                                   \
+    };
+
 // Support 64-bit ATOMIC_ADD and ATOMIC_MAX
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 // Support 32-bit ATOMIC_ADD and ATOMIC_MAX
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
-#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
+#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010)) && \
+    !(defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC)
 // CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
+// required the CC>70
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
+#else
+GKO_BIND_ATOMIC_HELPER_FAKE_STRUCTURE(unsigned short int)
 #endif  // !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE

@@ -636,11 +636,11 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
             cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
                 std::uint64_t offset = idx.get_linear_id();
                 oneapi::dpl::minstd_rand engine(seed, offset);
-                oneapi::dpl::normal_distribution<remove_complex<ValueType>>
-                    distr(0, 1);
-                auto res = distr(engine);
+                // oneapi::dpl::normal_distribution<remove_complex<ValueType>>
+                //     distr(0, 1);
+                // auto res = distr(engine);
 
-                work[idx] = res;
+                // work[idx] = res;
             });
         });
     }

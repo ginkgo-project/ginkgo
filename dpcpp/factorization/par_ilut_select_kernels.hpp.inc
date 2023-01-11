@@ -372,7 +372,7 @@ void basecase_select(const ValueType* __restrict__ input, IndexType size,
 
     for (int i = 0; i < basecase_local_size; ++i) {
         auto idx = item_ct1.get_local_id(2) + i * basecase_block_size;
-        local[i] = idx < size ? input[idx] : sentinel;
+        local[i] = idx < size ? input[idx] : static_cast<ValueType>(sentinel);
     }
     bitonic_sort<basecase_size, basecase_local_size>(local, sh_local, item_ct1);
     if (item_ct1.get_local_id(2) == rank / basecase_local_size) {

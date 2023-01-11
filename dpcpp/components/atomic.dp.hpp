@@ -175,6 +175,21 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 // Support 32-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
+// sycl does not support 16bit
+template <sycl::access::address_space addressSpace, typename ValueType>
+struct atomic_helper<addressSpace, ValueType,
+                     std::enable_if_t<(sizeof(ValueType) == 2)>> {
+    __dpct_inline__ static ValueType atomic_add(ValueType* __restrict__ addr,
+                                                ValueType val)
+    {
+        // GKO_NOT_IMPLEMENTED;
+        // wrong implementation because sycl can not use exception in kernel
+        auto old = *addr;
+        *addr += val;
+        return old;
+    }
+};
+
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
@@ -242,7 +257,20 @@ struct atomic_helper<
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned long long int);
 // Support 32-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
-
+// not support 16bit
+template <sycl::access::address_space addressSpace, typename ValueType>
+struct atomic_max_helper<addressSpace, ValueType,
+                         std::enable_if_t<(sizeof(ValueType) == 2)>> {
+    __dpct_inline__ static ValueType atomic_max(ValueType* __restrict__ addr,
+                                                ValueType val)
+    {
+        // GKO_NOT_IMPLEMENTED;
+        // wrong implementation because sycl can not use exception in kernel
+        auto old = *addr;
+        *addr = std::max(*addr, val);
+        return old;
+    }
+};
 
 #undef GKO_BIND_ATOMIC_MAX_STRUCTURE
 

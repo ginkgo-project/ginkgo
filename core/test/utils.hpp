@@ -214,15 +214,14 @@ template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
     using nc_precision = remove_complex<Precision>;
-    static constexpr nc_output value{
-        std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
-        (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>())};
+    static nc_output value;
 };
 
 
 template <typename Precision, typename OutputType>
-constexpr remove_complex<OutputType>
-    reduction_factor<Precision, OutputType>::value;
+remove_complex<OutputType> reduction_factor<Precision, OutputType>::value =
+    std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
+    (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>());
 
 
 }  // namespace test

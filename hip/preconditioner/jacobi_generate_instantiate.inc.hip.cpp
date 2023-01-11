@@ -53,6 +53,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace detail {
+#if !defined(__HIP_DEVICE_COMPILE__)
+template <>
+struct basic_float_traits<__half> {
+    using type = __half;
+    static constexpr int sign_bits = 1;
+    static constexpr int significand_bits = 10;
+    static constexpr int exponent_bits = 5;
+    static constexpr bool rounds_to_nearest = true;
+};
+#endif
+}  // namespace detail
 namespace kernels {
 namespace hip {
 /**

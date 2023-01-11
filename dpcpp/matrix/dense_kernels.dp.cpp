@@ -242,6 +242,20 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
 
+template <typename ValueType>
+struct onemkl_support : std::false_type {};
+
+template <>
+struct onemkl_support<double> : std::true_type {};
+
+template <>
+struct onemkl_support<float> : std::true_type {};
+
+template <>
+struct onemkl_support<std::complex<float>> : std::true_type {};
+
+template <>
+struct onemkl_support<std::complex<double>> : std::true_type {};
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
@@ -250,17 +264,21 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    if (b->get_stride() != 0 && c->get_stride() != 0) {
-        if (a->get_size()[1] > 0) {
-            oneapi::mkl::blas::row_major::gemm(
-                *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-                c->get_size()[0], c->get_size()[1], a->get_size()[1],
-                one<ValueType>(), a->get_const_values(), a->get_stride(),
-                b->get_const_values(), b->get_stride(), zero<ValueType>(),
-                c->get_values(), c->get_stride());
-        } else {
-            dense::fill(exec, c, zero<ValueType>());
+    if constexpr (onemkl_support<ValueType>::value) {
+        if (b->get_stride() != 0 && c->get_stride() != 0) {
+            if (a->get_size()[1] > 0) {
+                oneapi::mkl::blas::row_major::gemm(
+                    *exec->get_queue(), transpose::nontrans,
+                    transpose::nontrans, c->get_size()[0], c->get_size()[1],
+                    a->get_size()[1], one<ValueType>(), a->get_const_values(),
+                    a->get_stride(), b->get_const_values(), b->get_stride(),
+                    zero<ValueType>(), c->get_values(), c->get_stride());
+            } else {
+                dense::fill(exec, c, zero<ValueType>());
+            }
         }
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -274,19 +292,24 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    if (b->get_stride() != 0 && c->get_stride() != 0) {
-        if (a->get_size()[1] > 0) {
-            oneapi::mkl::blas::row_major::gemm(
-                *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-                c->get_size()[0], c->get_size()[1], a->get_size()[1],
-                exec->copy_val_to_host(alpha->get_const_values()),
-                a->get_const_values(), a->get_stride(), b->get_const_values(),
-                b->get_stride(),
-                exec->copy_val_to_host(beta->get_const_values()),
-                c->get_values(), c->get_stride());
-        } else {
-            dense::scale(exec, beta, c);
+    if constexpr (onemkl_support<ValueType>::value) {
+        if (b->get_stride() != 0 && c->get_stride() != 0) {
+            if (a->get_size()[1] > 0) {
+                oneapi::mkl::blas::row_major::gemm(
+                    *exec->get_queue(), transpose::nontrans,
+                    transpose::nontrans, c->get_size()[0], c->get_size()[1],
+                    a->get_size()[1],
+                    exec->copy_val_to_host(alpha->get_const_values()),
+                    a->get_const_values(), a->get_stride(),
+                    b->get_const_values(), b->get_stride(),
+                    exec->copy_val_to_host(beta->get_const_values()),
+                    c->get_values(), c->get_stride());
+            } else {
+                dense::scale(exec, beta, c);
+            }
         }
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 

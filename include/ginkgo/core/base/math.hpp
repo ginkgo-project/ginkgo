@@ -47,6 +47,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+// Using SYCL_LANGUAGE_VERSION will lead the mismatch sycl namespace from 6.0.0
+// when using dpcpp compiler without dpcpp module
+#if GINKGO_DPCPP_MAJOR_VERSION
+#include <CL/sycl.hpp>
+#endif
+
+
+namespace std {
+
+
+inline gko::half abs(gko::half a) { return gko::half((a > 0) ? a : -a); }
+
+inline gko::half abs(std::complex<gko::half> a)
+{
+    return gko::half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
+}
+
+inline gko::half sqrt(gko::half a) { return gko::half(sqrt(float(a))); }
+
+inline std::complex<gko::half> sqrt(std::complex<gko::half> a)
+{
+    return std::complex<gko::half>(sqrt(std::complex<float>(a)));
+}
+
+
+}  // namespace std
+
+
 namespace gko {
 
 
@@ -62,18 +90,6 @@ using std::abs;
 using std::sqrt;
 
 
-inline half abs(half a) { return half((a > 0) ? a : -a); }
-inline half abs(std::complex<half> a)
-{
-    return half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
-}
-inline half sqrt(half a) { return half(sqrt(float(a))); }
-
-inline std::complex<half> sqrt(std::complex<half> a)
-{
-    return std::complex<half>(sqrt(std::complex<float>(a)));
-}
-
 }  // namespace reference
 }  // namespace kernels
 
@@ -86,19 +102,6 @@ using std::abs;
 
 
 using std::sqrt;
-
-
-inline half abs(half a) { return half((a > 0) ? a : -a); }
-inline half abs(std::complex<half> a)
-{
-    return half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
-}
-inline half sqrt(half a) { return half(sqrt(float(a))); }
-
-inline std::complex<half> sqrt(std::complex<half> a)
-{
-    return std::complex<half>(sqrt(std::complex<float>(a)));
-}
 
 
 }  // namespace omp
@@ -205,8 +208,12 @@ struct is_complex_impl<std::complex<T>>
 template <typename T>
 struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
+template <>
+struct is_complex_or_scalar_impl<half> : std::true_type {};
+
 template <typename T>
-struct is_complex_or_scalar_impl<std::complex<T>> : std::is_scalar<T> {};
+struct is_complex_or_scalar_impl<std::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
 
 
 /**

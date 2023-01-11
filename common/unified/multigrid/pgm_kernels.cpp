@@ -214,7 +214,7 @@ void find_strongest_neighbor(
                     continue;
                 }
                 auto weight =
-                    weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    weight_vals[idx] / gko::max(abs(diag[row]), abs(diag[col]));
                 if (agg[col] == -1 &&
                     device_std::tie(weight, col) >
                         device_std::tie(max_weight_unagg, strongest_unagg)) {
@@ -278,8 +278,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     if (col == row) {
                         continue;
                     }
-                    auto weight =
-                        weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    auto weight = weight_vals[idx] /
+                                  gko::max(abs(diag[row]), abs(diag[col]));
                     if (agg_const_val[col] != -1 &&
                         device_std::tie(weight, col) >
                             device_std::tie(max_weight_agg, strongest_agg)) {
@@ -317,8 +317,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     if (col == row) {
                         continue;
                     }
-                    auto weight =
-                        weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    auto weight = weight_vals[idx] /
+                                  gko::max(abs(diag[row]), abs(diag[col]));
                     if (agg_val[col] != -1 &&
                         device_std::tie(weight, col) >
                             device_std::tie(max_weight_agg, strongest_agg)) {

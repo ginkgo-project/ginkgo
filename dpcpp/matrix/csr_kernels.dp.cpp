@@ -1236,6 +1236,14 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
+template <typename ValueType>
+struct onemkl_support : std::false_type {};
+
+template <>
+struct onemkl_support<double> : std::true_type {};
+
+template <>
+struct onemkl_support<float> : std::true_type {};
 
 template <typename ValueType, typename IndexType>
 bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,

@@ -110,6 +110,7 @@ target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
+target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_COMPILE_KERNEL=1)
 
 ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)

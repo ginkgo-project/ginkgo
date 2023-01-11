@@ -239,12 +239,10 @@ public:
 
         alpha = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            std::normal_distribution<>(), this->engine, this->exec);
         beta = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            std::normal_distribution<>(), this->engine, this->exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -284,14 +282,12 @@ public:
             num_rows, num_cols,
             std::uniform_int_distribution<int>(static_cast<int>(num_cols),
                                                static_cast<int>(num_cols)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
         auto mat_md = gko::test::generate_random_matrix_data<value_type,
                                                              global_index_type>(
             num_rows, num_rows,
             std::uniform_int_distribution<int>(0, static_cast<int>(num_rows)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
 
         auto row_mapping = gko::test::generate_random_array<
             gko::experimental::distributed::comm_index_type>(
