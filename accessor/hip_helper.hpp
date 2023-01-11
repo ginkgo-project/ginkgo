@@ -17,6 +17,9 @@
 #include "utils.hpp"
 
 
+struct __half;
+
+
 namespace gko {
 namespace acc {
 namespace detail {
@@ -53,11 +56,15 @@ struct hip_type<T&&> {
     using type = typename hip_type<T>::type&&;
 };
 
+template <>
+struct hip_type<gko::half> {
+    using type = __half;
+};
 
 // Transform std::complex to thrust::complex
 template <typename T>
 struct hip_type<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename hip_type<T>::type>;
 };
 
 
