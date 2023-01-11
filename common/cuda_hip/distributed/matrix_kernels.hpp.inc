@@ -138,11 +138,11 @@ void build_local_nonlocal(
                    col_range_starting_indices[range_id];
         };
 
-    using input_type = input_type<ValueType, GlobalIndexType>;
+    using input_type = input_type<device_type<ValueType>, GlobalIndexType>;
     auto input_it = thrust::make_zip_iterator(thrust::make_tuple(
         input.get_const_row_idxs(), input.get_const_col_idxs(),
-        input.get_const_values(), row_range_ids.get_const_data(),
-        col_range_ids.get_const_data()));
+        as_device_type(input.get_const_values()),
+        row_range_ids.get_const_data(), col_range_ids.get_const_data()));
 
     // copy and transform local entries into arrays
     local_row_idxs.resize_and_reset(num_local_elements);
@@ -150,17 +150,17 @@ void build_local_nonlocal(
     local_values.resize_and_reset(num_local_elements);
     auto local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col] __host__ __device__(
-                      const input_type input) {
-            auto local_row = map_to_local_row(input.row, input.row_range);
-            auto local_col = map_to_local_col(input.col, input.col_range);
-            return thrust::make_tuple(local_row, local_col, input.val);
+                      const input_type input2) {
+            auto local_row = map_to_local_row(input2.row, input2.row_range);
+            auto local_col = map_to_local_col(input2.col, input2.col_range);
+            return thrust::make_tuple(local_row, local_col, input2.val);
         });
     thrust::copy_if(
         thrust_policy(exec), local_it, local_it + input.get_num_elems(),
         range_ids_it,
-        thrust::make_zip_iterator(thrust::make_tuple(local_row_idxs.get_data(),
-                                                     local_col_idxs.get_data(),
-                                                     local_values.get_data())),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            local_row_idxs.get_data(), local_col_idxs.get_data(),
+            as_device_type(local_values.get_data()))),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -189,7 +189,8 @@ void build_local_nonlocal(
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_global_col_idxs.get_data(),
-            non_local_values.get_data(), non_local_col_part_ids.get_data(),
+            as_device_type(non_local_values.get_data()),
+            non_local_col_part_ids.get_data(),
             non_local_col_range_ids.get_data())),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {

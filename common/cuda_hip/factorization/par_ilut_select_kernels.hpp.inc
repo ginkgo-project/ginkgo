@@ -269,7 +269,7 @@ __global__ __launch_bounds__(basecase_block_size) void basecase_select(
     __shared__ ValueType sh_local[basecase_size];
     for (int i = 0; i < basecase_local_size; ++i) {
         auto idx = threadIdx.x + i * basecase_block_size;
-        local[i] = idx < size ? input[idx] : sentinel;
+        local[i] = idx < size ? input[idx] : static_cast<ValueType>(sentinel);
     }
     bitonic_sort<basecase_size, basecase_local_size>(local, sh_local);
     if (threadIdx.x == rank / basecase_local_size) {

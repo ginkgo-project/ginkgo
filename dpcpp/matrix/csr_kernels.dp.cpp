@@ -1139,6 +1139,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 }  // namespace host_kernel
 
+template <typename ValueType>
+struct onemkl_support : std::false_type {};
+
+template <>
+struct onemkl_support<double> : std::true_type {};
+
+template <>
+struct onemkl_support<float> : std::true_type {};
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
@@ -1199,7 +1207,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
+        if constexpr (onemkl_support<ValueType>::value) {
             oneapi::mkl::sparse::matrix_handle_t mat_handle;
             oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
             oneapi::mkl::sparse::set_csr_data(
@@ -1271,7 +1279,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
+        if constexpr (onemkl_support<ValueType>::value) {
             oneapi::mkl::sparse::matrix_handle_t mat_handle;
             oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
             oneapi::mkl::sparse::set_csr_data(

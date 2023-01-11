@@ -50,11 +50,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
-namespace gko {
+namespace std {
 
+template <>
+struct is_scalar<__half> : std::true_type {};
+
+}  // namespace std
+
+
+namespace gko {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+// template <>
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return is_nan(float(val));
+}
+
+template <>
+GKO_INLINE GKO_ATTRIBUTES constexpr __half abs(const __half& val)
+{
+    return __habs(val);
+}
+#endif
 
 namespace kernels {
 namespace hip {
+
+#if defined(__HIPCC__)
+// #endif
+// __device__ __half sqrt(__half val) { return hsqrt(val); }
+// if directly using above, it will lead all double, float goes to half version
+__device__ __half sqrt(__half val) { return hsqrt(val); }
+__device__ float sqrt(float val) { return sqrtf(val); }
+__device__ double sqrt(double val) { return sqrt(val); }
+__device__ thrust::complex<float> sqrt(thrust::complex<float> val)
+{
+    return thrust::sqrt(val);
+}
+__device__ thrust::complex<double> sqrt(thrust::complex<double> val)
+{
+    return thrust::sqrt(val);
+}
+// template <typename T>
+// __device__ __forceinline__
+//     std::enable_if_t<std::is_same<T, __half>::value, __half>
+//     sqrt(const T& val)
+// {
+//     return hsqrt(val);
+// }
+#endif
 namespace detail {
 
 
@@ -154,6 +198,17 @@ struct hiplibs_type_impl<std::complex<double>> {
     using type = hipDoubleComplex;
 };
 
+template <>
+struct hiplibs_type_impl<half> {
+    using type = __half;
+};
+
+template <>
+struct hiplibs_type_impl<std::complex<half>> {
+    using type = __half2;
+};
+
+
 template <typename T>
 struct hiplibs_type_impl<thrust::complex<T>> {
     using type = typename hiplibs_type_impl<std::complex<T>>::type;
@@ -226,9 +281,14 @@ struct hip_type_impl<volatile T> {
     using type = volatile typename hip_type_impl<T>::type;
 };
 
+template <>
+struct hip_type_impl<gko::half> {
+    using type = __half;
+};
+
 template <typename T>
 struct hip_type_impl<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename hip_type_impl<T>::type>;
 };
 
 template <>
@@ -241,6 +301,11 @@ struct hip_type_impl<hipComplex> {
     using type = thrust::complex<float>;
 };
 
+template <>
+struct hip_type_impl<__half2> {
+    using type = thrust::complex<__half>;
+};
+
 template <typename T>
 struct hip_struct_member_type_impl {
     using type = T;
@@ -249,6 +314,11 @@ struct hip_struct_member_type_impl {
 template <typename T>
 struct hip_struct_member_type_impl<std::complex<T>> {
     using type = fake_complex<T>;
+};
+
+template <>
+struct hip_struct_member_type_impl<gko::half> {
+    using type = __half;
 };
 
 template <typename ValueType, typename IndexType>

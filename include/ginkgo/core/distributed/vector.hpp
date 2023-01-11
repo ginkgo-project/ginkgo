@@ -88,13 +88,15 @@ class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
+      public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableCreateMethod<Vector>;
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
-    friend class Vector<next_precision<ValueType>>;
+    friend class Vector<previous_precision<ValueType>>;
+    friend class Vector<previous_precision<previous_precision<ValueType>>>;
 
 public:
     using EnableDistributedLinOp<Vector>::convert_to;
@@ -192,6 +194,12 @@ public:
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
+
+    void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
+        const override;
+
+    void move_to(
+        Vector<next_precision<next_precision<ValueType>>>* result) override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -618,8 +626,17 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
         experimental::distributed::Vector<previous_precision<ValueType>>;
+    using snd_source_type = experimental::distributed::Vector<
+        previous_precision<previous_precision<ValueType>>>;
 
     static std::unique_ptr<target_type> create_empty(const source_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+
+    static std::unique_ptr<target_type> create_empty(
+        const snd_source_type* source)
     {
         return target_type::create(source->get_executor(),
                                    source->get_communicator());

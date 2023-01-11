@@ -186,7 +186,7 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_NO_HALF(GKO_DECLARE_FFT_KERNEL);
 
 
 template <typename ValueType>
@@ -202,7 +202,8 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_NO_HALF(
+    GKO_DECLARE_FFT2_KERNEL);
 
 
 template <typename ValueType>
@@ -218,7 +219,8 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_NO_HALF(
+    GKO_DECLARE_FFT3_KERNEL);
 
 
 }  // namespace fft

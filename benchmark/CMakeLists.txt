@@ -21,6 +21,8 @@ function(ginkgo_benchmark_cusparse_linops type def)
     # make the dependency public to catch issues
     target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
     target_link_libraries(cusparse_linops_${type} Ginkgo::ginkgo ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+    target_compile_options(cusparse_linops_${type}
+        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
     target_include_directories(cusparse_linops_${type} SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
     target_compile_definitions(cusparse_linops_${type} PRIVATE ALLOWMP=1)
 endfunction()
