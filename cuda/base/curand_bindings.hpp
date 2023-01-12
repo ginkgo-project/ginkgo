@@ -53,6 +53,17 @@ namespace cuda {
  * @ingroup curand
  */
 namespace curand {
+namespace detail {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args...)
+{
+    return static_cast<int64>(CURAND_STATUS_TYPE_ERROR);
+}
+
+
+}  // namespace detail
 
 
 template <typename ValueType>
@@ -101,6 +112,8 @@ GKO_BIND_CURAND_RANDOM_VECTOR(float, curandGenerateNormal);
 GKO_BIND_CURAND_RANDOM_VECTOR(double, curandGenerateNormalDouble);
 GKO_BIND_CURAND_RANDOM_VECTOR(std::complex<float>, curandGenerateNormal);
 GKO_BIND_CURAND_RANDOM_VECTOR(std::complex<double>, curandGenerateNormalDouble);
+template <typename ValueType>
+GKO_BIND_CURAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_CURAND_RANDOM_VECTOR
