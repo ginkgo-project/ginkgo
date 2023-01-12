@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GKO_COMPILING_DPCPP
 
-//TODO: Add tests for non-sorted BatchCsr input matrix
+// TODO: Add tests for non-sorted BatchCsr input matrix
 class BatchUpperTrs : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
@@ -64,7 +64,10 @@ protected:
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using solver_type = gko::solver::BatchUpperTrs<value_type>;
 
-    BatchUpperTrs() : csr_upper_mat(get_csr_upper_matrix()) , dense_upper_mat(get_dense_upper_matrix()) , ell_upper_mat(get_ell_upper_matrix())
+    BatchUpperTrs()
+        : csr_upper_mat(get_csr_upper_matrix()),
+          dense_upper_mat(get_dense_upper_matrix()),
+          ell_upper_mat(get_ell_upper_matrix())
     {
         set_up_data();
     }
@@ -75,7 +78,7 @@ protected:
 
     const size_t nbatch = 9;
     const index_type nrows = 300;
-    
+
     std::shared_ptr<BCsr> csr_upper_mat;
     std::shared_ptr<BDense> dense_upper_mat;
     std::shared_ptr<BEll> ell_upper_mat;
@@ -86,67 +89,56 @@ protected:
 
     std::unique_ptr<BCsr> get_csr_upper_matrix()
     {
-        auto unbatch_mat =
-            gko::test::generate_random_triangular_matrix<Csr>(
-                nrows, false, false,
-                std::uniform_int_distribution<>(nrows, nrows),
-                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                ref);
+        auto unbatch_mat = gko::test::generate_random_triangular_matrix<Csr>(
+            nrows, false, false, std::uniform_int_distribution<>(nrows, nrows),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, ref);
 
         return BCsr::create(ref, nbatch, unbatch_mat.get());
     }
 
     std::unique_ptr<BDense> get_dense_upper_matrix()
     {
-        auto unbatch_mat =
-            gko::test::generate_random_triangular_matrix<Dense>(
-                nrows, false, false,
-                std::uniform_int_distribution<>(nrows, nrows),
-                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                ref);
+        auto unbatch_mat = gko::test::generate_random_triangular_matrix<Dense>(
+            nrows, false, false, std::uniform_int_distribution<>(nrows, nrows),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, ref);
 
         return BDense::create(ref, nbatch, unbatch_mat.get());
     }
 
     std::unique_ptr<BEll> get_ell_upper_matrix()
     {
-        auto unbatch_mat =
-            gko::test::generate_random_triangular_matrix<Ell>(
-                nrows, false, false,
-                std::uniform_int_distribution<>(nrows, nrows),
-                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                ref);
+        auto unbatch_mat = gko::test::generate_random_triangular_matrix<Ell>(
+            nrows, false, false, std::uniform_int_distribution<>(nrows, nrows),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, ref);
 
-        return BEll::create(ref, nbatch, unbatch_mat.get());   
+        return BEll::create(ref, nbatch, unbatch_mat.get());
     }
 
 
     void set_up_data()
     {
         b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
-                  nbatch, nrows, 1,
-                  std::uniform_int_distribution<>(nrows, nrows),
-                  std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                  true, ref));
+            nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
+            ref));
         x = gko::share(BDense::create(
             ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
 
-        left_scale = gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
-                  nbatch, nrows, nrows,
-                  std::uniform_int_distribution<>(nrows, nrows),
-                  std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                  true, ref));
+        left_scale =
+            gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
+                nbatch, nrows, nrows,
+                std::uniform_int_distribution<>(nrows, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                true, ref));
 
-        
-        right_scale = gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
-                  nbatch, nrows, nrows,
-                  std::uniform_int_distribution<>(nrows, nrows),
-                  std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                  true, ref));
 
+        right_scale =
+            gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
+                nbatch, nrows, nrows,
+                std::uniform_int_distribution<>(nrows, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                true, ref));
     }
-
-
 };
 
 
@@ -157,14 +149,17 @@ TEST_F(BatchUpperTrs, CsrSolveIsEquivalentToReference)
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
 
-    auto upper_trs = solver_type::build().with_skip_sorting(true).on(ref)->generate(csr_upper_mat);
-    auto d_upper_trs = solver_type::build().with_skip_sorting(true).on(exec)->generate(d_csr_upper_mat);
+    auto upper_trs =
+        solver_type::build().with_skip_sorting(true).on(ref)->generate(
+            csr_upper_mat);
+    auto d_upper_trs =
+        solver_type::build().with_skip_sorting(true).on(exec)->generate(
+            d_csr_upper_mat);
 
     upper_trs->apply(b.get(), x.get());
     d_upper_trs->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100* eps);
-
+    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
 }
 
 
@@ -174,59 +169,78 @@ TEST_F(BatchUpperTrs, CsrSolveWithScalingIsEquivalentToReference)
     auto d_csr_upper_mat = gko::share(gko::clone(exec, csr_upper_mat.get()));
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
-    auto d_left_scale =  gko::share(gko::clone(exec, left_scale.get()));
+    auto d_left_scale = gko::share(gko::clone(exec, left_scale.get()));
     auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
 
-    auto upper_trs = solver_type::build().with_skip_sorting(true).with_left_scaling_op(left_scale)
-    .with_right_scaling_op(right_scale).on(ref)->generate(csr_upper_mat);
-    auto d_upper_trs = solver_type::build().with_skip_sorting(true)
-    .with_left_scaling_op(d_left_scale).with_right_scaling_op(d_right_scale).on(exec)->generate(d_csr_upper_mat);
+    auto upper_trs = solver_type::build()
+                         .with_skip_sorting(true)
+                         .with_left_scaling_op(left_scale)
+                         .with_right_scaling_op(right_scale)
+                         .on(ref)
+                         ->generate(csr_upper_mat);
+    auto d_upper_trs = solver_type::build()
+                           .with_skip_sorting(true)
+                           .with_left_scaling_op(d_left_scale)
+                           .with_right_scaling_op(d_right_scale)
+                           .on(exec)
+                           ->generate(d_csr_upper_mat);
 
     upper_trs->apply(b.get(), x.get());
     d_upper_trs->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
-
 }
 
 
 TEST_F(BatchUpperTrs, DenseSolveIsEquivalentToReference)
 {
     using solver_type = gko::solver::BatchUpperTrs<value_type>;
-    auto d_dense_upper_mat = gko::share(gko::clone(exec, dense_upper_mat.get()));
+    auto d_dense_upper_mat =
+        gko::share(gko::clone(exec, dense_upper_mat.get()));
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
 
-    auto upper_trs = solver_type::build().with_skip_sorting(true).on(ref)->generate(dense_upper_mat);
-    auto d_upper_trs = solver_type::build().with_skip_sorting(true).on(exec)->generate(d_dense_upper_mat);
+    auto upper_trs =
+        solver_type::build().with_skip_sorting(true).on(ref)->generate(
+            dense_upper_mat);
+    auto d_upper_trs =
+        solver_type::build().with_skip_sorting(true).on(exec)->generate(
+            d_dense_upper_mat);
 
     upper_trs->apply(b.get(), x.get());
     d_upper_trs->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100* eps);
-
+    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
 }
 
 
 TEST_F(BatchUpperTrs, DenseSolveWithScalingIsEquivalentToReference)
 {
     using solver_type = gko::solver::BatchUpperTrs<value_type>;
-    auto d_dense_upper_mat = gko::share(gko::clone(exec, dense_upper_mat.get()));
+    auto d_dense_upper_mat =
+        gko::share(gko::clone(exec, dense_upper_mat.get()));
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
-    auto d_left_scale =  gko::share(gko::clone(exec, left_scale.get()));
+    auto d_left_scale = gko::share(gko::clone(exec, left_scale.get()));
     auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
 
-    auto upper_trs = solver_type::build().with_skip_sorting(true).with_left_scaling_op(left_scale)
-    .with_right_scaling_op(right_scale).on(ref)->generate(dense_upper_mat);
-    auto d_upper_trs = solver_type::build().with_skip_sorting(true)
-    .with_left_scaling_op(d_left_scale).with_right_scaling_op(d_right_scale).on(exec)->generate(d_dense_upper_mat);
+    auto upper_trs = solver_type::build()
+                         .with_skip_sorting(true)
+                         .with_left_scaling_op(left_scale)
+                         .with_right_scaling_op(right_scale)
+                         .on(ref)
+                         ->generate(dense_upper_mat);
+    auto d_upper_trs = solver_type::build()
+                           .with_skip_sorting(true)
+                           .with_left_scaling_op(d_left_scale)
+                           .with_right_scaling_op(d_right_scale)
+                           .on(exec)
+                           ->generate(d_dense_upper_mat);
 
     upper_trs->apply(b.get(), x.get());
     d_upper_trs->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
-
 }
 
 
@@ -237,14 +251,17 @@ TEST_F(BatchUpperTrs, EllSolveIsEquivalentToReference)
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
 
-    auto upper_trs = solver_type::build().with_skip_sorting(true).on(ref)->generate(ell_upper_mat);
-    auto d_upper_trs = solver_type::build().with_skip_sorting(true).on(exec)->generate(d_ell_upper_mat);
+    auto upper_trs =
+        solver_type::build().with_skip_sorting(true).on(ref)->generate(
+            ell_upper_mat);
+    auto d_upper_trs =
+        solver_type::build().with_skip_sorting(true).on(exec)->generate(
+            d_ell_upper_mat);
 
     upper_trs->apply(b.get(), x.get());
     d_upper_trs->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100* eps);
-
+    GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 100 * eps);
 }
 
 // TODO: Implement scaling for BatchEll matrix format (two-sided batch transform
@@ -258,7 +275,8 @@ TEST_F(BatchUpperTrs, EllSolveIsEquivalentToReference)
 //     auto d_left_scale =  gko::share(gko::clone(exec, left_scale.get()));
 //     auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
 
-//     auto upper_trs = solver_type::build().with_skip_sorting(true).with_left_scaling_op(left_scale)
+//     auto upper_trs =
+//     solver_type::build().with_skip_sorting(true).with_left_scaling_op(left_scale)
 //     .with_right_scaling_op(right_scale).on(ref)->generate(ell_upper_mat);
 //     auto d_upper_trs = solver_type::build().with_skip_sorting(true)
 //     .with_left_scaling_op(d_left_scale).with_right_scaling_op(d_right_scale).on(exec)->generate(d_ell_upper_mat);
