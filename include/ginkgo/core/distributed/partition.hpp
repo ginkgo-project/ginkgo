@@ -231,7 +231,7 @@ public:
      *
      * @return  true if each part has no more than one contiguous range.
      */
-    bool has_connected_parts();
+    bool has_connected_parts() const;
 
     /**
      * Checks if the ranges are ordered by their part index.
@@ -240,7 +240,7 @@ public:
      *
      * @return  true if the ranges are ordered by their part index.
      */
-    bool has_ordered_parts();
+    bool has_ordered_parts() const;
 
     /**
      * Builds a partition from a given mapping global_index -> part_id.
