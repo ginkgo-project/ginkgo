@@ -235,12 +235,13 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy1)
         this->general_mtx_small);
 }
 
-// Note: Test fails because the batched iterative solver does not converge for some systems
-// Note: To ensure that the general isai extension implementation is correct,
-// I tested the kernels for cases where the iterative solver 
-// converges for all the batched systems produced in the inverse generation process.
-// To get such cases, I reduced the row_size_limit to 2 and used a very small matrix as input. 
-// TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy1)
+// Note: Test fails because the batched iterative solver does not converge for
+// some systems Note: To ensure that the general isai extension implementation
+// is correct, I tested the kernels for cases where the iterative solver
+// converges for all the batched systems produced in the inverse generation
+// process. To get such cases, I reduced the row_size_limit to 2 and used a very
+// small matrix as input. TEST_F(BatchIsai,
+// ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy1)
 // {
 //     this->test_generate_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 1,
@@ -256,8 +257,9 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 }
 
 
-// NOTE: Test fails because the batched iterative solver does not converge for some systems
-// TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy2)
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems TEST_F(BatchIsai,
+// ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 // {
 //     this->test_generate_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
@@ -273,8 +275,9 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 }
 
 
-// NOTE: Test fails because the batched iterative solver does not converge for some systems
-// TEST_F(BatchIsai, ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy3)
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems TEST_F(BatchIsai,
+// ExtendedGeneralIsaiGenerateIsEquivalentToReferenceSpy3)
 // {
 //     this->test_generate_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 3,
@@ -386,8 +389,9 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy1)
 }
 
 
-// NOTE: Test fails because the batched iterative solver does not converge for some systems
-// TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy1)
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems TEST_F(BatchIsai,
+// ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy1)
 // {
 //     this->test_apply_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 1,
@@ -403,8 +407,9 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy2)
 }
 
 
-// NOTE: Test fails because the batched iterative solver does not converge for some systems
-// TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy2)
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems TEST_F(BatchIsai,
+// ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy2)
 // {
 //     this->test_apply_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 2,
@@ -420,8 +425,9 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy3)
 }
 
 
-// NOTE: Test fails because the batched iterative solver does not converge for some systems
-// TEST_F(BatchIsai, ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy3)
+// NOTE: Test fails because the batched iterative solver does not converge for
+// some systems TEST_F(BatchIsai,
+// ExtendedGeneralIsaiApplyIsEquivalentToReferenceSpy3)
 // {
 //     this->test_apply_eqvt_to_ref(
 //         gko::preconditioner::batch_isai_input_matrix_type::general, 3,

@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/batch_upper_trs_kernels.hpp"
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
