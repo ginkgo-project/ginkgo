@@ -123,7 +123,7 @@ void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-bool Partition<LocalIndexType, GlobalIndexType>::has_connected_parts()
+bool Partition<LocalIndexType, GlobalIndexType>::has_connected_parts() const
 {
     return this->get_num_parts() - this->get_num_empty_parts() ==
            this->get_num_ranges();
@@ -131,7 +131,7 @@ bool Partition<LocalIndexType, GlobalIndexType>::has_connected_parts()
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts()
+bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts() const
 {
     if (this->has_connected_parts()) {
         auto exec = this->get_executor();
