@@ -55,7 +55,8 @@ struct is_complex_impl<thrust::complex<T>>
 
 
 template <typename T>
-struct is_complex_or_scalar_impl<thrust::complex<T>> : std::is_scalar<T> {};
+struct is_complex_or_scalar_impl<thrust::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
 
 
 template <typename T>
