@@ -51,6 +51,7 @@ else:
 
 _versioned_namespace = '__8::'
 
+
 # new version adapted from https://gcc.gnu.org/pipermail/gcc-cvs/2021-November/356230.html
 # necessary due to empty class optimization
 def is_specialization_of(x, template_name):
@@ -64,6 +65,7 @@ def is_specialization_of(x, template_name):
         expr = '^std::{}<.*>$'.format(template_name)
     return re.match(expr, x) is not None
 
+
 def get_template_arg_list(type_obj):
     "Return a type's template arguments as a list"
     n = 0
@@ -74,6 +76,7 @@ def get_template_arg_list(type_obj):
         except:
             return template_args
         n += 1
+
 
 def _tuple_impl_get(val):
     "Return the tuple element stored in a _Tuple_impl<N, T> base class."
@@ -95,6 +98,7 @@ def _tuple_impl_get(val):
     else:
         raise ValueError("Unsupported implementation for std::tuple: %s" % str(val.type))
 
+
 def tuple_get(n, val):
     "Return the result of std::get<n>(val) on a std::tuple"
     tuple_size = len(get_template_arg_list(val.type))
@@ -107,6 +111,7 @@ def tuple_get(n, val):
         node = node.cast(node.type.fields()[0].type)
         n -= 1
     return _tuple_impl_get(node)
+
 
 def get_unique_ptr_data_ptr(val):
     "Return the result of val.get() on a std::unique_ptr"
@@ -219,13 +224,37 @@ class GkoArrayPrinter:
         return 'array'
 
 
-def lookup_type(val):
-    if not str(val.type.unqualified()).startswith('gko::'):
+class GkoHalfPrinter:
+    "Print a gko::half"
+
+    def __init__(self, val):
+        # GDB doesn't seem to consider the user-defined conversion in its Value.cast,
+        # so we need to call the conversion operator explicitly
+        address = hex(val.address)
+        self.float_val = gdb.parse_and_eval(f"reinterpret_cast<gko::half*>({address})->operator float()")
+
+    def to_string(self):
+        self.float_val.fetch_lazy()
+        return self.float_val
+
+
+def create_printer(val, type_suffix, type_printer):
+    val_type = gdb.types.get_basic_type(val.type)
+    if not str(val_type).startswith('gko::'):
         return None
-    suffix = str(val.type.unqualified())[5:]
-    if suffix.startswith('array'):
-        return GkoArrayPrinter(val)
+    suffix = str(val_type)[5:]
+    if suffix.startswith(type_suffix):
+        return type_printer(val)
     return None
 
 
-gdb.pretty_printers.append(lookup_type)
+def gko_array(val):
+    return create_printer(val, 'array', GkoArrayPrinter)
+
+
+def gko_half(val):
+    return create_printer(val, 'half', GkoHalfPrinter)
+
+
+gdb.pretty_printers.append(gko_array)
+gdb.pretty_printers.append(gko_half)
