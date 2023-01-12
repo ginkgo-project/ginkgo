@@ -53,6 +53,17 @@ namespace hip {
  * @ingroup hiprand
  */
 namespace hiprand {
+namespace detail {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args...)
+{
+    return static_cast<int64>(HIPRAND_STATUS_TYPE_ERROR);
+}
+
+
+}  // namespace detail
 
 
 template <typename ValueType>
@@ -102,6 +113,8 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(double, hiprandGenerateNormalDouble);
 GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<float>, hiprandGenerateNormal);
 GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<double>,
                                hiprandGenerateNormalDouble);
+template <typename ValueType>
+GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_HIPRAND_RANDOM_VECTOR
