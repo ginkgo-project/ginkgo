@@ -119,6 +119,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         __forceinline__ __device__ static ValueType atomic_add(             \
             ValueType* __restrict__ addr, ValueType val)                    \
         {                                                                   \
+            assert(false);                                                  \
             using c_type = CONVERTER_TYPE;                                  \
             return atomic_wrapper(                                          \
                 addr, [&val](c_type& old, c_type assumed, c_type* c_addr) { \
@@ -130,6 +131,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         __forceinline__ __device__ static ValueType atomic_max(             \
             ValueType* __restrict__ addr, ValueType val)                    \
         {                                                                   \
+            assert(false);                                                  \
             using c_type = CONVERTER_TYPE;                                  \
             return atomic_wrapper(                                          \
                 addr, [&val](c_type& old, c_type assumed, c_type* c_addr) { \
@@ -161,9 +163,9 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
 #if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010)) && \
-    !(defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC)
+    (__CUDA_ARCH__ >= 700) && !(defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC)
 // CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
-// required the CC>70
+// required the CC>=70
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 #else
 GKO_BIND_ATOMIC_HELPER_FAKE_STRUCTURE(unsigned short int)

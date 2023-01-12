@@ -53,22 +53,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+
+
 template <>
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
-    return is_nan(float(val));
+    return __hisnan(val);
 }
+
+
+#else
+
+
+template <>
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return isnan(static_cast<float>(val));
+}
+
+
+#endif
 
 
 namespace kernels {
 namespace cuda {
 
-// __habs only defined when CUDA_ARCH
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+
+
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
+
 __device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }
+
+
+#else
+
+
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+
+
+__device__ __forceinline__ __half sqrt(const __half& val)
+{
+    return sqrt(static_cast<float>(val));
+}
+
+
 #endif
+
 
 namespace detail {
 
