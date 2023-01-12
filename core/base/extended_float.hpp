@@ -579,15 +579,17 @@ public:
         : complex(static_cast<value_type>(real), static_cast<value_type>(imag))
     {}
 
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
     complex(const T& real) : complex(static_cast<value_type>(real))
     {}
 
-    template <typename U>
-    explicit complex(const complex<U>& other)
+    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    explicit complex(const complex<T>& other)
         : complex(static_cast<value_type>(other.real()),
                   static_cast<value_type>(other.imag()))
     {}
+
+    // explicit complex(const complex<value_type>& other) = default;
 
     value_type real() const noexcept { return real_; }
 
@@ -598,6 +600,12 @@ public:
     {
         return std::complex<gko::float32>(static_cast<gko::float32>(real_),
                                           static_cast<gko::float32>(imag_));
+    }
+
+    operator std::complex<double>() const noexcept
+    {
+        return std::complex<double>(static_cast<double>(real_),
+                                    static_cast<double>(imag_));
     }
 
     template <typename V>
@@ -656,13 +664,18 @@ public:
     template <typename T>
     complex& operator*=(const complex<T>& val)
     {
-        *this = *this * complex(val.real(), val.imag());
+        auto tmp = real_;
+        real_ = real_ * val.real() - imag_ * val.imag();
+        imag_ = tmp * val.imag() + imag_ * val.real();
         return *this;
     }
     template <typename T>
     complex& operator/=(const complex<T>& val)
     {
-        *this = *this / complex(val.real(), val.imag());
+        auto real = val.real();
+        auto imag = val.imag();
+        (*this) *= complex<T>{val.real(), -val.imag()};
+        (*this) /= (real * real + imag * imag);
         return *this;
     }
 
@@ -738,6 +751,8 @@ struct numeric_limits<gko::half> {
     }
 };
 
+// complex using a template on operator= for any kind of complex<T>, so we can
+// do full specialization for half
 template <>
 inline complex<double>& complex<double>::operator=(
     const std::complex<gko::half>& a)

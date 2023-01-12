@@ -40,9 +40,11 @@ __device__ __forceinline__
 }
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ std::enable_if_t<
-    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
-load(const thrust::complex<ValueType>* values, IndexType index)
+__device__ __forceinline__
+    std::enable_if_t<std::is_floating_point<ValueType>::value ||
+                         std::is_same<ValueType, __half>::value,
+                     thrust::complex<ValueType>>
+    load(const thrust::complex<ValueType>* values, IndexType index)
 {
     auto real = reinterpret_cast<const ValueType*>(values);
     auto imag = real + 1;
