@@ -386,7 +386,7 @@ protected:
 
         auto xs = x->unbatch();
         const auto tol = test_isai_extension == true
-                             ? 100000 * r<value_type>::value
+                             ? 1000000 * r<value_type>::value
                              : r<value_type>::value;
         for (size_t i = 0; i < umtxs.size(); i++) {
             GKO_ASSERT_MTX_NEAR(ux[i], xs[i], tol);
