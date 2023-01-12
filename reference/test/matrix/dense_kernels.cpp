@@ -749,9 +749,11 @@ TYPED_TEST(Dense, ConvertsToPrecision)
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->convert_to(tmp);
     tmp->convert_to(res);
@@ -769,9 +771,11 @@ TYPED_TEST(Dense, MovesToPrecision)
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->move_to(tmp);
     tmp->move_to(res);

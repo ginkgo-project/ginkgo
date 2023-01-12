@@ -592,7 +592,9 @@ TYPED_TEST(Csr, ConvertsToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->convert_to(tmp);
@@ -617,7 +619,9 @@ TYPED_TEST(Csr, MovesToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->move_to(tmp);

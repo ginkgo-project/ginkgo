@@ -484,7 +484,9 @@ TYPED_TEST(Ell, ConvertsToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     this->mtx1->convert_to(tmp);
     tmp->convert_to(res);
@@ -505,7 +507,9 @@ TYPED_TEST(Ell, MovesToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     this->mtx1->move_to(tmp);
     tmp->move_to(res);
