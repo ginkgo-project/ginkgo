@@ -96,7 +96,7 @@ build/cuda92/nompi/gcc/all/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 61
