@@ -56,12 +56,14 @@ class Partition;
  * Builds a partition from a local range.
  *
  * @param exec  the Executor on which the partition should be built.
- * @param local_range the start and end indices of the local range.
  * @param comm  the communicator used to determine the global partition.
+ * @param local_range the start and end indices of the local range.
  *
- * @warning The local ranges have to be continuous and ascending. This means
- *          that for a process `i` with `range[i] = [s_i, e_i)` then for process
- *          `j = i+1` `range[j] = [s_j = e_i, e_j)`.
+ * @warning  This throws, if the resulting partition would contain gaps.
+ *           That means that for a partition of size `n` every local range `r_i
+ *           = [s_i, e_i)` either `s_i != 0` and another local range `r_j =
+ *           [s_j, e_j = s_i)` exists, or `e_i != n` and another local range
+ *           `r_j = [s_j = e_i, e_j)` exists.
  *
  * @return a Partition where each range has the individual local_start
  *         and local_ends.
@@ -76,8 +78,8 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
  * Builds a partition from a local size.
  *
  * @param exec  the Executor on which the partition should be built.
- * @param local_range the number of the locally owned indices
  * @param comm  the communicator used to determine the global partition.
+ * @param local_range the number of the locally owned indices
  *
  * @return a Partition where each range has the specified local size. More
  *         specifically, if this is called on process i with local_size `s_i`,

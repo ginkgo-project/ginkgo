@@ -64,7 +64,7 @@ template <typename IndexType>
 std::vector<IndexType> create_iota(IndexType min, IndexType max)
 {
     std::vector<IndexType> iota(
-        clamp(max - min, static_cast<IndexType>(0), max));
+        clamp(max - min, IndexType(0), max));
     std::iota(iota.begin(), iota.end(), min);
     return iota;
 }
@@ -98,7 +98,7 @@ std::vector<std::size_t> sample_unique(std::size_t min, std::size_t max,
     std::default_random_engine engine;
     auto values = create_iota(min, max);
     std::shuffle(values.begin(), values.end(), engine);
-    values.erase(values.begin() + clamp(n, 0ul, values.size()), values.end());
+    values.erase(values.begin() + clamp(n, gko::size_type(0), values.size()), values.end());
     return values;
 }
 
