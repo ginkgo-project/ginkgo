@@ -50,14 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
-namespace std {
-
-template <>
-struct is_scalar<__half> : std::true_type {};
-
-}  // namespace std
-
-
 namespace gko {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 // template <>
@@ -71,34 +63,55 @@ GKO_INLINE GKO_ATTRIBUTES constexpr __half abs(const __half& val)
 {
     return __habs(val);
 }
+
 #endif
+
+#if defined(__HIPCC__)
+GKO_INLINE
+GKO_ATTRIBUTES __half sqrt(__half val) { return hsqrt(val); }
+GKO_INLINE
+GKO_ATTRIBUTES float sqrt(float val) { return sqrtf(val); }
+GKO_INLINE
+GKO_ATTRIBUTES double sqrt(double val) { return sqrt(val); }
+GKO_INLINE
+GKO_ATTRIBUTES thrust::complex<float> sqrt(thrust::complex<float> val)
+{
+    return thrust::sqrt(val);
+}
+GKO_INLINE
+GKO_ATTRIBUTES thrust::complex<double> sqrt(thrust::complex<double> val)
+{
+    return thrust::sqrt(val);
+}
+#endif
+
+// #if defined(__HIPCC__)
+// // #endif
+// // __device__ __half sqrt(__half val) { return hsqrt(val); }
+// // if directly using above, it will lead all double, float goes to half
+// version
+// __device__ __half sqrt(__half val) { return hsqrt(val); }
+// __device__ float sqrt(float val) { return sqrtf(val); }
+// __device__ double sqrt(double val) { return sqrt(val); }
+// __device__ thrust::complex<float> sqrt(thrust::complex<float> val)
+// {
+//     return thrust::sqrt(val);
+// }
+// __device__ thrust::complex<double> sqrt(thrust::complex<double> val)
+// {
+//     return thrust::sqrt(val);
+// }
+// // template <typename T>
+// // __device__ __forceinline__
+// //     std::enable_if_t<std::is_same<T, __half>::value, __half>
+// //     sqrt(const T& val)
+// // {
+// //     return hsqrt(val);
+// // }
+// #endif
 
 namespace kernels {
 namespace hip {
-
-#if defined(__HIPCC__)
-// #endif
-// __device__ __half sqrt(__half val) { return hsqrt(val); }
-// if directly using above, it will lead all double, float goes to half version
-__device__ __half sqrt(__half val) { return hsqrt(val); }
-__device__ float sqrt(float val) { return sqrtf(val); }
-__device__ double sqrt(double val) { return sqrt(val); }
-__device__ thrust::complex<float> sqrt(thrust::complex<float> val)
-{
-    return thrust::sqrt(val);
-}
-__device__ thrust::complex<double> sqrt(thrust::complex<double> val)
-{
-    return thrust::sqrt(val);
-}
-// template <typename T>
-// __device__ __forceinline__
-//     std::enable_if_t<std::is_same<T, __half>::value, __half>
-//     sqrt(const T& val)
-// {
-//     return hsqrt(val);
-// }
-#endif
 namespace detail {
 
 
