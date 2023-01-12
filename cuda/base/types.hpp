@@ -18,31 +18,26 @@
 #include <ginkgo/core/base/types.hpp>
 
 
-namespace std {
-
-template <>
-struct is_scalar<__half> : std::true_type {};
-
-}  // namespace std
-
 namespace gko {
 
-#if defined(__CUDA_ARCH__)
+
 template <>
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
     return is_nan(float(val));
 }
-#endif
+
 
 namespace kernels {
 namespace cuda {
+
+// __habs only defined when CUDA_ARCH
 #if defined(__CUDA_ARCH__)
-// template <>
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
 __device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }
 #endif
+
 namespace detail {
 
 /**
