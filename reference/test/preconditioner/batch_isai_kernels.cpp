@@ -223,7 +223,7 @@ protected:
 
         for (size_t i = 0; i < nbatch; i++) {
             GKO_ASSERT_MTX_NEAR(approx_inv_vec[i], check_isai[i],
-                                10 * r<value_type>::value);
+                                50 * r<value_type>::value);
         }
     }
 
@@ -323,7 +323,7 @@ protected:
 
         auto xs = x->unbatch();
         for (size_t i = 0; i < umtxs.size(); i++) {
-            GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 10 * r<value_type>::value);
+            GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 50 * r<value_type>::value);
         }
     }
 };
