@@ -386,8 +386,8 @@ protected:
 
         auto xs = x->unbatch();
         const auto tol = test_isai_extension == true
-                             ? 1000000 * r<value_type>::value
-                             : r<value_type>::value;
+                             ? 100000 * r<value_type>::value
+                             : 10 * r<value_type>::value;
         for (size_t i = 0; i < umtxs.size(); i++) {
             GKO_ASSERT_MTX_NEAR(ux[i], xs[i], tol);
         }
@@ -414,8 +414,9 @@ TYPED_TEST(BatchIluIsai, BatchIluIsaiGenerationIsEquivalentToUnbatched)
 }
 
 
-TYPED_TEST(BatchIluIsai,
-           BatchIluIsaiWithApplyTypeRelxationStepsSimpleIsEquivalentToUnbatched)
+TYPED_TEST(
+    BatchIluIsai,
+    BatchIluIsaiWithApplyTypeRelaxationStepsSimpleIsEquivalentToUnbatched)
 {
     this->test_batch_ilu_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         gko::preconditioner::batch_ilu_type::exact_ilu, 10, 2, 3, 3,
