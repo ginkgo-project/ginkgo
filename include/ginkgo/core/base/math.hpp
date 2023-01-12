@@ -26,6 +26,9 @@
 #endif
 
 
+class __half;
+
+
 namespace std {
 
 
@@ -182,6 +185,9 @@ struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
 template <>
 struct is_complex_or_scalar_impl<half> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<__half> : std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<std::complex<T>>
