@@ -396,8 +396,8 @@ public:
         using type =                                                       \
             typename std::conditional<std::is_floating_point<T>::value, T, \
                                       half>::type;                         \
-        auto result = static_cast<type>(hf);                               \
-        result _opeq static_cast<type>(val);                               \
+        auto result = static_cast<type>(val);                              \
+        result _opeq static_cast<type>(hf);                                \
         return result;                                                     \
     }
 
