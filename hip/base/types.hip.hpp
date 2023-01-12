@@ -51,64 +51,61 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-// template <>
+#if defined(__CUDA_ARCH__)
+#if __CUDA_ARCH__ >= 700
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
-    return is_nan(float(val));
+    return __hisnan(val);
 }
 
-template <>
-GKO_INLINE GKO_ATTRIBUTES constexpr __half abs(const __half& val)
+__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
+#else
+__device__ __forceinline__ bool is_nan(const __half& val)
 {
-    return __habs(val);
+    return is_nan(static_cast<float>(val));
 }
+
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+#endif
+
+#elif defined(__HIP_DEVICE_COMPILE__)
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return __hisnan(val);
+}
+
+// rocm40 __habs is not constexpr
+__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
 #endif
 
 #if defined(__HIPCC__)
-GKO_INLINE
-GKO_ATTRIBUTES __half sqrt(__half val) { return hsqrt(val); }
-GKO_INLINE
-GKO_ATTRIBUTES float sqrt(float val) { return sqrtf(val); }
-GKO_INLINE
-GKO_ATTRIBUTES double sqrt(double val) { return sqrt(val); }
-GKO_INLINE
-GKO_ATTRIBUTES thrust::complex<float> sqrt(thrust::complex<float> val)
+__device__ __forceinline__ float sqrt(float val) { return sqrtf(val); }
+__device__ __forceinline__ double sqrt(double val) { return sqrt(val); }
+__device__ __forceinline__ thrust::complex<float> sqrt(
+    thrust::complex<float> val)
 {
     return thrust::sqrt(val);
 }
-GKO_INLINE
-GKO_ATTRIBUTES thrust::complex<double> sqrt(thrust::complex<double> val)
+__device__ __forceinline__ thrust::complex<double> sqrt(
+    thrust::complex<double> val)
 {
     return thrust::sqrt(val);
 }
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
+__device__ __forceinline__ __half sqrt(__half val)
+{
+    return sqrt(static_cast<float>(val));
+}
+#else
+__device__ __forceinline__ __half sqrt(__half val) { return hsqrt(val); }
+#endif
 #endif
 
-// #if defined(__HIPCC__)
-// // #endif
-// // __device__ __half sqrt(__half val) { return hsqrt(val); }
-// // if directly using above, it will lead all double, float goes to half
-// version
-// __device__ __half sqrt(__half val) { return hsqrt(val); }
-// __device__ float sqrt(float val) { return sqrtf(val); }
-// __device__ double sqrt(double val) { return sqrt(val); }
-// __device__ thrust::complex<float> sqrt(thrust::complex<float> val)
-// {
-//     return thrust::sqrt(val);
-// }
-// __device__ thrust::complex<double> sqrt(thrust::complex<double> val)
-// {
-//     return thrust::sqrt(val);
-// }
-// // template <typename T>
-// // __device__ __forceinline__
-// //     std::enable_if_t<std::is_same<T, __half>::value, __half>
-// //     sqrt(const T& val)
-// // {
-// //     return hsqrt(val);
-// // }
-// #endif
 
 namespace kernels {
 namespace hip {
