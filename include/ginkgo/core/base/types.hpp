@@ -420,9 +420,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 #if GINKGO_COMPILE_KERNEL
-#define GKO_ADAPT_CPHF(_macro) \
-    template <>                \
-    _macro GKO_NOT_IMPLEMENTED
+#define GKO_ADAPT_CPHF(_macro) template _macro
 #else
 #define GKO_ADAPT_CPHF(_macro) template _macro
 #endif

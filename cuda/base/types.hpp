@@ -49,6 +49,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/matrix_data.hpp>
 
+// namespace std {
+GKO_ATTRIBUTES GKO_INLINE __half hypot(__half a, __half b)
+{
+    return hypot(static_cast<float>(a), static_cast<float>(b));
+}
+
+GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> sqrt(
+    thrust::complex<__half> a)
+{
+    return sqrt(static_cast<thrust::complex<float>>(a));
+}
+
+// }  // namespace std
+
+namespace thrust {
+template <>
+GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
+{
+    return hypot(z.real(), z.imag());
+}
+
+}  // namespace thrust
+
+
+#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
+    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
+        const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
+    {                                                                         \
+        auto result = lhs;                                                    \
+        result _opeq rhs;                                                     \
+        return result;                                                        \
+    }
+
+THRUST_HALF_FRIEND_OPERATOR(+, +=)
+THRUST_HALF_FRIEND_OPERATOR(-, -=)
+THRUST_HALF_FRIEND_OPERATOR(*, *=)
+THRUST_HALF_FRIEND_OPERATOR(/, /=)
 
 namespace gko {
 
@@ -74,6 +111,13 @@ __device__ __forceinline__ bool is_nan(const __half& val)
 
 
 #endif
+
+
+template <>
+__device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
 
 
 namespace kernels {
@@ -277,7 +321,7 @@ struct cuda_struct_member_type_impl {
 
 template <typename T>
 struct cuda_struct_member_type_impl<std::complex<T>> {
-    using type = fake_complex<T>;
+    using type = fake_complex<typename cuda_struct_member_type_impl<T>::type>;
 };
 
 template <>
@@ -306,6 +350,7 @@ GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
+GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 

@@ -56,7 +56,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class __half;
 
-
+namespace thrust {
+template <typename T>
+class complex;
+}
 namespace std {
 
 
@@ -71,7 +74,8 @@ inline gko::half sqrt(gko::half a) { return gko::half(sqrt(float(a))); }
 
 inline std::complex<gko::half> sqrt(std::complex<gko::half> a)
 {
-    return std::complex<gko::half>(sqrt(std::complex<float>(a)));
+    return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 
 
@@ -207,6 +211,10 @@ template <typename T>
 struct is_complex_impl<std::complex<T>>
     : public std::integral_constant<bool, true> {};
 
+template <typename T>
+struct is_complex_impl<thrust::complex<T>>
+    : public std::integral_constant<bool, true> {};
+
 
 template <typename T>
 struct is_complex_or_scalar_impl : std::is_scalar<T> {};
@@ -219,6 +227,10 @@ struct is_complex_or_scalar_impl<__half> : std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<std::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
+
+template <typename T>
+struct is_complex_or_scalar_impl<thrust::complex<T>>
     : is_complex_or_scalar_impl<T> {};
 
 
