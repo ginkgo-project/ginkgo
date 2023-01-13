@@ -56,7 +56,7 @@ constexpr int default_block_size = 128;
 
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 
 template <typename ValueType>
@@ -69,11 +69,11 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    const int shared_size =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
-        sizeof(ValueType);
+    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
+                                a_ub.num_rows, a_ub.num_nnz) *
+                            sizeof(ValueType);
     batch_jacobi<<<nbatch, default_block_size, shared_size>>>(
-        BatchJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
+        BatchScalarJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL);
@@ -89,11 +89,11 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    const int shared_size =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
-        sizeof(ValueType);
+    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
+                                a_ub.num_rows, a_ub.num_nnz) *
+                            sizeof(ValueType);
     batch_jacobi<<<nbatch, default_block_size, shared_size>>>(
-        BatchJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
+        BatchScalarJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
