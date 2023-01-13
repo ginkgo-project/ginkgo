@@ -36,9 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 namespace gko {
@@ -80,6 +79,9 @@ public:
             this->factorization = std::move(factory);
             return *this;
         }
+
+        gko::solver::trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
+            algorithm, gko::solver::trisolve_algorithm::syncfree);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
