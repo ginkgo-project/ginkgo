@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
 
 
+#include <unordered_map>
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
@@ -52,24 +55,133 @@ enum class profile_event_category {
 };
 
 
-/** The Ginkgo yellow background color as packed 24 bit RGB value. */
-constexpr uint32 color_yellow_rgb = 0xFFCB05U;
+class ProfilerHook : public Logger {
+public:
+    using hook_function =
+        std::function<void(const char*, profile_event_category)>;
 
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type&) const override;
 
-std::shared_ptr<Logger> get_tau_hook(bool initialize = true);
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type&,
+                                 const gko::uintptr&) const override;
 
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr&) const override;
 
-std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb = color_yellow_rgb);
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr&) const override;
 
+    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
+                         const gko::uintptr&, const gko::uintptr&,
+                         const gko::size_type&) const override;
 
-std::shared_ptr<Logger> create_roctx_hook();
+    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
+                           const gko::uintptr&, const gko::uintptr&,
+                           const gko::size_type&) const override;
 
+    /* Operation events */
+    void on_operation_launched(const Executor* exec,
+                               const Operation* operation) const override;
 
-/**
- * Sets the name for an object to be profiled. Every instance of that object in
- * the profile will be replaced by the name instead of its runtime type.
- */
-void set_profiled_object_name(const PolymorphicObject* obj, std::string name);
+    void on_operation_completed(const Executor* exec,
+                                const Operation* operation) const override;
+
+    /* PolymorphicObject events */
+    void on_polymorphic_object_copy_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_copy_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    /* LinOp events */
+    void on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                const LinOp* x) const override;
+
+    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                  const LinOp* x) const override;
+
+    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
+                                         const LinOp* b, const LinOp* beta,
+                                         const LinOp* x) const override;
+
+    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
+                                           const LinOp* b, const LinOp* beta,
+                                           const LinOp* x) const override;
+
+    /* LinOpFactory events */
+    void on_linop_factory_generate_started(const LinOpFactory* factory,
+                                           const LinOp* input) const override;
+
+    void on_linop_factory_generate_completed(
+        const LinOpFactory* factory, const LinOp* input,
+        const LinOp* output) const override;
+
+    /* Criterion events */
+    void on_criterion_check_started(const stop::Criterion* criterion,
+                                    const size_type& num_iterations,
+                                    const LinOp* residual,
+                                    const LinOp* residual_norm,
+                                    const LinOp* solution,
+                                    const uint8& stopping_id,
+                                    const bool& set_finalized) const override;
+
+    void on_criterion_check_completed(
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* solution, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_stopped) const override;
+
+    void on_criterion_check_completed(
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* implicit_sq_resnorm, const LinOp* solution,
+        const uint8& stopping_id, const bool& set_finalized,
+        const array<stopping_status>* status, const bool& one_changed,
+        const bool& all_stopped) const override;
+
+    /**
+     * Sets the name for an object to be profiled. Every instance of that object
+     * in the profile will be replaced by the name instead of its runtime type.
+     * @param obj  the object
+     * @param name  its name
+     */
+    void set_object_name(const PolymorphicObject* obj, std::string name);
+
+    /** The Ginkgo yellow background color as packed 32 bit ARGB value. */
+    constexpr static uint32 color_yellow_argb = 0xFFFFCB05U;
+
+    static std::shared_ptr<ProfilerHook> create_tau(bool initialize = true);
+
+    static std::shared_ptr<ProfilerHook> create_nvtx(
+        uint32 color_argb = color_yellow_argb);
+
+    static std::shared_ptr<ProfilerHook> create_roctx();
+
+    static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
+                                                       hook_function end);
+
+private:
+    ProfilerHook(hook_function begin, hook_function end);
+
+    std::string stringify_object(const PolymorphicObject* obj) const;
+
+    std::unordered_map<const PolymorphicObject*, std::string> name_map_;
+    hook_function begin_hook_;
+    hook_function end_hook_;
+};
 
 
 }  // namespace log

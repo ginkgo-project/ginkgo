@@ -310,10 +310,9 @@ void init_nvtx()
 
 
 std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
-    uint32_t color_rgb)
+    uint32_t color_argb)
 {
-    return [color_argb = color_rgb | 0xff000000u](
-               const char* name, profile_event_category category) {
+    return [color_argb](const char* name, profile_event_category category) {
         nvtxEventAttributes_t attr{};
         attr.version = NVTX_VERSION;
         attr.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
