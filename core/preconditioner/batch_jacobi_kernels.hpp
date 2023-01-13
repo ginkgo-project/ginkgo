@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -77,51 +80,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_JACOBI_KERNEL(ValueType)
 
 
-namespace omp {
-namespace batch_jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_jacobi
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_jacobi
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_jacobi
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_jacobi
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_jacobi
-}  // namespace dpcpp
-
-
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_jacobi,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

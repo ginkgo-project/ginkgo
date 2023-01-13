@@ -50,8 +50,8 @@ namespace preconditioner {
 
 
 /**
- * A batch-Jacobi preconditioner is a diagonal batch linear operator, obtained
- * by inverting the diagonals, of the source batch operator.
+ * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
+ * by inverting the diagonal blocks of the source operator.
  *
  * Note: Batched Preconditioners do not support user facing apply.
  *
@@ -72,24 +72,137 @@ public:
     using EnableBatchLinOp<BatchJacobi>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
+    using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+
+    const index_type* get_const_block_pointers() const noexcept
+    {
+        if (parameters_.max_block_size == 1) {
+            // TODO: Commented for a while to get rid of warnings
+            // throw std::runtime_error(
+            //     "The blocks array is empty in case of scalar jacobi "
+            //     "preconditioner as it is generated inside the batched solver
+            //     " "kernel.");
+        }
+        return parameters_.block_pointers.get_const_data();
+    }
+
+    uint32 get_max_block_size() const noexcept
+    {
+        return parameters_.max_block_size;
+    }
+
+    /**
+     * Returns the number of blocks of the operator.
+     *
+     * @return the number of blocks of the operator
+     *
+     */
+    size_type get_num_blocks() const noexcept { return num_blocks_; }
+
+    /**
+     * Returns the pointer to the memory used for storing the block data.
+     * Note: In case of scalar jacobi preconditioner, the method will throw an
+     * exeception as the preconditioner is generated inside the batched solver
+     * kernels, hence, blocks array storage is not required.
+     * @return the pointer to the memory used for storing the block data
+     *
+     */
+    const value_type* get_const_blocks() const noexcept
+    {
+        if (parameters_.max_block_size == 1) {
+            // TODO: Commented for a while to get rid of warnings
+            // throw std::runtime_error(
+            //     "The blocks array is empty in case of scalar jacobi "
+            //     "preconditioner as it is generated inside the batched solver
+            //     " "kernel.");
+        }
+        return blocks_.get_const_data();
+    }
+
+    /**
+     * Returns the number of elements explicitly stored in the matrix.
+     * Note: In case of scalar jacobi preconditioner, it will throw an
+     * exeception as the preconditioner is generated inside the batched solver
+     * kernels, hence, blocks array storage is not required.
+     * @return the number of elements explicitly stored in the matrix.
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        // if (parameters_.max_block_size == 1) {
+        //     throw std::runtime_error(
+        //         "The blocks array is empty in case of scalar jacobi "
+        //         "preconditioner as it is generated inside the batched solver
+        //         " "kernel.");
+        // }
+        return blocks_.get_num_elems();
+    }
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Maximal size of diagonal blocks.
+         *
+         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD). For
+         * efficiency, when the max_block_size is set to 1, specialized kernels
+         * are used and the additional objects (block_ptrs etc) are set to null
+         * values.
+         */
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
+
+        /**
+         * Starting (row / column) indexes of individual blocks.
+         *
+         * An index past the last block has to be supplied as the last value.
+         * I.e. the size of the array has to be the number of blocks plus 1,
+         * where the first value is 0, and the last value is the number of
+         * rows / columns of the matrix.
+         *
+         * @note Even if not set explicitly, this parameter will be set to
+         *       automatically detected values once the preconditioner is
+         *       generated.
+         * @note If the parameter is set automatically, the size of the array
+         *       does not correlate to the number of blocks, and is
+         *       implementation defined. To obtain the number of blocks `n` use
+         *       Jacobi::get_num_blocks(). The starting indexes of the blocks
+         *       are stored in the first `n+1` values of this array.
+         * @note If the block-diagonal structure can be determined from the
+         *       problem characteristics, it may be beneficial to pass this
+         *       information specifically via this parameter, as the
+         *       autodetection procedure is only a rough approximation of the
+         *       true block structure.
+         * @note The maximum block size set by the max_block_size parameter
+         *       has to be respected when setting this parameter. Failure to do
+         *       so will lead to undefined behavior.
+         */
+        gko::array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
+                                                            nullptr);
+
+        /**
+         * @brief `true` means it is known that the matrix given to this
+         *        factory will be sorted first by row, then by column index,
+         *        `false` means it is unknown or not sorted, so an additional
+         *        sorting step will be performed during the preconditioner
+         *        generation (it will not change the matrix given).
+         *        The matrix must be sorted for this preconditioner to work.
+         *
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this preconditioner might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+    };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchJacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<BatchLinOp> transpose() const override
-    {
-        return this->clone();
-    }
-
-    std::unique_ptr<BatchLinOp> conj_transpose() const override
-    {
-        // Since this preconditioner does nothing in its genarate step,
-        //  conjugate transpose only depends on the matrix being
-        //  conjugate-transposed.
-        return this->clone();
-    }
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
 protected:
     /**
@@ -98,8 +211,10 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit BatchJacobi(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<BatchJacobi>(exec)
-    {}
+        : EnableBatchLinOp<BatchJacobi>(exec), num_blocks_{}, blocks_(exec)
+    {
+        parameters_.block_pointers.set_executor(this->get_executor());
+    }
 
     /**
      * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
@@ -113,9 +228,16 @@ protected:
         : EnableBatchLinOp<BatchJacobi>(
               factory->get_executor(),
               gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
+          blocks_(factory->get_executor(),
+                  compute_storage_space(
+                      system_matrix->get_num_batch_entries(),
+                      parameters_.block_pointers.get_num_elems() - 1))
     {
-        this->generate(lend(system_matrix));
+        parameters_.block_pointers.set_executor(this->get_executor());
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
+        this->generate_precond(lend(system_matrix));
     }
 
     /**
@@ -124,7 +246,7 @@ protected:
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner
      */
-    void generate(const BatchLinOp* system_matrix) {}
+    void generate_precond(const BatchLinOp* system_matrix);
 
     // Since there is no guarantee that the complete generation of the
     // preconditioner would occur outside the solver kernel, that is in the
@@ -138,6 +260,39 @@ protected:
                     const BatchLinOp* beta, BatchLinOp* x) const override
         GKO_BATCHED_NOT_SUPPORTED(
             "batched preconditioners do not support apply");
+
+private:
+    /**
+     * Detects the diagonal blocks and allocates the memory needed to store the
+     * preconditioner.
+     */
+    void detect_blocks(const size_type num_batch,
+                       const matrix::Csr<ValueType, IndexType>* system_matrix);
+
+    /**
+     * Computes the storage space required for the requested number of blocks.
+     *
+     * @param num_batch  the number of entries in the batch
+     * @param num_blocks  the total number of blocks that needs to be stored
+     *
+     * @return the total memory (as the number of elements) that need to be
+     *         allocated for the scheme
+     *
+     * @note  To simplify using the method in situations where the number of
+     *        blocks is not known, for a special input `size_type{} - 1`
+     *        the method returns `0` to avoid overallocation of memory.
+     */
+    size_type compute_storage_space(size_type num_batch,
+                                    size_type num_blocks) const noexcept
+    {
+        return (num_blocks + 1 == size_type{0})
+                   ? size_type{0}
+                   : num_blocks * parameters_.max_block_size *
+                         parameters_.max_block_size * num_batch;
+    }
+
+    size_type num_blocks_;
+    array<value_type> blocks_;
 };
 
 

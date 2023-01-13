@@ -43,7 +43,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 
-
+#include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"

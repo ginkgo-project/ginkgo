@@ -102,6 +102,7 @@ using DeviceValueType = ValueType;
 
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_block_jacobi.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_ilu_isai.hpp"
@@ -203,12 +204,29 @@ public:
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, device::BatchIdentity<device_value_type>(), b_b,
                 x_b);
-        } else if (auto precjac = dynamic_cast<
+        } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchJacobi<value_type>*>(
                        precon_)) {
-            dispatch_on_stop<device::BatchJacobi<device_value_type>>(
-                logger, amat, device::BatchJacobi<device_value_type>(), b_b,
-                x_b);
+            const auto max_block_size = prec->get_max_block_size();
+            if (max_block_size == 1) {
+                dispatch_on_stop<device::BatchJacobi<device_value_type>>(
+                    logger, amat, device::BatchJacobi<device_value_type>(), b_b,
+                    x_b);
+            } else {
+                const auto num_blocks = prec->get_num_blocks();
+                const auto block_ptrs_arr = prec->get_const_block_pointers();
+                const auto blocks_arr =
+                    reinterpret_cast<DeviceValueType<const ValueType*>>(
+                        prec->get_const_blocks());
+
+                dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
+                    logger, amat,
+                    device::BatchBlockJacobi<device_value_type>(
+                        num_blocks, static_cast<int32>(max_block_size),
+                        blocks_arr, block_ptrs_arr),
+                    b_b, x_b);
+            }
+
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIsai<value_type>*>(precon_)) {
             const auto approx_inv = device::get_batch_struct(
