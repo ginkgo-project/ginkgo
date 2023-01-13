@@ -50,7 +50,7 @@ namespace hip {
 #include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 }  // namespace hip
 }  // namespace kernels

@@ -107,7 +107,7 @@ using DeviceValueType = ValueType;
 #include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_ilu_isai.hpp"
 #include "reference/preconditioner/batch_isai.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
+#include "reference/preconditioner/batch_scalar_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 namespace gko {
@@ -209,9 +209,9 @@ public:
                        precon_)) {
             const auto max_block_size = prec->get_max_block_size();
             if (max_block_size == 1) {
-                dispatch_on_stop<device::BatchJacobi<device_value_type>>(
-                    logger, amat, device::BatchJacobi<device_value_type>(), b_b,
-                    x_b);
+                dispatch_on_stop<device::BatchScalarJacobi<device_value_type>>(
+                    logger, amat,
+                    device::BatchScalarJacobi<device_value_type>(), b_b, x_b);
             } else {
                 const auto num_blocks = prec->get_num_blocks();
                 const auto block_ptrs_arr = prec->get_const_block_pointers();
