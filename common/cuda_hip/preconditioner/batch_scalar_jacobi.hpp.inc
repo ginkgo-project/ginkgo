@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
 template <typename ValueType>
-class BatchJacobi final {
+class BatchScalarJacobi final {
 public:
     using value_type = ValueType;
 
@@ -159,7 +159,7 @@ private:
 
 template <typename ValueType>
 __global__ void batch_jacobi(
-    BatchJacobi<ValueType> prec,
+    BatchScalarJacobi<ValueType> prec,
     const gko::batch_ell::UniformBatch<const ValueType> a,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
@@ -179,7 +179,7 @@ __global__ void batch_jacobi(
 
 template <typename ValueType>
 __global__ void batch_jacobi(
-    BatchJacobi<ValueType> prec,
+    BatchScalarJacobi<ValueType> prec,
     const gko::batch_csr::UniformBatch<const ValueType> a,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
