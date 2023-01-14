@@ -574,7 +574,9 @@ public:
             const value_type& imag = value_type(0.f))
         : real_(real), imag_(imag)
     {}
-    template <typename T, typename U>
+    template <typename T, typename U,
+              typename = std::enable_if_t<std::is_scalar<T>::value &&
+                                          std::is_scalar<U>::value>>
     explicit complex(const T& real, const U& imag)
         : complex(static_cast<value_type>(real), static_cast<value_type>(imag))
     {}

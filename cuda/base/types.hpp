@@ -49,7 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/matrix_data.hpp>
 
-// namespace std {
+
+// thrust calls the c function not the function from std
+// Maybe override the function from thrust directlry
 GKO_ATTRIBUTES GKO_INLINE __half hypot(__half a, __half b)
 {
     return hypot(static_cast<float>(a), static_cast<float>(b));
@@ -61,14 +63,17 @@ GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> sqrt(
     return sqrt(static_cast<thrust::complex<float>>(a));
 }
 
-// }  // namespace std
 
 namespace thrust {
+
+
+// Dircetly call float versrion from here?
 template <>
 GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 {
     return hypot(z.real(), z.imag());
 }
+
 
 }  // namespace thrust
 
@@ -77,15 +82,14 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
     GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
         const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
     {                                                                         \
-        auto result = lhs;                                                    \
-        result _opeq rhs;                                                     \
-        return result;                                                        \
+        return thrust::complex<float>{lhs} + thrust::complex<float>(rhs);     \
     }
 
 THRUST_HALF_FRIEND_OPERATOR(+, +=)
 THRUST_HALF_FRIEND_OPERATOR(-, -=)
 THRUST_HALF_FRIEND_OPERATOR(*, *=)
 THRUST_HALF_FRIEND_OPERATOR(/, /=)
+
 
 namespace gko {
 
