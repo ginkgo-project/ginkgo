@@ -669,10 +669,10 @@ template <>
     std::complex<half> val2, double abs_error)
 {
     using T = std::complex<float32>;
-    T Tval1;
-    T Tval2;
-    Tval1 = val1;
-    Tval2 = val2;
+    // T{val1} calls the constructor of complex<float>() -> which gives the
+    // complex<float>(double/float) ambiguous
+    T Tval1 = val1;
+    T Tval2 = val2;
     const double diff = abs(Tval1 - Tval2);
     if (diff <= abs_error) return ::testing::AssertionSuccess();
 
