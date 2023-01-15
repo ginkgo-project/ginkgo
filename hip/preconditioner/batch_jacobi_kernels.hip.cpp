@@ -60,7 +60,7 @@ constexpr int default_block_size = 128;
 // constexpr int sm_multiplier = 4;
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 template <typename ValueType>
 void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
@@ -82,7 +82,8 @@ void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
 }
 
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL);
 
 
 template <typename ValueType>
@@ -105,7 +106,37 @@ void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
 }
 
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_common_blocks_pattern(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
+    const uint32 max_block_size, const size_type num_blocks,
+    const IndexType* const block_pointers, IndexType* const blocks_pattern)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_block_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    const size_type num_blocks, const uint32 max_block_size,
+    const IndexType* const block_pointers,
+    const IndexType* const blocks_pattern, ValueType* const blocks)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
 
 }  // namespace batch_jacobi
 }  // namespace hip
