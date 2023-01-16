@@ -59,7 +59,7 @@ private:
 public:
     using value_type = ValueType;
 
-
+    // data-locality
     /**
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
@@ -108,8 +108,28 @@ public:
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
-    {  // Structure-aware SpMV
-        GKO_NOT_IMPLEMENTED;
+    {
+        // Structure-aware SpMV
+        for (int bidx = 0; bidx < num_blocks_; bidx++) {
+            const int row_st = block_ptrs_arr_[bidx];       // inclusive
+            const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
+            const int bsize = row_end - row_st;
+
+            const auto offset = bidx * max_block_size_ * max_block_size_;
+
+            for (int row = row_st; row < row_end; row++) {
+                ValueType sum = zero<ValueType>();
+                for (int col = 0; col < bsize; col++) {
+                    const auto val =
+                        blocks_arr_entry_[offset +
+                                          (row - row_st) * max_block_size_ +
+                                          col];
+                    sum += val * r.values[col];
+                }
+
+                z.values[row] = sum;
+            }
+        }
     }
 
 private:
