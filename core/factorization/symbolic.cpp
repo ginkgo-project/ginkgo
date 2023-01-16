@@ -169,10 +169,11 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
         const auto row_begin_it = out_col_idxs.begin() + out_row_ptrs[row];
         const auto row_end_it = out_col_idxs.end();
         std::sort(row_begin_it, row_end_it);
-        const auto row_diag_it =
-            std::lower_bound(row_begin_it, row_end_it, row);
-        assert(row_diag_it < row_end_it);
-        assert(*row_diag_it == row);
+        auto row_diag_it = std::lower_bound(row_begin_it, row_end_it, row);
+        // add diagonal if it's missing
+        if (row_diag_it == row_end_it || *row_diag_it != row) {
+            row_diag_it = out_col_idxs.insert(row_diag_it, row);
+        }
         diags[row] = std::distance(out_col_idxs.begin(), row_diag_it);
     }
     const auto out_nnz = static_cast<size_type>(out_col_idxs.size());
