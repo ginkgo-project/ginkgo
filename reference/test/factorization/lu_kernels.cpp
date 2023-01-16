@@ -139,6 +139,32 @@ TYPED_TEST(Lu, SymbolicLUWorks)
 }
 
 
+TYPED_TEST(Lu, SymbolicLUWorksWithMissingDiagonal)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    auto mtx = gko::initialize<matrix_type>({{1, 1, 1, 0, 0, 0},
+                                             {1, 0, 1, 0, 0, 0},
+                                             {1, 1, 1, 1, 0, 0},
+                                             {0, 0, 1, 1, 1, 0},
+                                             {0, 0, 0, 1, 0, 1},
+                                             {0, 0, 0, 0, 1, 0}},
+                                            this->ref);
+    auto expected = gko::initialize<matrix_type>({{1, 1, 1, 0, 0, 0},
+                                                  {1, 1, 1, 0, 0, 0},
+                                                  {1, 1, 1, 1, 0, 0},
+                                                  {0, 0, 1, 1, 1, 0},
+                                                  {0, 0, 0, 1, 1, 1},
+                                                  {0, 0, 0, 0, 1, 1}},
+                                                 this->ref);
+
+
+    std::unique_ptr<matrix_type> lu;
+    gko::factorization::symbolic_lu(mtx.get(), lu);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu, expected);
+}
+
+
 TYPED_TEST(Lu, KernelInitializeWorks)
 {
     using value_type = typename TestFixture::value_type;
