@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -54,6 +55,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+/** How Logger events are propagated to their Executor. */
+enum class log_propagate_mode {
+    /**
+     * Events only get reported at loggers attached to the triggering object.
+     * (Except for allocation/free, copy and Operations, since they happen at
+     * the Executor).
+     */
+    never,
+    /**
+     * Events get reported to loggers attached to the triggering object and
+     * propagating loggers (Logger::needs_propagation() return true) attached to
+     * its Executor.
+     */
+    automatic
+};
 
 
 /**
@@ -661,9 +679,9 @@ public:
 
     Executor() = default;
     Executor(Executor&) = delete;
-    Executor(Executor&&) = default;
+    Executor(Executor&&) = delete;
     Executor& operator=(Executor&) = delete;
-    Executor& operator=(Executor&&) = default;
+    Executor& operator=(Executor&&) = delete;
 
     /**
      * Runs the specified Operation using this Executor.
@@ -835,6 +853,31 @@ public:
      */
     virtual void synchronize() const = 0;
 
+    void add_logger(std::shared_ptr<const log::Logger> logger) override
+    {
+        this->propagating_logger_refcount_.fetch_add(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::add_logger(logger);
+    }
+
+    void remove_logger(const log::Logger* logger) override
+    {
+        this->propagating_logger_refcount_.fetch_sub(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::remove_logger(logger);
+    }
+
+    void set_log_propagation_mode(log_propagate_mode mode)
+    {
+        log_propagate_mode_ = mode;
+    }
+
+    bool should_propagate_log() const
+    {
+        return this->propagating_logger_refcount_.load() > 0 &&
+               log_propagate_mode_ == log_propagate_mode::automatic;
+    }
+
     /**
      * Verifies whether the executors share the same memory.
      *
@@ -845,18 +888,6 @@ public:
     bool memory_accessible(const std::shared_ptr<const Executor>& other) const
     {
         return this->verify_memory_from(other.get());
-    }
-
-    /** Sets the logger propagation mode for this executor. */
-    void set_log_propagate_mode(log::propagate_mode mode)
-    {
-        log_propagate_mode_ = mode;
-    };
-
-    /** Returns the logger propagation mode for this executor. */
-    log::propagate_mode get_log_propagate_mode() const
-    {
-        return log_propagate_mode_;
     }
 
     virtual scoped_device_id_guard get_scoped_device_id_guard() const = 0;
@@ -1077,7 +1108,9 @@ protected:
 
     exec_info exec_info_;
 
-    log::propagate_mode log_propagate_mode_{log::propagate_mode::none};
+    log_propagate_mode log_propagate_mode_{log_propagate_mode::automatic};
+
+    std::atomic<int> propagating_logger_refcount_{};
 
 private:
     /**

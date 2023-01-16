@@ -45,16 +45,34 @@ namespace gko {
 namespace log {
 
 
+/** Categorization of logger events. */
 enum class profile_event_category {
+    /** Memory allocation. */
     memory,
+    /** Kernel execution and data movement. */
     operation,
+    /** PolymorphicObject events. */
     object,
+    /** LinOp events. */
     linop,
+    /** LinOpFactory events. */
     factory,
+    /** Stopping criterion events. */
     criterion,
+    /** For development use. */
+    internal,
 };
 
 
+/**
+ * This Logger can be used to annotate the execution of Ginkgo functionality
+ * with profiler-specific ranges. It currently supports TAU, NSightSystems
+ * (NVTX) and rocPROF(ROCTX) and custom profiler hooks.
+
+ * The Logger should be attached to the Executor that is being used to run the
+ * application for a full annotation, or to individual objects to only highlight
+ * events caused directly by them (not operations and memory allocations though)
+ */
 class ProfilerHook : public Logger {
 public:
     using hook_function =
@@ -160,16 +178,50 @@ public:
      */
     void set_object_name(const PolymorphicObject* obj, std::string name);
 
+    /**
+     * Should the events call executor->synchronize on operations and
+     * copy/allocation? This leads to a certain overhead, but makes the
+     * execution timeline of kernels synchronous.
+     */
+    void set_synchronization(bool synchronize);
+
     /** The Ginkgo yellow background color as packed 32 bit ARGB value. */
     constexpr static uint32 color_yellow_argb = 0xFFFFCB05U;
 
+    /**
+     * Creates a logger annotating Ginkgo events with TAU ranges via PerfStubs.
+     * Since TAU requires global initialization and finalization, this will only
+     * create a single global instance that is destroyed at program exit.
+     * @param initialize  Should we call TAU's initialization and finalization
+     *                    functions, or does the application take care of it?
+     */
     static std::shared_ptr<ProfilerHook> create_tau(bool initialize = true);
 
+    /**
+     * Creates a logger annotating Ginkgo events with NVTX ranges for CUDA.
+     * @param color_argb  The color of the NVTX ranges in the NSight Systems
+     *                    output. It has to be a 32 bit packed ARGB value.
+     */
     static std::shared_ptr<ProfilerHook> create_nvtx(
         uint32 color_argb = color_yellow_argb);
 
+    /**
+     * Creates a logger annotating Ginkgo events with ROCTX ranges for ROCm.
+     */
     static std::shared_ptr<ProfilerHook> create_roctx();
 
+    /**
+     * Creates a logger annotating Ginkgo events with the most suitable backend
+     * for the given executor: NVTX for NSight Systems in CUDA, ROCTX for
+     * rocprof in ROCm, TAU for everything else.
+     */
+    static std::shared_ptr<ProfilerHook> create_for_executor(
+        std::shared_ptr<const Executor> exec);
+
+    /**
+     * Creates a logger annotating Ginkgo events with a custom set of functions
+     * for range begin and end.
+     */
     static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
                                                        hook_function end);
 
@@ -179,6 +231,7 @@ private:
     std::string stringify_object(const PolymorphicObject* obj) const;
 
     std::unordered_map<const PolymorphicObject*, std::string> name_map_;
+    bool synchronize_;
     hook_function begin_hook_;
     hook_function end_hook_;
 };

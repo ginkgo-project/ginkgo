@@ -305,6 +305,7 @@ void init_nvtx()
     NAMED_CATEGORY(linop);
     NAMED_CATEGORY(factory);
     NAMED_CATEGORY(criterion);
+    NAMED_CATEGORY(internal);
 #undef NAMED_CATEGORY
 }
 
