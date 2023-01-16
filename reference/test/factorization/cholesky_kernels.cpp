@@ -162,7 +162,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountSeparable)
          {0, 0, 0, 1, 1, 0, 0, 0, 0, 0},
          {0, 0, 0, 1, 1, 1, 0, 0, 0, 1},
          {0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
-         {0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+         {0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
          {0, 0, 0, 0, 0, 0, 1, 1, 0, 0},
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
@@ -189,7 +189,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeSeparable)
          {0, 0, 0, 1, 1, 0, 0, 0, 0, 0},
          {0, 0, 0, 1, 1, 1, 0, 0, 0, 1},
          {0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
-         {0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+         {0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
          {0, 0, 0, 0, 0, 0, 1, 1, 0, 0},
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
@@ -216,6 +216,74 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeSeparable)
                                   {0., 0., 0., 0., 0., 0., 1., 1., 0., 0.},
                                   {0., 0., 0., 0., 0., 0., 0., 0., 1., 0.},
                                   {0., 0., 0., 0., 1., 1., 1., 1., 1., 1.}}));
+}
+
+
+TYPED_TEST(Cholesky, KernelSymbolicCountMissingDiagonal)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = gko::initialize<typename TestFixture::matrix_type>(
+        {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+         {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
+         {1, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+         {0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
+         {0, 0, 0, 1, 0, 1, 0, 0, 0, 0},
+         {0, 0, 0, 0, 1, 1, 1, 0, 0, 0},
+         {0, 0, 0, 0, 0, 1, 1, 1, 0, 1},
+         {0, 0, 0, 0, 0, 0, 1, 1, 0, 0},
+         {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+         {0, 0, 0, 0, 0, 0, 1, 0, 1, 0}},
+        this->ref);
+    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::array<index_type> row_nnz{this->ref, 10};
+
+    gko::kernels::reference::cholesky::cholesky_symbolic_count(
+        this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
+
+    GKO_ASSERT_ARRAY_EQ(row_nnz, I<index_type>({1, 1, 3, 2, 2, 2, 2, 2, 1, 4}));
+}
+
+
+TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = gko::initialize<typename TestFixture::matrix_type>(
+        {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+         {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
+         {1, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+         {0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
+         {0, 0, 0, 1, 0, 1, 0, 0, 0, 0},
+         {0, 0, 0, 0, 1, 1, 1, 0, 0, 0},
+         {0, 0, 0, 0, 0, 1, 1, 1, 0, 1},
+         {0, 0, 0, 0, 0, 0, 1, 1, 0, 0},
+         {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+         {0, 0, 0, 0, 0, 0, 1, 0, 1, 0}},
+        this->ref);
+    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 20);
+    gko::kernels::reference::cholesky::cholesky_symbolic_count(
+        this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
+    gko::kernels::reference::components::prefix_sum(
+        this->ref, l_factor->get_row_ptrs(), 11);
+
+    gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
+        this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_factor,
+                               l({{1., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
+                                  {0., 1., 0., 0., 0., 0., 0., 0., 0., 0.},
+                                  {1., 1., 1., 0., 0., 0., 0., 0., 0., 0.},
+                                  {0., 0., 1., 1., 0., 0., 0., 0., 0., 0.},
+                                  {0., 0., 0., 1., 1., 0., 0., 0., 0., 0.},
+                                  {0., 0., 0., 0., 1., 1., 0., 0., 0., 0.},
+                                  {0., 0., 0., 0., 0., 1., 1., 0., 0., 0.},
+                                  {0., 0., 0., 0., 0., 0., 1., 1., 0., 0.},
+                                  {0., 0., 0., 0., 0., 0., 0., 0., 1., 0.},
+                                  {0., 0., 0., 0., 0., 0., 1., 1., 1., 1.}}));
 }
 
 
