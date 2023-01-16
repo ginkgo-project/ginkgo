@@ -71,22 +71,6 @@ class Criterion;
 namespace log {
 
 
-/** How logger events are propagated to their Executor. */
-enum class propagate_mode {
-    /**
-     * Events only get reported at loggers attached to the triggering object.
-     * (Except for allocation/free, copy and Operations, since they happen at
-     * the Executor).
-     */
-    none,
-    /**
-     * Events get reported to loggers attached to the triggering object and its
-     * executor.
-     */
-    to_exec
-};
-
-
 /**
  * @addtogroup log
  *
@@ -547,6 +531,12 @@ public:
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
 
+    /**
+     * Returns true if this logger, when attached to an Executor, needs to be
+     * forwarded all events from objects on this executor.
+     */
+    virtual bool needs_propagation() const { return false; }
+
     virtual ~Logger() = default;
 
 protected:
@@ -695,12 +685,12 @@ private:
                                   Args&&... args)
         {
             const auto exec = loggable->get_executor();
-            switch (exec->get_log_propagate_mode()) {
-            case propagate_mode::none:
-                break;
-            case propagate_mode::to_exec:
-                exec->template log<Event>(std::forward<Args>(args)...);
-                break;
+            if (exec->should_propagate_log()) {
+                for (auto& logger : exec->get_loggers()) {
+                    if (logger->needs_propagation()) {
+                        logger->template on<Event>(std::forward<Args>(args)...);
+                    }
+                }
             }
         }
     };
