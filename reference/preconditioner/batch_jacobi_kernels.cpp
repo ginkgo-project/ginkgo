@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_block_jacobi.hpp"
 #include "reference/preconditioner/batch_scalar_jacobi.hpp"
-//#include "reference/preconditioner/batch_block_jacobi.hpp"
 
 
 namespace gko {
@@ -47,7 +47,70 @@ namespace kernels {
 namespace reference {
 namespace batch_jacobi {
 
+namespace {
+
+
+template <typename BatchMatrixType, typename PrecType, typename ValueType>
+void apply_jacobi(const BatchMatrixType& sys_mat_batch, PrecType& prec,
+                  const gko::batch_dense::UniformBatch<const ValueType>& rub,
+                  const gko::batch_dense::UniformBatch<ValueType>& zub)
+{
+    for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch;
+         batch_id++) {
+        const auto sys_mat_entry =
+            gko::batch::batch_entry(sys_mat_batch, batch_id);
+        const auto r_b = gko::batch::batch_entry(rub, batch_id);
+        const auto z_b = gko::batch::batch_entry(zub, batch_id);
+
+        const auto work_arr_size = PrecType::dynamic_work_size(
+            sys_mat_batch.num_rows, sys_mat_batch.num_nnz);
+        std::vector<ValueType> work(work_arr_size);
+
+        prec.generate(batch_id, sys_mat_entry, work.data());
+        prec.apply(r_b, z_b);
+    }
+}
+// Note: Do not change the ordering
+
 #include "reference/preconditioner/batch_jacobi_kernels.hpp.inc"
+
+}  // unnamed namespace
+
+
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const gko::ReferenceExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
+                              blocks_array, block_ptrs, r, z);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const gko::ReferenceExecutor> exec,
+    const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
+                              blocks_array, block_ptrs, r, z);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
+
 
 template <typename ValueType>
 void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
@@ -111,7 +174,6 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(

@@ -185,3 +185,30 @@ inline void compute_block_jacobi_impl(
         }
     }
 }
+
+
+template <typename BatchMatrixType, typename ValueType, typename IndexType>
+void batch_jacobi_apply_helper(const BatchMatrixType& sys_mat_batch,
+                               const size_type num_blocks,
+                               const uint32 max_block_size,
+                               const ValueType* blocks_array,
+                               const IndexType* block_ptrs,
+                               const matrix::BatchDense<ValueType>* const r,
+                               matrix::BatchDense<ValueType>* const z)
+{
+    const auto nbatch = sys_mat_batch.num_batch;
+    const auto rub = gko::kernels::host::get_batch_struct(r);
+    const auto zub = gko::kernels::host::get_batch_struct(z);
+
+    using scalar_jacobi_prec = gko::kernels::host::BatchScalarJacobi<ValueType>;
+    using block_jacobi_prec = gko::kernels::host::BatchBlockJacobi<ValueType>;
+
+    if (max_block_size == 1) {
+        scalar_jacobi_prec prec;
+        apply_jacobi(sys_mat_batch, prec, rub, zub);
+    } else {
+        block_jacobi_prec prec(num_blocks, max_block_size, blocks_array,
+                               block_ptrs);
+        apply_jacobi(sys_mat_batch, prec, rub, zub);
+    }
+}
