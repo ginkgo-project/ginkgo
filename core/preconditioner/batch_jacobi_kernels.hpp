@@ -89,17 +89,38 @@ namespace kernels {
         const IndexType* block_pointers, const IndexType* blocks_pattern,   \
         ValueType* blocks)
 
+#define GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType) \
+    void batch_jacobi_apply(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,      \
+        const size_type num_blocks, const uint32 max_block_size,    \
+        const ValueType* blocks_array, const IndexType* block_ptrs, \
+        const matrix::BatchDense<ValueType>* r,                     \
+        matrix::BatchDense<ValueType>* z)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL(ValueType);      \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL(ValueType);          \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,  \
-                                                          IndexType); \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType) \
+    void batch_jacobi_apply(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::BatchEll<ValueType, IndexType>* sys_mat,          \
+        const size_type num_blocks, const uint32 max_block_size,        \
+        const ValueType* blocks_array, const IndexType* block_ptrs,     \
+        const matrix::BatchDense<ValueType>* r,                         \
+        matrix::BatchDense<ValueType>* z)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL(ValueType);         \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL(ValueType);             \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
+                                                          IndexType);    \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_jacobi,

@@ -45,6 +45,32 @@ namespace kernels {
 namespace dpcpp {
 
 
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
+
+
 template <typename ValueType>
 void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
                         const matrix::BatchEll<ValueType>* const a,
