@@ -54,39 +54,6 @@ GKO_REGISTER_OPERATION(compute_block_jacobi,
 }  // namespace
 }  // namespace batch_jacobi
 
-namespace detail {
-
-template <typename ValueType, typename IndexType>
-void generate_batch_block_jacobi(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> sys_csr,
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> first_sys_csr,
-    const uint32 max_block_size, const gko::array<IndexType>& block_pointers,
-    const gko::size_type num_blocks, gko::array<ValueType>& blocks)
-{
-    const auto num_batch = sys_csr->get_num_batch_entries();
-    const auto num_rows = sys_csr->get_size().at(0)[0];
-    const auto num_nz = sys_csr->get_num_stored_elements() / num_batch;
-
-    gko::array<IndexType> blocks_pattern(
-        exec, num_blocks * max_block_size * max_block_size);
-    blocks_pattern.fill(static_cast<IndexType>(-1));
-
-    exec->run(batch_jacobi::make_extract_common_blocks_pattern(
-        first_sys_csr.get(), max_block_size, num_blocks,
-        block_pointers.get_const_data(), blocks_pattern.get_data()));
-
-    // Note: Block_pointers -> reqd. for actual block size
-    exec->run(batch_jacobi::make_compute_block_jacobi(
-        sys_csr.get(), num_blocks, max_block_size,
-        block_pointers.get_const_data(), blocks_pattern.get_const_data(),
-        blocks.get_data()));
-
-    // So it is just that stroing each block in max_block_size *
-    // max_block_size just makes it easier to see which block is where
-}
-
-}  // namespace detail
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
@@ -223,9 +190,24 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
         this->detect_blocks(num_batch, first_sys_csr.get());
     }
 
-    detail::generate_batch_block_jacobi(
-        exec, sys_csr, first_sys_csr, parameters_.max_block_size,
-        parameters_.block_pointers, num_blocks_, blocks_);
+    // array for storing the common pattern of the diagonal blocks
+    gko::array<IndexType> blocks_pattern(
+        exec,
+        num_blocks_ * parameters_.max_block_size * parameters_.max_block_size);
+    blocks_pattern.fill(static_cast<IndexType>(-1));
+
+    exec->run(batch_jacobi::make_extract_common_blocks_pattern(
+        first_sys_csr.get(), parameters_.max_block_size, num_blocks_,
+        parameters_.block_pointers.get_const_data(),
+        blocks_pattern.get_data()));
+
+    // Note: Block_pointers -> reqd. for actual block size
+    exec->run(batch_jacobi::make_compute_block_jacobi(
+        sys_csr.get(), num_blocks_, parameters_.max_block_size,
+        parameters_.block_pointers.get_const_data(),
+        blocks_pattern.get_const_data(), blocks_.get_data()));
+    // So it is just that stroing each block in max_block_size *
+    // max_block_size just makes it easier to see which block is where
 }
 
 

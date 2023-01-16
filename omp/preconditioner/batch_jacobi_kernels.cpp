@@ -48,6 +48,9 @@ namespace omp {
 namespace batch_jacobi {
 
 
+#include "reference/preconditioner/batch_jacobi_kernels.hpp.inc"
+
+
 template <typename ValueType>
 void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
                         const matrix::BatchEll<ValueType>* const a,
@@ -127,7 +130,11 @@ void extract_common_blocks_pattern(
     const uint32 max_block_size, const size_type num_blocks,
     const IndexType* const block_pointers, IndexType* const blocks_pattern)
 {
-    GKO_NOT_IMPLEMENTED;
+#pragma omp parallel for
+    for (size_type k = 0; k < num_blocks; k++) {
+        extract_block_pattern_impl(k, first_sys_csr, max_block_size,
+                                   block_pointers, blocks_pattern);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -142,7 +149,19 @@ void compute_block_jacobi(
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
-    GKO_NOT_IMPLEMENTED;
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto A_batch = host::get_batch_struct(sys_csr);
+
+#pragma omp parallel for
+    for (size_type i = 0; i < nbatch * num_blocks; i++) {
+        size_type block_idx = i % num_blocks;
+        size_type batch_idx = i / num_blocks;
+
+        const auto A_entry = gko::batch::batch_entry(A_batch, batch_idx);
+        compute_block_jacobi_impl(batch_idx, block_idx, A_entry, num_blocks,
+                                  max_block_size, block_pointers,
+                                  blocks_pattern, blocks);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
