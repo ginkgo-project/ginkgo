@@ -186,6 +186,20 @@ void extract_common_blocks_pattern(
         extract_block_pattern_impl(k, first_sys_csr, max_block_size,
                                    block_pointers, blocks_pattern);
     }
+
+    // for (size_type k = 0; k < num_blocks; k++) {
+    //     const auto bsize = block_pointers[k + 1] - block_pointers[k];
+    //     std::cout << "\n\n block index: " << k << std::endl;
+    //     for(int r = 0; r < bsize; r++)
+    //     {
+    //         for(int c = 0; c < bsize; c++)
+    //         {
+    //             std::cout << "\n pattern[" << r << "," << c << "]: " <<
+    //             blocks_pattern[k * max_block_size * max_block_size + r *
+    //             max_block_size + c];
+    //         }
+    //     }
+    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -212,6 +226,34 @@ void compute_block_jacobi(
                                       blocks_pattern, blocks);
         }
     }
+
+    // for(size_type batch_idx = 0; batch_idx < nbatch; batch_idx++)
+    // {
+    //     for(size_type k = 0; k < num_blocks; k++)
+    //     {
+    //         std::cout << std::endl << std::endl << "batchid: " << batch_idx
+    //         << " block idx: " << k; const auto offset_batch = (batch_idx *
+    //         num_blocks) * max_block_size * max_block_size;
+
+    //         const auto offset_indiv = k * max_block_size * max_block_size;
+
+    //         ValueType* dense_block_ptr =   blocks + offset_batch +
+    //         offset_indiv;
+
+    //         const auto bsize = block_pointers[k + 1] - block_pointers[k];
+
+    //         for(int r = 0; r < bsize; r++)
+    //         {
+    //             for(int c = 0; c < bsize; c++)
+    //             {
+    //                 std::cout << "block[" << r << "," << c <<"]: " <<
+    //                 dense_block_ptr[r * max_block_size + c] << std::endl;
+    //             }
+    //         }
+
+
+    //     }
+    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
