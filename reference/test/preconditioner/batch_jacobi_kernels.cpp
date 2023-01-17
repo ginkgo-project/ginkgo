@@ -186,8 +186,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
                 for (int c = 0; c < bsize; c++) {
                     const auto unbatch_val =
                         (blocks_unbatch_arr +
-                         storage_scheme.get_group_offset(k) +
-                         storage_scheme.get_block_offset(
+                         storage_scheme.get_global_block_offset(
                              k))[r + storage_scheme.get_stride() * c];
                     const auto batch_val =
                         (blocks_batch_arr +
