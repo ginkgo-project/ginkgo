@@ -94,7 +94,6 @@ inline int choose_pivot(const int k, const int block_size,
             piv_val = curr_val;
         }
     }
-
     return piv;
 }
 
@@ -174,8 +173,31 @@ inline void compute_block_jacobi_impl(
         }
     }
 
+    // std::cout << "\n\nbatch id: " << batch_idx << " block idx: " << block_idx
+    // << "Before inversion:" << std::endl; for(int r = 0; r < bsize; r++)
+    // {
+    //     for(int c = 0; c < bsize; c++)
+    //     {
+    //         std::cout << "temp_dense_block[" << r << "," << c <<"]: " <<
+    //         temp_dense_block[r * bsize + c] << std::endl;
+    //     }
+    // }
+
+    // std::cout << std::endl << std::endl;
+
+
     // invert the diagonal block
     invert_dense_block(bsize, temp_dense_block, col_perm);
+
+    // std::cout << "\n\nbatch id: " << batch_idx << " block idx: " << block_idx
+    // << "After inversion:" << std::endl; for(int r = 0; r < bsize; r++)
+    // {
+    //     for(int c = 0; c < bsize; c++)
+    //     {
+    //         std::cout << "temp_dense_block[" << r << "," << c <<"]: " <<
+    //         temp_dense_block[r * bsize + c] << std::endl;
+    //     }
+    // }
 
     // store the dense block (take into account the col permutations)
     for (int row = 0; row < bsize; row++) {

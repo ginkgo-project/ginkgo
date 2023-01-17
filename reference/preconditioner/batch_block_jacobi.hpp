@@ -111,6 +111,7 @@ public:
     {
         // Structure-aware SpMV
         for (int bidx = 0; bidx < num_blocks_; bidx++) {
+            // std::cout << "block: " << bidx << std::endl;
             const int row_st = block_ptrs_arr_[bidx];       // inclusive
             const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
             const int bsize = row_end - row_st;
@@ -124,7 +125,10 @@ public:
                         blocks_arr_entry_[offset +
                                           (row - row_st) * max_block_size_ +
                                           col];
-                    sum += val * r.values[col];
+                    sum += val * r.values[col + row_st];
+
+                    // std::cout << "val : " << val << "r:" <<  r.values[col] <<
+                    // std::endl;
                 }
 
                 z.values[row] = sum;
