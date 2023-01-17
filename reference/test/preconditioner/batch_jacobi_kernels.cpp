@@ -178,22 +178,17 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 
         const auto blocks_unbatch_arr = unbatch_prec->get_blocks();
         auto storage_scheme = unbatch_prec->get_storage_scheme();
-        auto stride = storage_scheme.get_stride();
-        auto group_size = storage_scheme.get_group_size();
 
         for (int k = 0; k < num_blocks; k++) {
-            int g = k / group_size;
-            int b = k - (g * group_size);
-
             const auto bsize = block_ptrs.get_const_data()[k + 1] -
                                block_ptrs.get_const_data()[k];
             for (int r = 0; r < bsize; r++) {
                 for (int c = 0; c < bsize; c++) {
                     const auto unbatch_val =
                         (blocks_unbatch_arr +
-                         storage_scheme.get_group_offset(b + g) +
-                         storage_scheme.get_block_offset(b +
-                                                         g))[r + stride * c];
+                         storage_scheme.get_group_offset(k) +
+                         storage_scheme.get_block_offset(
+                             k))[r + storage_scheme.get_stride() * c];
                     const auto batch_val =
                         (blocks_batch_arr +
                          i * num_blocks * max_block_size * max_block_size +
