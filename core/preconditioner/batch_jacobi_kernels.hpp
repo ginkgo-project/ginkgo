@@ -77,7 +77,7 @@ namespace kernels {
     void extract_common_blocks_pattern(                                      \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const matrix::Csr<ValueType, IndexType>* first_sys_csr,              \
-        const uint32 max_block_size, const size_type num_blocks,             \
+        const size_type num_blocks,                                          \
         const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
         const IndexType* block_pointers, IndexType* blocks_pattern)
 
@@ -86,7 +86,7 @@ namespace kernels {
     void compute_block_jacobi(                                               \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const matrix::BatchCsr<ValueType, IndexType>* sys_csr,               \
-        const size_type num_blocks, const uint32 max_block_size,             \
+        const size_type num_blocks,                                          \
         const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
         const IndexType* block_pointers, const IndexType* blocks_pattern,    \
         ValueType* blocks)
@@ -96,6 +96,8 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                \
         const matrix::BatchCsr<ValueType, IndexType>* sys_mat,      \
         const size_type num_blocks, const uint32 max_block_size,    \
+        const gko::preconditioner::batched_blocks_storage_scheme&   \
+            storage_scheme,                                         \
         const ValueType* blocks_array, const IndexType* block_ptrs, \
         const matrix::BatchDense<ValueType>* r,                     \
         matrix::BatchDense<ValueType>* z)
@@ -105,6 +107,8 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::BatchEll<ValueType, IndexType>* sys_mat,          \
         const size_type num_blocks, const uint32 max_block_size,        \
+        const gko::preconditioner::batched_blocks_storage_scheme&       \
+            storage_scheme,                                             \
         const ValueType* blocks_array, const IndexType* block_ptrs,     \
         const matrix::BatchDense<ValueType>* r,                         \
         matrix::BatchDense<ValueType>* z)

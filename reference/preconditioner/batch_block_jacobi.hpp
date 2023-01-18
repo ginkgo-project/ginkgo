@@ -51,9 +51,9 @@ class BatchBlockJacobi final {
 private:
     inline void common_generate_for_all_system_matrix_types(size_type batch_id)
     {
-        blocks_arr_entry_ = blocks_arr_batch_ + batch_id * num_blocks_ *
-                                                    max_block_size_ *
-                                                    max_block_size_;
+        blocks_arr_entry_ =
+            blocks_arr_batch_ +
+            storage_scheme_.get_batch_offset(num_blocks_, batch_id);
     }
 
 public:
@@ -63,16 +63,17 @@ public:
     /**
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
-     * @param max_block_size Maximum block size
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      *
      */
-    BatchBlockJacobi(const size_type num_blocks, const int32 max_block_size,
+    BatchBlockJacobi(const size_type num_blocks,
+                     const gko::preconditioner::batched_blocks_storage_scheme&
+                         storage_scheme,
                      const value_type* const blocks_arr_batch,
                      const int* const block_ptrs_arr)
         : num_blocks_{num_blocks},
-          max_block_size_{max_block_size},
+          storage_scheme_{storage_scheme},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr}
     {}
@@ -116,14 +117,15 @@ public:
             const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
             const int bsize = row_end - row_st;
 
-            const auto offset = bidx * max_block_size_ * max_block_size_;
+            const auto offset = storage_scheme_.get_block_offset(bidx);
 
             for (int row = row_st; row < row_end; row++) {
                 ValueType sum = zero<ValueType>();
                 for (int col = 0; col < bsize; col++) {
                     const auto val =
                         blocks_arr_entry_[offset +
-                                          (row - row_st) * max_block_size_ +
+                                          (row - row_st) *
+                                              storage_scheme_.get_stride() +
                                           col];
                     sum += val * r.values[col + row_st];
 
@@ -138,7 +140,7 @@ public:
 
 private:
     const size_type num_blocks_;
-    const int32 max_block_size_;
+    const gko::preconditioner::batched_blocks_storage_scheme storage_scheme_;
     const value_type* const blocks_arr_batch_;
     const value_type* blocks_arr_entry_;
     const int* const block_ptrs_arr_;
