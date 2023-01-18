@@ -132,6 +132,7 @@ void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const uint32 max_block_size, const size_type num_blocks,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers, IndexType* const blocks_pattern)
 {
     GKO_NOT_IMPLEMENTED;
@@ -146,6 +147,7 @@ void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
