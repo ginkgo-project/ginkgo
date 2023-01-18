@@ -59,7 +59,7 @@ namespace preconditioner {
 struct batched_blocks_storage_scheme {
     batched_blocks_storage_scheme() = default;
 
-    batched_blocks_storage_scheme(size_type max_block_size)
+    batched_blocks_storage_scheme(const size_type max_block_size)
         : max_block_size_{max_block_size}
     {}
 
@@ -78,7 +78,7 @@ struct batched_blocks_storage_scheme {
      *        the method returns `0` to avoid overallocation of memory.
      */
     GKO_ATTRIBUTES size_type compute_storage_space(
-        size_type batch_size, size_type num_blocks) const noexcept
+        const size_type batch_size, const size_type num_blocks) const noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
@@ -89,8 +89,8 @@ struct batched_blocks_storage_scheme {
     /**
      * @return the offset of the group belonging to block with ID `block_id`
      */
-    GKO_ATTRIBUTES size_type get_batch_offset(size_type num_blocks,
-                                              size_type batch_id) const noexcept
+    GKO_ATTRIBUTES size_type get_batch_offset(
+        const size_type num_blocks, const size_type batch_id) const noexcept
     {
         return batch_id * num_blocks * max_block_size_ * max_block_size_;
     }
@@ -98,7 +98,8 @@ struct batched_blocks_storage_scheme {
     /**
      * @return the offset of the block with ID `block_id` within its group
      */
-    GKO_ATTRIBUTES size_type get_block_offset(size_type block_id) const noexcept
+    GKO_ATTRIBUTES size_type
+    get_block_offset(const size_type block_id) const noexcept
     {
         return block_id * max_block_size_ * max_block_size_;
     }
@@ -110,9 +111,9 @@ struct batched_blocks_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES size_type
-    get_global_block_offset(size_type num_blocks, size_type batch_id,
-                            size_type block_id) const noexcept
+    GKO_ATTRIBUTES size_type get_global_block_offset(
+        const size_type num_blocks, const size_type batch_id,
+        const size_type block_id) const noexcept
     {
         return this->get_batch_offset(num_blocks, batch_id) +
                this->get_block_offset(block_id);
