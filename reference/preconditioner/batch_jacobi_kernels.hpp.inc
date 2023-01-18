@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 inline void extract_block_pattern_impl(
     const size_type k, const matrix::Csr<ValueType, int>* const first_sys_csr,
-    const uint32 max_block_size,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const int* const block_pointers, int* const blocks_pattern)
 {
@@ -142,7 +141,7 @@ template <typename ValueType>
 inline void compute_block_jacobi_impl(
     const size_type batch_idx, const size_type block_idx,
     const batch_csr::BatchEntry<const ValueType>& A_entry,
-    const size_type num_blocks, const uint32 max_block_size,
+    const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const int* const block_pointers, const int* const blocks_pattern,
     ValueType* const blocks)
@@ -213,13 +212,13 @@ inline void compute_block_jacobi_impl(
 
 
 template <typename BatchMatrixType, typename ValueType, typename IndexType>
-void batch_jacobi_apply_helper(const BatchMatrixType& sys_mat_batch,
-                               const size_type num_blocks,
-                               const uint32 max_block_size,
-                               const ValueType* blocks_array,
-                               const IndexType* block_ptrs,
-                               const matrix::BatchDense<ValueType>* const r,
-                               matrix::BatchDense<ValueType>* const z)
+void batch_jacobi_apply_helper(
+    const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
+    const uint32 max_block_size,
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z)
 {
     const auto nbatch = sys_mat_batch.num_batch;
     const auto rub = gko::kernels::host::get_batch_struct(r);
@@ -232,7 +231,7 @@ void batch_jacobi_apply_helper(const BatchMatrixType& sys_mat_batch,
         scalar_jacobi_prec prec;
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     } else {
-        block_jacobi_prec prec(num_blocks, max_block_size, blocks_array,
+        block_jacobi_prec prec(num_blocks, storage_scheme, blocks_array,
                                block_ptrs);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }

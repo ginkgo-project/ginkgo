@@ -144,8 +144,8 @@ template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const uint32 max_block_size, const size_type num_blocks,
-    const IndexType* const block_pointers, IndexType* const blocks_pattern)
+    const size_type num_blocks, const IndexType* const block_pointers,
+    IndexType* const blocks_pattern)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -158,8 +158,7 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const size_type num_blocks, const uint32 max_block_size,
-    const IndexType* const block_pointers,
+    const size_type num_blocks, const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
     GKO_NOT_IMPLEMENTED;

@@ -218,12 +218,12 @@ public:
                 const auto blocks_arr =
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
                         prec->get_const_blocks());
+                const auto& storage_scheme = prec->get_storage_scheme();
 
                 dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
                     logger, amat,
                     device::BatchBlockJacobi<device_value_type>(
-                        num_blocks, static_cast<int32>(max_block_size),
-                        blocks_arr, block_ptrs_arr),
+                        num_blocks, storage_scheme, blocks_arr, block_ptrs_arr),
                     b_b, x_b);
             }
 
