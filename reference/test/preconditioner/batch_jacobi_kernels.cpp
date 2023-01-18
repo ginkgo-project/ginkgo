@@ -132,7 +132,8 @@ TYPED_TEST(BatchJacobi,
     int* block_ptr = nullptr;
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), blocks_arr, block_ptr, b.get(), x.get());
+        prec->get_max_block_size(), prec->get_storage_scheme(), blocks_arr,
+        block_ptr, b.get(), x.get());
 
     // gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
     // this->exec, this->mtx.get(), b.get(), x.get());
@@ -166,6 +167,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 
     auto prec = prec_fact->generate(this->mtx);
     const auto blocks_batch_arr = prec->get_const_blocks();
+    const auto& batched_storage_scheme = prec->get_storage_scheme();
 
     auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
                                  .with_max_block_size(max_block_size)
@@ -190,9 +192,9 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
                              k))[r + storage_scheme.get_stride() * c];
                     const auto batch_val =
                         (blocks_batch_arr +
-                         i * num_blocks * max_block_size * max_block_size +
-                         k * max_block_size *
-                             max_block_size)[r * max_block_size + c];
+                         batched_storage_scheme.get_global_block_offset(
+                             num_blocks, i,
+                             k))[r * batched_storage_scheme.get_stride() + c];
                     ASSERT_EQ(unbatch_val, batch_val);
                     // GKO_ASSERT_NEAR(unbatch_val, batch_val,
                     // r<value_type>::value);
@@ -244,8 +246,9 @@ TYPED_TEST(BatchJacobi,
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_const_blocks(),
-        prec->get_const_block_pointers(), b.get(), x.get());
+        prec->get_max_block_size(), prec->get_storage_scheme(),
+        prec->get_const_blocks(), prec->get_const_block_pointers(), b.get(),
+        x.get());
 
     auto xs = x->unbatch();
     for (size_t i = 0; i < umtxs.size(); i++) {
