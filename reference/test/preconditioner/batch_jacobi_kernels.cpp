@@ -102,6 +102,7 @@ TYPED_TEST(BatchJacobi,
 {
     using value_type = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
+
     auto b = gko::batch_initialize<BDense>(
         {{-2.0, 9.0, 4.0, 1.0, 5.0, 11.0}, {-3.0, 5.0, 3.0, 8.0, 9.0, 7.0}},
         this->exec);
@@ -114,7 +115,6 @@ TYPED_TEST(BatchJacobi,
 
     auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
                                  .with_max_block_size(1u)
-                                 .with_skip_sorting(true)
                                  .on(this->exec);
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
@@ -123,7 +123,6 @@ TYPED_TEST(BatchJacobi,
 
     auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(1u)
-                         .with_skip_sorting(true)
                          .on(this->exec);
 
     auto prec = prec_fact->generate(this->mtx);
