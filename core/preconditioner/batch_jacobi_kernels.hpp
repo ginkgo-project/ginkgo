@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
 #define GKO_CORE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
 
-
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"
@@ -72,21 +72,23 @@ namespace kernels {
                             const matrix::BatchDense<_type>* b,          \
                             matrix::BatchDense<_type>* x)
 
-#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType, \
-                                                              IndexType) \
-    void extract_common_blocks_pattern(                                  \
-        std::shared_ptr<const DefaultExecutor> exec,                     \
-        const matrix::Csr<ValueType, IndexType>* first_sys_csr,          \
-        const uint32 max_block_size, const size_type num_blocks,         \
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
+                                                              IndexType)     \
+    void extract_common_blocks_pattern(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::Csr<ValueType, IndexType>* first_sys_csr,              \
+        const uint32 max_block_size, const size_type num_blocks,             \
+        const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
         const IndexType* block_pointers, IndexType* blocks_pattern)
 
 
-#define GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType) \
-    void compute_block_jacobi(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::BatchCsr<ValueType, IndexType>* sys_csr,              \
-        const size_type num_blocks, const uint32 max_block_size,            \
-        const IndexType* block_pointers, const IndexType* blocks_pattern,   \
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType)  \
+    void compute_block_jacobi(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_csr,               \
+        const size_type num_blocks, const uint32 max_block_size,             \
+        const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
+        const IndexType* block_pointers, const IndexType* blocks_pattern,    \
         ValueType* blocks)
 
 #define GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType) \

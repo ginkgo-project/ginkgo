@@ -190,12 +190,14 @@ void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const uint32 max_block_size, const size_type num_blocks,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers, IndexType* const blocks_pattern)
 {
 #pragma omp parallel for
     for (size_type k = 0; k < num_blocks; k++) {
         extract_block_pattern_impl(k, first_sys_csr, max_block_size,
-                                   block_pointers, blocks_pattern);
+                                   storage_scheme, block_pointers,
+                                   blocks_pattern);
     }
 }
 
@@ -208,6 +210,7 @@ void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
@@ -221,8 +224,8 @@ void compute_block_jacobi(
 
         const auto A_entry = gko::batch::batch_entry(A_batch, batch_idx);
         compute_block_jacobi_impl(batch_idx, block_idx, A_entry, num_blocks,
-                                  max_block_size, block_pointers,
-                                  blocks_pattern, blocks);
+                                  max_block_size, storage_scheme,
+                                  block_pointers, blocks_pattern, blocks);
     }
 }
 

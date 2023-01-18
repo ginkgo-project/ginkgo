@@ -50,6 +50,7 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* blocks_array, const IndexType* block_ptrs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
@@ -62,6 +63,7 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* blocks_array, const IndexType* block_ptrs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
