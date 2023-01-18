@@ -278,6 +278,12 @@ void ProfilerHook::on_criterion_check_completed(
 }
 
 
+bool ProfilerHook::needs_propagation() const
+{
+    return true;
+}
+
+
 void ProfilerHook::set_object_name(const PolymorphicObject* obj,
                                    std::string name)
 {
