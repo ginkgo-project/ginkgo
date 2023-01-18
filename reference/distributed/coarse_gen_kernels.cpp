@@ -249,10 +249,10 @@ void fill_coarse(
             exec, c_matrix_data.get_ordered_data());
     auto c_data = c_matrix_data.get_ordered_data();
 
-    for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
-        std::cout << "coarse id: " << nnz << " : " << c_data.nonzeros[nnz]
-                  << std::endl;
-    }
+    // for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
+    //     std::cout << "coarse id: " << nnz << " : " << c_data.nonzeros[nnz]
+    //               << std::endl;
+    // }
     std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
 
     nnz = 0;

@@ -300,20 +300,19 @@ int main(int argc, char* argv[])
             .with_max_levels(1u)
             .with_mg_level(coarse_gen_fac)
             .with_coarsest_solver(mg_coarsest_solver)
-            .with_pre_smoother(smoother_gen)
+            // .with_pre_smoother(smoother_gen)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
-    // auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(schwarz::build()
-                                     .with_local_solver(isai_solver)
-                                     // .with_coarse_solvers(coarse_solver)
-                                     .on(exec))
-            .with_criteria(iter_stop, tol_stop)
-            .on(exec)
-            ->generate(A);
+    auto coarse_solver = gko::share(coarse_fac->generate(A));
+    auto Ainv = solver::build()
+                    .with_preconditioner(schwarz::build()
+                                             .with_local_solver(bj_solver)
+                                             .with_coarse_solvers(coarse_solver)
+                                             .on(exec))
+                    .with_criteria(iter_stop, tol_stop)
+                    .on(exec)
+                    ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.
