@@ -134,7 +134,7 @@ void BatchJacobi<ValueType, IndexType>::detect_blocks(
         first_system, parameters_.max_block_size, num_blocks_,
         parameters_.block_pointers));
     blocks_.resize_and_reset(
-        this->compute_storage_space(num_batch, num_blocks_));
+        storage_scheme_.compute_storage_space(num_batch, num_blocks_));
 }
 
 
@@ -192,18 +192,17 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
 
     // array for storing the common pattern of the diagonal blocks
     gko::array<IndexType> blocks_pattern(
-        exec,
-        num_blocks_ * parameters_.max_block_size * parameters_.max_block_size);
+        exec, storage_scheme_.compute_storage_space(1, this->num_blocks_));
     blocks_pattern.fill(static_cast<IndexType>(-1));
 
     exec->run(batch_jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), parameters_.max_block_size, num_blocks_,
-        parameters_.block_pointers.get_const_data(),
+        storage_scheme_, parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_data()));
 
     // Note: Block_pointers -> reqd. for actual block size
     exec->run(batch_jacobi::make_compute_block_jacobi(
-        sys_csr.get(), num_blocks_, parameters_.max_block_size,
+        sys_csr.get(), num_blocks_, parameters_.max_block_size, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
     // So it is just that stroing each block in max_block_size *

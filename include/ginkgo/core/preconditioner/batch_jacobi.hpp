@@ -48,6 +48,87 @@ namespace gko {
  */
 namespace preconditioner {
 
+/**
+ * Defines the parameters of the interleaved block storage scheme used by
+ * block-Jacobi blocks.
+ *
+ * @tparam IndexType  type used for storing indices of the matrix
+ *
+ * @ingroup batch_jacobi
+ */
+struct batched_blocks_storage_scheme {
+    batched_blocks_storage_scheme() = default;
+
+    batched_blocks_storage_scheme(size_type max_block_size)
+        : max_block_size_{max_block_size}
+    {}
+
+    size_type max_block_size_;
+
+    /**
+     * Computes the storage space required for the requested number of blocks.
+     *
+     * @param num_blocks  the total number of blocks that needs to be stored
+     *
+     * @return the total memory (as the number of elements) that need to be
+     *         allocated for the scheme
+     *
+     * @note  To simplify using the method in situations where the number of
+     *        blocks is not known, for a special input `size_type{} - 1`
+     *        the method returns `0` to avoid overallocation of memory.
+     */
+    GKO_ATTRIBUTES size_type compute_storage_space(
+        size_type batch_size, size_type num_blocks) const noexcept
+    {
+        return (num_blocks + 1 == size_type{0})
+                   ? size_type{0}
+                   : batch_size * num_blocks * max_block_size_ *
+                         max_block_size_;
+    }
+
+    /**
+     * @return the offset of the group belonging to block with ID `block_id`
+     */
+    GKO_ATTRIBUTES size_type get_batch_offset(size_type num_blocks,
+                                              size_type batch_id) const noexcept
+    {
+        return batch_id * num_blocks * max_block_size_ * max_block_size_;
+    }
+
+    /**
+     * @return the offset of the block with ID `block_id` within its group
+     */
+    GKO_ATTRIBUTES size_type get_block_offset(size_type block_id) const noexcept
+    {
+        return block_id * max_block_size_ * max_block_size_;
+    }
+
+    /**
+     * Returns the offset of the block with the given ID.
+     *
+     * @param block_id  the ID of the block
+     *
+     * @return the offset of the block with ID `block_id`
+     */
+    GKO_ATTRIBUTES size_type
+    get_global_block_offset(size_type num_blocks, size_type batch_id,
+                            size_type block_id) const noexcept
+    {
+        return this->get_batch_offset(num_blocks, batch_id) +
+               this->get_block_offset(block_id);
+    }
+
+    /**
+     * Returns the stride between the rows of the block.
+     *
+     * @return stride between rows of the block
+     */
+    GKO_ATTRIBUTES size_type get_stride() const noexcept
+    {
+        return max_block_size_;
+    }
+};
+
 
 /**
  * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
@@ -74,6 +155,10 @@ public:
     using index_type = IndexType;
     using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
 
+    const batched_blocks_storage_scheme& get_storage_scheme() const noexcept
+    {
+        return storage_scheme_;
+    }
 
     const index_type* get_const_block_pointers() const noexcept
     {
@@ -230,8 +315,10 @@ protected:
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
+          storage_scheme_{
+              batched_blocks_storage_scheme(parameters_.max_block_size)},
           blocks_(factory->get_executor(),
-                  compute_storage_space(
+                  storage_scheme_.compute_storage_space(
                       system_matrix->get_num_batch_entries(),
                       parameters_.block_pointers.get_num_elems() - 1))
     {
@@ -282,15 +369,16 @@ private:
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
      */
-    size_type compute_storage_space(size_type num_batch,
-                                    size_type num_blocks) const noexcept
-    {
-        return (num_blocks + 1 == size_type{0})
-                   ? size_type{0}
-                   : num_blocks * parameters_.max_block_size *
-                         parameters_.max_block_size * num_batch;
-    }
+    // size_type compute_storage_space(size_type num_batch,
+    //                                 size_type num_blocks) const noexcept
+    // {
+    //     return (num_blocks + 1 == size_type{0})
+    //                ? size_type{0}
+    //                : num_blocks * parameters_.max_block_size *
+    //                      parameters_.max_block_size * num_batch;
+    // }
 
+    batched_blocks_storage_scheme storage_scheme_;
     size_type num_blocks_;
     array<value_type> blocks_;
 };
