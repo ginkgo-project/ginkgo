@@ -170,6 +170,8 @@ public:
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
+    bool needs_propagation() const override;
+
     /**
      * Sets the name for an object to be profiled. Every instance of that object
      * in the profile will be replaced by the name instead of its runtime type.
