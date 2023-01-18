@@ -109,7 +109,7 @@ target_include_directories(ginkgo_cuda
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT} ${NVTX})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT} nvtx::nvtx)
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
