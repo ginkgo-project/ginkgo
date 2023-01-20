@@ -84,7 +84,7 @@ void batch_jacobi_apply(
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
@@ -102,7 +102,7 @@ void batch_jacobi_apply(
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {

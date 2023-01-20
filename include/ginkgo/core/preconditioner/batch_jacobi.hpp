@@ -49,10 +49,17 @@ namespace gko {
 namespace preconditioner {
 
 /**
- * Defines the parameters of the interleaved block storage scheme used by
- * block-Jacobi blocks.
+ * The storage scheme used by batched block-Jacobi blocks.
  *
- * @tparam IndexType  type used for storing indices of the matrix
+ * @note All blocks are stored in row-major order as square matrices of size =
+ * max_block_size and stride = max_block_size.
+ *
+ * @note The actual size of each block could be found out using the block
+ * pointers array.
+ *
+ * @note All the blocks corresponding to the first entry in the batch are
+ * stored first, then all the blocks corresponding to the second entry and so
+ * on...
  *
  * @ingroup batch_jacobi
  */
@@ -68,7 +75,8 @@ struct batched_blocks_storage_scheme {
     /**
      * Computes the storage space required for the requested number of blocks.
      *
-     * @param num_blocks  the total number of blocks that needs to be stored
+     * @param batch_size the number of entries in the batch
+     * @param num_blocks  the number of blocks in a batched matrix entry
      *
      * @return the total memory (as the number of elements) that need to be
      *         allocated for the scheme
@@ -87,6 +95,11 @@ struct batched_blocks_storage_scheme {
     }
 
     /**
+     * Returns the offset of the batch with id "batch_id"
+     *
+     * @param num_blocks the number of blocks in a batched matrix entry
+     * @param batch_id the index of the batch entry in the batch
+     *
      * @return the offset of the group belonging to block with ID `block_id`
      */
     GKO_ATTRIBUTES size_type get_batch_offset(
@@ -96,7 +109,14 @@ struct batched_blocks_storage_scheme {
     }
 
     /**
-     * @return the offset of the block with ID `block_id` within its group
+     * Returns the (local) offset of the block with id: "block_id" within its
+     * batch entry
+     *
+     * @param block_id the id of the block from the perspective of individual
+     * batch entry
+     *
+     * @return the offset of the block with id: `block_id` within its batch
+     * entry
      */
     GKO_ATTRIBUTES size_type
     get_block_offset(const size_type block_id) const noexcept
@@ -105,11 +125,18 @@ struct batched_blocks_storage_scheme {
     }
 
     /**
-     * Returns the offset of the block with the given ID.
+     * Returns the global offset of the block which belongs to the batch entry
+     * with index = batch_id and has local id = "block_id" within its batch
+     * entry
      *
-     * @param block_id  the ID of the block
+     * @param num_blocks the number of blocks in a batched matrix entry
+     * @param batch_id the index of the batch entry in the batch
+     * @param block_id the id of the block from the perspective of individual
+     * batch entry
      *
-     * @return the offset of the block with ID `block_id`
+     * @return the global offset of the block which belongs to the batch entry
+     * with index = batch_id and has local id = "block_id" within its batch
+     * entry
      */
     GKO_ATTRIBUTES size_type get_global_block_offset(
         const size_type num_blocks, const size_type batch_id,
@@ -156,71 +183,89 @@ public:
     using index_type = IndexType;
     using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
 
+    /**
+     * Returns the storage scheme used for storing Batched Jacobi blocks.
+     *
+     * @return the storage scheme used for storing Batched Jacobi blocks
+     *
+     */
     const batched_blocks_storage_scheme& get_storage_scheme() const noexcept
     {
         return storage_scheme_;
     }
 
+    /**
+     *  Returns the block pointers.
+     *  @note Returns nullptr in case of a scalar jacobi preconditioner
+     * (max_block_size = 1).
+     *  @return the block pointers
+     */
     const index_type* get_const_block_pointers() const noexcept
     {
         if (parameters_.max_block_size == 1) {
-            // TODO: Commented for a while to get rid of warnings
-            // throw std::runtime_error(
-            //     "The blocks array is empty in case of scalar jacobi "
-            //     "preconditioner as it is generated inside the batched solver
-            //     " "kernel.");
+            return nullptr;
         }
         return parameters_.block_pointers.get_const_data();
     }
 
+    /**
+     * Returns the max block size.
+     *
+     * @return the max block size
+     */
     uint32 get_max_block_size() const noexcept
     {
         return parameters_.max_block_size;
     }
 
     /**
-     * Returns the number of blocks of the operator.
+     * Returns the number of blocks in an individual batch entry.
      *
-     * @return the number of blocks of the operator
+     * @return the number of blocks in an individual batch entry.
      *
      */
     size_type get_num_blocks() const noexcept { return num_blocks_; }
 
+
     /**
      * Returns the pointer to the memory used for storing the block data.
-     * Note: In case of scalar jacobi preconditioner, the method will throw an
-     * exeception as the preconditioner is generated inside the batched solver
-     * kernels, hence, blocks array storage is not required.
+     *
+     * Element (`i`, `j`) of the block, which belongs to the batch entry with
+     * index = batch_id and has local id = "block_id" within its batch entry is
+     * stored at the address = get_const_block_pointers() +
+     * storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id) +
+     * i * storage_scheme.get_stride() + j
+     *
+     * @note Returns nullptr in case of a scalar jacobi preconditioner
+     * (max_block_size = 1). The blocks array is empty in case of scalar jacobi
+     *  preconditioner as the preconditioner is generated inside the batched
+     * solver kernel.
+     *
      * @return the pointer to the memory used for storing the block data
      *
      */
     const value_type* get_const_blocks() const noexcept
     {
         if (parameters_.max_block_size == 1) {
-            // TODO: Commented for a while to get rid of warnings
-            // throw std::runtime_error(
-            //     "The blocks array is empty in case of scalar jacobi "
-            //     "preconditioner as it is generated inside the batched solver
-            //     " "kernel.");
+            return nullptr;
         }
         return blocks_.get_const_data();
     }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
-     * Note: In case of scalar jacobi preconditioner, it will throw an
-     * exeception as the preconditioner is generated inside the batched solver
-     * kernels, hence, blocks array storage is not required.
+     *
+     * @note Returns 0 in case of scalar jacobi preconditioner as the
+     * preconditioner is generated inside the batched solver kernels, hence,
+     * blocks array storage is not required.
+     *
      * @return the number of elements explicitly stored in the matrix.
      */
     size_type get_num_stored_elements() const noexcept
     {
-        // if (parameters_.max_block_size == 1) {
-        //     throw std::runtime_error(
-        //         "The blocks array is empty in case of scalar jacobi "
-        //         "preconditioner as it is generated inside the batched solver
-        //         " "kernel.");
-        // }
+        if (parameters_.max_block_size == 1) {
+            return 0;
+        }
         return blocks_.get_num_elems();
     }
 
@@ -356,28 +401,6 @@ private:
      */
     void detect_blocks(const size_type num_batch,
                        const matrix::Csr<ValueType, IndexType>* system_matrix);
-
-    /**
-     * Computes the storage space required for the requested number of blocks.
-     *
-     * @param num_batch  the number of entries in the batch
-     * @param num_blocks  the total number of blocks that needs to be stored
-     *
-     * @return the total memory (as the number of elements) that need to be
-     *         allocated for the scheme
-     *
-     * @note  To simplify using the method in situations where the number of
-     *        blocks is not known, for a special input `size_type{} - 1`
-     *        the method returns `0` to avoid overallocation of memory.
-     */
-    // size_type compute_storage_space(size_type num_batch,
-    //                                 size_type num_blocks) const noexcept
-    // {
-    //     return (num_blocks + 1 == size_type{0})
-    //                ? size_type{0}
-    //                : num_blocks * parameters_.max_block_size *
-    //                      parameters_.max_block_size * num_batch;
-    // }
 
     batched_blocks_storage_scheme storage_scheme_;
     size_type num_blocks_;

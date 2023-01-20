@@ -150,8 +150,11 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     auto exec = this->get_executor();
 
     if (parameters_.max_block_size == 1u) {
-        // External generate does nothing in case of scalar block jacobi
+        // External generate does nothing in case of scalar block jacobi (as the
+        // whole generation is done inside the solver kernel)
         num_blocks_ = system_matrix->get_size().at(0)[0];
+        blocks_ = gko::array<ValueType>(exec);
+        parameters_.block_pointers = gko::array<IndexType>(exec);
         return;
     }
 
@@ -190,23 +193,36 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
         this->detect_blocks(num_batch, first_sys_csr.get());
     }
 
+    // Note: Storing each block in the same size and stride matrix makes
+    // accessing elements/implementation easy with
+    // no effect on performance.
+    // Note: Row-major order offers advanatge in terms of performnace in both
+    // preconditioner generation and application
+    // for both reference and cuda backend.
+    // Note: The pattern blocks in block_pattern are also stored in the similar
+    // way.
+
     // array for storing the common pattern of the diagonal blocks
     gko::array<IndexType> blocks_pattern(
         exec, storage_scheme_.compute_storage_space(1, this->num_blocks_));
     blocks_pattern.fill(static_cast<IndexType>(-1));
+
+    // Since all the matrices in the batch have the same sparisty pattern, it is
+    // advantageous to extract the blocks only once instead of repeating
+    // computations for each matrix entry. Thus, first, a common pattern for the
+    // blocks (corresponding to a batch entry) is extracted and then blocks
+    // corresponding to different batch entries are obtained by just filling in
+    // values based on the common pattern.
 
     exec->run(batch_jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), num_blocks_, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_data()));
 
-    // Note: Block_pointers -> reqd. for actual block size
     exec->run(batch_jacobi::make_compute_block_jacobi(
         sys_csr.get(), num_blocks_, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
-    // So it is just that stroing each block in max_block_size *
-    // max_block_size just makes it easier to see which block is where
 }
 
 
