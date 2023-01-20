@@ -39,10 +39,10 @@ inline void extract_block_pattern_impl(
     const int* row_ptrs = first_sys_csr->get_const_row_ptrs();
     const int* col_idxs = first_sys_csr->get_const_col_idxs();
 
-    int row_idx_st = block_pointers[k];
-    int row_idx_end = block_pointers[k + 1];  // exclusive
+    const int row_idx_st = block_pointers[k];
+    const int row_idx_end = block_pointers[k + 1];  // exclusive
 
-    // pattern: store in row-major order
+    // pattern is stored in row-major order
     for (int row_idx = row_idx_st; row_idx < row_idx_end; row_idx++) {
         for (int i = row_ptrs[row_idx]; i < row_ptrs[row_idx + 1]; i++) {
             const auto col_idx = col_idxs[i];
@@ -112,7 +112,7 @@ inline void invert_dense_block(const int block_size,
         swap_rows(block_size, temp_dense_block, k, piv);
         swap_numbers(col_perm[piv], col_perm[k]);
 
-        ValueType d = temp_dense_block[k * block_size + k];
+        const ValueType d = temp_dense_block[k * block_size + k];
 
         // SCAL (scaling the kth col)
         for (int r = 0; r < block_size; r++) {
@@ -150,12 +150,14 @@ inline void compute_block_jacobi_impl(
         storage_scheme.get_batch_offset(num_blocks, batch_idx);
     const auto offset_indiv = storage_scheme.get_block_offset(block_idx);
     ValueType* dense_block_ptr =
-        blocks + offset_batch + offset_indiv;  // follow row-major order
+        blocks + offset_batch +
+        offset_indiv;  // the blocks are in row-major order
 
     const auto bsize =
         block_pointers[block_idx + 1] - block_pointers[block_idx];
 
-    std::vector<ValueType> temp_dense_block(bsize * bsize);
+    std::vector<ValueType> temp_dense_block(bsize *
+                                            bsize);  // also in row-major order
     std::vector<int> col_perm(bsize);
     for (int i = 0; i < bsize; i++) {
         col_perm[i] = i;
