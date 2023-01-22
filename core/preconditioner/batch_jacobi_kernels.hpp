@@ -46,32 +46,6 @@ namespace gko {
 namespace kernels {
 
 
-/**
- * @fn batch_jacobi_apply
- *
- * This kernel builds a Jacobi preconditioner for each matrix in
- * the input batch of matrices and applies them to the corresponding vectors
- * in the input vector batches.
- *
- * These functions are mostly meant only for experimentation and testing.
- *
- * @param exec  The executor on which to run the kernel.
- * @param a  The batch of matrices for which to build the preconditioner.
- * @param b  The batch of input (RHS) vectors.
- * @param x  The batch of output (solution) vectors.
- */
-#define GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL(_type)              \
-    void batch_jacobi_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                            const matrix::BatchCsr<_type>* a,            \
-                            const matrix::BatchDense<_type>* b,          \
-                            matrix::BatchDense<_type>* x)
-
-#define GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL(_type)          \
-    void batch_jacobi_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                            const matrix::BatchEll<_type>* a,            \
-                            const matrix::BatchDense<_type>* b,          \
-                            matrix::BatchDense<_type>* x)
-
 #define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
                                                               IndexType)     \
     void extract_common_blocks_pattern(                                      \
@@ -93,6 +67,16 @@ namespace kernels {
         const IndexType* block_pointers, const IndexType* blocks_pattern,    \
         ValueType* blocks)
 
+/**
+ * @fn batch_jacobi_apply
+ *
+ * This kernel builds a Jacobi preconditioner for each matrix in
+ * the input batch of matrices and applies them to the corresponding vectors
+ * in the input vector batches.
+ *
+ * These functions are mostly meant only for experimentation and testing.
+ *
+ */
 #define GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType) \
     void batch_jacobi_apply(                                        \
         std::shared_ptr<const DefaultExecutor> exec,                \
@@ -118,10 +102,6 @@ namespace kernels {
         matrix::BatchDense<ValueType>* z)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
-    template <typename ValueType>                                        \
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL(ValueType);         \
-    template <typename ValueType>                                        \
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL(ValueType);             \
     template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
                                                           IndexType);    \
