@@ -135,9 +135,6 @@ TYPED_TEST(BatchJacobi,
         prec->get_max_block_size(), prec->get_storage_scheme(), blocks_arr,
         block_ptr, row_part_of_which_block_arr, b.get(), x.get());
 
-    // gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-    // this->exec, this->mtx.get(), b.get(), x.get());
-
     auto xs = x->unbatch();
 
     for (size_t i = 0; i < umtxs.size(); i++) {

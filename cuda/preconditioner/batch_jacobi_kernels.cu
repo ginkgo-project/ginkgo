@@ -54,11 +54,14 @@ namespace batch_jacobi {
 
 constexpr int default_block_size = 128;
 
+namespace {
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
+// Note: Do not change the ordering
+#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -70,7 +73,14 @@ void batch_jacobi_apply(
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto a_ub = get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
+                              blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
@@ -84,7 +94,13 @@ void batch_jacobi_apply(
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto a_ub = get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
+                              blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -97,15 +113,18 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
+    const auto nrows = a->get_size().at(0)[0];
+
+    const auto a_ub = get_batch_struct(a);
     const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
                                 a_ub.num_rows, a_ub.num_nnz) *
                             sizeof(ValueType);
-    batch_jacobi<<<nbatch, default_block_size, shared_size>>>(
-        BatchScalarJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
+    auto prec_scalar_jacobi = BatchScalarJacobi<cuda_type<ValueType>>();
+
+    batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
+        prec_scalar_jacobi, a_ub, nbatch, nrows,
+        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -118,15 +137,18 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
+    const auto nrows = a->get_size().at(0)[0];
+
+    const auto a_ub = get_batch_struct(a);
     const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
                                 a_ub.num_rows, a_ub.num_nnz) *
                             sizeof(ValueType);
-    batch_jacobi<<<nbatch, default_block_size, shared_size>>>(
-        BatchScalarJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
+    auto prec_scalar_jacobi = BatchScalarJacobi<cuda_type<ValueType>>();
+
+    batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
+        prec_scalar_jacobi, a_ub, nbatch, nrows,
+        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

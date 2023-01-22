@@ -62,6 +62,8 @@ constexpr int default_block_size = 128;
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
+// Note: Do not change the ordering
+#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -100,17 +102,20 @@ void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    const int shared_size =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
-        sizeof(ValueType);
+    const auto nrows = a->get_size().at(0)[0];
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_jacobi), dim3(nbatch),
+    const auto a_ub = get_batch_struct(a);
+    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
+                                a_ub.num_rows, a_ub.num_nnz) *
+                            sizeof(ValueType);
+    auto prec_scalar_jacobi = BatchScalarJacobi<hip_type<ValueType>>();
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_scalar_jacobi_apply), dim3(nbatch),
                        dim3(default_block_size), shared_size, 0,
-                       BatchJacobi<hip_type<ValueType>>(), a_ub, b_ub, x_ub);
+                       prec_scalar_jacobi, a_ub, nbatch, nrows,
+                       as_hip_type(b->get_const_values()),
+                       as_hip_type(x->get_values()));
 }
 
 
@@ -124,17 +129,20 @@ void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    const int shared_size =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
-        sizeof(ValueType);
+    const auto nrows = a->get_size().at(0)[0];
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_jacobi), dim3(nbatch),
+    const auto a_ub = get_batch_struct(a);
+    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
+                                a_ub.num_rows, a_ub.num_nnz) *
+                            sizeof(ValueType);
+    auto prec_scalar_jacobi = BatchScalarJacobi<hip_type<ValueType>>();
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_scalar_jacobi_apply), dim3(nbatch),
                        dim3(default_block_size), shared_size, 0,
-                       BatchJacobi<hip_type<ValueType>>(), a_ub, b_ub, x_ub);
+                       prec_scalar_jacobi, a_ub, nbatch, nrows,
+                       as_hip_type(b->get_const_values()),
+                       as_hip_type(x->get_values()));
 }
 
 
