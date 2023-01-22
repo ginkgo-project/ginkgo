@@ -144,11 +144,12 @@ TYPED_TEST(BatchJacobi,
 
     value_type* blocks_arr_ref = nullptr;
     int* block_ptr_ref = nullptr;
+    int* row_part_of_which_block_ref = nullptr;
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
         ref_prec->get_max_block_size(), ref_prec->get_storage_scheme(), blocks_arr_ref,
-        block_ptr_ref, this->ref_b.get(), this->ref_x.get());
+        block_ptr_ref, row_part_of_which_block_ref, this->ref_b.get(), this->ref_x.get());
 
       // gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
     // this->ref, this->ref_mtx.get(), ref_b.get(), ref_x.get());
@@ -161,11 +162,12 @@ TYPED_TEST(BatchJacobi,
 
     value_type* blocks_arr_d = nullptr;
     int* block_ptr_d = nullptr;
+    int* row_part_of_which_block_d = nullptr;
 
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
         d_prec->get_max_block_size(), d_prec->get_storage_scheme(), blocks_arr_d,
-        block_ptr_d, this->d_b.get(), this->d_x.get());
+        block_ptr_d, row_part_of_which_block_d, this->d_b.get(), this->d_x.get());
 
     const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);
@@ -253,6 +255,7 @@ TYPED_TEST(BatchJacobi,
         ref_prec->get_max_block_size(), ref_prec->get_storage_scheme(), 
         ref_prec->get_const_blocks(),
         ref_prec->get_const_block_pointers(),
+        ref_prec->get_const_row_is_part_of_which_block_info(),
         this->ref_b.get(), this->ref_x.get());
 
     //so that block pointers are exactly the same for ref and device
@@ -272,7 +275,7 @@ TYPED_TEST(BatchJacobi,
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
         d_prec->get_max_block_size(), d_prec->get_storage_scheme(), d_prec->get_const_blocks(),
-        d_prec->get_const_block_pointers(), this->d_b.get(), this->d_x.get());
+        d_prec->get_const_block_pointers(), d_prec->get_const_row_is_part_of_which_block_info(), this->d_b.get(), this->d_x.get());
 
     const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);

@@ -64,6 +64,7 @@ inline void extract_block_pattern_impl(
     }
 }
 
+
 template <typename T>
 inline void swap_numbers(T& a, T& b)
 {
@@ -213,12 +214,13 @@ inline void compute_block_jacobi_impl(
 }
 
 
-template <typename BatchMatrixType, typename ValueType, typename IndexType>
+template <typename BatchMatrixType, typename ValueType>
 void batch_jacobi_apply_helper(
     const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
     const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const ValueType* blocks_array, const IndexType* block_ptrs,
+    const ValueType* const blocks_array, const int* const block_ptrs,
+    const int* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
@@ -234,7 +236,7 @@ void batch_jacobi_apply_helper(
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     } else {
         block_jacobi_prec prec(num_blocks, storage_scheme, blocks_array,
-                               block_ptrs);
+                               block_ptrs, row_part_of_which_block_info);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }

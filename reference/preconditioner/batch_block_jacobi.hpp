@@ -71,7 +71,7 @@ public:
                      const gko::preconditioner::batched_blocks_storage_scheme&
                          storage_scheme,
                      const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr)
+                     const int* const block_ptrs_arr, const int* const)
         : num_blocks_{num_blocks},
           storage_scheme_{storage_scheme},
           blocks_arr_batch_{blocks_arr_batch},

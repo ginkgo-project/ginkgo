@@ -215,6 +215,8 @@ public:
             } else {
                 const auto num_blocks = prec->get_num_blocks();
                 const auto block_ptrs_arr = prec->get_const_block_pointers();
+                const auto row_part_of_which_block_arr =
+                    prec->get_const_row_is_part_of_which_block_info();
                 const auto blocks_arr =
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
                         prec->get_const_blocks());
@@ -223,7 +225,8 @@ public:
                 dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
                     logger, amat,
                     device::BatchBlockJacobi<device_value_type>(
-                        num_blocks, storage_scheme, blocks_arr, block_ptrs_arr),
+                        num_blocks, storage_scheme, blocks_arr, block_ptrs_arr,
+                        row_part_of_which_block_arr),
                     b_b, x_b);
             }
 

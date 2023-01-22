@@ -209,6 +209,22 @@ public:
     }
 
     /**
+     *  Returns information about which blocks are the rows of the matrix part
+     * of.
+     *
+     *  @note Returns nullptr in case of a scalar jacobi preconditioner
+     * (max_block_size = 1).
+     *
+     */
+    const index_type* get_const_row_is_part_of_which_block_info() const noexcept
+    {
+        if (parameters_.max_block_size == 1) {
+            return nullptr;
+        }
+        return row_part_of_which_block_info_.get_const_data();
+    }
+
+    /**
      * Returns the max block size.
      *
      * @return the max block size
@@ -366,7 +382,9 @@ protected:
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
                       system_matrix->get_num_batch_entries(),
-                      parameters_.block_pointers.get_num_elems() - 1))
+                      parameters_.block_pointers.get_num_elems() - 1)),
+          row_part_of_which_block_info_(factory->get_executor(),
+                                        system_matrix->get_size().at(0)[0])
     {
         parameters_.block_pointers.set_executor(this->get_executor());
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
@@ -405,6 +423,7 @@ private:
     batched_blocks_storage_scheme storage_scheme_;
     size_type num_blocks_;
     array<value_type> blocks_;
+    array<index_type> row_part_of_which_block_info_;
 };
 
 
