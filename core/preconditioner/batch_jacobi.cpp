@@ -193,6 +193,10 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
         this->detect_blocks(num_batch, first_sys_csr.get());
     }
 
+    /*  TODO:
+       treat row_part_of_which_block_info_
+    */
+
     // Note: Storing each block in the same size and stride matrix makes
     // accessing elements/implementation easy with
     // no effect on performance.
@@ -217,6 +221,7 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     exec->run(batch_jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), num_blocks_, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
+        row_part_of_which_block_info_.get_const_data(),
         blocks_pattern.get_data()));
 
     exec->run(batch_jacobi::make_compute_block_jacobi(
