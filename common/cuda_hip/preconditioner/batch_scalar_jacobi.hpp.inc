@@ -157,41 +157,25 @@ private:
 };
 
 
-template <typename ValueType>
-__global__ void batch_jacobi(
-    BatchScalarJacobi<ValueType> prec,
-    const gko::batch_ell::UniformBatch<const ValueType> a,
-    const gko::batch_dense::UniformBatch<const ValueType> b,
-    const gko::batch_dense::UniformBatch<ValueType> x)
+template <typename BatchMatrixType, typename ValueType>
+__global__ void batch_scalar_jacobi_apply(BatchScalarJacobi<ValueType> prec,
+                                          const BatchMatrixType sys_mat_batch,
+                                          const size_type nbatch,
+                                          const int nrows,
+                                          const ValueType* const b_values,
+                                          ValueType* const x_values)
 {
-    for (size_type batch = 0; batch < a.num_batch; ++batch) {
-        const auto a_b = gko::batch::batch_entry(a, batch);
-        const auto b_b = gko::batch::batch_entry(b, batch);
-        const auto x_b = gko::batch::batch_entry(x, batch);
+    for (size_type batch_id = blockIdx.x; batch_id < nbatch;
+         batch_id += gridDim.x) {
+        const auto sys_mat_batch_entry =
+            gko::batch::batch_entry(sys_mat_batch, batch_id);
 
-        extern __shared__ char local_mem[];
-        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(batch, a_b, prec_work);
-        prec.apply(b_b.num_rows, b_b.values, x_b.values);
-    }
-}
+        extern __shared__ char sh_mem[];
+        ValueType* work = reinterpret_cast<ValueType*>(sh_mem);
 
-
-template <typename ValueType>
-__global__ void batch_jacobi(
-    BatchScalarJacobi<ValueType> prec,
-    const gko::batch_csr::UniformBatch<const ValueType> a,
-    const gko::batch_dense::UniformBatch<const ValueType> b,
-    const gko::batch_dense::UniformBatch<ValueType> x)
-{
-    for (size_type batch = 0; batch < a.num_batch; ++batch) {
-        const auto a_b = gko::batch::batch_entry(a, batch);
-        const auto b_b = gko::batch::batch_entry(b, batch);
-        const auto x_b = gko::batch::batch_entry(x, batch);
-
-        extern __shared__ char local_mem[];
-        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(batch, a_b, prec_work);
-        prec.apply(b_b.num_rows, b_b.values, x_b.values);
+        prec.generate(batch_id, sys_mat_batch_entry, work);
+        __syncthreads();
+        prec.apply(nrows, b_values + batch_id * nrows,
+                   x_values + batch_id * nrows);
     }
 }

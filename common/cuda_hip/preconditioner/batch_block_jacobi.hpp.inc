@@ -108,7 +108,48 @@ public:
                                           const ValueType* const r,
                                           ValueType* const z) const
     {  // Structure-aware SpMV
-        printf("\n yet to implement");
+        constexpr auto tile_size =
+            config::warp_size;  // How to have a run-time size acc. to
+                                // max_block_size ???
+
+        auto thread_block = group::this_thread_block();
+        auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+        const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+        const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+        const int id_within_subwarp = subwarp_grp.thread_rank();
+
+        // one subwarp per row
+        for (int row_idx = subwarp_grp_id; row_idx < num_rows;
+             row_idx += num_subwarp_grps_per_block) {
+            const int block_idx = row_part_of_which_block_arr_[row_idx];
+            const value_type* dense_block_ptr =
+                blocks_arr_entry_ + storage_scheme_.get_block_offset(block_idx);
+
+            const int idx_start = block_ptrs_arr_[block_idx];
+            const int idx_end = block_ptrs_arr_[block_idx + 1];
+            const int bsize = idx_end - idx_start;
+
+            const int dense_block_row = row_idx - idx_start;
+            auto sum = zero<value_type>();
+
+            for (int dense_block_col = id_within_subwarp;
+                 dense_block_col < bsize; dense_block_col += tile_size) {
+                const auto block_val =
+                    dense_block_ptr[dense_block_row *
+                                        storage_scheme_.get_stride() +
+                                    dense_block_col];  // coalesced accesses
+                sum += block_val * r[dense_block_col + idx_start];
+            }
+
+            // reduction
+            for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+                sum += subwarp_grp.shfl_down(sum, i);
+            }
+
+            if (id_within_subwarp == 0) {
+                z[row_idx] = sum;
+            }
+        }
     }
 
 private:
@@ -119,3 +160,24 @@ private:
     const int* __restrict__ const block_ptrs_arr_;
     const int* __restrict__ const row_part_of_which_block_arr_;
 };
+
+
+template <typename ValueType>
+__global__ void batch_block_jacobi_apply(BatchBlockJacobi<ValueType> prec,
+                                         const size_type nbatch,
+                                         const int nrows,
+                                         const ValueType* const b_values,
+                                         ValueType* const x_values)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < nbatch;
+         batch_id += gridDim.x) {
+        extern __shared__ char sh_mem[];
+        ValueType* work = reinterpret_cast<ValueType*>(sh_mem);
+
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      work);
+        __syncthreads();
+        prec.apply(nrows, b_values + batch_id * nrows,
+                   x_values + batch_id * nrows);
+    }
+}
