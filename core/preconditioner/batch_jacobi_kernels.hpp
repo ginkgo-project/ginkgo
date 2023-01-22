@@ -79,7 +79,9 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType>* first_sys_csr,              \
         const size_type num_blocks,                                          \
         const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
-        const IndexType* block_pointers, IndexType* blocks_pattern)
+        const IndexType* block_pointers,                                     \
+        const IndexType* row_part_of_which_block_info,                       \
+        IndexType* blocks_pattern)
 
 
 #define GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType)  \
@@ -99,6 +101,7 @@ namespace kernels {
         const gko::preconditioner::batched_blocks_storage_scheme&   \
             storage_scheme,                                         \
         const ValueType* blocks_array, const IndexType* block_ptrs, \
+        const IndexType* row_part_of_which_block_info,              \
         const matrix::BatchDense<ValueType>* r,                     \
         matrix::BatchDense<ValueType>* z)
 
@@ -110,6 +113,7 @@ namespace kernels {
         const gko::preconditioner::batched_blocks_storage_scheme&       \
             storage_scheme,                                             \
         const ValueType* blocks_array, const IndexType* block_ptrs,     \
+        const IndexType* row_part_of_which_block_info,                  \
         const matrix::BatchDense<ValueType>* r,                         \
         matrix::BatchDense<ValueType>* z)
 

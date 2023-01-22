@@ -55,17 +55,21 @@ public:
      * @param max_block_size Maximum block size
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
+     * @param row_part_of_which_block_arr array containing block indices of the
+     * blocks that the individual rows of the matrix are a part of
      *
      */
     BatchBlockJacobi(const size_type num_blocks,
                      const gko::preconditioner::batched_blocks_storage_scheme&
                          storage_scheme,
                      const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr)
+                     const int* const block_ptrs_arr,
+                     const int* const row_part_of_which_block_arr)
         : num_blocks_{num_blocks},
           storage_scheme_{storage_scheme},
           blocks_arr_batch_{blocks_arr_batch},
-          block_ptrs_arr_{block_ptrs_arr}
+          block_ptrs_arr_{block_ptrs_arr},
+          row_part_of_which_block_arr_{row_part_of_which_block_arr}
     {}
 
 
@@ -113,4 +117,5 @@ private:
     const value_type* const blocks_arr_batch_;
     const value_type* __restrict__ blocks_arr_entry_;
     const int* __restrict__ const block_ptrs_arr_;
+    const int* __restrict__ const row_part_of_which_block_arr_;
 };

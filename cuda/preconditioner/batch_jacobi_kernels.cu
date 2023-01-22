@@ -57,7 +57,9 @@ constexpr int default_block_size = 128;
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
+
 
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
@@ -66,6 +68,7 @@ void batch_jacobi_apply(
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
@@ -79,6 +82,7 @@ void batch_jacobi_apply(
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
@@ -135,9 +139,18 @@ void extract_common_blocks_pattern(
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const IndexType* const block_pointers, IndexType* const blocks_pattern)
+    const IndexType* const block_pointers,
+    const IndexType* const row_part_of_which_block_info,
+    IndexType* const blocks_pattern)
 {
-    GKO_NOT_IMPLEMENTED;
+    const auto nrows = first_sys_csr->get_size()[0];
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nrows * config::warp_size, default_block_size));
+
+    extract_common_block_pattern_kernel<<<grid, block>>>(
+        static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
+        first_sys_csr->get_const_col_idxs(), num_blocks, storage_scheme,
+        block_pointers, row_part_of_which_block_info, blocks_pattern);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

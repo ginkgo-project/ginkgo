@@ -84,12 +84,14 @@ void batch_jacobi_apply(
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
     const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, blocks_array, block_ptrs, r, z);
+                              storage_scheme, blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -102,12 +104,14 @@ void batch_jacobi_apply(
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
     const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, blocks_array, block_ptrs, r, z);
+                              storage_scheme, blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -177,13 +181,15 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const size_type num_blocks,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const IndexType* const block_pointers, IndexType* const blocks_pattern)
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const block_pointers, const IndexType* const,
+    IndexType* const blocks_pattern)
 {
     for (size_type k = 0; k < num_blocks; k++) {
         extract_block_pattern_impl(k, first_sys_csr, storage_scheme,
