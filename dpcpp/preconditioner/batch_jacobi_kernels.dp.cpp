@@ -75,28 +75,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
 
 
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
-                        const matrix::BatchEll<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
-                        const matrix::BatchCsr<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,

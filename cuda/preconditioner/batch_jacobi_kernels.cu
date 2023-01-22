@@ -107,54 +107,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
 
 
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
-                        const matrix::BatchEll<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const auto nrows = a->get_size().at(0)[0];
-
-    const auto a_ub = get_batch_struct(a);
-    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
-                                a_ub.num_rows, a_ub.num_nnz) *
-                            sizeof(ValueType);
-    auto prec_scalar_jacobi = BatchScalarJacobi<cuda_type<ValueType>>();
-
-    batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
-        prec_scalar_jacobi, a_ub, nbatch, nrows,
-        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_ELL_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
-                        const matrix::BatchCsr<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const auto nrows = a->get_size().at(0)[0];
-
-    const auto a_ub = get_batch_struct(a);
-    const int shared_size = BatchScalarJacobi<ValueType>::dynamic_work_size(
-                                a_ub.num_rows, a_ub.num_nnz) *
-                            sizeof(ValueType);
-    auto prec_scalar_jacobi = BatchScalarJacobi<cuda_type<ValueType>>();
-
-    batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
-        prec_scalar_jacobi, a_ub, nbatch, nrows,
-        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_SCALAR_JACOBI_APPLY_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
