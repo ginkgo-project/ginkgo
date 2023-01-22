@@ -75,3 +75,47 @@ __global__
         }
     }
 }
+
+template <typename BatchMatrixType, typename ValueType>
+void batch_jacobi_apply_helper(
+    const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
+    const uint32 max_block_size,
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const ValueType* const blocks_array, const int* const block_ptrs,
+    const int* const row_part_of_which_block_info,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto nbatch = sys_mat_batch.num_batch;
+    const auto nrows = sys_mat_batch.num_rows;
+
+    const auto r_ub = get_batch_struct(r);
+    const auto z_ub = get_batch_struct(z);
+
+    if (max_block_size == 1u) {
+        const auto shared_size =
+            BatchScalarJacobi<ValueType>::dynamic_work_size(
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+            sizeof(ValueType);
+        auto prec_scalar_jacobi = BatchScalarJacobi<device_type<ValueType>>();
+
+        batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
+            prec_scalar_jacobi, sys_mat_batch, nbatch, nrows,
+            as_device_type(r->get_const_values()),
+            as_device_type(z->get_values()));
+
+    } else {
+        const auto shared_size =
+            BatchBlockJacobi<ValueType>::dynamic_work_size(
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+            sizeof(ValueType);
+        auto prec_block_jacobi = BatchBlockJacobi<device_type<ValueType>>(
+            num_blocks, storage_scheme, as_device_type(blocks_array),
+            block_ptrs, row_part_of_which_block_info);
+
+        batch_block_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
+            prec_block_jacobi, nbatch, nrows,
+            as_device_type(r->get_const_values()),
+            as_device_type(z->get_values()));
+    }
+}

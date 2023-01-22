@@ -151,9 +151,6 @@ TYPED_TEST(BatchJacobi,
         ref_prec->get_max_block_size(), ref_prec->get_storage_scheme(), blocks_arr_ref,
         block_ptr_ref, row_part_of_which_block_ref, this->ref_b.get(), this->ref_x.get());
 
-      // gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-    // this->ref, this->ref_mtx.get(), ref_b.get(), ref_x.get());
-
     auto d_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(1u)
                          .on(this->exec);
@@ -172,6 +169,7 @@ TYPED_TEST(BatchJacobi,
     const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);
 }
+
 
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiGenerationIsEquivalentToRef)
