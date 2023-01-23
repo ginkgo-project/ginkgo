@@ -442,7 +442,8 @@ public:
      * original MPI_Comm object.
      *
      * @param comm The input MPI_Comm object.
-     * @param force_host_buffer If set to true, always communicates through host memory
+     * @param force_host_buffer If set to true, always communicates through host
+     * memory
      */
     communicator(const MPI_Comm& comm, bool force_host_buffer = false)
         : comm_(), force_host_buffer_(force_host_buffer)
