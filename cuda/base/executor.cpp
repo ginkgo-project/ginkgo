@@ -39,7 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cuda_runtime.h>
+#ifdef GKO_LEGACY_NVTX
 #include <nvToolsExt.h>
+#else
+#include <nvtx3/nvToolsExt.h>
+#endif
 
 
 #include <ginkgo/config.hpp>
