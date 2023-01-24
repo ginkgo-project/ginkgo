@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
+#include "cuda/base/exception.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
@@ -79,6 +80,8 @@ void batch_jacobi_apply(
     batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
                               blocks_array, block_ptrs,
                               row_part_of_which_block_info, r, z);
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 
@@ -100,6 +103,7 @@ void batch_jacobi_apply(
     batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
                               blocks_array, block_ptrs,
                               row_part_of_which_block_info, r, z);
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 
@@ -125,6 +129,8 @@ void extract_common_blocks_pattern(
         static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), num_blocks, storage_scheme,
         block_pointers, row_part_of_which_block_info, blocks_pattern);
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -140,7 +146,23 @@ void compute_block_jacobi(
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
-    GKO_NOT_IMPLEMENTED;
+    constexpr auto subwarp_size =
+        config::warp_size;  // TODO: How to have a subwarp size according to
+                            // max_block_size?
+
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto nrows = sys_csr->get_size().at(0)[0];
+    const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size, default_block_size));
+
+    compute_block_jacobi_kernel<subwarp_size><<<grid, block>>>(
+        nbatch, static_cast<int>(nnz),
+        as_cuda_type(sys_csr->get_const_values()), num_blocks, storage_scheme,
+        block_pointers, blocks_pattern, as_cuda_type(blocks));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
