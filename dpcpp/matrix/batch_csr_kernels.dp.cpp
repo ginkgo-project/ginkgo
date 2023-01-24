@@ -72,17 +72,88 @@ namespace dpcpp {
  */
 namespace batch_csr {
 
-
+#ifdef 1
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType>* a,
           const matrix::BatchDense<ValueType>* b,
           matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
+#else
+template <typename ValueType>
+__forceinline__ void matvec_kernel(
+    sycl::nd_item<3>& item_ct1,
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const gko::batch_dense::BatchEntry<ValueType>& c)
+{
+    auto sg = item_ct1.get_sub_group();
+
+    for (int row_and_rhs_combination = sg.get_group_id();
+         row_and_rhs_combination < a.num_rows * b.num_rhs;
+         row_and_rhs_combination += sg.get_group_range()) {
+        const int row = row_and_rhs_combination / b.num_rhs;
+        const int rhs = row_and_rhs_combination % b.num_rhs;
+
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = sg.get_local_id() + row_start; i < row_end;
+             i += sg.get_local_range()) {
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
+            temp += val * b.values[col * b.stride + rhs];
+        }
+
+        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) {
+            c.values[row * c.stride + rhs] = temp;
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const DpcppExecutor> exec,
+          const matrix::BatchCsr<ValueType, IndexType>* a,
+          const matrix::BatchDense<ValueType>* b,
+          matrix::BatchDense<ValueType>* c)
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+
+    // From data types of a -> find number of batches
+    const auto num_groups = a_ub.num_batch;
+    const auto group_size = exec->get_exec_info().max_workgroup_size;
+    const auto subgroup_size = exec->get_exec_info().max_subgroup_size;
+
+    const dim3 block(group_size);  // Is there any perf diff between 1D vs 3D
+                                   // group/block kernel
+    const dim3 grid(num_groups);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) {  // TODO: enforce subgroup_size?
+                auto group = item_ct1.get_group();
+                auto group_id = item_ct1.get_linear_id();
+                const auto a_b = gko::batch::batch_entry(a_ub, group_id);
+                const auto b_b = gko::batch::batch_entry(b_ub, group_id);
+                const auto c_b = gko::batch::batch_entry(c_ub, group_id);
+                matvec_kernel(item_ct1, a_b, b_b, c_b);
+            });
+    });
+}
+#endif
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
 
-
+#ifdef 1
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::BatchDense<ValueType>* alpha,
@@ -90,6 +161,82 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::BatchDense<ValueType>* b,
                    const matrix::BatchDense<ValueType>* beta,
                    matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+#else
+__forceinline__ void advanced_matvec_kernel(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+{
+    auto sg = item_ct1.get_sub_group();
+
+    for (int row_and_rhs_combination = sg.get_group_id();
+         row_and_rhs_combination < a.num_rows * b.num_rhs;
+         row_and_rhs_combination += sg.get_group_range()) {
+        const int row = row_and_rhs_combination / b.num_rhs;
+        const int rhs = row_and_rhs_combination % b.num_rhs;
+
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = sg.get_local_id() + row_start; i < row_end;
+             i += sg.get_local_range()) {
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
+            temp += alpha * val * b.values[col * b.stride + rhs];
+        }
+
+        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) {
+            c.values[row * c.stride + rhs] =
+                temp + beta * c.values[row * c.stride + rhs];
+        }
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::BatchDense<ValueType>* alpha,
+                   const matrix::BatchCsr<ValueType, IndexType>* a,
+                   const matrix::BatchDense<ValueType>* b,
+                   const matrix::BatchDense<ValueType>* beta,
+                   matrix::BatchDense<ValueType>* c)
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+
+    // From data types of a -> find number of batches
+    const auto num_groups = a_ub.num_batch;
+    const auto group_size = exec->get_exec_info().max_workgroup_size;
+    const auto subgroup_size = exec->get_exec_info().max_subgroup_size;
+
+    const dim3 block(group_size);  // Is there any perf diff between 1D vs 3D
+                                   // group/block kernel
+    const dim3 grid(num_groups);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) {  // TODO: enforce subgroup_size?
+                auto group = item_ct1.get_group();
+                auto group_id = item_ct1.get_linear_id();
+                const auto a_b = gko::batch::batch_entry(a_ub, group_id);
+                const auto b_b = gko::batch::batch_entry(b_ub, group_id);
+                const auto c_b = gko::batch::batch_entry(c_ub, group_id);
+                const auto alpha_b =
+                    gko::batch::batch_entry(alpha_ub, group_id);
+                const auto beta_b = gko::batch::batch_entry(beta_ub, group_id);
+                matvec_kernel(item_ct1, alpha_b.values[0], a_b, b_b,
+                              beta_b.values[0], c_b);
+            });
+    });
+}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
