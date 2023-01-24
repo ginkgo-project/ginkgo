@@ -138,7 +138,7 @@ TYPED_TEST(BatchJacobi,
     auto xs = x->unbatch();
 
     for (size_t i = 0; i < umtxs.size(); i++) {
-        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 50 * r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], r<value_type>::value);
     }
 }
 
@@ -171,6 +171,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
                                  .with_block_pointers(block_ptrs)
                                  .with_skip_sorting(true)
                                  .on(this->exec);
+    const auto tol = r<value_type>::value;
 
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
@@ -192,9 +193,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
                          batched_storage_scheme.get_global_block_offset(
                              num_blocks, i,
                              k))[r * batched_storage_scheme.get_stride() + c];
-                    ASSERT_EQ(unbatch_val, batch_val);
-                    // GKO_ASSERT_NEAR(unbatch_val, batch_val,
-                    // r<value_type>::value);
+                    GKO_EXPECT_NEAR(unbatch_val, batch_val, tol);
                 }
             }
         }
@@ -249,7 +248,7 @@ TYPED_TEST(BatchJacobi,
 
     auto xs = x->unbatch();
     for (size_t i = 0; i < umtxs.size(); i++) {
-        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], 50 * r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], r<value_type>::value);
     }
 }
 

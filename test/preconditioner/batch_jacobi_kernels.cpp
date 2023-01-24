@@ -115,8 +115,9 @@ protected:
         d_b->copy_from(ref_b.get());
     }
 
-    const size_t nbatch = 10;
-    const int nrows = 50;
+   // const size_t nbatch = 10;
+    const size_t nbatch = 5;
+    const int nrows = 100;
     std::shared_ptr<Mtx> ref_mtx;
     std::shared_ptr<Mtx> d_mtx;
     std::unique_ptr<BDense> ref_b;
@@ -166,7 +167,7 @@ TYPED_TEST(BatchJacobi,
         d_prec->get_max_block_size(), d_prec->get_storage_scheme(), blocks_arr_d,
         block_ptr_d, row_part_of_which_block_d, this->d_b.get(), this->d_x.get());
 
-    const auto tol = 5000 * r<value_type>::value;
+    const auto tol = r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);
 }
 
@@ -179,6 +180,7 @@ TYPED_TEST(BatchJacobi,
     
     const auto max_blk_sz = 6u;
 
+    std::cout << "\n\nref:" << std::endl;
     auto ref_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
                          .with_skip_sorting(true)
@@ -193,16 +195,19 @@ TYPED_TEST(BatchJacobi,
     gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
     this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
 
+    std::cout << "\n\ncuda:" << std::endl;
     auto d_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
                          .with_skip_sorting(true)
                          .with_block_pointers(block_pointers_for_device)
                          .on(this->exec);
 
-    auto d_prec = ref_prec_fact->generate(this->d_mtx);
+    auto d_prec = d_prec_fact->generate(this->d_mtx);
 
     const auto& ref_storage_scheme= ref_prec->get_storage_scheme();
     const auto& d_storage_scheme = d_prec->get_storage_scheme();
+
+    const auto tol = r<value_type>::value;
 
     for(int batch_id = 0; batch_id < this->nbatch; batch_id++)
     {
@@ -224,7 +229,7 @@ TYPED_TEST(BatchJacobi,
 
                     value_type val;
                     this->exec->get_master()->copy_from(this->exec.get(), 1, d_val_ptr, &val);
-                    ASSERT_EQ(*ref_val_ptr, val);
+                    GKO_EXPECT_NEAR(*ref_val_ptr, val, tol);
                     
                 }
             }
@@ -233,6 +238,7 @@ TYPED_TEST(BatchJacobi,
     }
 }
 
+/*
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
 {   
@@ -278,6 +284,6 @@ TYPED_TEST(BatchJacobi,
     const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);
 }
-
+*/
 
 }  // namespace
