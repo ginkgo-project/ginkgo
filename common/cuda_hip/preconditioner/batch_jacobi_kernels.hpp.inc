@@ -78,32 +78,82 @@ __global__
 
 
 template <typename Group, typename ValueType>
+__device__ __forceinline__ int choose_pivot(Group subwarp_grp,
+                                            const int block_size,
+                                            const ValueType* const block_row,
+                                            const int& perm, const int k)
+{
+    auto my_abs_ele = abs(block_row[k]);
+    if (perm > -1) {
+        my_abs_ele = -1;
+    }
+
+    if (subwarp_grp.thread_rank() >= block_size) {
+        my_abs_ele = -1;
+    }
+
+    subwarp_grp.sync();
+
+    int my_piv_idx = subwarp_grp.thread_rank();
+
+    for (int a = subwarp_grp.size() / 2; a > 0; a /= 2) {
+        const auto abs_ele_other = subwarp_grp.shfl_down(my_abs_ele, a);
+        const int piv_idx_other = subwarp_grp.shfl_down(my_piv_idx, a);
+
+        if (my_abs_ele < abs_ele_other) {
+            my_abs_ele = abs_ele_other;
+            my_piv_idx = piv_idx_other;
+        }
+    }
+
+    subwarp_grp.sync();
+
+    const int ipiv = subwarp_grp.shfl(my_piv_idx, 0);
+
+    return ipiv;
+}
+
+
+template <typename Group, typename ValueType>
 __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
                                                    const int block_size,
-                                                   ValueType* const block_row)
+                                                   ValueType* const block_row,
+                                                   int& perm)
 {
-    // First, without pivoting
+    // Gauss Jordan Elimination with implicit pivoting
     for (int k = 0; k < block_size; k++) {
-        const ValueType d = subwarp_grp.shfl(block_row[k], k);
+        // implicit pivoting
+
+        const int ipiv = choose_pivot(subwarp_grp, block_size, block_row, perm,
+                                      k);  // pivot index
+        // if(subwarp_grp.thread_rank() == 0 )
+        // {
+        //     printf("pivoting: k: %d, ipiv: %d ", k, ipiv);
+        // }
+
+        if (subwarp_grp.thread_rank() == ipiv) {
+            perm = k;
+        }
+
+        const ValueType d = subwarp_grp.shfl(block_row[k], ipiv);
 
         // scale kth col
         block_row[k] /= -d;
-        if (subwarp_grp.thread_rank() == k) {
+        if (subwarp_grp.thread_rank() == ipiv) {
             block_row[k] = zero<ValueType>();
         }
 
         const ValueType row_val = block_row[k];
         // GER
         for (int col = 0; col < block_size; col++) {
-            const ValueType col_val = subwarp_grp.shfl(block_row[col], k);
-            ;
+            const ValueType col_val = subwarp_grp.shfl(block_row[col], ipiv);
             block_row[col] += row_val * col_val;
         }
         // Don't bother about what threads of the subwarp with local id >=
         // block_size.
 
-        // scale kth row
-        if (subwarp_grp.thread_rank() == k) {
+        // scale ipiv th row
+        if (subwarp_grp.thread_rank() == ipiv) {
             for (int i = 0; i < block_size; i++) {
                 block_row[i] /= d;
             }
@@ -166,10 +216,11 @@ __global__
             }
         }
 
+        int perm = -1;
+
         // invert
-        invert_dense_block(
-            subwarp_grp, block_size,
-            block_row);  // invert the transpose of the dense block.
+        invert_dense_block(subwarp_grp, block_size, block_row,
+                           perm);  // invert the transpose of the dense block.
         // Note: Each thread of the subwarp has a row of the block to be
         // inverted. (local id: 0 thread has 0th row, 1st thread has 1st row and
         // so on..)
@@ -179,15 +230,34 @@ __global__
 
         subwarp_grp.sync();
 
-        // write it back to block array
-        if (id_within_subwarp < block_size) {
-            for (int a = 0; a < block_size; a++) {
-                // printf("\n val_to_write: %g at row: %d  and col: %d,
-                // batch_id: %d, block_id: %d", block_row[a], a,
-                // id_within_subwarp, batch_idx, block_idx);
-                current_block_data[a * storage_scheme.get_stride() +
-                                   id_within_subwarp] =
-                    block_row[a];  // coalseced accesses
+        // if(subwarp_grp.thread_rank() < block_size)
+        // {
+        //     printf("\n perm vec [%d]: %d", subwarp_grp.thread_rank(), perm);
+        // }
+
+
+        // write back the tranpose of the transposed inverse matrix to block
+        // array
+        for (int a = 0; a < block_size; a++) {
+            // printf("\n val_to_write: %g at row: %d  and col: %d,
+            // batch_id: %d, block_id: %d", block_row[a], a,
+            // id_within_subwarp, batch_idx, block_idx);
+            // const int col_inv_transposed_mat = subwarp_grp.shfl(perm, a);
+            // //column permutation
+            const int col_inv_transposed_mat = a;
+            const int col = subwarp_grp.shfl(perm, a);  // column permutation
+            const int row_inv_transposed_mat =
+                perm;  // accumulated row swaps during pivoting
+            const auto val_to_write = block_row[col];
+
+            const int row_diag_block = col_inv_transposed_mat;
+            const int col_diag_block = row_inv_transposed_mat;
+
+            if (id_within_subwarp < block_size) {
+                current_block_data[row_diag_block *
+                                       storage_scheme.get_stride() +
+                                   col_diag_block] =
+                    val_to_write;  // non-coalesced accesses due to pivoting
             }
         }
     }
