@@ -172,6 +172,7 @@ inline void compute_block_jacobi_impl(
                                             row * storage_scheme.get_stride() +
                                             col];  // data locality
             if (idx >= 0) {
+                assert(idx < A_entry.num_nnz);
                 to_write = A_entry.values[idx];
             }
             temp_dense_block[row * bsize + col] = to_write;  // data locality
