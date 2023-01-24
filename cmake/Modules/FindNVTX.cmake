@@ -48,6 +48,8 @@ if(NVTX_FOUND)
             add_library(nvtx::nvtx UNKNOWN IMPORTED)
             set_target_properties(nvtx::nvtx PROPERTIES
                 INTERFACE_INCLUDE_DIRECTORIES "${NVTX_INCLUDE_DIRS}")
+            set_target_properties(nvtx::nvtx PROPERTIES
+                INTERFACE_COMPILE_DEFINITIONS GKO_LEGACY_NVTX)
             if(EXISTS "${NVTX_LIBRARIES}")
                 set_target_properties(nvtx::nvtx PROPERTIES
                     IMPORTED_LINK_INTERFACE_LANGUAGES "C"
@@ -56,7 +58,7 @@ if(NVTX_FOUND)
         endif()
     else()
         if(NOT TARGET nvtx::nvtx)            
-            set(NVTX_INCLUDE_DIRS ${NVTX3_INCLUDE_DIR})
+            set(NVTX_INCLUDE_DIRS ${NVTX3_INCLUDE_DIR}/..)
             add_library(nvtx::nvtx INTERFACE IMPORTED)
             set_target_properties(nvtx::nvtx PROPERTIES
                 INTERFACE_INCLUDE_DIRECTORIES "${NVTX_INCLUDE_DIRS}")
