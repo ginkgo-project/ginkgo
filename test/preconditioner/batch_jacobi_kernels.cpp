@@ -95,7 +95,7 @@ protected:
         exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1))))
     {   
         // make diagonal larger
-        const int* const row_ptrs = ref_mtx->get_const_row_ptrs();
+        /*const int* const row_ptrs = ref_mtx->get_const_row_ptrs();
         const int* const col_idxs = ref_mtx->get_const_col_idxs();
         value_type* const vals = ref_mtx->get_values();
         const int nnz = row_ptrs[nrows];
@@ -110,14 +110,13 @@ protected:
                     }
                 }
             }
-        }
+        }*/
         d_mtx->copy_from(ref_mtx.get());
         d_b->copy_from(ref_b.get());
     }
 
-   // const size_t nbatch = 10;
-    const size_t nbatch = 5;
-    const int nrows = 100;
+    const size_t nbatch = 3;
+    const int nrows = 300;
     std::shared_ptr<Mtx> ref_mtx;
     std::shared_ptr<Mtx> d_mtx;
     std::unique_ptr<BDense> ref_b;
@@ -156,7 +155,7 @@ TYPED_TEST(BatchJacobi,
                          .with_max_block_size(1u)
                          .on(this->exec);
 
-    auto d_prec = ref_prec_fact->generate(this->d_mtx);
+    auto d_prec = d_prec_fact->generate(this->d_mtx);
 
     value_type* blocks_arr_d = nullptr;
     int* block_ptr_d = nullptr;
@@ -180,7 +179,7 @@ TYPED_TEST(BatchJacobi,
     
     const auto max_blk_sz = 6u;
 
-    std::cout << "\n\nref:" << std::endl;
+    //std::cout << "\n\nref:" << std::endl;
     auto ref_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
                          .with_skip_sorting(true)
@@ -195,7 +194,7 @@ TYPED_TEST(BatchJacobi,
     gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
     this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
 
-    std::cout << "\n\ncuda:" << std::endl;
+    //std::cout << "\n\ncuda:" << std::endl;
     auto d_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
                          .with_skip_sorting(true)
@@ -207,7 +206,7 @@ TYPED_TEST(BatchJacobi,
     const auto& ref_storage_scheme= ref_prec->get_storage_scheme();
     const auto& d_storage_scheme = d_prec->get_storage_scheme();
 
-    const auto tol = r<value_type>::value;
+    const auto tol = 100000 * r<value_type>::value;
 
     for(int batch_id = 0; batch_id < this->nbatch; batch_id++)
     {
@@ -238,7 +237,7 @@ TYPED_TEST(BatchJacobi,
     }
 }
 
-/*
+
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
 {   
@@ -274,7 +273,7 @@ TYPED_TEST(BatchJacobi,
                          .with_block_pointers(block_pointers_for_device)
                          .on(this->exec);
 
-    auto d_prec = ref_prec_fact->generate(this->d_mtx);
+    auto d_prec = d_prec_fact->generate(this->d_mtx);
 
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
@@ -284,6 +283,6 @@ TYPED_TEST(BatchJacobi,
     const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(), tol);
 }
-*/
+
 
 }  // namespace

@@ -110,8 +110,12 @@ inline void invert_dense_block(const int block_size,
 
     for (int k = 0; k < block_size; k++) {
         const int piv = choose_pivot(k, block_size, temp_dense_block);
-        swap_rows(block_size, temp_dense_block, k, piv);
-        swap_numbers(col_perm[piv], col_perm[k]);
+        if (k != piv) {
+            // printf("\n\n ref pivoting: k: %d, piv: %d", k, piv);
+            swap_rows(block_size, temp_dense_block, k, piv);
+            swap_numbers(col_perm[piv], col_perm[k]);
+        }
+
 
         const ValueType d = temp_dense_block[k * block_size + k];
 
@@ -194,6 +198,11 @@ inline void compute_block_jacobi_impl(
 
     // invert the diagonal block
     invert_dense_block(bsize, temp_dense_block, col_perm);
+
+    // for(int p = 0; p < bsize; p++)
+    // {
+    //     std::cout << "ref perm[" << p << "]: " << col_perm[p] << std::endl;
+    // }
 
     // std::cout << "\n\nbatch id: " << batch_idx << " block idx: " << block_idx
     // << "After inversion:" << std::endl; for(int r = 0; r < bsize; r++)
