@@ -54,6 +54,7 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+using scal_type = gko::matrix::BatchDiagonal<value_type>;
 // using mtx_type = gko::matrix::BatchEll<value_type, index_type>;
 using solver_type = gko::solver::BatchBicgstab<value_type>;
 
@@ -112,7 +113,7 @@ int main(int argc, char* argv[])
     const size_type num_duplications = argc >= 5 ? std::atoi(argv[4]) : 2;
     // Whether to enable diagonal scaling of the matrices before solving.
     //  The scaling vectors need to be available in a 'S.mtx' file.
-    const std::string batch_scaling = argc >= 6 ? argv[5] : "none";
+    const std::string batch_scaling = argc >= 6 ? argv[5] : "explicit";
     auto data = std::vector<gko::matrix_data<value_type>>(num_systems);
     std::vector<gko::matrix_data<value_type>> bdata(num_systems);
     auto scale_data = std::vector<gko::matrix_data<value_type>>(num_systems);
@@ -140,6 +141,12 @@ int main(int argc, char* argv[])
     auto single_batch = mtx_type::create(exec);
     single_batch->read(data);
     // We can duplicate the batch a few times if we wish.
+    auto single_scale = scal_type::create(exec);
+    single_scale->read(scale_data);
+    std::shared_ptr<scal_type> scale_mat_l =
+        scal_type::create(exec, num_duplications, single_scale.get());
+    std::shared_ptr<scal_type> scale_mat_r =
+        scal_type::create(exec, num_duplications, single_scale.get());
     std::shared_ptr<mtx_type> A =
         mtx_type::create(exec, num_duplications, single_batch.get());
     // Create RHS
@@ -178,11 +185,11 @@ int main(int argc, char* argv[])
             //         .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
             //         .with_parilu_num_sweeps(10)
             //         .on(exec))
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type,
-                                                 index_type>::build()
-                    .with_max_block_size(20u)
-                    .on(exec))
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type,
+            //                                      index_type>::build()
+            //         .with_max_block_size(20u)
+            //         .on(exec))
             // .with_preconditioner(
             //     gko::preconditioner::BatchIsai<value_type,
             //     index_type>::build()
@@ -209,6 +216,15 @@ int main(int argc, char* argv[])
             //         .on(exec))
             .on(exec);
 
+    auto scaled_solver_gen =
+        solver_type::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(reduction_factor)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_left_scaling_op(scale_mat_l)
+            .with_right_scaling_op(scale_mat_r)
+            .on(exec);
+
     // @sect3{Batch logger}
     // Create a logger to obtain the iteration counts and "implicit" residual
     //  norms for every system after the solve.
@@ -217,18 +233,28 @@ int main(int argc, char* argv[])
 
     // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
+    std::chrono::steady_clock::time_point gt1 =
+        std::chrono::steady_clock::now();
     auto solver = solver_gen->generate(A);
+    std::chrono::steady_clock::time_point gt2 =
+        std::chrono::steady_clock::now();
+
+    std::chrono::steady_clock::time_point s_gt1 =
+        std::chrono::steady_clock::now();
+    auto scaled_solver = scaled_solver_gen->generate(A);
+    std::chrono::steady_clock::time_point s_gt2 =
+        std::chrono::steady_clock::now();
 
     // add the logger to the solver
-    solver->add_logger(logger);
+    scaled_solver->add_logger(logger);
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // Solve the batch system
-    solver->apply(lend(b), lend(x));
+    scaled_solver->apply(lend(b), lend(x));
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
-    solver->remove_logger(logger.get());
+    scaled_solver->remove_logger(logger.get());
 
     // @sect3{Check result}
     // Compute norms of RHS and final residual to check the result
@@ -248,19 +274,21 @@ int main(int argc, char* argv[])
         num_total_systems, {0.0}, exec->get_master());
     res->compute_norm2(lend(res_norm));
 
-    std::cout << "Residual norm sqrt(r^T r):\n";
+    std::cout << "Num systems:" << num_total_systems
+              << ", system size: " << A->get_size().at(0) << "\n";
+    // std::cout << "Residual norm sqrt(r^T r):\n";
     // "unbatch" converts a batch object into a vector of objects of the
     //   corresponding single type, eg. BatchDense --> vector<Dense>.
     auto unb_res = res_norm->unbatch();
     auto unb_bnorm = b_norm->unbatch();
     for (size_type i = 0; i < num_total_systems; ++i) {
-        std::cout << " System no. " << i
-                  << ": residual norm = " << unb_res[i]->at(0, 0)
-                  << ", internal residual norm = "
-                  << logger->get_residual_norm()->at(i, 0, 0)
-                  << ", iterations = "
-                  << logger->get_num_iterations().get_const_data()[i]
-                  << std::endl;
+        // std::cout << " System no. " << i
+        //           << ": residual norm = " << unb_res[i]->at(0, 0)
+        //           << ", internal residual norm = "
+        //           << logger->get_residual_norm()->at(i, 0, 0)
+        //           << ", iterations = "
+        //           << logger->get_num_iterations().get_const_data()[i]
+        //           << std::endl;
         const real_type relresnorm =
             unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
         if (!(relresnorm <= reduction_factor)) {
@@ -269,9 +297,18 @@ int main(int argc, char* argv[])
         }
     }
 
+    auto gen_time_span =
+        std::chrono::duration_cast<std::chrono::duration<double>>(gt2 - gt1);
+    auto scal_gen_time_span =
+        std::chrono::duration_cast<std::chrono::duration<double>>(s_gt2 -
+                                                                  s_gt1);
     auto time_span =
         std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-    std::cout << "Entire solve took " << time_span.count() << " seconds."
+
+    std::cout << "Generate time: " << gen_time_span.count() << " seconds \n"
+              << "Scaled solver generate time: " << scal_gen_time_span.count()
+              << " seconds \n"
+              << "Entire solve took " << time_span.count() << " seconds."
               << std::endl;
 
     return 0;
