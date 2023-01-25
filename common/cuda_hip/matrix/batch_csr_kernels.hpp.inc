@@ -378,12 +378,19 @@ __global__ void uniform_batch_scale(
 {
     for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
          batch_id += gridDim.x) {
+        extern __shared__ char local_mem_sh[];
+        ValueType* right_scale_sh;
+        right_scale_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+
         const auto a_b = gko::batch::batch_entry(a, batch_id);
         const auto left_b =
             gko::batch::batch_entry_ptr(left, 1, a.num_rows, batch_id);
         const auto right_b =
             gko::batch::batch_entry_ptr(right, 1, num_cols, batch_id);
-        batch_scale(left_b, right_b, a_b);
+        right_scale_sh = const_cast<ValueType*>(right_b);
+        __syncthreads();
+        batch_scale(left_b, right_scale_sh, a_b);
+        // batch_scale(left_b, right_b, a_b);
     }
 }
 

@@ -81,7 +81,7 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    constexpr int device_max_threads = 768;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
