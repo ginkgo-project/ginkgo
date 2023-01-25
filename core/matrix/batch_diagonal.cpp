@@ -131,7 +131,7 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
     }
     auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
                                   batch_dim<2>(batch_sizes));
-    mtx->get_executor()->run(batch_diagonal::make_fill(
+    mtx->get_executor()->get_master()->run(batch_diagonal::make_fill(
         tmp->get_values(), tmp->get_num_stored_elements(), zero<value_type>()));
     for (size_type b = 0; b < data.size(); ++b) {
         for (auto nnz : data[b].nonzeros) {
