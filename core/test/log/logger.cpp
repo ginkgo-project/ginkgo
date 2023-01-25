@@ -51,7 +51,9 @@ constexpr int num_iters = 10;
 
 
 struct DummyLoggedClass : gko::log::EnableLogging<DummyLoggedClass> {
-    DummyLoggedClass(std::shared_ptr<const gko::Executor> exec) : exec{exec} {}
+    DummyLoggedClass(std::shared_ptr<const gko::Executor> exec)
+        : exec{std::move(exec)}
+    {}
 
     int get_num_loggers() { return loggers_.size(); }
 

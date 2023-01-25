@@ -70,8 +70,9 @@ enum class profile_event_category {
  * (NVTX) and rocPROF(ROCTX) and custom profiler hooks.
 
  * The Logger should be attached to the Executor that is being used to run the
- * application for a full annotation, or to individual objects to only highlight
- * events caused directly by them (not operations and memory allocations though)
+ * application for a full, program-wide annotation, or to individual objects to
+ * only highlight events caused directly by them (not operations and memory
+ * allocations though)
  */
 class ProfilerHook : public Logger {
 public:
@@ -192,10 +193,10 @@ public:
 
     /**
      * Creates a logger annotating Ginkgo events with TAU ranges via PerfStubs.
-     * Since TAU requires global initialization and finalization, this will only
-     * create a single global instance that is destroyed at program exit.
      * @param initialize  Should we call TAU's initialization and finalization
      *                    functions, or does the application take care of it?
+     *                    The initialization will happen immediately, the
+     *                    finalization at program exit.
      */
     static std::shared_ptr<ProfilerHook> create_tau(bool initialize = true);
 
@@ -208,14 +209,14 @@ public:
         uint32 color_argb = color_yellow_argb);
 
     /**
-     * Creates a logger annotating Ginkgo events with ROCTX ranges for ROCm.
+     * Creates a logger annotating Ginkgo events with ROCTX ranges for HIP.
      */
     static std::shared_ptr<ProfilerHook> create_roctx();
 
     /**
      * Creates a logger annotating Ginkgo events with the most suitable backend
      * for the given executor: NVTX for NSight Systems in CUDA, ROCTX for
-     * rocprof in ROCm, TAU for everything else.
+     * rocprof in HIP, TAU for everything else.
      */
     static std::shared_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
