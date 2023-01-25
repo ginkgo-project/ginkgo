@@ -26,8 +26,8 @@
 # ``NVTX_FOUND``
 #   If false, do not try to use the NVTX library.
 
-find_path(NVTX3_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${CUDA_INCLUDE_DIRS}/nvtx3)
-find_path(NVTX_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${CUDA_INCLUDE_DIRS})
+find_path(NVTX3_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}/nvtx3)
+find_path(NVTX_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 mark_as_advanced(NVTX3_INCLUDE_DIR)
 mark_as_advanced(NVTX_INCLUDE_DIR)
 include(FindPackageHandleStandardArgs)
