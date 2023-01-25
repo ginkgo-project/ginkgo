@@ -665,9 +665,6 @@ public:
     void clear_loggers() override { loggers_.clear(); }
 
 private:
-    template <typename OtherLoggable, typename OtherBase>
-    friend class EnableLogging;
-
     template <size_type Event, typename ConcreteLoggableT, typename = void>
     struct propagate_log_helper {
         template <typename... Args>

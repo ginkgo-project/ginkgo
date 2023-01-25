@@ -312,25 +312,30 @@ ProfilerHook::ProfilerHook(hook_function begin, hook_function end)
 {}
 
 
+struct tau_finalize_deleter {
+    void operator()(int* ptr)
+    {
+        finalize_tau();
+        delete ptr;
+    }
+};
+
+
 std::shared_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
 {
     static std::mutex tau_mutex{};
-    static std::shared_ptr<ProfilerHook> tau_hook{};
-    std::lock_guard<std::mutex> guard{tau_mutex};
-    if (!tau_hook) {
-        if (initialize) {
+    static std::unique_ptr<int, tau_finalize_deleter>
+        tau_finalize_scope_guard{};
+    if (initialize) {
+        std::lock_guard<std::mutex> guard{tau_mutex};
+        if (!tau_finalize_scope_guard) {
             init_tau();
-            tau_hook = std::shared_ptr<ProfilerHook>(
-                new ProfilerHook{begin_tau, end_tau}, [](ProfilerHook* ptr) {
-                    delete ptr;
-                    finalize_tau();
-                });
-        } else {
-            tau_hook = std::shared_ptr<ProfilerHook>{
-                new ProfilerHook{begin_tau, end_tau}};
+            tau_finalize_scope_guard =
+                std::unique_ptr<int, tau_finalize_deleter>{
+                    new int, tau_finalize_deleter{}};
         }
     }
-    return tau_hook;
+    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
 }
 
 

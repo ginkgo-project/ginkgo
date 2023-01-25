@@ -853,6 +853,12 @@ public:
      */
     virtual void synchronize() const = 0;
 
+    /**
+     * @copydoc Loggable::add_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
     void add_logger(std::shared_ptr<const log::Logger> logger) override
     {
         this->propagating_logger_refcount_.fetch_add(
@@ -860,6 +866,12 @@ public:
         this->EnableLogging<Executor>::add_logger(logger);
     }
 
+    /**
+     * @copydoc Loggable::remove_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
     void remove_logger(const log::Logger* logger) override
     {
         this->propagating_logger_refcount_.fetch_sub(
@@ -867,11 +879,25 @@ public:
         this->EnableLogging<Executor>::remove_logger(logger);
     }
 
+    /**
+     * Sets the logger event propagation mode for the executor.
+     * This controls whether events that happen at objects created on this
+     * executor will also be logged at propagating loggers attached to the
+     * executor.
+     * @see Logger::needs_propagation()
+     */
     void set_log_propagation_mode(log_propagate_mode mode)
     {
         log_propagate_mode_ = mode;
     }
 
+    /**
+     * Returns true iff events occurring at an object created on this executor
+     * should be logged at propagating loggers attached to this executor, and
+     * there is at least one such propagating logger.
+     * @see Logger::needs_propagation()
+     * @see Executor::set_log_propagation_mode(log_propagate_mode)
+     */
     bool should_propagate_log() const
     {
         return this->propagating_logger_refcount_.load() > 0 &&
