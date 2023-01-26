@@ -437,7 +437,7 @@ void solve_system(const std::string& solver_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
-            if(exec != exec->get_master()){
+            if (exec != exec->get_master()) {
                 exec->get_master()->add_logger(gen_logger);
             }
 
@@ -447,7 +447,7 @@ void solve_system(const std::string& solver_name,
                          ->generate(system_matrix);
 
             exec->remove_logger(gko::lend(gen_logger));
-            if(exec != exec->get_master()){
+            if (exec != exec->get_master()) {
                 exec->get_master()->remove_logger(gko::lend(gen_logger));
             }
             gen_logger->write_data(solver_json["generate"]["components"],
@@ -458,15 +458,15 @@ void solve_system(const std::string& solver_name,
                 add_or_set_member(solver_json, "preconditioner",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
-                write_precond_info(lend(clone(exec->get_master(),
-                                              prec->get_preconditioner())),
-                                   solver_json["preconditioner"], allocator);
+                write_precond_info(
+                    lend(clone(exec->get_master(), prec->get_preconditioner())),
+                    solver_json["preconditioner"], allocator);
             }
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            if(exec != exec->get_master()){
+            if (exec != exec->get_master()) {
                 exec->get_master()->add_logger(apply_logger);
             }
 
@@ -474,7 +474,7 @@ void solve_system(const std::string& solver_name,
             solver->apply(lend(b), lend(x_clone));
 
             exec->remove_logger(gko::lend(apply_logger));
-            if(exec != exec->get_master()){
+            if (exec != exec->get_master()) {
                 exec->get_master()->remove_logger(gko::lend(apply_logger));
             }
             apply_logger->write_data(solver_json["apply"]["components"],
@@ -613,7 +613,8 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                 x = system_generator.initialize({0.0}, exec);
             } else {
                 system_matrix =
-                    system_generator.generate_matrix(exec, test_case);
+                    system_generator.generate_matrix_with_optimal_format(
+                        exec, test_case);
                 b = system_generator.generate_rhs(exec, system_matrix.get(),
                                                   test_case);
                 x = system_generator.generate_initial_guess(

@@ -67,7 +67,7 @@ struct DefaultSystemGenerator {
         }
     }
 
-    static std::shared_ptr<gko::LinOp> generate_matrix(
+    static std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
         std::shared_ptr<gko::Executor> exec, rapidjson::Value& config)
     {
         auto data = generate_matrix_data(config);
@@ -175,7 +175,7 @@ struct DistributedDefaultSystemGenerator {
         }
     }
 
-    std::shared_ptr<gko::LinOp> generate_matrix(
+    std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
         std::shared_ptr<gko::Executor> exec, rapidjson::Value& config) const
     {
         auto data = generate_matrix_data(config);

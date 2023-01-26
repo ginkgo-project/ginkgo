@@ -99,8 +99,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
                     static_cast<gko::size_type>(global_size)});
 
     auto global_offset = [&](const int position_x, const int position_y) {
-        return static_cast<int>(local_size) * position_x +
-               static_cast<int>(local_size) * dims[0] * position_y;
+        return static_cast<int>(local_size) * dims[0] * position_x +
+               static_cast<int>(local_size) * position_y;
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -120,8 +120,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         auto tpx = target_position(ix, positions[0]);
         auto tpy = target_position(iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return global_offset(tpx, tpy) + target_local_idx(ix) +
-                   target_local_idx(iy) * discretization_points;
+            return global_offset(tpx, tpy) +
+                   target_local_idx(ix) * discretization_points +
+                   target_local_idx(iy);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -146,11 +147,11 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
 
     for (IndexType i = 0; i < discretization_points; ++i) {
         for (IndexType j = 0; j < discretization_points; ++j) {
-            auto row = flat_idx(j, i);
+            auto row = flat_idx(i, j);
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
                     if (is_valid_neighbor(d_i, d_j)) {
-                        auto col = flat_idx(j + d_j, i + d_i);
+                        auto col = flat_idx(i + d_i, j + d_j);
                         if (is_in_box(col,
                                       static_cast<IndexType>(global_size))) {
                             if (col != row) {
@@ -210,9 +211,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
 
     auto global_offset = [&](const int position_x, const int position_y,
                              const int position_z) {
-        return position_x * static_cast<int>(local_size) +
+        return position_x * static_cast<int>(local_size) * dims[0] * dims[1] +
                position_y * static_cast<int>(local_size) * dims[0] +
-               position_z * static_cast<int>(local_size) * dims[0] * dims[1];
+               position_z * static_cast<int>(local_size);
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -235,10 +236,11 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         auto tpz = target_position(iz, positions[2]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
             is_in_box(tpz, dims[2])) {
-            return global_offset(tpx, tpy, tpz) + target_local_idx(ix) +
+            return global_offset(tpx, tpy, tpz) +
+                   target_local_idx(ix) * discretization_points *
+                       discretization_points +
                    target_local_idx(iy) * discretization_points +
-                   target_local_idx(iz) * discretization_points *
-                       discretization_points;
+                   target_local_idx(iz);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -267,12 +269,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     for (IndexType i = 0; i < discretization_points; ++i) {
         for (IndexType j = 0; j < discretization_points; ++j) {
             for (IndexType k = 0; k < discretization_points; ++k) {
-                auto row = flat_idx(k, j, i);
+                auto row = flat_idx(i, j, k);
                 for (IndexType d_i : {-1, 0, 1}) {
                     for (IndexType d_j : {-1, 0, 1}) {
                         for (IndexType d_k : {-1, 0, 1}) {
                             if (is_valid_neighbor(d_i, d_j, d_k)) {
-                                auto col = flat_idx(k + d_k, j + d_j, i + d_i);
+                                auto col = flat_idx(i + d_i, j + d_j, k + d_k);
                                 if (is_in_box(col, static_cast<IndexType>(
                                                        global_size))) {
                                     if (col != row) {
