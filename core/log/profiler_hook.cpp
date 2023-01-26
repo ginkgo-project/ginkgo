@@ -53,9 +53,7 @@ namespace log {
 void ProfilerHook::on_allocation_started(const gko::Executor* exec,
                                          const gko::size_type&) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->begin_hook_("allocate", profile_event_category::memory);
 }
 
@@ -64,9 +62,7 @@ void ProfilerHook::on_allocation_completed(const gko::Executor* exec,
                                            const gko::size_type&,
                                            const gko::uintptr&) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->end_hook_("allocate", profile_event_category::memory);
 }
 
@@ -74,9 +70,7 @@ void ProfilerHook::on_allocation_completed(const gko::Executor* exec,
 void ProfilerHook::on_free_started(const gko::Executor* exec,
                                    const gko::uintptr&) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->begin_hook_("free", profile_event_category::memory);
 }
 
@@ -84,9 +78,7 @@ void ProfilerHook::on_free_started(const gko::Executor* exec,
 void ProfilerHook::on_free_completed(const gko::Executor* exec,
                                      const gko::uintptr&) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->end_hook_("free", profile_event_category::memory);
 }
 
@@ -96,10 +88,8 @@ void ProfilerHook::on_copy_started(const gko::Executor* from,
                                    const gko::uintptr&,
                                    const gko::size_type&) const
 {
-    if (synchronize_) {
-        from->synchronize();
-        to->synchronize();
-    }
+    this->maybe_synchronize(from);
+    this->maybe_synchronize(to);
     this->begin_hook_("copy", profile_event_category::operation);
 }
 
@@ -109,10 +99,8 @@ void ProfilerHook::on_copy_completed(const gko::Executor* from,
                                      const gko::uintptr&, const gko::uintptr&,
                                      const gko::size_type&) const
 {
-    if (synchronize_) {
-        from->synchronize();
-        to->synchronize();
-    }
+    this->maybe_synchronize(from);
+    this->maybe_synchronize(to);
     this->end_hook_("copy", profile_event_category::operation);
 }
 
@@ -120,9 +108,7 @@ void ProfilerHook::on_copy_completed(const gko::Executor* from,
 void ProfilerHook::on_operation_launched(const Executor* exec,
                                          const Operation* operation) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->begin_hook_(operation->get_name(), profile_event_category::operation);
 }
 
@@ -130,9 +116,7 @@ void ProfilerHook::on_operation_launched(const Executor* exec,
 void ProfilerHook::on_operation_completed(const Executor* exec,
                                           const Operation* operation) const
 {
-    if (synchronize_) {
-        exec->synchronize();
-    }
+    this->maybe_synchronize(exec);
     this->end_hook_(operation->get_name(), profile_event_category::operation);
 }
 
@@ -294,6 +278,14 @@ void ProfilerHook::set_synchronization(bool synchronize)
 }
 
 
+void ProfilerHook::maybe_synchronize(const Executor* exec) const
+{
+    if (synchronize_) {
+        exec->synchronize();
+    }
+}
+
+
 std::string ProfilerHook::stringify_object(const PolymorphicObject* obj) const
 {
     if (!obj) {
@@ -321,7 +313,7 @@ struct tau_finalize_deleter {
 };
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
+std::unique_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
 {
     static std::mutex tau_mutex{};
     static std::unique_ptr<int, tau_finalize_deleter>
@@ -335,26 +327,26 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
                     new int, tau_finalize_deleter{}};
         }
     }
-    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
+    return std::unique_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
 }
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
+std::unique_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
 {
     init_nvtx();
-    return std::shared_ptr<ProfilerHook>{
+    return std::unique_ptr<ProfilerHook>{
         new ProfilerHook{begin_nvtx_fn(color_rgb), end_nvtx}};
 }
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_roctx()
+std::unique_ptr<ProfilerHook> ProfilerHook::create_roctx()
 {
-    return std::shared_ptr<ProfilerHook>{
+    return std::unique_ptr<ProfilerHook>{
         new ProfilerHook{begin_roctx, end_roctx}};
 }
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
+std::unique_ptr<ProfilerHook> ProfilerHook::create_for_executor(
     std::shared_ptr<const Executor> exec)
 {
     if (std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
@@ -369,10 +361,10 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
 }
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
+std::unique_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
                                                           hook_function end)
 {
-    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
+    return std::unique_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
 }
 
 

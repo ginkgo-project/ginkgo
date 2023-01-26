@@ -198,38 +198,40 @@ public:
      *                    The initialization will happen immediately, the
      *                    finalization at program exit.
      */
-    static std::shared_ptr<ProfilerHook> create_tau(bool initialize = true);
+    static std::unique_ptr<ProfilerHook> create_tau(bool initialize = true);
 
     /**
      * Creates a logger annotating Ginkgo events with NVTX ranges for CUDA.
      * @param color_argb  The color of the NVTX ranges in the NSight Systems
      *                    output. It has to be a 32 bit packed ARGB value.
      */
-    static std::shared_ptr<ProfilerHook> create_nvtx(
+    static std::unique_ptr<ProfilerHook> create_nvtx(
         uint32 color_argb = color_yellow_argb);
 
     /**
      * Creates a logger annotating Ginkgo events with ROCTX ranges for HIP.
      */
-    static std::shared_ptr<ProfilerHook> create_roctx();
+    static std::unique_ptr<ProfilerHook> create_roctx();
 
     /**
      * Creates a logger annotating Ginkgo events with the most suitable backend
      * for the given executor: NVTX for NSight Systems in CUDA, ROCTX for
      * rocprof in HIP, TAU for everything else.
      */
-    static std::shared_ptr<ProfilerHook> create_for_executor(
+    static std::unique_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions
      * for range begin and end.
      */
-    static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
+    static std::unique_ptr<ProfilerHook> create_custom(hook_function begin,
                                                        hook_function end);
 
 private:
     ProfilerHook(hook_function begin, hook_function end);
+
+    void maybe_synchronize(const Executor* exec) const;
 
     std::string stringify_object(const PolymorphicObject* obj) const;
 
