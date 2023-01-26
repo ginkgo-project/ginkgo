@@ -169,8 +169,8 @@ int main(int argc, char* argv[])
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
     // modes of creating a partition.
-    const auto num_rows = grid_dim * grid_dim;
-    // const auto num_rows = grid_dim;
+    // const auto num_rows = grid_dim * grid_dim;
+    const auto num_rows = grid_dim;
     auto partition = gko::share(part_type::build_from_global_size_uniform(
         exec->get_master(), comm.size(),
         static_cast<GlobalIndexType>(num_rows)));
@@ -190,39 +190,41 @@ int main(int argc, char* argv[])
     const auto range_end = partition->get_range_bounds()[rank + 1];
     auto n = grid_dim;
     // for (int i = range_start; i < range_end; i++) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            auto c = i * n + j;
-            if (c >= range_start && c < range_end) {
-                if (i > 0) {
-                    A_data.nonzeros.emplace_back(c, c - n, -1);
-                }
-                if (j > 0) {
-                    A_data.nonzeros.emplace_back(c, c - 1, -1);
-                }
-                A_data.nonzeros.emplace_back(c, c, 4);
-                if (j < n - 1) {
-                    A_data.nonzeros.emplace_back(c, c + 1, -1);
-                }
-                if (i < n - 1) {
-                    A_data.nonzeros.emplace_back(c, c + n, -1);
-                }
-            }
-        }
-    }
-    // for (int i = range_start; i < range_end; i++) {
-    //     if (i > 0) {
-    //         A_data.nonzeros.emplace_back(i, i - 1, -1);
-    //     }
-    //     A_data.nonzeros.emplace_back(i, i, 2);
-    //     if (i < n - 1) {
-    //         A_data.nonzeros.emplace_back(i, i + n, -1);
+    // for (int i = 0; i < n; i++) {
+    //     for (int j = 0; j < n; j++) {
+    //         auto c = i * n + j;
+    //         if (c >= range_start && c < range_end) {
+    //             if (i > 0) {
+    //                 A_data.nonzeros.emplace_back(c, c - n, -1);
+    //             }
+    //             if (j > 0) {
+    //                 A_data.nonzeros.emplace_back(c, c - 1, -1);
+    //             }
+    //             A_data.nonzeros.emplace_back(c, c, 4);
+    //             if (j < n - 1) {
+    //                 A_data.nonzeros.emplace_back(c, c + 1, -1);
+    //             }
+    //             if (i < n - 1) {
+    //                 A_data.nonzeros.emplace_back(c, c + n, -1);
+    //             }
+    //         }
     //     }
     // }
-    for (int i = 0; i < num_rows; i++) {
+    for (int i = range_start; i < range_end; i++) {
+        if (i > 0) {
+            A_data.nonzeros.emplace_back(i, i - 1, -1);
+        }
+        A_data.nonzeros.emplace_back(i, i, 2);
+        if (i < n - 1) {
+            A_data.nonzeros.emplace_back(i, i + 1, -1);
+        }
         b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
         x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
+    // for (int i = 0; i < num_rows; i++) {
+    //     b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+    //     x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
+    // }
 
     // for (int i = 0; i < A_data.nonzeros.size(); i++) {
     //     std::cout << rank << " nnz " << A_data.nonzeros[i] << std::endl;
@@ -305,14 +307,15 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv = solver::build()
-                    .with_preconditioner(schwarz::build()
-                                             .with_local_solver(bj_solver)
-                                             .with_coarse_solvers(coarse_solver)
-                                             .on(exec))
-                    .with_criteria(iter_stop, tol_stop)
-                    .on(exec)
-                    ->generate(A);
+    auto Ainv =
+        solver::build()
+            .with_preconditioner(schwarz::build()
+                                     .with_local_solver(bj_solver)
+                                     // .with_coarse_solvers(coarse_solver)
+                                     .on(exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec)
+            ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.

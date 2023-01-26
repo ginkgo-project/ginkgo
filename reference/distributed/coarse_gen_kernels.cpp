@@ -215,8 +215,9 @@ void fill_coarse(
     //     std::cout << " rank " << rank << " cidx id: " << nnz << " : "
     //               << c_indices[nnz] << std::endl;
     // }
-    std::cout << "rank " << rank << " fmat size  " << f_mat_data.nonzeros.size()
-              << " g nnz " << global_nnz << std::endl;
+    // std::cout << "rank " << rank << " fmat size  " <<
+    // f_mat_data.nonzeros.size()
+    //           << " g nnz " << global_nnz << std::endl;
 
     // Get coarse data with global fine matrix indexing.
     int nnz = 0;
@@ -227,7 +228,8 @@ void fill_coarse(
             auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
             if (idx1 != c_indices + coarse_size[0]) {
                 int cidx = 0;
-                for (auto j = f_row_ptrs[i]; j < f_row_ptrs[i + 1]; ++j) {
+                for (auto j = f_row_ptrs[i - row_range_start];
+                     j < f_row_ptrs[i - row_range_start + 1]; ++j) {
                     auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
                                           f_col_idxs[j]);
                     if (idx2 != c_indices + coarse_size[0]) {
