@@ -134,6 +134,10 @@ set(GINKGO_OPENMP_LIBRARIES @OpenMP_CXX_LIBRARIES@)
 
 set(GINKGO_OPENMP_FLAGS "@OpenMP_CXX_FLAGS@")
 
+set(GINKGO_HAVE_TAU "@GINKGO_HAVE_TAU@")
+set(GINKGO_HAVE_VTUNE "@GINKGO_HAVE_VTUNE@")
+set(VTUNE_PATH "@VTUNE_PATH@")
+
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
 
@@ -188,6 +192,14 @@ endif()
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_DPCPP)
     find_package(MKL CONFIG REQUIRED HINTS "${GINKGO_MKL_ROOT}")
     find_package(oneDPL REQUIRED HINTS "${GINKGO_DPL_ROOT}")
+endif()
+
+if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_VTUNE)
+    find_package(VTune REQUIRED)
+endif()
+
+if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_TAU)
+    find_package(PerfStubs REQUIRED)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/GinkgoTargets.cmake)
