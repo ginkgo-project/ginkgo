@@ -60,8 +60,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
-
-
 #include "core/distributed/helpers.hpp"
 
 
