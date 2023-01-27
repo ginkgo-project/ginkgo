@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"
 #include "cuda/base/types.hpp"
@@ -148,14 +149,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 namespace {
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+constexpr int get_larger_power(int value, int guess = 1)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
+
+template <int compiled_max_block_size, typename ValueType, typename IndexType>
 void compute_block_jacobi_helper(
+    syn::value_list<int, compiled_max_block_size>,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
+    constexpr int subwarp_size = get_larger_power(compiled_max_block_size);
+    std::cout << "\nCompiled max block size: " << compiled_max_block_size
+              << "  and subwarp size: " << subwarp_size;
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto nrows = sys_csr->get_size().at(0)[0];
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
@@ -171,38 +181,177 @@ void compute_block_jacobi_helper(
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-constexpr int get_larger_power(int value, int guess = 1)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
 
-template <typename ValueType, typename IndexType>
-void select_compute_block_jacobi_helper(
-    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const uint32 max_block_size, const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern, ValueType* const blocks)
-{
-    const int required_subwarp_size = get_larger_power(max_block_size);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
+                                    compute_block_jacobi_helper);
 
-    if (required_subwarp_size == 2) {
-        compute_block_jacobi_helper<2>(sys_csr, num_blocks, storage_scheme,
-                                       block_pointers, blocks_pattern, blocks);
-    } else if (required_subwarp_size == 4) {
-        compute_block_jacobi_helper<4>(sys_csr, num_blocks, storage_scheme,
-                                       block_pointers, blocks_pattern, blocks);
-    } else if (required_subwarp_size == 8) {
-        compute_block_jacobi_helper<8>(sys_csr, num_blocks, storage_scheme,
-                                       block_pointers, blocks_pattern, blocks);
-    } else if (required_subwarp_size == 16) {
-        compute_block_jacobi_helper<16>(sys_csr, num_blocks, storage_scheme,
-                                        block_pointers, blocks_pattern, blocks);
-    } else {
-        compute_block_jacobi_helper<32>(sys_csr, num_blocks, storage_scheme,
-                                        block_pointers, blocks_pattern, blocks);
-    }
-}
+// template <int max_block_size, typename ValueType, typename IndexType>
+// void compute_block_jacobi_helper(
+//     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+//     const size_type num_blocks,
+//     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+//     const IndexType* const block_pointers,
+//     const IndexType* const blocks_pattern, ValueType* const blocks)
+// {
+//     constexpr int subwarp_size = get_larger_power(max_block_size);
+//     const auto nbatch = sys_csr->get_num_batch_entries();
+//     const auto nrows = sys_csr->get_size().at(0)[0];
+//     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+
+//     dim3 block(default_block_size);
+//     dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size,
+//     default_block_size));
+
+//     compute_block_jacobi_kernel<subwarp_size><<<grid, block>>>(
+//         nbatch, static_cast<int>(nnz),
+//         as_cuda_type(sys_csr->get_const_values()), num_blocks,
+//         storage_scheme, block_pointers, blocks_pattern,
+//         as_cuda_type(blocks));
+
+//     GKO_CUDA_LAST_IF_ERROR_THROW;
+// }
+
+
+// template <typename ValueType, typename IndexType>
+// void select_compute_block_jacobi_helper(
+//     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+//     const uint32 max_block_size, const size_type num_blocks,
+//     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+//     const IndexType* const block_pointers,
+//     const IndexType* const blocks_pattern, ValueType* const blocks)
+// {
+
+//     switch(max_block_size){
+
+//         case 1:
+//             compute_block_jacobi_helper<1>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 2:
+//             compute_block_jacobi_helper<2>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 3:
+//             compute_block_jacobi_helper<3>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 4:
+//             compute_block_jacobi_helper<4>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 5:
+//             compute_block_jacobi_helper<5>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 6:
+//             compute_block_jacobi_helper<6>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 7:
+//             compute_block_jacobi_helper<7>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 8:
+//             compute_block_jacobi_helper<8>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 9:
+//             compute_block_jacobi_helper<9>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 10:
+//             compute_block_jacobi_helper<10>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 11:
+//             compute_block_jacobi_helper<11>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 12:
+//             compute_block_jacobi_helper<12>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 13:
+//             compute_block_jacobi_helper<13>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 14:
+//             compute_block_jacobi_helper<14>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 15:
+//             compute_block_jacobi_helper<15>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 16:
+//             compute_block_jacobi_helper<16>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 17:
+//             compute_block_jacobi_helper<17>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 18:
+//             compute_block_jacobi_helper<18>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 19:
+//             compute_block_jacobi_helper<19>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 20:
+//             compute_block_jacobi_helper<20>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 21:
+//             compute_block_jacobi_helper<21>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 22:
+//             compute_block_jacobi_helper<22>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 23:
+//             compute_block_jacobi_helper<23>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 24:
+//             compute_block_jacobi_helper<24>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 25:
+//             compute_block_jacobi_helper<25>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 26:
+//             compute_block_jacobi_helper<26>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 27:
+//             compute_block_jacobi_helper<27>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 28:
+//             compute_block_jacobi_helper<28>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 29:
+//             compute_block_jacobi_helper<29>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 30:
+//             compute_block_jacobi_helper<30>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 31:
+//             compute_block_jacobi_helper<31>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+
+//         case 32:
+//             compute_block_jacobi_helper<32>(sys_csr, num_blocks,
+//             storage_scheme,block_pointers, blocks_pattern, blocks); break;
+//     }
+// }
 
 }  // anonymous namespace
 
@@ -211,14 +360,24 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const uint32 max_block_size, const size_type num_blocks,
+    const uint32 user_given_max_block_size, const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
-    select_compute_block_jacobi_helper(sys_csr, max_block_size, num_blocks,
-                                       storage_scheme, block_pointers,
-                                       blocks_pattern, blocks);
+    using batch_jacobi_compiled_max_block_sizes =
+        syn::value_list<int, 2, 4, 8, 13, 16, 32>;
+    select_compute_block_jacobi_helper(
+        batch_jacobi_compiled_max_block_sizes(),
+        [&](int compiled_block_size) {
+            return user_given_max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), sys_csr, num_blocks,
+        storage_scheme, block_pointers, blocks_pattern, blocks);
+
+    // select_compute_block_jacobi_helper(sys_csr, max_block_size, num_blocks,
+    //                                    storage_scheme, block_pointers,
+    //                                    blocks_pattern, blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
