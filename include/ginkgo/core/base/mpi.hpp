@@ -87,10 +87,13 @@ inline constexpr bool is_gpu_aware()
 int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
-    template <>                                             \
-    struct type_impl<input_type> {                          \
-        static MPI_Datatype get_type() { return mpi_type; } \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type) \
+    template <>                                     \
+    struct type_impl<input_type> {                  \
+        static MPI_Datatype get_type()              \
+        {                                           \
+            return mpi_type;                        \
+        }                                           \
     }
 
 /**
@@ -1010,18 +1013,6 @@ public:
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get()));
-    }
-
-
-    void all_gather(std::shared_ptr<const Executor> exec,
-                    const void* send_buffer, const int send_count,
-                    MPI_Datatype send_type, void* recv_buffer,
-                    const int recv_count, MPI_Datatype recv_type) const
-    {
-        auto guard = exec->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Allgather(send_buffer, send_count, send_type, recv_buffer,
-                          recv_count, recv_type, this->get()));
     }
 
     /**
