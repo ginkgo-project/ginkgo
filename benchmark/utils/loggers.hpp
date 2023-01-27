@@ -45,8 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
-
-
 #include "core/distributed/helpers.hpp"
 
 
