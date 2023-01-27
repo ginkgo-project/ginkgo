@@ -160,18 +160,18 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cb_gmres = gko::solver::CbGmres<ValueType>;
 
+    constexpr char delim = ';';
+    constexpr char kv_delim = ':';
+    const std::string data_begin = "{\n";
+    const std::string data_end = "}\n";
+
     auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
 
     const auto A_size = A->get_size();
     auto b = vec::create(exec, gko::dim<2>{A_size[0], 1});
     auto x = vec::create(exec, gko::dim<2>{A_size[1], 1});
 
-    // Make sure the output is in scientific notation for easier comparison
-    std::cout << std::scientific << std::setprecision(4);
-
-    std::cout << "Matrix: "
-              << matrix_path.substr(matrix_path.find_last_of('/') + 1)
-              << "; size: " << A_size[0] << " x " << A_size[1] << '\n';
+    double b_norm{};
 
     {  // Prepare values and delete all temporaries afterwards
         auto res_host =
@@ -191,7 +191,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
         auto b_host_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
         b->compute_norm2(b_host_norm);
 
-        std::cout << "b-norm: " << b_host_norm->at(0, 0) << '\n';
+        b_norm = b_host_norm->at(0, 0);
 
         // As an initial guess, use the right-hand side
         auto x_host = clone(exec->get_master(), x);
@@ -219,16 +219,6 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     //*/
     default_ss.lp_config = "ieee";
 
-    std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
-              << default_ss.stop_rel_res << " res norm; ";
-    std::cout << "Jacobi BS: "
-              << (default_ss.precond == nullptr
-                      ? 0
-                      : dynamic_cast<const precond_type*>(
-                            default_ss.precond.get())
-                            ->get_storage_scheme()
-                            .block_offset)
-              << '\n';
     struct bench_type {
         std::string name;
         solver_settings settings;
@@ -260,17 +250,41 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
         gko::solver::cb_gmres::storage_precision::keep;
 
     //*
-    benchmarks.emplace_back();
-    benchmarks.back().name = get_name(1);
-    benchmarks.back().settings = default_ss;
-    benchmarks.back().settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::reduce1;
+    if (get_name(0) != get_name(1)) {
+        benchmarks.emplace_back();
+        benchmarks.back().name = get_name(1);
+        benchmarks.back().settings = default_ss;
+        benchmarks.back().settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::reduce1;
+    }
 
-    benchmarks.emplace_back();
-    benchmarks.back().name = get_name(2);
-    benchmarks.back().settings = default_ss;
-    benchmarks.back().settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::reduce2;
+    if (get_name(1) != get_name(2)) {
+        benchmarks.emplace_back();
+        benchmarks.back().name = get_name(2);
+        benchmarks.back().settings = default_ss;
+        benchmarks.back().settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::reduce2;
+    }
+
+    std::cout << data_begin;
+    // Make sure the output is in scientific notation for easier comparison
+    std::cout << std::scientific << std::setprecision(4);
+    std::cout << "Matrix" << kv_delim
+              << matrix_path.substr(matrix_path.find_last_of('/') + 1) << delim
+              << " size" << kv_delim << A_size[0] << " x " << A_size[1]
+              << delim;
+    std::cout << " b-norm" << kv_delim << b_norm << delim;
+    std::cout << " Stopping criteria (iters)" << kv_delim
+              << default_ss.stop_iter << delim << " res_norm" << kv_delim
+              << default_ss.stop_rel_res << delim;
+    std::cout << " Jacobi BS" << kv_delim
+              << (default_ss.precond == nullptr
+                      ? 0
+                      : dynamic_cast<const precond_type*>(
+                            default_ss.precond.get())
+                            ->get_storage_scheme()
+                            .block_offset)
+              << '\n';
 
     std::vector<std::string> compression_json_files;
     for (auto config_path :
@@ -279,8 +293,13 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     }
     std::sort(compression_json_files.begin(), compression_json_files.end());
     for (auto config_file : compression_json_files) {
+        auto begin_file_name = config_file.rfind('/');
+        begin_file_name =
+            begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
+        const auto file_name = config_file.substr(
+            begin_file_name, config_file.size() - begin_file_name - 5);
         benchmarks.emplace_back();
-        benchmarks.back().name = str_pre + "lp" + str_post;
+        benchmarks.back().name = str_pre + file_name + str_post;
         benchmarks.back().settings = default_ss;
         benchmarks.back().settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_sz;
@@ -290,32 +309,27 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
 
     // Note: The time might not be significantly different since the matrix is
     //       quite small
-    const std::array<int, 7> widths{15, 12, 11, 17, 16, 15, 15};
-    const char delim = ';';
-    std::cout << std::setw(widths[0]) << "Name" << delim << std::setw(widths[1])
-              << "Time [s]" << delim << std::setw(widths[2]) << "Iterations"
-              << delim << std::setw(widths[3]) << "res norm before" << delim
+    const std::array<int, 7> widths{28, 12, 11, 17, 16, 15};
+    // clang-format off
+    std::cout << std::setw(widths[0]) << "Name" << delim
+              << std::setw(widths[1]) << "Time [s]" << delim
+              << std::setw(widths[2]) << "Iterations" << delim
+              << std::setw(widths[3]) << "res norm before" << delim
               << std::setw(widths[4]) << "res norm after" << delim
-              << std::setw(widths[5]) << "rel res norm" << delim
-              << std::setw(widths[6]) << "compression" << '\n';
+              << std::setw(widths[5]) << "rel res norm" << '\n';
+    // clang-format on
     for (auto&& val : benchmarks) {
         // if (val.name.find("sz4") == std::string::npos) { continue; }
         val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
-        const auto file_path = val.settings.lp_config;
-        auto begin_file_name = file_path.rfind('/');
-        begin_file_name =
-            begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
-        const auto file_name = file_path.substr(
-            begin_file_name, file_path.size() - begin_file_name - 5);
         std::cout << std::setw(widths[0]) << val.name << delim
                   << std::setw(widths[1]) << val.result.time_s << delim
                   << std::setw(widths[2]) << val.result.iters << delim
                   << std::setw(widths[3]) << val.result.init_res_norm << delim
                   << std::setw(widths[4]) << val.result.res_norm << delim
                   << std::setw(widths[5])
-                  << val.result.res_norm / val.result.init_res_norm << delim
-                  << std::setw(widths[6]) << file_name << '\n';
+                  << val.result.res_norm / val.result.init_res_norm << '\n';
     }
+    std::cout << data_end;
 }
 
 
