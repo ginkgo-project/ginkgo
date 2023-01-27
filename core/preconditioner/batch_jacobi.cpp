@@ -259,7 +259,7 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
 
 
     exec->run(batch_jacobi::make_compute_block_jacobi(
-        sys_csr.get(), num_blocks_, storage_scheme_,
+        sys_csr.get(), parameters_.max_block_size, num_blocks_, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
 

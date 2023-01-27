@@ -62,7 +62,7 @@ namespace kernels {
     void compute_block_jacobi(                                               \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const matrix::BatchCsr<ValueType, IndexType>* sys_csr,               \
-        const size_type num_blocks,                                          \
+        const uint32 max_block_size, const size_type num_blocks,             \
         const preconditioner::batched_blocks_storage_scheme& storage_scheme, \
         const IndexType* block_pointers, const IndexType* blocks_pattern,    \
         ValueType* blocks)
