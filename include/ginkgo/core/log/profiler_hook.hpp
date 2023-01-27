@@ -201,6 +201,11 @@ public:
     static std::unique_ptr<ProfilerHook> create_tau(bool initialize = true);
 
     /**
+     * Creates a logger annotating Ginkgo events with VTune ITT ranges.
+     */
+    static std::unique_ptr<ProfilerHook> create_vtune();
+
+    /**
      * Creates a logger annotating Ginkgo events with NVTX ranges for CUDA.
      * @param color_argb  The color of the NVTX ranges in the NSight Systems
      *                    output. It has to be a 32 bit packed ARGB value.

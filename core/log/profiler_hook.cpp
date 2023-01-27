@@ -331,6 +331,14 @@ std::unique_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
 }
 
 
+std::unique_ptr<ProfilerHook> ProfilerHook::create_vtune()
+{
+    auto fns = create_vtune_fns();
+    return std::unique_ptr<ProfilerHook>{
+        new ProfilerHook{std::move(fns.first), std::move(fns.second)}};
+}
+
+
 std::unique_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
 {
     init_nvtx();
@@ -357,6 +365,9 @@ std::unique_ptr<ProfilerHook> ProfilerHook::create_for_executor(
         return create_roctx();
     }
 #endif
+    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+        return create_vtune();
+    }
     return create_tau();
 }
 
