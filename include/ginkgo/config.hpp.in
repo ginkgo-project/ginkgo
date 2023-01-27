@@ -88,6 +88,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is VTune ITT available for Profiling? */
+// clang-format off
+#define GKO_HAVE_VTUNE @GINKGO_HAVE_VTUNE@
+// clang-format on
+
+
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@

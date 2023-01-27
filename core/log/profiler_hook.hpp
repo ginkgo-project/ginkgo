@@ -59,6 +59,13 @@ void begin_tau(const char*, profile_event_category);
 ProfilerHook::hook_function begin_nvtx_fn(uint32 color_rgb);
 
 
+/**
+ * Returns a pair of functions starting and ending a VTune ITT profiling range.
+ */
+std::pair<ProfilerHook::hook_function, ProfilerHook::hook_function>
+create_vtune_fns();
+
+
 /** Starts a ROCTX profiling range. */
 void begin_roctx(const char*, profile_event_category);
 

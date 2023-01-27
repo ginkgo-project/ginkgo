@@ -30,6 +30,7 @@ target_sources(ginkgo
     log/performance_hint.cpp
     log/profiler_hook.cpp
     log/tau.cpp
+    log/vtune.cpp
     log/record.cpp
     log/stream.cpp
     matrix/coo.cpp
@@ -104,6 +105,10 @@ endif()
 
 if(GINKGO_HAVE_TAU)
     target_link_libraries(ginkgo PUBLIC perfstubs)
+endif()
+
+if(GINKGO_HAVE_VTUNE)
+    target_link_libraries(ginkgo PUBLIC VTune::ITT)
 endif()
 
 if(GINKGO_BUILD_MPI)
