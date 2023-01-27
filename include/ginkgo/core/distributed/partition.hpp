@@ -83,11 +83,11 @@ namespace distributed {
  * ```
  * starting_index[0] = 0,
  * starting_index[1] = 0,
- * starting_index[2] = 3,  // second range of part 1
+ * starting_index[2] = 3,  // second range of part 0
  * starting_index[3] = 0,
- * starting_index[4] = 5,  // third range of part 1
+ * starting_index[4] = 5,  // third range of part 0
  * ```
- * which you can use to iterate only over the the second range of part 1 (the
+ * which you can use to iterate only over the the second range of part 0 (the
  * third global range) with
  * ```
  * for(int i = 0; i < r[3] - r[2]; ++i){
