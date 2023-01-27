@@ -52,10 +52,9 @@ namespace kernels {
 namespace cuda {
 namespace batch_jacobi {
 
+namespace {
 
 constexpr int default_block_size = 128;
-
-namespace {
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
@@ -137,19 +136,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void compute_block_jacobi(
-    std::shared_ptr<const DefaultExecutor> exec,
+// DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_INSTANTIATION(ValueType, IndexType);
+// template <int subwarp_size, typename ValueType, typename IndexType>
+// void compute_block_jacobi_helper(
+//     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+//     const size_type num_blocks,
+//     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+//     const IndexType* const block_pointers,
+//     const IndexType* const blocks_pattern, ValueType* const blocks);
+
+
+namespace {
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void compute_block_jacobi_helper(
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
-    constexpr auto subwarp_size =
-        config::warp_size;  // TODO: How to have a subwarp size according to
-                            // max_block_size?
-
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto nrows = sys_csr->get_size().at(0)[0];
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
@@ -163,6 +169,56 @@ void compute_block_jacobi(
         block_pointers, blocks_pattern, as_cuda_type(blocks));
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
+}
+
+constexpr int get_larger_power(int value, int guess = 1)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
+
+template <typename ValueType, typename IndexType>
+void select_compute_block_jacobi_helper(
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    const uint32 max_block_size, const size_type num_blocks,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const block_pointers,
+    const IndexType* const blocks_pattern, ValueType* const blocks)
+{
+    const int required_subwarp_size = get_larger_power(max_block_size);
+
+    if (required_subwarp_size == 2) {
+        compute_block_jacobi_helper<2>(sys_csr, num_blocks, storage_scheme,
+                                       block_pointers, blocks_pattern, blocks);
+    } else if (required_subwarp_size == 4) {
+        compute_block_jacobi_helper<4>(sys_csr, num_blocks, storage_scheme,
+                                       block_pointers, blocks_pattern, blocks);
+    } else if (required_subwarp_size == 8) {
+        compute_block_jacobi_helper<8>(sys_csr, num_blocks, storage_scheme,
+                                       block_pointers, blocks_pattern, blocks);
+    } else if (required_subwarp_size == 16) {
+        compute_block_jacobi_helper<16>(sys_csr, num_blocks, storage_scheme,
+                                        block_pointers, blocks_pattern, blocks);
+    } else {
+        compute_block_jacobi_helper<32>(sys_csr, num_blocks, storage_scheme,
+                                        block_pointers, blocks_pattern, blocks);
+    }
+}
+
+}  // anonymous namespace
+
+
+template <typename ValueType, typename IndexType>
+void compute_block_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    const uint32 max_block_size, const size_type num_blocks,
+    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const block_pointers,
+    const IndexType* const blocks_pattern, ValueType* const blocks)
+{
+    select_compute_block_jacobi_helper(sys_csr, max_block_size, num_blocks,
+                                       storage_scheme, block_pointers,
+                                       blocks_pattern, blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
