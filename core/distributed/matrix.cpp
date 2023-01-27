@@ -208,7 +208,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     recv_offsets_[0] = 0;
 
     // exchange step 2: exchange gather_idxs from receivers to senders
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
@@ -275,7 +275,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
 
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
 
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
@@ -318,13 +318,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
+            auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
             local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
             req.wait();
 
             auto exec = this->get_executor();
-            auto use_host_buffer =
-                exec->get_master() != exec && !mpi::is_gpu_aware();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
@@ -351,14 +351,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
+            auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x.get());
             req.wait();
 
             auto exec = this->get_executor();
-            auto use_host_buffer =
-                exec->get_master() != exec && !mpi::is_gpu_aware();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }

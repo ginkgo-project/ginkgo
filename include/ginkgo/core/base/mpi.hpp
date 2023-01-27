@@ -442,8 +442,11 @@ public:
      * original MPI_Comm object.
      *
      * @param comm The input MPI_Comm object.
+     * @param force_host_buffer If set to true, always communicates through host
+     * memory
      */
-    communicator(const MPI_Comm& comm)
+    communicator(const MPI_Comm& comm, bool force_host_buffer = false)
+        : comm_(), force_host_buffer_(force_host_buffer)
     {
         this->comm_.reset(new MPI_Comm(comm));
     }
@@ -485,6 +488,8 @@ public:
      * @return  the MPI_Comm object
      */
     const MPI_Comm& get() const { return *(this->comm_.get()); }
+
+    bool force_host_buffer() const { return force_host_buffer_; }
 
     /**
      * Return the size of the communicator (number of ranks).
@@ -1465,6 +1470,7 @@ public:
 
 private:
     std::shared_ptr<MPI_Comm> comm_;
+    bool force_host_buffer_;
 
     int get_my_rank() const
     {
@@ -1498,6 +1504,14 @@ private:
         return flag == MPI_IDENT;
     }
 };
+
+
+/**
+ * Checks if the combination of Executor and communicator requires passing
+ * MPI buffers from the host memory.
+ */
+bool requires_host_buffer(const std::shared_ptr<const Executor>& exec,
+                          const communicator& comm);
 
 
 /**

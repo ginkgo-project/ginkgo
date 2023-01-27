@@ -91,6 +91,14 @@ int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
 }
 
 
+bool requires_host_buffer(const std::shared_ptr<const Executor>& exec,
+                          const communicator& comm)
+{
+    return exec != exec->get_master() &&
+           (comm.force_host_buffer() || !is_gpu_aware());
+}
+
+
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko
