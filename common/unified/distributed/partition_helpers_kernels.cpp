@@ -50,7 +50,8 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               bool* result)
 {
     array<uint32> result_uint32{exec, 1};
-    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    auto num_ranges = std::max(range_start_ends.get_num_elems() / 2,
+                               static_cast<size_type>(1));
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(const auto i, const auto* starts, const auto* ends) {
