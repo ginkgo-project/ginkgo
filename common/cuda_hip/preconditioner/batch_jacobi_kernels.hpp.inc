@@ -297,8 +297,9 @@ void batch_jacobi_apply_helper(
                 sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
             sizeof(ValueType);
         auto prec_block_jacobi = BatchBlockJacobi<device_type<ValueType>>(
-            num_blocks, storage_scheme, as_device_type(blocks_array),
-            block_ptrs, row_part_of_which_block_info);
+            max_block_size, num_blocks, storage_scheme,
+            as_device_type(blocks_array), block_ptrs,
+            row_part_of_which_block_info);
 
         batch_block_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
             prec_block_jacobi, nbatch, nrows,

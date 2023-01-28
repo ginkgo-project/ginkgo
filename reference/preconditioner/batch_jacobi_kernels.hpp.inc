@@ -245,8 +245,9 @@ void batch_jacobi_apply_helper(
         scalar_jacobi_prec prec;
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     } else {
-        block_jacobi_prec prec(num_blocks, storage_scheme, blocks_array,
-                               block_ptrs, row_part_of_which_block_info);
+        block_jacobi_prec prec(max_block_size, num_blocks, storage_scheme,
+                               blocks_array, block_ptrs,
+                               row_part_of_which_block_info);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }
