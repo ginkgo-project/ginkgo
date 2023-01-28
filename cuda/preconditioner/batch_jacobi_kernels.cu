@@ -197,8 +197,8 @@ void compute_block_jacobi_helper(
 {
     constexpr int subwarp_size =
         gko::kernels::cuda::jacobi::get_larger_power(compiled_max_block_size);
-    // TODO: Move get_larger_power to some math namespace (since hip -> code
-    // duplication)
+    // TODO: Move get_larger_power to some math namespace (this fn is duplicated
+    // at many places)
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto nrows = sys_csr->get_size().at(0)[0];
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;

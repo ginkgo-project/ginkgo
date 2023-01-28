@@ -149,8 +149,8 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
             const ValueType col_val = subwarp_grp.shfl(block_row[col], ipiv);
             block_row[col] += row_val * col_val;
         }
-        // Don't bother about what threads of the subwarp with local id >=
-        // block_size.
+        // Computations for the threads of the subwarp having local id >=
+        // block_size are meaningless.
 
         // scale ipiv th row
         if (subwarp_grp.thread_rank() == ipiv) {
