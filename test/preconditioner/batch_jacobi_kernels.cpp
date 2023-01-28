@@ -182,7 +182,6 @@ TYPED_TEST(BatchJacobi,
     //std::cout << "\n\nref:" << std::endl;
     auto ref_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
-                         .with_skip_sorting(true)
                          .on(this->ref);
 
     auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
@@ -197,7 +196,6 @@ TYPED_TEST(BatchJacobi,
     //std::cout << "\n\ncuda:" << std::endl;
     auto d_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
-                         .with_skip_sorting(true)
                          .with_block_pointers(block_pointers_for_device)
                          .on(this->exec);
 
@@ -248,7 +246,6 @@ TYPED_TEST(BatchJacobi,
 
     auto ref_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
-                         .with_skip_sorting(true)
                          .on(this->ref);
 
     auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
@@ -269,7 +266,6 @@ TYPED_TEST(BatchJacobi,
 
     auto d_prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_blk_sz)
-                         .with_skip_sorting(true)
                          .with_block_pointers(block_pointers_for_device)
                          .on(this->exec);
 

@@ -55,7 +55,6 @@ protected:
 
     BatchJacobiFactory()
         : exec(gko::ReferenceExecutor::create()),
-          skip_sorting(true),
           max_block_size(16u),
           block_pointers(gko::array<index_type>(exec->get_master(), 4))
     {
@@ -66,7 +65,6 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    const bool skip_sorting;
     const gko::uint32 max_block_size;
     gko::array<index_type> block_pointers;
 };
@@ -77,14 +75,6 @@ TEST_F(BatchJacobiFactory, KnowsItsExecutor)
     ASSERT_EQ(batch_jacobi_factory->get_executor(), this->exec);
 }
 
-TEST_F(BatchJacobiFactory, CanSetSorting)
-{
-    auto batch_jacobi_factory =
-        batch_jacobi_prec::build().with_skip_sorting(true).on(this->exec);
-
-    ASSERT_EQ(batch_jacobi_factory->get_parameters().skip_sorting,
-              this->skip_sorting);
-}
 
 TEST_F(BatchJacobiFactory, CanSetMaxBlockSize)
 {
@@ -94,6 +84,7 @@ TEST_F(BatchJacobiFactory, CanSetMaxBlockSize)
     ASSERT_EQ(batch_jacobi_factory->get_parameters().max_block_size,
               this->max_block_size);
 }
+
 
 TEST_F(BatchJacobiFactory, CanSetBlockPointers)
 {
