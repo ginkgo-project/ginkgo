@@ -55,8 +55,6 @@ private:
                                                  ValueType* const z) const
     {  // Structure-aware SpMV
 
-        // constexpr auto tile_size = get_larger_power(max_block_size);
-
         auto thread_block = group::this_thread_block();
         auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
         const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
