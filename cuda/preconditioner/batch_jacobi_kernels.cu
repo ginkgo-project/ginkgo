@@ -92,8 +92,7 @@ void batch_jacobi_apply_helper(
 
         batch_scalar_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
             prec_scalar_jacobi, sys_mat_batch, nbatch, nrows,
-            as_device_type(r->get_const_values()),
-            as_device_type(z->get_values()));
+            as_cuda_type(r->get_const_values()), as_cuda_type(z->get_values()));
 
     } else {
         const auto shared_size =
@@ -102,13 +101,12 @@ void batch_jacobi_apply_helper(
             sizeof(ValueType);
         auto prec_block_jacobi = BatchBlockJacobi<device_type<ValueType>>(
             max_block_size, num_blocks, storage_scheme,
-            as_device_type(blocks_array), block_ptrs,
+            as_cuda_type(blocks_array), block_ptrs,
             row_part_of_which_block_info);
 
         batch_block_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
             prec_block_jacobi, nbatch, nrows,
-            as_device_type(r->get_const_values()),
-            as_device_type(z->get_values()));
+            as_cuda_type(r->get_const_values()), as_cuda_type(z->get_values()));
     }
 }
 

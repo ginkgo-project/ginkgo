@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/exception.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/uninitialized_array.hip.hpp"
 #include "hip/components/warp_blas.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
+#include "hip/preconditioner/jacobi_common.hip.hpp"
 
 namespace gko {
 namespace kernels {
@@ -92,11 +94,10 @@ void batch_jacobi_apply_helper(
             sizeof(ValueType);
         auto prec_scalar_jacobi = BatchScalarJacobi<device_type<ValueType>>();
 
-        hipLaunchKernelGGL(batch_scalar_jacobi_apply, nbatch,
-                           default_block_size, shared_size, 0,
-                           prec_scalar_jacobi, sys_mat_batch, nbatch, nrows,
-                           as_device_type(r->get_const_values()),
-                           as_device_type(z->get_values()));
+        hipLaunchKernelGGL(
+            batch_scalar_jacobi_apply, nbatch, default_block_size, shared_size,
+            0, prec_scalar_jacobi, sys_mat_batch, nbatch, nrows,
+            as_hip_type(r->get_const_values()), as_hip_type(z->get_values()));
 
     } else {
         const auto shared_size =
@@ -105,14 +106,14 @@ void batch_jacobi_apply_helper(
             sizeof(ValueType);
         auto prec_block_jacobi = BatchBlockJacobi<device_type<ValueType>>(
             max_block_size, num_blocks, storage_scheme,
-            as_device_type(blocks_array), block_ptrs,
+            as_hip_type(blocks_array), block_ptrs,
             row_part_of_which_block_info);
 
 
         hipLaunchKernelGGL(batch_block_jacobi_apply, nbatch, default_block_size,
                            shared_size, 0, prec_block_jacobi, nbatch, nrows,
-                           as_device_type(r->get_const_values()),
-                           as_device_type(z->get_values()));
+                           as_hip_type(r->get_const_values()),
+                           as_hip_type(z->get_values()));
     }
 }
 
@@ -214,9 +215,9 @@ void compute_block_jacobi_helper(
 
     hipLaunchKernelGGL(compute_block_jacobi_kernel<subwarp_size>, grid, block,
                        0, 0, nbatch, static_cast<int>(nnz),
-                       as_cuda_type(sys_csr->get_const_values()), num_blocks,
+                       as_hip_type(sys_csr->get_const_values()), num_blocks,
                        storage_scheme, block_pointers, blocks_pattern,
-                       as_cuda_type(blocks));
+                       as_hip_type(blocks));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
@@ -232,7 +233,7 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const uint32 max_block_size, const size_type num_blocks,
+    const uint32 user_max_block_size, const size_type num_blocks,
     const preconditioner::batched_blocks_storage_scheme& storage_scheme,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
