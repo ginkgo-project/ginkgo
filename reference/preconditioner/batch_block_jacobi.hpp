@@ -67,7 +67,7 @@ public:
      * @param block_ptrs_arr array of block pointers
      *
      */
-    BatchBlockJacobi(const size_type num_blocks,
+    BatchBlockJacobi(const uint32, const size_type num_blocks,
                      const gko::preconditioner::batched_blocks_storage_scheme&
                          storage_scheme,
                      const value_type* const blocks_arr_batch,
