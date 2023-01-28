@@ -59,7 +59,6 @@ private:
 public:
     using value_type = ValueType;
 
-    // data-locality
     /**
      *
      * @param num_blocks  Number of diagonal blocks in a matrix

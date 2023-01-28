@@ -162,7 +162,7 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
 
     if (auto temp_csr = dynamic_cast<const matrix_type*>(system_matrix)) {
         sys_csr = gko::share(
-            gko::clone(exec, temp_csr));  // How to avoid a copy here?
+            gko::clone(exec, temp_csr));  // How to avoid extra copy here?
     } else {
         sys_csr = gko::share(matrix_type::create(exec));
         as<ConvertibleTo<matrix_type>>(system_matrix)
@@ -191,7 +191,7 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     }
 
     /*  TODO:
-       treat row_part_of_which_block_info_
+        row_part_of_which_block_info_
     */
     gko::array<index_type> block_pointers_ref(exec->get_master());
     block_pointers_ref = parameters_.block_pointers;
