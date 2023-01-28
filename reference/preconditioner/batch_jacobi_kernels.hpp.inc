@@ -125,7 +125,7 @@ inline void invert_dense_block(const int block_size,
         }  // uncoalesced accesses
         temp_dense_block[k * block_size + k] = zero<ValueType>();
 
-        // GER (Note: the kth row and kth col does not change)
+        // GER (Note: the kth row and kth col do not change)
         for (int r = 0; r < block_size; r++) {
             for (int c = 0; c < block_size; c++) {
                 temp_dense_block[r * block_size + c] +=
