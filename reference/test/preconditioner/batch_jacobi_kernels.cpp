@@ -159,7 +159,6 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
     auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(max_block_size)
                          .with_block_pointers(block_ptrs)
-                         .with_skip_sorting(true)
                          .on(this->exec);
 
     auto prec = prec_fact->generate(this->mtx);
@@ -169,7 +168,6 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
     auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
                                  .with_max_block_size(max_block_size)
                                  .with_block_pointers(block_ptrs)
-                                 .with_skip_sorting(true)
                                  .on(this->exec);
     const auto tol = r<value_type>::value;
 
@@ -224,7 +222,6 @@ TYPED_TEST(BatchJacobi,
     auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
                                  .with_max_block_size(4u)
                                  .with_block_pointers(block_ptrs)
-                                 .with_skip_sorting(true)
                                  .on(this->exec);
 
     for (size_t i = 0; i < umtxs.size(); i++) {
@@ -235,7 +232,6 @@ TYPED_TEST(BatchJacobi,
     auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
                          .with_max_block_size(4u)
                          .with_block_pointers(block_ptrs)
-                         .with_skip_sorting(true)
                          .on(this->exec);
 
     auto prec = prec_fact->generate(this->mtx);

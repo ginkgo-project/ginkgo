@@ -161,15 +161,12 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     std::shared_ptr<matrix_type> sys_csr;
 
     if (auto temp_csr = dynamic_cast<const matrix_type*>(system_matrix)) {
-        sys_csr = gko::share(gko::clone(exec, temp_csr));
+        sys_csr = gko::share(
+            gko::clone(exec, temp_csr));  // How to avoid a copy here?
     } else {
         sys_csr = gko::share(matrix_type::create(exec));
         as<ConvertibleTo<matrix_type>>(system_matrix)
             ->convert_to(sys_csr.get());
-    }
-
-    if (parameters_.skip_sorting != true) {
-        sys_csr->sort_by_column_index();
     }
 
     const auto num_batch = sys_csr->get_num_batch_entries();
