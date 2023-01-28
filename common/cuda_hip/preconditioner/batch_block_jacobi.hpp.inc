@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 /**
  * BlockJacobi preconditioner for batch solvers.
  */
@@ -45,72 +44,18 @@ private:
             storage_scheme_.get_batch_offset(num_blocks_, batch_id);
     }
 
-public:
-    using value_type = ValueType;
-
-
-    /**
-     *
-     * @param num_blocks  Number of diagonal blocks in a matrix
-     * @param max_block_size Maximum block size
-     * @param blocks_arr_batch array of diagonal blocks for the batch
-     * @param block_ptrs_arr array of block pointers
-     * @param row_part_of_which_block_arr array containing block indices of the
-     * blocks that the individual rows of the matrix are a part of
-     *
-     */
-    BatchBlockJacobi(const size_type num_blocks,
-                     const gko::preconditioner::batched_blocks_storage_scheme&
-                         storage_scheme,
-                     const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr,
-                     const int* const row_part_of_which_block_arr)
-        : num_blocks_{num_blocks},
-          storage_scheme_{storage_scheme},
-          blocks_arr_batch_{blocks_arr_batch},
-          block_ptrs_arr_{block_ptrs_arr},
-          row_part_of_which_block_arr_{row_part_of_which_block_arr}
-    {}
-
-
-    /**
-     * The size of the work vector required in case of dynamic allocation.
-     */
-    __host__ __device__ static constexpr int dynamic_work_size(
-        const int num_rows, int)
+    __device__ constexpr int get_larger_power(int value, int guess = 1) const
     {
-        return 0;
+        return guess >= value ? guess : get_larger_power(value, guess << 1);
     }
 
-    __device__ __forceinline__ void generate(
-        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__)
-    {
-        common_generate_for_all_system_matrix_types(batch_id);
-    }
-
-    __device__ __forceinline__ void generate(
-        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__)
-    {
-        common_generate_for_all_system_matrix_types(batch_id);
-    }
-
-    __device__ __forceinline__ void generate(
-        size_type batch_id,
-        const gko::batch_dense::BatchEntry<const ValueType>&,
-        ValueType* const __restrict__)
-    {
-        common_generate_for_all_system_matrix_types(batch_id);
-    }
-
-    __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType* const r,
-                                          ValueType* const z) const
+    template <int tile_size>
+    __device__ __forceinline__ void apply_helper(const int num_rows,
+                                                 const ValueType* const r,
+                                                 ValueType* const z) const
     {  // Structure-aware SpMV
-        constexpr auto tile_size =
-            config::warp_size;  // How to have a run-time size acc. to
-                                // max_block_size ???
+
+        // constexpr auto tile_size = get_larger_power(max_block_size);
 
         auto thread_block = group::this_thread_block();
         auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
@@ -152,7 +97,96 @@ public:
         }
     }
 
+public:
+    using value_type = ValueType;
+
+
+    /**
+     *
+     * @param num_blocks  Number of diagonal blocks in a matrix
+     * @param max_block_size Maximum block size
+     * @param blocks_arr_batch array of diagonal blocks for the batch
+     * @param block_ptrs_arr array of block pointers
+     * @param row_part_of_which_block_arr array containing block indices of the
+     * blocks that the individual rows of the matrix are a part of
+     *
+     */
+    BatchBlockJacobi(const uint32 max_block_size, const size_type num_blocks,
+                     const gko::preconditioner::batched_blocks_storage_scheme&
+                         storage_scheme,
+                     const value_type* const blocks_arr_batch,
+                     const int* const block_ptrs_arr,
+                     const int* const row_part_of_which_block_arr)
+        : max_block_size_{max_block_size},
+          num_blocks_{num_blocks},
+          storage_scheme_{storage_scheme},
+          blocks_arr_batch_{blocks_arr_batch},
+          block_ptrs_arr_{block_ptrs_arr},
+          row_part_of_which_block_arr_{row_part_of_which_block_arr}
+    {}
+
+    /**
+     * The size of the work vector required in case of dynamic allocation.
+     */
+    __host__ __device__ static constexpr int dynamic_work_size(
+        const int num_rows, int)
+    {
+        return 0;
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id,
+        const gko::batch_dense::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+    }
+
+    __device__ __forceinline__ void apply(const int num_rows,
+                                          const ValueType* const r,
+                                          ValueType* const z) const
+    {
+        const int required_subwarp_size = get_larger_power(max_block_size_);
+
+        if (required_subwarp_size == 1) {
+            apply_helper<1>(num_rows, r, z);
+        } else if (required_subwarp_size == 2) {
+            apply_helper<2>(num_rows, r, z);
+        } else if (required_subwarp_size == 4) {
+            apply_helper<4>(num_rows, r, z);
+        } else if (required_subwarp_size == 8) {
+            apply_helper<8>(num_rows, r, z);
+        } else if (required_subwarp_size == 16) {
+            apply_helper<16>(num_rows, r, z);
+        } else if (required_subwarp_size == 32) {
+            apply_helper<32>(num_rows, r, z);
+        }
+#if defined(__HIP_DEVICE_COMPILE__) && !defined(__CUDA_ARCH__)
+        else if (required_subwarp_size == 64) {
+            apply_helper<64>(num_rows, r, z);
+        }
+#endif
+        else {
+            apply_helper<config::warp_size>(num_rows, r, z);
+        }
+    }
+
 private:
+    const uint32 max_block_size_;
     const size_type num_blocks_;
     const gko::preconditioner::batched_blocks_storage_scheme storage_scheme_;
     const value_type* const blocks_arr_batch_;

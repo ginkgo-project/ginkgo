@@ -225,8 +225,8 @@ public:
                 dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
                     logger, amat,
                     device::BatchBlockJacobi<device_value_type>(
-                        num_blocks, storage_scheme, blocks_arr, block_ptrs_arr,
-                        row_part_of_which_block_arr),
+                        max_block_size, num_blocks, storage_scheme, blocks_arr,
+                        block_ptrs_arr, row_part_of_which_block_arr),
                     b_b, x_b);
             }
 
