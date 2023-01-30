@@ -225,12 +225,6 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     //*/
     default_ss.init_compressor = nullptr;
 
-    struct bench_type {
-        std::string name;
-        solver_settings settings;
-        solver_result result;
-    };
-
     const auto tt_str = [](int reduction) {
         const std::array<char, 4> types{'d', 'f', 'h', '?'};
         const int base = std::is_same<ValueType, double>::value      ? 0
@@ -248,29 +242,6 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     const auto get_name = [&str_pre, &str_post, &tt_str](int reduction) {
         return str_pre + tt_str(reduction) + str_post;
     };
-    std::vector<bench_type> benchmarks;
-    benchmarks.emplace_back();
-    benchmarks.back().name = get_name(0);
-    benchmarks.back().settings = default_ss;
-    benchmarks.back().settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::keep;
-
-    //*
-    if (get_name(0) != get_name(1)) {
-        benchmarks.emplace_back();
-        benchmarks.back().name = get_name(1);
-        benchmarks.back().settings = default_ss;
-        benchmarks.back().settings.storage_prec =
-            gko::solver::cb_gmres::storage_precision::reduce1;
-    }
-
-    if (get_name(1) != get_name(2)) {
-        benchmarks.emplace_back();
-        benchmarks.back().name = get_name(2);
-        benchmarks.back().settings = default_ss;
-        benchmarks.back().settings.storage_prec =
-            gko::solver::cb_gmres::storage_precision::reduce2;
-    }
 
     std::cout << data_begin;
     // Make sure the output is in scientific notation for easier comparison
@@ -291,6 +262,52 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                             ->get_storage_scheme()
                             .block_offset)
               << '\n';
+    const std::array<int, 7> widths{28, 11, 12, 11, 17, 16, 15};
+    // Print the header
+    // clang-format off
+    int i = 0;
+    std::cout << std::setw(widths[i++]) << "Name" << delim
+              << std::setw(widths[i++]) << "Comp. info" << delim
+              << std::setw(widths[i++]) << "Time [s]" << delim
+              << std::setw(widths[i++]) << "Iterations" << delim
+              << std::setw(widths[i++]) << "res norm before" << delim
+              << std::setw(widths[i++]) << "res norm after" << delim
+              << std::setw(widths[i++]) << "rel res norm" << '\n';
+    // clang-format on
+    const auto print_result = [&widths](const std::string& bench_name,
+                                        const std::string& comp_info,
+                                        const solver_result& result) {
+        int i = 0;
+        std::cout << std::setw(widths[i++]) << bench_name << delim
+                  << std::setw(widths[i++]) << comp_info << delim
+                  << std::setw(widths[i++]) << result.time_s << delim
+                  << std::setw(widths[i++]) << result.iters << delim
+                  << std::setw(widths[i++]) << result.init_res_norm << delim
+                  << std::setw(widths[i++]) << result.res_norm << delim
+                  << std::setw(widths[i++])
+                  << result.res_norm / result.init_res_norm << '\n';
+    };
+
+    // val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
+    auto cur_settings = default_ss;
+    cur_settings.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
+    print_result(get_name(0), std::to_string(sizeof(ValueType) * 8),
+                 benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+
+    //*
+    if (get_name(0) != get_name(1)) {
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::reduce1;
+        print_result(get_name(1), std::to_string(sizeof(ValueType) * 8 / 2),
+                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+    }
+
+    if (get_name(1) != get_name(2)) {
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::reduce2;
+        print_result(get_name(2), std::to_string(sizeof(ValueType) * 8 / 4),
+                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+    }
 
     std::vector<std::string> compression_json_files;
     for (auto config_path :
@@ -309,13 +326,12 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
         const auto file_name = config_file.substr(
             begin_file_name, config_file.size() - begin_file_name - 5);
-        benchmarks.emplace_back();
-        benchmarks.back().name = str_pre + file_name + str_post;
-        benchmarks.back().settings = default_ss;
-        benchmarks.back().settings.storage_prec =
+        std::string bench_name = str_pre + file_name + str_post;
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_pressio;
-        benchmarks.back().settings.init_compressor = [lp_config = config_file](
-                                                         void* p_compressor) {
+        cur_settings.init_compressor = [lp_config =
+                                            config_file](void* p_compressor) {
             auto pc_ptr_ = static_cast<pressio_compressor*>(p_compressor);
             auto& pc_ = *pc_ptr_;
             std::ifstream pressio_input_file(lp_config);
@@ -324,45 +340,15 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             pressio_options options_from_file(static_cast<pressio_options>(j));
             pressio library;
             pc_ = library.get_compressor("pressio");
-            pc_->set_options({
-                //{"pressio:metric", "composite"s},
-                //{"composite:plugins", metrics_plugins_},
-                //                {"write_debug_inputs:write_input", true},
-                //                {"write_debug_inputs:display_paths", true},
-                //                {"write_debug_inputs:io", "posix"},
-                // numpy outputs numpy compatible arrays
-                //                {"write_debug_inputs:write_input", true},
-                //                {"write_debug_inputs:display_paths", true},
-                //                {"write_debug_inputs:io", "numpy"},
-            });
+            // pc_->set_options({});
             pc_->set_name("pressio");
             pc_->set_options(options_from_file);
         };
+        print_result(bench_name, "file",
+                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
     }
     //*/
 
-    // Note: The time might not be significantly different since the matrix is
-    //       quite small
-    const std::array<int, 7> widths{28, 12, 11, 17, 16, 15};
-    // clang-format off
-    std::cout << std::setw(widths[0]) << "Name" << delim
-              << std::setw(widths[1]) << "Time [s]" << delim
-              << std::setw(widths[2]) << "Iterations" << delim
-              << std::setw(widths[3]) << "res norm before" << delim
-              << std::setw(widths[4]) << "res norm after" << delim
-              << std::setw(widths[5]) << "rel res norm" << '\n';
-    // clang-format on
-    for (auto&& val : benchmarks) {
-        // if (val.name.find("sz4") == std::string::npos) { continue; }
-        val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
-        std::cout << std::setw(widths[0]) << val.name << delim
-                  << std::setw(widths[1]) << val.result.time_s << delim
-                  << std::setw(widths[2]) << val.result.iters << delim
-                  << std::setw(widths[3]) << val.result.init_res_norm << delim
-                  << std::setw(widths[4]) << val.result.res_norm << delim
-                  << std::setw(widths[5])
-                  << val.result.res_norm / val.result.init_res_norm << '\n';
-    }
     std::cout << data_end;
 }
 
