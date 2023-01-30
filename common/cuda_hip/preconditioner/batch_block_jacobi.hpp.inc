@@ -162,9 +162,10 @@ public:
 
         if (required_subwarp_size == 1) {
             apply_helper<1>(num_rows, r, z);
-        } else if (required_subwarp_size == 2) {
-            apply_helper<2>(num_rows, r, z);
-        } else if (required_subwarp_size == 4) {
+            // } else if (required_subwarp_size == 2) {
+            //     apply_helper<2>(num_rows, r, z); //clang error with tile size
+            //     2
+        } else if (required_subwarp_size == 2 || required_subwarp_size == 4) {
             apply_helper<4>(num_rows, r, z);
         } else if (required_subwarp_size == 8) {
             apply_helper<8>(num_rows, r, z);
