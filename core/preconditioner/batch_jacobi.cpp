@@ -49,6 +49,8 @@ GKO_REGISTER_OPERATION(extract_common_blocks_pattern,
                        batch_jacobi::extract_common_blocks_pattern);
 GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
+GKO_REGISTER_OPERATION(transpose_batch_jacobi,
+                       batch_jacobi::transpose_batch_jacobi);
 
 
 }  // namespace
@@ -60,30 +62,32 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
 {
     if (parameters_.max_block_size == 1) {
         return this->clone();
+        // Since batch scalar jacobi preconditioner does nothing in the external
+        // genarate step
     } else {
-        GKO_NOT_IMPLEMENTED;
+        auto res = std::unique_ptr<BatchJacobi<ValueType, IndexType>>(
+            new BatchJacobi<ValueType, IndexType>(this->get_executor()));
+        // BatchJacobi enforces square matrices, so no dim transposition
+        // necessary
+        res->set_size(this->get_size());
+        res->storage_scheme_ = storage_scheme_;
+        res->num_blocks_ = num_blocks_;
+        res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
+        res->blocks_.resize_and_reset(blocks_.get_num_elems());
+        res->num_batch_entries_ = num_batch_entries_;
+        res->parameters_ = parameters_;
+
+        const bool to_conjugate = false;
+
+        this->get_executor()->run(batch_jacobi::make_transpose_batch_jacobi(
+            num_batch_entries_, num_blocks_, parameters_.max_block_size,
+            parameters_.block_pointers.get_const_data(),
+            blocks_.get_const_data(), storage_scheme_,
+            row_part_of_which_block_info_.get_const_data(),
+            res->blocks_.get_data(), to_conjugate));
+
+        return std::move(res);
     }
-
-    // auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
-    //     new Jacobi<ValueType, IndexType>(this->get_executor()));
-    // // Jacobi enforces square matrices, so no dim transposition necessary
-    // res->set_size(this->get_size());
-    // res->storage_scheme_ = storage_scheme_;
-    // res->num_blocks_ = num_blocks_;
-    // res->blocks_.resize_and_reset(blocks_.get_num_elems());
-    // res->conditioning_ = conditioning_;
-    // res->parameters_ = parameters_;
-    // if (parameters_.max_block_size == 1) {
-    //     res->blocks_ = blocks_;
-    // } else {
-    //     this->get_executor()->run(jacobi::make_transpose_jacobi(
-    //         num_blocks_, parameters_.max_block_size,
-    //         parameters_.storage_optimization.block_wise,
-    //         parameters_.block_pointers, blocks_, storage_scheme_,
-    //         res->blocks_));
-    // }
-
-    // return std::move(res);
 }
 
 
@@ -92,35 +96,33 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::conj_transpose()
     const
 {
     if (parameters_.max_block_size == 1) {
-        // Since this preconditioner does nothing in its genarate step,
-        //  conjugate transpose only depends on the matrix being
-        //  conjugate-transposed.
         return this->clone();
+        // Since batch scalar jacobi preconditioner does nothing in the external
+        // genarate step
     } else {
-        GKO_NOT_IMPLEMENTED;
+        auto res = std::unique_ptr<BatchJacobi<ValueType, IndexType>>(
+            new BatchJacobi<ValueType, IndexType>(this->get_executor()));
+        // BatchJacobi enforces square matrices, so no dim transposition
+        // necessary
+        res->set_size(this->get_size());
+        res->storage_scheme_ = storage_scheme_;
+        res->num_blocks_ = num_blocks_;
+        res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
+        res->blocks_.resize_and_reset(blocks_.get_num_elems());
+        res->num_batch_entries_ = num_batch_entries_;
+        res->parameters_ = parameters_;
+
+        const bool to_conjugate = true;
+
+        this->get_executor()->run(batch_jacobi::make_transpose_batch_jacobi(
+            num_batch_entries_, num_blocks_, parameters_.max_block_size,
+            parameters_.block_pointers.get_const_data(),
+            blocks_.get_const_data(), storage_scheme_,
+            row_part_of_which_block_info_.get_const_data(),
+            res->blocks_.get_data(), to_conjugate));
+
+        return std::move(res);
     }
-
-    // auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
-    //     new Jacobi<ValueType, IndexType>(this->get_executor()));
-    // // Jacobi enforces square matrices, so no dim transposition necessary
-    // res->set_size(this->get_size());
-    // res->storage_scheme_ = storage_scheme_;
-    // res->num_blocks_ = num_blocks_;
-    // res->blocks_.resize_and_reset(blocks_.get_num_elems());
-    // res->conditioning_ = conditioning_;
-    // res->parameters_ = parameters_;
-    // if (parameters_.max_block_size == 1) {
-    //     this->get_executor()->run(
-    //         jacobi::make_scalar_conj(this->blocks_, res->blocks_));
-    // } else {
-    //     this->get_executor()->run(jacobi::make_conj_transpose_jacobi(
-    //         num_blocks_, parameters_.max_block_size,
-    //         parameters_.storage_optimization.block_wise,
-    //         parameters_.block_pointers, blocks_, storage_scheme_,
-    //         res->blocks_));
-    // }
-
-    // return std::move(res);
 }
 
 template <typename ValueType, typename IndexType>
