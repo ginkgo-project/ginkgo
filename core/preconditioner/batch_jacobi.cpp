@@ -49,8 +49,8 @@ GKO_REGISTER_OPERATION(extract_common_blocks_pattern,
                        batch_jacobi::extract_common_blocks_pattern);
 GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
-GKO_REGISTER_OPERATION(transpose_batch_jacobi,
-                       batch_jacobi::transpose_batch_jacobi);
+GKO_REGISTER_OPERATION(transpose_block_jacobi,
+                       batch_jacobi::transpose_block_jacobi);
 
 
 }  // namespace
@@ -74,13 +74,13 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
         res->num_blocks_ = num_blocks_;
         res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
-        res->num_batch_entries_ = num_batch_entries_;
         res->parameters_ = parameters_;
 
         const bool to_conjugate = false;
 
-        this->get_executor()->run(batch_jacobi::make_transpose_batch_jacobi(
-            num_batch_entries_, num_blocks_, parameters_.max_block_size,
+        this->get_executor()->run(batch_jacobi::make_transpose_block_jacobi(
+            this->get_num_batch_entries(), this->get_size().at(0)[0],
+            num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
             blocks_.get_const_data(), storage_scheme_,
             row_part_of_which_block_info_.get_const_data(),
@@ -109,13 +109,13 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::conj_transpose()
         res->num_blocks_ = num_blocks_;
         res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
-        res->num_batch_entries_ = num_batch_entries_;
         res->parameters_ = parameters_;
 
         const bool to_conjugate = true;
 
-        this->get_executor()->run(batch_jacobi::make_transpose_batch_jacobi(
-            num_batch_entries_, num_blocks_, parameters_.max_block_size,
+        this->get_executor()->run(batch_jacobi::make_transpose_block_jacobi(
+            this->get_num_batch_entries(), this->get_size().at(0)[0],
+            num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
             blocks_.get_const_data(), storage_scheme_,
             row_part_of_which_block_info_.get_const_data(),

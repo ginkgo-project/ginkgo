@@ -38,7 +38,7 @@ __global__
         const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
         const int* const __restrict__ block_pointers,
         const int* const __restrict__ row_in_which_block_info,
-        int* const __restrict__ blocks_pattern)
+        int* const blocks_pattern)
 {
     constexpr auto tile_size =
         config::warp_size;  // use full warp for coalesced memory accesses
@@ -55,7 +55,7 @@ __global__
         const int block_idx = row_in_which_block_info[row_idx];
         const int idx_start = block_pointers[block_idx];
         const int idx_end = block_pointers[block_idx + 1];
-        int* pattern_ptr =
+        int* __restrict__ pattern_ptr =
             blocks_pattern + storage_scheme.get_block_offset(block_idx);
 
         for (int i = sys_row_ptrs[row_idx] + id_within_warp;
@@ -171,7 +171,7 @@ __global__
         const ValueType* const A_vals, const gko::size_type num_blocks,
         const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
         const int* const __restrict__ block_pointers,
-        const int* const __restrict__ blocks_pattern, ValueType* const blocks)
+        const int* const blocks_pattern, ValueType* const blocks)
 {
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);
@@ -192,9 +192,9 @@ __global__
             block_pointers[block_idx + 1] - block_pointers[block_idx];
         assert(block_size <= subwarp_size);
 
-        const auto current_block_pattern =
+        const auto __restrict__ current_block_pattern =
             blocks_pattern + storage_scheme.get_block_offset(block_idx);
-        auto current_block_data =
+        auto __restrict__ current_block_data =
             blocks + storage_scheme.get_global_block_offset(
                          num_blocks, batch_idx, block_idx);
 
@@ -259,6 +259,59 @@ __global__
                                    col_diag_block] =
                     val_to_write;  // non-coalesced accesses due to pivoting
             }
+        }
+    }
+}
+
+
+template <int subwarp_size, typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void transpose_block_jacobi_kernel(
+        const size_type nbatch, const int nrows, const size_type num_blocks,
+        const int* const __restrict__ block_pointers,
+        const ValueType* const blocks_array,
+        const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
+        const int* const row_part_of_which_block_info,
+        ValueType* const out_blocks_array, const bool to_conjugate)
+{
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);
+    const int subwarp_id_in_grid =
+        thread::get_subwarp_id_flat<subwarp_size, int>();
+    const int total_num_subwarps_in_grid =
+        thread::get_subwarp_num_flat<subwarp_size, int>();
+    const int id_within_subwarp = subwarp_grp.thread_rank();
+
+    // one subwarp per row of the small diagonal block
+    for (size_type i = subwarp_id_in_grid; i < nbatch * nrows;
+         i += total_num_subwarps_in_grid) {
+        const auto batch_idx = i / nrows;
+        const auto row_idx = i % nrows;
+
+        const auto block_idx = row_part_of_which_block_info[row_idx];
+        const auto row_start = block_pointers[block_idx];
+        const auto row_end = block_pointers[block_idx + 1];  // exclusive
+        const auto bsize = row_end - row_start;
+
+        const auto row_dense_block = row_idx - row_start;
+
+        const auto __restrict__ dense_block_ptr =
+            blocks_array + storage_scheme.get_global_block_offset(
+                               num_blocks, batch_idx, block_idx);
+
+        auto __restrict__ out_dense_block_ptr =
+            out_blocks_array + storage_scheme.get_global_block_offset(
+                                   num_blocks, batch_idx, block_idx);
+
+        const auto stride = storage_scheme.get_stride();
+
+        for (int c = id_within_subwarp; c < bsize; c += subwarp_size) {
+            const auto val =
+                to_conjugate == true
+                    ? conj(dense_block_ptr[row_dense_block * stride + c])
+                    : dense_block_ptr[row_dense_block * stride + c];
+            out_dense_block_ptr[c * stride + row_dense_block] = val;
+            // coalesced reads, non-coalesced writes
         }
     }
 }
