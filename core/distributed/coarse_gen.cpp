@@ -184,11 +184,11 @@ void CoarseGen<ValueType, LocalIndexType,
     } else {
         fine_offset.fill(0);
     }
-    for (int i = 0; i < fine_mat_data.get_num_elems(); i++) {
-        std::cout << " rank: " << comm.rank()
-                  << " ridxs: " << fine_mat_data.get_const_row_idxs()[i]
-                  << std::endl;
-    }
+    // for (int i = 0; i < fine_mat_data.get_num_elems(); i++) {
+    //     std::cout << " rank: " << comm.rank()
+    //               << " ridxs: " << fine_mat_data.get_const_row_idxs()[i]
+    //               << std::endl;
+    // }
 
     // exec->run(coarse_gen::make_convert_idxs_to_ptrs(
     //     fine_mat_data.get_const_row_idxs(), fine_mat_data.get_num_elems(),
@@ -200,10 +200,10 @@ void CoarseGen<ValueType, LocalIndexType,
         fine_row_ptrs.get_data()));
 
 
-    for (int i = 0; i < fine_row_ptrs.get_num_elems(); i++) {
-        std::cout << " rank: " << comm.rank()
-                  << " rptrs: " << fine_row_ptrs.get_data()[i] << std::endl;
-    }
+    // for (int i = 0; i < fine_row_ptrs.get_num_elems(); i++) {
+    //     std::cout << " rank: " << comm.rank()
+    //               << " rptrs: " << fine_row_ptrs.get_data()[i] << std::endl;
+    // }
 
     auto coarse_row_partition =
         gko::share(gko::experimental::distributed::

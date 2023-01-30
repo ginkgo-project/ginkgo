@@ -194,6 +194,7 @@ void fill_coarse(
     const auto coarse_size = coarse_data.get_size();
     const auto f_row_idxs = fine_matrix_data.get_const_row_idxs();
     const auto f_col_idxs = fine_matrix_data.get_const_col_idxs();
+    const auto f_values = fine_matrix_data.get_const_values();
 
     const auto f_mat_data = fine_matrix_data.copy_to_host();
 
@@ -215,46 +216,57 @@ void fill_coarse(
     //     std::cout << " rank " << rank << " cidx id: " << nnz << " : "
     //               << c_indices[nnz] << std::endl;
     // }
-    // std::cout << "rank " << rank << " fmat size  " <<
-    // f_mat_data.nonzeros.size()
-    //           << " g nnz " << global_nnz << std::endl;
+    std::cout << "rank " << rank << " fmat size " << f_mat_data.size
+              << " fmat nnz  " << f_mat_data.nonzeros.size() << " g nnz "
+              << global_nnz << std::endl;
 
     // Get coarse data with global fine matrix indexing.
     int nnz = 0;
     int ridx = 0;
-    std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
+
+    std::cout << " Here " << __LINE__ << " rank " << rank << " num ranges "
+              << fine_row_partition->get_num_ranges() << std::endl;
     for (auto i = 0; i < global_size[0]; ++i) {
         if (i >= row_range_start && i < row_range_end) {
             auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
             if (idx1 != c_indices + coarse_size[0]) {
                 int cidx = 0;
+                std::cout << " rank " << rank << "r range st "
+                          << row_range_start << " r range end " << row_range_end
+                          << std::endl;
                 for (auto j = f_row_ptrs[i - row_range_start];
                      j < f_row_ptrs[i - row_range_start + 1]; ++j) {
+                    std::cout << " rank " << rank << " j idx " << j << " f idx "
+                              << f_col_idxs[j] << " f val " << f_values[j]
+                              << std::endl;
                     auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
                                           f_col_idxs[j]);
+                    std::cout << " cidx " << idx2 - c_indices << std::endl;
                     if (idx2 != c_indices + coarse_size[0]) {
                         // Assume row major ordering
-                        c_matrix_data.add_value(
-                            ridx, idx2 - c_indices,
-                            fine_matrix_data.get_const_values()[j]);
+                        c_matrix_data.add_value(row_range_start + ridx,
+                                                idx2 - c_indices, f_values[j]);
                     }
+                    cidx++;
                 }
                 ridx++;
             }
         }
     }
+    std::cout << "rank " << rank << " cmat size  " << c_matrix_data.get_size()
+              << " num_nnz " << c_matrix_data.get_num_stored_elements()
+              << std::endl;
     std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
-
 
     coarse_data =
         device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
             exec, c_matrix_data.get_ordered_data());
     auto c_data = c_matrix_data.get_ordered_data();
 
-    // for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
-    //     std::cout << "coarse id: " << nnz << " : " << c_data.nonzeros[nnz]
-    //               << std::endl;
-    // }
+    for (int nnz = 0; nnz < c_data.nonzeros.size(); ++nnz) {
+        std::cout << "rank" << rank << " , coarse id: " << nnz << " : "
+                  << c_data.nonzeros[nnz] << std::endl;
+    }
     std::cout << " Here " << __LINE__ << " rank " << rank << std::endl;
 
     nnz = 0;
@@ -287,7 +299,8 @@ void fill_coarse(
             // Assume row major ordering
             p_matrix_data.add_value(coarse_indices.get_data()[i], i,
                                     one<ValueType>());
-            // prolong_data.get_row_idxs()[nnz] = coarse_indices.get_data()[i];
+            // prolong_data.get_row_idxs()[nnz] =
+            // coarse_indices.get_data()[i];
             // prolong_data.get_col_idxs()[nnz] = i;
             // prolong_data.get_values()[nnz] = one<ValueType>();
             nnz++;
