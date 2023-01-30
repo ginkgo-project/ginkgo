@@ -165,6 +165,16 @@ public:
      */
     using EnableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
 
+    using ConvertibleTo<
+        Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
+
     friend class Fbcsr<next_precision<ValueType>, IndexType>;
 
     void convert_to(

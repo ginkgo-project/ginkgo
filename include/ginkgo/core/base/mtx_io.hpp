@@ -320,11 +320,11 @@ struct mtx_io_traits<gko::matrix::Fft3> {
  * @param matrix  the matrix to write
  * @param layout  the layout used in the output
  */
-template <typename MatrixType, typename StreamType>
+template <typename MatrixPtrType, typename StreamType,
+          typename MatrixType = detail::pointee<std::decay_t<MatrixPtrType>>>
 inline void write(
-    StreamType&& os, MatrixType* matrix,
-    layout_type layout =
-        detail::mtx_io_traits<std::remove_const_t<MatrixType>>::default_layout)
+    StreamType&& os, MatrixPtrType&& matrix,
+    layout_type layout = detail::mtx_io_traits<MatrixType>::default_layout)
 {
     matrix_data<typename MatrixType::value_type,
                 typename MatrixType::index_type>
@@ -347,8 +347,9 @@ inline void write(
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
  */
-template <typename MatrixType, typename StreamType>
-inline void write_binary(StreamType&& os, MatrixType* matrix)
+template <typename MatrixPtrType, typename StreamType,
+          typename MatrixType = detail::pointee<std::decay_t<MatrixPtrType>>>
+inline void write_binary(StreamType&& os, MatrixPtrType&& matrix)
 {
     matrix_data<typename MatrixType::value_type,
                 typename MatrixType::index_type>

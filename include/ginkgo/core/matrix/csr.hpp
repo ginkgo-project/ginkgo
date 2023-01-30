@@ -158,6 +158,22 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
 public:
     using EnableLinOp<Csr>::convert_to;
     using EnableLinOp<Csr>::move_to;
+    using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Ell<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Ell<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Fbcsr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Fbcsr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Hybrid<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Hybrid<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Sellp<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Sellp<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -910,11 +926,11 @@ public:
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
      * Dense matrix.
      */
-    void scale(const LinOp* alpha)
+    void scale(pointer_param<const LinOp> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->scale_impl(make_temporary_clone(exec, alpha).get());
+        this->scale_impl(make_temporary_clone(exec, alpha.get()).get());
     }
 
     /**
@@ -923,11 +939,11 @@ public:
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
      * 1x1 Dense matrix.
      */
-    void inv_scale(const LinOp* alpha)
+    void inv_scale(pointer_param<const LinOp> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+        this->inv_scale_impl(make_temporary_clone(exec, alpha.get()).get());
     }
 
     /**

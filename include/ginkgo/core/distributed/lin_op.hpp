@@ -75,27 +75,32 @@ public:
     using EnableDistributedPolymorphicObject<
         ConcreteLinOp, PolymorphicBase>::EnableDistributedPolymorphicObject;
 
-    const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
+    const ConcreteLinOp* apply(pointer_param<const LinOp> b,
+                               pointer_param<LinOp> x) const
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* b, LinOp* x)
+    ConcreteLinOp* apply(pointer_param<const LinOp> b, pointer_param<LinOp> x)
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x) const
+    const ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
+                               pointer_param<const LinOp> b,
+                               pointer_param<const LinOp> beta,
+                               pointer_param<LinOp> x) const
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                         LinOp* x)
+    ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
+                         pointer_param<const LinOp> b,
+                         pointer_param<const LinOp> beta,
+                         pointer_param<LinOp> x)
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();

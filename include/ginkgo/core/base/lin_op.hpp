@@ -124,9 +124,9 @@ class Diagonal;
  *     auto tmp = gko::clone(x0);
  *     auto one = Dense<>::create(L->get_executor(), {1.0,});
  *     for (int i = 0; i < iters; ++i) {
- *         L->apply(gko::lend(tmp), gko::lend(x));
- *         x->add_scaled(gko::lend(one), gko::lend(b));
- *         tmp->copy_from(gko::lend(x));
+ *         L->apply(tmp, x);
+ *         x->add_scaled(one, b);
+ *         tmp->copy_from(x);
  *     }
  *     return x;
  * }
@@ -155,28 +155,33 @@ public:
      *
      * @return this
      */
-    LinOp* apply(const LinOp* b, LinOp* x)
+    LinOp* apply(pointer_param<const LinOp> b, pointer_param<LinOp> x)
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
+        this->template log<log::Logger::linop_apply_started>(this, b.get(),
+                                                             x.get());
+        this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        this->apply_impl(make_temporary_clone(exec, b.get()).get(),
+                         make_temporary_clone(exec, x.get()).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
+                                                               x.get());
         return this;
     }
 
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp* apply(const LinOp* b, LinOp* x) const
+    const LinOp* apply(pointer_param<const LinOp> b,
+                       pointer_param<LinOp> x) const
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
+        this->template log<log::Logger::linop_apply_started>(this, b.get(),
+                                                             x.get());
+        this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        this->apply_impl(make_temporary_clone(exec, b.get()).get(),
+                         make_temporary_clone(exec, x.get()).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
+                                                               x.get());
         return this;
     }
 
@@ -190,38 +195,42 @@ public:
      *
      * @return this
      */
-    LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                 LinOp* x)
+    LinOp* apply(pointer_param<const LinOp> alpha, pointer_param<const LinOp> b,
+                 pointer_param<const LinOp> beta, pointer_param<LinOp> x)
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
+            this, alpha.get(), b.get(), beta.get(), x.get());
+        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
+                                              x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
+        this->apply_impl(make_temporary_clone(exec, alpha.get()).get(),
+                         make_temporary_clone(exec, b.get()).get(),
+                         make_temporary_clone(exec, beta.get()).get(),
+                         make_temporary_clone(exec, x.get()).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+            this, alpha.get(), b.get(), beta.get(), x.get());
         return this;
     }
 
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                       LinOp* x) const
+    const LinOp* apply(pointer_param<const LinOp> alpha,
+                       pointer_param<const LinOp> b,
+                       pointer_param<const LinOp> beta,
+                       pointer_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
+            this, alpha.get(), b.get(), beta.get(), x.get());
+        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
+                                              x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
+        this->apply_impl(make_temporary_clone(exec, alpha.get()).get(),
+                         make_temporary_clone(exec, b.get()).get(),
+                         make_temporary_clone(exec, beta.get()).get(),
+                         make_temporary_clone(exec, x.get()).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+            this, alpha.get(), b.get(), beta.get(), x.get());
         return this;
     }
 
@@ -399,7 +408,7 @@ private:
  * // create a linear operator which represents the solver
  * auto cg = cg_factory->generate(A);
  * // solve the system
- * cg->apply(gko::lend(b), gko::lend(x));
+ * cg->apply(b, x);
  * ```
  *
  * @ingroup LinOp
@@ -838,6 +847,12 @@ public:
         add_scaled_identity_impl(ae.get(), be.get());
     }
 
+    void add_scaled_identity(pointer_param<const LinOp> const a,
+                             pointer_param<const LinOp> const b)
+    {
+        add_scaled_identity(a.get(), b.get());
+    }
+
 private:
     virtual void add_scaled_identity_impl(const LinOp* a, const LinOp* b) = 0;
 };
@@ -885,27 +900,32 @@ public:
     using EnablePolymorphicObject<ConcreteLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
 
-    const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
+    const ConcreteLinOp* apply(pointer_param<const LinOp> b,
+                               pointer_param<LinOp> x) const
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* b, LinOp* x)
+    ConcreteLinOp* apply(pointer_param<const LinOp> b, pointer_param<LinOp> x)
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x) const
+    const ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
+                               pointer_param<const LinOp> b,
+                               pointer_param<const LinOp> beta,
+                               pointer_param<LinOp> x) const
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                         LinOp* x)
+    ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
+                         pointer_param<const LinOp> b,
+                         pointer_param<const LinOp> beta,
+                         pointer_param<LinOp> x)
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
