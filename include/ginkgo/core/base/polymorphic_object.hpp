@@ -176,7 +176,11 @@ public:
      *
      * @return this
      */
-    PolymorphicObject* copy_from(std::unique_ptr<PolymorphicObject> other)
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        PolymorphicObject>*
+    copy_from(std::unique_ptr<Derived>&& other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
@@ -184,6 +188,21 @@ public:
         this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other.get(), this);
         return copied;
+    }
+
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        PolymorphicObject>*
+    copy_from(const std::unique_ptr<Derived>& other)
+    {
+        return this->copy_from(other.get());
+    }
+
+    PolymorphicObject* copy_from(
+        const std::shared_ptr<const PolymorphicObject>& other)
+    {
+        return this->copy_from(other.get());
     }
 
     /**
@@ -218,7 +237,11 @@ public:
      *
      * @return this
      */
-    PolymorphicObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        PolymorphicObject>*
+    move_from(std::unique_ptr<Derived>&& other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
@@ -226,6 +249,21 @@ public:
         this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other.get(), this);
         return copied;
+    }
+
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        PolymorphicObject>*
+    move_from(const std::unique_ptr<Derived>& other)
+    {
+        return move_from(other.get());
+    }
+
+    PolymorphicObject* move_from(
+        const std::shared_ptr<PolymorphicObject>& other)
+    {
+        return move_from(other.get());
     }
 
     /**
@@ -391,10 +429,29 @@ public:
             this->PolymorphicBase::copy_from(other));
     }
 
-    AbstractObject* copy_from(std::unique_ptr<PolymorphicObject> other)
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        AbstractObject>*
+    copy_from(std::unique_ptr<Derived>&& other)
     {
         return static_cast<AbstractObject*>(
             this->PolymorphicBase::copy_from(std::move(other)));
+    }
+
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        AbstractObject>*
+    copy_from(const std::unique_ptr<Derived>& other)
+    {
+        return copy_from(other.get());
+    }
+
+    AbstractObject* copy_from(
+        const std::shared_ptr<const PolymorphicObject>& other)
+    {
+        return copy_from(other.get());
     }
 
     AbstractObject* move_from(PolymorphicObject* other)
@@ -403,10 +460,28 @@ public:
             this->PolymorphicBase::move_from(other));
     }
 
-    AbstractObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        AbstractObject>*
+    move_from(std::unique_ptr<Derived>&& other)
     {
         return static_cast<AbstractObject*>(
             this->PolymorphicBase::move_from(std::move(other)));
+    }
+
+    template <typename Derived>
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        AbstractObject>*
+    move_from(const std::unique_ptr<Derived>& other)
+    {
+        return move_from(other.get());
+    }
+
+    AbstractObject* move_from(const std::shared_ptr<PolymorphicObject>& other)
+    {
+        return move_from(other.get());
     }
 
     AbstractObject* clear()
@@ -477,6 +552,11 @@ public:
      */
     virtual void convert_to(result_type* result) const = 0;
 
+    void convert_to(pointer_param<result_type> result) const
+    {
+        convert_to(result.get());
+    }
+
     /**
      * Converts the implementer to an object of type result_type by moving data
      * from this object.
@@ -492,6 +572,8 @@ public:
      *       moved to the result.
      */
     virtual void move_to(result_type* result) = 0;
+
+    void move_to(pointer_param<result_type> result) { move_to(result.get()); }
 };
 
 
@@ -504,10 +586,11 @@ std::unique_ptr<R, std::function<void(R*)>> copy_and_convert_to_impl(
 {
     auto obj_as_r = dynamic_cast<R*>(obj);
     if (obj_as_r != nullptr && obj->get_executor() == exec) {
+        // FIXME: this breaks lifetimes
         return {obj_as_r, [](R*) {}};
     } else {
         auto copy = R::create(exec);
-        as<ConvertibleTo<std::decay_t<R>>>(obj)->convert_to(lend(copy));
+        as<ConvertibleTo<std::decay_t<R>>>(obj)->convert_to(copy);
         return {copy.release(), std::default_delete<R>{}};
     }
 }
@@ -522,7 +605,7 @@ std::shared_ptr<R> copy_and_convert_to_impl(
         return obj_as_r;
     } else {
         auto copy = R::create(exec);
-        as<ConvertibleTo<std::decay_t<R>>>(obj.get())->convert_to(lend(copy));
+        as<ConvertibleTo<std::decay_t<R>>>(obj.get())->convert_to(copy);
         return {std::move(copy)};
     }
 }
@@ -712,6 +795,8 @@ template <typename ConcreteType, typename ResultType = ConcreteType>
 class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
 public:
     using result_type = ResultType;
+    using ConvertibleTo<result_type>::convert_to;
+    using ConvertibleTo<result_type>::move_to;
 
     void convert_to(result_type* result) const override { *result = *self(); }
 

@@ -285,6 +285,10 @@ public:
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+                               GlobalIndexType>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+                               GlobalIndexType>>::move_to;
 
     void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
@@ -308,7 +312,8 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            partition);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -321,7 +326,8 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            partition);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -340,8 +346,10 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            row_partition,
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            col_partition);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -354,8 +362,10 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            row_partition,
+        pointer_param<const Partition<local_index_type, global_index_type>>
+            col_partition);
 
     /**
      * Get read access to the stored local matrix.

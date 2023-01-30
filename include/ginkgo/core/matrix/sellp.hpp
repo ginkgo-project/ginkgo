@@ -87,6 +87,13 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
 public:
     using EnableLinOp<Sellp>::convert_to;
     using EnableLinOp<Sellp>::move_to;
+    using ConvertibleTo<
+        Sellp<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;

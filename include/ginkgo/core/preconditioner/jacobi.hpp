@@ -220,6 +220,8 @@ class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
 public:
     using EnableLinOp<Jacobi>::convert_to;
     using EnableLinOp<Jacobi>::move_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
@@ -564,7 +566,7 @@ protected:
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
-        this->generate(lend(system_matrix), parameters_.skip_sorting);
+        this->generate(system_matrix.get(), parameters_.skip_sorting);
     }
 
     /**

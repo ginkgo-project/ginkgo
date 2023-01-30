@@ -56,9 +56,34 @@ namespace gko {
 class Executor;
 
 
+template <typename T>
+class pointer_param {
+public:
+    pointer_param(T* ptr) : ptr_{ptr} {}
+
+    template <typename U,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    pointer_param(const std::shared_ptr<U>& ptr) : pointer_param{ptr.get()}
+    {}
+
+    template <typename U, typename Deleter,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    pointer_param(const std::unique_ptr<U, Deleter>& ptr)
+        : pointer_param{ptr.get()}
+    {}
+
+    T& operator*() const { return *ptr_; }
+
+    T* operator->() const { return ptr_; }
+
+    T* get() const { return ptr_; }
+
+private:
+    T* ptr_;
+};
+
+
 namespace detail {
-
-
 template <typename T>
 struct pointee_impl {};
 
@@ -251,9 +276,10 @@ inline typename std::remove_reference<OwningPointer>::type&& give(
  *       same as calling .get() on the smart pointer.
  */
 template <typename Pointer>
-inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer>*>::type
-lend(const Pointer& p)
+[[deprecated("no longer necessary due to pointer_param")]] inline
+    typename std::enable_if<detail::have_ownership_s<Pointer>::value,
+                            detail::pointee<Pointer>*>::type
+    lend(const Pointer& p)
 {
     return p.get();
 }
@@ -269,9 +295,10 @@ lend(const Pointer& p)
  *       returns `p`.
  */
 template <typename Pointer>
-inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer>*>::type
-lend(const Pointer& p)
+[[deprecated("no longer necessary due to pointer_param")]] inline
+    typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
+                            detail::pointee<Pointer>*>::type
+    lend(const Pointer& p)
 {
     return p;
 }
@@ -325,6 +352,43 @@ inline const typename std::decay<T>::type* as(const U* obj)
                                name_demangling::get_type_name(typeid(T)) + ">",
                            name_demangling::get_type_name(typeid(*obj)));
     }
+}
+
+
+/**
+ * Performs polymorphic type conversion on a pointer_param.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the object which should be converted
+ *
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
+ */
+template <typename T, typename U>
+inline typename std::decay<T>::type* as(pointer_param<U> obj)
+{
+    return as<T>(obj.get());
+}
+
+/**
+ * Performs polymorphic type conversion.
+ *
+ * This is the constant version of the function.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the object which should be converted
+ *
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
+ */
+template <typename T, typename U>
+inline const typename std::decay<T>::type* as(pointer_param<const U> obj)
+{
+    return as<T>(obj.get());
 }
 
 

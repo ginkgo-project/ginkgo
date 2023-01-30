@@ -89,6 +89,13 @@ class Hybrid
 public:
     using EnableLinOp<Hybrid>::convert_to;
     using EnableLinOp<Hybrid>::move_to;
+    using ConvertibleTo<
+        Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
