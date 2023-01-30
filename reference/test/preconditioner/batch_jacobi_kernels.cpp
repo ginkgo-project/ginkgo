@@ -57,6 +57,8 @@ protected:
     using Mtx = gko::matrix::BatchCsr<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
+    using Jac = gko::preconditioner::Jacobi<value_type>;
+    using BJac = gko::preconditioner::BatchJacobi<value_type>;
 
     BatchJacobi() : exec(gko::ReferenceExecutor::create()), mtx(get_matrix()) {}
 
@@ -102,6 +104,8 @@ TYPED_TEST(BatchJacobi,
 {
     using value_type = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
+    using Jac = typename TestFixture::Jac;
+    using BJac = typename TestFixture::BJac;
 
     auto b = gko::batch_initialize<BDense>(
         {{-2.0, 9.0, 4.0, 1.0, 5.0, 11.0}, {-3.0, 5.0, 3.0, 8.0, 9.0, 7.0}},
@@ -113,17 +117,14 @@ TYPED_TEST(BatchJacobi,
     auto ub = b->unbatch();
     auto ux = x->unbatch();
 
-    auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
-                                 .with_max_block_size(1u)
-                                 .on(this->exec);
+    auto unbatch_prec_fact =
+        Jac::build().with_max_block_size(1u).on(this->exec);
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
         unbatch_prec->apply(ub[i].get(), ux[i].get());
     }
 
-    auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
-                         .with_max_block_size(1u)
-                         .on(this->exec);
+    auto prec_fact = BJac::build().with_max_block_size(1u).on(this->exec);
 
     auto prec = prec_fact->generate(this->mtx);
 
@@ -145,6 +146,8 @@ TYPED_TEST(BatchJacobi,
 TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 {
     using value_type = typename TestFixture::value_type;
+    using Jac = typename TestFixture::Jac;
+    using BJac = typename TestFixture::BJac;
 
     auto umtxs = gko::test::share(this->mtx->unbatch());
     auto max_block_size = 3u;
@@ -156,7 +159,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
     block_ptrs.get_data()[2] = 5;
     block_ptrs.get_data()[3] = 6;
 
-    auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
+    auto prec_fact = BJac::build()
                          .with_max_block_size(max_block_size)
                          .with_block_pointers(block_ptrs)
                          .on(this->exec);
@@ -165,7 +168,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
     const auto blocks_batch_arr = prec->get_const_blocks();
     const auto& batched_storage_scheme = prec->get_storage_scheme();
 
-    auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
+    auto unbatch_prec_fact = Jac::build()
                                  .with_max_block_size(max_block_size)
                                  .with_block_pointers(block_ptrs)
                                  .on(this->exec);
@@ -203,6 +206,8 @@ TYPED_TEST(BatchJacobi,
 {
     using value_type = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
+    using Jac = typename TestFixture::Jac;
+    using BJac = typename TestFixture::BJac;
 
     auto b = gko::batch_initialize<BDense>(
         {{-2.0, 9.0, 4.0, 1.0, 5.0, 11.0}, {-3.0, 5.0, 3.0, 8.0, 9.0, 7.0}},
@@ -219,7 +224,7 @@ TYPED_TEST(BatchJacobi,
     block_ptrs.get_data()[1] = 2;
     block_ptrs.get_data()[2] = 6;
 
-    auto unbatch_prec_fact = gko::preconditioner::Jacobi<value_type>::build()
+    auto unbatch_prec_fact = Jac::build()
                                  .with_max_block_size(4u)
                                  .with_block_pointers(block_ptrs)
                                  .on(this->exec);
@@ -229,7 +234,7 @@ TYPED_TEST(BatchJacobi,
         unbatch_prec->apply(ub[i].get(), ux[i].get());
     }
 
-    auto prec_fact = gko::preconditioner::BatchJacobi<value_type>::build()
+    auto prec_fact = BJac::build()
                          .with_max_block_size(4u)
                          .with_block_pointers(block_ptrs)
                          .on(this->exec);
@@ -245,6 +250,66 @@ TYPED_TEST(BatchJacobi,
     auto xs = x->unbatch();
     for (size_t i = 0; i < umtxs.size(); i++) {
         GKO_ASSERT_MTX_NEAR(ux[i], xs[i], r<value_type>::value);
+    }
+}
+
+TYPED_TEST(BatchJacobi, BatchBlockJacobiTransposeIsEquivalentToUnbatched)
+{
+    using value_type = typename TestFixture::value_type;
+    using Jac = typename TestFixture::Jac;
+    using BJac = typename TestFixture::BJac;
+
+    auto umtxs = gko::test::share(this->mtx->unbatch());
+    auto max_block_size = 3u;
+    auto num_blocks = 3;
+
+    gko::array<int> block_ptrs(this->exec, num_blocks + 1);
+    block_ptrs.get_data()[0] = 0;
+    block_ptrs.get_data()[1] = 3;
+    block_ptrs.get_data()[2] = 5;
+    block_ptrs.get_data()[3] = 6;
+
+    auto prec_fact = BJac::build()
+                         .with_max_block_size(max_block_size)
+                         .with_block_pointers(block_ptrs)
+                         .on(this->exec);
+
+    auto prec = prec_fact->generate(this->mtx);
+    auto prec_transpose = gko::as<BJac>(prec->transpose());
+    const auto blocks_batch_arr = prec_transpose->get_const_blocks();
+    const auto& batched_storage_scheme = prec_transpose->get_storage_scheme();
+
+
+    auto unbatch_prec_fact = Jac::build()
+                                 .with_max_block_size(max_block_size)
+                                 .with_block_pointers(block_ptrs)
+                                 .on(this->exec);
+    const auto tol = r<value_type>::value;
+
+    for (size_t i = 0; i < umtxs.size(); i++) {
+        auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
+        auto unbatch_prec_transpose = gko::as<Jac>(unbatch_prec->transpose());
+        const auto blocks_unbatch_arr = unbatch_prec_transpose->get_blocks();
+        auto storage_scheme = unbatch_prec_transpose->get_storage_scheme();
+
+        for (int k = 0; k < num_blocks; k++) {
+            const auto bsize = block_ptrs.get_const_data()[k + 1] -
+                               block_ptrs.get_const_data()[k];
+            for (int r = 0; r < bsize; r++) {
+                for (int c = 0; c < bsize; c++) {
+                    const auto unbatch_val =
+                        (blocks_unbatch_arr +
+                         storage_scheme.get_global_block_offset(
+                             k))[r + storage_scheme.get_stride() * c];
+                    const auto batch_val =
+                        (blocks_batch_arr +
+                         batched_storage_scheme.get_global_block_offset(
+                             num_blocks, i,
+                             k))[r * batched_storage_scheme.get_stride() + c];
+                    GKO_EXPECT_NEAR(unbatch_val, batch_val, tol);
+                }
+            }
+        }
     }
 }
 
