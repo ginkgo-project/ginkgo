@@ -251,3 +251,30 @@ void batch_jacobi_apply_helper(
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }
+
+template <typename ValueType>
+void tranpose_dense_block_impl(
+    const size_type batch_id, const size_type block_id,
+    const size_type num_blocks, const int* const block_pointers,
+    const ValueType* const blocks_array,
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    ValueType* const out_blocks_array, const bool to_conjugate)
+{
+    const ValueType* dense_block_ptr =
+        blocks_array +
+        storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id);
+    ValueType* out_dense_block_ptr =
+        out_blocks_array +
+        storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id);
+
+    const auto bsize = block_pointers[block_id + 1] - block_pointers[block_id];
+    const auto stride = storage_scheme.get_stride();
+
+    for (int r = 0; r < bsize; r++) {
+        for (int c = 0; c < bsize; c++) {
+            out_dense_block_ptr[c * stride + r] =
+                to_conjugate == true ? conj(dense_block_ptr[r * stride + c])
+                                     : dense_block_ptr[r * stride + c];
+        }
+    }
+}

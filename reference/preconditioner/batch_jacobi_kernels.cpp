@@ -205,15 +205,24 @@ void compute_block_jacobi(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
-void transpose_batch_jacobi(
+void transpose_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
-    const size_type num_blocks, const uint32 max_block_size,
+    const size_type, const size_type num_blocks, const uint32,
     const IndexType* const block_pointers, const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme_,
-    const IndexType* const row_part_of_which_block_info_,
-    ValueType* const out_blocks_array,
-    const bool to_conjugate) GKO_NOT_IMPLEMENTED;
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const, ValueType* const out_blocks_array,
+    const bool to_conjugate)
+{
+    for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
+        for (size_type block_id = 0; block_id < num_blocks; block_id++) {
+            tranpose_dense_block_impl(
+                batch_id, block_id, num_blocks, block_pointers, blocks_array,
+                storage_scheme, out_blocks_array, to_conjugate);
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL);
