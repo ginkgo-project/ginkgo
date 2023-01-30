@@ -37,10 +37,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
+
+#include <libpressio_ext/cpp/json.h>
+#include <libpressio_ext/cpp/libpressio.h>
+#include <libpressio_meta.h>
+#include <nlohmann/json.hpp>
 
 struct solver_settings {
     unsigned krylov_dim;
@@ -48,7 +54,7 @@ struct solver_settings {
     double stop_rel_res;
     gko::solver::cb_gmres::storage_precision storage_prec;
     std::shared_ptr<const gko::LinOp> precond;
-    std::string lp_config;
+    std::function<void(void*)> init_compressor;
 };
 
 struct solver_result {
@@ -107,7 +113,7 @@ solver_result benchmark_solver(
                           .with_krylov_dim(s_s.krylov_dim)
                           .with_storage_precision(s_s.storage_prec)
                           .with_generated_preconditioner(s_s.precond)
-                          .with_lp_config(s_s.lp_config)
+                          .with_init_compressor(s_s.init_compressor)
                           .on(exec);
 
     // Generate the actual solver from the factory and the matrix.
@@ -217,7 +223,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     /*/
     default_ss.precond = nullptr;
     //*/
-    default_ss.lp_config = "ieee";
+    default_ss.init_compressor = nullptr;
 
     struct bench_type {
         std::string name;
@@ -293,6 +299,11 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     }
     std::sort(compression_json_files.begin(), compression_json_files.end());
     for (auto config_file : compression_json_files) {
+        if (config_file.size() < 6 ||
+            config_file.substr(config_file.size() - 5) !=
+                std::string(".json")) {
+            continue;
+        }
         auto begin_file_name = config_file.rfind('/');
         begin_file_name =
             begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
@@ -302,8 +313,31 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
         benchmarks.back().name = str_pre + file_name + str_post;
         benchmarks.back().settings = default_ss;
         benchmarks.back().settings.storage_prec =
-            gko::solver::cb_gmres::storage_precision::use_sz;
-        benchmarks.back().settings.lp_config = config_file;
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        benchmarks.back().settings.init_compressor = [lp_config = config_file](
+                                                         void* p_compressor) {
+            auto pc_ptr_ = static_cast<pressio_compressor*>(p_compressor);
+            auto& pc_ = *pc_ptr_;
+            std::ifstream pressio_input_file(lp_config);
+            nlohmann::json j;
+            pressio_input_file >> j;
+            pressio_options options_from_file(static_cast<pressio_options>(j));
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            pc_->set_options({
+                //{"pressio:metric", "composite"s},
+                //{"composite:plugins", metrics_plugins_},
+                //                {"write_debug_inputs:write_input", true},
+                //                {"write_debug_inputs:display_paths", true},
+                //                {"write_debug_inputs:io", "posix"},
+                // numpy outputs numpy compatible arrays
+                //                {"write_debug_inputs:write_input", true},
+                //                {"write_debug_inputs:display_paths", true},
+                //                {"write_debug_inputs:io", "numpy"},
+            });
+            pc_->set_name("pressio");
+            pc_->set_options(options_from_file);
+        };
     }
     //*/
 

@@ -5,6 +5,7 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
 
+#include <functional>
 #include <iomanip>
 #include <ios>
 #include <iostream>
@@ -133,7 +134,7 @@ struct helper {
         case cb_gmres::storage_precision::ireduce2:
             callable(to_integer<reduce_precision_count<ValueType, 2>>{});
             break;
-        case cb_gmres::storage_precision::use_sz:
+        case cb_gmres::storage_precision::use_pressio:
             callable(ValueType{1});
             break;
         default:
@@ -163,7 +164,7 @@ struct helper<std::complex<T>> {
         case cb_gmres::storage_precision::integer:
         case cb_gmres::storage_precision::ireduce1:
         case cb_gmres::storage_precision::ireduce2:
-        case cb_gmres::storage_precision::use_sz:
+        case cb_gmres::storage_precision::use_pressio:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
@@ -205,13 +206,10 @@ void compress_data(RangeHelper&& helper, std::vector<pressio_data>& p_data_vec,
 
 template <typename ValueType, typename StorageType>
 struct compression_helper {
-    compression_helper(bool use_compr, std::string compressor,
-                       size_type num_rows, size_type num_vecs,
-                       std::string lp_config)
+    compression_helper(bool use_compr, size_type num_rows, size_type num_vecs,
+                       std::function<void(void*)> init_compressor)
         : use_compr_{use_compr},
-          compressor_(compressor),
           num_rows_{num_rows},
-          plibrary_{},
           pc_{},
           in_temp_{},
           out_temp_{},
@@ -222,25 +220,7 @@ struct compression_helper {
         using namespace std::string_literals;
         if (use_compr_) {
             libpressio_register_all();
-            std::ifstream pressio_input_file(lp_config);
-            nlohmann::json j;
-            pressio_input_file >> j;
-            pressio_options options_from_file(static_cast<pressio_options>(j));
-            pressio library;
-            pc_ = library.get_compressor("pressio");
-            pc_->set_options({
-                //{"pressio:metric", "composite"s},
-                //{"composite:plugins", metrics_plugins_},
-                //                {"write_debug_inputs:write_input", true},
-                //                {"write_debug_inputs:display_paths", true},
-                //                {"write_debug_inputs:io", "posix"},
-                // numpy outputs numpy compatible arrays
-                //                {"write_debug_inputs:write_input", true},
-                //                {"write_debug_inputs:display_paths", true},
-                //                {"write_debug_inputs:io", "numpy"},
-            });
-            pc_->set_name("pressio");
-            pc_->set_options(options_from_file);
+            init_compressor(&pc_);
             // std::cerr << pc_->get_options() << std::endl;
             const auto pressio_type = std::is_same<ValueType, float>::value
                                           ? pressio_float_dtype
@@ -290,7 +270,6 @@ private:
     std::string compressor_;
     bool use_compr_;
     size_type num_rows_;
-    pressio plibrary_;
     pressio_compressor pc_;
     pressio_data in_temp_;
     pressio_data out_temp_;
@@ -339,11 +318,11 @@ void CbGmres<ValueType>::apply_dense_impl(
     // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
-        const bool use_sz = check_for_sz(value);
+        const bool use_pressio = check_for_sz(value);
 
         // ADDED
         // std::cout << "CbGMRES run: " << print_type<ValueType>() << ", " <<
-        // print_type<storage_type>() << ' ' << use_sz << ";\n";
+        // print_type<storage_type>() << ' ' << use_pressio << ";\n";
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
@@ -373,8 +352,7 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
-            use_sz, "lp_config", num_rows, krylov_dim + 1,
-            parameters_.lp_config);
+            use_pressio, num_rows, krylov_dim + 1, parameters_.init_compressor);
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =

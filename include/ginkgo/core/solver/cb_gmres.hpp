@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_
 
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -64,7 +65,7 @@ enum class storage_precision {
     integer,
     ireduce1,
     ireduce2,
-    use_sz
+    use_pressio
 };
 
 
@@ -142,7 +143,8 @@ public:
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
 
-        std::string GKO_FACTORY_PARAMETER_SCALAR(lp_config, "");
+        std::function<void(void*)> GKO_FACTORY_PARAMETER_SCALAR(init_compressor,
+                                                                nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
