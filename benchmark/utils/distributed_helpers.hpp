@@ -30,58 +30,48 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/ginkgo.hpp>
+#ifndef GINKGO_BENCHMARK_UTILS_DISTRIBUTED_HELPERS_HPP
+#define GINKGO_BENCHMARK_UTILS_DISTRIBUTED_HELPERS_HPP
 
 
-#include <cstdlib>
-#include <iostream>
-
-
-#include "benchmark/spmv/spmv_common.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/generator.hpp"
-#include "benchmark/utils/spmv_validation.hpp"
+#include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/stencil_matrix.hpp"
 
 
-struct Generator : DefaultSystemGenerator<> {
-    void validate_options(const rapidjson::Value& options) const
-    {
-        if (!options.IsObject() ||
-            !((options.HasMember("size") && options.HasMember("stencil")) ||
-              options.HasMember("filename"))) {
-            std::cerr
-                << "Input has to be a JSON array of matrix configurations:\n"
-                << example_config << std::endl;
-            std::exit(1);
+using global_itype = gko::int64;
+
+
+template <typename ValueType>
+using dist_vec = gko::experimental::distributed::Vector<ValueType>;
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+using dist_mtx =
+    gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                           GlobalIndexType>;
+
+
+std::string broadcast_json_input(std::istream& is,
+                                 gko::experimental::mpi::communicator comm)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    std::string json_input;
+    if (comm.rank() == 0) {
+        std::string line;
+        while (is >> line) {
+            json_input += line;
         }
     }
-};
 
+    auto input_size = json_input.size();
+    comm.broadcast(exec->get_master(), &input_size, 1, 0);
+    json_input.resize(input_size);
+    comm.broadcast(exec->get_master(), &json_input[0],
+                   static_cast<int>(input_size), 0);
 
-int main(int argc, char* argv[])
-{
-    std::string header =
-        "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format = example_config;
-    initialize_argument_parsing(&argc, &argv, header, format);
-
-    std::string extra_information = "The formats are " + FLAGS_formats +
-                                    "\nThe number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs) + "\n";
-    print_general_information(extra_information);
-
-    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
-    auto formats = split(FLAGS_formats, ',');
-
-    rapidjson::IStreamWrapper jcin(std::cin);
-    rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
-
-    run_spmv_benchmark(exec, test_cases, formats, Generator{}, true);
-
-    std::cout << test_cases << std::endl;
+    return json_input;
 }
+
+
+#endif  // GINKGO_BENCHMARK_UTILS_DISTRIBUTED_HELPERS_HPP

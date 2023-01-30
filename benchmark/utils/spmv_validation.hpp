@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
-#define GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+#ifndef GKO_BENCHMARK_UTILS_SPMV_VALIDATION_HPP_
+#define GKO_BENCHMARK_UTILS_SPMV_VALIDATION_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
@@ -44,16 +44,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/document.h>
 
 
+std::string example_config = R"(
+  [
+    {"filename": "my_file.mtx"},
+    {"filename": "my_file2.mtx"},
+    {"size": 100, "stencil": "7pt"},
+  ]
+)";
+
+
 /**
  * Function which outputs the input format for benchmarks similar to the spmv.
  */
 [[noreturn]] void print_config_error_and_exit()
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\" },\n"
-              << "    { \"filename\": \"my_file2.mtx\" }\n"
-              << "  ]" << std::endl;
+              << example_config << std::endl;
     std::exit(1);
 }
 
@@ -65,11 +71,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 void validate_option_object(const rapidjson::Value& value)
 {
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
+    if (!value.IsObject() ||
+        !((value.HasMember("size") && value.HasMember("stencil") &&
+           value["size"].IsInt64() && value["stencil"].IsString()) ||
+          (value.HasMember("filename") && value["filename"].IsString()))) {
         print_config_error_and_exit();
     }
 }
 
 
-#endif  // GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+#endif  // GKO_BENCHMARK_UTILS_SPMV_VALIDATION_HPP_

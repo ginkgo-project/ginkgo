@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/distributed/helpers.hpp"
 
 
 // Global command-line arguments
@@ -137,12 +138,12 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
            "format,\n"
         << "  but with test cases extended to include an additional member "
            "\n"
-        << "  object for each solver run in the benchmark.\n"
+        << "  object for each benchmark run.\n"
         << "  If run with a --backup flag, an intermediate result is "
            "written \n"
         << "  to a file in the same format. The backup file can be used as "
            "\n"
-        << "  input \n to this test suite, and the benchmarking will \n"
+        << "  input to this test suite, and the benchmarking will \n"
         << "  continue from the point where the backup file was created.";
 
     gflags::SetUsageMessage(doc.str());
@@ -175,23 +176,6 @@ void print_general_information(const std::string& extra)
     std::clog << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl
               << extra;
-}
-
-
-/**
- * Creates a Ginkgo matrix from an input file.
- *
- * @param exec  the executor where the matrix will be put
- * @param options  should contain a `filename` option with the input file string
- *
- * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix(
-    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value& options)
-{
-    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
-                                 std::move(exec));
 }
 
 
@@ -315,6 +299,50 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
          }}};
 
 
+#if GINKGO_BUILD_MPI
+
+
+const std::map<std::string,
+               std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
+    executor_factory_mpi{
+        {"reference",
+         [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
+        {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
+        {"cuda",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
+                 comm, gko::CudaExecutor::get_num_devices());
+             return gko::CudaExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
+                 gko::allocation_mode::device);
+         }},
+        {"hip",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
+                 comm, gko::HipExecutor::get_num_devices());
+             return gko::HipExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+         }},
+        {"dpcpp", [](MPI_Comm comm) {
+             if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
+             } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+             } else {
+                 GKO_NOT_IMPLEMENTED;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create());
+         }}};
+
+
+#endif
+
+
 // returns the appropriate executor, as set by the executor flag
 std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 {
@@ -365,55 +393,6 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     return res;
 }
 
-
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    ValueType value)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(size, value));
-    return res;
-}
-
-
-// creates a random matrix
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine& engine)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(
-        size,
-        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
-                                                                       1.0),
-        engine));
-    return res;
-}
-
-
-// creates a zero vector
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
-    return res;
-}
-
-
-// creates a random vector
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-    RandomEngine& engine)
-{
-    return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
-}
-
-
 // utilities for computing norms and residuals
 template <typename ValueType>
 ValueType get_norm(const vec<ValueType>* norm)
@@ -422,8 +401,9 @@ ValueType get_norm(const vec<ValueType>* norm)
 }
 
 
-template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
+gko::remove_complex<ValueType> compute_norm2(const VectorType* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -433,10 +413,11 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
-                                                    const vec<ValueType>* b,
-                                                    const vec<ValueType>* x)
+                                                    const VectorType* b,
+                                                    const VectorType* x)
 {
     auto ref_exec = gko::ReferenceExecutor::create();
     auto exec = solver->get_executor();
@@ -449,10 +430,10 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp* system_matrix, const vec<ValueType>* b,
-    const vec<ValueType>* x)
+    const gko::LinOp* system_matrix, const VectorType* b, const VectorType* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -463,9 +444,10 @@ gko::remove_complex<ValueType> compute_residual_norm(
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_max_relative_norm2(
-    vec<ValueType>* result, const vec<ValueType>* answer)
+    VectorType* result, const VectorType* answer)
 {
     using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
@@ -483,9 +465,10 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
-        max_relative_norm2 =
-            std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
-                     max_relative_norm2);
+        max_relative_norm2 = std::max(
+            gko::detail::get_local(host_absolute_norm.get())->at(0, i) /
+                gko::detail::get_local(host_answer_norm.get())->at(0, i),
+            max_relative_norm2);
     }
     return max_relative_norm2;
 }
