@@ -101,6 +101,16 @@ namespace kernels {
         const matrix::BatchDense<ValueType>* r,                         \
         matrix::BatchDense<ValueType>* z)
 
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType) \
+    void transpose_batch_jacobi(                                              \
+        std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,  \
+        const size_type num_blocks, const uint32 max_block_size,              \
+        const IndexType* block_pointers, const ValueType* blocks_array,       \
+        const gko::preconditioner::batched_blocks_storage_scheme&             \
+            storage_scheme_,                                                  \
+        const IndexType* row_part_of_which_block_info_,                       \
+        ValueType* out_blocks_array, const bool to_conjugate)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
     template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
@@ -110,7 +120,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_jacobi,
