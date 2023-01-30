@@ -62,6 +62,9 @@ namespace {
 
 constexpr int default_block_size = 128;
 
+using batch_jacobi_hip_compiled_max_block_sizes =
+    gko::kernels::hip::jacobi::compiled_kernels;
+
 #include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
@@ -117,7 +120,9 @@ void batch_jacobi_apply_helper(
     }
 }
 
-}  // namespace
+}  // unnamed namespace
+
+
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -238,11 +243,8 @@ void compute_block_jacobi(
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
-    using batch_jacobi_compiled_max_block_sizes =
-        gko::kernels::hip::jacobi::compiled_kernels;
-
     select_compute_block_jacobi_helper(
-        batch_jacobi_compiled_max_block_sizes(),
+        batch_jacobi_hip_compiled_max_block_sizes(),
         [&](int compiled_block_size) {
             return user_given_max_block_size <= compiled_block_size;
         },
@@ -253,16 +255,58 @@ void compute_block_jacobi(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
 
+namespace {
+
+template <int compiled_max_block_size, typename ValueType, typename IndexType>
+void transpose_block_jacobi_helper(
+    syn::value_list<int, compiled_max_block_size>, const size_type nbatch,
+    const size_type nrows, const size_type num_blocks,
+    const IndexType* const block_pointers, const ValueType* const blocks_array,
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const row_part_of_which_block_info,
+    ValueType* const out_blocks_array, const bool to_conjugate)
+{
+    constexpr int subwarp_size =
+        gko::kernels::hip::jacobi::get_larger_power(compiled_max_block_size);
+    // TODO: Move get_larger_power to some math namespace (this fn is duplicated
+    // at many places)
+
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nrows * nbatch * subwarp_size, default_block_size));
+
+    hipLaunchKernelGGL(transpose_block_jacobi_kernel<subwarp_size>, grid, block,
+                       0, 0, nbatch, static_cast<int>(nrows), num_blocks,
+                       block_pointers, as_hip_type(blocks_array),
+                       storage_scheme, row_part_of_which_block_info,
+                       as_hip_type(out_blocks_array), to_conjugate);
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_block_jacobi_helper,
+                                    transpose_block_jacobi_helper);
+
+}  // anonymous namespace
 
 template <typename ValueType, typename IndexType>
-void transpose_batch_jacobi(
+void transpose_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
-    const size_type num_blocks, const uint32 max_block_size,
-    const IndexType* const block_pointers, const ValueType* const blocks_array,
+    const size_type nrows, const size_type num_blocks,
+    const uint32 max_block_size, const IndexType* const block_pointers,
+    const ValueType* const blocks_array,
     const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme_,
     const IndexType* const row_part_of_which_block_info_,
-    ValueType* const out_blocks_array,
-    const bool to_conjugate) GKO_NOT_IMPLEMENTED;
+    ValueType* const out_blocks_array, const bool to_conjugate)
+{
+    select_transpose_block_jacobi_helper(
+        batch_jacobi_hip_compiled_max_block_sizes(),
+        [&](int compiled_block_size) {
+            return user_given_max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), nbatch, nrows, num_blocks,
+        block_pointers, blocks_array, storage_scheme,
+        row_part_of_which_block_info, out_blocks_array, to_conjugate);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL);

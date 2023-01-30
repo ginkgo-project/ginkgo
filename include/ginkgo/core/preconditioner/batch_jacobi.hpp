@@ -365,8 +365,7 @@ protected:
                       system_matrix->get_num_batch_entries(),
                       parameters_.block_pointers.get_num_elems() - 1)),
           row_part_of_which_block_info_(factory->get_executor(),
-                                        system_matrix->get_size().at(0)[0]),
-          num_batch_entries_{system_matrix->get_num_batch_entries()}
+                                        system_matrix->get_size().at(0)[0])
 
     {
         parameters_.block_pointers.set_executor(this->get_executor());
@@ -405,9 +404,6 @@ private:
     size_type num_blocks_;
     array<value_type> blocks_;
     array<index_type> row_part_of_which_block_info_;
-    // Note: Storing the number of entries in batch is necessary because it is
-    // being used in the transpose and conjugate transpose.
-    size_type num_batch_entries_;
 };
 
 
