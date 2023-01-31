@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-
+namespace batch_jacobi {
 
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
@@ -116,7 +116,7 @@ void transpose_block_jacobi(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL);
 
-
+}  // namespace batch_jacobi
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
