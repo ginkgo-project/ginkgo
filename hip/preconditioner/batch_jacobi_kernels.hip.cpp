@@ -292,10 +292,10 @@ template <typename ValueType, typename IndexType>
 void transpose_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
     const size_type nrows, const size_type num_blocks,
-    const uint32 max_block_size, const IndexType* const block_pointers,
-    const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme_,
-    const IndexType* const row_part_of_which_block_info_,
+    const uint32 user_given_max_block_size,
+    const IndexType* const block_pointers, const ValueType* const blocks_array,
+    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const IndexType* const row_part_of_which_block_info,
     ValueType* const out_blocks_array, const bool to_conjugate)
 {
     select_transpose_block_jacobi_helper(
