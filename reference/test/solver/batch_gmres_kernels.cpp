@@ -301,8 +301,9 @@ TEST(BatchGmres, CanSolveWithoutScaling)
             .with_default_max_iterations(1000)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+            .with_preconditioner(gko::preconditioner::BatchJacobi<T>::build()
+                                     .with_max_block_size(1u)
+                                     .on(exec))
             .with_restart(2)
             .on(exec);
     auto factory_s =
@@ -310,8 +311,9 @@ TEST(BatchGmres, CanSolveWithoutScaling)
             .with_default_max_iterations(1000)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+            .with_preconditioner(gko::preconditioner::BatchJacobi<T>::build()
+                                     .with_max_block_size(1u)
+                                     .on(exec))
             .with_restart(2)
             .with_left_scaling_op(left_scale)
             .with_right_scaling_op(right_scale)
