@@ -95,25 +95,32 @@ protected:
         d_x(BDense::create(
         exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1))))
     {   
-        // make diagonal larger
-        /*const int* const row_ptrs = ref_mtx->get_const_row_ptrs();
-        const int* const col_idxs = ref_mtx->get_const_col_idxs();
-        value_type* const vals = ref_mtx->get_values();
-        const int nnz = row_ptrs[nrows];
-        for (int irow = 0; irow < nrows; irow++) {
-            for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
-                if (col_idxs[iz] == irow) {
-                    for (size_t ibatch = 0; ibatch < nbatch; ibatch++) {
-                        // TODO: take care of any padding here
-                        const size_t valpos = iz + ibatch * nnz;
-                        vals[valpos] =
-                            get_num(T{}) + static_cast<T>(std::sin(irow));
-                    }
-                }
-            }
-        }*/
         d_mtx->copy_from(ref_mtx.get());
         d_b->copy_from(ref_b.get());
+
+        ref_scalar_jacobi_prec = BJ::build()
+                         .with_max_block_size(1u)
+                         .on(ref)->generate(ref_mtx);
+
+        d_scalar_jacobi_prec = BJ::build()
+                         .with_max_block_size(1u)
+                         .on(exec)->generate(d_mtx);
+
+        ref_block_jacobi_prec = BJ::build()
+                         .with_max_block_size(max_blk_sz)
+                         .on(ref)->generate(ref_mtx);
+
+        //so that the block pointers are exactly the same for ref and device
+        const int* block_pointers_generated_by_ref = ref_block_jacobi_prec->get_const_block_pointers();
+        const auto num_blocks_generated_by_ref = ref_block_jacobi_prec->get_num_blocks();
+        gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
+        exec->copy_from(ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , 
+        block_pointers_for_device.get_data());
+
+        d_block_jacobi_prec = BJ::build()
+                         .with_max_block_size(max_blk_sz)
+                         .with_block_pointers(block_pointers_for_device)
+                         .on(exec)->generate(d_mtx);
     }
 
     const size_t nbatch = 3;
@@ -124,6 +131,11 @@ protected:
     std::unique_ptr<BDense> d_b;
     std::unique_ptr<BDense> ref_x;
     std::unique_ptr<BDense> d_x;
+    const gko::uint32 max_blk_sz = 6u;
+    std::unique_ptr<BJ> ref_scalar_jacobi_prec;
+    std::unique_ptr<BJ> d_scalar_jacobi_prec;
+    std::unique_ptr<BJ> ref_block_jacobi_prec;
+    std::unique_ptr<BJ> d_block_jacobi_prec;
 
 };
 
@@ -179,14 +191,8 @@ TYPED_TEST(BatchJacobi,
 {   
     
     using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BJ = typename TestFixture::BJ;
-   
-    auto ref_prec_fact = BJ::build()
-                         .with_max_block_size(1u)
-                         .on(this->ref);
-
-    auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
+       
+    auto& ref_prec = this->ref_scalar_jacobi_prec;
 
     value_type* blocks_arr_ref = nullptr;
     int* block_ptr_ref = nullptr;
@@ -197,11 +203,7 @@ TYPED_TEST(BatchJacobi,
         ref_prec->get_max_block_size(), ref_prec->get_storage_scheme(), blocks_arr_ref,
         block_ptr_ref, row_part_of_which_block_ref, this->ref_b.get(), this->ref_x.get());
 
-    auto d_prec_fact = BJ::build()
-                         .with_max_block_size(1u)
-                         .on(this->exec);
-
-    auto d_prec = d_prec_fact->generate(this->d_mtx);
+    auto& d_prec = this->d_scalar_jacobi_prec;
 
     value_type* blocks_arr_d = nullptr;
     int* block_ptr_d = nullptr;
@@ -220,33 +222,8 @@ TYPED_TEST(BatchJacobi,
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiGenerationIsEquivalentToRef)
 {   
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BJ = typename TestFixture::BJ;
-
-    const auto max_blk_sz = 6u;
-
-    //std::cout << "\n\nref:" << std::endl;
-    auto ref_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .on(this->ref);
-
-    auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
-
-
-    //so that the block pointers are exactly the same for ref and device
-    const int* block_pointers_generated_by_ref = ref_prec->get_const_block_pointers();
-    const auto num_blocks_generated_by_ref = ref_prec->get_num_blocks();
-    gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
-    this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
-
-    //std::cout << "\n\ncuda:" << std::endl;
-    auto d_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .with_block_pointers(block_pointers_for_device)
-                         .on(this->exec);
-
-    auto d_prec = d_prec_fact->generate(this->d_mtx);
+    auto& ref_prec = this->ref_block_jacobi_prec;
+    auto &d_prec = this->d_block_jacobi_prec;
 
     check_device_block_jacobi_equivalent_to_ref(std::move(ref_prec), std::move(d_prec));
 
@@ -257,16 +234,8 @@ TYPED_TEST(BatchJacobi,
            BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
 {   
     using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BJ = typename TestFixture::BJ;
-
-    const auto max_blk_sz = 6u;
-
-    auto ref_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .on(this->ref);
-
-    auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
+    
+    auto& ref_prec = this->ref_block_jacobi_prec;
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
@@ -276,18 +245,7 @@ TYPED_TEST(BatchJacobi,
         ref_prec->get_const_row_is_part_of_which_block_info(),
         this->ref_b.get(), this->ref_x.get());
 
-    //so that block pointers are exactly the same for ref and device
-    const int* block_pointers_generated_by_ref = ref_prec->get_const_block_pointers();
-    const auto num_blocks_generated_by_ref = ref_prec->get_num_blocks();
-    gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
-    this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
-
-    auto d_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .with_block_pointers(block_pointers_for_device)
-                         .on(this->exec);
-
-    auto d_prec = d_prec_fact->generate(this->d_mtx);
+    auto &d_prec = this->d_block_jacobi_prec;
 
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
@@ -302,31 +260,12 @@ TYPED_TEST(BatchJacobi,
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiTransposeIsEquivalentToRef)
 {   
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
     using BJ = typename TestFixture::BJ;
     
-    const auto max_blk_sz = 6u;
-
-    auto ref_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .on(this->ref);
-
-    auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
+    auto& ref_prec = this->ref_block_jacobi_prec;
     auto ref_prec_trans = gko::as<BJ>(ref_prec->transpose());
 
-    //so that the block pointers are exactly the same for ref and device
-    const int* block_pointers_generated_by_ref = ref_prec_trans->get_const_block_pointers();
-    const auto num_blocks_generated_by_ref = ref_prec_trans->get_num_blocks();
-    gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
-    this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
-
-    auto d_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .with_block_pointers(block_pointers_for_device)
-                         .on(this->exec);
-
-    auto d_prec = d_prec_fact->generate(this->d_mtx);
+    auto &d_prec = this->d_block_jacobi_prec;
     auto d_prec_trans =  gko::as<BJ>(d_prec->transpose());
 
     check_device_block_jacobi_equivalent_to_ref(std::move(ref_prec_trans), std::move(d_prec_trans));
@@ -336,31 +275,12 @@ TYPED_TEST(BatchJacobi,
 TYPED_TEST(BatchJacobi,
            BatchBlockJacobiConjugateTransposeIsEquivalentToRef)
 {   
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
     using BJ = typename TestFixture::BJ;
     
-    const auto max_blk_sz = 6u;
-
-    auto ref_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .on(this->ref);
-
-    auto ref_prec = ref_prec_fact->generate(this->ref_mtx);
+    auto& ref_prec = this->ref_block_jacobi_prec;
     auto ref_prec_conj_trans = gko::as<BJ>(ref_prec->conj_transpose());
 
-    //so that the block pointers are exactly the same for ref and device
-    const int* block_pointers_generated_by_ref = ref_prec_conj_trans->get_const_block_pointers();
-    const auto num_blocks_generated_by_ref = ref_prec_conj_trans->get_num_blocks();
-    gko::array<int> block_pointers_for_device(this->exec, num_blocks_generated_by_ref + 1);
-    this->exec->copy_from(this->ref.get(), num_blocks_generated_by_ref + 1, block_pointers_generated_by_ref , block_pointers_for_device.get_data());
-
-    auto d_prec_fact = BJ::build()
-                         .with_max_block_size(max_blk_sz)
-                         .with_block_pointers(block_pointers_for_device)
-                         .on(this->exec);
-
-    auto d_prec = d_prec_fact->generate(this->d_mtx);
+    auto &d_prec = this->d_block_jacobi_prec;
     auto d_prec_conj_trans =  gko::as<BJ>(d_prec->conj_transpose());
 
     check_device_block_jacobi_equivalent_to_ref(std::move(ref_prec_conj_trans), std::move(d_prec_conj_trans));
