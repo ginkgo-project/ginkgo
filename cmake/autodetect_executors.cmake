@@ -15,7 +15,7 @@ if (NOT DEFINED GINKGO_BUILD_OMP)
 endif()
 
 if (NOT DEFINED GINKGO_BUILD_MPI)
-    find_package(MPI 3.1)
+    find_package(MPI 3.1 COMPONENTS CXX)
     if(MPI_FOUND)
         message(STATUS "Enabling MPI support")
         set(GINKGO_HAS_MPI ON)

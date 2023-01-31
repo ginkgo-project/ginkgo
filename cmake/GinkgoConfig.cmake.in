@@ -161,7 +161,7 @@ endif()
 
 # Check for MPI if it is enabled
 if(GINKGO_BUILD_MPI)
-    find_package(MPI REQUIRED)
+    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
 endif()
 
 # HIP and OpenMP depend on Threads::Threads in some circumstances, but don't find it
