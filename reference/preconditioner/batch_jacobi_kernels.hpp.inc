@@ -111,7 +111,6 @@ inline void invert_dense_block(const int block_size,
     for (int k = 0; k < block_size; k++) {
         const int piv = choose_pivot(k, block_size, temp_dense_block);
         if (k != piv) {
-            // printf("\n\n ref pivoting: k: %d, piv: %d", k, piv);
             swap_rows(block_size, temp_dense_block, k, piv);
             swap_numbers(col_perm[piv], col_perm[k]);
         }
@@ -168,7 +167,6 @@ inline void compute_block_jacobi_impl(
         col_perm[i] = i;
     }
 
-
     for (int row = 0; row < bsize; row++) {
         for (int col = 0; col < bsize; col++) {
             auto to_write = zero<ValueType>();
@@ -183,36 +181,8 @@ inline void compute_block_jacobi_impl(
         }
     }
 
-    // std::cout << "\n\nbatch id: " << batch_idx << " block idx: " << block_idx
-    // << "Before inversion:" << std::endl; for(int r = 0; r < bsize; r++)
-    // {
-    //     for(int c = 0; c < bsize; c++)
-    //     {
-    //         std::cout << "temp_dense_block[" << r << "," << c <<"]: " <<
-    //         temp_dense_block[r * bsize + c] << std::endl;
-    //     }
-    // }
-
-    // std::cout << std::endl << std::endl;
-
-
     // invert the diagonal block
     invert_dense_block(bsize, temp_dense_block, col_perm);
-
-    // for(int p = 0; p < bsize; p++)
-    // {
-    //     std::cout << "ref perm[" << p << "]: " << col_perm[p] << std::endl;
-    // }
-
-    // std::cout << "\n\nbatch id: " << batch_idx << " block idx: " << block_idx
-    // << "After inversion:" << std::endl; for(int r = 0; r < bsize; r++)
-    // {
-    //     for(int c = 0; c < bsize; c++)
-    //     {
-    //         std::cout << "temp_dense_block[" << r << "," << c <<"]: " <<
-    //         temp_dense_block[r * bsize + c] << std::endl;
-    //     }
-    // }
 
     // store the dense block (take into account the col permutations)
     for (int row = 0; row < bsize; row++) {

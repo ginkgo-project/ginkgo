@@ -62,6 +62,7 @@ public:
     /**
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
+     * @param storage_scheme diagonal blocks storage scheme
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      *
@@ -111,7 +112,6 @@ public:
     {
         // Structure-aware SpMV
         for (int bidx = 0; bidx < num_blocks_; bidx++) {
-            // std::cout << "block: " << bidx << std::endl;
             const int row_st = block_ptrs_arr_[bidx];       // inclusive
             const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
             const int bsize = row_end - row_st;
@@ -127,9 +127,6 @@ public:
                                               storage_scheme_.get_stride() +
                                           col];
                     sum += val * r.values[col + row_st];
-
-                    // std::cout << "val : " << val << "r:" <<  r.values[col] <<
-                    // std::endl;
                 }
 
                 z.values[row] = sum;

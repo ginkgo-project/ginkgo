@@ -235,56 +235,10 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
         row_part_of_which_block_info_.get_const_data(),
         blocks_pattern.get_data()));
 
-    // Just for printing
-
-    // gko::array<IndexType> blocks_pattern_ref(exec->get_master());
-    // blocks_pattern_ref = blocks_pattern;
-    /*
-    for (int i = 0; i < num_blocks_; i++) {
-        std::cout << "block idx: " << i << std::endl;
-        const auto bsize = block_pointers_ref.get_const_data()[i + 1] -
-                           block_pointers_ref.get_const_data()[i];
-        for (int r = 0; r < bsize; r++) {
-            for (int c = 0; c < bsize; c++) {
-                std::cout << "block_pattern[" << r << "," << c << "]:"
-                          << blocks_pattern_ref.get_const_data()
-                                 [storage_scheme_.get_block_offset(i) +
-                                  r * storage_scheme_.get_stride() + c]
-                          << std::endl;
-            }
-        }
-    }
-    */
-
-
     exec->run(batch_jacobi::make_compute_block_jacobi(
         sys_csr.get(), parameters_.max_block_size, num_blocks_, storage_scheme_,
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
-
-    // Just for printing
-
-    // gko::array<ValueType> blocks_data_ref(exec->get_master());
-    // blocks_data_ref = blocks_;
-
-    // for (int batch_id = 0; batch_id < num_batch; batch_id++) {
-    //     std::cout << "batch idx: " << batch_id << std::endl << std::endl;
-    //     for (int i = 0; i < num_blocks_; i++) {
-    //         std::cout << "block idx: " << i << std::endl;
-    //         const auto bsize = block_pointers_ref.get_const_data()[i + 1] -
-    //                            block_pointers_ref.get_const_data()[i];
-    //         for (int r = 0; r < bsize; r++) {
-    //             for (int c = 0; c < bsize; c++) {
-    //                 std::cout << "block_data[" << r << "," << c << "]:"
-    //                           << blocks_data_ref.get_const_data()
-    //                                  [storage_scheme_.get_global_block_offset(
-    //                                       num_blocks_, batch_id, i) +
-    //                                   r * storage_scheme_.get_stride() + c]
-    //                           << std::endl;
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 

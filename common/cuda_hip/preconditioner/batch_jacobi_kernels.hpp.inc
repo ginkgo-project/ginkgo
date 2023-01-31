@@ -126,10 +126,6 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
 
         const int ipiv = choose_pivot(subwarp_grp, block_size, block_row, perm,
                                       k);  // pivot index
-        // if(subwarp_grp.thread_rank() == 0 )
-        // {
-        //     printf("pivoting: k: %d, ipiv: %d ", k, ipiv);
-        // }
 
         if (subwarp_grp.thread_rank() == ipiv) {
             perm = k;
@@ -212,7 +208,6 @@ __global__
                     val_to_fill = A_vals[idx + nnz * batch_idx];
                 }
                 block_row[a] = val_to_fill;
-                // printf("\n val_to_fill: %g", val_to_fill);
             }
         }
 
@@ -230,20 +225,9 @@ __global__
 
         subwarp_grp.sync();
 
-        // if(subwarp_grp.thread_rank() < block_size)
-        // {
-        //     printf("\n perm vec [%d]: %d", subwarp_grp.thread_rank(), perm);
-        // }
-
-
         // write back the tranpose of the transposed inverse matrix to block
         // array
         for (int a = 0; a < block_size; a++) {
-            // printf("\n val_to_write: %g at row: %d  and col: %d,
-            // batch_id: %d, block_id: %d", block_row[a], a,
-            // id_within_subwarp, batch_idx, block_idx);
-            // const int col_inv_transposed_mat = subwarp_grp.shfl(perm, a);
-            // //column permutation
             const int col_inv_transposed_mat = a;
             const int col = subwarp_grp.shfl(perm, a);  // column permutation
             const int row_inv_transposed_mat =

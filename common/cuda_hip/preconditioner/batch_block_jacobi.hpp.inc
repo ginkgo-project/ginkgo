@@ -53,8 +53,8 @@ private:
     __device__ __forceinline__ void apply_helper(const int num_rows,
                                                  const ValueType* const r,
                                                  ValueType* const z) const
-    {  // Structure-aware SpMV
-
+    {
+        // Structure-aware SpMV
         auto thread_block = group::this_thread_block();
         auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
         const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
@@ -101,8 +101,9 @@ public:
 
     /**
      *
-     * @param num_blocks  Number of diagonal blocks in a matrix
      * @param max_block_size Maximum block size
+     * @param num_blocks  Number of diagonal blocks in a matrix
+     * @param storage_scheme diagonal blocks storage scheme
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      * @param row_part_of_which_block_arr array containing block indices of the
