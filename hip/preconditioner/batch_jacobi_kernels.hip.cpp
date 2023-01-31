@@ -209,8 +209,7 @@ void compute_block_jacobi_helper(
 {
     constexpr int subwarp_size =
         gko::kernels::hip::jacobi::get_larger_power(compiled_max_block_size);
-    // TODO: Move get_larger_power to some math namespace (since hip -> code
-    // duplication)
+
     const auto nbatch = sys_csr->get_num_batch_entries();
     const auto nrows = sys_csr->get_size().at(0)[0];
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
@@ -268,8 +267,6 @@ void transpose_block_jacobi_helper(
 {
     constexpr int subwarp_size =
         gko::kernels::hip::jacobi::get_larger_power(compiled_max_block_size);
-    // TODO: Move get_larger_power to some math namespace (this fn is duplicated
-    // at many places)
 
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nrows * nbatch * subwarp_size, default_block_size));
