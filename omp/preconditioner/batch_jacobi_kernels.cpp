@@ -51,7 +51,7 @@ namespace {
 
 
 template <typename BatchMatrixType, typename PrecType, typename ValueType>
-void apply_jacobi(const BatchMatrixType& sys_mat_batch, PrecType& prec,
+void apply_jacobi(const BatchMatrixType& sys_mat_batch, PrecType prec,
                   const gko::batch_dense::UniformBatch<const ValueType>& rub,
                   const gko::batch_dense::UniformBatch<ValueType>& zub)
 {
