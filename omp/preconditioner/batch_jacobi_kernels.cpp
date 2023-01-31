@@ -55,7 +55,7 @@ void apply_jacobi(const BatchMatrixType& sys_mat_batch, PrecType& prec,
                   const gko::batch_dense::UniformBatch<const ValueType>& rub,
                   const gko::batch_dense::UniformBatch<ValueType>& zub)
 {
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(prec)
     for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch;
          batch_id++) {
         const auto sys_mat_entry =
