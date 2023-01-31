@@ -173,6 +173,15 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG);
 
 
+// namespace detail {
+// template <typename IndexType>
+// inline IndexType map_to_local(IndexType global_index)
+// {
+
+// }
+// }  // namespace detail
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void fill_coarse(
     std::shared_ptr<const DefaultExecutor> exec, const comm_index_type rank,
@@ -230,24 +239,19 @@ void fill_coarse(
         if (i >= row_range_start && i < row_range_end) {
             auto idx1 = std::find(c_indices, c_indices + coarse_size[0], i);
             if (idx1 != c_indices + coarse_size[0]) {
-                int cidx = 0;
-                std::cout << " rank " << rank << "r range st "
-                          << row_range_start << " r range end " << row_range_end
-                          << std::endl;
                 for (auto j = f_row_ptrs[i - row_range_start];
                      j < f_row_ptrs[i - row_range_start + 1]; ++j) {
-                    std::cout << " rank " << rank << " j idx " << j << " f idx "
-                              << f_col_idxs[j] << " f val " << f_values[j]
-                              << std::endl;
-                    auto idx2 = std::find(c_indices, c_indices + coarse_size[0],
-                                          f_col_idxs[j]);
-                    std::cout << " cidx " << idx2 - c_indices << std::endl;
-                    if (idx2 != c_indices + coarse_size[0]) {
-                        // Assume row major ordering
-                        c_matrix_data.add_value(row_range_start + ridx,
-                                                idx2 - c_indices, f_values[j]);
+                    // std::cout << " rank " << rank << " j idx " << j << " f
+                    // idx "
+                    //           << f_col_idxs[j] << " f val " << f_values[j]
+                    //           << std::endl;
+                    //     // Assume row major ordering
+                    auto cidx = f_col_idxs[j] - i + ridx;
+                    if (cidx < coarse_size[1]) {
+                        c_matrix_data.add_value(row_range_start + ridx, cidx,
+                                                f_values[j]);
                     }
-                    cidx++;
+                    // cidx++;
                 }
                 ridx++;
             }

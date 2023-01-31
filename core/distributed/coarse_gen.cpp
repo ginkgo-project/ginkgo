@@ -178,12 +178,12 @@ void CoarseGen<ValueType, LocalIndexType,
     auto fine_row_ptrs = array<GlobalIndexType>(exec, local_size[0] + 1);
     fine_row_ptrs.fill(-one<GlobalIndexType>());
     auto fine_offset = array<GlobalIndexType>(exec, 1);
-    if (comm.rank() == 1) {
-        fine_offset.fill(50);
-        // fine_offset.fill(0);
-    } else {
-        fine_offset.fill(0);
-    }
+    // if (comm.rank() == 1) {
+    fine_offset.fill(fine_row_partition->get_range_bounds()[comm.rank()]);
+    // fine_offset.fill(0);
+    // } else {
+    //     fine_offset.fill(0);
+    // }
     // for (int i = 0; i < fine_mat_data.get_num_elems(); i++) {
     //     std::cout << " rank: " << comm.rank()
     //               << " ridxs: " << fine_mat_data.get_const_row_idxs()[i]

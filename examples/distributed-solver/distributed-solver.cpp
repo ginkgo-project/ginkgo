@@ -169,8 +169,8 @@ int main(int argc, char* argv[])
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
     // modes of creating a partition.
-    // const auto num_rows = grid_dim * grid_dim;
-    const auto num_rows = grid_dim;
+    const auto num_rows = grid_dim * grid_dim;
+    // const auto num_rows = grid_dim;
     auto partition = gko::share(part_type::build_from_global_size_uniform(
         exec->get_master(), comm.size(),
         static_cast<GlobalIndexType>(num_rows)));
@@ -189,42 +189,41 @@ int main(int argc, char* argv[])
     const auto range_start = partition->get_range_bounds()[rank];
     const auto range_end = partition->get_range_bounds()[rank + 1];
     auto n = grid_dim;
-    // for (int i = range_start; i < range_end; i++) {
-    // for (int i = 0; i < n; i++) {
-    //     for (int j = 0; j < n; j++) {
-    //         auto c = i * n + j;
-    //         if (c >= range_start && c < range_end) {
-    //             if (i > 0) {
-    //                 A_data.nonzeros.emplace_back(c, c - n, -1);
-    //             }
-    //             if (j > 0) {
-    //                 A_data.nonzeros.emplace_back(c, c - 1, -1);
-    //             }
-    //             A_data.nonzeros.emplace_back(c, c, 4);
-    //             if (j < n - 1) {
-    //                 A_data.nonzeros.emplace_back(c, c + 1, -1);
-    //             }
-    //             if (i < n - 1) {
-    //                 A_data.nonzeros.emplace_back(c, c + n, -1);
-    //             }
-    //         }
-    //     }
-    // }
-    for (int i = range_start; i < range_end; i++) {
-        if (i > 0) {
-            A_data.nonzeros.emplace_back(i, i - 1, -1);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            auto c = i * n + j;
+            if (c >= range_start && c < range_end) {
+                if (i > 0) {
+                    A_data.nonzeros.emplace_back(c, c - n, -1);
+                }
+                if (j > 0) {
+                    A_data.nonzeros.emplace_back(c, c - 1, -1);
+                }
+                A_data.nonzeros.emplace_back(c, c, 4);
+                if (j < n - 1) {
+                    A_data.nonzeros.emplace_back(c, c + 1, -1);
+                }
+                if (i < n - 1) {
+                    A_data.nonzeros.emplace_back(c, c + n, -1);
+                }
+            }
         }
-        A_data.nonzeros.emplace_back(i, i, 2);
-        if (i < n - 1) {
-            A_data.nonzeros.emplace_back(i, i + 1, -1);
-        }
-        b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
-        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
-    // for (int i = 0; i < num_rows; i++) {
+    // for (int i = range_start; i < range_end; i++) {
+    //     if (i > 0) {
+    //         A_data.nonzeros.emplace_back(i, i - 1, -1);
+    //     }
+    //     A_data.nonzeros.emplace_back(i, i, 2);
+    //     if (i < n - 1) {
+    //         A_data.nonzeros.emplace_back(i, i + 1, -1);
+    //     }
     //     b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
     //     x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     // }
+    for (int i = 0; i < num_rows; i++) {
+        b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
+    }
 
     // for (int i = 0; i < A_data.nonzeros.size(); i++) {
     //     std::cout << rank << " nnz " << A_data.nonzeros[i] << std::endl;
@@ -270,7 +269,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(num_rows).on(exec));
+        gko::stop::Iteration::build().with_max_iters(num_iters).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_reduction_factor(reduction_factor)
                                    .on(exec));
@@ -291,7 +290,7 @@ int main(int argc, char* argv[])
             .on(exec));
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(isai_solver)
+            .with_solver(mg_coarsest_solver)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
@@ -302,20 +301,19 @@ int main(int argc, char* argv[])
             .with_max_levels(1u)
             .with_mg_level(coarse_gen_fac)
             .with_coarsest_solver(mg_coarsest_solver)
-            // .with_pre_smoother(smoother_gen)
+            .with_pre_smoother(smoother_gen)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(35u).on(exec))
             .on(exec));
     auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(schwarz::build()
-                                     .with_local_solver(bj_solver)
-                                     // .with_coarse_solvers(coarse_solver)
-                                     .on(exec))
-            .with_criteria(iter_stop, tol_stop)
-            .on(exec)
-            ->generate(A);
+    auto Ainv = solver::build()
+                    .with_preconditioner(schwarz::build()
+                                             .with_local_solver(ic_solver)
+                                             .with_coarse_solvers(coarse_solver)
+                                             .on(exec))
+                    .with_criteria(iter_stop, tol_stop)
+                    .on(exec)
+                    ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.
@@ -352,6 +350,7 @@ int main(int argc, char* argv[])
                   << "\nNum ranks: " << comm.size()
                   << "\nFinal Res norm: " << *res_norm->get_values()
                   << "\nNum iters : " << logger->get_num_iterations()
+                  << "\nLogger resnorm : " << gko::as<vec>(logger->get_residual_norm())->get_const_values()[0]
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
