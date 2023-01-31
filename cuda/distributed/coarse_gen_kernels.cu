@@ -95,6 +95,9 @@ void fill_coarse(
     std::shared_ptr<const experimental::distributed::Partition<LocalIndexType,
                                                                GlobalIndexType>>
         fine_col_partition,
+    std::shared_ptr<
+        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>>
+        coarse_row_partition,
     const array<GlobalIndexType>& fine_row_ptrs,
     device_matrix_data<ValueType, GlobalIndexType>& coarse_data,
     device_matrix_data<ValueType, GlobalIndexType>& restrict_data,

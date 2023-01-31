@@ -192,6 +192,9 @@ void fill_coarse(
     std::shared_ptr<const experimental::distributed::Partition<LocalIndexType,
                                                                GlobalIndexType>>
         fine_col_partition,
+    std::shared_ptr<
+        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>>
+        coarse_row_partition,
     const array<GlobalIndexType>& fine_row_ptrs,
     device_matrix_data<ValueType, GlobalIndexType>& coarse_data,
     device_matrix_data<ValueType, GlobalIndexType>& restrict_data,
@@ -221,6 +224,10 @@ void fill_coarse(
     const auto col_range_end = fine_col_partition->get_range_bounds()[rank + 1];
     const auto c_indices = coarse_indices.get_const_data();
     const auto f_row_ptrs = fine_row_ptrs.get_const_data();
+    const auto coarse_row_range_start =
+        coarse_row_partition->get_range_bounds()[rank];
+    const auto coarse_row_range_end =
+        coarse_row_partition->get_range_bounds()[rank + 1];
     // for (int nnz = 0; nnz < coarse_size[0]; ++nnz) {
     //     std::cout << " rank " << rank << " cidx id: " << nnz << " : "
     //               << c_indices[nnz] << std::endl;
@@ -241,15 +248,18 @@ void fill_coarse(
             if (idx1 != c_indices + coarse_size[0]) {
                 for (auto j = f_row_ptrs[i - row_range_start];
                      j < f_row_ptrs[i - row_range_start + 1]; ++j) {
-                    // std::cout << " rank " << rank << " j idx " << j << " f
-                    // idx "
-                    //           << f_col_idxs[j] << " f val " << f_values[j]
-                    //           << std::endl;
-                    //     // Assume row major ordering
-                    auto cidx = f_col_idxs[j] - i + ridx;
-                    if (cidx < coarse_size[1]) {
-                        c_matrix_data.add_value(row_range_start + ridx, cidx,
-                                                f_values[j]);
+                    // std::cout << " rank " << rank << " j idx " << j
+                    //           << " f cidx " << f_col_idxs[j] << " idx 1 "
+                    //           << *idx1 << " ridx " << ridx << " c row st "
+                    //           << coarse_row_range_start << " c row end "
+                    //           << coarse_row_range_end << " f val "
+                    //           << f_values[j] << std::endl;
+                    // Assume row major ordering
+                    auto cidx =
+                        coarse_row_range_start + (*idx1 - f_col_idxs[j]) + ridx;
+                    if (cidx < coarse_row_range_end) {
+                        c_matrix_data.add_value(coarse_row_range_start + ridx,
+                                                cidx, f_values[j]);
                     }
                     // cidx++;
                 }

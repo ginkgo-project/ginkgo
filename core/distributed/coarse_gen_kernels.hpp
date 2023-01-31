@@ -68,22 +68,25 @@ namespace coarse_gen {
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,  \
         array<IndexType>& intermediate_agg)
 
-#define GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, LocalIndexType,  \
-                                           GlobalIndexType)            \
-    void fill_coarse(                                                  \
-        std::shared_ptr<const DefaultExecutor> exec, const int rank,   \
-        const device_matrix_data<ValueType, GlobalIndexType>&          \
-            fine_matrix_data,                                          \
-        std::shared_ptr<const experimental::distributed::Partition<    \
-            LocalIndexType, GlobalIndexType>>                          \
-            fine_row_partition,                                        \
-        std::shared_ptr<const experimental::distributed::Partition<    \
-            LocalIndexType, GlobalIndexType>>                          \
-            fine_col_partition,                                        \
-        const array<GlobalIndexType>& fine_row_ptrs,                   \
-        device_matrix_data<ValueType, GlobalIndexType>& coarse_data,   \
-        device_matrix_data<ValueType, GlobalIndexType>& restrict_data, \
-        device_matrix_data<ValueType, GlobalIndexType>& prolong_data,  \
+#define GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, LocalIndexType,          \
+                                           GlobalIndexType)                    \
+    void fill_coarse(                                                          \
+        std::shared_ptr<const DefaultExecutor> exec, const int rank,           \
+        const device_matrix_data<ValueType, GlobalIndexType>&                  \
+            fine_matrix_data,                                                  \
+        std::shared_ptr<const experimental::distributed::Partition<            \
+            LocalIndexType, GlobalIndexType>>                                  \
+            fine_row_partition,                                                \
+        std::shared_ptr<const experimental::distributed::Partition<            \
+            LocalIndexType, GlobalIndexType>>                                  \
+            fine_col_partition,                                                \
+        std::shared_ptr<experimental::distributed::Partition<LocalIndexType,   \
+                                                             GlobalIndexType>> \
+            coarse_row_partition,                                              \
+        const array<GlobalIndexType>& fine_row_ptrs,                           \
+        device_matrix_data<ValueType, GlobalIndexType>& coarse_data,           \
+        device_matrix_data<ValueType, GlobalIndexType>& restrict_data,         \
+        device_matrix_data<ValueType, GlobalIndexType>& prolong_data,          \
         array<GlobalIndexType>& coarse_indices)
 
 
