@@ -192,9 +192,9 @@ __global__
             block_pointers[block_idx + 1] - block_pointers[block_idx];
         assert(block_size <= subwarp_size);
 
-        const auto __restrict__ current_block_pattern =
+        const int* __restrict__ current_block_pattern =
             blocks_pattern + storage_scheme.get_block_offset(block_idx);
-        auto __restrict__ current_block_data =
+        ValueType* __restrict__ current_block_data =
             blocks + storage_scheme.get_global_block_offset(
                          num_blocks, batch_idx, block_idx);
 
@@ -295,11 +295,11 @@ __global__
 
         const auto row_dense_block = row_idx - row_start;
 
-        const auto __restrict__ dense_block_ptr =
+        const ValueType* __restrict__ dense_block_ptr =
             blocks_array + storage_scheme.get_global_block_offset(
                                num_blocks, batch_idx, block_idx);
 
-        auto __restrict__ out_dense_block_ptr =
+        ValueType* __restrict__ out_dense_block_ptr =
             out_blocks_array + storage_scheme.get_global_block_offset(
                                    num_blocks, batch_idx, block_idx);
 
