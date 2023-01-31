@@ -247,8 +247,9 @@ TEST(BatchCg, CanSolveWithoutScaling)
             .with_default_max_iterations(maxits)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+            .with_preconditioner(gko::preconditioner::BatchJacobi<T>::build()
+                                     .with_max_block_size(1u)
+                                     .on(exec))
             .on(exec);
     const int nrows = 41;
     const size_t nbatch = 3;

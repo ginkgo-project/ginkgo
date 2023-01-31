@@ -148,7 +148,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
 
     auto r_1 = gko::test::solve_poisson_uniform(
         this->exec, this->solve_fn, this->opts_1, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(this->exec));
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -175,7 +175,7 @@ TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
             .with_default_max_iterations(100)
             .with_default_residual_tol(1e-6f)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(dexec))
+                gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(dexec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(dexec);
     const int nrhs_1 = 1;
@@ -284,7 +284,7 @@ TEST_F(BatchBicgstab, CanSolveWithoutScalingCsr)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+                gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec))
             .on(exec);
     const int nrows = 29;
     const size_t nbatch = 3;
@@ -305,9 +305,9 @@ TEST_F(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, 2, 990, 1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
@@ -342,9 +342,9 @@ TEST_F(BatchBicgstab, SolvesLargeDenseSystemEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 33,
                                                                      1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
@@ -379,9 +379,9 @@ TEST_F(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 91,
                                                                      1, false);
     auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(ref));
     auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)

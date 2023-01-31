@@ -139,7 +139,7 @@ TEST_F(BatchRich, SolvesStencilSystemJacobi)
     using T = value_type;
     auto r_1 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts_1, sys_1, 1,
-        gko::preconditioner::BatchJacobi<T>::build().on(exec));
+        gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec));
 
     for (size_t i = 0; i < nbatch; i++) {
         ASSERT_LE(r_1.resnorm->get_const_values()[i] /
@@ -156,7 +156,7 @@ TEST_F(BatchRich, StencilSystemJacobiLoggerIsCorrect)
 
     auto r_1 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts_1, sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
 
     const int ref_iters = single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -184,10 +184,10 @@ TEST_F(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 
     auto result1 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts, sys_1, 1,
-        gko::preconditioner::BatchJacobi<T>::build().on(exec));
+        gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec));
     auto result2 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts_slower, sys_1, 1,
-        gko::preconditioner::BatchJacobi<T>::build().on(exec));
+        gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec));
 
     const int* const iter_arr1 = result1.logdata.iter_counts.get_const_data();
     const int* const iter_arr2 = result2.logdata.iter_counts.get_const_data();
@@ -206,7 +206,7 @@ TEST_F(BatchRich, CoreSolvesSystemJacobi)
             .with_default_max_iterations(100)
             .with_default_residual_tol(5e-7f)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
+                gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
     const int nrhs_1 = 1;
@@ -250,7 +250,7 @@ TEST_F(BatchRich, UnitScalingDoesNotChangeResult)
         gko::share(gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, exec));
     auto factory = create_factory(
         exec, opts_1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec),
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec),
         left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
@@ -268,7 +268,7 @@ TEST_F(BatchRich, GeneralScalingDoesNotChangeResult)
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, exec);
     auto factory = create_factory(
         exec, opts_1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         exec, factory.get(), sys_1, 1);
@@ -295,7 +295,7 @@ TEST_F(BatchRich, CanSolveCsrSystemWithoutScaling)
             .with_relaxation_factor(RT{0.95})
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+                gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec))
             .on(exec);
 
     gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, 10 * tol,
