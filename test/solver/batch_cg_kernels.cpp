@@ -149,7 +149,7 @@ TEST_F(BatchCg, StencilSystemLoggerIsCorrect)
 
     auto r_1 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts_1, sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
 
     const int ref_iters = single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -173,7 +173,7 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
             .with_default_max_iterations(100)
             .with_default_residual_tol(1e-6f)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
+                gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
     const int nrhs_1 = 1;
@@ -280,7 +280,7 @@ TEST_F(BatchCg, CanSolveCsrSystemWithoutScaling)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
+                gko::preconditioner::BatchJacobi<T>::build().with_max_block_size(1u).on(exec))
             .on(exec);
     const int nrows = 28;
     const size_t nbatch = 3;

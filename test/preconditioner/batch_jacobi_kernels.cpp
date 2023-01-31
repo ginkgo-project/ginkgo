@@ -87,7 +87,7 @@ protected:
         std::normal_distribution<real_type>(), std::ranlux48(34), false,
         ref)),
 
-        d_b(BDense::create(exec)),
+        d_b(BDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1)))),
 
         ref_x(BDense::create(
         ref, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1)))),
