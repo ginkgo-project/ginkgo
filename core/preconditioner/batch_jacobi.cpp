@@ -219,11 +219,11 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
                                             row_part_of_which_block_info_);
 
     // Note: Storing each block in the same sized matrix and with same stride
-    // makes accessing elements/implementation easy with no effect on
-    // performance. Note: Row-major order offers advanatge in terms of
-    // performnace in both preconditioner generation and application for both
+    // makes implementation(mainly accessing elements) easy with almost no
+    // effect on performance. Note: Row-major order offers advanatge in terms of
+    // performance in both preconditioner generation and application for both
     // reference and cuda backend. Note: The pattern blocks in block_pattern are
-    // also stored in the similar way.
+    // also stored in a similar way.
 
     // array for storing the common pattern of the diagonal blocks
     gko::array<IndexType> blocks_pattern(
