@@ -235,8 +235,8 @@ std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
 #endif  // HAS_MPI_TIMER
 
 
-std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
-                                 bool use_gpu_timer)
+inline std::shared_ptr<Timer> get_timer(
+    std::shared_ptr<const gko::Executor> exec, bool use_gpu_timer)
 {
     if (use_gpu_timer) {
 #ifdef HAS_CUDA_TIMER
