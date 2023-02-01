@@ -293,13 +293,18 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
+    auto smoother_solver = gko::share(
+        solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .on(exec));
     auto schwarz_smoother = gko::share(
         schwarz::build()
             .with_local_solver(bj::build().with_max_block_size(32u).on(exec))
             .on(exec));
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(schwarz_smoother)
+            .with_solver(smoother_solver)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
@@ -312,17 +317,20 @@ int main(int argc, char* argv[])
             .with_coarsest_solver(mg_coarsest_solver)
             .with_pre_smoother(smoother_gen)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(10u).on(exec))
             .on(exec));
     auto coarse_solver = gko::share(coarse_fac->generate(A));
-    auto Ainv = solver::build()
-                    .with_preconditioner(schwarz::build()
-                                             .with_local_solver(ic_solver)
-                                             .with_coarse_solvers(coarse_solver)
-                                             .on(exec))
-                    .with_criteria(iter_stop, tol_stop)
-                    .on(exec)
-                    ->generate(A);
+    auto Ainv =
+        solver::build()
+            .with_preconditioner(schwarz::build()
+                                     .with_local_solver(ic_solver)
+                                     .with_coarse_solvers(coarse_solver)
+                                     .with_coarse_apply_mode(
+                                         schwarz::coarse_mode::multiplicative)
+                                     .on(exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec)
+            ->generate(A);
     Ainv->add_logger(logger);
 
     // Take timings.

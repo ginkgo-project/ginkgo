@@ -81,6 +81,8 @@ public:
     using dist_mat_type =
         experimental::distributed::Matrix<ValueType, IndexType>;
 
+    enum class coarse_mode { additive, multiplicative };
+
     /**
      * Returns the number of blocks of the operator.
      *
@@ -94,6 +96,12 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * Local solver factory.
+         */
+        coarse_mode GKO_FACTORY_PARAMETER_SCALAR(coarse_apply_mode,
+                                                 coarse_mode::multiplicative);
+
         /**
          * Local solver factory.
          */

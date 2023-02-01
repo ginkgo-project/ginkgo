@@ -83,11 +83,17 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 
     if (coarse_solvers_[0]) {
         for (auto& coarse : coarse_solvers_) {
-            // auto x_clone = dense_x->clone();
-            // coarse->apply(dense_b, x_clone.get());
-            // dense_x->scale(scal_op.get());
-            // dense_x->add_scaled(coarse_scal_op.get(), x_clone.get());
-            coarse->apply(dense_b, dense_x);
+            if (parameters_.coarse_apply_mode == coarse_mode::additive) {
+                auto x_clone = dense_x->clone();
+                coarse->apply(dense_b, x_clone.get());
+                dense_x->scale(scal_op.get());
+                dense_x->add_scaled(coarse_scal_op.get(), x_clone.get());
+            } else if (parameters_.coarse_apply_mode ==
+                       coarse_mode::multiplicative) {
+                coarse->apply(dense_b, dense_x);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
         }
     }
 }
