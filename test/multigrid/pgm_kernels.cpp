@@ -307,7 +307,7 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRef)
 TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 {
     initialize_data();
-    gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
+    gko::test::unsort_matrix(system_mtx.get(), rand_engine);
     d_system_mtx = gko::clone(exec, system_mtx);
     auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                 .with_deterministic(true)

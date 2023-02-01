@@ -70,10 +70,10 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         if (FLAGS_detailed) {
             auto x_clone = clone(x);
             exec->synchronize();
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(b, x_clone);
             exec->synchronize();
             auto max_relative_norm2 =
-                compute_max_relative_norm2(lend(x_clone), lend(answer));
+                compute_max_relative_norm2(x_clone.get(), answer);
             add_or_set_member(spmv_case[format_name], "max_relative_norm2",
                               max_relative_norm2, allocator);
         }
@@ -83,7 +83,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             exec->synchronize();
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(b, x_clone);
             exec->synchronize();
         }
 
@@ -114,7 +114,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             IterationControl ic_tuning{tuning_timer};
             auto x_clone = clone(x);
             for (auto _ : ic_tuning.run()) {
-                system_matrix->apply(lend(b), lend(x_clone));
+                system_matrix->apply(b, x_clone);
             }
             tuning_case["time"].PushBack(ic_tuning.compute_average_time(),
                                          allocator);
@@ -128,7 +128,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         // timed run
         auto x_clone = clone(x);
         for (auto _ : ic.run()) {
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(b, x_clone);
         }
         add_or_set_member(spmv_case[format_name], "time",
                           ic.compute_average_time(), allocator);
@@ -203,18 +203,18 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
             }
 
             // Compute the result from ginkgo::coo as the correct answer
-            auto answer = gko::clone(lend(x));
+            auto answer = gko::clone(x);
             if (FLAGS_detailed) {
                 auto system_matrix =
                     system_generator.generate_matrix_with_default_format(exec,
                                                                          data);
                 exec->synchronize();
-                system_matrix->apply(lend(b), lend(answer));
+                system_matrix->apply(b, answer);
                 exec->synchronize();
             }
             for (const auto& format_name : formats) {
                 apply_spmv(format_name.c_str(), exec, system_generator, timer,
-                           data, lend(b), lend(x), lend(answer), test_case,
+                           data, b.get(), x.get(), answer.get(), test_case,
                            allocator);
                 if (do_print) {
                     std::clog << "Current state:" << std::endl

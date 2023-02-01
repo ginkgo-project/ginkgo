@@ -556,12 +556,10 @@ TYPED_TEST(ParIlut, IsConsistentWithComposition)
 {
     auto fact = this->fact_fact->generate(this->mtx_system);
 
-    auto lin_op_l_factor =
-        static_cast<const gko::LinOp*>(gko::lend(fact->get_l_factor()));
-    auto lin_op_u_factor =
-        static_cast<const gko::LinOp*>(gko::lend(fact->get_u_factor()));
-    auto first_operator = gko::lend(fact->get_operators()[0]);
-    auto second_operator = gko::lend(fact->get_operators()[1]);
+    auto lin_op_l_factor = gko::as<gko::LinOp>(fact->get_l_factor());
+    auto lin_op_u_factor = gko::as<gko::LinOp>(fact->get_u_factor());
+    auto first_operator = fact->get_operators()[0];
+    auto second_operator = fact->get_operators()[1];
 
     ASSERT_EQ(lin_op_l_factor, first_operator);
     ASSERT_EQ(lin_op_u_factor, second_operator);

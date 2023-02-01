@@ -498,7 +498,7 @@ void Multigrid::generate()
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = level_selector_(level, lend(matrix));
+        auto index = level_selector_(level, matrix.get());
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
@@ -558,7 +558,7 @@ void Multigrid::generate()
                 coarsest_solver_ = matrix::Identity<value_type>::create(
                     exec, matrix->get_size()[0]);
             } else {
-                auto temp_index = solver_selector_(level, lend(matrix));
+                auto temp_index = solver_selector_(level, matrix.get());
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);

@@ -133,7 +133,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), gko::lend(coarse_coo)));
+        vals.get_const_data(), coarse_coo.get()));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->copy_from(std::move(coarse_coo));
@@ -180,8 +180,7 @@ void Pgm<ValueType, IndexType>::generate()
     auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(lend(half_scalar), lend(identity), lend(half_scalar),
-                   lend(weight_mtx));
+    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {

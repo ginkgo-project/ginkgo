@@ -340,8 +340,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), lend(diag)));
-    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), lend(diag)));
+    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), diag.get()));
+    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), diag.get()));
     return diag;
 }
 

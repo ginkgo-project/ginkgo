@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
             output_timestep(output, n, amplitude->get_const_values());
         }
         // time step in linear part
-        fft->apply(lend(amplitude), lend(frequency));
+        fft->apply(amplitude, frequency);
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 frequency->at(idx(i, j)) *=
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
                 frequency->at(idx(i, j)) *= 1.0 / n2;
             }
         }
-        ifft->apply(lend(frequency), lend(amplitude));
+        ifft->apply(frequency, amplitude);
         // time step in non-linear part
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {

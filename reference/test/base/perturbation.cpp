@@ -120,9 +120,9 @@ TYPED_TEST(Perturbation, AppliesToVector)
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(gko::lend(x));
+    auto res = Mtx::create_with_config_of(x);
 
-    cmp->apply(gko::lend(x), gko::lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({29.0, 16.0}), r<TypeParam>::value);
 }
@@ -139,9 +139,9 @@ TYPED_TEST(Perturbation, AppliesToMixedVector)
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(gko::lend(x));
+    auto res = Mtx::create_with_config_of(x);
 
-    cmp->apply(gko::lend(x), gko::lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({29.0, 16.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -160,9 +160,9 @@ TYPED_TEST(Perturbation, AppliesToComplexVector)
                                                     this->projector);
     auto x = gko::initialize<Mtx>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = Mtx::create_with_config_of(gko::lend(x));
+    auto res = Mtx::create_with_config_of(x);
 
-    cmp->apply(gko::lend(x), gko::lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{29.0, -58.0}, value_type{16.0, -32.0}}),
@@ -182,9 +182,9 @@ TYPED_TEST(Perturbation, AppliesToMixedComplexVector)
                                                     this->projector);
     auto x = gko::initialize<Mtx>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = Mtx::create_with_config_of(gko::lend(x));
+    auto res = Mtx::create_with_config_of(x);
 
-    cmp->apply(gko::lend(x), gko::lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{29.0, -58.0}, value_type{16.0, -32.0}}),
@@ -206,7 +206,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
-    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}), r<TypeParam>::value);
 }
@@ -227,7 +227,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
-    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -251,7 +251,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = gko::clone(x);
 
-    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{86.0, -172.0}, value_type{46.0, -92.0}}),
@@ -276,7 +276,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = gko::clone(x);
 
-    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{86.0, -172.0}, value_type{46.0, -92.0}}),
@@ -293,9 +293,9 @@ TYPED_TEST(Perturbation, ConstructionByBasisAppliesToVector)
     using Mtx = typename TestFixture::Mtx;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis);
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(gko::lend(x));
+    auto res = Mtx::create_with_config_of(x);
 
-    cmp->apply(gko::lend(x), gko::lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({17.0, 10.0}), r<TypeParam>::value);
 }
@@ -314,7 +314,7 @@ TYPED_TEST(Perturbation, ConstructionByBasisAppliesLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
-    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({50.0, 28.0}), r<TypeParam>::value);
 }

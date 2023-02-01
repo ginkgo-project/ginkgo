@@ -96,7 +96,7 @@ double timing(std::shared_ptr<const gko::Executor> exec,
     int warmup = 2;
     int rep = 10;
     for (int i = 0; i < warmup; i++) {
-        A->apply(lend(b), lend(x));
+        A->apply(b, x);
     }
     double total_sec = 0;
     for (int i = 0; i < rep; i++) {
@@ -105,7 +105,7 @@ double timing(std::shared_ptr<const gko::Executor> exec,
         // synchronize to make sure data is already on device
         exec->synchronize();
         auto start = std::chrono::steady_clock::now();
-        A->apply(lend(b), lend(xx));
+        A->apply(b, xx);
         // synchronize to make sure the operation is done
         exec->synchronize();
         auto stop = std::chrono::steady_clock::now();
@@ -114,7 +114,7 @@ double timing(std::shared_ptr<const gko::Executor> exec,
         total_sec += duration_time.count();
         if (i + 1 == rep) {
             // copy the result back to x
-            x->copy_from(lend(xx));
+            x->copy_from(xx);
         }
     }
 
@@ -194,8 +194,8 @@ int main(int argc, char* argv[])
     // @note Ginkgo uses C++ smart pointers to automatically manage memory. To
     // this end, we use our own object ownership transfer functions that under
     // the hood call the required smart pointer functions to manage object
-    // ownership. The gko::share , gko::give and gko::lend are the functions
-    // that you would need to use.
+    // ownership. gko::share and gko::give are the functions that you would need
+    // to use.
 
     // read the matrix into HighPrecision and LowPrecision.
     auto hp_A = share(gko::read<hp_mtx>(std::ifstream("data/A.mtx"), exec));
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
     // copy the data from host to device
     auto hp_b = share(gko::clone(exec, host_b));
     auto lp_b = share(lp_vec::create(exec));
-    lp_b->copy_from(lend(hp_b));
+    lp_b->copy_from(hp_b);
 
     // create several result x vector in different precision
     auto hp_x = share(hp_vec::create(exec, x_dim));
@@ -255,15 +255,15 @@ int main(int argc, char* argv[])
     auto lplp_diff = hp_x->clone();
     auto lphp_diff = hp_x->clone();
 
-    hp_x->compute_norm2(lend(hp_x_norm));
-    lp_diff->add_scaled(lend(neg_one), lend(lp_x));
-    lp_diff->compute_norm2(lend(lp_diff_norm));
-    hplp_diff->add_scaled(lend(neg_one), lend(hplp_x));
-    hplp_diff->compute_norm2(lend(hplp_diff_norm));
-    lplp_diff->add_scaled(lend(neg_one), lend(lplp_x));
-    lplp_diff->compute_norm2(lend(lplp_diff_norm));
-    lphp_diff->add_scaled(lend(neg_one), lend(lphp_x));
-    lphp_diff->compute_norm2(lend(lphp_diff_norm));
+    hp_x->compute_norm2(hp_x_norm);
+    lp_diff->add_scaled(neg_one, lp_x);
+    lp_diff->compute_norm2(lp_diff_norm);
+    hplp_diff->add_scaled(neg_one, hplp_x);
+    hplp_diff->compute_norm2(hplp_diff_norm);
+    lplp_diff->add_scaled(neg_one, lplp_x);
+    lplp_diff->compute_norm2(lplp_diff_norm);
+    lphp_diff->add_scaled(neg_one, lphp_x);
+    lphp_diff->compute_norm2(lphp_diff_norm);
     exec->synchronize();
 
     std::cout.precision(10);

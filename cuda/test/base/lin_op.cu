@@ -105,7 +105,7 @@ protected:
 
 TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(op->last_b_access, cuda);
     ASSERT_EQ(op->last_x_access, cuda);
@@ -114,7 +114,7 @@ TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
 
 TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(b->last_access, nullptr);
     ASSERT_EQ(x->last_access, cuda);
@@ -123,7 +123,7 @@ TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
 
 TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 {
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(op->last_alpha_access, cuda);
     ASSERT_EQ(op->last_b_access, cuda);
@@ -134,7 +134,7 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 
 TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
 {
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(alpha->last_access, nullptr);
     ASSERT_EQ(b->last_access, nullptr);

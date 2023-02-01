@@ -135,7 +135,7 @@ TYPED_TEST(Combination, AppliesToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(x), lend(res));
+    cmb->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({22.0, 13.0}), r<TypeParam>::value);
 }
@@ -155,7 +155,7 @@ TYPED_TEST(Combination, AppliesToMixedVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(x), lend(res));
+    cmb->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({22.0, 13.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -176,7 +176,7 @@ TYPED_TEST(Combination, AppliesToComplexVector)
     auto x = gko::initialize<Mtx>({T{1.0, -2.0}, T{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(x), lend(res));
+    cmb->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({T{22.0, -44.0}, T{13.0, -26.0}}),
                         r<TypeParam>::value);
@@ -198,7 +198,7 @@ TYPED_TEST(Combination, AppliesToMixedComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(x), lend(res));
+    cmb->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{22.0, -44.0}, value_type{13.0, -26.0}}),
@@ -221,7 +221,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmb->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}), r<TypeParam>::value);
 }
@@ -243,7 +243,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmb->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -268,7 +268,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToComplexVector)
         gko::initialize<DenseComplex>({T{1.0, -2.0}, T{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmb->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({T{65.0, -130.0}, T{37.0, -74.0}}),
                         r<TypeParam>::value);
@@ -293,7 +293,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmb->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{65.0, -130.0}, value_type{37.0, -74.0}}),

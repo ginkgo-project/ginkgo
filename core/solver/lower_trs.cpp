@@ -177,7 +177,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(lower_trs::make_solve(
-                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                this->get_system_matrix().get(), this->solve_struct_.get(),
                 this->get_parameters().unit_diagonal, parameters_.algorithm,
                 trans_b, trans_x, dense_b, dense_x));
         },

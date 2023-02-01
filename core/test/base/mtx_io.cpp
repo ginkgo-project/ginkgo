@@ -1032,7 +1032,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamArray)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::array);
+    write(oss, lin_op, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -1063,7 +1063,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamCoordinate)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::coordinate);
+    write(oss, lin_op, gko::layout_type::coordinate);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
@@ -1117,7 +1117,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(iss, ref);
     std::ostringstream oss{};
 
-    gko::write_binary(oss, lend(lin_op));
+    gko::write_binary(oss, lin_op);
     std::istringstream iss2{oss.str()};
     auto lin_op2 =
         gko::read_binary<DummyLinOp<value_type, index_type>>(iss2, ref);
@@ -1155,7 +1155,7 @@ TYPED_TEST(DenseTest, WritesToStreamDefault)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op));
+    write(oss, lin_op);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -1288,7 +1288,7 @@ TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStreamArray)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::array);
+    write(oss, lin_op, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array complex general\n"
@@ -1319,7 +1319,7 @@ TYPED_TEST(ComplexDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(iss, ref);
     std::ostringstream oss{};
 
-    gko::write_binary(oss, lend(lin_op));
+    gko::write_binary(oss, lin_op);
     std::istringstream iss2{oss.str()};
     auto lin_op2 =
         gko::read_binary<DummyLinOp<value_type, index_type>>(iss2, ref);

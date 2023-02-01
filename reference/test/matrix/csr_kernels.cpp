@@ -543,7 +543,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
         this->exec);
     auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
+    a->apply(alpha, id, beta, b);
 
     GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);

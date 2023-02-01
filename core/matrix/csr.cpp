@@ -220,7 +220,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_copy = x_csr->clone();
         this->get_executor()->run(
             csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
-                             as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
+                             as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
@@ -734,7 +734,7 @@ Csr<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(csr::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(csr::make_extract_diagonal(this, lend(diag)));
+    exec->run(csr::make_extract_diagonal(this, diag.get()));
     return diag;
 }
 

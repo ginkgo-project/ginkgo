@@ -176,8 +176,8 @@ public:
     gko::size_type get_flops() const override
     {
         auto host_exec = mtx_->get_executor()->get_master();
-        auto host_mtx = gko::make_temporary_clone(host_exec, lend(mtx_));
-        auto host_mtx2 = gko::make_temporary_clone(host_exec, lend(mtx2_));
+        auto host_mtx = gko::make_temporary_clone(host_exec, mtx_);
+        auto host_mtx2 = gko::make_temporary_clone(host_exec, mtx2_);
         // count the individual products a_ik * b_kj
         gko::size_type work{};
         for (gko::size_type row = 0; row < host_mtx->get_size()[0]; row++) {
@@ -209,7 +209,7 @@ public:
                         gko::dim<2>{mtx_->get_size()[0], mtx2_->get_size()[1]});
     }
 
-    void run() override { mtx_->apply(lend(mtx2_), lend(mtx_out_)); }
+    void run() override { mtx_->apply(mtx2_, mtx_out_); }
 
 private:
     const Mtx* mtx_;

@@ -269,7 +269,7 @@ TYPED_TEST(FixedCoarsening, CoarseFineRestrictApply)
     auto fixed_coarsening = this->fixed_coarsening_factory->generate(this->mtx);
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
-    auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
+    auto x = Vec::create_with_config_of(this->coarse_b);
 
     fixed_coarsening->get_restrict_op()->apply(this->fine_b.get(), x.get());
 

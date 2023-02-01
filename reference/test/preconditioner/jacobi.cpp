@@ -193,14 +193,14 @@ TYPED_TEST(Jacobi, CanBeCloned)
 {
     auto bj_clone = clone(this->bj);
 
-    this->assert_same_precond(lend(bj_clone), lend(this->bj));
+    this->assert_same_precond(bj_clone.get(), this->bj.get());
 }
 
 
 TYPED_TEST(Jacobi, CanBeClonedWithAdaptvePrecision)
 {
     auto bj_clone = clone(this->adaptive_bj);
-    this->assert_same_precond(lend(bj_clone), lend(this->adaptive_bj));
+    this->assert_same_precond(bj_clone.get(), this->adaptive_bj.get());
 }
 
 
@@ -216,9 +216,9 @@ TYPED_TEST(Jacobi, CanBeCopied)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(lend(this->bj));
+    copy->copy_from(this->bj);
 
-    this->assert_same_precond(lend(copy), lend(this->bj));
+    this->assert_same_precond(copy.get(), this->bj.get());
 }
 
 
@@ -234,9 +234,9 @@ TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(lend(this->adaptive_bj));
+    copy->copy_from(this->adaptive_bj);
 
-    this->assert_same_precond(lend(copy), lend(this->adaptive_bj));
+    this->assert_same_precond(copy.get(), this->adaptive_bj.get());
 }
 
 
@@ -255,7 +255,7 @@ TYPED_TEST(Jacobi, CanBeMoved)
 
     copy->copy_from(give(this->bj));
 
-    this->assert_same_precond(lend(copy), lend(tmp));
+    this->assert_same_precond(copy.get(), tmp.get());
 }
 
 
@@ -274,7 +274,7 @@ TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
 
     copy->copy_from(give(this->adaptive_bj));
 
-    this->assert_same_precond(lend(copy), lend(tmp));
+    this->assert_same_precond(copy.get(), tmp.get());
 }
 
 
@@ -316,7 +316,7 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
     gko::matrix_data<value_type, index_type> data;
     auto csr = gko::share(
         gko::matrix::Csr<value_type, index_type>::create(this->exec));
-    csr->copy_from(gko::lend(this->mtx));
+    csr->copy_from(this->mtx);
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
@@ -343,7 +343,7 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
     gko::matrix_data<value_type, index_type> data;
     auto csr = gko::share(
         gko::matrix::Csr<value_type, index_type>::create(this->exec));
-    csr->copy_from(gko::lend(this->mtx));
+    csr->copy_from(this->mtx);
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
@@ -460,7 +460,7 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesCorrectMatrixData)
     using tpl = typename decltype(data)::nonzero_type;
     auto csr = gko::share(
         gko::matrix::Csr<value_type, index_type>::create(this->exec));
-    csr->copy_from(gko::lend(this->mtx));
+    csr->copy_from(this->mtx);
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
     scalar_j->write(data);
@@ -513,7 +513,7 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
     using Bj = typename TestFixture::Bj;
     auto csr =
         gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));
-    csr->copy_from(gko::lend(this->mtx));
+    csr->copy_from(this->mtx);
     std::shared_ptr<Bj> bj{};
 
     ASSERT_NO_THROW(bj = this->scalar_j_factory->generate(csr));

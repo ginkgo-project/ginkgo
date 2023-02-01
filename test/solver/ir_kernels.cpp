@@ -116,8 +116,8 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
-    solver->apply(lend(b), lend(x));
-    d_solver->apply(lend(d_b), lend(d_x));
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
@@ -157,8 +157,8 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
-    solver->apply(lend(b), lend(x));
-    d_solver->apply(lend(d_b), lend(d_x));
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     // Note: r<value_type>::value * 150 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
@@ -193,8 +193,8 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
-    solver->apply(lend(b), lend(x));
-    d_solver->apply(lend(d_b), lend(d_x));
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
@@ -235,8 +235,8 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
-    solver->apply(lend(b), lend(x));
-    d_solver->apply(lend(d_b), lend(d_x));
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     // Note: r<value_type>::value * 1e2 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
@@ -271,8 +271,8 @@ TEST_F(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         auto solver = ir_factory->generate(mtx);
         auto d_solver = d_ir_factory->generate(d_mtx);
 
-        solver->apply(lend(b), lend(x));
-        d_solver->apply(lend(d_b), lend(d_x));
+        solver->apply(b, x);
+        d_solver->apply(d_b, d_x);
 
         GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
     }

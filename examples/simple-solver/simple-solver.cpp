@@ -113,8 +113,8 @@ int main(int argc, char* argv[])
     // @note Ginkgo uses C++ smart pointers to automatically manage memory. To
     // this end, we use our own object ownership transfer functions that under
     // the hood call the required smart pointer functions to manage object
-    // ownership. The gko::share , gko::give and gko::lend are the functions
-    // that you would need to use.
+    // ownership. gko::share and gko::give are the functions that you would need
+    // to use.
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
@@ -150,11 +150,11 @@ int main(int argc, char* argv[])
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied
     // to a right hand side, b to
     // obtain the solution, x.
-    solver->apply(lend(b), lend(x));
+    solver->apply(b, x);
 
     // Print the solution to the command line.
     std::cout << "Solution (x):\n";
-    write(std::cout, lend(x));
+    write(std::cout, x);
 
     // To measure if your solution has actually converged, you can measure the
     // error of the solution.
@@ -166,9 +166,9 @@ int main(int argc, char* argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
 }

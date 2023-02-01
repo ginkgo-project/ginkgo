@@ -244,7 +244,7 @@ TEST_F(EnableDistributedPolymorphicObject, CopiesObject)
 {
     auto copy = DummyDistributedObject::create(omp, comm, 7);
 
-    copy->copy_from(gko::lend(obj));
+    copy->copy_from(obj);
 
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), omp);
@@ -261,7 +261,7 @@ TEST_F(EnableDistributedPolymorphicObject, CopiesObjectIsLogged)
     auto copy = DummyDistributedObject::create(omp, comm, 7);
     copy->add_logger(logger);
 
-    copy->copy_from(gko::lend(obj));
+    copy->copy_from(obj);
 
     ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
     ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
@@ -299,7 +299,7 @@ TEST_F(EnableDistributedPolymorphicObject, MovesObject)
 {
     auto copy = DummyDistributedObject::create(ref, comm, 7);
 
-    copy->move_from(gko::lend(obj));
+    copy->move_from(obj);
 
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), ref);
@@ -316,7 +316,7 @@ TEST_F(EnableDistributedPolymorphicObject, MovesObjectIsLogged)
     auto copy = DummyDistributedObject::create(ref, comm, 7);
     copy->add_logger(logger);
 
-    copy->move_from(gko::lend(obj));
+    copy->move_from(obj);
 
     ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
     ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);

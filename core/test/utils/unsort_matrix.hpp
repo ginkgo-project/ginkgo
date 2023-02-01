@@ -69,8 +69,8 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType>* mtx,
     // unsorting there, followed by copying it back
     if (exec != master) {
         auto h_mtx = mtx->clone(master);
-        unsort_matrix(lend(h_mtx), engine);
-        mtx->copy_from(lend(h_mtx));
+        unsort_matrix(h_mtx.get(), engine);
+        mtx->copy_from(h_mtx.get());
         return;
     }
 
@@ -107,8 +107,8 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType>* mtx,
     // unsorting there, followed by copying it back
     if (exec != master) {
         auto h_mtx = mtx->clone(master);
-        unsort_matrix(lend(h_mtx), engine);
-        mtx->copy_from(lend(h_mtx));
+        unsort_matrix(h_mtx.get(), engine);
+        mtx->copy_from(h_mtx.get());
         return;
     }
     matrix_data<value_type, index_type> data;

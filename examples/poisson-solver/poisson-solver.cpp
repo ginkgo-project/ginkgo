@@ -174,9 +174,9 @@ int main(int argc, char* argv[])
     // initialize matrix and vectors
     auto matrix = mtx::create(app_exec, gko::dim<2>(discretization_points),
                               3 * discretization_points - 2);
-    generate_stencil_matrix(lend(matrix));
+    generate_stencil_matrix(matrix.get());
     auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
-    generate_rhs(f, u0, u1, lend(rhs));
+    generate_rhs(f, u0, u1, rhs.get());
     auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
     for (int i = 0; i < u->get_size()[0]; ++i) {
         u->get_values()[i] = 0.0;
@@ -194,12 +194,12 @@ int main(int argc, char* argv[])
         .with_preconditioner(bj::build().on(exec))
         .on(exec)
         ->generate(clone(exec, matrix))  // copy the matrix to the executor
-        ->apply(lend(rhs), lend(u));
+        ->apply(rhs, u);
 
     // Uncomment to print the solution
-    // print_solution<ValueType>(u0, u1, lend(u));
+    // print_solution<ValueType>(u0, u1, u.get());
     std::cout << "Solve complete.\nThe average relative error is "
-              << calculate_error(discretization_points, lend(u), correct_u) /
+              << calculate_error(discretization_points, u.get(), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(
                          discretization_points)
               << std::endl;

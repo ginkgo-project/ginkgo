@@ -156,7 +156,7 @@ TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRef)
 TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 {
     initialize_data(243);
-    gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
+    gko::test::unsort_matrix(system_mtx.get(), rand_engine);
     d_system_mtx = gko::clone(exec, system_mtx);
     auto mg_level_factory =
         gko::multigrid::FixedCoarsening<value_type, int>::build()

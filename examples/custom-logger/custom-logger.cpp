@@ -75,9 +75,9 @@ gko::remove_complex<ValueType> compute_norm(
         gko::initialize<gko::matrix::Dense<gko::remove_complex<ValueType>>>(
             {0.0}, exec);
     // Use the dense `compute_norm2` function to compute the norm.
-    b->compute_norm2(gko::lend(b_norm));
+    b->compute_norm2(b_norm);
     // Use the other utility function to return the norm contained in `b_norm`
-    return get_first_element(gko::lend(b_norm));
+    return get_first_element(b_norm.get());
 }
 
 // Custom logger class which intercepts the residual norm scalar and solution
@@ -144,12 +144,12 @@ struct ResidualLogger : gko::log::Logger {
         if (residual_norm) {
             auto dense_norm = gko::as<gko_real_dense>(residual_norm);
             // Add the norm to the `recurrent_norms` vector
-            recurrent_norms.push_back(get_first_element(gko::lend(dense_norm)));
+            recurrent_norms.push_back(get_first_element(dense_norm));
             // Otherwise, use the recurrent residual vector
         } else {
             auto dense_residual = gko::as<gko_dense>(residual);
             // Compute the residual vector's norm
-            auto norm = compute_norm(gko::lend(dense_residual));
+            auto norm = compute_norm(dense_residual);
             // Add the computed norm to the `recurrent_norms` vector
             recurrent_norms.push_back(norm);
         }
@@ -166,12 +166,11 @@ struct ResidualLogger : gko::log::Logger {
             auto res = gko::clone(b);
             // Compute the real residual vector by calling apply on the system
             // matrix
-            matrix->apply(gko::lend(one), gko::lend(solution),
-                          gko::lend(neg_one), gko::lend(res));
+            matrix->apply(one, solution, neg_one, res);
 
             // Compute the norm of the residual vector and add it to the
             // `real_norms` vector
-            real_norms.push_back(compute_norm(gko::lend(res)));
+            real_norms.push_back(compute_norm(res.get()));
         } else {
             // Add to the `real_norms` vector the value -1.0 if it could not be
             // computed
@@ -182,8 +181,7 @@ struct ResidualLogger : gko::log::Logger {
             auto dense_norm =
                 gko::as<gko_real_dense>(implicit_sq_residual_norm);
             // Add the norm to the `implicit_norms` vector
-            implicit_norms.push_back(
-                std::sqrt(get_first_element(gko::lend(dense_norm))));
+            implicit_norms.push_back(std::sqrt(get_first_element(dense_norm)));
         } else {
             // Add to the `implicit_norms` vector the value -1.0 if it could not
             // be computed
@@ -285,8 +283,8 @@ int main(int argc, char* argv[])
     // @note Ginkgo uses C++ smart pointers to automatically manage memory.
     // To this end, we use our own object ownership transfer functions that
     // under the hood call the required smart pointer functions to manage
-    // object ownership. The gko::share , gko::give and gko::lend are the
-    // functions that you would need to use.
+    // object ownership. gko::share and gko::give are the functions that you
+    // would need to use.
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
@@ -311,8 +309,7 @@ int main(int argc, char* argv[])
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger =
-        std::make_shared<ResidualLogger<ValueType>>(gko::lend(A), gko::lend(b));
+    auto logger = std::make_shared<ResidualLogger<ValueType>>(A.get(), b.get());
 
     // Add the previously created logger to the solver factory. The logger
     // will be automatically propagated to all solvers created from this
@@ -332,11 +329,11 @@ int main(int argc, char* argv[])
 
     // Finally, solve the system. The solver, being a gko::LinOp, can be
     // applied to a right hand side, b to obtain the solution, x.
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(b, x);
 
     // Print the solution to the command line.
     std::cout << "Solution (x):\n";
-    write(std::cout, gko::lend(x));
+    write(std::cout, x);
 
     // Print the table of the residuals obtained from the logger
     logger->write();
@@ -351,9 +348,9 @@ int main(int argc, char* argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    write(std::cout, res);
 }

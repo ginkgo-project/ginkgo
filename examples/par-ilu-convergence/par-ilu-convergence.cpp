@@ -189,14 +189,13 @@ int main(int argc, char* argv[])
             exec->synchronize();
             auto toc = std::chrono::high_resolution_clock::now();
             auto residual = gko::clone(exec, mtx);
-            result->get_operators()[0]->apply(lend(one),
-                                              lend(result->get_operators()[1]),
-                                              lend(minus_one), lend(residual));
+            result->get_operators()[0]->apply(one, result->get_operators()[1],
+                                              minus_one, residual);
             times.push_back(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic)
                     .count());
             residuals.push_back(
-                compute_ilu_residual_norm(lend(residual), lend(mtx)));
+                compute_ilu_residual_norm(residual.get(), mtx.get()));
         }
         for (auto el : times) {
             std::cout << el << ';';

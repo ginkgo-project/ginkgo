@@ -119,7 +119,7 @@ protected:
           fact_fact(factorization_type::build().on(exec)),
           tol{r<value_type>::value}
     {
-        mtx_l_system->convert_to(gko::lend(mtx_l_system_coo));
+        mtx_l_system->convert_to(mtx_l_system_coo);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;

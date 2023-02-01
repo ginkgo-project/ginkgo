@@ -138,7 +138,7 @@ TEST(DummyLogged, CanRemoveLogger)
     c.add_logger(gko::log::Stream<>::create(gko::log::Logger::all_events_mask,
                                             std::cout));
 
-    c.remove_logger(gko::lend(r));
+    c.remove_logger(r);
 
     ASSERT_EQ(c.get_num_loggers(), 1);
 }

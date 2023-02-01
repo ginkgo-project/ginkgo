@@ -109,15 +109,15 @@ int main(int argc, char* argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres_vec = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres_vec));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(initres_vec);
 
     // Build lower-precision system matrix and residual
     auto solver_A = solver_mtx::create(exec);
     auto inner_residual = solver_vec::create(exec);
     auto outer_residual = vec::create(exec);
-    A->convert_to(lend(solver_A));
-    b->convert_to(lend(outer_residual));
+    A->convert_to(solver_A);
+    b->convert_to(outer_residual);
 
     // restore b
     b->copy_from(host_x.get());
@@ -147,8 +147,8 @@ int main(int argc, char* argv[])
         ++iter;
 
         // convert residual to inner precision
-        outer_residual->convert_to(lend(inner_residual));
-        outer_residual->compute_norm2(lend(res_vec));
+        outer_residual->convert_to(inner_residual);
+        outer_residual->compute_norm2(res_vec);
         auto res = exec->copy_val_to_host(res_vec->get_const_values());
 
         // break if we exceed the number of iterations or have converged
@@ -159,31 +159,31 @@ int main(int argc, char* argv[])
         // Use the inner solver to solve
         // A * inner_solution = inner_residual
         // with residual as initial guess.
-        inner_solution->copy_from(lend(inner_residual));
-        inner_solver->apply(lend(inner_residual), lend(inner_solution));
+        inner_solution->copy_from(inner_residual);
+        inner_solver->apply(inner_residual, inner_solution);
 
         // convert inner solution to outer precision
-        inner_solution->convert_to(lend(outer_delta));
+        inner_solution->convert_to(outer_delta);
 
         // x = x + inner_solution
-        x->add_scaled(lend(one), lend(outer_delta));
+        x->add_scaled(one, outer_delta);
 
         // residual = b - A * x
-        outer_residual->copy_from(lend(b));
-        A->apply(lend(neg_one), lend(x), lend(one), lend(outer_residual));
+        outer_residual->copy_from(b);
+        A->apply(neg_one, x, one, outer_residual);
     }
 
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res_vec));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res_vec);
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(initres_vec));
+    write(std::cout, initres_vec);
     std::cout << "Final residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res_vec));
+    write(std::cout, res_vec);
 
     // Print solver statistics
     std::cout << "MPIR iteration count:     " << iter << std::endl;

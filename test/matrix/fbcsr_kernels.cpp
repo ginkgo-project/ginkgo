@@ -140,7 +140,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     auto rsorted2 = gko::test::generate_random_fbcsr<value_type, index_type>(
         this->ref, rand_brows, rand_bcols, block_size, false, false,
         std::default_random_engine(43));
-    drand->copy_from(gko::lend(rsorted2));
+    drand->copy_from(rsorted2);
 
     auto trans = gko::as<Mtx>(rsorted2->transpose());
     auto dtrans = gko::as<Mtx>(drand->transpose());
