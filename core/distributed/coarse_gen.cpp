@@ -218,18 +218,10 @@ void CoarseGen<ValueType, LocalIndexType,
         coarse_row_partition, fine_row_ptrs, coarse_data, restrict_data,
         prolong_data, coarse_indices_map_));
 
-    auto r_p_part_map = array<gko::experimental::distributed::comm_index_type>(
-        coarse_indices_map_.get_executor()->get_master(),
-        fine_mat_data.get_size()[0]);
-    r_p_part_map.fill(zero<gko::experimental::distributed::comm_index_type>());
-    auto r_p_partition = gko::experimental::distributed::
-        Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
-            fine_row_partition->get_executor(), r_p_part_map, 1);
-
     dist_coarse_mat->read_distributed(coarse_data, coarse_row_partition.get());
     dist_restrict_mat->read_distributed(
-        restrict_data, coarse_row_partition.get(), r_p_partition.get());
-    dist_prolong_mat->read_distributed(prolong_data, r_p_partition.get(),
+        restrict_data, coarse_row_partition.get(), fine_row_partition.get());
+    dist_prolong_mat->read_distributed(prolong_data, fine_row_partition.get(),
                                        coarse_row_partition.get());
 
     this->set_multigrid_level(dist_prolong_mat, dist_coarse_mat,
