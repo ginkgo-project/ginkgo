@@ -103,17 +103,17 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         if (i % 2 != 0) {
             // store one power in acc:
             // i^(2n+1) -> i*i^2n
-            id_power->apply(lend(acc), lend(tmp));
+            id_power->apply(acc, tmp);
             std::swap(acc, tmp);
             i--;
         }
         // square id_power: i^2n -> (i^2)^n
-        id_power->apply(lend(id_power), lend(tmp));
+        id_power->apply(id_power, tmp);
         std::swap(id_power, tmp);
         i /= 2;
     }
     // combine acc and id_power again
-    id_power->apply(lend(acc), lend(tmp));
+    id_power->apply(acc, tmp);
     return {std::move(tmp)};
 }
 
@@ -173,11 +173,11 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
-            lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
             excess_row_ptrs_full.get_data(), is_spd));
     } else {
         exec->run(isai::make_generate_tri_inverse(
-            lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
             excess_row_ptrs_full.get_data(), is_lower));
     }
 
@@ -215,10 +215,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
             auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(
-                lend(to_invert), lend(inverted),
+                to_invert.get(), inverted.get(),
                 excess_block_ptrs.get_const_data(),
-                excess_row_ptrs_full.get_const_data(), lend(excess_system),
-                lend(excess_rhs), excess_start, block));
+                excess_row_ptrs_full.get_const_data(), excess_system.get(),
+                excess_rhs.get(), excess_start, block));
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
@@ -248,16 +248,16 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_solver_factory = LowerTrs::build().on(exec);
             }
             excess_solver_factory->generate(share(excess_system->transpose()))
-                ->apply(lend(excess_rhs), lend(excess_solution));
+                ->apply(excess_rhs, excess_solution);
             if (is_spd) {
                 exec->run(isai::make_scale_excess_solution(
-                    excess_block_ptrs.get_const_data(), lend(excess_solution),
+                    excess_block_ptrs.get_const_data(), excess_solution.get(),
                     excess_start, block));
             }
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
-                excess_block_ptrs.get_const_data(), lend(excess_solution),
-                lend(inverted), excess_start, block));
+                excess_block_ptrs.get_const_data(), excess_solution.get(),
+                inverted.get(), excess_start, block));
         }
     }
 

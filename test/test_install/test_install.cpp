@@ -68,7 +68,7 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 #if HAS_REFERENCE
     auto x_clone = gko::clone(x);
     test->read(A_raw);
-    test->apply(b, gko::lend(x_clone));
+    test->apply(b, x_clone);
     // x_clone has the device result if using HIP or CUDA, otherwise it is
     // reference only
 
@@ -78,11 +78,11 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
     auto test_ref = Mtx::create(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
     test_ref->read(A_raw);
-    test_ref->apply(b, gko::lend(x_ref));
+    test_ref->apply(b, x_ref);
 
     // Actually check that `x_clone` is similar to `x_ref`
-    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
-    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-14);
+    auto x_clone_ref = gko::clone(exec_ref, x_clone);
+    assert_similar_matrices(x_clone_ref.get(), x_ref.get(), 1e-14);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -110,7 +110,7 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 #if HAS_REFERENCE
     A->read(A_raw);
     auto x_clone = gko::clone(x);
-    solver_gen->generate(A)->apply(b, gko::lend(x_clone));
+    solver_gen->generate(A)->apply(b, x_clone);
     // x_clone has the device result if using HIP or CUDA, otherwise it is
     // reference only
 
@@ -130,11 +130,11 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
                     .on(exec_ref))
             .on(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
-    solver_gen->generate(A_ref)->apply(b, gko::lend(x_ref));
+    solver_gen->generate(A_ref)->apply(b, x_ref);
 
     // Actually check that `x_clone` is similar to `x_ref`
-    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
-    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-12);
+    auto x_clone_ref = gko::clone(exec_ref, x_clone);
+    assert_similar_matrices(x_clone_ref.get(), x_ref.get(), 1e-12);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -351,7 +351,7 @@ int main()
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
     }
 
     // core/matrix/csr.hpp
@@ -363,19 +363,19 @@ int main()
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
     }
 
     // core/matrix/identity.hpp
@@ -399,7 +399,7 @@ int main()
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
     }
 
     // core/matrix/sparsity_csr.hpp
@@ -433,37 +433,37 @@ int main()
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b.get(), x.get());
     }
 
     // core/solver/ir.hpp

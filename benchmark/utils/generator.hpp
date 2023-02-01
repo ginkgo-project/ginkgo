@@ -90,7 +90,7 @@ struct DefaultSystemGenerator {
             gko::share(::formats::matrix_factory(format_name, exec, data));
 
         if (spmv_case && allocator) {
-            exec->remove_logger(gko::lend(storage_logger));
+            exec->remove_logger(storage_logger);
             storage_logger->write_data(*spmv_case, *allocator);
         }
 
@@ -207,7 +207,7 @@ struct DistributedDefaultSystemGenerator {
         dist_mat->read_distributed(data, part.get());
 
         if (spmv_case && allocator) {
-            exec->remove_logger(gko::lend(storage_logger));
+            exec->remove_logger(storage_logger);
             storage_logger->write_data(comm, *spmv_case, *allocator);
         }
 

@@ -499,7 +499,7 @@ TYPED_TEST(Multigrid, VCycleIndividual)
     //        2   3
     //          v
     global_step = 0;
-    solver->apply(gko::lend(this->b), gko::lend(this->x));
+    solver->apply(this->b, this->x);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {4});
     this->assert_same_step(mg_level.at(1).get(), {2}, {3});
@@ -537,7 +537,7 @@ TYPED_TEST(Multigrid, VCycleSame)
     //        2   4
     //          3
     global_step = 0;
-    solver->apply(gko::lend(this->b), gko::lend(this->x));
+    solver->apply(this->b, this->x);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {6});
     this->assert_same_step(mg_level.at(1).get(), {2}, {4});
@@ -585,7 +585,7 @@ TYPED_TEST(Multigrid, WCycleIndividual)
     //           4   5     8   9             15  16    19  20
     //             v         v                 v         v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {23});
     this->assert_same_step(mg_level.at(1).get(), {2, 13}, {11, 22});
@@ -638,7 +638,7 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUsePost)
     //           4   5   7   8           13  14  16  17
     //             v       v               v       v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {20});
     this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 19});
@@ -690,7 +690,7 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUsePre)
     //           4   5   7   8           14  15  17  18
     //             v       v               v       v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {21});
     this->assert_same_step(mg_level.at(1).get(), {2, 12}, {10, 20});
@@ -742,7 +742,7 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUseStandalone)
     //           4   5   7   8           13  14  16  17
     //             v       v               v       v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {20});
     this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 19});
@@ -789,7 +789,7 @@ TYPED_TEST(Multigrid, WCycleSame)
     //           4   6     9   11            18  20    23  25
     //             5         10                19        24
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {29});
     this->assert_same_step(mg_level.at(1).get(), {2, 16}, {13, 27});
@@ -839,7 +839,7 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePost)
     //           4   6   8   10          16  18  20  22
     //             5       9               17      21
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {26});
     this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 24});
@@ -887,7 +887,7 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePre)
     //           4   6   8   10          16  18  20  22
     //             5       9               17      21
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {26});
     this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 24});
@@ -937,7 +937,7 @@ TYPED_TEST(Multigrid, FCycleIndividual)
     //           4   5     8   9             15  16
     //             v         v                 v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {19});
     this->assert_same_step(mg_level.at(1).get(), {2, 13}, {11, 18});
@@ -990,7 +990,7 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUsePost)
     //           4   5   7   8           13  14
     //             v       v               v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {17});
     this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 16});
@@ -1041,7 +1041,7 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUsePre)
     //           4   5   7   8           14  15
     //             v       v               v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {18});
     this->assert_same_step(mg_level.at(1).get(), {2, 12}, {10, 17});
@@ -1092,7 +1092,7 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUseStandalone)
     //           4   5   7   8           13  14
     //             v       v               v
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {17});
     this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 16});
@@ -1139,7 +1139,7 @@ TYPED_TEST(Multigrid, FCycleSame)
     //           4   6     9   11            18  20
     //             5         10                19
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {24});
     this->assert_same_step(mg_level.at(1).get(), {2, 16}, {13, 22});
@@ -1186,7 +1186,7 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePost)
     //           4   6   8   10          16  18
     //             5       9               17
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {22});
     this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 20});
@@ -1233,7 +1233,7 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePre)
     //           4   6   8   10          16  18
     //             5       9               17
     global_step = 0;
-    solver->apply(gko::lend(this->b2), gko::lend(this->x2));
+    solver->apply(this->b2, this->x2);
 
     this->assert_same_step(mg_level.at(0).get(), {0}, {22});
     this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 20});
@@ -1263,7 +1263,7 @@ TYPED_TEST(Multigrid, CanChangeCycle)
     // change v cycle to f cycle
     global_step = 0;
     solver->set_cycle(gko::solver::multigrid::cycle::f);
-    solver->apply(gko::lend(this->b), gko::lend(this->x));
+    solver->apply(this->b, this->x);
 
     ASSERT_EQ(original, gko::solver::multigrid::cycle::v);
     ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid::cycle::f);

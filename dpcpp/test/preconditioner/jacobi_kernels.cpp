@@ -636,7 +636,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-13);
 }
 
 
@@ -649,7 +649,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-5);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-5);
 }
 
 
@@ -662,7 +662,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-6);
 }
 
 
@@ -675,7 +675,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-3);
 }
 
 
@@ -688,7 +688,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 
@@ -702,7 +702,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 

@@ -224,7 +224,7 @@ TEST_F(EnablePolymorphicObject, CopiesObject)
 {
     auto copy = DummyObject::create(omp, 7);
 
-    copy->copy_from(gko::lend(obj));
+    copy->copy_from(obj);
 
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), omp);
@@ -240,7 +240,7 @@ TEST_F(EnablePolymorphicObject, CopiesObjectIsLogged)
     auto copy = DummyObject::create(omp, 7);
     copy->add_logger(logger);
 
-    copy->copy_from(gko::lend(obj));
+    copy->copy_from(obj);
 
     ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
     ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
@@ -276,7 +276,7 @@ TEST_F(EnablePolymorphicObject, MovesObject)
 {
     auto copy = DummyObject::create(ref, 7);
 
-    copy->move_from(gko::lend(obj));
+    copy->move_from(obj);
 
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), ref);
@@ -292,7 +292,7 @@ TEST_F(EnablePolymorphicObject, MovesObjectIsLogged)
     auto copy = DummyObject::create(ref, 7);
     copy->add_logger(logger);
 
-    copy->move_from(gko::lend(obj));
+    copy->move_from(obj);
 
     ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
     ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
@@ -368,7 +368,7 @@ TEST(CopyAndConvertTo, ConvertsToDummyObj)
     auto ref = gko::ReferenceExecutor::create();
     auto convertible = ConvertibleToDummyObject::create(ref, 5);
 
-    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, convertible.get());
 
     ASSERT_EQ(dummy->x, 5);
 }
@@ -380,7 +380,7 @@ TEST(CopyAndConvertTo, ConvertsConstToDummyObj)
     std::unique_ptr<const ConvertibleToDummyObject> convertible =
         ConvertibleToDummyObject::create(ref, 5);
 
-    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, convertible.get());
 
     ASSERT_EQ(dummy->x, 5);
 }
@@ -391,9 +391,9 @@ TEST(CopyAndConvertTo, AvoidsConversion)
     auto ref = gko::ReferenceExecutor::create();
     auto convertible = DummyObject::create(ref, 5);
 
-    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, convertible.get());
 
-    ASSERT_EQ(gko::lend(dummy), gko::lend(convertible));
+    ASSERT_EQ(dummy, convertible);
 }
 
 

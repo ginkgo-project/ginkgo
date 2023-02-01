@@ -84,9 +84,9 @@ public:
 };
 
 template <typename Generator, typename T>
-auto as_vector(T& p)
+auto as_vector(const std::unique_ptr<T>& p)
 {
-    return gko::as<typename Generator::Vec>(gko::lend(p));
+    return gko::as<typename Generator::Vec>(p.get());
 }
 
 
@@ -156,10 +156,7 @@ public:
 
     void prepare() override { as_vector<Generator>(y_)->fill(1); }
 
-    void run() override
-    {
-        as_vector<Generator>(y_)->add_scaled(lend(alpha_), lend(x_));
-    }
+    void run() override { as_vector<Generator>(y_)->add_scaled(alpha_, x_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
@@ -194,7 +191,7 @@ public:
 
     void prepare() override { as_vector<Generator>(y_)->fill(1); }
 
-    void run() override { as_vector<Generator>(y_)->scale(lend(alpha_)); }
+    void run() override { as_vector<Generator>(y_)->scale(alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
@@ -229,10 +226,7 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void run() override
-    {
-        as_vector<Generator>(x_)->compute_dot(lend(y_), lend(alpha_));
-    }
+    void run() override { as_vector<Generator>(x_)->compute_dot(y_, alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
@@ -264,10 +258,7 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype);
     }
 
-    void run() override
-    {
-        as_vector<Generator>(y_)->compute_norm2(lend(alpha_));
-    }
+    void run() override { as_vector<Generator>(y_)->compute_norm2(alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
@@ -306,7 +297,7 @@ public:
                sizeof(etype);
     }
 
-    void run() override { A_->apply(lend(B_), lend(C_)); }
+    void run() override { A_->apply(B_, C_); }
 
 private:
     std::unique_ptr<gko::LinOp> A_;
@@ -352,10 +343,7 @@ public:
                sizeof(etype);
     }
 
-    void run() override
-    {
-        A_->apply(lend(alpha_), lend(B_), lend(beta_), lend(C_));
-    }
+    void run() override { A_->apply(alpha_, B_, beta_, C_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;

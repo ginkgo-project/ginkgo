@@ -275,39 +275,6 @@ TEST(Give, GivesUniquePointer)
 }
 
 
-TEST(Lend, LendsUniquePointer)
-{
-    std::unique_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p);
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
-}
-
-
-TEST(Lend, LendsSharedPointer)
-{
-    std::shared_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p);
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
-}
-
-
-TEST(Lend, LendsPlainPointer)
-{
-    std::unique_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p.get());
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
-}
-
-
 TEST(As, ConvertsPolymorphicType)
 {
     Derived d;
@@ -472,7 +439,7 @@ protected:
 TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 {
     auto other = gko::ReferenceExecutor::create();
-    auto clone = make_temporary_clone(other, gko::lend(obj));
+    auto clone = make_temporary_clone(other, obj.get());
 
     ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
@@ -482,7 +449,7 @@ TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 TEST_F(TemporaryClone, OutputDoesNotCopyToSameMemory)
 {
     auto other = gko::ReferenceExecutor::create();
-    auto clone = make_temporary_output_clone(other, gko::lend(obj));
+    auto clone = make_temporary_output_clone(other, obj.get());
 
     ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
@@ -493,7 +460,7 @@ TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 {
     obj->data = 4;
     {
-        auto clone = make_temporary_clone(omp, gko::lend(obj));
+        auto clone = make_temporary_clone(omp, obj.get());
         clone.get()->data = 7;
 
         ASSERT_EQ(obj->data, 4);
@@ -507,7 +474,7 @@ TEST_F(TemporaryClone, OutputCopiesBackAfterLeavingScope)
 {
     obj->data = 4;
     {
-        auto clone = make_temporary_output_clone(omp, gko::lend(obj));
+        auto clone = make_temporary_output_clone(omp, obj.get());
         clone.get()->data = 7;
 
         ASSERT_EQ(obj->data, 4);
@@ -521,7 +488,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 {
     {
         auto clone = make_temporary_clone(
-            omp, static_cast<const DummyObject*>(gko::lend(obj)));
+            omp, static_cast<const DummyObject*>(obj.get()));
         obj->data = 7;
     }
 
@@ -532,7 +499,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 
 TEST_F(TemporaryClone, AvoidsCopyOnSameExecutor)
 {
-    auto clone = make_temporary_clone(ref, gko::lend(obj));
+    auto clone = make_temporary_clone(ref, obj.get());
 
     ASSERT_EQ(clone.get(), obj.get());
 }

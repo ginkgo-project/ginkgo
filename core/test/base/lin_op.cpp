@@ -172,7 +172,7 @@ protected:
 
 TEST_F(EnableLinOp, CallsApplyImpl)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(op->last_access, ref2);
 }
@@ -180,7 +180,7 @@ TEST_F(EnableLinOp, CallsApplyImpl)
 
 TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 {
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(op->last_access, ref2);
 }
@@ -190,8 +190,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
-    ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(x)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(wrong, x), gko::DimensionMismatch);
 }
 
 
@@ -199,8 +198,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
-    ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(b, wrong), gko::DimensionMismatch);
 }
 
 
@@ -208,8 +206,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
-    ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(b, wrong), gko::DimensionMismatch);
 }
 
 
@@ -217,9 +214,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
-    ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(wrong), gko::lend(beta),
-                           gko::lend(x)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(alpha, wrong, beta, x), gko::DimensionMismatch);
 }
 
 
@@ -227,9 +222,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
-    ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
-                           gko::lend(wrong)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(alpha, b, beta, wrong), gko::DimensionMismatch);
 }
 
 
@@ -237,9 +230,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
-    ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
-                           gko::lend(wrong)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(alpha, b, beta, wrong), gko::DimensionMismatch);
 }
 
 
@@ -247,9 +238,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
-    ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(b), gko::lend(beta),
-                           gko::lend(x)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(wrong, b, beta, x), gko::DimensionMismatch);
 }
 
 
@@ -257,16 +246,14 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
-    ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(wrong),
-                           gko::lend(x)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(op->apply(alpha, b, wrong, x), gko::DimensionMismatch);
 }
 
 
 // For tests between different memory, check cuda/test/base/lin_op.cu
 TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(op->last_b_access, ref);
     ASSERT_EQ(op->last_x_access, ref);
@@ -275,7 +262,7 @@ TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
 
 TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(b->last_access, ref);
     ASSERT_EQ(x->last_access, ref);
@@ -284,7 +271,7 @@ TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
 
 TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 {
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(op->last_alpha_access, ref);
     ASSERT_EQ(op->last_b_access, ref);
@@ -295,7 +282,7 @@ TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 
 TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 {
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(alpha->last_access, ref);
     ASSERT_EQ(b->last_access, ref);
@@ -314,7 +301,7 @@ TEST_F(EnableLinOp, ApplyIsLogged)
 {
     auto before_logger = *logger;
 
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(b, x);
 
     ASSERT_EQ(logger->linop_apply_started,
               before_logger.linop_apply_started + 1);
@@ -327,7 +314,7 @@ TEST_F(EnableLinOp, AdvancedApplyIsLogged)
 {
     auto before_logger = *logger;
 
-    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+    op->apply(alpha, b, beta, x);
 
     ASSERT_EQ(logger->linop_advanced_apply_started,
               before_logger.linop_advanced_apply_started + 1);

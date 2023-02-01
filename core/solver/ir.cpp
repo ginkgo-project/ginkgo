@@ -246,8 +246,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             residual_ptr = residual;
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .residual(residual_ptr)

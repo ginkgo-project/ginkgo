@@ -88,8 +88,8 @@ TEST_F(Ic, ComputeICIsEquivalentToRefSorted)
 
 TEST_F(Ic, ComputeICIsEquivalentToRefUnsorted)
 {
-    gko::test::unsort_matrix(gko::lend(mtx), rand_engine);
-    dmtx->copy_from(gko::lend(mtx));
+    gko::test::unsort_matrix(mtx.get(), rand_engine);
+    dmtx->copy_from(mtx.get());
 
     auto fact = gko::factorization::Ic<>::build().on(ref)->generate(mtx);
     auto dfact = gko::factorization::Ic<>::build().on(exec)->generate(dmtx);

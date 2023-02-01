@@ -163,7 +163,7 @@ TYPED_TEST(Composition, AppliesSingleToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({-13.0, 79.0}), r<TypeParam>::value);
 }
@@ -181,7 +181,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({-13.0, 79.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -201,7 +201,7 @@ TYPED_TEST(Composition, AppliesSingleToComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
@@ -222,7 +222,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
@@ -243,7 +243,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}), r<TypeParam>::value);
 }
@@ -263,7 +263,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}),
                         (r_mixed<value_type, TypeParam>()));
@@ -286,7 +286,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
@@ -310,7 +310,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedComplexVector)
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res,
                         l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
@@ -330,7 +330,7 @@ TYPED_TEST(Composition, AppliesToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({14.0, 7.0}), r<TypeParam>::value);
 }
@@ -350,7 +350,7 @@ TYPED_TEST(Composition, AppliesLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({41.0, 19.0}), r<TypeParam>::value);
 }
@@ -368,7 +368,7 @@ TYPED_TEST(Composition, AppliesLongerToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({238.0, 119.0}), r<TypeParam>::value);
 }
@@ -388,7 +388,7 @@ TYPED_TEST(Composition, AppliesLongerLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({713.0, 355.0}), r<TypeParam>::value);
 }
@@ -407,7 +407,7 @@ TYPED_TEST(Composition, AppliesLongestToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({238.0, 119.0}), r<TypeParam>::value);
 }
@@ -428,7 +428,7 @@ TYPED_TEST(Composition, AppliesLongestLinearCombinationToVector)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({713.0, 355.0}), r<TypeParam>::value);
 }
@@ -447,7 +447,7 @@ TYPED_TEST(Composition, AppliesLongestToVectorMultipleRhs)
     auto x = clone(this->identity);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({{54.0, 92.0}, {27.0, 46.0}}),
                         r<TypeParam>::value);
@@ -469,7 +469,7 @@ TYPED_TEST(Composition, AppliesLongestLinearCombinationToVectorMultipleRhs)
     auto x = clone(this->identity);
     auto res = clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(alpha, x, beta, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({{161.0, 276.0}, {81.0, 137.0}}),
                         r<TypeParam>::value);
@@ -490,7 +490,7 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({1.0, 2.0}), 0);
 }
@@ -511,7 +511,7 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess2)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({0.0, 0.0}), 0);
 }
@@ -530,7 +530,7 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess3)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({1.0, 2.0}), 0);
 }
@@ -551,7 +551,7 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess4)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({0.0, 0.0}), 0);
 }
@@ -572,7 +572,7 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess5)
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(x, res);
 
     GKO_ASSERT_MTX_NEAR(res, l({1.0, 2.0}), 0);
 }

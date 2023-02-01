@@ -30,7 +30,7 @@ target_compile_features(test_install PUBLIC cxx_std_14)
 target_compile_definitions(test_install PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
 target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)
 if(GINKGO_BUILD_MPI)
-    find_package(MPI REQUIRED)
+    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
     target_link_libraries(test_install PRIVATE MPI::MPI_CXX)
 endif()
 

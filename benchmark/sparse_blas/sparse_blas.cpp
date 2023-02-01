@@ -132,7 +132,7 @@ void apply_sparse_blas(const char* operation_name,
                 std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
             op->run();
-            exec->remove_logger(gko::lend(gen_logger));
+            exec->remove_logger(gen_logger);
             gen_logger->write_data(test_case[operation_name]["components"],
                                    allocator, 1);
         }

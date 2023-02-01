@@ -213,9 +213,9 @@ int main(int argc, char* argv[])
                     ->get_const_values());
         }
         // add heat source contribution
-        in_vector->add_scaled(gko::lend(tau_source_scalar), gko::lend(source));
+        in_vector->add_scaled(tau_source_scalar, source);
         // execute Euler step
-        solver->apply(gko::lend(in_vector), gko::lend(out_vector));
+        solver->apply(in_vector, out_vector);
         // swap input and output
         std::swap(in_vector, out_vector);
     }

@@ -408,8 +408,8 @@ gko::remove_complex<ValueType> compute_norm2(const VectorType* b)
     auto exec = b->get_executor();
     auto b_norm =
         gko::initialize<vec<gko::remove_complex<ValueType>>>({0.0}, exec);
-    b->compute_norm2(lend(b_norm));
-    return get_norm(lend(b_norm));
+    b->compute_norm2(b_norm);
+    return get_norm(b_norm.get());
 }
 
 
@@ -425,8 +425,8 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     auto err = gko::clone(ref_exec, x);
-    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(err));
-    return compute_norm2(lend(err));
+    ref_solver->apply(one, b, neg_one, err);
+    return compute_norm2(err.get());
 }
 
 
@@ -439,8 +439,8 @@ gko::remove_complex<ValueType> compute_residual_norm(
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     auto res = clone(b);
-    system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    return compute_norm2(lend(res));
+    system_matrix->apply(one, x, neg_one, res);
+    return compute_norm2(res.get());
 }
 
 
@@ -453,12 +453,12 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
     auto exec = answer->get_executor();
     auto answer_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    answer->compute_norm2(lend(answer_norm));
+    answer->compute_norm2(answer_norm);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
-    result->add_scaled(lend(neg_one), lend(answer));
+    result->add_scaled(neg_one, answer);
     auto absolute_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    result->compute_norm2(lend(absolute_norm));
+    result->compute_norm2(absolute_norm);
     auto host_answer_norm =
         clone(answer_norm->get_executor()->get_master(), answer_norm);
     auto host_absolute_norm =

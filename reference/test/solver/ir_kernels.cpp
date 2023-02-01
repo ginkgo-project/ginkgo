@@ -481,8 +481,8 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         } else {
             ref_x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
         }
-        solver->apply(lend(b), lend(x));
-        ref_solver->apply(lend(b), lend(ref_x));
+        solver->apply(b, x);
+        ref_solver->apply(b, ref_x);
 
         GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
     }

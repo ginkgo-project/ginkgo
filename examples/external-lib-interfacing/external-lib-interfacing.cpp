@@ -889,7 +889,7 @@ void AdvectionProblem<dim>::solve()
     auto solver = solver_gen->generate(gko::give(A));
 
     // Solve system
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(b, x);
 
     // Copy the solution vector back to deal.ii's data structures.
     std::copy(x->get_values(), x->get_values() + num_rows, solution.begin());

@@ -631,7 +631,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-13);
 }
 
 
@@ -644,7 +644,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-7);
 }
 
 
@@ -657,7 +657,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithCustomReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-6);
 }
 
 
@@ -670,7 +670,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-3);
 }
 
 
@@ -683,7 +683,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithCustomQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 
@@ -696,7 +696,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 

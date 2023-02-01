@@ -477,7 +477,7 @@ TEST_F(Isai, IsaiScaleExcessSolutionIsEquivalentToRef)
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scale_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), 0, num_rows);
@@ -524,7 +524,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionLIsEquivalentToRef)
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -550,7 +550,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionUIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -576,7 +576,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionAIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -602,7 +602,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -628,7 +628,7 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 5u, 10u);

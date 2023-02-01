@@ -52,7 +52,7 @@ int main()
                     .on(gpu))
             .on(gpu);
     // Solve system
-    solver->generate(give(A))->apply(lend(b), lend(x));
+    solver->generate(give(A))->apply(b, x);
     // Write result
-    write(std::cout, lend(x));
+    write(std::cout, x);
 }

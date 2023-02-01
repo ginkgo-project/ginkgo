@@ -270,15 +270,16 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(const gko::LinOp* matrix, const gko::LinOp* b,
+    ResidualLogger(gko::pointer_param<const gko::LinOp> matrix,
+                   gko::pointer_param<const gko::LinOp> b,
                    rapidjson::Value& rec_res_norms,
                    rapidjson::Value& true_res_norms,
                    rapidjson::Value& implicit_res_norms,
                    rapidjson::Value& timestamps,
                    rapidjson::MemoryPoolAllocator<>& alloc)
         : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
-          matrix{matrix},
-          b{b},
+          matrix{matrix.get()},
+          b{b.get()},
           start{std::chrono::steady_clock::now()},
           rec_res_norms{rec_res_norms},
           true_res_norms{true_res_norms},

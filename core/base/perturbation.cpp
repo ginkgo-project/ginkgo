@@ -108,10 +108,9 @@ void Perturbation<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
             auto intermediate_size =
                 gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
             cache_.allocate(exec, intermediate_size);
-            projector_->apply(dense_b, lend(cache_.intermediate));
+            projector_->apply(dense_b, cache_.intermediate);
             dense_x->copy_from(dense_b);
-            basis_->apply(lend(scalar_), lend(cache_.intermediate),
-                          lend(cache_.one), dense_x);
+            basis_->apply(scalar_, cache_.intermediate, cache_.one, dense_x);
         },
         b, x);
 }
@@ -134,12 +133,12 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto intermediate_size =
                 gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
             cache_.allocate(exec, intermediate_size);
-            projector_->apply(dense_b, lend(cache_.intermediate));
+            projector_->apply(dense_b, cache_.intermediate);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, dense_b);
-            dense_alpha->apply(lend(scalar_), lend(cache_.alpha_scalar));
-            basis_->apply(lend(cache_.alpha_scalar), lend(cache_.intermediate),
-                          lend(cache_.one), dense_x);
+            dense_alpha->apply(scalar_, cache_.alpha_scalar);
+            basis_->apply(cache_.alpha_scalar, cache_.intermediate, cache_.one,
+                          dense_x);
         },
         alpha, b, beta, x);
 }

@@ -97,7 +97,7 @@ TYPED_TEST(UpperTrs, CanBeCopied)
     auto copy =
         Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
 
-    copy->copy_from(gko::lend(this->upper_trs_solver));
+    copy->copy_from(this->upper_trs_solver);
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));

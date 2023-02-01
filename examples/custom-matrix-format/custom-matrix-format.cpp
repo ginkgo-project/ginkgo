@@ -146,9 +146,9 @@ protected:
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);
         auto tmp_x = dense_x->clone();
-        this->apply_impl(b, lend(tmp_x));
+        this->apply_impl(b, tmp_x.get());
         dense_x->scale(beta);
-        dense_x->add_scaled(alpha, lend(tmp_x));
+        dense_x->add_scaled(alpha, tmp_x);
     }
 
 private:
@@ -283,7 +283,7 @@ int main(int argc, char* argv[])
 
     // initialize vectors
     auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
-    generate_rhs(f, u0, u1, lend(rhs));
+    generate_rhs(f, u0, u1, rhs.get());
     auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
     for (int i = 0; i < u->get_size()[0]; ++i) {
         u->get_values()[i] = 0.0;
@@ -303,11 +303,11 @@ int main(int argc, char* argv[])
         // any built-in type
         ->generate(StencilMatrix<ValueType>::create(exec, discretization_points,
                                                     -1, 2, -1))
-        ->apply(lend(rhs), lend(u));
+        ->apply(rhs, u);
 
     std::cout << "\nSolve complete."
               << "\nThe average relative error is "
-              << calculate_error(discretization_points, lend(u), correct_u) /
+              << calculate_error(discretization_points, u.get(), correct_u) /
                      discretization_points
               << std::endl;
 }

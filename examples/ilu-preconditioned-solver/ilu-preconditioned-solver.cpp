@@ -127,19 +127,19 @@ int main(int argc, char* argv[])
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
     // Solve system
-    ilu_gmres->apply(gko::lend(b), gko::lend(x));
+    ilu_gmres->apply(b, x);
 
     // Print solution
     std::cout << "Solution (x):\n";
-    write(std::cout, gko::lend(x));
+    write(std::cout, x);
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    write(std::cout, res);
 }

@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 
     // initialize vectors
     auto rhs = vec::create(exec, gko::dim<2>(discretization_points, 1));
-    generate_rhs(f, u0, u1, lend(rhs));
+    generate_rhs(f, u0, u1, rhs);
     auto u = vec::create(exec, gko::dim<2>(discretization_points, 1));
     for (int i = 0; i < u->get_size()[0]; ++i) {
         u->get_values()[i] = 0.0;
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
     // initialize the stencil matrix
     auto A = share(mtx::create(
         exec, gko::dim<2>{discretization_points, discretization_points}));
-    generate_stencil_matrix(lend(A));
+    generate_stencil_matrix(A);
 
     const RealValueType reduction_factor{1e-7};
     // Generate solver and solve the system
@@ -217,11 +217,11 @@ int main(int argc, char* argv[])
         .with_preconditioner(bj::build().on(exec))
         .on(exec)
         ->generate(A)
-        ->apply(lend(rhs), lend(u));
+        ->apply(rhs, u);
 
     std::cout << "\nSolve complete."
               << "\nThe average relative error is "
-              << calculate_error(discretization_points, lend(u), correct_u) /
+              << calculate_error(discretization_points, u, correct_u) /
                      discretization_points
               << std::endl;
 }

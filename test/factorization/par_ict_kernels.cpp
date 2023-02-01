@@ -101,18 +101,18 @@ protected:
         {
             mtx_l_ani = Csr::create(ref, mtx_ani->get_size());
             gko::matrix::CsrBuilder<value_type, index_type> l_builder(
-                lend(mtx_l_ani));
+                mtx_l_ani.get());
             gko::kernels::reference::factorization::initialize_row_ptrs_l(
-                ref, lend(mtx_ani), mtx_l_ani->get_row_ptrs());
+                ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs());
             auto l_nnz =
                 mtx_l_ani->get_const_row_ptrs()[mtx_ani->get_size()[0]];
             l_builder.get_col_idx_array().resize_and_reset(l_nnz);
             l_builder.get_value_array().resize_and_reset(l_nnz);
             gko::kernels::reference::factorization::initialize_l(
-                ref, lend(mtx_ani), lend(mtx_l_ani), true);
+                ref, mtx_ani.get(), mtx_l_ani.get(), true);
         }
-        dmtx_ani->copy_from(lend(mtx_ani));
-        dmtx_l_ani->copy_from(lend(mtx_l_ani));
+        dmtx_ani->copy_from(mtx_ani);
+        dmtx_l_ani->copy_from(mtx_l_ani);
     }
 
     const gko::dim<2> mtx_size;
@@ -139,7 +139,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
     auto mtx_llh = Csr::create(this->ref, this->mtx_size);
     this->mtx_l->apply(this->mtx_l->conj_transpose().get(), mtx_llh.get());
     auto dmtx_llh = Csr::create(this->exec, this->mtx_size);
-    dmtx_llh->copy_from(lend(mtx_llh));
+    dmtx_llh->copy_from(mtx_llh);
     auto res_mtx_l = Csr::create(this->ref, this->mtx_size);
     auto dres_mtx_l = Csr::create(this->exec, this->mtx_size);
 

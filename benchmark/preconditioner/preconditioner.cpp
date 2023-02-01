@@ -169,7 +169,7 @@ void run_preconditioner(const char* precond_name,
 
 
             for (auto _ : ic_apply.warmup_run()) {
-                precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
+                precond->generate(system_matrix)->apply(b, x_clone);
             }
 
             std::unique_ptr<gko::LinOp> precond_op;
@@ -183,7 +183,7 @@ void run_preconditioner(const char* precond_name,
                               ic_gen.get_num_repetitions(), allocator);
 
             for (auto _ : ic_apply.run()) {
-                precond_op->apply(lend(b), lend(x_clone));
+                precond_op->apply(b, x_clone);
             }
 
             add_or_set_member(this_precond_data["apply"], "time",
@@ -208,9 +208,9 @@ void run_preconditioner(const char* precond_name,
                 precond_op = precond->generate(system_matrix);
             }
             if (exec->get_master() != exec) {
-                exec->get_master()->remove_logger(gko::lend(gen_logger));
+                exec->get_master()->remove_logger(gen_logger);
             }
-            exec->remove_logger(gko::lend(gen_logger));
+            exec->remove_logger(gen_logger);
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
                                    allocator, ic_gen.get_num_repetitions());
@@ -222,12 +222,12 @@ void run_preconditioner(const char* precond_name,
                 exec->get_master()->add_logger(apply_logger);
             }
             for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
-                precond_op->apply(lend(b), lend(x_clone));
+                precond_op->apply(b, x_clone);
             }
             if (exec->get_master() != exec) {
-                exec->get_master()->remove_logger(gko::lend(apply_logger));
+                exec->get_master()->remove_logger(apply_logger);
             }
-            exec->remove_logger(gko::lend(apply_logger));
+            exec->remove_logger(apply_logger);
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
                                      allocator, ic_apply.get_num_repetitions());
@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
             add_or_set_member(test_case, "size", data.size[0], allocator);
             for (const auto& precond_name : preconditioners) {
                 run_preconditioner(precond_name.c_str(), exec, system_matrix,
-                                   lend(b), lend(x), test_case, allocator);
+                                   b.get(), x.get(), test_case, allocator);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
