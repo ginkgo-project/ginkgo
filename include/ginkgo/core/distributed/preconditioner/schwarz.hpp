@@ -84,7 +84,6 @@ public:
     using EnableLinOp<Schwarz>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
-    using mat_data = matrix_data<ValueType, IndexType>;
 
     /**
      * Returns the number of blocks of the operator.
