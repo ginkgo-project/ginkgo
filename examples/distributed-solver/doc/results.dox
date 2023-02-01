@@ -6,6 +6,7 @@ This is the expected output for `mpirun -n 4 ./distributed-solver`:
 Num rows in matrix: 100
 Num ranks: 4
 Final Res norm: 5.58392e-12
+Iteration count: 7
 Init time: 0.0663887
 Read time: 0.0729806
 Solver generate time: 7.6348e-05

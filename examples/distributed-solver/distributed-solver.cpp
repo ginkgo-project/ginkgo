@@ -208,19 +208,38 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
+
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
+    // with a local block diagonal preconditioner.
+    //
+
+    // Setup the local block diagonal solver factory.
+    auto local_solver = gko::share(bj::build().on(exec));
+
+    // Setup the stopping criterion and logger
+    const gko::remove_complex<ValueType> reduction_factor{1e-8};
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(num_iters).on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_reduction_factor(reduction_factor)
+                                   .on(exec));
+    iter_stop->add_logger(logger);
+    tol_stop->add_logger(logger);
+
     auto Ainv =
         solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
-                    .on(exec))
+            .with_preconditioner(schwarz::build()
+                                     .with_local_solver_factory(local_solver)
+                                     .on(exec))
+            .with_criteria(iter_stop, tol_stop)
             .on(exec)
             ->generate(A);
+    // Add logger to the generated solver to log the iteration count and
+    // residual norm
+    Ainv->add_logger(logger);
 
     // Take timings.
     comm.synchronize();
@@ -255,6 +274,7 @@ int main(int argc, char* argv[])
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
                   << "\nFinal Res norm: " << *res_norm->get_values()
+                  << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
