@@ -293,9 +293,13 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
+    auto schwarz_smoother = gko::share(
+        schwarz::build()
+            .with_local_solver(bj::build().with_max_block_size(32u).on(exec))
+            .on(exec));
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(mg_coarsest_solver)
+            .with_solver(schwarz_smoother)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
