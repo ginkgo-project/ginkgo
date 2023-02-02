@@ -45,18 +45,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueIndexType>
+template <typename ValueLocalGlobalIndexType>
 class SchwarzFactory : public ::testing::Test {
 protected:
     using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Schwarz =
-        gko::experimental::distributed::preconditioner::Schwarz<value_type,
-                                                                index_type>;
-    using Jacobi = gko::preconditioner::Jacobi<value_type, index_type>;
-    using Mtx = gko::experimental::distributed::Matrix<value_type, index_type>;
+        typename std::tuple_element<0, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using local_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using Schwarz = gko::experimental::distributed::preconditioner::Schwarz<
+        value_type, local_index_type, global_index_type>;
+    using Jacobi = gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using Mtx =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
 
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
@@ -90,7 +96,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes);
 
 
 TYPED_TEST(SchwarzFactory, KnowsItsExecutor)

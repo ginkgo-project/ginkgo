@@ -74,8 +74,10 @@ namespace preconditioner {
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>> {
+template <typename ValueType = default_precision,
+          typename LocalIndexType = int32, typename GlobalIndexType = int64>
+class Schwarz
+    : public EnableLinOp<Schwarz<ValueType, LocalIndexType, GlobalIndexType>> {
     friend class EnableLinOp<Schwarz>;
     friend class EnablePolymorphicObject<Schwarz, LinOp>;
 
@@ -83,12 +85,14 @@ public:
     using EnableLinOp<Schwarz>::convert_to;
     using EnableLinOp<Schwarz>::move_to;
     using value_type = ValueType;
-    using index_type = IndexType;
+    using index_type = GlobalIndexType;
+    using local_index_type = LocalIndexType;
+    using global_index_type = GlobalIndexType;
 
     /**
-     * Returns the number of blocks of the operator.
+     * Returns the local system matrix (rank-local diagonal block).
      *
-     * @return the number of blocks of the operator
+     * @return the local system matrix
      */
     std::shared_ptr<const LinOp> get_local_system_matrix() const
     {
@@ -130,7 +134,8 @@ protected:
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           local_system_matrix_{std::move(
-              as<experimental::distributed::Matrix<ValueType, IndexType>>(
+              as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                   GlobalIndexType>>(
                   system_matrix.get())
                   ->get_local_matrix())}
     {
