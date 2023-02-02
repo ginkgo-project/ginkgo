@@ -1,5 +1,5 @@
 #.rst:
-# FindROCTX
+# FindVTune
 # -------
 #
 # Find the VTune ITT headers and library.
