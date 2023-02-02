@@ -57,8 +57,9 @@ namespace distributed {
 namespace preconditioner {
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
+    const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -68,10 +69,10 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 template <typename VectorType>
-void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
-                                                     VectorType* dense_x) const
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
+    const VectorType* dense_b, VectorType* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
@@ -80,11 +81,9 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 }
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                               const LinOp* b,
-                                               const LinOp* beta,
-                                               LinOp* x) const
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -97,8 +96,8 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 }
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::generate()
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate()
 {
     if (parameters_.local_solver_factory) {
         this->local_solver_ =
@@ -109,9 +108,9 @@ void Schwarz<ValueType, IndexType>::generate()
 }
 
 
-#define GKO_DECLARE_SCHWARZ(ValueType, IndexType) \
-    class Schwarz<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
+#define GKO_DECLARE_SCHWARZ(ValueType, LocalIndexType, GlobalIndexType) \
+    class Schwarz<ValueType, LocalIndexType, GlobalIndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
 
 
 }  // namespace preconditioner

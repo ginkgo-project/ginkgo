@@ -73,9 +73,8 @@ int main(int argc, char* argv[])
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
     using solver = gko::solver::Cg<ValueType>;
-    using schwarz =
-        gko::experimental::distributed::preconditioner::Schwarz<ValueType,
-                                                                LocalIndexType>;
+    using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
+        ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
