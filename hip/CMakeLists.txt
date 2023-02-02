@@ -110,6 +110,9 @@ target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hipran
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
 endif()
+if (GINKGO_HAVE_ROCTX)
+    target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
+endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 

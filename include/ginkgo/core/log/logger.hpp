@@ -531,6 +531,12 @@ public:
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
 
+    /**
+     * Returns true if this logger, when attached to an Executor, needs to be
+     * forwarded all events from objects on this executor.
+     */
+    virtual bool needs_propagation() const { return false; }
+
     virtual ~Logger() = default;
 
 protected:
@@ -658,10 +664,48 @@ public:
 
     void clear_loggers() override { loggers_.clear(); }
 
+private:
+    /**
+     * @internal
+     * This struct is used to differentiate between objects that have an
+     * associated executor (PolymorphicObject) and ones that don't (Executor).
+     * For the ones with executor, it handles the event propagation via template
+     * specialization/SFINAE.
+     */
+    template <size_type Event, typename ConcreteLoggableT, typename = void>
+    struct propagate_log_helper {
+        template <typename... Args>
+        static void propagate_log(const ConcreteLoggableT*, Args&&...)
+        {}
+    };
+
+    template <size_type Event, typename ConcreteLoggableT>
+    struct propagate_log_helper<
+        Event, ConcreteLoggableT,
+        xstd::void_t<decltype(
+            std::declval<ConcreteLoggableT>().get_executor())>> {
+        template <typename... Args>
+        static void propagate_log(const ConcreteLoggableT* loggable,
+                                  Args&&... args)
+        {
+            const auto exec = loggable->get_executor();
+            if (exec->should_propagate_log()) {
+                for (auto& logger : exec->get_loggers()) {
+                    if (logger->needs_propagation()) {
+                        logger->template on<Event>(std::forward<Args>(args)...);
+                    }
+                }
+            }
+        }
+    };
+
 protected:
     template <size_type Event, typename... Params>
     void log(Params&&... params) const
     {
+        propagate_log_helper<Event, ConcreteLoggable>::propagate_log(
+            static_cast<const ConcreteLoggable*>(this),
+            std::forward<Params>(params)...);
         for (auto& logger : loggers_) {
             logger->template on<Event>(std::forward<Params>(params)...);
         }

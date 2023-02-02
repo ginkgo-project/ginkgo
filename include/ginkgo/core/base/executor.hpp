@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -54,6 +55,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+/** How Logger events are propagated to their Executor. */
+enum class log_propagate_mode {
+    /**
+     * Events only get reported at loggers attached to the triggering object.
+     * (Except for allocation/free, copy and Operations, since they happen at
+     * the Executor).
+     */
+    never,
+    /**
+     * Events get reported to loggers attached to the triggering object and
+     * propagating loggers (Logger::needs_propagation() return true) attached to
+     * its Executor.
+     */
+    automatic
+};
 
 
 /**
@@ -661,9 +679,9 @@ public:
 
     Executor() = default;
     Executor(Executor&) = delete;
-    Executor(Executor&&) = default;
+    Executor(Executor&&) = delete;
     Executor& operator=(Executor&) = delete;
-    Executor& operator=(Executor&&) = default;
+    Executor& operator=(Executor&&) = delete;
 
     /**
      * Runs the specified Operation using this Executor.
@@ -834,6 +852,57 @@ public:
      * Synchronize the operations launched on the executor with its master.
      */
     virtual void synchronize() const = 0;
+
+    /**
+     * @copydoc Loggable::add_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
+    void add_logger(std::shared_ptr<const log::Logger> logger) override
+    {
+        this->propagating_logger_refcount_.fetch_add(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::add_logger(logger);
+    }
+
+    /**
+     * @copydoc Loggable::remove_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
+    void remove_logger(const log::Logger* logger) override
+    {
+        this->propagating_logger_refcount_.fetch_sub(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::remove_logger(logger);
+    }
+
+    /**
+     * Sets the logger event propagation mode for the executor.
+     * This controls whether events that happen at objects created on this
+     * executor will also be logged at propagating loggers attached to the
+     * executor.
+     * @see Logger::needs_propagation()
+     */
+    void set_log_propagation_mode(log_propagate_mode mode)
+    {
+        log_propagate_mode_ = mode;
+    }
+
+    /**
+     * Returns true iff events occurring at an object created on this executor
+     * should be logged at propagating loggers attached to this executor, and
+     * there is at least one such propagating logger.
+     * @see Logger::needs_propagation()
+     * @see Executor::set_log_propagation_mode(log_propagate_mode)
+     */
+    bool should_propagate_log() const
+    {
+        return this->propagating_logger_refcount_.load() > 0 &&
+               log_propagate_mode_ == log_propagate_mode::automatic;
+    }
 
     /**
      * Verifies whether the executors share the same memory.
@@ -1064,6 +1133,10 @@ protected:
     exec_info& get_exec_info() { return this->exec_info_; }
 
     exec_info exec_info_;
+
+    log_propagate_mode log_propagate_mode_{log_propagate_mode::automatic};
+
+    std::atomic<int> propagating_logger_refcount_{};
 
 private:
     /**

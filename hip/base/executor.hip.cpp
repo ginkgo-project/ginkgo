@@ -37,11 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
+#include <roctx.h>
+#endif
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 #include "hip/base/config.hip.hpp"
@@ -296,4 +300,27 @@ void HipExecutor::init_handles()
 }
 
 
+namespace log {
+
+
+#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
+
+void begin_roctx(const char* name, profile_event_category)
+{
+    roctxRangePush(name);
+}
+
+void end_roctx(const char*, profile_event_category) { roctxRangePop(); }
+
+#else
+
+void begin_roctx(const char* name, profile_event_category)
+    GKO_NOT_COMPILED(roctx);
+
+void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(roctx);
+
+#endif
+
+
+}  // namespace log
 }  // namespace gko
