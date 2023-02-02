@@ -313,7 +313,7 @@ struct tau_finalize_deleter {
 };
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
+std::shared_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
 {
     static std::mutex tau_mutex{};
     static std::unique_ptr<int, tau_finalize_deleter>
@@ -327,34 +327,34 @@ std::unique_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
                     new int, tau_finalize_deleter{}};
         }
     }
-    return std::unique_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
+    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
 }
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_vtune()
+std::shared_ptr<ProfilerHook> ProfilerHook::create_vtune()
 {
     auto fns = create_vtune_fns();
-    return std::unique_ptr<ProfilerHook>{
+    return std::shared_ptr<ProfilerHook>{
         new ProfilerHook{std::move(fns.first), std::move(fns.second)}};
 }
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
+std::shared_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
 {
     init_nvtx();
-    return std::unique_ptr<ProfilerHook>{
+    return std::shared_ptr<ProfilerHook>{
         new ProfilerHook{begin_nvtx_fn(color_rgb), end_nvtx}};
 }
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_roctx()
+std::shared_ptr<ProfilerHook> ProfilerHook::create_roctx()
 {
-    return std::unique_ptr<ProfilerHook>{
+    return std::shared_ptr<ProfilerHook>{
         new ProfilerHook{begin_roctx, end_roctx}};
 }
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_for_executor(
+std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
     std::shared_ptr<const Executor> exec)
 {
     if (std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
@@ -372,10 +372,10 @@ std::unique_ptr<ProfilerHook> ProfilerHook::create_for_executor(
 }
 
 
-std::unique_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
+std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
                                                           hook_function end)
 {
-    return std::unique_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
+    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
 }
 
 

@@ -11,6 +11,7 @@
 #
 # ``nvtx::nvtx``
 #   The NVTX library, if found.
+#   It will have a GKO_LEGACY_NVTX INTERFACE definition if we didn't find nvtx3.
 #
 # Result variables
 # ^^^^^^^^^^^^^^^^
@@ -18,7 +19,7 @@
 # This module will set the following variables in your project:
 #
 # ``NVTX_INCLUDE_DIRS``
-#   where to find nvToolsExt.h
+#   where to find nvToolsExt.h or nvtx3/nvToolsExt.h
 #
 # ``NVTX_LIBRARIES``
 #   the libraries to link against in order to use the NVTX library.

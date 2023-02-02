@@ -665,6 +665,13 @@ public:
     void clear_loggers() override { loggers_.clear(); }
 
 private:
+    /**
+     * @internal
+     * This struct is used to differentiate between objects that have an
+     * associated executor (PolymorphicObject) and ones that don't (Executor).
+     * For the ones with executor, it handles the event propagation via template
+     * specialization/SFINAE.
+     */
     template <size_type Event, typename ConcreteLoggableT, typename = void>
     struct propagate_log_helper {
         template <typename... Args>
