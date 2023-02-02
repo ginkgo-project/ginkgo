@@ -55,6 +55,7 @@ void init_nvtx();
 /** Starts a TAU profiling range through PerfStubs. */
 void begin_tau(const char*, profile_event_category);
 
+
 /** Returns a function starting an NVTX profiling range with the given color. */
 ProfilerHook::hook_function begin_nvtx_fn(uint32 color_rgb);
 
@@ -99,8 +100,11 @@ public:
     ~profiling_scope_guard() { end_(name_, profile_event_category::internal); }
 
     profiling_scope_guard(const profiling_scope_guard&) = delete;
+
     profiling_scope_guard(profiling_scope_guard&&) = delete;
+
     profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
+
     profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
 
 private:
@@ -134,6 +138,7 @@ namespace cuda {
 
 
 class profiling_scope_guard : log::profiling_scope_guard {
+public:
     profiling_scope_guard(const char* name)
         : log::profiling_scope_guard{
               name, log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
@@ -150,6 +155,7 @@ namespace hip {
 
 #if (GINKGO_HIP_PLATFORM_NVCC == 0)
 class profiling_scope_guard : log::profiling_scope_guard {
+public:
     profiling_scope_guard(const char* name)
         : log::profiling_scope_guard{name, log::begin_roctx, log::end_nvtx}
     {}
@@ -165,7 +171,19 @@ using log::profiling_scope_guard;
 namespace dpcpp {
 
 
-using log::profiling_scope_guard;
+class profiling_scope_guard {
+public:
+    profiling_scope_guard(const char* name)
+    {
+        auto functions = log::create_vtune_fns();
+        guard_ = std::make_unique<log::profiling_scope_guard>(
+            name, std::move(functions.first), std::move(functions.second));
+    }
+
+private:
+    // TODO17: use std::optional
+    std::unique_ptr<log::profiling_scope_guard> guard_;
+};
 
 
 }  // namespace dpcpp
@@ -175,6 +193,17 @@ using log::profiling_scope_guard;
 
 #define GKO_MACRO_CONCAT(a, b) GKO_MACRO_CONCAT2(a, b)
 #define GKO_MACRO_CONCAT2(a, b) a##b
+/**
+ * @internal
+ * This macro can be used inside Ginkgo kernel implementations to annotate a
+ * scope for the profiler corresponding to the backend namespace:
+ * ```
+ * {
+ *     GKO_PROFILING_RANGE(costly operation inside a kernel);
+ *     // ...
+ * }
+ * ```
+ */
 #define GKO_PROFILE_RANGE(_name) \
     profiling_scope_guard GKO_MACRO_CONCAT(guard, __LINE__) { #_name }
 

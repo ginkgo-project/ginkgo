@@ -66,9 +66,9 @@ enum class profile_event_category {
 
 /**
  * This Logger can be used to annotate the execution of Ginkgo functionality
- * with profiler-specific ranges. It currently supports TAU, NSightSystems
- * (NVTX) and rocPROF(ROCTX) and custom profiler hooks.
-
+ * with profiler-specific ranges. It currently supports TAU, VTune,
+ * NSightSystems (NVTX) and rocPROF(ROCTX) and custom profiler hooks.
+ *
  * The Logger should be attached to the Executor that is being used to run the
  * application for a full, program-wide annotation, or to individual objects to
  * only highlight events caused directly by them (not operations and memory
@@ -176,6 +176,7 @@ public:
     /**
      * Sets the name for an object to be profiled. Every instance of that object
      * in the profile will be replaced by the name instead of its runtime type.
+     *
      * @param obj  the object
      * @param name  its name
      */
@@ -193,44 +194,45 @@ public:
 
     /**
      * Creates a logger annotating Ginkgo events with TAU ranges via PerfStubs.
+     *
      * @param initialize  Should we call TAU's initialization and finalization
      *                    functions, or does the application take care of it?
      *                    The initialization will happen immediately, the
      *                    finalization at program exit.
      */
-    static std::unique_ptr<ProfilerHook> create_tau(bool initialize = true);
+    static std::shared_ptr<ProfilerHook> create_tau(bool initialize = true);
 
     /**
      * Creates a logger annotating Ginkgo events with VTune ITT ranges.
      */
-    static std::unique_ptr<ProfilerHook> create_vtune();
+    static std::shared_ptr<ProfilerHook> create_vtune();
 
     /**
      * Creates a logger annotating Ginkgo events with NVTX ranges for CUDA.
      * @param color_argb  The color of the NVTX ranges in the NSight Systems
      *                    output. It has to be a 32 bit packed ARGB value.
      */
-    static std::unique_ptr<ProfilerHook> create_nvtx(
+    static std::shared_ptr<ProfilerHook> create_nvtx(
         uint32 color_argb = color_yellow_argb);
 
     /**
      * Creates a logger annotating Ginkgo events with ROCTX ranges for HIP.
      */
-    static std::unique_ptr<ProfilerHook> create_roctx();
+    static std::shared_ptr<ProfilerHook> create_roctx();
 
     /**
      * Creates a logger annotating Ginkgo events with the most suitable backend
      * for the given executor: NVTX for NSight Systems in CUDA, ROCTX for
      * rocprof in HIP, TAU for everything else.
      */
-    static std::unique_ptr<ProfilerHook> create_for_executor(
+    static std::shared_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions
      * for range begin and end.
      */
-    static std::unique_ptr<ProfilerHook> create_custom(hook_function begin,
+    static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
                                                        hook_function end);
 
 private:
