@@ -41,10 +41,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+class MpiWrappedTimer;
+
+
 /**
  * Timer stores the timing information
  */
 class Timer {
+    friend MpiWrappedTimer;
+
 public:
     /**
      * Start the timer
@@ -193,6 +198,71 @@ private:
     std::shared_ptr<const gko::Executor> exec_;
     std::chrono::time_point<std::chrono::steady_clock> start_;
 };
+
+
+#ifdef HAS_CUDA_TIMER
+std::shared_ptr<Timer> get_cuda_timer(
+    std::shared_ptr<const gko::CudaExecutor> exec);
+#endif  // HAS_CUDA_TIMER
+
+
+#ifdef HAS_HIP_TIMER
+std::shared_ptr<Timer> get_hip_timer(
+    std::shared_ptr<const gko::HipExecutor> exec);
+#endif  // HAS_HIP_TIMER
+
+
+#ifdef HAS_DPCPP_TIMER
+std::shared_ptr<Timer> get_dpcpp_timer(
+    std::shared_ptr<const gko::DpcppExecutor> exec);
+#endif  // HAS_DPCPP_TIMER
+
+
+#if HAS_MPI_TIMER
+/**
+ * Get the MPI timer. This timer will wrap a local timer and report the longest
+ * duration among all processes using a global reduction.
+ *
+ * @see get_timer
+ *
+ * @param exec  Executor associated to the timer
+ * @param comm  Communicator containing all involved processes
+ * @param use_gpu_timer  whether to use the gpu timer
+ */
+std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
+                                     gko::experimental::mpi::communicator comm,
+                                     bool use_gpu_timer);
+#endif  // HAS_MPI_TIMER
+
+
+inline std::shared_ptr<Timer> get_timer(
+    std::shared_ptr<const gko::Executor> exec, bool use_gpu_timer)
+{
+    if (use_gpu_timer) {
+#ifdef HAS_CUDA_TIMER
+        if (auto cuda =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+            return get_cuda_timer(cuda);
+        }
+#endif  // HAS_CUDA_TIMER
+
+#ifdef HAS_HIP_TIMER
+        if (auto hip =
+                std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
+            return get_hip_timer(hip);
+        }
+#endif  // HAS_HIP_TIMER
+
+#ifdef HAS_DPCPP_TIMER
+        if (auto dpcpp =
+                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+            return get_dpcpp_timer(dpcpp);
+        }
+#endif  // HAS_DPCPP_TIMER
+    }
+    // No cuda/hip/dpcpp executor available or no gpu_timer used
+    return std::make_shared<CpuTimer>(exec);
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_TIMER_IMPL_HPP_

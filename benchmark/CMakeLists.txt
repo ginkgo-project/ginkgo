@@ -16,7 +16,7 @@ function(ginkgo_benchmark_cusparse_linops type def)
         # remove false positive CUDA warnings when calling one<T>() and zero<T>()
         target_compile_options(cusparse_linops_${type}
             PRIVATE
-                $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
     endif()
     # make the dependency public to catch issues
     target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
@@ -72,6 +72,10 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
     if (GINKGO_BUILD_DPCPP)
         target_compile_definitions("${name}" PRIVATE HAS_DPCPP_TIMER=1)
         target_link_libraries("${name}" dpcpp_timer)
+    endif()
+    if (GINKGO_BUILD_MPI)
+        target_compile_definitions(${name} PRIVATE HAS_MPI_TIMER=1)
+        target_link_libraries(${name} mpi_timer)
     endif()
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
     target_compile_options("${name}" PRIVATE ${GINKGO_COMPILER_FLAGS})
@@ -140,6 +144,11 @@ if (GINKGO_BUILD_DPCPP)
     ginkgo_benchmark_onemkl_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
     add_library(dpcpp_timer utils/dpcpp_timer.dp.cpp)
     target_link_libraries(dpcpp_timer ginkgo)
+endif()
+
+if (GINKGO_BUILD_MPI)
+    add_library(mpi_timer ${Ginkgo_SOURCE_DIR}/benchmark/utils/mpi_timer.cpp)
+    target_link_libraries(mpi_timer ginkgo)
 endif()
 
 add_subdirectory(blas)
