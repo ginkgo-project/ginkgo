@@ -67,38 +67,41 @@ GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 /** Computes the symbolic Cholesky factorization of the given matrix. */
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
-    const matrix::Csr<ValueType, IndexType>* mtx,
+    xstd::dont_deduce_t<pointer_param<const matrix::Csr<ValueType, IndexType>>>
+        mtx,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = mtx->get_executor();
     const auto host_exec = exec->get_master();
     std::unique_ptr<elimination_forest<IndexType>> forest;
-    exec->run(make_compute_elim_forest(mtx, forest));
+    exec->run(make_compute_elim_forest(mtx.get(), forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
-    exec->run(
-        make_cholesky_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
+    exec->run(make_cholesky_symbolic_count(mtx.get(), *forest,
+                                           row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
     const auto factor_nnz = static_cast<size_type>(
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
-    exec->run(make_cholesky_symbolic(mtx, *forest, factors.get(), tmp));
+    exec->run(make_cholesky_symbolic(mtx.get(), *forest, factors.get(), tmp));
     factors->sort_by_column_index();
     auto lt_factor = as<matrix_type>(factors->transpose());
     const auto scalar =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-    lt_factor->apply(scalar.get(), id.get(), scalar.get(), factors.get());
+    lt_factor->apply(scalar, id, scalar, factors);
 }
 
 
-#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType) \
-    void symbolic_cholesky(                                 \
-        const matrix::Csr<ValueType, IndexType>* mtx,       \
+#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)         \
+    void symbolic_cholesky(                                         \
+        xstd::dont_deduce_t<                                        \
+            pointer_param<const matrix::Csr<ValueType, IndexType>>> \
+            mtx,                                                    \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
@@ -112,8 +115,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
  * "GSoFa: Scalable Sparse Symbolic LU Factorization on GPUs," arXiv 2021
  */
 template <typename ValueType, typename IndexType>
-void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
-                 std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+void symbolic_lu(
+    xstd::dont_deduce_t<pointer_param<const matrix::Csr<ValueType, IndexType>>>
+        mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = mtx->get_executor();
@@ -181,7 +186,7 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
     array<IndexType> out_row_ptr_array{exec, std::move(host_out_row_ptr_array)};
     array<IndexType> out_col_idx_array{exec, out_nnz};
     array<ValueType> out_val_array{exec, out_nnz};
-    exec->copy_from(host_exec.get(), out_nnz, out_col_idxs.data(),
+    exec->copy_from(host_exec, out_nnz, out_col_idxs.data(),
                     out_col_idx_array.get_data());
     factors = matrix_type::create(
         exec, mtx->get_size(), std::move(out_val_array),
@@ -189,9 +194,11 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
 }
 
 
-#define GKO_DECLARE_SYMBOLIC_LU(ValueType, IndexType) \
-    void symbolic_lu(                                 \
-        const matrix::Csr<ValueType, IndexType>* mtx, \
+#define GKO_DECLARE_SYMBOLIC_LU(ValueType, IndexType)               \
+    void symbolic_lu(                                               \
+        xstd::dont_deduce_t<                                        \
+            pointer_param<const matrix::Csr<ValueType, IndexType>>> \
+            mtx,                                                    \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_LU);

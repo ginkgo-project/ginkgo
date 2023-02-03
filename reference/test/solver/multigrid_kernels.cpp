@@ -323,31 +323,22 @@ protected:
           x2(gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec))
     {}
 
-    static void assert_same_step(const gko::LinOp* lo, std::vector<int> v2)
+    static void assert_same_step(gko::pointer_param<const gko::LinOp> lo,
+                                 std::vector<int> v2)
     {
-        auto v1 = dynamic_cast<const DummyFactory*>(lo)->get_step();
+        auto v1 = dynamic_cast<const DummyFactory*>(lo.get())->get_step();
         assert_same_vector(v1, v2);
     }
 
-    static void assert_same_step(const gko::multigrid::MultigridLevel* rp,
-                                 std::vector<int> rstr, std::vector<int> prlg)
+    static void assert_same_step(
+        gko::pointer_param<const gko::multigrid::MultigridLevel> rp,
+        std::vector<int> rstr, std::vector<int> prlg)
     {
-        auto dummy = dynamic_cast<const DummyRPFactory*>(rp);
+        auto dummy = dynamic_cast<const DummyRPFactory*>(rp.get());
         auto v = dummy->get_rstr_step();
         assert_same_vector(v, rstr);
         v = dummy->get_prlg_step();
         assert_same_vector(v, prlg);
-    }
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
     }
 
     std::unique_ptr<typename Solver::Factory> get_multigrid_factory(
@@ -501,10 +492,10 @@ TYPED_TEST(Multigrid, VCycleIndividual)
     global_step = 0;
     solver->apply(this->b, this->x);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {4});
-    this->assert_same_step(mg_level.at(1).get(), {2}, {3});
-    this->assert_same_step(pre_smoother.at(1).get(), {1});
-    this->assert_same_step(post_smoother.at(0).get(), {5});
+    this->assert_same_step(mg_level.at(0), {0}, {4});
+    this->assert_same_step(mg_level.at(1), {2}, {3});
+    this->assert_same_step(pre_smoother.at(1), {1});
+    this->assert_same_step(post_smoother.at(0), {5});
 }
 
 
@@ -539,11 +530,11 @@ TYPED_TEST(Multigrid, VCycleSame)
     global_step = 0;
     solver->apply(this->b, this->x);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {6});
-    this->assert_same_step(mg_level.at(1).get(), {2}, {4});
+    this->assert_same_step(mg_level.at(0), {0}, {6});
+    this->assert_same_step(mg_level.at(1), {2}, {4});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 5});
-    this->assert_same_step(coarsest_solver.get(), {3});
+    this->assert_same_step(pre_smoother.at(1), {1, 5});
+    this->assert_same_step(coarsest_solver, {3});
 }
 
 
@@ -587,14 +578,13 @@ TYPED_TEST(Multigrid, WCycleIndividual)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {23});
-    this->assert_same_step(mg_level.at(1).get(), {2, 13}, {11, 22});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 15, 19},
-                           {5, 9, 16, 20});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 12});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 14, 18});
-    this->assert_same_step(post_smoother.at(0).get(), {24});
-    this->assert_same_step(post_smoother.at(2).get(), {6, 10, 17, 21});
+    this->assert_same_step(mg_level.at(0), {0}, {23});
+    this->assert_same_step(mg_level.at(1), {2, 13}, {11, 22});
+    this->assert_same_step(mg_level.at(2), {4, 8, 15, 19}, {5, 9, 16, 20});
+    this->assert_same_step(pre_smoother.at(1), {1, 12});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 14, 18});
+    this->assert_same_step(post_smoother.at(0), {24});
+    this->assert_same_step(post_smoother.at(2), {6, 10, 17, 21});
 }
 
 
@@ -640,14 +630,13 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUsePost)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {20});
-    this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 19});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 13, 16},
-                           {5, 8, 14, 17});
-    this->assert_same_step(pre_smoother.at(1).get(), {1});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 12});
-    this->assert_same_step(post_smoother.at(0).get(), {21});
-    this->assert_same_step(post_smoother.at(2).get(), {6, 9, 15, 18});
+    this->assert_same_step(mg_level.at(0), {0}, {20});
+    this->assert_same_step(mg_level.at(1), {2, 11}, {10, 19});
+    this->assert_same_step(mg_level.at(2), {4, 7, 13, 16}, {5, 8, 14, 17});
+    this->assert_same_step(pre_smoother.at(1), {1});
+    this->assert_same_step(pre_smoother.at(2), {3, 12});
+    this->assert_same_step(post_smoother.at(0), {21});
+    this->assert_same_step(post_smoother.at(2), {6, 9, 15, 18});
 }
 
 
@@ -692,14 +681,13 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUsePre)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {21});
-    this->assert_same_step(mg_level.at(1).get(), {2, 12}, {10, 20});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 14, 17},
-                           {5, 8, 15, 18});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 11});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 6, 13, 16});
-    this->assert_same_step(post_smoother.at(0).get(), {22});
-    this->assert_same_step(post_smoother.at(2).get(), {9, 19});
+    this->assert_same_step(mg_level.at(0), {0}, {21});
+    this->assert_same_step(mg_level.at(1), {2, 12}, {10, 20});
+    this->assert_same_step(mg_level.at(2), {4, 7, 14, 17}, {5, 8, 15, 18});
+    this->assert_same_step(pre_smoother.at(1), {1, 11});
+    this->assert_same_step(pre_smoother.at(2), {3, 6, 13, 16});
+    this->assert_same_step(post_smoother.at(0), {22});
+    this->assert_same_step(post_smoother.at(2), {9, 19});
 }
 
 
@@ -744,15 +732,14 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUseStandalone)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {20});
-    this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 19});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 13, 16},
-                           {5, 8, 14, 17});
-    this->assert_same_step(pre_smoother.at(1).get(), {1});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 12});
-    this->assert_same_step(post_smoother.at(0).get(), {21});
-    this->assert_same_step(post_smoother.at(2).get(), {9, 18});
-    this->assert_same_step(mid_smoother.at(2).get(), {6, 15});
+    this->assert_same_step(mg_level.at(0), {0}, {20});
+    this->assert_same_step(mg_level.at(1), {2, 11}, {10, 19});
+    this->assert_same_step(mg_level.at(2), {4, 7, 13, 16}, {5, 8, 14, 17});
+    this->assert_same_step(pre_smoother.at(1), {1});
+    this->assert_same_step(pre_smoother.at(2), {3, 12});
+    this->assert_same_step(post_smoother.at(0), {21});
+    this->assert_same_step(post_smoother.at(2), {9, 18});
+    this->assert_same_step(mid_smoother.at(2), {6, 15});
 }
 
 
@@ -791,15 +778,13 @@ TYPED_TEST(Multigrid, WCycleSame)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {29});
-    this->assert_same_step(mg_level.at(1).get(), {2, 16}, {13, 27});
-    this->assert_same_step(mg_level.at(2).get(), {4, 9, 18, 23},
-                           {6, 11, 20, 25});
+    this->assert_same_step(mg_level.at(0), {0}, {29});
+    this->assert_same_step(mg_level.at(1), {2, 16}, {13, 27});
+    this->assert_same_step(mg_level.at(2), {4, 9, 18, 23}, {6, 11, 20, 25});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 14, 15, 28});
-    this->assert_same_step(pre_smoother.at(2).get(),
-                           {3, 7, 8, 12, 17, 21, 22, 26});
-    this->assert_same_step(coarsest_solver.get(), {5, 10, 19, 24});
+    this->assert_same_step(pre_smoother.at(1), {1, 14, 15, 28});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 8, 12, 17, 21, 22, 26});
+    this->assert_same_step(coarsest_solver, {5, 10, 19, 24});
 }
 
 
@@ -841,14 +826,13 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePost)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {26});
-    this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 24});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 16, 20},
-                           {6, 10, 18, 22});
+    this->assert_same_step(mg_level.at(0), {0}, {26});
+    this->assert_same_step(mg_level.at(1), {2, 14}, {12, 24});
+    this->assert_same_step(mg_level.at(2), {4, 8, 16, 20}, {6, 10, 18, 22});
     // all use pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 13, 25});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 11, 15, 19, 23});
-    this->assert_same_step(coarsest_solver.get(), {5, 9, 17, 21});
+    this->assert_same_step(pre_smoother.at(1), {1, 13, 25});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 11, 15, 19, 23});
+    this->assert_same_step(coarsest_solver, {5, 9, 17, 21});
 }
 
 
@@ -889,14 +873,13 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePre)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {26});
-    this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 24});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 16, 20},
-                           {6, 10, 18, 22});
+    this->assert_same_step(mg_level.at(0), {0}, {26});
+    this->assert_same_step(mg_level.at(1), {2, 14}, {12, 24});
+    this->assert_same_step(mg_level.at(2), {4, 8, 16, 20}, {6, 10, 18, 22});
     // all use pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 13, 25});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 11, 15, 19, 23});
-    this->assert_same_step(coarsest_solver.get(), {5, 9, 17, 21});
+    this->assert_same_step(pre_smoother.at(1), {1, 13, 25});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 11, 15, 19, 23});
+    this->assert_same_step(coarsest_solver, {5, 9, 17, 21});
 }
 
 
@@ -939,14 +922,14 @@ TYPED_TEST(Multigrid, FCycleIndividual)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {19});
-    this->assert_same_step(mg_level.at(1).get(), {2, 13}, {11, 18});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 15}, {5, 9, 16});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 12});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 14});
-    // this->assert_same_step(mid_smoother.at(0).get(), {7});
-    this->assert_same_step(post_smoother.at(0).get(), {20});
-    this->assert_same_step(post_smoother.at(2).get(), {6, 10, 17});
+    this->assert_same_step(mg_level.at(0), {0}, {19});
+    this->assert_same_step(mg_level.at(1), {2, 13}, {11, 18});
+    this->assert_same_step(mg_level.at(2), {4, 8, 15}, {5, 9, 16});
+    this->assert_same_step(pre_smoother.at(1), {1, 12});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 14});
+    // this->assert_same_step(mid_smoother.at(0), {7});
+    this->assert_same_step(post_smoother.at(0), {20});
+    this->assert_same_step(post_smoother.at(2), {6, 10, 17});
 }
 
 
@@ -992,13 +975,13 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUsePost)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {17});
-    this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 16});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 13}, {5, 8, 14});
-    this->assert_same_step(pre_smoother.at(1).get(), {1});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 12});
-    this->assert_same_step(post_smoother.at(0).get(), {18});
-    this->assert_same_step(post_smoother.at(2).get(), {6, 9, 15});
+    this->assert_same_step(mg_level.at(0), {0}, {17});
+    this->assert_same_step(mg_level.at(1), {2, 11}, {10, 16});
+    this->assert_same_step(mg_level.at(2), {4, 7, 13}, {5, 8, 14});
+    this->assert_same_step(pre_smoother.at(1), {1});
+    this->assert_same_step(pre_smoother.at(2), {3, 12});
+    this->assert_same_step(post_smoother.at(0), {18});
+    this->assert_same_step(post_smoother.at(2), {6, 9, 15});
 }
 
 
@@ -1043,13 +1026,13 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUsePre)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {18});
-    this->assert_same_step(mg_level.at(1).get(), {2, 12}, {10, 17});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 14}, {5, 8, 15});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 11});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 6, 13});
-    this->assert_same_step(post_smoother.at(0).get(), {19});
-    this->assert_same_step(post_smoother.at(2).get(), {9, 16});
+    this->assert_same_step(mg_level.at(0), {0}, {18});
+    this->assert_same_step(mg_level.at(1), {2, 12}, {10, 17});
+    this->assert_same_step(mg_level.at(2), {4, 7, 14}, {5, 8, 15});
+    this->assert_same_step(pre_smoother.at(1), {1, 11});
+    this->assert_same_step(pre_smoother.at(2), {3, 6, 13});
+    this->assert_same_step(post_smoother.at(0), {19});
+    this->assert_same_step(post_smoother.at(2), {9, 16});
 }
 
 
@@ -1094,14 +1077,14 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUseStandalone)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {17});
-    this->assert_same_step(mg_level.at(1).get(), {2, 11}, {10, 16});
-    this->assert_same_step(mg_level.at(2).get(), {4, 7, 13}, {5, 8, 14});
-    this->assert_same_step(pre_smoother.at(1).get(), {1});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 12});
-    this->assert_same_step(post_smoother.at(0).get(), {18});
-    this->assert_same_step(post_smoother.at(2).get(), {9, 15});
-    this->assert_same_step(mid_smoother.at(2).get(), {6});
+    this->assert_same_step(mg_level.at(0), {0}, {17});
+    this->assert_same_step(mg_level.at(1), {2, 11}, {10, 16});
+    this->assert_same_step(mg_level.at(2), {4, 7, 13}, {5, 8, 14});
+    this->assert_same_step(pre_smoother.at(1), {1});
+    this->assert_same_step(pre_smoother.at(2), {3, 12});
+    this->assert_same_step(post_smoother.at(0), {18});
+    this->assert_same_step(post_smoother.at(2), {9, 15});
+    this->assert_same_step(mid_smoother.at(2), {6});
 }
 
 
@@ -1141,12 +1124,12 @@ TYPED_TEST(Multigrid, FCycleSame)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {24});
-    this->assert_same_step(mg_level.at(1).get(), {2, 16}, {13, 22});
-    this->assert_same_step(mg_level.at(2).get(), {4, 9, 18}, {6, 11, 20});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 14, 15, 23});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 8, 12, 17, 21});
-    this->assert_same_step(coarsest_solver.get(), {5, 10, 19});
+    this->assert_same_step(mg_level.at(0), {0}, {24});
+    this->assert_same_step(mg_level.at(1), {2, 16}, {13, 22});
+    this->assert_same_step(mg_level.at(2), {4, 9, 18}, {6, 11, 20});
+    this->assert_same_step(pre_smoother.at(1), {1, 14, 15, 23});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 8, 12, 17, 21});
+    this->assert_same_step(coarsest_solver, {5, 10, 19});
 }
 
 
@@ -1188,13 +1171,13 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePost)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {22});
-    this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 20});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 16}, {6, 10, 18});
+    this->assert_same_step(mg_level.at(0), {0}, {22});
+    this->assert_same_step(mg_level.at(1), {2, 14}, {12, 20});
+    this->assert_same_step(mg_level.at(2), {4, 8, 16}, {6, 10, 18});
     // all use pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 13, 21});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 11, 15, 19});
-    this->assert_same_step(coarsest_solver.get(), {5, 9, 17});
+    this->assert_same_step(pre_smoother.at(1), {1, 13, 21});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 11, 15, 19});
+    this->assert_same_step(coarsest_solver, {5, 9, 17});
 }
 
 
@@ -1235,13 +1218,13 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePre)
     global_step = 0;
     solver->apply(this->b2, this->x2);
 
-    this->assert_same_step(mg_level.at(0).get(), {0}, {22});
-    this->assert_same_step(mg_level.at(1).get(), {2, 14}, {12, 20});
-    this->assert_same_step(mg_level.at(2).get(), {4, 8, 16}, {6, 10, 18});
+    this->assert_same_step(mg_level.at(0), {0}, {22});
+    this->assert_same_step(mg_level.at(1), {2, 14}, {12, 20});
+    this->assert_same_step(mg_level.at(2), {4, 8, 16}, {6, 10, 18});
     // all use pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 13, 21});
-    this->assert_same_step(pre_smoother.at(2).get(), {3, 7, 11, 15, 19});
-    this->assert_same_step(coarsest_solver.get(), {5, 9, 17});
+    this->assert_same_step(pre_smoother.at(1), {1, 13, 21});
+    this->assert_same_step(pre_smoother.at(2), {3, 7, 11, 15, 19});
+    this->assert_same_step(coarsest_solver, {5, 9, 17});
 }
 
 
@@ -1267,11 +1250,11 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 
     ASSERT_EQ(original, gko::solver::multigrid::cycle::v);
     ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid::cycle::f);
-    this->assert_same_step(mg_level.at(0).get(), {0}, {11});
-    this->assert_same_step(mg_level.at(1).get(), {2, 7}, {4, 9});
+    this->assert_same_step(mg_level.at(0), {0}, {11});
+    this->assert_same_step(mg_level.at(1), {2, 7}, {4, 9});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 6, 10});
-    this->assert_same_step(coarsest_solver.get(), {3, 8});
+    this->assert_same_step(pre_smoother.at(1), {1, 5, 6, 10});
+    this->assert_same_step(coarsest_solver, {3, 8});
 }
 
 
@@ -1305,8 +1288,8 @@ TYPED_TEST(Multigrid, ZeroGuessIgnoresInput)
 
     // putting zero to normal multigrid is the same behavior as using zero guess
     // in multigrid
-    normal_mg->apply(b.get(), zero.get());
-    zeroguess_mg->apply(b.get(), x.get());
+    normal_mg->apply(b, zero);
+    zeroguess_mg->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(zero, x, r<value_type>::value);
 }
@@ -1322,7 +1305,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByVCycle)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }
@@ -1338,7 +1321,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByWCycle)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }
@@ -1354,7 +1337,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }

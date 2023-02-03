@@ -88,7 +88,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
     {
         auto v = m->get_const_ell_values();
         auto c = m->get_const_ell_col_idxs();
@@ -112,7 +112,7 @@ protected:
         EXPECT_EQ(m->get_const_coo_row_idxs()[0], 0);
     }
 
-    void assert_empty(const Mtx* m)
+    void assert_empty(gko::pointer_param<const Mtx> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
@@ -141,7 +141,7 @@ TYPED_TEST(Hybrid, KnowsItsSize)
 
 TYPED_TEST(Hybrid, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -159,11 +159,11 @@ TYPED_TEST(Hybrid, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_ell_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -174,7 +174,7 @@ TYPED_TEST(Hybrid, CanBeMoved)
 
     copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -183,7 +183,7 @@ TYPED_TEST(Hybrid, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_ell_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(static_cast<Mtx*>(clone.get()));
 }
@@ -237,7 +237,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByColumns2)
                          std::make_shared<typename Mtx::column_limit>(2));
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 
@@ -329,7 +329,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByColumns2)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 

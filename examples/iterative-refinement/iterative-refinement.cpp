@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_x.get());
+    b->copy_from(host_x);
     gko::size_type max_iters = 10000u;
     RealValueType outer_reduction_factor{1e-12};
     auto iter_stop = gko::share(

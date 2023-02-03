@@ -101,7 +101,7 @@ TYPED_TEST(UpperTrs, CanBeCopied)
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
 }
 
 
@@ -114,7 +114,7 @@ TYPED_TEST(UpperTrs, CanBeMoved)
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
 }
 
 
@@ -125,7 +125,7 @@ TYPED_TEST(UpperTrs, CanBeCloned)
     auto clone_mtx = clone->get_system_matrix();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(clone_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(clone_mtx, this->csr_mtx, 0);
 }
 
 

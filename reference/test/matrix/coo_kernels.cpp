@@ -121,8 +121,8 @@ TYPED_TEST(Coo, ConvertsToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->mtx->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
@@ -142,8 +142,8 @@ TYPED_TEST(Coo, MovesToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->mtx->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
@@ -159,8 +159,8 @@ TYPED_TEST(Coo, ConvertsToCsr)
     auto csr_mtx_c = Csr::create(this->mtx->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx->get_executor(), csr_s_merge);
 
-    this->mtx->convert_to(csr_mtx_c.get());
-    this->mtx->convert_to(csr_mtx_m.get());
+    this->mtx->convert_to(csr_mtx_c);
+    this->mtx->convert_to(csr_mtx_m);
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
@@ -180,8 +180,8 @@ TYPED_TEST(Coo, MovesToCsr)
     auto csr_mtx_m = Csr::create(this->mtx->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx->clone();
 
-    this->mtx->move_to(csr_mtx_c.get());
-    mtx_clone->move_to(csr_mtx_m.get());
+    this->mtx->move_to(csr_mtx_c);
+    mtx_clone->move_to(csr_mtx_m);
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
@@ -197,7 +197,7 @@ TYPED_TEST(Coo, ConvertsToDense)
     using Dense = typename TestFixture::Vec;
     auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(dense_mtx.get());
+    this->mtx->convert_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -214,7 +214,7 @@ TYPED_TEST(Coo, ConvertsToDenseUnsorted)
     using Dense = typename TestFixture::Vec;
     auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->uns_mtx->convert_to(dense_mtx.get());
+    this->uns_mtx->convert_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -230,7 +230,7 @@ TYPED_TEST(Coo, MovesToDense)
     using Dense = typename TestFixture::Vec;
     auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->move_to(dense_mtx.get());
+    this->mtx->move_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -250,7 +250,7 @@ TYPED_TEST(Coo, ConvertsEmptyToPrecision)
     auto empty = OtherCoo::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -267,7 +267,7 @@ TYPED_TEST(Coo, MovesEmptyToPrecision)
     auto empty = OtherCoo::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -283,7 +283,7 @@ TYPED_TEST(Coo, ConvertsEmptyToCsr)
     auto empty = Coo::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -300,7 +300,7 @@ TYPED_TEST(Coo, MovesEmptyToCsr)
     auto empty = Coo::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -317,7 +317,7 @@ TYPED_TEST(Coo, ConvertsEmptyToDense)
     auto empty = Coo::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -332,7 +332,7 @@ TYPED_TEST(Coo, MovesEmptyToDense)
     auto empty = Coo::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -344,7 +344,7 @@ TYPED_TEST(Coo, AppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -358,7 +358,7 @@ TYPED_TEST(Coo, ApplyToStridedVectorKeepsPadding)
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1}, 2);
     y->get_values()[1] = 1234;
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
     ASSERT_EQ(y->get_values()[1], T{1234});
@@ -371,7 +371,7 @@ TYPED_TEST(Coo, AppliesToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -383,7 +383,7 @@ TYPED_TEST(Coo, AppliesToDenseVectorUnsorted)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->uns_mtx->apply(x.get(), y.get());
+    this->uns_mtx->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -401,7 +401,7 @@ TYPED_TEST(Coo, AppliesToDenseMatrix)
     // clang-format on
     auto y = Vec::create(this->exec, gko::dim<2>{2, 2});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -423,7 +423,7 @@ TYPED_TEST(Coo, AppliesToDenseMatrixUnsorted)
     // clang-format on
     auto y = Vec::create(this->exec, gko::dim<2>{2, 2});
 
-    this->uns_mtx->apply(x.get(), y.get());
+    this->uns_mtx->apply(x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -441,7 +441,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
@@ -459,7 +459,7 @@ TYPED_TEST(Coo, ApplyLinearCombinationToStridedVectorKeepsPadding)
     y->at(0, 0) = 1.0;
     y->at(1, 0) = 2.0;
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
     ASSERT_EQ(y->get_values()[1], T{1234});
@@ -474,7 +474,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
@@ -496,7 +496,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationToDenseMatrix)
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -512,7 +512,7 @@ TYPED_TEST(Coo, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -522,7 +522,7 @@ TYPED_TEST(Coo, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -532,7 +532,7 @@ TYPED_TEST(Coo, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{3});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -542,7 +542,7 @@ TYPED_TEST(Coo, AppliesAddToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({2.0, 1.0}, this->exec);
 
-    this->mtx->apply2(x.get(), y.get());
+    this->mtx->apply2(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
 }
@@ -554,7 +554,7 @@ TYPED_TEST(Coo, AppliesAddToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<MixedVec>({2.0, 1.0}, this->exec);
 
-    this->mtx->apply2(x.get(), y.get());
+    this->mtx->apply2(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
 }
@@ -574,7 +574,7 @@ TYPED_TEST(Coo, AppliesAddToDenseMatrix)
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    this->mtx->apply2(x.get(), y.get());
+    this->mtx->apply2(x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -591,7 +591,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationAddToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply2(alpha.get(), x.get(), y.get());
+    this->mtx->apply2(alpha, x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
 }
@@ -604,7 +604,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationAddToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply2(alpha.get(), x.get(), y.get());
+    this->mtx->apply2(alpha, x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
 }
@@ -625,7 +625,7 @@ TYPED_TEST(Coo, AppliesLinearCombinationAddToDenseMatrix)
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    this->mtx->apply2(alpha.get(), x.get(), y.get());
+    this->mtx->apply2(alpha, x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -719,7 +719,7 @@ TYPED_TEST(Coo, AppliesToComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx->apply(b.get(), x.get());
+    this->mtx->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -745,7 +745,7 @@ TYPED_TEST(Coo, AppliesToMixedComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx->apply(b.get(), x.get());
+    this->mtx->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -775,7 +775,7 @@ TYPED_TEST(Coo, AdvancedAppliesToComplex)
     auto beta = gko::initialize<Dense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -806,7 +806,7 @@ TYPED_TEST(Coo, AdvancedAppliesToMixedComplex)
     auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -833,7 +833,7 @@ TYPED_TEST(Coo, ApplyAddsToComplex)
          {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
     // clang-format on
 
-    this->mtx->apply2(b.get(), x.get());
+    this->mtx->apply2(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -861,7 +861,7 @@ TYPED_TEST(Coo, ApplyAddsToMixedComplex)
          {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
     // clang-format on
 
-    this->mtx->apply2(b.get(), x.get());
+    this->mtx->apply2(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -890,7 +890,7 @@ TYPED_TEST(Coo, ApplyAddsScaledToComplex)
     auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply2(alpha.get(), b.get(), x.get());
+    this->mtx->apply2(alpha, b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -920,7 +920,7 @@ TYPED_TEST(Coo, ApplyAddsScaledToMixedComplex)
     auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply2(alpha.get(), b.get(), x.get());
+    this->mtx->apply2(alpha, b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,

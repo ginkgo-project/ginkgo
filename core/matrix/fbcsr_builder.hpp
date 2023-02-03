@@ -71,8 +71,9 @@ public:
      * @param matrix  An existing FBCSR matrix
      *                for which intrusive access is needed
      */
-    explicit FbcsrBuilder(Fbcsr<ValueType, IndexType>* const matrix)
-        : matrix_{matrix}
+    explicit FbcsrBuilder(
+        pointer_param<Fbcsr<ValueType, IndexType>> const matrix)
+        : matrix_{matrix.get()}
     {}
 
     ~FbcsrBuilder() = default;

@@ -76,7 +76,7 @@ TYPED_TEST(Perturbation, CopiesOnSameExecutor)
                                                     this->projector);
     auto out = per->create_default();
 
-    per->convert_to(out.get());
+    per->convert_to(out);
 
     ASSERT_EQ(out->get_size(), per->get_size());
     ASSERT_EQ(out->get_executor(), per->get_executor());
@@ -94,7 +94,7 @@ TYPED_TEST(Perturbation, MovesOnSameExecutor)
     auto per2 = per->clone();
     auto out = per->create_default();
 
-    per->move_to(out.get());
+    per->move_to(out);
 
     ASSERT_EQ(out->get_size(), per2->get_size());
     ASSERT_EQ(out->get_executor(), per2->get_executor());

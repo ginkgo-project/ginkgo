@@ -428,10 +428,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
     r->copy_from(b);  // n * b
-    matrix->apply(neg_one, x, one, r.get());
+    matrix->apply(neg_one, x, one, r);
 
     // first cycle
-    mg_level->get_restrict_op()->apply(r.get(), g.get());
+    mg_level->get_restrict_op()->apply(r, g);
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
@@ -462,7 +462,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     // prolong
-    mg_level->get_prolong_op()->apply(next_one, e.get(), next_one, x);
+    mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
 
     // end or origin previous
     bool use_post = has_property(mode, cycle_mode::end_of_cycle) ||
@@ -632,7 +632,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                 auto x_clone = dense_x->clone();
                 this->apply_dense_impl(dense_b, x_clone.get(), guess);
                 dense_x->scale(dense_beta);
-                dense_x->add_scaled(dense_alpha, x_clone.get());
+                dense_x->add_scaled(dense_alpha, x_clone);
             },
             alpha, b, beta, x);
     };

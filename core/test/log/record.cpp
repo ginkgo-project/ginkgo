@@ -220,7 +220,7 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
 
     auto& data = logger->get().polymorphic_object_create_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
     ASSERT_EQ(data->output.get(), nullptr);
 }
 
@@ -239,8 +239,8 @@ TEST(Record, CatchesPolymorphicObjectCreateCompleted)
 
     auto& data = logger->get().polymorphic_object_create_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output, 0);
 }
 
 
@@ -258,8 +258,8 @@ TEST(Record, CatchesPolymorphicObjectCopyStarted)
 
     auto& data = logger->get().polymorphic_object_copy_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -278,8 +278,8 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
 
     auto& data = logger->get().polymorphic_object_copy_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -297,8 +297,8 @@ TEST(Record, CatchesPolymorphicObjectMoveStarted)
 
     auto& data = logger->get().polymorphic_object_move_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -317,8 +317,8 @@ TEST(Record, CatchesPolymorphicObjectMoveCompleted)
 
     auto& data = logger->get().polymorphic_object_move_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -336,7 +336,7 @@ TEST(Record, CatchesPolymorphicObjectDeleted)
 
     auto& data = logger->get().polymorphic_object_deleted.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
     ASSERT_EQ(data->output, nullptr);
 }
 

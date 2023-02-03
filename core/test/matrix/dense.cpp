@@ -57,7 +57,8 @@ protected:
     {}
 
 
-    static void assert_equal_to_original_mtx(gko::matrix::Dense<value_type>* m)
+    static void assert_equal_to_original_mtx(
+        gko::pointer_param<gko::matrix::Dense<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 2 * m->get_stride());
@@ -69,7 +70,8 @@ protected:
         ASSERT_EQ(m->at(1, 2), value_type{3.5});
     }
 
-    static void assert_empty(gko::matrix::Dense<value_type>* m)
+    static void assert_empty(
+        gko::pointer_param<gko::matrix::Dense<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -160,7 +162,7 @@ TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 {
     auto m =
         gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3}, 4);
-    auto m2 = gko::matrix::Dense<TypeParam>::create_with_config_of(m.get());
+    auto m2 = gko::matrix::Dense<TypeParam>::create_with_config_of(m);
 
     ASSERT_EQ(m2->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m2->get_stride(), 4);
@@ -170,7 +172,7 @@ TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 
 TYPED_TEST(Dense, KnowsItsSizeAndValues)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     ASSERT_EQ(this->mtx->get_stride(), 4);
 }
 
@@ -237,10 +239,10 @@ TYPED_TEST(Dense, CanBeDoubleListConstructedWithstride)
 TYPED_TEST(Dense, CanBeCopied)
 {
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(this->mtx.get());
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    mtx_copy->copy_from(this->mtx);
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->at(0) = 7;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(this->mtx->get_stride(), 4);
     ASSERT_EQ(mtx_copy->get_stride(), 3);
 }
@@ -250,7 +252,7 @@ TYPED_TEST(Dense, CanBeMoved)
 {
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
     mtx_copy->copy_from(std::move(this->mtx));
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(mtx_copy->get_stride(), 4);
 }
 
@@ -258,7 +260,7 @@ TYPED_TEST(Dense, CanBeMoved)
 TYPED_TEST(Dense, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
-    this->assert_equal_to_original_mtx(mtx_clone.get());
+    this->assert_equal_to_original_mtx(mtx_clone);
     ASSERT_EQ(mtx_clone->get_stride(), 3);
 }
 
@@ -408,7 +410,7 @@ TYPED_TEST(Dense, CanCreateRealView)
 
 TYPED_TEST(Dense, CanMakeMutableView)
 {
-    auto view = gko::make_dense_view(this->mtx.get());
+    auto view = gko::make_dense_view(this->mtx);
 
     ASSERT_EQ(view->get_values(), this->mtx->get_values());
     ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
@@ -418,7 +420,7 @@ TYPED_TEST(Dense, CanMakeMutableView)
 
 TYPED_TEST(Dense, CanMakeConstView)
 {
-    auto view = gko::make_const_dense_view(this->mtx.get());
+    auto view = gko::make_const_dense_view(this->mtx);
 
     ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
     ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
@@ -451,7 +453,7 @@ private:
     std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
     {
         auto view = create(this->get_executor(), {}, this->get_data());
-        gko::matrix::Dense<>::create_view_of_impl()->move_to(view.get());
+        gko::matrix::Dense<>::create_view_of_impl()->move_to(view);
         return view;
     }
 
@@ -464,7 +466,7 @@ TEST(DenseView, CustomViewKeepsRuntimeType)
     auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
                                       gko::dim<2>{3, 4}, 2);
 
-    auto view = gko::make_dense_view(vector.get());
+    auto view = gko::make_dense_view(vector);
 
     ASSERT_EQ(view->get_values(), vector->get_values());
     EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));

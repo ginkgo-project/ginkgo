@@ -109,8 +109,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     gko::array<IndexType> row_idxs(exec, nnz);
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
-    exec->copy_from(exec.get(), nnz, fine_csr->get_const_values(),
-                    vals.get_data());
+    exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
                                 agg.get_const_data(), row_idxs.get_data()));
@@ -218,7 +217,7 @@ void Pgm<ValueType, IndexType>::generate()
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
-    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(

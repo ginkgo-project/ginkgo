@@ -100,13 +100,13 @@ TYPED_TEST(Convergence, CanLogData)
 
     ASSERT_EQ(logger->has_converged(), true);
     ASSERT_EQ(logger->get_num_iterations(), 100);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual()),
-                        this->residual.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual()), this->residual,
+                        0);
     GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
-                        this->residual_norm.get(), 0);
+                        this->residual_norm, 0);
     GKO_ASSERT_MTX_NEAR(
         gko::as<AbsoluteDense>(logger->get_implicit_sq_resnorm()),
-        this->implicit_sq_resnorm.get(), 0);
+        this->implicit_sq_resnorm, 0);
 }
 
 

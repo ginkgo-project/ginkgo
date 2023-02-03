@@ -1352,7 +1352,7 @@ std::unique_ptr<Matrix> initialize(
         ++idx;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 
@@ -1428,7 +1428,7 @@ std::unique_ptr<Matrix> initialize(
         ++ridx;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 

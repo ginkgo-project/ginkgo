@@ -76,7 +76,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -119,7 +119,7 @@ TYPED_TEST(Coo, KnowsItsSize)
 
 TYPED_TEST(Coo, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -177,11 +177,11 @@ TYPED_TEST(Coo, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -192,7 +192,7 @@ TYPED_TEST(Coo, CanBeMoved)
 
     copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -201,7 +201,7 @@ TYPED_TEST(Coo, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
@@ -221,7 +221,7 @@ TYPED_TEST(Coo, CanBeReadFromMatrixData)
     auto m = Mtx::create(this->exec);
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 
@@ -239,7 +239,7 @@ TYPED_TEST(Coo, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 

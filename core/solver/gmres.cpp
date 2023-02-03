@@ -177,7 +177,7 @@ create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
         mtx->get_local_vector()->get_stride());
     return experimental::distributed::Vector<ValueType>::create(
         exec, mtx->get_communicator(), global_size,
-        local_view->create_submatrix(rows, cols).get());
+        local_view->create_submatrix(rows, cols));
 }
 
 
@@ -362,7 +362,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             preconditioned_krylov_vector = preconditioned_krylov.get();
         }
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
-        this->get_preconditioner()->apply(this_krylov.get(),
+        this->get_preconditioner()->apply(this_krylov,
                                           preconditioned_krylov_vector);
 
         // Create view of current column in the hessenberg matrix:
@@ -374,7 +374,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // Start of Arnoldi
         // next_krylov = A * preconditioned_krylov_vector
         this->get_system_matrix()->apply(preconditioned_krylov_vector,
-                                         next_krylov.get());
+                                         next_krylov);
 
         for (size_type i = 0; i <= restart_iter; i++) {
             // orthogonalize against krylov_bases(:, i):
@@ -386,9 +386,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 krylov_bases, dim<2>{num_rows, num_rhs},
                 span{local_num_rows * i, local_num_rows * (i + 1)},
                 span{0, num_rhs});
-            next_krylov->compute_conj_dot(
-                krylov_basis.get(), hessenberg_entry.get(), reduction_tmp);
-            next_krylov->sub_scaled(hessenberg_entry.get(), krylov_basis.get());
+            next_krylov->compute_conj_dot(krylov_basis, hessenberg_entry,
+                                          reduction_tmp);
+            next_krylov->sub_scaled(hessenberg_entry, krylov_basis);
         }
         // normalize next_krylov:
         // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
@@ -398,7 +398,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
             next_krylov.get(), hessenberg_norm_entry.get(),
             next_krylov_norm_tmp, reduction_tmp);
-        next_krylov->inv_scale(hessenberg_norm_entry.get());
+        next_krylov->inv_scale(hessenberg_norm_entry);
         // End of Arnoldi
 
         // update QR factorization and Krylov RHS for last column:
@@ -479,7 +479,7 @@ void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

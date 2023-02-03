@@ -95,7 +95,7 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 
     auto mtx = Mtx::create(this->exec, std::move(csr_mtx));
 
-    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(comp_mtx, mtx, 0.0);
 }
 
 
@@ -110,7 +110,7 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
 
     auto mtx = Mtx::create(this->exec, std::move(dense_mtx));
 
-    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(comp_mtx, mtx, 0.0);
 }
 
 

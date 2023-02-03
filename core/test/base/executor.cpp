@@ -212,7 +212,7 @@ TEST(ReferenceExecutor, CopiesDataFromOmp)
     int* copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    ref->copy_from(omp.get(), num_elems, orig, copy);
+    ref->copy_from(omp, num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -229,7 +229,7 @@ TEST(ReferenceExecutor, CopiesDataToOmp)
     int* copy = omp->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    omp->copy_from(ref.get(), num_elems, orig, copy);
+    omp->copy_from(ref, num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 

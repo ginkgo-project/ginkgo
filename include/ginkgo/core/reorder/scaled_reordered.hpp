@@ -151,13 +151,13 @@ protected:
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.row_scaling,
                                         system_matrix_);
             row_scaling_ = parameters_.row_scaling;
-            row_scaling_->apply(system_matrix_.get(), system_matrix_.get());
+            row_scaling_->apply(system_matrix_, system_matrix_);
         }
         if (parameters_.col_scaling) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.col_scaling,
                                         system_matrix_);
             col_scaling_ = parameters_.col_scaling;
-            col_scaling_->rapply(system_matrix_.get(), system_matrix_.get());
+            col_scaling_->rapply(system_matrix_, system_matrix_);
         }
 
         // If a reordering factory is provided, generate the reordering and

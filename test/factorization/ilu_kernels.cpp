@@ -88,8 +88,8 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 
 TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
 {
-    gko::test::unsort_matrix(mtx.get(), rand_engine);
-    dmtx->copy_from(mtx.get());
+    gko::test::unsort_matrix(mtx, rand_engine);
+    dmtx->copy_from(mtx);
 
     auto fact = gko::factorization::Ilu<>::build().on(ref)->generate(mtx);
     auto dfact = gko::factorization::Ilu<>::build().on(exec)->generate(dmtx);

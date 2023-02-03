@@ -249,7 +249,8 @@ protected:
         return std::move(result);
     }
 
-    std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
+    std::unique_ptr<Csr> clone_allocations(
+        gko::pointer_param<const Csr> csr_mtx)
     {
         const auto num_elems = csr_mtx->get_num_stored_elements();
         auto sparsity = csr_mtx->clone();
@@ -259,7 +260,7 @@ protected:
         return sparsity;
     }
 
-    std::unique_ptr<Csr> transpose(const Csr* mtx)
+    std::unique_ptr<Csr> transpose(gko::pointer_param<const Csr> mtx)
     {
         return gko::as<Csr>(mtx->transpose());
     }
@@ -333,7 +334,7 @@ TYPED_TEST(Isai, KernelGenerateA)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->a_csr.get());
+    auto result = this->clone_allocations(this->a_csr);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -358,8 +359,8 @@ TYPED_TEST(Isai, KernelGenerateA2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto a_transpose = this->transpose(this->a_csr.get());
-    auto result = this->clone_allocations(a_transpose.get());
+    auto a_transpose = this->transpose(this->a_csr);
+    auto result = this->clone_allocations(a_transpose);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -371,7 +372,7 @@ TYPED_TEST(Isai, KernelGenerateA2)
         this->exec, a_transpose.get(), result.get(), a1.get_data(),
         a2.get_data(), false);
 
-    const auto expected = this->transpose(this->a_csr_inv.get());
+    const auto expected = this->transpose(this->a_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -385,7 +386,7 @@ TYPED_TEST(Isai, KernelGenerateAsparse)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->a_sparse.get());
+    auto result = this->clone_allocations(this->a_sparse);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -410,7 +411,7 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->a_csr_longrow.get());
+    auto result = this->clone_allocations(this->a_csr_longrow);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -472,7 +473,7 @@ TYPED_TEST(Isai, KernelGenerateL1)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->l_csr.get());
+    auto result = this->clone_allocations(this->l_csr);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -497,8 +498,8 @@ TYPED_TEST(Isai, KernelGenerateL2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto l_mtx = this->transpose(this->u_csr.get());
-    auto result = this->clone_allocations(l_mtx.get());
+    const auto l_mtx = this->transpose(this->u_csr);
+    auto result = this->clone_allocations(l_mtx);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -510,7 +511,7 @@ TYPED_TEST(Isai, KernelGenerateL2)
         this->exec, l_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
         true);
 
-    const auto expected = this->transpose(this->u_csr_inv.get());
+    const auto expected = this->transpose(this->u_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -524,7 +525,7 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->l_sparse.get());
+    auto result = this->clone_allocations(this->l_sparse);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -549,7 +550,7 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->l_sparse2.get());
+    auto result = this->clone_allocations(this->l_sparse2);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -574,8 +575,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto l_mtx = this->transpose(this->u_sparse.get());
-    auto result = this->clone_allocations(l_mtx.get());
+    const auto l_mtx = this->transpose(this->u_sparse);
+    auto result = this->clone_allocations(l_mtx);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -607,7 +608,7 @@ TYPED_TEST(Isai, KernelGenerateLLongrow)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->l_csr_longrow.get());
+    auto result = this->clone_allocations(this->l_csr_longrow);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -673,8 +674,8 @@ TYPED_TEST(Isai, KernelGenerateU1)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto u_mtx = this->transpose(this->l_csr.get());
-    auto result = this->clone_allocations(u_mtx.get());
+    const auto u_mtx = this->transpose(this->l_csr);
+    auto result = this->clone_allocations(u_mtx);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -686,7 +687,7 @@ TYPED_TEST(Isai, KernelGenerateU1)
         this->exec, u_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
         false);
 
-    auto expected = this->transpose(this->l_csr_inv.get());
+    auto expected = this->transpose(this->l_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -700,7 +701,7 @@ TYPED_TEST(Isai, KernelGenerateU2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->u_csr.get());
+    auto result = this->clone_allocations(this->u_csr);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -725,8 +726,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto u_mtx = this->transpose(this->l_sparse.get());
-    auto result = this->clone_allocations(u_mtx.get());
+    const auto u_mtx = this->transpose(this->l_sparse);
+    auto result = this->clone_allocations(u_mtx);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -738,7 +739,7 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
         this->exec, u_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
         false);
 
-    const auto expected = this->transpose(this->l_sparse_inv.get());
+    const auto expected = this->transpose(this->l_sparse_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -752,8 +753,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto u_mtx = this->transpose(this->l_sparse2.get());
-    auto result = this->clone_allocations(u_mtx.get());
+    const auto u_mtx = this->transpose(this->l_sparse2);
+    auto result = this->clone_allocations(u_mtx);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -785,7 +786,7 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->u_sparse.get());
+    auto result = this->clone_allocations(this->u_sparse);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -810,7 +811,7 @@ TYPED_TEST(Isai, KernelGenerateULongrow)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->u_csr_longrow.get());
+    auto result = this->clone_allocations(this->u_csr_longrow);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -868,7 +869,7 @@ TYPED_TEST(Isai, KernelGenerateSpd)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->spd_csr_inv.get());
+    auto result = this->clone_allocations(this->spd_csr_inv);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -893,7 +894,7 @@ TYPED_TEST(Isai, KernelGenerateSpdsparse)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->spd_sparse_inv.get());
+    auto result = this->clone_allocations(this->spd_sparse_inv);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);
@@ -918,7 +919,7 @@ TYPED_TEST(Isai, KernelGenerateSpdLongrow)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(this->spd_csr_longrow_inv.get());
+    auto result = this->clone_allocations(this->spd_csr_longrow_inv);
     auto num_rows = result->get_size()[0];
     gko::array<index_type> a1(this->exec, num_rows + 1);
     gko::array<index_type> a2(this->exec, num_rows + 1);

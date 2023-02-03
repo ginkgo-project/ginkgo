@@ -881,8 +881,8 @@ T* plain_ptr(const std::shared_ptr<T>& ptr)
     return ptr.get();
 }
 
-template <typename T>
-T* plain_ptr(const std::unique_ptr<T>& ptr)
+template <typename T, typename Deleter>
+T* plain_ptr(const std::unique_ptr<T, Deleter>& ptr)
 {
     return ptr.get();
 }

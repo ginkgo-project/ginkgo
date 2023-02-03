@@ -330,7 +330,7 @@ protected:
         : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
     {
         auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
-        this->copy_from(std::move(tmp_.get()));
+        this->copy_from(tmp_);
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

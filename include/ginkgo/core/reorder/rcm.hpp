@@ -202,12 +202,12 @@ protected:
         if (is_gpu_executor) {
             const auto gpu_exec = this->get_executor();
             auto gpu_perm = share(PermutationMatrix::create(gpu_exec, dim));
-            gpu_perm->copy_from(permutation_.get());
+            gpu_perm->copy_from(permutation_);
             permutation_ = gpu_perm;
             if (inv_permutation_) {
                 auto gpu_inv_perm =
                     share(PermutationMatrix::create(gpu_exec, dim));
-                gpu_inv_perm->copy_from(inv_permutation_.get());
+                gpu_inv_perm->copy_from(inv_permutation_);
                 inv_permutation_ = gpu_inv_perm;
             }
         }

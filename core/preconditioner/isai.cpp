@@ -225,7 +225,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             std::shared_ptr<LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;
-                excess_solution->copy_from(excess_rhs.get());
+                excess_solution->copy_from(excess_rhs);
             } else if (is_general || is_spd) {
                 excess_solver_factory =
                     Gmres::build()
@@ -241,7 +241,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                                     remove_complex<ValueType>{1e-6})
                                 .on(exec))
                         .on(exec);
-                excess_solution->copy_from(excess_rhs.get());
+                excess_solution->copy_from(excess_rhs);
             } else if (is_lower) {
                 excess_solver_factory = UpperTrs::build().on(exec);
             } else {

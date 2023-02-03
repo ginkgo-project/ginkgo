@@ -176,7 +176,7 @@ struct conversion_helper {
             // so we can convert from this type to TargetType
             auto converted = conversion_target_helper<
                 std::remove_cv_t<TargetType>>::create_empty(cast_obj);
-            cast_obj->convert_to(converted.get());
+            cast_obj->convert_to(converted);
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
                 std::is_base_of<ConvertibleTo<std::remove_cv_t<TargetType>>,

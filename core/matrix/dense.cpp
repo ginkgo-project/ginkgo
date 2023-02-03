@@ -1002,7 +1002,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
     auto result =
         Dense::create(this->get_executor(), gko::transpose(this->get_size()));
-    this->transpose(result.get());
+    this->transpose(result);
     return result;
 }
 
@@ -1012,7 +1012,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 {
     auto result =
         Dense::create(this->get_executor(), gko::transpose(this->get_size()));
-    this->conj_transpose(result.get());
+    this->conj_transpose(result);
     return result;
 }
 
@@ -1167,7 +1167,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->permute(permutation_indices, result.get());
+    this->permute(permutation_indices, result);
     return result;
 }
 
@@ -1177,7 +1177,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->permute(permutation_indices, result.get());
+    this->permute(permutation_indices, result);
     return result;
 }
 
@@ -1203,7 +1203,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_permute(permutation_indices, result.get());
+    this->inverse_permute(permutation_indices, result);
     return result;
 }
 
@@ -1213,7 +1213,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_permute(permutation_indices, result.get());
+    this->inverse_permute(permutation_indices, result);
     return result;
 }
 
@@ -1239,7 +1239,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->row_permute(permutation_indices, result.get());
+    this->row_permute(permutation_indices, result);
     return result;
 }
 
@@ -1249,7 +1249,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->row_permute(permutation_indices, result.get());
+    this->row_permute(permutation_indices, result);
     return result;
 }
 
@@ -1277,7 +1277,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
     auto exec = this->get_executor();
     dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
-    this->row_gather(row_idxs, result.get());
+    this->row_gather(row_idxs, result);
     return result;
 }
 
@@ -1288,7 +1288,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
     auto exec = this->get_executor();
     dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
-    this->row_gather(row_idxs, result.get());
+    this->row_gather(row_idxs, result);
     return result;
 }
 
@@ -1374,7 +1374,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->column_permute(permutation_indices, result.get());
+    this->column_permute(permutation_indices, result);
     return result;
 }
 
@@ -1384,7 +1384,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->column_permute(permutation_indices, result.get());
+    this->column_permute(permutation_indices, result);
     return result;
 }
 
@@ -1410,7 +1410,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_row_permute(permutation_indices, result.get());
+    this->inverse_row_permute(permutation_indices, result);
     return result;
 }
 
@@ -1420,7 +1420,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_row_permute(permutation_indices, result.get());
+    this->inverse_row_permute(permutation_indices, result);
     return result;
 }
 
@@ -1448,7 +1448,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_column_permute(permutation_indices, result.get());
+    this->inverse_column_permute(permutation_indices, result);
     return result;
 }
 
@@ -1458,7 +1458,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = Dense::create(this->get_executor(), this->get_size());
-    this->inverse_column_permute(permutation_indices, result.get());
+    this->inverse_column_permute(permutation_indices, result);
     return result;
 }
 
@@ -1499,7 +1499,7 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 {
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     auto diag = Diagonal<ValueType>::create(this->get_executor(), diag_size);
-    this->extract_diagonal(diag.get());
+    this->extract_diagonal(diag);
     return diag;
 }
 
@@ -1517,7 +1517,7 @@ Dense<ValueType>::compute_absolute() const
 {
     // do not inherit the stride
     auto result = absolute_type::create(this->get_executor(), this->get_size());
-    this->compute_absolute(result.get());
+    this->compute_absolute(result);
     return result;
 }
 
@@ -1538,7 +1538,7 @@ std::unique_ptr<typename Dense<ValueType>::complex_type>
 Dense<ValueType>::make_complex() const
 {
     auto result = complex_type::create(this->get_executor(), this->get_size());
-    this->make_complex(result.get());
+    this->make_complex(result);
     return result;
 }
 
@@ -1559,7 +1559,7 @@ std::unique_ptr<typename Dense<ValueType>::real_type>
 Dense<ValueType>::get_real() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
-    this->get_real(result.get());
+    this->get_real(result);
     return result;
 }
 
@@ -1580,7 +1580,7 @@ std::unique_ptr<typename Dense<ValueType>::real_type>
 Dense<ValueType>::get_imag() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
-    this->get_imag(result.get());
+    this->get_imag(result);
     return result;
 }
 

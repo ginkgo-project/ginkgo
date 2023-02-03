@@ -88,15 +88,15 @@ protected:
             auto dense_mtx = gko::test::generate_random_matrix<Dense>(
                 n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
             ensure_diagonal(dense_mtx.get());
-            mtx->copy_from(dense_mtx.get());
+            mtx->copy_from(dense_mtx);
         } else if (type == matrix_type::spd) {
             auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
                 n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
                 gko::dim<2>{n, n});
             auto transp = gko::as<Dense>(dense_mtx->transpose());
             auto spd_mtx = Dense::create(ref, gko::dim<2>{n, n});
-            dense_mtx->apply(transp.get(), spd_mtx.get());
-            mtx->copy_from(spd_mtx.get());
+            dense_mtx->apply(transp, spd_mtx);
+            mtx->copy_from(spd_mtx);
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
                 n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,

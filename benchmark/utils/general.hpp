@@ -369,7 +369,7 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
         }
     }
     auto res = vec<ValueType>::create(exec);
-    h_res->move_to(res.get());
+    h_res->move_to(res);
     return res;
 }
 
@@ -389,7 +389,7 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
         }
     }
     auto res = vec<ValueType>::create(exec);
-    h_res->move_to(res.get());
+    h_res->move_to(res);
     return res;
 }
 

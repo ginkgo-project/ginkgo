@@ -72,7 +72,7 @@ TEST_F(MatricesNear, CanPassHipMatrix)
     auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     auto csr_ref = gko::matrix::Csr<>::create(ref);
-    csr_ref->copy_from(mtx.get());
+    csr_ref->copy_from(mtx);
     auto csr_mtx = gko::matrix::Csr<>::create(hip);
     csr_mtx->copy_from(std::move(csr_ref));
 

@@ -241,7 +241,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                                            span{k * nrhs, (k + 1) * nrhs});
 
             // g_k = Au_k
-            this->get_system_matrix()->apply(u_k.get(), helper);
+            this->get_system_matrix()->apply(u_k, helper);
 
             // for i = [0,k)
             //     alpha = p^H_i * g_k / m_i,i
@@ -328,7 +328,7 @@ void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto x_clone = dense_x->clone();
             this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

@@ -115,13 +115,14 @@ struct SimpleSolverTest {
                 precond_type::build().with_max_block_size(1u).on(exec));
     }
 
-    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    static const gko::LinOp* get_preconditioner(
+        gko::pointer_param<const solver_type> solver)
     {
         return solver->get_preconditioner().get();
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        const solver_type* solver)
+        gko::pointer_param<const solver_type> solver)
     {
         return solver->get_stop_criterion_factory().get();
     }
@@ -207,7 +208,8 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
                 precond_type::build().with_max_block_size(1u).on(exec));
     }
 
-    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    static const gko::LinOp* get_preconditioner(
+        gko::pointer_param<const solver_type> solver)
     {
         return solver->get_solver().get();
     }
@@ -339,13 +341,14 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
         return solver_type::build();
     }
 
-    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    static const gko::LinOp* get_preconditioner(
+        gko::pointer_param<const solver_type> solver)
     {
         return nullptr;
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        const solver_type* solver)
+        gko::pointer_param<const solver_type> solver)
     {
         return nullptr;
     }
@@ -389,13 +392,14 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
         return solver_type::build();
     }
 
-    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    static const gko::LinOp* get_preconditioner(
+        gko::pointer_param<const solver_type> solver)
     {
         return nullptr;
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        const solver_type* solver)
+        gko::pointer_param<const solver_type> solver)
     {
         return nullptr;
     }
@@ -800,8 +804,8 @@ protected:
             SCOPED_TRACE("Single vector with correct initial guess");
             auto in = gen_in_vec<VecType>(mtx, 1, 1);
             auto out = gen_out_vec<VecType>(mtx, 1, 1);
-            mtx.ref->apply(out.ref.get(), in.ref.get());
-            mtx.dev->apply(out.dev.get(), in.dev.get());
+            mtx.ref->apply(out.ref, in.ref);
+            mtx.dev->apply(out.dev, in.dev);
             guarded_fn(std::move(in), std::move(out));
         }*/
         {
@@ -867,7 +871,7 @@ protected:
     }
 
 
-    void assert_empty_state(const SolverType* solver,
+    void assert_empty_state(gko::pointer_param<const SolverType> solver,
                             std::shared_ptr<const gko::Executor> expected_exec)
     {
         ASSERT_FALSE(solver->get_size());
@@ -903,8 +907,8 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
     this->forall_matrix_scenarios([this](auto mtx) {
         this->forall_vector_and_solver_scenarios(
             mtx, [this, &mtx](auto solver, auto b, auto x) {
-                solver.ref->apply(b.ref.get(), x.ref.get());
-                solver.dev->apply(b.dev.get(), x.dev.get());
+                solver.ref->apply(b.ref, x.ref);
+                solver.dev->apply(b.dev, x.dev);
 
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
             });
@@ -920,12 +924,12 @@ TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
     this->forall_matrix_scenarios([this](auto mtx) {
         this->forall_vector_and_solver_scenarios(
             mtx, [this, &mtx](auto solver, auto b, auto x) {
-                solver.dev->apply(b.dev.get(), x.dev.get());
+                solver.dev->apply(b.dev, x.dev);
                 auto logger = std::make_shared<FailOnAllocationFreeLogger>();
 
                 this->exec->add_logger(logger);
-                solver.dev->apply(b.dev.get(), x.dev.get());
-                this->exec->remove_logger(logger.get());
+                solver.dev->apply(b.dev, x.dev);
+                this->exec->remove_logger(logger);
             });
     });
 }
@@ -939,10 +943,8 @@ TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
                 auto alpha = this->gen_scalar();
                 auto beta = this->gen_scalar();
 
-                solver.ref->apply(alpha.ref.get(), b.ref.get(), beta.ref.get(),
-                                  x.ref.get());
-                solver.dev->apply(alpha.dev.get(), b.dev.get(), beta.dev.get(),
-                                  x.dev.get());
+                solver.ref->apply(alpha.ref, b.ref, beta.ref, x.ref);
+                solver.dev->apply(alpha.dev, b.dev, beta.dev, x.dev);
 
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
             });
@@ -956,8 +958,8 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
     this->forall_matrix_scenarios([this](auto mtx) {
         this->template forall_vector_and_solver_scenarios<MixedVec>(
             mtx, [this, &mtx](auto solver, auto b, auto x) {
-                solver.ref->apply(b.ref.get(), x.ref.get());
-                solver.dev->apply(b.dev.get(), x.dev.get());
+                solver.ref->apply(b.ref, x.ref);
+                solver.dev->apply(b.dev, x.dev);
 
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
@@ -974,10 +976,8 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
                 auto alpha = this->template gen_scalar<MixedVec>();
                 auto beta = this->template gen_scalar<MixedVec>();
 
-                solver.ref->apply(alpha.ref.get(), b.ref.get(), beta.ref.get(),
-                                  x.ref.get());
-                solver.dev->apply(alpha.dev.get(), b.dev.get(), beta.dev.get(),
-                                  x.dev.get());
+                solver.ref->apply(alpha.ref, b.ref, beta.ref, x.ref);
+                solver.dev->apply(alpha.dev, b.dev, beta.dev, x.dev);
 
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
@@ -996,12 +996,12 @@ TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
         ASSERT_EQ(solver->get_system_matrix()->get_executor(), this->exec);
         ASSERT_EQ(solver->get_executor(), this->exec);
         if (Config::is_iterative()) {
-            ASSERT_EQ(Config::get_stop_criterion_factory(solver.get())
-                          ->get_executor(),
-                      this->exec);
+            ASSERT_EQ(
+                Config::get_stop_criterion_factory(solver)->get_executor(),
+                this->exec);
         }
         if (Config::is_preconditionable()) {
-            auto precond = Config::get_preconditioner(solver.get());
+            auto precond = Config::get_preconditioner(solver);
             ASSERT_EQ(precond->get_executor(), this->exec);
             ASSERT_TRUE(dynamic_cast<
                         const gko::matrix::Identity<typename Mtx::value_type>*>(
@@ -1030,10 +1030,10 @@ TYPED_TEST(Solver, CopyAssignSameExecutor)
             ASSERT_EQ(solver2->get_executor(), solver.dev->get_executor());
             ASSERT_EQ(solver2->get_system_matrix(),
                       solver.dev->get_system_matrix());
-            ASSERT_EQ(Config::get_stop_criterion_factory(solver2.get()),
-                      Config::get_stop_criterion_factory(solver.dev.get()));
-            ASSERT_EQ(Config::get_preconditioner(solver2.get()),
-                      Config::get_preconditioner(solver.dev.get()));
+            ASSERT_EQ(Config::get_stop_criterion_factory(solver2),
+                      Config::get_stop_criterion_factory(solver.dev));
+            ASSERT_EQ(Config::get_preconditioner(solver2),
+                      Config::get_preconditioner(solver.dev));
         });
     });
 }
@@ -1050,8 +1050,8 @@ TYPED_TEST(Solver, MoveAssignSameExecutor)
                                ->generate(Mtx::create(this->exec));
             auto size = solver.dev->get_size();
             auto mtx = solver.dev->get_system_matrix();
-            auto precond = Config::get_preconditioner(solver.dev.get());
-            auto stop = Config::get_stop_criterion_factory(solver.dev.get());
+            auto precond = Config::get_preconditioner(solver.dev);
+            auto stop = Config::get_stop_criterion_factory(solver.dev);
 
             auto& result = (*solver2 = std::move(*solver.dev));
 
@@ -1060,10 +1060,10 @@ TYPED_TEST(Solver, MoveAssignSameExecutor)
             ASSERT_EQ(solver2->get_size(), size);
             ASSERT_EQ(solver2->get_executor(), this->exec);
             ASSERT_EQ(solver2->get_system_matrix(), mtx);
-            ASSERT_EQ(Config::get_stop_criterion_factory(solver2.get()), stop);
-            ASSERT_EQ(Config::get_preconditioner(solver2.get()), precond);
+            ASSERT_EQ(Config::get_stop_criterion_factory(solver2), stop);
+            ASSERT_EQ(Config::get_preconditioner(solver2), precond);
             // moved-from object
-            this->assert_empty_state(solver.dev.get(), this->exec);
+            this->assert_empty_state(solver.dev, this->exec);
         });
     });
 }
@@ -1090,12 +1090,12 @@ TYPED_TEST(Solver, CopyAssignCrossExecutor)
                     gko::as<Mtx>(solver2->get_system_matrix()),
                     gko::as<Mtx>(solver.ref->get_system_matrix()), 0.0);
                 // TODO no easy way to compare stopping criteria cross-executor
-                auto precond = Config::get_preconditioner(solver2.get());
+                auto precond = Config::get_preconditioner(solver2);
                 if (dynamic_cast<const Precond*>(precond)) {
                     GKO_ASSERT_MTX_NEAR(
                         gko::as<Precond>(precond),
                         gko::as<Precond>(
-                            Config::get_preconditioner(solver.ref.get())),
+                            Config::get_preconditioner(solver.ref)),
                         0.0);
                 }
             }
@@ -1116,8 +1116,8 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
                                ->generate(Mtx::create(this->exec));
             auto size = solver.ref->get_size();
             auto mtx = solver.ref->get_system_matrix();
-            auto precond = Config::get_preconditioner(solver.ref.get());
-            auto stop = Config::get_stop_criterion_factory(solver.ref.get());
+            auto precond = Config::get_preconditioner(solver.ref);
+            auto stop = Config::get_stop_criterion_factory(solver.ref);
 
             auto& result = (*solver2 = std::move(*solver.ref));
 
@@ -1129,14 +1129,14 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
                 GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver2->get_system_matrix()),
                                     gko::as<Mtx>(mtx), 0.0);
                 // TODO no easy way to compare stopping criteria cross-executor
-                auto new_precond = Config::get_preconditioner(solver2.get());
+                auto new_precond = Config::get_preconditioner(solver2);
                 if (dynamic_cast<const Precond*>(new_precond)) {
                     GKO_ASSERT_MTX_NEAR(gko::as<Precond>(new_precond),
                                         gko::as<Precond>(precond), 0.0);
                 }
             }
             // moved-from object
-            this->assert_empty_state(solver.ref.get(), this->ref);
+            this->assert_empty_state(solver.ref, this->ref);
         });
     });
 }
@@ -1149,7 +1149,7 @@ TYPED_TEST(Solver, ClearIsEmpty)
         this->forall_solver_scenarios(mtx, [this](auto solver) {
             solver.dev->clear();
 
-            this->assert_empty_state(solver.dev.get(), this->exec);
+            this->assert_empty_state(solver.dev, this->exec);
         });
     });
 }
@@ -1162,7 +1162,7 @@ TYPED_TEST(Solver, CreateDefaultIsEmpty)
         this->forall_solver_scenarios(mtx, [this](auto solver) {
             auto default_solver = solver.dev->create_default();
 
-            this->assert_empty_state(default_solver.get(), this->exec);
+            this->assert_empty_state(default_solver, this->exec);
         });
     });
 }
@@ -1184,7 +1184,7 @@ TYPED_TEST(Solver, LogsIterationComplete)
         auto before_logger = *this->logger;
         solver->add_logger(this->logger);
 
-        solver->apply(b.get(), x.get());
+        solver->apply(b, x);
 
         ASSERT_EQ(this->logger->iteration_complete,
                   before_logger.iteration_complete + num_iteration + 1);

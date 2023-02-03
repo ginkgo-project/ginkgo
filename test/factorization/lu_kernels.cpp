@@ -114,9 +114,9 @@ protected:
         drow_descs = row_descs;
         dmtx_lu = gko::clone(exec, mtx_lu);
         mtx_lu_sparsity = sparsity_pattern_type::create(ref);
-        mtx_lu_sparsity->copy_from(mtx_lu.get());
+        mtx_lu_sparsity->copy_from(mtx_lu);
         dmtx_lu_sparsity = sparsity_pattern_type::create(exec);
-        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity.get());
+        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity);
     }
 
     gko::size_type num_rows;

@@ -76,17 +76,6 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> idr_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
@@ -114,11 +103,11 @@ TYPED_TEST(Idr, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->idr_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(gko::as<Mtx>(copy_mtx.get()), this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx.get()), this->mtx, 0.0);
 }
 
 
@@ -132,7 +121,7 @@ TYPED_TEST(Idr, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(gko::as<Mtx>(copy_mtx.get()), this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx.get()), this->mtx, 0.0);
 }
 
 
@@ -145,7 +134,7 @@ TYPED_TEST(Idr, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = gko::as<Solver>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(gko::as<Mtx>(clone_mtx.get()), this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx.get()), this->mtx, 0.0);
 }
 
 
