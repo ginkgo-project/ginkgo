@@ -156,7 +156,7 @@ template <typename ValueType>
 void Dense<ValueType>::scale(pointer_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
-    this->scale_impl(make_temporary_clone(exec, alpha.get()).get());
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
 }
 
 
@@ -164,7 +164,7 @@ template <typename ValueType>
 void Dense<ValueType>::inv_scale(pointer_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
-    this->inv_scale_impl(make_temporary_clone(exec, alpha.get()).get());
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
 }
 
 
@@ -173,8 +173,8 @@ void Dense<ValueType>::add_scaled(pointer_param<const LinOp> alpha,
                                   pointer_param<const LinOp> b)
 {
     auto exec = this->get_executor();
-    this->add_scaled_impl(make_temporary_clone(exec, alpha.get()).get(),
-                          make_temporary_clone(exec, b.get()).get());
+    this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
 }
 
 
@@ -183,8 +183,8 @@ void Dense<ValueType>::sub_scaled(pointer_param<const LinOp> alpha,
                                   pointer_param<const LinOp> b)
 {
     auto exec = this->get_executor();
-    this->sub_scaled_impl(make_temporary_clone(exec, alpha.get()).get(),
-                          make_temporary_clone(exec, b.get()).get());
+    this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
 }
 
 
@@ -193,9 +193,8 @@ void Dense<ValueType>::compute_dot(pointer_param<const LinOp> b,
                                    pointer_param<LinOp> result) const
 {
     auto exec = this->get_executor();
-    this->compute_dot_impl(
-        make_temporary_clone(exec, b.get()).get(),
-        make_temporary_output_clone(exec, result.get()).get());
+    this->compute_dot_impl(make_temporary_clone(exec, b).get(),
+                           make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -205,8 +204,8 @@ void Dense<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
 {
     auto exec = this->get_executor();
     this->compute_conj_dot_impl(
-        make_temporary_clone(exec, b.get()).get(),
-        make_temporary_output_clone(exec, result.get()).get());
+        make_temporary_clone(exec, b).get(),
+        make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -214,8 +213,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_norm2(pointer_param<LinOp> result) const
 {
     auto exec = this->get_executor();
-    this->compute_norm2_impl(
-        make_temporary_output_clone(exec, result.get()).get());
+    this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -223,8 +221,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_norm1(pointer_param<LinOp> result) const
 {
     auto exec = this->get_executor();
-    this->compute_norm1_impl(
-        make_temporary_output_clone(exec, result.get()).get());
+    this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -355,8 +352,8 @@ void Dense<ValueType>::compute_dot(pointer_param<const LinOp> b,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_b = make_temporary_clone(exec, b.get());
-    auto local_res = make_temporary_clone(exec, result.get());
+    auto local_b = make_temporary_clone(exec, b);
+    auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
     exec->run(
@@ -390,8 +387,8 @@ void Dense<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_b = make_temporary_clone(exec, b.get());
-    auto local_res = make_temporary_clone(exec, result.get());
+    auto local_b = make_temporary_clone(exec, b);
+    auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
     exec->run(dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get(),
@@ -424,7 +421,7 @@ void Dense<ValueType>::compute_norm2(pointer_param<LinOp> result,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_result = make_temporary_clone(exec, result.get());
+    auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
     exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
@@ -453,7 +450,7 @@ void Dense<ValueType>::compute_norm1(pointer_param<LinOp> result,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_result = make_temporary_clone(exec, result.get());
+    auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
     exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
@@ -1026,7 +1023,7 @@ void Dense<ValueType>::transpose(pointer_param<Dense<ValueType>> output) const
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
     exec->run(dense::make_transpose(
-        this, make_temporary_output_clone(exec, output.get()).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1037,7 +1034,7 @@ void Dense<ValueType>::conj_transpose(
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
     exec->run(dense::make_conj_transpose(
-        this, make_temporary_output_clone(exec, output.get()).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1344,8 +1341,8 @@ void Dense<ValueType>::row_gather(pointer_param<const LinOp> alpha,
                                   pointer_param<const LinOp> beta,
                                   pointer_param<LinOp> out) const
 {
-    auto dense_alpha = make_temporary_conversion<ValueType>(alpha.get());
-    auto dense_beta = make_temporary_conversion<ValueType>(beta.get());
+    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+    auto dense_beta = make_temporary_conversion<ValueType>(beta);
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
     gather_mixed_real_complex<ValueType>(
@@ -1362,8 +1359,8 @@ void Dense<ValueType>::row_gather(pointer_param<const LinOp> alpha,
                                   pointer_param<const LinOp> beta,
                                   pointer_param<LinOp> out) const
 {
-    auto dense_alpha = make_temporary_conversion<ValueType>(alpha.get());
-    auto dense_beta = make_temporary_conversion<ValueType>(beta.get());
+    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+    auto dense_beta = make_temporary_conversion<ValueType>(beta);
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
     gather_mixed_real_complex<ValueType>(
@@ -1498,7 +1495,7 @@ void Dense<ValueType>::extract_diagonal(
     GKO_ASSERT_EQ(output->get_size()[0], diag_size);
 
     exec->run(dense::make_extract_diagonal(
-        this, make_temporary_output_clone(exec, output.get()).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1538,7 +1535,7 @@ void Dense<ValueType>::compute_absolute(
     auto exec = this->get_executor();
 
     exec->run(dense::make_outplace_absolute_dense(
-        this, make_temporary_output_clone(exec, output.get()).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1559,7 +1556,7 @@ void Dense<ValueType>::make_complex(pointer_param<complex_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_make_complex(
-        this, make_temporary_output_clone(exec, result.get()).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -1580,7 +1577,7 @@ void Dense<ValueType>::get_real(pointer_param<real_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_real(
-        this, make_temporary_output_clone(exec, result.get()).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -1601,7 +1598,7 @@ void Dense<ValueType>::get_imag(pointer_param<real_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_imag(
-        this, make_temporary_output_clone(exec, result.get()).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 

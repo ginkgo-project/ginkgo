@@ -175,12 +175,20 @@ public:
      * @param other  the object to move from
      *
      * @return this
+     *
+     * @tparam Derived  the actual pointee type of the parameter, it needs to be
+     *                  derived from PolymorphicObject.
+     * @tparam Deleter  the deleter of the unique_ptr parameter
      */
-    template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        PolymorphicObject>*
-    copy_from(std::unique_ptr<Derived>&& other)
+    template <typename Derived, typename Deleter>
+    [[deprecated(
+        "This function will be removed in a future release, the replacement "
+        "will copy instead of move. If a move in intended, use move_to "
+        "instead.")]] std::
+        enable_if_t<
+            std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+            PolymorphicObject>*
+        copy_from(std::unique_ptr<Derived, Deleter>&& other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
@@ -190,15 +198,25 @@ public:
         return copied;
     }
 
-    template <typename Derived>
+    /**
+     * @copydoc copy_from(const PolymorphicObject*)
+     *
+     * @tparam Derived  the actual pointee type of the parameter, it needs to be
+     *                  derived from PolymorphicObject.
+     * @tparam Deleter  the deleter of the unique_ptr parameter
+     */
+    template <typename Derived, typename Deleter>
     std::enable_if_t<
         std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
         PolymorphicObject>*
-    copy_from(const std::unique_ptr<Derived>& other)
+    copy_from(const std::unique_ptr<Derived, Deleter>& other)
     {
         return this->copy_from(other.get());
     }
 
+    /**
+     * @copydoc copy_from(const PolymorphicObject*)
+     */
     PolymorphicObject* copy_from(
         const std::shared_ptr<const PolymorphicObject>& other)
     {
@@ -216,54 +234,14 @@ public:
      *
      * @return this
      */
-    PolymorphicObject* move_from(PolymorphicObject* other)
+    PolymorphicObject* move_from(pointer_param<PolymorphicObject> other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
-            exec_.get(), other, this);
-        auto moved = this->move_from_impl(other);
+            exec_.get(), other.get(), this);
+        auto moved = this->move_from_impl(other.get());
         this->template log<log::Logger::polymorphic_object_move_completed>(
-            exec_.get(), other, this);
+            exec_.get(), other.get(), this);
         return moved;
-    }
-
-    /**
-     * Moves another object into this object.
-     *
-     * This is the polymorphic equivalent of the move assignment operator.
-     *
-     * @see move_from_impl(std::unique_ptr<PolymorphicObject>)
-     *
-     * @param other  the object to move from
-     *
-     * @return this
-     */
-    template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        PolymorphicObject>*
-    move_from(std::unique_ptr<Derived>&& other)
-    {
-        this->template log<log::Logger::polymorphic_object_move_started>(
-            exec_.get(), other.get(), this);
-        auto copied = this->copy_from_impl(std::move(other));
-        this->template log<log::Logger::polymorphic_object_move_completed>(
-            exec_.get(), other.get(), this);
-        return copied;
-    }
-
-    template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        PolymorphicObject>*
-    move_from(const std::unique_ptr<Derived>& other)
-    {
-        return move_from(other.get());
-    }
-
-    PolymorphicObject* move_from(
-        const std::shared_ptr<PolymorphicObject>& other)
-    {
-        return move_from(other.get());
     }
 
     /**
@@ -430,10 +408,14 @@ public:
     }
 
     template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        AbstractObject>*
-    copy_from(std::unique_ptr<Derived>&& other)
+    [[deprecated(
+        "This function will be removed in a future release, the replacement "
+        "will copy instead of move. If a move in intended, use move_to "
+        "instead.")]] std::
+        enable_if_t<
+            std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+            AbstractObject>*
+        copy_from(std::unique_ptr<Derived>&& other)
     {
         return static_cast<AbstractObject*>(
             this->PolymorphicBase::copy_from(std::move(other)));
@@ -454,34 +436,10 @@ public:
         return copy_from(other.get());
     }
 
-    AbstractObject* move_from(PolymorphicObject* other)
+    AbstractObject* move_from(pointer_param<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
-            this->PolymorphicBase::move_from(other));
-    }
-
-    template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        AbstractObject>*
-    move_from(std::unique_ptr<Derived>&& other)
-    {
-        return static_cast<AbstractObject*>(
-            this->PolymorphicBase::move_from(std::move(other)));
-    }
-
-    template <typename Derived>
-    std::enable_if_t<
-        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-        AbstractObject>*
-    move_from(const std::unique_ptr<Derived>& other)
-    {
-        return move_from(other.get());
-    }
-
-    AbstractObject* move_from(const std::shared_ptr<PolymorphicObject>& other)
-    {
-        return move_from(other.get());
+            this->PolymorphicBase::move_from(other.get()));
     }
 
     AbstractObject* clear()
