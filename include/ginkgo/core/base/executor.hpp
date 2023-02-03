@@ -756,19 +756,19 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const Executor* src_exec, size_type num_elems,
+    void copy_from(pointer_param<const Executor> src_exec, size_type num_elems,
                    const T* src_ptr, T* dest_ptr) const
     {
         const auto src_loc = reinterpret_cast<uintptr>(src_ptr);
         const auto dest_loc = reinterpret_cast<uintptr>(dest_ptr);
         this->template log<log::Logger::copy_started>(
-            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
-        if (this != src_exec) {
+            src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec.get()) {
             src_exec->template log<log::Logger::copy_started>(
-                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+                src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
         }
         try {
-            this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
+            this->raw_copy_from(src_exec.get(), num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
         } catch (NotSupported&) {
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
@@ -778,7 +778,7 @@ public:
                       << std::endl;
 #endif
             auto src_master = src_exec->get_master().get();
-            if (num_elems > 0 && src_master != src_exec) {
+            if (num_elems > 0 && src_master != src_exec.get()) {
                 auto* master_ptr = src_exec->get_master()->alloc<T>(num_elems);
                 src_master->copy_from<T>(src_exec, num_elems, src_ptr,
                                          master_ptr);
@@ -787,10 +787,10 @@ public:
             }
         }
         this->template log<log::Logger::copy_completed>(
-            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
-        if (this != src_exec) {
+            src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec.get()) {
             src_exec->template log<log::Logger::copy_completed>(
-                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+                src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
         }
     }
 
@@ -869,6 +869,8 @@ public:
             logger->needs_propagation() ? 1 : 0);
         this->EnableLogging<Executor>::remove_logger(logger);
     }
+
+    using EnableLogging<Executor>::remove_logger;
 
     /**
      * Sets the logger event propagation mode for the executor.

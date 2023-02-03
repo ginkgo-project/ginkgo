@@ -161,8 +161,8 @@ public:
                                                              x.get());
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b.get()).get(),
-                         make_temporary_clone(exec, x.get()).get());
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b.get(),
                                                                x.get());
         return this;
@@ -178,8 +178,8 @@ public:
                                                              x.get());
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b.get()).get(),
-                         make_temporary_clone(exec, x.get()).get());
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b.get(),
                                                                x.get());
         return this;
@@ -203,10 +203,10 @@ public:
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha.get()).get(),
-                         make_temporary_clone(exec, b.get()).get(),
-                         make_temporary_clone(exec, beta.get()).get(),
-                         make_temporary_clone(exec, x.get()).get());
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
         return this;
@@ -225,10 +225,10 @@ public:
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
         auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha.get()).get(),
-                         make_temporary_clone(exec, b.get()).get(),
-                         make_temporary_clone(exec, beta.get()).get(),
-                         make_temporary_clone(exec, x.get()).get());
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
         return this;
@@ -838,19 +838,14 @@ public:
      * @param b  Scalar to multiply this before adding the scaled identity to
      *           it.
      */
-    void add_scaled_identity(const LinOp* const a, const LinOp* const b)
+    void add_scaled_identity(pointer_param<const LinOp> const a,
+                             pointer_param<const LinOp> const b)
     {
         GKO_ASSERT_IS_SCALAR(a);
         GKO_ASSERT_IS_SCALAR(b);
         auto ae = make_temporary_clone(as<LinOp>(this)->get_executor(), a);
         auto be = make_temporary_clone(as<LinOp>(this)->get_executor(), b);
         add_scaled_identity_impl(ae.get(), be.get());
-    }
-
-    void add_scaled_identity(pointer_param<const LinOp> const a,
-                             pointer_param<const LinOp> const b)
-    {
-        add_scaled_identity(a.get(), b.get());
     }
 
 private:

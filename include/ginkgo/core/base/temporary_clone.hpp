@@ -140,19 +140,19 @@ public:
      * @param copy_data  should the data be copied to the executor, or should
      *                   only the result be copied back afterwards?
      */
-    explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr,
-                             bool copy_data = true)
+    explicit temporary_clone(std::shared_ptr<const Executor> exec,
+                             pointer_param<T> ptr, bool copy_data = true)
     {
         if (ptr->get_executor()->memory_accessible(exec)) {
             // just use the object we already have
-            handle_ = handle_type(ptr, null_deleter<T>());
+            handle_ = handle_type(ptr.get(), null_deleter<T>());
         } else {
             // clone the object to the new executor and make sure it's copied
             // back before we delete it
             handle_ = handle_type(temporary_clone_helper<T>::create(
-                                      std::move(exec), ptr, copy_data)
+                                      std::move(exec), ptr.get(), copy_data)
                                       .release(),
-                                  copy_back_deleter<T>(ptr));
+                                  copy_back_deleter<T>(ptr.get()));
         }
     }
 
@@ -198,11 +198,12 @@ private:
  * @param exec  the executor where the clone will be created
  * @param ptr  a pointer to the object of which the clone will be created
  */
-template <typename T>
-detail::temporary_clone<T> make_temporary_clone(
-    std::shared_ptr<const Executor> exec, T* ptr)
+template <typename Ptr>
+detail::temporary_clone<std::remove_reference_t<decltype(*std::declval<Ptr>())>>
+make_temporary_clone(std::shared_ptr<const Executor> exec, Ptr&& ptr)
 {
-    return detail::temporary_clone<T>(std::move(exec), ptr);
+    using T = std::remove_reference_t<decltype(*std::declval<Ptr>())>;
+    return detail::temporary_clone<T>(std::move(exec), std::forward<Ptr>(ptr));
 }
 
 
@@ -218,14 +219,16 @@ detail::temporary_clone<T> make_temporary_clone(
  * @param exec  the executor where the uninitialized clone will be created
  * @param ptr  a pointer to the object of which the clone will be created
  */
-template <typename T>
-detail::temporary_clone<T> make_temporary_output_clone(
-    std::shared_ptr<const Executor> exec, T* ptr)
+template <typename Ptr>
+detail::temporary_clone<std::remove_reference_t<decltype(*std::declval<Ptr>())>>
+make_temporary_output_clone(std::shared_ptr<const Executor> exec, Ptr&& ptr)
 {
+    using T = std::remove_reference_t<decltype(*std::declval<Ptr>())>;
     static_assert(
         !std::is_const<T>::value,
         "make_temporary_output_clone should only be used on non-const objects");
-    return detail::temporary_clone<T>(std::move(exec), ptr, false);
+    return detail::temporary_clone<T>(std::move(exec), std::forward<Ptr>(ptr),
+                                      false);
 }
 
 

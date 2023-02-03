@@ -66,7 +66,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* local_matrix_type)
+    pointer_param<const LinOp> local_matrix_type)
     : Matrix(exec, comm, local_matrix_type, local_matrix_type)
 {}
 
@@ -74,7 +74,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* local_matrix_template, const LinOp* non_local_matrix_template)
+    pointer_param<const LinOp> local_matrix_template,
+    pointer_param<const LinOp> non_local_matrix_template)
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
@@ -173,8 +174,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
-        data, make_temporary_clone(exec, row_partition.get()).get(),
-        make_temporary_clone(exec, col_partition.get()).get(), local_part,
+        data, make_temporary_clone(exec, row_partition).get(),
+        make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, recv_gather_idxs,
         recv_sizes_array, non_local_to_global_));

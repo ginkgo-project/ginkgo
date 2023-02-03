@@ -56,27 +56,59 @@ namespace gko {
 class Executor;
 
 
+/**
+ * This class is used for function parameters in the place of raw pointers.
+ * It can be converted to from raw pointers, shared pointers and unique pointers
+ * of the specified type or any derived type. This allows functions to be called
+ * without having to use gko::lend or calling .get() for every pointer argument.
+ * It probably has no use outside of function parameters, as it is immutable.
+ *
+ * @tparam T  the pointed-to type
+ */
 template <typename T>
 class pointer_param {
 public:
+    /** Initializes the pointer_param from a raw pointer. */
     pointer_param(T* ptr) : ptr_{ptr} {}
 
+    /** Initializes the pointer_param from a shared_ptr. */
     template <typename U,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
     pointer_param(const std::shared_ptr<U>& ptr) : pointer_param{ptr.get()}
     {}
 
+    /** Initializes the pointer_param from a unique_ptr. */
     template <typename U, typename Deleter,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
     pointer_param(const std::unique_ptr<U, Deleter>& ptr)
         : pointer_param{ptr.get()}
     {}
 
+    pointer_param(const pointer_param&) = default;
+
+    pointer_param(pointer_param&&) = default;
+
+    /** Initializes the pointer_param from a pointer_param of a derived type. */
+    template <typename U,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    pointer_param(const pointer_param<U>& ptr) : pointer_param{ptr.get()}
+    {}
+
+    /** @return a reference to the underlying pointee. */
     T& operator*() const { return *ptr_; }
 
+    /** @return the underlying pointer. */
     T* operator->() const { return ptr_; }
 
+    /** @return the underlying pointer. */
     T* get() const { return ptr_; }
+
+    /** @return true iff the underlying pointer is non-null. */
+    explicit operator bool() const { return ptr_; }
+
+    pointer_param& operator=(const pointer_param&) = delete;
+
+    pointer_param& operator=(pointer_param&&) = delete;
 
 private:
     T* ptr_;
@@ -84,26 +116,11 @@ private:
 
 
 namespace detail {
-template <typename T>
-struct pointee_impl {};
+
 
 template <typename T>
-struct pointee_impl<T*> {
-    using type = T;
-};
-
-template <typename T, typename Deleter>
-struct pointee_impl<std::unique_ptr<T, Deleter>> {
-    using type = T;
-};
-
-template <typename T>
-struct pointee_impl<std::shared_ptr<T>> {
-    using type = T;
-};
-
-template <typename T>
-using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
+using pointee =
+    std::remove_reference_t<decltype(*std::declval<std::decay_t<T>>())>;
 
 
 template <typename T, typename = void>
@@ -276,7 +293,7 @@ inline typename std::remove_reference<OwningPointer>::type&& give(
  *       same as calling .get() on the smart pointer.
  */
 template <typename Pointer>
-[[deprecated("no longer necessary due to pointer_param")]] inline
+[[deprecated("no longer necessary, just pass the object without lend")]] inline
     typename std::enable_if<detail::have_ownership_s<Pointer>::value,
                             detail::pointee<Pointer>*>::type
     lend(const Pointer& p)
@@ -295,7 +312,7 @@ template <typename Pointer>
  *       returns `p`.
  */
 template <typename Pointer>
-[[deprecated("no longer necessary due to pointer_param")]] inline
+[[deprecated("no longer necessary, just pass the object without lend")]] inline
     typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
                             detail::pointee<Pointer>*>::type
     lend(const Pointer& p)

@@ -220,8 +220,8 @@ public:
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b.get()).get(),
-                          make_temporary_clone(exec, x.get()).get());
+        this->apply2_impl(make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -233,8 +233,8 @@ public:
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b.get()).get(),
-                          make_temporary_clone(exec, x.get()).get());
+        this->apply2_impl(make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -253,9 +253,9 @@ public:
         this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha.get()).get(),
-                          make_temporary_clone(exec, b.get()).get(),
-                          make_temporary_clone(exec, x.get()).get());
+        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -269,9 +269,9 @@ public:
         this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha.get()).get(),
-                          make_temporary_clone(exec, b.get()).get(),
-                          make_temporary_clone(exec, x.get()).get());
+        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
         return this;
     }
 

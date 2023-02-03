@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <initializer_list>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -1294,11 +1295,12 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
  *
  * @param vector  the vector on which to create the view
  */
-template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
-    matrix::Dense<ValueType>* vector)
+template <typename VecPtr>
+std::unique_ptr<matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
+make_dense_view(VecPtr&& vector)
 {
-    return matrix::Dense<ValueType>::create_view_of(vector);
+    using value_type = typename detail::pointee<VecPtr>::value_type;
+    return matrix::Dense<value_type>::create_view_of(vector);
 }
 
 
@@ -1309,11 +1311,13 @@ std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
  *
  * @param vector  the vector on which to create the view
  */
-template <typename ValueType>
-std::unique_ptr<const matrix::Dense<ValueType>> make_const_dense_view(
-    const matrix::Dense<ValueType>* vector)
+template <typename VecPtr>
+std::unique_ptr<
+    const matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
+make_const_dense_view(VecPtr&& vector)
 {
-    return matrix::Dense<ValueType>::create_const_view_of(vector);
+    using value_type = typename detail::pointee<VecPtr>::value_type;
+    return matrix::Dense<value_type>::create_const_view_of(vector);
 }
 
 

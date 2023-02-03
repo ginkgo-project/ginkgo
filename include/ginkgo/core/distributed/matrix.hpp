@@ -516,7 +516,8 @@ protected:
      *                         same runtime type.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, const LinOp* matrix_template);
+                    mpi::communicator comm,
+                    pointer_param<const LinOp> matrix_template);
 
     /**
      * Creates an empty distributed matrix with specified types for the local
@@ -533,8 +534,9 @@ protected:
      *                                   constructed with the same runtime type.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, const LinOp* local_matrix_template,
-                    const LinOp* non_local_matrix_template);
+                    mpi::communicator comm,
+                    pointer_param<const LinOp> local_matrix_template,
+                    pointer_param<const LinOp> non_local_matrix_template);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
