@@ -309,6 +309,25 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                      benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
     }
 
+    //*
+    for (int i = 1; i <= 64; i += 1) {
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        cur_settings.init_compressor = [i](void* p_compressor) {
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
+            nlohmann::json j = {{"pressio:compressor", "zfp"}, {"zfp:rate", i}};
+            pressio_options options_from_file(static_cast<pressio_options>(j));
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            // pc_->set_options({});
+            pc_->set_name("pressio");
+            pc_->set_options(options_from_file);
+        };
+        print_result("ZFP_FR", std::to_string(i),
+                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+    }
+    /*/
     std::vector<std::string> compression_json_files;
     for (auto config_path :
          std::filesystem::directory_iterator(compression_json_folder)) {
@@ -332,8 +351,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             gko::solver::cb_gmres::storage_precision::use_pressio;
         cur_settings.init_compressor = [lp_config =
                                             config_file](void* p_compressor) {
-            auto pc_ptr_ = static_cast<pressio_compressor*>(p_compressor);
-            auto& pc_ = *pc_ptr_;
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
             std::ifstream pressio_input_file(lp_config);
             nlohmann::json j;
             pressio_input_file >> j;
