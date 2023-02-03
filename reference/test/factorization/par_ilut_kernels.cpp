@@ -496,10 +496,10 @@ TYPED_TEST(ParIlut, KernelComputeLU)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     auto mtx_l_coo = Coo::create(this->exec, this->mtx_system->get_size());
-    this->mtx_l_system->convert_to(mtx_l_coo.get());
+    this->mtx_l_system->convert_to(mtx_l_coo);
     auto mtx_u_transp = this->mtx_u_system->transpose();
     auto mtx_u_coo = Coo::create(this->exec, this->mtx_system->get_size());
-    this->mtx_u_system->convert_to(mtx_u_coo.get());
+    this->mtx_u_system->convert_to(mtx_u_coo);
     auto mtx_u_csc = gko::as<Csr>(mtx_u_transp.get());
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
@@ -580,7 +580,7 @@ TYPED_TEST(ParIlut, GenerateDenseIdentity)
     using Dense = typename TestFixture::Dense;
     auto dense_id =
         gko::share(Dense::create(this->exec, this->identity->get_size()));
-    this->identity->convert_to(dense_id.get());
+    this->identity->convert_to(dense_id);
     auto fact = this->fact_fact->generate(dense_id);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);

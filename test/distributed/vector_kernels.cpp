@@ -70,11 +70,14 @@ protected:
 
     Vector() : engine(42) {}
 
-    void validate(const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* partition,
-                  const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* d_partition,
-                  gko::device_matrix_data<value_type, global_index_type> input)
+    void validate(
+        gko::pointer_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            partition,
+        gko::pointer_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            d_partition,
+        const gko::device_matrix_data<value_type, global_index_type>& input)
     {
         gko::device_matrix_data<value_type, global_index_type> d_input{exec,
                                                                        input};
@@ -88,9 +91,9 @@ protected:
             auto d_output = gko::clone(exec, output);
 
             gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition, part, output.get());
+                ref, input, partition.get(), part, output.get());
             gko::kernels::EXEC_NAMESPACE::distributed_vector::build_local(
-                exec, d_input, d_partition, part, d_output.get());
+                exec, d_input, d_partition.get(), part, d_output.get());
 
             GKO_ASSERT_MTX_NEAR(output, d_output, 0);
         }
@@ -141,7 +144,7 @@ TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
                                                                  num_parts);
 
     this->validate(
-        partition.get(), d_partition.get(),
+        partition, d_partition,
         gko::device_matrix_data<value_type, global_index_type>{this->ref});
 }
 
@@ -177,7 +180,7 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), d_partition.get(), input);
+    this->validate(partition, d_partition, input);
 }
 
 
@@ -212,5 +215,5 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), d_partition.get(), input);
+    this->validate(partition, d_partition, input);
 }

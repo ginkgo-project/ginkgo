@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
     b->convert_to(outer_residual);
 
     // restore b
-    b->copy_from(host_x.get());
+    b->copy_from(host_x);
 
     // Create inner solver
     auto inner_solver =

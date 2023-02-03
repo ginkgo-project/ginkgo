@@ -75,7 +75,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // Throws an exception if it is not convertible.
     auto local_system_matrix = matrix_type::create(exec);
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
-        ->convert_to(local_system_matrix.get());
+        ->convert_to(local_system_matrix);
 
     if (!skip_sorting) {
         local_system_matrix->sort_by_column_index();

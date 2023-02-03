@@ -203,8 +203,8 @@ struct DistributedDefaultSystemGenerator {
         }
 
         auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
-            exec, comm, local_mat.get(), non_local_mat.get());
-        dist_mat->read_distributed(data, part.get());
+            exec, comm, local_mat, non_local_mat);
+        dist_mat->read_distributed(data, part);
 
         if (spmv_case && allocator) {
             exec->remove_logger(storage_logger);
@@ -230,14 +230,12 @@ struct DistributedDefaultSystemGenerator {
                 exec, comm.size(), static_cast<global_itype>(size[0]));
         return Vec::create(
             exec, comm, size,
-            local_generator
-                .create_multi_vector(
-                    exec,
-                    gko::dim<2>{static_cast<gko::size_type>(
-                                    part->get_part_size(comm.rank())),
-                                size[1]},
-                    value)
-                .get());
+            local_generator.create_multi_vector(
+                exec,
+                gko::dim<2>{static_cast<gko::size_type>(
+                                part->get_part_size(comm.rank())),
+                            size[1]},
+                value));
     }
 
     std::unique_ptr<Vec> create_multi_vector_strided(
@@ -249,14 +247,12 @@ struct DistributedDefaultSystemGenerator {
                 exec, comm.size(), static_cast<global_itype>(size[0]));
         return Vec::create(
             exec, comm, size,
-            local_generator
-                .create_multi_vector_strided(
-                    exec,
-                    gko::dim<2>{static_cast<gko::size_type>(
-                                    part->get_part_size(comm.rank())),
-                                size[1]},
-                    stride)
-                .get());
+            local_generator.create_multi_vector_strided(
+                exec,
+                gko::dim<2>{static_cast<gko::size_type>(
+                                part->get_part_size(comm.rank())),
+                            size[1]},
+                stride));
     }
 
     // creates a random multi_vector
@@ -268,12 +264,10 @@ struct DistributedDefaultSystemGenerator {
                 exec, comm.size(), static_cast<global_itype>(size[0]));
         return Vec::create(
             exec, comm, size,
-            local_generator
-                .create_multi_vector_random(
-                    exec, gko::dim<2>{static_cast<gko::size_type>(
-                                          part->get_part_size(comm.rank())),
-                                      size[1]})
-                .get());
+            local_generator.create_multi_vector_random(
+                exec, gko::dim<2>{static_cast<gko::size_type>(
+                                      part->get_part_size(comm.rank())),
+                                  size[1]}));
     }
 
     std::unique_ptr<Vec> initialize(
@@ -285,9 +279,8 @@ struct DistributedDefaultSystemGenerator {
         auto global_rows = local->get_size()[0];
         comm.all_reduce(gko::ReferenceExecutor::create(), &global_rows, 1,
                         MPI_SUM);
-        return Vec::create(exec, comm,
-                           gko::dim<2>{global_rows, local->get_size()[1]},
-                           local.get());
+        return Vec::create(
+            exec, comm, gko::dim<2>{global_rows, local->get_size()[1]}, local);
     }
 
     gko::experimental::mpi::communicator comm;

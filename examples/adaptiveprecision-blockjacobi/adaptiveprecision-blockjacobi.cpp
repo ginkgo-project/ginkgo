@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_x.get());
+    b->copy_from(host_x);
     const RealValueType reduction_factor = 1e-7;
     auto iter_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec));

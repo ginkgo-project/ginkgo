@@ -111,7 +111,7 @@ protected:
         int n = 43;
         x = gen_mtx(m, n);
         y = gen_mtx(default_krylov_dim_mixed, n);
-        before_preconditioner = Mtx::create_with_config_of(x.get());
+        before_preconditioner = Mtx::create_with_config_of(x);
         b = gen_mtx(m, n);
         arnoldi_norm = gen_mtx(3, n);
         gko::dim<3> krylov_bases_dim(default_krylov_dim_mixed + 1, m, n);
@@ -147,7 +147,7 @@ protected:
         }
 
         d_x = gko::clone(exec, x);
-        d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
+        d_before_preconditioner = Mtx::create_with_config_of(d_x);
         d_y = gko::clone(exec, y);
         d_b = gko::clone(exec, b);
         d_arnoldi_norm = gko::clone(exec, arnoldi_norm);

@@ -101,8 +101,8 @@ int main(int argc, char* argv[])
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_b.get());
+    x->copy_from(host_x);
+    b->copy_from(host_b);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
     b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_b.get());
+    b->copy_from(host_b);
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-12;

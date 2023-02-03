@@ -65,7 +65,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::matrix::Permutation<i_type>* m)
+        gko::pointer_param<gko::matrix::Permutation<i_type>> m)
     {
         auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
@@ -233,7 +233,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 
 TYPED_TEST(Permutation, KnowsItsSizeAndValues)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -242,11 +242,11 @@ TYPED_TEST(Permutation, CanBeCopied)
     using i_type = typename TestFixture::i_type;
     auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_permutation()[0] = 3;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
 }
 
 
@@ -257,7 +257,7 @@ TYPED_TEST(Permutation, CanBeMoved)
 
     mtx_copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
 }
 
 
@@ -266,7 +266,7 @@ TYPED_TEST(Permutation, CopyingPreservesMask)
     using i_type = typename TestFixture::i_type;
     auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx);
 
     auto o_mask = this->mtx->get_permute_mask();
     auto n_mask = mtx_copy->get_permute_mask();
@@ -280,7 +280,7 @@ TYPED_TEST(Permutation, CopyingPreservesMask)
     ASSERT_EQ(o_mask, gko::matrix::column_permute);
     ASSERT_NE(o_mask, n_mask);
 
-    mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx);
 
     n_mask = mtx_copy->get_permute_mask();
     ASSERT_EQ(o_mask, n_mask);

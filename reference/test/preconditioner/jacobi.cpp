@@ -124,7 +124,8 @@ protected:
         }
     }
 
-    void assert_same_precond(const Bj* a, const Bj* b)
+    void assert_same_precond(gko::pointer_param<const Bj> a,
+                             gko::pointer_param<const Bj> b)
     {
         ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
         ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
@@ -193,14 +194,14 @@ TYPED_TEST(Jacobi, CanBeCloned)
 {
     auto bj_clone = clone(this->bj);
 
-    this->assert_same_precond(bj_clone.get(), this->bj.get());
+    this->assert_same_precond(bj_clone, this->bj);
 }
 
 
 TYPED_TEST(Jacobi, CanBeClonedWithAdaptvePrecision)
 {
     auto bj_clone = clone(this->adaptive_bj);
-    this->assert_same_precond(bj_clone.get(), this->adaptive_bj.get());
+    this->assert_same_precond(bj_clone, this->adaptive_bj);
 }
 
 
@@ -218,7 +219,7 @@ TYPED_TEST(Jacobi, CanBeCopied)
 
     copy->copy_from(this->bj);
 
-    this->assert_same_precond(copy.get(), this->bj.get());
+    this->assert_same_precond(copy, this->bj);
 }
 
 
@@ -236,7 +237,7 @@ TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
 
     copy->copy_from(this->adaptive_bj);
 
-    this->assert_same_precond(copy.get(), this->adaptive_bj.get());
+    this->assert_same_precond(copy, this->adaptive_bj);
 }
 
 
@@ -255,7 +256,7 @@ TYPED_TEST(Jacobi, CanBeMoved)
 
     copy->copy_from(give(this->bj));
 
-    this->assert_same_precond(copy.get(), tmp.get());
+    this->assert_same_precond(copy.get(), tmp);
 }
 
 
@@ -274,7 +275,7 @@ TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
 
     copy->copy_from(give(this->adaptive_bj));
 
-    this->assert_same_precond(copy.get(), tmp.get());
+    this->assert_same_precond(copy.get(), tmp);
 }
 
 
@@ -320,7 +321,7 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
-    dense_j->copy_from(scalar_j.get());
+    dense_j->copy_from(scalar_j);
     auto j_val = scalar_j->get_blocks();
 
     for (auto i = 0; i < dense_j->get_size()[0]; ++i) {

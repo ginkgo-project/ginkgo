@@ -78,7 +78,7 @@ TYPED_TEST(Combination, CopiesOnSameExecutor)
         this->operators[1]);
     auto out = cmb->create_default();
 
-    cmb->convert_to(out.get());
+    cmb->convert_to(out);
 
     ASSERT_EQ(out->get_size(), cmb->get_size());
     ASSERT_EQ(out->get_executor(), cmb->get_executor());
@@ -102,7 +102,7 @@ TYPED_TEST(Combination, MovesOnSameExecutor)
     auto cmb2 = cmb->clone();
     auto out = cmb->create_default();
 
-    cmb->move_to(out.get());
+    cmb->move_to(out);
 
     ASSERT_EQ(out->get_size(), cmb2->get_size());
     ASSERT_EQ(out->get_executor(), cmb2->get_executor());

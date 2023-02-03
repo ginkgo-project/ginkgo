@@ -250,11 +250,11 @@ protected:
         precision_dispatch_real_complex<value_type>(
             [&](auto dense_b, auto dense_x) {
                 this->set_cache_to(dense_b);
-                l_solver_->apply(dense_b, cache_.intermediate.get());
+                l_solver_->apply(dense_b, cache_.intermediate);
                 if (lh_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(cache_.intermediate.get());
+                    dense_x->copy_from(cache_.intermediate);
                 }
-                lh_solver_->apply(cache_.intermediate.get(), dense_x);
+                lh_solver_->apply(cache_.intermediate, dense_x);
             },
             b, x);
     }
@@ -265,9 +265,9 @@ protected:
         precision_dispatch_real_complex<value_type>(
             [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
                 this->set_cache_to(dense_b);
-                l_solver_->apply(dense_b, cache_.intermediate.get());
-                lh_solver_->apply(dense_alpha, cache_.intermediate.get(),
-                                  dense_beta, dense_x);
+                l_solver_->apply(dense_b, cache_.intermediate);
+                lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                                  dense_x);
             },
             alpha, b, beta, x);
     }

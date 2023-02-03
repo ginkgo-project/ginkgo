@@ -75,7 +75,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        const gko::matrix::RowGatherer<i_type>* m)
+        gko::pointer_param<const gko::matrix::RowGatherer<i_type>> m)
     {
         auto gather = m->get_const_row_idxs();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
@@ -147,7 +147,7 @@ TYPED_TEST(RowGatherer, RowGathererThrowsforWrongRowPermDimensions)
 
 TYPED_TEST(RowGatherer, KnowsItsSizeAndValues)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -160,7 +160,7 @@ TYPED_TEST(RowGatherer, CanBeCreatedFromExistingConstData)
         this->exec, gko::dim<2>{4, 3},
         gko::array<i_type>::const_view(this->exec, 4, row_idxs));
 
-    this->assert_equal_to_original_mtx(const_mtx.get());
+    this->assert_equal_to_original_mtx(const_mtx);
 }
 
 
@@ -169,11 +169,11 @@ TYPED_TEST(RowGatherer, CanBeCopied)
     using i_type = typename TestFixture::i_type;
     auto mtx_copy = gko::matrix::RowGatherer<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_row_idxs()[0] = 3;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
 }
 
 
@@ -184,7 +184,7 @@ TYPED_TEST(RowGatherer, CanBeMoved)
 
     mtx_copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy);
 }
 
 
@@ -208,7 +208,7 @@ TYPED_TEST(RowGatherer, CanBeCleared)
 TYPED_TEST(RowGatherer, CanRowGatherMixed)
 {
     using o_type = typename TestFixture::o_type;
-    this->mtx->apply(this->in.get(), this->out.get());
+    this->mtx->apply(this->in, this->out);
 
     GKO_ASSERT_MTX_NEAR(this->out,
                         l<o_type>({{0.0, -2.0, 1.0},
@@ -228,7 +228,7 @@ TYPED_TEST(RowGatherer, CanAdvancedRowGatherMixed)
     auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), this->in.get(), beta.get(), this->out.get());
+    this->mtx->apply(alpha, this->in, beta, this->out);
 
     GKO_ASSERT_MTX_NEAR(this->out,
                         l<o_type>({{0.0, -3.0, 1.0},

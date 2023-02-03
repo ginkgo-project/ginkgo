@@ -66,7 +66,7 @@ protected:
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
-        result->copy_from(tmp_mtx.get());
+        result->copy_from(tmp_mtx);
         return result;
     }
 

@@ -239,7 +239,7 @@ TYPED_TEST(ParIc, GenerateDenseIdentity)
     using Dense = typename TestFixture::Dense;
     auto dense_id =
         gko::share(Dense::create(this->exec, this->identity->get_size()));
-    this->identity->convert_to(dense_id.get());
+    this->identity->convert_to(dense_id);
 
     auto fact = this->fact_fact->generate(dense_id);
 

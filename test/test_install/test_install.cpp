@@ -46,8 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-void assert_similar_matrices(const gko::matrix::Dense<>* m1,
-                             const gko::matrix::Dense<>* m2, double prec)
+void assert_similar_matrices(gko::pointer_param<const gko::matrix::Dense<>> m1,
+                             gko::pointer_param<const gko::matrix::Dense<>> m2,
+                             double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
     assert(m1->get_size()[1] == m2->get_size()[1]);
@@ -62,7 +63,8 @@ void assert_similar_matrices(const gko::matrix::Dense<>* m1,
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<double>& A_raw,
-                const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
+                gko::pointer_param<const gko::matrix::Dense<>> b,
+                gko::pointer_param<gko::matrix::Dense<>> x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
@@ -82,7 +84,7 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 
     // Actually check that `x_clone` is similar to `x_ref`
     auto x_clone_ref = gko::clone(exec_ref, x_clone);
-    assert_similar_matrices(x_clone_ref.get(), x_ref.get(), 1e-14);
+    assert_similar_matrices(x_clone_ref, x_ref, 1e-14);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -91,7 +93,8 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
                   const gko::matrix_data<double>& A_raw,
-                  const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
+                  gko::pointer_param<const gko::matrix::Dense<>> b,
+                  gko::pointer_param<gko::matrix::Dense<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
@@ -134,7 +137,7 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 
     // Actually check that `x_clone` is similar to `x_ref`
     auto x_clone_ref = gko::clone(exec_ref, x_clone);
-    assert_similar_matrices(x_clone_ref.get(), x_ref.get(), 1e-12);
+    assert_similar_matrices(x_clone_ref, x_ref, 1e-12);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -351,7 +354,7 @@ int main()
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/csr.hpp
@@ -363,19 +366,19 @@ int main()
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/identity.hpp
@@ -399,7 +402,7 @@ int main()
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        check_spmv<Mtx>(exec, A_raw, b.get(), x.get());
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/sparsity_csr.hpp
@@ -433,37 +436,37 @@ int main()
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        check_solver<Solver>(exec, A_raw, b.get(), x.get());
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/ir.hpp

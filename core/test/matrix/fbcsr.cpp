@@ -52,89 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueType, typename IndexType>
-void assert_matrices_are_same(
-    const gko::matrix::Fbcsr<ValueType, IndexType>* const bm,
-    const gko::matrix::Csr<ValueType, IndexType>* const cm,
-    const gko::matrix::Diagonal<ValueType>* const diam = nullptr,
-    const gko::matrix_data<ValueType, IndexType>* const md = nullptr)
-{
-    if (cm) {
-        ASSERT_EQ(bm->get_size(), cm->get_size());
-        ASSERT_EQ(bm->get_num_stored_elements(), cm->get_num_stored_elements());
-    }
-    if (md) {
-        ASSERT_EQ(bm->get_size(), md->size);
-        ASSERT_EQ(bm->get_num_stored_elements(), md->nonzeros.size());
-    }
-    if (diam) {
-        const gko::size_type minsize =
-            std::min(bm->get_size()[0], bm->get_size()[1]);
-        ASSERT_EQ(minsize, diam->get_size()[0]);
-        ASSERT_EQ(minsize, diam->get_size()[1]);
-    }
-
-    const IndexType nbrows = bm->get_num_block_rows();
-    const int bs = bm->get_block_size();
-    const auto nbnz = bm->get_num_stored_blocks();
-    gko::acc::range<gko::acc::block_col_major<const ValueType, 3>> fbvals(
-        std::array<gko::acc::size_type, 3>{
-            static_cast<gko::acc::size_type>(nbnz),
-            static_cast<gko::acc::size_type>(bs),
-            static_cast<gko::acc::size_type>(bs)},
-        bm->get_const_values());
-
-    for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
-        const IndexType* const browptr = bm->get_const_row_ptrs();
-        const IndexType numblocksbrow = browptr[ibrow + 1] - browptr[ibrow];
-        for (IndexType irow = ibrow * bs; irow < ibrow * bs + bs; irow++) {
-            const IndexType rowstart = browptr[ibrow] * bs * bs +
-                                       (irow - ibrow * bs) * numblocksbrow * bs;
-            if (cm) {
-                ASSERT_EQ(cm->get_const_row_ptrs()[irow], rowstart);
-            }
-        }
-
-        const IndexType iz_browstart = browptr[ibrow] * bs * bs;
-        const IndexType* const bcolinds = bm->get_const_col_idxs();
-
-        for (IndexType ibnz = browptr[ibrow]; ibnz < browptr[ibrow + 1];
-             ibnz++) {
-            const IndexType bcol = bcolinds[ibnz];
-            const IndexType blkoffset_frombrowstart = ibnz - browptr[ibrow];
-
-            for (int ib = 0; ib < bs; ib++) {
-                const IndexType row = ibrow * bs + ib;
-                const IndexType inz_rowstart =
-                    iz_browstart + ib * numblocksbrow * bs;
-                const IndexType inz_blockstart_row =
-                    inz_rowstart + blkoffset_frombrowstart * bs;
-
-                for (int jb = 0; jb < bs; jb++) {
-                    const IndexType col = bcol * bs + jb;
-                    const IndexType inz = inz_blockstart_row + jb;
-                    if (cm) {
-                        ASSERT_EQ(col, cm->get_const_col_idxs()[inz]);
-                        ASSERT_EQ(fbvals(ibnz, ib, jb),
-                                  cm->get_const_values()[inz]);
-                    }
-                    if (md) {
-                        ASSERT_EQ(row, md->nonzeros[inz].row);
-                        ASSERT_EQ(col, md->nonzeros[inz].column);
-                        ASSERT_EQ(fbvals(ibnz, ib, jb),
-                                  md->nonzeros[inz].value);
-                    }
-                    if (row == col && diam) {
-                        ASSERT_EQ(fbvals(ibnz, ib, jb),
-                                  diam->get_const_values()[row]);
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 template <typename SampleGenerator>
 void check_sample_generator_common(const SampleGenerator sg)
 {
@@ -157,6 +74,91 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 
     FbcsrSample() : ref(gko::ReferenceExecutor::create()) {}
+
+    void assert_matrices_are_same(
+        gko::pointer_param<const gko::matrix::Fbcsr<value_type, index_type>> bm,
+        gko::pointer_param<const gko::matrix::Csr<value_type, index_type>> cm,
+        const gko::matrix::Diagonal<value_type>* const diam = nullptr,
+        const gko::matrix_data<value_type, index_type>* const md = nullptr)
+    {
+        if (cm) {
+            ASSERT_EQ(bm->get_size(), cm->get_size());
+            ASSERT_EQ(bm->get_num_stored_elements(),
+                      cm->get_num_stored_elements());
+        }
+        if (md) {
+            ASSERT_EQ(bm->get_size(), md->size);
+            ASSERT_EQ(bm->get_num_stored_elements(), md->nonzeros.size());
+        }
+        if (diam) {
+            const gko::size_type minsize =
+                std::min(bm->get_size()[0], bm->get_size()[1]);
+            ASSERT_EQ(minsize, diam->get_size()[0]);
+            ASSERT_EQ(minsize, diam->get_size()[1]);
+        }
+
+        const index_type nbrows = bm->get_num_block_rows();
+        const int bs = bm->get_block_size();
+        const auto nbnz = bm->get_num_stored_blocks();
+        gko::acc::range<gko::acc::block_col_major<const value_type, 3>> fbvals(
+            std::array<gko::acc::size_type, 3>{
+                static_cast<gko::acc::size_type>(nbnz),
+                static_cast<gko::acc::size_type>(bs),
+                static_cast<gko::acc::size_type>(bs)},
+            bm->get_const_values());
+
+        for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
+            const index_type* const browptr = bm->get_const_row_ptrs();
+            const index_type numblocksbrow =
+                browptr[ibrow + 1] - browptr[ibrow];
+            for (index_type irow = ibrow * bs; irow < ibrow * bs + bs; irow++) {
+                const index_type rowstart =
+                    browptr[ibrow] * bs * bs +
+                    (irow - ibrow * bs) * numblocksbrow * bs;
+                if (cm) {
+                    ASSERT_EQ(cm->get_const_row_ptrs()[irow], rowstart);
+                }
+            }
+
+            const index_type iz_browstart = browptr[ibrow] * bs * bs;
+            const index_type* const bcolinds = bm->get_const_col_idxs();
+
+            for (index_type ibnz = browptr[ibrow]; ibnz < browptr[ibrow + 1];
+                 ibnz++) {
+                const index_type bcol = bcolinds[ibnz];
+                const index_type blkoffset_frombrowstart =
+                    ibnz - browptr[ibrow];
+
+                for (int ib = 0; ib < bs; ib++) {
+                    const index_type row = ibrow * bs + ib;
+                    const index_type inz_rowstart =
+                        iz_browstart + ib * numblocksbrow * bs;
+                    const index_type inz_blockstart_row =
+                        inz_rowstart + blkoffset_frombrowstart * bs;
+
+                    for (int jb = 0; jb < bs; jb++) {
+                        const index_type col = bcol * bs + jb;
+                        const index_type inz = inz_blockstart_row + jb;
+                        if (cm) {
+                            ASSERT_EQ(col, cm->get_const_col_idxs()[inz]);
+                            ASSERT_EQ(fbvals(ibnz, ib, jb),
+                                      cm->get_const_values()[inz]);
+                        }
+                        if (md) {
+                            ASSERT_EQ(row, md->nonzeros[inz].row);
+                            ASSERT_EQ(col, md->nonzeros[inz].column);
+                            ASSERT_EQ(fbvals(ibnz, ib, jb),
+                                      md->nonzeros[inz].value);
+                        }
+                        if (row == col && diam) {
+                            ASSERT_EQ(fbvals(ibnz, ib, jb),
+                                      diam->get_const_values()[row]);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
@@ -187,10 +189,10 @@ TYPED_TEST(FbcsrSample, SampleGeneratorsAreCorrect)
     const gko::array<index_type> nnzperrow = fbsample2.getNonzerosPerRow();
 
     check_sample_generator_common(fbsample);
-    assert_matrices_are_same(fbmtx.get(), csmtx.get(),
-                             static_cast<const Diag*>(nullptr), &mdata);
+    this->assert_matrices_are_same(fbmtx, csmtx,
+                                   static_cast<const Diag*>(nullptr), &mdata);
     check_sample_generator_common(fbsample2);
-    assert_matrices_are_same(fbmtx2.get(), csmtx2.get(), diag2.get());
+    this->assert_matrices_are_same(fbmtx2, csmtx2, diag2.get());
     for (index_type irow = 0; irow < fbsample2.nrows; irow++) {
         const index_type* const row_ptrs = csmtx2->get_const_row_ptrs();
         const index_type num_nnz_row = row_ptrs[irow + 1] - row_ptrs[irow];
@@ -211,17 +213,7 @@ TYPED_TEST(FbcsrSample, SampleGeneratorsAreCorrect)
 
 
 template <typename ValueIndexType>
-class FbcsrSampleComplex : public ::testing::Test {
-protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-
-    FbcsrSampleComplex() : ref(gko::ReferenceExecutor::create()) {}
-
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
-};
+class FbcsrSampleComplex : public FbcsrSample<ValueIndexType> {};
 
 
 TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes,
@@ -241,7 +233,7 @@ TYPED_TEST(FbcsrSampleComplex, ComplexSampleGeneratorIsCorrect)
     std::unique_ptr<const Csr> csmtx3 = fbsample3.generate_csr();
 
     check_sample_generator_common(fbsample3);
-    assert_matrices_are_same(fbmtx3.get(), csmtx3.get());
+    this->assert_matrices_are_same(fbmtx3, csmtx3);
 }
 
 
@@ -283,7 +275,7 @@ protected:
     std::vector<index_type> orig_rowptrs;
     std::vector<index_type> orig_colinds;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -359,7 +351,7 @@ TYPED_TEST(Fbcsr, KnowsItsSize)
 
 TYPED_TEST(Fbcsr, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -439,11 +431,11 @@ TYPED_TEST(Fbcsr, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 3.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -454,7 +446,7 @@ TYPED_TEST(Fbcsr, CanBeMoved)
 
     copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -464,7 +456,7 @@ TYPED_TEST(Fbcsr, CanBeCloned)
 
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
@@ -485,7 +477,7 @@ TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
 
     m->read(this->fbsample.generate_matrix_data());
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 

@@ -118,7 +118,7 @@ TYPED_TEST(Composition, CopiesOnSameExecutor)
                                                    this->operators[1]);
     auto out = cmp->create_default();
 
-    cmp->convert_to(out.get());
+    cmp->convert_to(out);
 
     ASSERT_EQ(out->get_size(), cmp->get_size());
     ASSERT_EQ(out->get_executor(), cmp->get_executor());
@@ -137,7 +137,7 @@ TYPED_TEST(Composition, MovesOnSameExecutor)
     auto cmp2 = cmp->clone();
     auto out = cmp->create_default();
 
-    cmp->move_to(out.get());
+    cmp->move_to(out);
 
     ASSERT_EQ(out->get_size(), cmp2->get_size());
     ASSERT_EQ(out->get_executor(), cmp2->get_executor());

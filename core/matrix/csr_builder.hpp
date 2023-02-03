@@ -65,7 +65,9 @@ public:
     /**
      * Initializes a CsrBuilder from an existing CSR matrix.
      */
-    explicit CsrBuilder(Csr<ValueType, IndexType>* matrix) : matrix_{matrix} {}
+    explicit CsrBuilder(pointer_param<Csr<ValueType, IndexType>> matrix)
+        : matrix_{matrix.get()}
+    {}
 
     /**
      * Updates the internal matrix data structures at destruction.

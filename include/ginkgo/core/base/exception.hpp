@@ -71,7 +71,7 @@ namespace gko {
  *     auto A = randn_fill<matrix::Csr<float>>(5, 5, 0f, 1f, omp);
  *     auto x = fill<matrix::Dense<float>>(6, 1, 1f, omp);
  *     try {
- *         auto y = apply(A.get(), x.get());
+ *         auto y = apply(A, x);
  *     } catch(Error e) {
  *         // an error occured, write the message to screen and exit
  *         std::cout << e.what() << std::endl;

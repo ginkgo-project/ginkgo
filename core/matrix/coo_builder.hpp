@@ -70,7 +70,9 @@ public:
     /**
      * Initializes a CooBuilder from an existing COO matrix.
      */
-    explicit CooBuilder(Coo<ValueType, IndexType>* matrix) : matrix_{matrix} {}
+    explicit CooBuilder(pointer_param<Coo<ValueType, IndexType>> matrix)
+        : matrix_{matrix.get()}
+    {}
 
     // make this type non-movable
     CooBuilder(const CooBuilder&) = delete;

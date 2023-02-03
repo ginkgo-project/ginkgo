@@ -266,11 +266,10 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(relaxation_factor_.get(), inner_solution);
+            dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(relaxation_factor_.get(), residual_ptr, one_op,
-                           dense_x);
+            solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
         }
     }
 }
@@ -299,7 +298,7 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

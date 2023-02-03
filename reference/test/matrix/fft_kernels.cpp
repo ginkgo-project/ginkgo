@@ -108,7 +108,7 @@ protected:
                 dense_ifft->at(i, j) = conj(dense_fft->at(i, j));
             }
         }
-        dense_fft->apply(amplitude.get(), frequency1.get());
+        dense_fft->apply(amplitude, frequency1);
         auto idx2 = [&](gko::size_type x, gko::size_type y) {
             return x * n3 + y;
         };
@@ -125,7 +125,7 @@ protected:
                 }
             }
         }
-        dense_fft2->apply(amplitude.get(), frequency2.get());
+        dense_fft2->apply(amplitude, frequency2);
         auto idx3 = [&](gko::size_type x, gko::size_type y, gko::size_type z) {
             return x * n2 * n3 + y * n3 + z;
         };
@@ -149,7 +149,7 @@ protected:
                 }
             }
         }
-        dense_fft3->apply(amplitude.get(), frequency3.get());
+        dense_fft3->apply(amplitude, frequency3);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -189,8 +189,7 @@ TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo1D)
     auto wrong_fft = TestFixture::Mtx::create(this->exec, 3);
     auto wrong_vec = TestFixture::Vec::create(this->exec, gko::dim<2>(3, 1));
 
-    ASSERT_THROW(wrong_fft->apply(wrong_vec.get(), wrong_vec.get()),
-                 gko::BadDimension);
+    ASSERT_THROW(wrong_fft->apply(wrong_vec, wrong_vec), gko::BadDimension);
 }
 
 
@@ -200,10 +199,10 @@ TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo2D)
         TestFixture::Vec::create(this->exec, gko::dim<2>(3 * 2, 1));
 
     ASSERT_THROW(TestFixture::Mtx2::create(this->exec, 3, 2)
-                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                     ->apply(wrong_vec, wrong_vec),
                  gko::BadDimension);
     ASSERT_THROW(TestFixture::Mtx2::create(this->exec, 2, 3)
-                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                     ->apply(wrong_vec, wrong_vec),
                  gko::BadDimension);
 }
 
@@ -214,13 +213,13 @@ TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo3D)
         TestFixture::Vec::create(this->exec, gko::dim<2>(3 * 2 * 4, 1));
 
     ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 3, 2, 4)
-                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                     ->apply(wrong_vec, wrong_vec),
                  gko::BadDimension);
     ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 2, 3, 4)
-                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                     ->apply(wrong_vec, wrong_vec),
                  gko::BadDimension);
     ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 4, 2, 3)
-                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                     ->apply(wrong_vec, wrong_vec),
                  gko::BadDimension);
 }
 
@@ -344,7 +343,7 @@ TYPED_TEST(Fft, Applies1DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
 
-    this->fft->apply(this->amplitude.get(), out.get());
+    this->fft->apply(this->amplitude, out);
 
     GKO_ASSERT_MTX_NEAR(out, this->frequency1, r<T>::value);
 }
@@ -360,7 +359,7 @@ TYPED_TEST(Fft, AppliesStrided1DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->fft->apply(in_view.get(), out.get());
+    this->fft->apply(in_view, out);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }
@@ -371,8 +370,8 @@ TYPED_TEST(Fft, AppliesInverse1DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->frequency1->clone();
 
-    this->ifft->apply(this->frequency1.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft->apply(this->frequency1, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, this->amplitude, r<T>::value);
 }
@@ -388,8 +387,8 @@ TYPED_TEST(Fft, AppliesStridedInverse1DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->ifft->apply(in_view.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft->apply(in_view, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }
@@ -400,7 +399,7 @@ TYPED_TEST(Fft, Applies2DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
 
-    this->fft2->apply(this->amplitude.get(), out.get());
+    this->fft2->apply(this->amplitude, out);
 
     GKO_ASSERT_MTX_NEAR(out, this->frequency2, r<T>::value);
 }
@@ -416,7 +415,7 @@ TYPED_TEST(Fft, AppliesStrided2DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->fft2->apply(in_view.get(), out.get());
+    this->fft2->apply(in_view, out);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }
@@ -427,8 +426,8 @@ TYPED_TEST(Fft, AppliesInverse2DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->frequency2->clone();
 
-    this->ifft2->apply(this->frequency2.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft2->apply(this->frequency2, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, this->amplitude, r<T>::value);
 }
@@ -444,8 +443,8 @@ TYPED_TEST(Fft, AppliesStridedInverse2DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->ifft2->apply(in_view.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft2->apply(in_view, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }
@@ -456,7 +455,7 @@ TYPED_TEST(Fft, Applies3DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
 
-    this->fft3->apply(this->amplitude.get(), out.get());
+    this->fft3->apply(this->amplitude, out);
 
     GKO_ASSERT_MTX_NEAR(out, this->frequency3, r<T>::value);
 }
@@ -472,7 +471,7 @@ TYPED_TEST(Fft, AppliesStrided3DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->fft3->apply(in_view.get(), out.get());
+    this->fft3->apply(in_view, out);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }
@@ -483,8 +482,8 @@ TYPED_TEST(Fft, AppliesInverse3DToDense)
     using T = typename TestFixture::value_type;
     auto out = this->frequency3->clone();
 
-    this->ifft3->apply(this->frequency3.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft3->apply(this->frequency3, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, this->amplitude, r<T>::value);
 }
@@ -500,8 +499,8 @@ TYPED_TEST(Fft, AppliesStridedInverse3DToDense)
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
-    this->ifft3->apply(in_view.get(), out.get());
-    out->scale(this->inv_n_scalar.get());
+    this->ifft3->apply(in_view, out);
+    out->scale(this->inv_n_scalar);
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
 }

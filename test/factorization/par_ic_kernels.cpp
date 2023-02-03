@@ -87,7 +87,7 @@ protected:
         {
             mtx_l_ani = Csr::create(ref, mtx_ani->get_size());
             gko::matrix::CsrBuilder<value_type, index_type> l_builder(
-                mtx_l_ani.get());
+                mtx_l_ani);
             gko::kernels::reference::factorization::initialize_row_ptrs_l(
                 ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs());
             auto l_nnz =

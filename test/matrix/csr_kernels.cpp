@@ -73,9 +73,9 @@ protected:
         x = gen_mtx<Mtx>(40, 25);
         alpha = gko::initialize<Vec>({2.0}, ref);
         dx = Mtx::create(exec);
-        dx->copy_from(x.get());
+        dx->copy_from(x);
         dalpha = Vec::create(exec);
-        dalpha->copy_from(alpha.get());
+        dalpha->copy_from(alpha);
     }
 
     std::default_random_engine rand_engine;
@@ -91,8 +91,8 @@ TEST_F(Csr, ScaleIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    x->scale(alpha.get());
-    dx->scale(dalpha.get());
+    x->scale(alpha);
+    dx->scale(dalpha);
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
 }
@@ -102,8 +102,8 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    x->inv_scale(alpha.get());
-    dx->inv_scale(dalpha.get());
+    x->inv_scale(alpha);
+    dx->inv_scale(dalpha);
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
 }

@@ -78,7 +78,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -100,7 +100,7 @@ protected:
         EXPECT_EQ(s[0], 0);
     }
 
-    void assert_empty(const Mtx* m)
+    void assert_empty(gko::pointer_param<const Mtx> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -123,7 +123,7 @@ TYPED_TEST(Csr, KnowsItsSize)
 
 TYPED_TEST(Csr, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -189,11 +189,11 @@ TYPED_TEST(Csr, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -204,7 +204,7 @@ TYPED_TEST(Csr, CanBeMoved)
 
     copy->copy_from(std::move(this->mtx));
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -213,7 +213,7 @@ TYPED_TEST(Csr, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
@@ -235,7 +235,7 @@ TYPED_TEST(Csr, CanBeReadFromMatrixData)
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 
@@ -254,7 +254,7 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 

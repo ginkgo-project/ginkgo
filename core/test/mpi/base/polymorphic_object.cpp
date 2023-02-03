@@ -171,7 +171,7 @@ protected:
     void TearDown() override
     {
         if (obj) {
-            obj->remove_logger(logger.get());
+            obj->remove_logger(logger);
         }
     }
 };

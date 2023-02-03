@@ -45,7 +45,8 @@ namespace factorization {
  */
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
-    const matrix::Csr<ValueType, IndexType>* mtx,
+    xstd::dont_deduce_t<pointer_param<const matrix::Csr<ValueType, IndexType>>>
+        mtx,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
 /**
@@ -55,8 +56,10 @@ void symbolic_cholesky(
  * @param factors  the output factors stored in a combined pattern
  */
 template <typename ValueType, typename IndexType>
-void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
-                 std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
+void symbolic_lu(
+    xstd::dont_deduce_t<pointer_param<const matrix::Csr<ValueType, IndexType>>>
+        mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
 
 }  // namespace factorization

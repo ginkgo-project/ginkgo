@@ -194,17 +194,17 @@ int main(int argc, char* argv[])
     auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
     auto x_host = dist_vec::create(exec->get_master(), comm);
     auto b_host = dist_vec::create(exec->get_master(), comm);
-    A_host->read_distributed(A_data, partition.get());
-    b_host->read_distributed(b_data, partition.get());
-    x_host->read_distributed(x_data, partition.get());
+    A_host->read_distributed(A_data, partition);
+    b_host->read_distributed(b_data, partition);
+    x_host->read_distributed(x_data, partition);
     // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
-    A->copy_from(A_host.get());
-    b->copy_from(b_host.get());
-    x->copy_from(x_host.get());
+    A->copy_from(A_host);
+    b->copy_from(b_host);
+    x->copy_from(x_host);
 
     // Take timings.
     comm.synchronize();
@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
 
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
-    x_host->copy_from(x.get());
+    x_host->copy_from(x);
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
     A_host->apply(minus_one, x_host, one, b_host);

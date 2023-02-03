@@ -64,14 +64,15 @@ protected:
 
     Cholesky() : ref(gko::ReferenceExecutor::create()), tmp{ref} {}
 
-    std::unique_ptr<matrix_type> combined_factor(const matrix_type* l_factor)
+    std::unique_ptr<matrix_type> combined_factor(
+        gko::pointer_param<const matrix_type> l_factor)
     {
         auto one = gko::initialize<gko::matrix::Dense<value_type>>(
             {gko::one<value_type>()}, ref);
         auto id = gko::matrix::Identity<value_type>::create(
             ref, l_factor->get_size()[0]);
         auto result = gko::as<matrix_type>(l_factor->transpose());
-        l_factor->apply(one.get(), id.get(), one.get(), result.get());
+        l_factor->apply(one, id, one, result);
         return result;
     }
 
@@ -340,10 +341,10 @@ TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
     std::ifstream ref_stream{gko::matrices::location_ani1_chol_mtx};
     auto mtx = gko::read<matrix_type>(stream, this->ref);
     auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    auto combined_factor_ref = this->combined_factor(l_factor_ref.get());
+    auto combined_factor_ref = this->combined_factor(l_factor_ref);
 
     std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
+    gko::factorization::symbolic_cholesky(mtx, combined_factor);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
 }
@@ -402,10 +403,10 @@ TYPED_TEST(Cholesky, SymbolicFactorizeAni1Amd)
     std::ifstream ref_stream{gko::matrices::location_ani1_amd_chol_mtx};
     auto mtx = gko::read<matrix_type>(stream, this->ref);
     auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
-    auto combined_factor_ref = this->combined_factor(l_factor_ref.get());
+    auto combined_factor_ref = this->combined_factor(l_factor_ref);
 
     std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
+    gko::factorization::symbolic_cholesky(mtx, combined_factor);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
 }

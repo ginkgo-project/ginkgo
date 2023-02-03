@@ -72,7 +72,7 @@ TYPED_TEST(FbcsrBuilder, ReturnsCorrectArrays)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    gko::matrix::FbcsrBuilder<value_type, index_type> builder{this->mtx.get()};
+    gko::matrix::FbcsrBuilder<value_type, index_type> builder{this->mtx};
 
     auto builder_col_idxs = builder.get_col_idx_array().get_data();
     auto builder_values = builder.get_value_array().get_data();

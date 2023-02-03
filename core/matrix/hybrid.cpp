@@ -163,8 +163,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
     Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
-    this->ell_->convert_to(result->ell_.get());
-    this->coo_->convert_to(result->coo_.get());
+    this->ell_->convert_to(result->ell_);
+    this->coo_->convert_to(result->coo_);
     // TODO set strategy correctly
     // There is no way to correctly clone the strategy like in
     // Csr::convert_to

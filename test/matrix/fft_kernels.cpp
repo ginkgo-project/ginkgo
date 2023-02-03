@@ -70,7 +70,7 @@ protected:
             n, cols, std::uniform_int_distribution<>(1, cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         ddata = Vec::create(exec);
-        ddata->copy_from(this->data.get());
+        ddata->copy_from(this->data);
         data_strided = data->create_submatrix({0, n}, {0, subcols});
         ddata_strided = ddata->create_submatrix({0, n}, {0, subcols});
         out = data->clone();
@@ -129,8 +129,8 @@ TYPED_TEST(Fft, Apply1DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft->apply(this->data.get(), this->out.get());
-    this->dfft->apply(this->ddata.get(), this->dout.get());
+    this->fft->apply(this->data, this->out);
+    this->dfft->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -140,8 +140,8 @@ TYPED_TEST(Fft, ApplyStrided1DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft->apply(this->data_strided.get(), this->out_strided.get());
-    this->dfft->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->fft->apply(this->data_strided, this->out_strided);
+    this->dfft->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
@@ -151,8 +151,8 @@ TYPED_TEST(Fft, Apply1DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft->apply(this->data.get(), this->out.get());
-    this->difft->apply(this->ddata.get(), this->dout.get());
+    this->ifft->apply(this->data, this->out);
+    this->difft->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -162,8 +162,8 @@ TYPED_TEST(Fft, ApplyStrided1DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft->apply(this->data_strided.get(), this->out_strided.get());
-    this->difft->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->ifft->apply(this->data_strided, this->out_strided);
+    this->difft->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
@@ -173,8 +173,8 @@ TYPED_TEST(Fft, Apply2DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft2->apply(this->data.get(), this->out.get());
-    this->dfft2->apply(this->ddata.get(), this->dout.get());
+    this->fft2->apply(this->data, this->out);
+    this->dfft2->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -184,8 +184,8 @@ TYPED_TEST(Fft, ApplyStrided2DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft2->apply(this->data_strided.get(), this->out_strided.get());
-    this->dfft2->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->fft2->apply(this->data_strided, this->out_strided);
+    this->dfft2->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
@@ -195,8 +195,8 @@ TYPED_TEST(Fft, Apply2DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft2->apply(this->data.get(), this->out.get());
-    this->difft2->apply(this->ddata.get(), this->dout.get());
+    this->ifft2->apply(this->data, this->out);
+    this->difft2->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -206,8 +206,8 @@ TYPED_TEST(Fft, ApplyStrided2DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft2->apply(this->data_strided.get(), this->out_strided.get());
-    this->difft2->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->ifft2->apply(this->data_strided, this->out_strided);
+    this->difft2->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
@@ -217,8 +217,8 @@ TYPED_TEST(Fft, Apply3DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft3->apply(this->data.get(), this->out.get());
-    this->dfft3->apply(this->ddata.get(), this->dout.get());
+    this->fft3->apply(this->data, this->out);
+    this->dfft3->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -228,8 +228,8 @@ TYPED_TEST(Fft, ApplyStrided3DIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->fft3->apply(this->data_strided.get(), this->out_strided.get());
-    this->dfft3->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->fft3->apply(this->data_strided, this->out_strided);
+    this->dfft3->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
@@ -239,8 +239,8 @@ TYPED_TEST(Fft, Apply3DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft3->apply(this->data.get(), this->out.get());
-    this->difft3->apply(this->ddata.get(), this->dout.get());
+    this->ifft3->apply(this->data, this->out);
+    this->difft3->apply(this->ddata, this->dout);
 
     GKO_ASSERT_MTX_NEAR(this->out, this->dout, r<T>::value);
 }
@@ -250,8 +250,8 @@ TYPED_TEST(Fft, ApplyStrided3DInverseIsEqualToReference)
 {
     using T = typename TestFixture::value_type;
 
-    this->ifft3->apply(this->data_strided.get(), this->out_strided.get());
-    this->difft3->apply(this->ddata_strided.get(), this->dout_strided.get());
+    this->ifft3->apply(this->data_strided, this->out_strided);
+    this->difft3->apply(this->ddata_strided, this->dout_strided);
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }

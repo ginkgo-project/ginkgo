@@ -112,7 +112,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), 1,
                        config::warp_size, 0, 0, prefix_sum, rank);
     IndexType values[3]{};
-    exec->get_master()->copy_from(exec.get(), 3, prefix_sum, values);
+    exec->get_master()->copy_from(exec, 3, prefix_sum, values);
     return {values[0], values[1], values[2]};
 }
 

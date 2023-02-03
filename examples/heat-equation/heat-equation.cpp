@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
             std::cout << t << std::endl;
             output_timestep(
                 output, n,
-                gko::make_temporary_clone(exec->get_master(), in_vector.get())
+                gko::make_temporary_clone(exec->get_master(), in_vector)
                     ->get_const_values());
         }
         // add heat source contribution
