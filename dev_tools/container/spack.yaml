@@ -1,0 +1,47 @@
+spack:
+  specs:
+    # ginkgo
+    - cmake
+    - ninja
+    - googletest +gmock cxxstd=14
+    - rapidjson
+    - gflags
+    # ginkgo examples and features
+    - papi +sde
+    - perfstubs
+    - tau ^elfutils -nls # avoid missing libintl.so
+    - kokkos
+    - "hwloc @2.0:"
+    - benchmark
+    - opencv +videoio
+    # ginkgo_mpi
+    - "openmpi @4.1: +cuda"
+    # development environment
+    - valgrind
+    - gdb +source-highlight +tui +python
+    - ccache
+    - llvm
+    # ginkgo_cuda
+    - cuda
+    # ginkgo_hip
+    - hip
+    - hipsparse
+    - hipblas
+    - hipfft
+    - rocrand
+    - rocthrust
+    # ginkgo_dpcpp
+    - intel-oneapi-compilers
+    - intel-oneapi-mkl
+    - intel-oneapi-vtune
+    - intel-oneapi-tbb
+    - intel-oneapi-dpl
+    - intel-oneapi-dpct
+  view:
+    default:
+      root: /root/spack-env/
+      # we need to exclude CUDA from the view,
+      # since it contains Thrust, which conflicts with rocThrust
+      exclude: ["cuda"]
+  concretizer:
+    unify: true
