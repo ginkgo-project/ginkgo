@@ -137,7 +137,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type j = 0; j < c->get_size()[1]; j++) {
         for (size_type row = 0; row < a->get_size()[0]; row++) {
-            arithmetic_type result = c->at(row, j);
+            arithmetic_type result =
+                static_cast<arithmetic_type>(c->at(row, j));
             result *= beta_val;
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 arithmetic_type val = a_vals(row + i * stride);

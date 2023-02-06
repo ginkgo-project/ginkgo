@@ -995,6 +995,7 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
                 solver.ref->apply(b.ref, x.ref);
                 solver.dev->apply(b.dev, x.dev);
 
+                // TODO: in double with half, 4 iterations leads inf
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
     });
@@ -1013,6 +1014,7 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
                 solver.ref->apply(alpha.ref, b.ref, beta.ref, x.ref);
                 solver.dev->apply(alpha.dev, b.dev, beta.dev, x.dev);
 
+                // TODO: in double with half, 4 iterations leads inf
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
     });

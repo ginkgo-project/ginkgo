@@ -54,6 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/hip_fp16.h>
 
 
+#else
+class __half;
 #endif  // __CUDA_ARCH__
 
 
@@ -101,7 +103,7 @@ struct basic_float_traits<float16> {
     static constexpr bool rounds_to_nearest = true;
 };
 
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+// #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 template <>
 struct basic_float_traits<__half> {
     using type = __half;
@@ -110,7 +112,7 @@ struct basic_float_traits<__half> {
     static constexpr int exponent_bits = 5;
     static constexpr bool rounds_to_nearest = true;
 };
-#endif
+// #endif
 
 template <>
 struct basic_float_traits<float32> {
@@ -598,17 +600,17 @@ public:
     value_type imag() const noexcept { return imag_; }
 
 
-    operator std::complex<gko::float32>() const noexcept
+    operator std::complex<float>() const noexcept
     {
-        return std::complex<gko::float32>(static_cast<gko::float32>(real_),
-                                          static_cast<gko::float32>(imag_));
+        return std::complex<float>(static_cast<float>(real_),
+                                   static_cast<float>(imag_));
     }
 
-    operator std::complex<double>() const noexcept
-    {
-        return std::complex<double>(static_cast<double>(real_),
-                                    static_cast<double>(imag_));
-    }
+    // operator std::complex<double>() const noexcept
+    // {
+    //     return std::complex<double>(static_cast<double>(real_),
+    //                                 static_cast<double>(imag_));
+    // }
 
     template <typename V>
     complex& operator=(const V& val)
