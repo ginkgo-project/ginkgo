@@ -211,7 +211,6 @@ int main(int argc, char* argv[])
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
     // with a local block diagonal preconditioner.
-    //
 
     // Setup the local block diagonal solver factory.
     auto local_solver = gko::share(bj::build().on(exec));
