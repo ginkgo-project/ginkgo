@@ -199,8 +199,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
     using csr = typename TestFixture::local_matrix_type;
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
-
-    static constexpr double tolerance = 1e-3;
+    constexpr double tolerance = 1e-3;
     auto iter_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
     auto tol_stop = gko::share(

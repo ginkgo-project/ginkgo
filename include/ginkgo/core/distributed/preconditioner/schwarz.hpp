@@ -144,9 +144,6 @@ protected:
 
     /**
      * Generates the preconditoner.
-     *
-     * @param system_matrix  the source matrix used to generate the
-     *                       preconditioner
      */
     void generate();
 
