@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
 
 
+#include <iostream>
 #include <unordered_map>
 
 
@@ -227,6 +228,17 @@ public:
      */
     static std::shared_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
+
+    /**
+     * Creates a logger measuring the runtime of Ginkgo events and printing a
+     * summary when it is destroyed.
+     * @note For this logger to provide reliable GPU timings, enable
+     *       synchronization via `set_synchronization(true)`.
+     * TODO gpu timer
+     */
+    static std::shared_ptr<ProfilerHook> create_summary(
+        std::ostream& output = std::cerr,
+        std::string name = "Profiling Summary");
 
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions

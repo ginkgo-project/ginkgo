@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 
+#include <chrono>
+
+
 namespace gko {
 namespace log {
 
@@ -85,6 +88,16 @@ void end_roctx(const char*, profile_event_category);
 
 /** Global finalization of TAU through PerfStubs*/
 void finalize_tau();
+
+
+/**
+ * Returns a pair of functions starting and ending a profiler range to be
+ * summarized.
+ * @param stream  the stream to write the summary to
+ * @param name  the header to print above the summary table
+ */
+std::pair<ProfilerHook::hook_function, ProfilerHook::hook_function>
+create_summary_fns(std::ostream& stream, std::string name);
 
 
 class profiling_scope_guard {
