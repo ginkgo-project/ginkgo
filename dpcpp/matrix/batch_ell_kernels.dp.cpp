@@ -47,6 +47,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/segment_scan.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/components/uninitialized_array.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
