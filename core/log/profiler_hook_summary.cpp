@@ -140,14 +140,14 @@ std::string fmt_duration(int64 time_ns)
                                  3'600'000'000'000, 86'400'000'000'000,
                                  std::numeric_limits<int64>::max()}};
     std::array<const char*, 7> units{
-        {"ns ", "us ", "ms ", "s  ", "min", "h  ", "d  "}};
+        {"ns", "us", "ms", "s ", "m ", "h ", "d "}};
     auto unit =
         std::distance(ranges.begin(),
                       std::lower_bound(ranges.begin(), ranges.end(), time_ns));
     if (unit == 0) {
-        ss << time_ns << units[unit];
+        ss << time_ns << ' ' << units[unit];
     } else {
-        ss << (time_ns / double(ranges[unit - 1])) << units[unit];
+        ss << (time_ns / double(ranges[unit - 1])) << ' ' << units[unit];
     }
     return ss.str();
 }
