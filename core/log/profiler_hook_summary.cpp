@@ -183,7 +183,7 @@ void print_summary(std::ostream& stream, const std::string& name, summary& s)
                                         " count ", " avg ", " avg (self) "});
     for (const auto& entry : s.entries) {
         table.emplace_back(std::array<std::string, 6>{
-            entry.name + " ", " " + fmt_duration(entry.inclusive) + " ",
+            " " + entry.name + " ", " " + fmt_duration(entry.inclusive) + " ",
             " " + fmt_duration(entry.exclusive) + " ",
             " " + std::to_string(entry.count) + " ",
             " " + fmt_avg_duration(entry.inclusive, entry.count) + " ",
@@ -199,31 +199,26 @@ void print_summary(std::ostream& stream, const std::string& name, summary& s)
         }
     }
     for (int i = 0; i < widths.size(); i++) {
-        if (i > 0) {
-            stream << '|';
-        }
+        stream << '|';
         const auto align1 = (widths[i] - headers[i].size()) / 2;
         const auto align2 = (widths[i] - headers[i].size()) - align1;
         stream << std::string(align1, ' ') << headers[i]
                << std::string(align2, ' ');
     }
-    stream << '\n';
+    stream << "|\n";
     for (int i = 0; i < widths.size(); i++) {
-        if (i > 0) {
-            stream << '+';
-        }
-        stream << std::string(widths[i], '-');
+        stream << '|';
+        // right-align for Markdown
+        stream << std::string(widths[i] - 1, '-') << (i == 0 ? '-' : ':');
     }
-    stream << '\n';
+    stream << "|\n";
     for (const auto& row : table) {
         for (int i = 0; i < widths.size(); i++) {
-            if (i > 0) {
-                stream << '|';
-            }
+            stream << '|';
             stream << std::setw(widths[i]) << (i > 0 ? std::right : std::left)
                    << row[i];
         }
-        stream << '\n';
+        stream << "|\n";
     }
 }
 
