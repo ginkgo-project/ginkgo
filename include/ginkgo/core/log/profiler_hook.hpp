@@ -60,9 +60,14 @@ enum class profile_event_category {
     factory,
     /** Stopping criterion events. */
     criterion,
+    /** User-defined events. */
+    user,
     /** For development use. */
     internal,
 };
+
+
+class profiling_scope_guard;
 
 
 /**
@@ -190,6 +195,16 @@ public:
      */
     void set_synchronization(bool synchronize);
 
+    /**
+     * Creates a scope guard for a user-defined range to be included in the
+     * profile.
+     *
+     * @param name  the name of the range
+     * @return  the scope guard. It will begin a range immediately and end it at
+     *          the end of its scope.
+     */
+    profiling_scope_guard user_range(const char* name) const;
+
     /** The Ginkgo yellow background color as packed 32 bit ARGB value. */
     constexpr static uint32 color_yellow_argb = 0xFFFFCB05U;
 
@@ -258,6 +273,43 @@ private:
     bool synchronize_;
     hook_function begin_hook_;
     hook_function end_hook_;
+};
+
+
+/**
+ * Scope guard that annotates its scope with the provided profiler hooks.
+ */
+class profiling_scope_guard {
+public:
+    /**
+     * Creates the scope guard
+     *
+     * @param name  the name of the profiler range
+     * @param category  the category of the profiler range
+     * @param begin  the hook function to begin a range
+     * @param end  the hook function to end a range
+     */
+    profiling_scope_guard(const char* name, profile_event_category category,
+                          ProfilerHook::hook_function begin,
+                          ProfilerHook::hook_function end);
+
+    /** Calls the range end function if the scope guard was not moved from. */
+    ~profiling_scope_guard();
+
+    profiling_scope_guard(const profiling_scope_guard&) = delete;
+
+    /** Move-constructs from another scope guard, other will be left empty. */
+    profiling_scope_guard(profiling_scope_guard&& other);
+
+    profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
+
+    profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
+
+private:
+    bool empty_;
+    const char* name_;
+    profile_event_category category_;
+    ProfilerHook::hook_function end_;
 };
 
 
