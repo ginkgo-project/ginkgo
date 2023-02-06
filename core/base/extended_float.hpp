@@ -683,6 +683,23 @@ public:
         return *this;
     }
 
+// It's for MacOS.
+// TODO: check whether mac compiler always use complex version even when real
+// half
+#define COMPLEX_HALF_OPERATOR(_op, _opeq)                           \
+    GKO_ATTRIBUTES friend complex<gko::half> operator _op(          \
+        const complex<gko::half> lhf, const complex<gko::half> rhf) \
+    {                                                               \
+        auto a = lhf;                                               \
+        a _opeq rhf;                                                \
+        return a;                                                   \
+    }
+
+    COMPLEX_HALF_OPERATOR(+, +=)
+    COMPLEX_HALF_OPERATOR(-, -=)
+    COMPLEX_HALF_OPERATOR(*, *=)
+    COMPLEX_HALF_OPERATOR(/, /=)
+
 private:
     value_type real_;
     value_type imag_;
@@ -765,6 +782,17 @@ inline complex<double>& complex<double>::operator=(
     operator=(t);
     return *this;
 }
+
+// For MSVC
+template <>
+inline complex<float>& complex<float>::operator=(
+    const std::complex<gko::half>& a)
+{
+    complex<float> t(a.real(), a.imag());
+    operator=(t);
+    return *this;
+}
+
 
 }  // namespace std
 
