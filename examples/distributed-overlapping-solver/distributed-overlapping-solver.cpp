@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     const auto interior_grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
     const auto grid_dim =
-        interior_grid_dim + (overlap - 1) * (2 - num_boundary_intersections);
+        interior_grid_dim + overlap * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
 
@@ -171,18 +171,25 @@ int main(int argc, char* argv[])
     b_data.size = {num_rows, 1};
     x_data.size = {num_rows, 1};
     for (int i = 0; i < grid_dim; i++) {
-        if (i > 0) {
+        if (i == 0 || i == grid_dim - 1) {
+            A_data.nonzeros.emplace_back(i, i, 1);
+        } else {
             A_data.nonzeros.emplace_back(i, i - 1, -1);
-        }
-        A_data.nonzeros.emplace_back(i, i, 2);
-        if (i < grid_dim - 1) {
+            A_data.nonzeros.emplace_back(i, i, 2);
             A_data.nonzeros.emplace_back(i, i + 1, -1);
         }
     }
     // u(0) = u(1) = 1
     // values in the interior will be overwritten during the communication
-    b_data.nonzeros.emplace_back(0, 0, 1.0);
-    b_data.nonzeros.emplace_back(grid_dim - 1, 0, 1.0);
+    // also set initial guess to dirichlet condition
+    if (rank == 0) {
+        b_data.nonzeros.emplace_back(0, 0, 1.0);
+        x_data.nonzeros.emplace_back(0, 0, 1.0);
+    }
+    if (rank == comm.size() - 1) {
+        b_data.nonzeros.emplace_back(grid_dim - 1, 0, 1.0);
+        x_data.nonzeros.emplace_back(grid_dim - 1, 0, 1.0);
+    }
 
     // Take timings.
     comm.synchronize();
@@ -261,12 +268,12 @@ int main(int argc, char* argv[])
     {
         int i = 0;
         if (comm.rank() > 0) {
-            send_idxs.get_data()[i] = 0;
+            send_idxs.get_data()[i] = 2 * overlap;
             recv_idxs.get_data()[i] = 0;
             i++;
         }
         if (comm.rank() < comm.size() - 1) {
-            send_idxs.get_data()[i] = grid_dim - 1;
+            send_idxs.get_data()[i] = grid_dim - 1 - 2 * overlap;
             recv_idxs.get_data()[i] = grid_dim - 1;
             i++;
         }
@@ -278,12 +285,19 @@ int main(int argc, char* argv[])
     for (gko::size_type it = 0; it < num_iters; ++it) {
         // exchange boundary data
         // maybe also need to exchange whole overlap?
+        // could also store overlap dofs in separate vector
+        // would need 3 vectors:
+        // 1. locally owned
+        // 2. remote dofs
+        // 3. remote dofs
         x->row_gather(&send_idxs, send_buffer.get());
         comm.all_to_all_v(exec, send_buffer->get_values(), send_sizes.data(),
                           send_offsets.data(), recv_buffer->get_values(),
                           recv_sizes.data(), recv_offsets.data());
         for (gko::size_type i = 0; i < recv_idxs.get_num_elems(); ++i) {
             b->at(recv_idxs.get_data()[i]) = recv_buffer->get_values()[i];
+            x->at(recv_idxs.get_data()[i]) =
+                recv_buffer->get_values()[i];  // set dir cond
         }
 
         // inner solve
@@ -296,8 +310,8 @@ int main(int argc, char* argv[])
         auto interior_x = dist_vec ::create(
             exec, comm,
             x->create_submatrix(
-                 {rank == 0 ? 0 : overlap - 1,
-                  rank == comm.size() - 1 ? grid_dim : grid_dim - overlap + 1},
+                 {rank == 0 ? 0 : overlap,
+                  rank == comm.size() - 1 ? grid_dim : grid_dim - overlap},
                  {0})
                 .get());
         auto error = gko::clone(exact_solution);
