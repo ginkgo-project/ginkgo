@@ -49,7 +49,10 @@ class Hybrid;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Coo<next_precision<next_precision<ValueType>>, IndexType>>,
+#if GKO_ENABLE_HALF
+            public ConvertibleTo<
+                Coo<next_precision<next_precision<ValueType>>, IndexType>>,
+#endif
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
@@ -83,17 +86,21 @@ public:
 
     friend class Coo<previous_precision<ValueType>, IndexType>;
 
-    friend class Coo<previous_precision<previous_precision<ValueType>>, IndexType>;
-
     void convert_to(
         Coo<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(
-        Coo<next_precision<next_precision<ValueType>>, IndexType>* result) const override;
+#if GKO_ENABLE_HALF
+    friend class Coo<previous_precision<previous_precision<ValueType>>,
+                     IndexType>;
 
-    void move_to(Coo<next_precision<next_precision<ValueType>>, IndexType>* result) override;
+    void convert_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
+    void move_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
+#endif
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 

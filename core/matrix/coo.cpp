@@ -234,6 +234,7 @@ void Coo<ValueType, IndexType>::move_to(
 }
 
 
+#if GKO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Coo<next_precision<next_precision<ValueType>>, IndexType>* result) const
@@ -251,6 +252,7 @@ void Coo<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType, typename IndexType>
