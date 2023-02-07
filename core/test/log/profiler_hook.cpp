@@ -189,7 +189,7 @@ TEST(ProfilerHook, ScopeGuard)
     public:
         profiling_scope_guard(const char* name)
             : gko::log::profiling_scope_guard{
-                  name,
+                  name, gko::log::profile_event_category::user,
                   [](const char* msg, gko::log::profile_event_category) {
                       output.push_back(msg);
                   },
