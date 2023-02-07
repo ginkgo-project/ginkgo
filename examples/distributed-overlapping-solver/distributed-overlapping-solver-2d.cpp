@@ -77,7 +77,6 @@ int main(int argc, char* argv[])
     // Create an MPI communicator wrapper and get the rank.
     const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
-    const bool on_boundary = rank == 0 || rank == comm.size() - 1;
     const int num_boundary_intersections =
         (rank == 0) + (rank == comm.size() - 1);
 
@@ -104,10 +103,10 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto overlap =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1);
-    const auto num_interior_elements =
+    const auto num_elements_y =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
-    const auto num_elements =
-        num_interior_elements + overlap * (2 - num_boundary_intersections);
+    const auto num_elements_x =
+        num_elements_y + overlap * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
 
@@ -161,8 +160,9 @@ int main(int argc, char* argv[])
     // specialized constructor. See @ref
     // gko::experimental::distributed::Partition for other modes of creating a
     // partition.
-    const auto num_vertices = num_elements + 1;
-    const auto num_rows = num_vertices * num_vertices;
+    const auto num_vertices_y = num_elements_y + 1;
+    const auto num_vertices_x = num_elements_x + 1;
+    const auto num_rows = num_vertices_y * num_vertices_x;
 
     /* divide each quadratic element in to two triangles
      * 0        1
@@ -176,16 +176,16 @@ int main(int argc, char* argv[])
      * y) from the local indexing to the global indexing.
      */
     auto utr_map = [&](const auto y, const auto x) {
-        std::array<gko::size_type, 3> map{(y + 1) * num_vertices + x,
-                                          (y + 1) * num_vertices + x + 1,
-                                          y * num_vertices + x};
+        std::array<gko::size_type, 3> map{(y + 1) * num_vertices_x + x,
+                                          (y + 1) * num_vertices_x + x + 1,
+                                          y * num_vertices_x + x};
         return
             [=](const auto i) { return static_cast<LocalIndexType>(map[i]); };
     };
     auto ltr_map = [&](const auto y, const auto x) {
-        std::array<gko::size_type, 3> map{y * num_vertices + x + 1,
-                                          (y + 1) * num_vertices + x + 1,
-                                          y * num_vertices + x};
+        std::array<gko::size_type, 3> map{y * num_vertices_x + x + 1,
+                                          (y + 1) * num_vertices_x + x + 1,
+                                          y * num_vertices_x + x};
         return
             [=](const auto i) { return static_cast<LocalIndexType>(map[i]); };
     };
@@ -202,20 +202,20 @@ int main(int argc, char* argv[])
                                 auto&& map, auto& data) {
         for (int i : local_bdry_idxs) {
             auto global_idx = map(i);
-            auto global_idx_x = global_idx % num_vertices;
-            auto global_idx_y = global_idx / num_vertices;
+            auto global_idx_x = global_idx % num_vertices_x;
+            auto global_idx_y = global_idx / num_vertices_x;
 
             if (global_idx_x != 0) {
                 data.set_value(map(i), global_idx - 1, 0.0);
             }
-            if (global_idx_x != num_vertices - 1) {
+            if (global_idx_x != num_vertices_x - 1) {
                 data.set_value(map(i), global_idx + 1, 0.0);
             }
             if (global_idx_y != 0) {
-                data.set_value(map(i), global_idx - num_vertices, 0.0);
+                data.set_value(map(i), global_idx - num_vertices_x, 0.0);
             }
-            if (global_idx_y != num_vertices - 1) {
-                data.set_value(map(i), global_idx + num_vertices, 0.0);
+            if (global_idx_y != num_vertices_y - 1) {
+                data.set_value(map(i), global_idx + num_vertices_x, 0.0);
             }
 
             data.set_value(map(i), map(i), 1.0);
@@ -231,8 +231,8 @@ int main(int argc, char* argv[])
         gko::dim<2>{num_rows, num_rows}};
     gko::matrix_assembly_data<ValueType, LocalIndexType> b_data{
         gko::dim<2>{num_rows, 1}};
-    for (int iy = 0; iy < num_elements; iy++) {
-        for (int ix = 0; ix < num_elements; ix++) {
+    for (int iy = 0; iy < num_elements_y; iy++) {
+        for (int ix = 0; ix < num_elements_x; ix++) {
             // handle upper triangle
             process_element(utr_map(iy, ix), A_data);
 
@@ -240,19 +240,19 @@ int main(int argc, char* argv[])
             process_element(ltr_map(iy, ix), A_data);
         }
     }
-    for (int iy = 0; iy < num_elements; iy++) {
-        for (int ix = 0; ix < num_elements; ix++) {
+    for (int iy = 0; iy < num_elements_y; iy++) {
+        for (int ix = 0; ix < num_elements_x; ix++) {
             // handle boundary
             if (ix == 0) {
                 process_boundary({0, 2}, utr_map(iy, ix), A_data);
             }
-            if (ix == num_elements - 1) {
+            if (ix == num_elements_x - 1) {
                 process_boundary({0, 1}, ltr_map(iy, ix), A_data);
             }
             if (iy == 0) {
                 process_boundary({0, 2}, ltr_map(iy, ix), A_data);
             }
-            if (iy == num_elements - 1) {
+            if (iy == num_elements_y - 1) {
                 process_boundary({0, 1}, utr_map(iy, ix), A_data);
             }
         }
@@ -262,24 +262,28 @@ int main(int argc, char* argv[])
     // also set initial guess to dirichlet condition
     auto f_one = [&](const auto iy, const auto ix) { return 1.0; };
     auto f_linear = [&](const auto iy, const auto ix) {
-        return 0.5 * (ix + iy) / num_elements;
+        return 0.5 * (ix / num_elements_x + iy / num_vertices_y);
     };
-    for (int i = 0; i < num_vertices; i++) {
+    // vertical boundaries
+    for (int i = 0; i < num_vertices_y; i++) {
         if (rank == 0) {
-            auto idx = i * num_vertices;
-            b_data.set_value(idx, 0, f_linear(i, 0));
+            auto idx = i * num_vertices_x;
+            b_data.set_value(idx, 0, f_one(i, 0));
         }
         if (rank == comm.size() - 1) {
-            auto idx = (i + 1) * num_vertices - 1;
-            b_data.set_value(idx, 0, f_linear(i, num_vertices - 1));
+            auto idx = (i + 1) * num_vertices_x - 1;
+            b_data.set_value(idx, 0, f_one(i, num_vertices_x - 1));
         }
+    }
+    // horizontal boundaries
+    for (int i = 0; i < num_vertices_x; i++) {
         {
             auto idx = i;
-            b_data.set_value(idx, 0, f_linear(0, i));
+            b_data.set_value(idx, 0, f_one(0, i));
         }
         {
-            auto idx = i + (num_vertices - 1) * num_vertices;
-            b_data.set_value(idx, 0, f_linear(num_vertices - 1, i));
+            auto idx = i + (num_vertices_y - 1) * num_vertices_x;
+            b_data.set_value(idx, 0, f_one(num_vertices_y - 1, i));
         }
     }
     gko::matrix_assembly_data<ValueType, LocalIndexType> x_data = b_data;
@@ -331,8 +335,7 @@ int main(int argc, char* argv[])
 
     auto one = gko::initialize<vec>({1}, exec);
     auto exact_solution = dist_vec ::create(
-        exec, comm,
-        vec::create(exec, gko::dim<2>{num_interior_elements, 1}).get());
+        exec, comm, vec::create(exec, gko::dim<2>{num_elements_y, 1}).get());
     exact_solution->fill(1.0);
 
     std::vector<int> send_sizes(comm.size());
@@ -340,12 +343,12 @@ int main(int argc, char* argv[])
     std::vector<int> recv_sizes(comm.size());
     std::vector<int> recv_offsets(recv_sizes.size() + 1);
     if (comm.rank() > 0) {
-        send_sizes[comm.rank() - 1] = 1;
-        recv_sizes[comm.rank() - 1] = 1;
+        send_sizes[comm.rank() - 1] = num_vertices_y;
+        recv_sizes[comm.rank() - 1] = num_vertices_y;
     }
     if (comm.rank() < comm.size() - 1) {
-        send_sizes[comm.rank() + 1] = 1;
-        recv_sizes[comm.rank() + 1] = 1;
+        send_sizes[comm.rank() + 1] = num_vertices_y;
+        recv_sizes[comm.rank() + 1] = num_vertices_y;
     }
     std::partial_sum(send_sizes.begin(), send_sizes.end(),
                      send_offsets.begin() + 1);
@@ -362,16 +365,34 @@ int main(int argc, char* argv[])
     gko::array<LocalIndexType> recv_idxs(exec->get_master(),
                                          recv_offsets.back());
     {
-        int i = 0;
+        // TODO: should remove physical boundary idxs
+        auto fixed_x_map = [&](const auto x, auto&& map) {
+            return [=](const auto y) { return map(y, x); };
+        };
+        auto setup_idxs = [num_elements_y](
+                              auto&& partial_map,
+                              const std::vector<int> local_bdry_idxs,
+                              auto* idxs) {
+            for (int iy = 0; iy < num_elements_y; ++iy) {
+                auto map = partial_map(iy);
+                if (iy == 0) {
+                    idxs[iy] = map(local_bdry_idxs[0]);
+                }
+                idxs[iy + 1] = map(local_bdry_idxs[1]);
+            }
+        };
         if (comm.rank() > 0) {
-            send_idxs.get_data()[i] = 2 * overlap;
-            recv_idxs.get_data()[i] = 0;
-            i++;
+            setup_idxs(fixed_x_map(2 * overlap - 1, ltr_map), {0, 1},
+                       send_idxs.get_data());
+            setup_idxs(fixed_x_map(0, utr_map), {2, 0}, recv_idxs.get_data());
         }
         if (comm.rank() < comm.size() - 1) {
-            send_idxs.get_data()[i] = num_elements - 1 - 2 * overlap;
-            recv_idxs.get_data()[i] = num_elements - 1;
-            i++;
+            auto offset = num_boundary_intersections > 0 ? 0 : num_vertices_y;
+
+            setup_idxs(fixed_x_map(num_elements_x - 2 * overlap, utr_map),
+                       {2, 0}, send_idxs.get_data() + offset);
+            setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map), {0, 1},
+                       recv_idxs.get_data() + offset);
         }
         send_idxs.set_executor(exec);
         recv_idxs.set_executor(exec);
@@ -407,8 +428,8 @@ int main(int argc, char* argv[])
             exec, comm,
             x->create_submatrix(
                  {rank == 0 ? 0 : overlap, rank == comm.size() - 1
-                                               ? num_elements
-                                               : num_elements - overlap},
+                                               ? num_elements_x
+                                               : num_elements_x - overlap},
                  {0})
                 .get());
         auto error = gko::clone(exact_solution);
