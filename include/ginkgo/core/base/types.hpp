@@ -22,6 +22,9 @@
 #include <hip/hip_runtime.h>
 #endif  // __HIPCC__
 
+#ifdef SYCL_LANGUAGE_VERSION
+#include <CL/sycl.hpp>
+#endif
 
 // Macros for handling different compilers / architectures uniformly
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -137,8 +140,11 @@ using uint64 = std::uint64_t;
  */
 using uintptr = std::uintptr_t;
 
-
+#ifdef SYCL_LANGUAGE_VERSION
+using half = sycl::half;
+#else
 class half;
+#endif
 
 
 /**
@@ -858,5 +864,5 @@ using comm_index_type = int;
 }  // namespace experimental
 }  // namespace gko
 
-#include "core/base/extended_float.hpp"
+#include <ginkgo/core/base/half.hpp>
 #endif  // GKO_PUBLIC_CORE_BASE_TYPES_HPP_
