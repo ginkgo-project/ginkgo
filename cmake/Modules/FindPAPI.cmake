@@ -87,6 +87,7 @@ if(PAPI_INCLUDE_DIR)
                 gko_result_unused
                 "${PROJECT_BINARY_DIR}"
                 "${PROJECT_BINARY_DIR}/papi_${component}_detect.c"
+                CMAKE_FLAGS -DINCLUDE_DIRECTORIES=${PAPI_INCLUDE_DIR}
                 LINK_LIBRARIES ${PAPI_LIBRARY}
                 )
 
