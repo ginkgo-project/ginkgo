@@ -335,7 +335,7 @@ int main(int argc, char* argv[])
 
     auto one = gko::initialize<vec>({1}, exec);
     auto exact_solution = dist_vec ::create(
-        exec, comm, vec::create(exec, gko::dim<2>{num_elements_y, 1}).get());
+        exec, comm, vec::create(exec, gko::dim<2>{1, num_vertices_y}).get());
     exact_solution->fill(1.0);
 
     std::vector<int> send_sizes(comm.size());
@@ -424,19 +424,28 @@ int main(int argc, char* argv[])
 
         // compute error
         // need to restrict to owned dofs
-        auto interior_x = dist_vec ::create(
-            exec, comm,
-            x->create_submatrix(
-                 {rank == 0 ? 0 : overlap, rank == comm.size() - 1
-                                               ? num_elements_x
-                                               : num_elements_x - overlap},
-                 {0})
-                .get());
-        auto error = gko::clone(exact_solution);
-        error->sub_scaled(one.get(), interior_x.get());
-        error->compute_norm2(local_error.get());
+        double t = 0.0;
+        auto x_view =
+            vec::create(exec, gko::dim<2>{num_vertices_y, num_vertices_x},
+                        gko::make_array_view(exec, x->get_num_stored_elements(),
+                                             x->get_values()),
+                        num_vertices_x);
+        for (int iy = 0; iy < num_vertices_y; ++iy) {
+            auto interior_row_x = dist_vec ::create(
+                exec, comm,
+                x->create_submatrix(
+                     {static_cast<gko::size_type>(iy)},
+                     {rank == 0 ? 0 : overlap, rank == comm.size() - 1
+                                                   ? num_elements_x
+                                                   : num_elements_x - overlap})
+                    .get());
+            auto error = gko::clone(exact_solution);
+            error->sub_scaled(one.get(), interior_row_x.get());
+            error->compute_dot(error.get(), local_error.get());
+            t += local_error->at(0);
+        }
         if (rank == 0) {
-            std::cout << it << ": " << local_error->at(0) << std::endl;
+            std::cout << it << ": " << std::sqrt(t) << std::endl;
         }
     }
 
