@@ -116,31 +116,17 @@ protected:
         for (size_t i = 0; i < final_iter_nums.get_num_elems(); ++i) {
             final_iter_nums.get_data()[i] = 5;
         }
-        if (gko::solver::default_krylov_dim != 100) {
-            y = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-            krylov_bases =
-                gen_mtx(m * (gko::solver::default_krylov_dim + 1), nrhs);
-            hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
-                                 gko::solver::default_krylov_dim * nrhs);
-            hessenberg_iter =
-                gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
-            residual_norm_collection =
-                gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
-            givens_sin = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-            givens_cos = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-        } else {
-            y = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
-            krylov_bases =
-                gen_mtx(m * (gko::solver::gmres_default_krylov_dim + 1), nrhs);
-            hessenberg = gen_mtx(gko::solver::gmres_default_krylov_dim + 1,
-                                 gko::solver::gmres_default_krylov_dim * nrhs);
-            hessenberg_iter =
-                gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
-            residual_norm_collection =
-                gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
-            givens_sin = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
-            givens_cos = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
-        }
+        y = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
+        krylov_bases =
+            gen_mtx(m * (gko::solver::gmres_default_krylov_dim + 1), nrhs);
+        hessenberg = gen_mtx(gko::solver::gmres_default_krylov_dim + 1,
+                             gko::solver::gmres_default_krylov_dim * nrhs);
+        hessenberg_iter =
+            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
+        residual_norm_collection =
+            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
+        givens_sin = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
+        givens_cos = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
 
         d_x = gko::clone(exec, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x);
