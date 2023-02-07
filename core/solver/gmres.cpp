@@ -206,13 +206,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     const auto krylov_dim = this->get_krylov_dim();
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(preconditioned_vector, dense_b);
+    // TODO: check whether it can be empty when it is flexible GMRES
     auto krylov_bases = this->create_workspace_op_with_type_of(
         ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
         dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-    auto preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
-        ws::preconditioned_krylov_bases, dense_b,
-        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    VectorType* preconditioned_krylov_bases = nullptr;
+    if (is_flexible) {
+        preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
+            ws::preconditioned_krylov_bases, dense_b,
+            dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+            dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    }
     // rows: rows of Hessenberg matrix, columns: block for each entry
     auto hessenberg = this->template create_workspace_op<LocalVector>(
         ws::hessenberg, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
@@ -347,13 +351,16 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                     span{local_num_rows * (restart_iter + 1),
                                          local_num_rows * (restart_iter + 2)},
                                     span{0, num_rhs});
-        auto preconditioned_krylov = create_submatrix_helper(
-            preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
-        auto preconditioned_krylov_vector =
-            is_flexible ? preconditioned_krylov.get() : preconditioned_vector;
+        std::unique_ptr<VectorType> preconditioned_krylov;
+        auto preconditioned_krylov_vector = preconditioned_vector;
+        if (is_flexible) {
+            preconditioned_krylov = create_submatrix_helper(
+                preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
+                span{local_num_rows * restart_iter,
+                     local_num_rows * (restart_iter + 1)},
+                span{0, num_rhs});
+            preconditioned_krylov_vector = preconditioned_krylov.get();
+        }
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
         this->get_preconditioner()->apply(this_krylov.get(),
                                           preconditioned_krylov_vector);
@@ -424,12 +431,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         restart_iter++;
     }
 
-    auto krylov_bases_small = create_submatrix_helper(
-        krylov_bases, dim<2>{num_rows, num_rhs},
-        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
-    auto preconditioned_krylov_bases_small = create_submatrix_helper(
-        preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
-        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
@@ -439,12 +440,18 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual_norm_collection, hessenberg_small.get(), y,
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     if (is_flexible) {
+        auto preconditioned_krylov_bases_small = create_submatrix_helper(
+            preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
+            span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
         // after_preconditioner = preconditioned_krylov_bases * y
         exec->run(gmres::make_multi_axpy(
             gko::detail::get_local(preconditioned_krylov_bases_small.get()), y,
             gko::detail::get_local(after_preconditioner),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
+        auto krylov_bases_small = create_submatrix_helper(
+            krylov_bases, dim<2>{num_rows, num_rhs},
+            span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
         // before_preconditioner = krylov_bases * y
         exec->run(gmres::make_multi_axpy(
             gko::detail::get_local(krylov_bases_small.get()), y,
