@@ -59,14 +59,15 @@ template <typename ValueType = double>
 class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
+#if GKO_ENABLE_HALF
       public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
+#endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
-    friend class Vector<previous_precision<previous_precision<ValueType>>>;
 
 public:
     using EnableDistributedLinOp<Vector>::convert_to;
@@ -165,11 +166,15 @@ public:
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
 
+#if GKO_ENABLE_HALF
+    friend class Vector<previous_precision<previous_precision<ValueType>>>;
+
     void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
         const override;
 
     void move_to(
         Vector<next_precision<next_precision<ValueType>>>* result) override;
+#endif
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
