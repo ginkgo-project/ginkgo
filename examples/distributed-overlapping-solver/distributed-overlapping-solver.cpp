@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
     // As vector type we use the following, which implements a subset of @ref
     // gko::matrix::Dense.
     using vec = gko::matrix::Dense<ValueType>;
+    using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     // As matrix type we simply use the following type, which can read
     // distributed data and be applied to a distributed vector.
     using mtx = gko::matrix::Csr<ValueType, LocalIndexType>;
@@ -72,6 +73,9 @@ int main(int argc, char* argv[])
     // Create an MPI communicator wrapper and get the rank.
     const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
+    const bool on_boundary = rank == 0 || rank == comm.size() - 1;
+    const int num_boundary_intersections =
+        (rank == 0) + (rank == comm.size() - 1);
 
     // Print the ginkgo version information and help message.
     if (rank == 0) {
@@ -96,9 +100,10 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto overlap =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1);
+    const auto interior_grid_dim =
+        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
     const auto grid_dim =
-        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50) +
-        (overlap - 1) * (rank == 0 || rank == comm.size() - 1 ? 1 : 2);
+        interior_grid_dim + (overlap - 1) * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
 
@@ -223,7 +228,8 @@ int main(int argc, char* argv[])
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
     auto one = gko::initialize<vec>({1}, exec);
-    auto exact_solution = vec::create(exec, gko::dim<2>{grid_dim, 1});
+    auto exact_solution = dist_vec ::create(
+        exec, comm, vec::create(exec, gko::dim<2>{interior_grid_dim, 1}).get());
     exact_solution->fill(1.0);
 
     std::vector<int> send_sizes(comm.size());
@@ -271,6 +277,7 @@ int main(int argc, char* argv[])
     auto local_error = vec::create(exec->get_master(), gko::dim<2>{1, 1});
     for (gko::size_type it = 0; it < num_iters; ++it) {
         // exchange boundary data
+        // maybe also need to exchange whole overlap?
         x->row_gather(&send_idxs, send_buffer.get());
         comm.all_to_all_v(exec, send_buffer->get_values(), send_sizes.data(),
                           send_offsets.data(), recv_buffer->get_values(),
@@ -281,16 +288,23 @@ int main(int argc, char* argv[])
 
         // inner solve
         Ainv->apply(gko::lend(b), gko::lend(x));
+        // depending on partition of unity, might need to combine overlapping
+        // dofs
 
         // compute error
+        // need to restrict to owned dofs
+        auto interior_x = dist_vec ::create(
+            exec, comm,
+            x->create_submatrix(
+                 {rank == 0 ? 0 : overlap - 1,
+                  rank == comm.size() - 1 ? grid_dim : grid_dim - overlap + 1},
+                 {0})
+                .get());
         auto error = gko::clone(exact_solution);
-        error->sub_scaled(one.get(), x.get());
-        error->compute_conj_dot(gko::lend(error), gko::lend(local_error));
-        auto global_error = local_error->at(0);
-        comm.all_reduce(exec->get_master(), &global_error, 1, MPI_SUM);
-        global_error = std::sqrt(global_error);
+        error->sub_scaled(one.get(), interior_x.get());
+        error->compute_norm2(local_error.get());
         if (rank == 0) {
-            std::cout << it << ": " << global_error << std::endl;
+            std::cout << it << ": " << local_error->at(0) << std::endl;
         }
     }
 
