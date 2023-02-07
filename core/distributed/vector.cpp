@@ -290,6 +290,7 @@ void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 }
 
 
+#if GKO_ENABLE_HALF
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
     Vector<next_precision<next_precision<ValueType>>>* result) const
@@ -307,7 +308,7 @@ void Vector<ValueType>::move_to(
 {
     this->convert_to(result);
 }
-
+#endif
 
 template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::absolute_type>
@@ -579,8 +580,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row,
-                                      size_type col) const noexcept
+ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
+    noexcept
 {
     return local_.at(row, col);
 }

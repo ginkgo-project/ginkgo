@@ -237,6 +237,5 @@ void Pgm<ValueType, IndexType>::generate()
 #define GKO_DECLARE_PGM(_vtype, _itype) class Pgm<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM);
 
-
 }  // namespace multigrid
 }  // namespace gko

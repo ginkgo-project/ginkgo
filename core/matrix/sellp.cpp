@@ -177,6 +177,8 @@ void Sellp<ValueType, IndexType>::move_to(
     this->convert_to(result);
 }
 
+
+#if GKO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
     Sellp<next_precision<next_precision<ValueType>>, IndexType>* result) const
@@ -197,6 +199,7 @@ void Sellp<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType, typename IndexType>

@@ -439,10 +439,12 @@ namespace detail {
 template <typename T>
 struct next_precision_impl {};
 
+#if GKO_ENABLE_HALF
 template <>
 struct next_precision_impl<half> {
     using type = float;
 };
+#endif
 
 template <>
 struct next_precision_impl<float> {
@@ -451,7 +453,11 @@ struct next_precision_impl<float> {
 
 template <>
 struct next_precision_impl<double> {
+#if GKO_ENABLE_HALF
     using type = half;
+#else
+    using type = float;
+#endif
 };
 
 
@@ -563,8 +569,13 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  * @note Currently our lists contains only two elements, so this is the same as
  *       next_precision.
  */
+#if GKO_ENABLE_HALF
 template <typename T>
 using previous_precision = next_precision<next_precision<T>>;
+#else
+template <typename T>
+using previous_precision = next_precision<T>;
+#endif
 
 
 /**
