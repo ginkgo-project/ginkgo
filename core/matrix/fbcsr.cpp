@@ -170,9 +170,11 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
+#if GKO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result) const
+    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
+    const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -189,6 +191,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType, typename IndexType>
