@@ -172,6 +172,7 @@ void Ell<ValueType, IndexType>::move_to(
 }
 
 
+#if GKO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
     Ell<next_precision<next_precision<ValueType>>, IndexType>* result) const
@@ -190,6 +191,7 @@ void Ell<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType, typename IndexType>
