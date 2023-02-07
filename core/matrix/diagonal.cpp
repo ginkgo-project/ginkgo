@@ -162,6 +162,8 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
     this->convert_to(result);
 }
 
+
+#if GKO_ENABLE_HALF
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
     Diagonal<next_precision<next_precision<ValueType>>>* result) const
@@ -177,6 +179,7 @@ void Diagonal<ValueType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType>
