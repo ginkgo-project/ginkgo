@@ -268,15 +268,15 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+#if GKO_ENABLE_HALF
       public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
                                   LocalIndexType, GlobalIndexType>>,
+#endif
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
-    friend class Matrix<previous_precision<previous_precision<ValueType>>,
-                        LocalIndexType, GlobalIndexType>;
 
 public:
     using value_type = ValueType;
@@ -299,6 +299,9 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
+#if GKO_ENABLE_HALF
+    friend class Matrix<previous_precision<previous_precision<ValueType>>,
+                        LocalIndexType, GlobalIndexType>;
 
     void convert_to(
         Matrix<next_precision<next_precision<value_type>>, local_index_type,
@@ -307,6 +310,7 @@ public:
     void move_to(Matrix<next_precision<next_precision<value_type>>,
                         local_index_type, global_index_type>* result) override;
 
+#endif
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
      * partition.

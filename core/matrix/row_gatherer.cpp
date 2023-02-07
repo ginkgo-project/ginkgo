@@ -46,8 +46,14 @@ namespace matrix {
 template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
-    run<const Dense<gko::half>*, const Dense<float>*, const Dense<double>*,
+    run<
+#if GKO_ENABLE_HALF
+        const Dense<gko::half>*,
+#endif
+        const Dense<float>*, const Dense<double>*,
+#if GKO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
+#endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
         in, [&](auto gather) { gather->row_gather(&row_idxs_, out); });
 }
@@ -56,8 +62,14 @@ template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
                                         const LinOp* beta, LinOp* out) const
 {
-    run<const Dense<gko::half>*, const Dense<float>*, const Dense<double>*,
+    run<
+#if GKO_ENABLE_HALF
+        const Dense<gko::half>*,
+#endif
+        const Dense<float>*, const Dense<double>*,
+#if GKO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
+#endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
         in,
         [&](auto gather) { gather->row_gather(alpha, &row_idxs_, beta, out); });

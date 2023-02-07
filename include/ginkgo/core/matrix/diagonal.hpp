@@ -71,7 +71,9 @@ class Diagonal
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
+#if GKO_ENABLE_HALF
       public ConvertibleTo<Diagonal<next_precision<next_precision<ValueType>>>>,
+#endif
       public Transposable,
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
@@ -104,8 +106,6 @@ public:
 
     friend class Diagonal<previous_precision<ValueType>>;
 
-    friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
-
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
@@ -114,9 +114,15 @@ public:
 
     void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
-    void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result) const override;
+#if GKO_ENABLE_HALF
+    friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
 
-    void move_to(Diagonal<next_precision<next_precision<ValueType>>>* result) override;
+    void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result)
+        const override;
+
+    void move_to(
+        Diagonal<next_precision<next_precision<ValueType>>>* result) override;
+#endif
 
     void convert_to(Csr<ValueType, int32>* result) const override;
 

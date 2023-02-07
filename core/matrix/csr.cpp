@@ -257,7 +257,7 @@ void Csr<ValueType, IndexType>::move_to(
     this->convert_to(result);
 }
 
-
+#if GKO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const
@@ -276,6 +276,7 @@ void Csr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType, typename IndexType>
