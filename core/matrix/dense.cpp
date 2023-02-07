@@ -603,6 +603,7 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 }
 
 
+#if GKO_ENABLE_HALF
 template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<next_precision<ValueType>>>* result) const
@@ -625,6 +626,7 @@ void Dense<ValueType>::move_to(
 {
     this->convert_to(result);
 }
+#endif
 
 
 template <typename ValueType>

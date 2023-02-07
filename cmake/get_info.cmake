@@ -204,10 +204,13 @@ if(TARGET hwloc)
     ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
     ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 endif()
+ginkgo_print_variable(${minimal_log} "GINKGO_ENABLE_HALF")
+ginkgo_print_variable(${detailed_log} "GINKGO_ENABLE_HALF")
 ginkgo_print_module_footer(${detailed_log} "")
 
 ginkgo_print_generic_header(${detailed_log} "  Extensions:")
 ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT")
+
 
 _minimal(
     "
