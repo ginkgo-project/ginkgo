@@ -356,8 +356,8 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMtx)
 
 TYPED_TEST(Ilu, SolvesSingleRhsWithMixedMtx)
 {
-    using Mtx = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx =
+        gko::matrix::Dense<next_precision<typename TestFixture::value_type>>;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
     x->copy_from(b);
@@ -391,7 +391,7 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithComplexMtx)
 TYPED_TEST(Ilu, SolvesSingleRhsWithMixedComplexMtx)
 {
     using Mtx = gko::matrix::Dense<
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>>;
+        gko::to_complex<next_precision<typename TestFixture::value_type>>>;
     using T = typename Mtx::value_type;
     const auto b = gko::initialize<Mtx>(
         {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
@@ -444,7 +444,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
 
 TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     const value_type alpha{2.0};
     const auto alpha_linop = gko::initialize<Mtx>({alpha}, this->exec);
@@ -494,7 +494,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
 
 TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using complex_type = gko::to_complex<value_type>;
     using MixedDense = gko::matrix::Dense<value_type>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;

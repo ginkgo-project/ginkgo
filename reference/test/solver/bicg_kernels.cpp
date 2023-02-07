@@ -307,7 +307,7 @@ TYPED_TEST(Bicg, SolvesStencilSystem)
 
 TYPED_TEST(Bicg, SolvesStencilSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicg_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -344,7 +344,7 @@ TYPED_TEST(Bicg, SolvesStencilSystemComplex)
 TYPED_TEST(Bicg, SolvesStencilSystemMixedComplex)
 {
     using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+        gko::to_complex<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicg_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -399,7 +399,7 @@ TYPED_TEST(Bicg, SolvesStencilSystemUsingAdvancedApply)
 
 TYPED_TEST(Bicg, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicg_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -440,8 +440,8 @@ TYPED_TEST(Bicg, SolvesStencilSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(Bicg, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+    using Scalar =
+        gko::matrix::Dense<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->bicg_factory->generate(this->mtx);

@@ -203,7 +203,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
@@ -242,7 +242,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemComplex)
 TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
 {
     using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+        gko::to_complex<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b =
@@ -327,7 +327,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -370,8 +370,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+    using Scalar =
+        gko::matrix::Dense<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->cb_gmres_factory->generate(this->mtx);

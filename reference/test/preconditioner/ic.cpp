@@ -278,7 +278,7 @@ TYPED_TEST(Ic, SolvesSingleRhsMixed)
 {
     using ic_prec_type = typename TestFixture::ic_prec_type;
     using T = typename TestFixture::value_type;
-    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    using Vec = gko::matrix::Dense<next_precision<T>>;
     const auto b = gko::initialize<Vec>({1.0, 3.0, 6.0}, this->exec);
     auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
     auto preconditioner =
@@ -312,7 +312,7 @@ TYPED_TEST(Ic, SolvesSingleRhsComplexMixed)
 {
     using ic_prec_type = typename TestFixture::ic_prec_type;
     using Vec = gko::matrix::Dense<
-        gko::next_precision<gko::to_complex<typename TestFixture::value_type>>>;
+        next_precision<gko::to_complex<typename TestFixture::value_type>>>;
     using T = typename Vec::value_type;
     const auto b = gko::initialize<Vec>(
         {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
@@ -348,7 +348,7 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhsMixed)
 {
     using ic_prec_type = typename TestFixture::ic_prec_type;
     using T = typename TestFixture::value_type;
-    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    using Vec = gko::matrix::Dense<next_precision<T>>;
     const auto b = gko::initialize<Vec>({1.0, 3.0, 6.0}, this->exec);
     const auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
@@ -387,8 +387,8 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplex)
 TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplexMixed)
 {
     using ic_prec_type = typename TestFixture::ic_prec_type;
-    using MixedDense = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+    using MixedDense =
+        gko::matrix::Dense<next_precision<typename TestFixture::value_type>>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;
     using T = typename MixedDenseComplex::value_type;
     const auto b = gko::initialize<MixedDenseComplex>(

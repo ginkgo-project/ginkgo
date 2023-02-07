@@ -67,4 +67,33 @@ using etype = double;
 using rc_etype = gko::remove_complex<etype>;
 
 
+namespace detail {
+
+
+// singly linked list of all our supported precisions
+template <typename T>
+struct next_precision_impl {};
+
+template <>
+struct next_precision_impl<float> {
+    using type = double;
+};
+
+template <>
+struct next_precision_impl<double> {
+    using type = float;
+};
+
+
+template <typename T>
+struct next_precision_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_impl<T>::type>;
+};
+
+
+}  // namespace detail
+
+template <typename T>
+using next_precision = typename detail::next_precision_impl<T>::type;
+
 #endif  // GKO_BENCHMARK_UTILS_TYPES_HPP_

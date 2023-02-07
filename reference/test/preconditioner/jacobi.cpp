@@ -510,7 +510,7 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using next_type = gko::next_precision<value_type>;
+    using next_type = next_precision<value_type>;
     using Bj = typename TestFixture::Bj;
     auto csr =
         gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));
