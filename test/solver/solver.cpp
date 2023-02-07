@@ -560,7 +560,7 @@ protected:
     using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
     using value_type = typename Mtx::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 

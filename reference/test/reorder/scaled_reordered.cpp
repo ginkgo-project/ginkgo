@@ -477,7 +477,7 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    using Vec = gko::matrix::Dense<next_precision<T>>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)
@@ -521,7 +521,7 @@ TYPED_TEST(ScaledReordered,
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using value_type = gko::next_precision<T>;
+    using value_type = next_precision<T>;
     using Vec = gko::matrix::Dense<value_type>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)

@@ -265,7 +265,7 @@ protected:
     using Smoother = gko::solver::Ir<value_type>;
     using InnerSolver = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
-    using CoarsestNextSolver = gko::solver::Cg<gko::next_precision<value_type>>;
+    using CoarsestNextSolver = gko::solver::Cg<next_precision<value_type>>;
     using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
     Multigrid()

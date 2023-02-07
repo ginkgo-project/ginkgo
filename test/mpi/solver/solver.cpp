@@ -74,7 +74,7 @@ template <typename SolverType>
 struct SimpleSolverTest {
     using solver_type = SolverType;
     using value_type = typename solver_type::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using dist_matrix_type =
@@ -213,7 +213,7 @@ protected:
     using local_index_type = typename T::local_index_type;
     using global_index_type = typename T::global_index_type;
     using value_type = typename T::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using Vec = typename T::dist_vector_type;
     using LocalVec = typename T::non_dist_vector_type;
     using MixedVec = typename T::mixed_dist_vector_type;

@@ -332,7 +332,7 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
 
 TYPED_TEST(Cgs, SolvesDenseSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -369,7 +369,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemComplex)
 TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
 {
     using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+        gko::to_complex<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -425,7 +425,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
 
 TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -466,8 +466,8 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+    using Scalar =
+        gko::matrix::Dense<next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->cgs_factory->generate(this->mtx);
