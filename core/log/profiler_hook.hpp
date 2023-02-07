@@ -97,7 +97,7 @@ void finalize_tau();
  * @param name  the header to print above the summary table
  */
 std::pair<ProfilerHook::hook_function, ProfilerHook::hook_function>
-create_summary_fns(std::ostream& stream, std::string name);
+create_summary_fns(std::ostream& stream, std::string name, bool nested);
 
 
 class default_profiling_scope_guard : log::profiling_scope_guard {

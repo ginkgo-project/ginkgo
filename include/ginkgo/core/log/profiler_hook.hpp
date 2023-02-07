@@ -253,7 +253,7 @@ public:
      */
     static std::shared_ptr<ProfilerHook> create_summary(
         std::ostream& output = std::cerr,
-        std::string name = "Profiling Summary");
+        std::string name = "Profiling Summary", bool nested = false);
 
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions
