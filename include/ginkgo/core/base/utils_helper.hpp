@@ -12,6 +12,7 @@
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>

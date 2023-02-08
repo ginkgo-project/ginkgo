@@ -5,6 +5,7 @@
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 

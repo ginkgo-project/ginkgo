@@ -6,6 +6,7 @@
 #define GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
