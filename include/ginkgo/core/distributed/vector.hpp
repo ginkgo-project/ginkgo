@@ -638,6 +638,15 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
                                    source->get_communicator());
     }
 
+    // Allow to create_empty of the same type
+    // For distributed case, next<next<V>> will be V in the candicated list.
+    // TODO: decide to whether to add this or add condition to the list
+    static std::unique_ptr<target_type> create_empty(const target_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+
 #if GINKGO_ENABLE_HALF
     using snd_source_type = experimental::distributed::Vector<
         previous_precision<previous_precision<ValueType>>>;

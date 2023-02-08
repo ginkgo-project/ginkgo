@@ -75,7 +75,7 @@ __device__ __forceinline__ thrust::complex<double> sqrt(
     return thrust::sqrt(val);
 }
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
+#if GINKGO_HIP_PLATFORM_NVCC && defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 530
 __device__ __forceinline__ __half sqrt(__half val)
 {
     return sqrt(static_cast<float>(val));
@@ -112,15 +112,22 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 
 
 namespace gko {
-#if defined(__CUDA_ARCH__)
+#if GINKGO_HIP_PLATFORM_NVCC
 // from the cuda_fp16.hpp
-#if __CUDA_ARCH__ >= 530
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
     return __hisnan(val);
 }
 
+#if CUDA_VERSION >= 10020
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
+#else
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+#endif
 #else
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
