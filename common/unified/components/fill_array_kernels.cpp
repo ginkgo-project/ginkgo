@@ -60,9 +60,13 @@ template <typename ValueType>
 void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
                     ValueType* array, size_type n)
 {
+    // __half only has long long not int64_t
     run_kernel(
-        exec, [] GKO_KERNEL(auto idx, auto array) { array[idx] = static_cast<long long int>(idx); }, n,
-        array);
+        exec,
+        [] GKO_KERNEL(auto idx, auto array) {
+            array[idx] = static_cast<long long>(idx);
+        },
+        n, array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);

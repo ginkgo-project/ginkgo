@@ -150,10 +150,10 @@ void build_local_nonlocal(
     local_values.resize_and_reset(num_local_elements);
     auto local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col] __host__ __device__(
-                      const input_type input2) {
-            auto local_row = map_to_local_row(input2.row, input2.row_range);
-            auto local_col = map_to_local_col(input2.col, input2.col_range);
-            return thrust::make_tuple(local_row, local_col, input2.val);
+                      const input_type input) {
+            auto local_row = map_to_local_row(input.row, input.row_range);
+            auto local_col = map_to_local_col(input.col, input.col_range);
+            return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
         thrust_policy(exec), local_it, local_it + input.get_num_elems(),

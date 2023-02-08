@@ -94,7 +94,8 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 namespace gko {
 
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+// from the cuda_fp16.hpp
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
 
 template <>
@@ -127,7 +128,8 @@ __device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
 namespace kernels {
 namespace cuda {
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
 
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }

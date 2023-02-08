@@ -242,20 +242,6 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
 
-template <typename ValueType>
-struct onemkl_support : std::false_type {};
-
-template <>
-struct onemkl_support<double> : std::true_type {};
-
-template <>
-struct onemkl_support<float> : std::true_type {};
-
-template <>
-struct onemkl_support<std::complex<float>> : std::true_type {};
-
-template <>
-struct onemkl_support<std::complex<double>> : std::true_type {};
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
@@ -264,7 +250,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    if constexpr (onemkl_support<ValueType>::value) {
+    if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b->get_stride() != 0 && c->get_stride() != 0) {
             if (a->get_size()[1] > 0) {
                 oneapi::mkl::blas::row_major::gemm(
@@ -292,7 +278,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    if constexpr (onemkl_support<ValueType>::value) {
+    if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b->get_stride() != 0 && c->get_stride() != 0) {
             if (a->get_size()[1] > 0) {
                 oneapi::mkl::blas::row_major::gemm(

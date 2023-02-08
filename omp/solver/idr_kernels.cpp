@@ -165,16 +165,16 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     // Initialize and Orthonormalize P
     const auto num_rows = subspace_vectors->get_size()[0];
     const auto num_cols = subspace_vectors->get_size()[1];
-    // auto dist =
-    // std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
+    auto dist = std::normal_distribution<
+        typename detail::arth_type<remove_complex<ValueType>>::type>(0.0, 1.0);
     auto seed = std::random_device{}();
     auto gen = std::default_random_engine(seed);
     for (size_type row = 0; row < num_rows; row++) {
         if (!deterministic) {
-            // for (size_type col = 0; col < num_cols; col++) {
-            //     subspace_vectors->at(row, col) =
-            //         get_rand_value<ValueType>(dist, gen);
-            // }
+            for (size_type col = 0; col < num_cols; col++) {
+                subspace_vectors->at(row, col) =
+                    get_rand_value<ValueType>(dist, gen);
+            }
         }
 
         for (size_type i = 0; i < row; i++) {
@@ -192,7 +192,8 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
         }
 
         auto norm = zero<remove_complex<ValueType>>();
-        // #pragma omp parallel for reduction(+ : norm)
+#pragma omp declare reduction(norm_add: remove_complex<ValueType> : omp_out = omp_out + omp_in)
+#pragma omp parallel for reduction(norm_add : norm)
         for (size_type j = 0; j < num_cols; j++) {
             norm += squared_norm(subspace_vectors->at(row, j));
         }
