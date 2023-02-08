@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -1236,14 +1237,6 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-template <typename ValueType>
-struct onemkl_support : std::false_type {};
-
-template <>
-struct onemkl_support<double> : std::true_type {};
-
-template <>
-struct onemkl_support<float> : std::true_type {};
 
 template <typename ValueType, typename IndexType>
 bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,

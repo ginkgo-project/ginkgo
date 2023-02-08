@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 
 
+struct __half;
+
+
 namespace gko {
 namespace acc {
 namespace detail {

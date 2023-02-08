@@ -77,18 +77,13 @@ make_temporary_conversion(Ptr&& matrix)
     using Pointee = detail::pointee<Ptr>;
     using Dense = matrix::Dense<ValueType>;
     using NextDense = matrix::Dense<next_precision<ValueType>>;
+    using NextNextDense = matrix::Dense<next_precision<next_precision<ValueType>>>;
     using MaybeConstDense =
         std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
     auto result = detail::temporary_conversion<
-        MaybeConstDense>::template create<NextDense>(matrix);
+        MaybeConstDense>::template create<NextDense, NextNextDense>(matrix);
     if (!result) {
-        result = detail::temporary_conversion<matrix::Dense<ValueType>>::
-            template create<
-                matrix::Dense<next_precision<next_precision<ValueType>>>>(
-                matrix);
-        if (!result) {
-            GKO_NOT_SUPPORTED(matrix);
-        }
+        GKO_NOT_SUPPORTED(matrix);
     }
     return result;
 }
@@ -386,16 +381,11 @@ make_temporary_conversion(LinOp* matrix)
     auto result = detail::temporary_conversion<
         experimental::distributed::Vector<ValueType>>::
         template create<
-            experimental::distributed::Vector<next_precision<ValueType>>>(
-            matrix);
-    if (!result) {
-        result = detail::temporary_conversion<
-            experimental::distributed::Vector<ValueType>>::
-            template create<experimental::distributed::Vector<
+            experimental::distributed::Vector<next_precision<ValueType>>,
+            experimental::distributed::Vector<
                 next_precision<next_precision<ValueType>>>>(matrix);
-        if (!result) {
-            GKO_NOT_SUPPORTED(matrix);
-        }
+    if (!result) {
+        GKO_NOT_SUPPORTED(matrix);
     }
     return result;
 }
@@ -411,16 +401,11 @@ make_temporary_conversion(const LinOp* matrix)
     auto result = detail::temporary_conversion<
         const experimental::distributed::Vector<ValueType>>::
         template create<
-            experimental::distributed::Vector<next_precision<ValueType>>>(
-            matrix);
-    if (!result) {
-        result = detail::temporary_conversion<
-            const experimental::distributed::Vector<ValueType>>::
-            template create<experimental::distributed::Vector<
+            experimental::distributed::Vector<next_precision<ValueType>>,
+            experimental::distributed::Vector<
                 next_precision<next_precision<ValueType>>>>(matrix);
-        if (!result) {
-            GKO_NOT_SUPPORTED(matrix);
-        }
+    if (!result) {
+        GKO_NOT_SUPPORTED(matrix);
     }
     return result;
 }

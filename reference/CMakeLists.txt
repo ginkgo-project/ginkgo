@@ -70,8 +70,6 @@ target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
     set_source_files_properties(preconditioner/jacobi_kernels.cpp PROPERTIES COMPILE_FLAGS "-O1")
 endif()
-
-target_compile_definitions(ginkgo_reference PRIVATE GINKGO_COMPILE_KERNEL=1)
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_reference "")
 endif()

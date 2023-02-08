@@ -520,6 +520,11 @@ struct arth_type<half> {
 };
 
 template <typename T>
+struct arth_type<std::complex<T>> {
+    using type = std::complex<typename arth_type<T>::type>;
+};
+
+template <typename T>
 struct infinity_impl {
     // CUDA doesn't allow us to call std::numeric_limits functions
     // so we need to store the value instead.
@@ -733,7 +738,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 template <typename T>
 GKO_INLINE __host__ constexpr T zero()
 {
-    return T(0.0);
+    return T{};
 }
 
 
@@ -761,7 +766,7 @@ GKO_INLINE __host__ constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE __host__ constexpr T one()
 {
-    return T(1.0);
+    return T(1);
 }
 
 
@@ -791,7 +796,7 @@ GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 zero()
 {
-    return T(0.0);
+    return T{};
 }
 
 
@@ -821,7 +826,7 @@ GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 one()
 {
-    return T(1.0);
+    return T(1);
 }
 
 
@@ -852,7 +857,7 @@ GKO_INLINE __device__ constexpr T one(const T&)
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
 {
-    return T(0.0);
+    return T{};
 }
 
 
@@ -1181,7 +1186,7 @@ GKO_INLINE
     GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
     abs(const T& x)
 {
-    return x >= zero<T>() ? x : static_cast<T>(-x);
+    return x >= zero<T>() ? x : -x;
 }
 
 
@@ -1362,20 +1367,11 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
-    !is_complex_s<T>::value && !std::is_same<T, half>::value, T>
+    !is_complex_s<T>::value, typename detail::arth_type<T>::type>
 nan()
 {
     return std::numeric_limits<T>::quiet_NaN();
 }
-
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
-    std::is_same<T, half>::value, float>
-nan()
-{
-    return std::numeric_limits<T>::quiet_NaN();
-}
-
 
 /**
  * Returns a complex with both components quiet NaN.
@@ -1385,7 +1381,8 @@ nan()
  * @return complex{NaN, NaN}.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value, T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
+    is_complex_s<T>::value, typename detail::arth_type<T>::type>
 nan()
 {
     return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};

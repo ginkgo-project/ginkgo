@@ -127,7 +127,6 @@ if (GINKGO_HAVE_ROCTX)
 endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
-target_compile_definitions(ginkgo_hip PRIVATE GINKGO_COMPILE_KERNEL=1)
 
 if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     find_package(hip REQUIRED)

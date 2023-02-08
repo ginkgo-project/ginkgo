@@ -446,7 +446,7 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
+                        : gko::remove_complex<T>{r<OtherT>::value};
 
     this->dist_mat->convert_to(tmp);
     tmp->convert_to(res);
@@ -473,7 +473,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
+                        : gko::remove_complex<T>{r<OtherT>::value};
 
     this->dist_mat->move_to(tmp);
     tmp->convert_to(res);
