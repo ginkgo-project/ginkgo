@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
