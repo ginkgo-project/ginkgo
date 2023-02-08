@@ -15,12 +15,6 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"
 
-// namespace sycl {
-// namespace detail {
-// template <>
-// struct is_arithmetic<gko::half> : public std::false_type {};
-// }  // namespace detail
-// }  // namespace sycl
 
 namespace gko {
 namespace kernels {

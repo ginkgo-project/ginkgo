@@ -28,19 +28,17 @@
 
 // thrust calls the c function not the function from std
 // Maybe override the function from thrust directlry
-GKO_ATTRIBUTES GKO_INLINE __half hypot(__half a, __half b)
+__device__ __forceinline__ __half hypot(__half a, __half b)
 {
     return hypot(static_cast<float>(a), static_cast<float>(b));
 }
 
-GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> sqrt(
+__device__ __forceinline__ thrust::complex<__half> sqrt(
     thrust::complex<__half> a)
 {
     return sqrt(static_cast<thrust::complex<float>>(a));
 }
 
-// __device__ __forceinline__ float sqrt(float val) { return sqrtf(val); }
-// __device__ __forceinline__ double sqrt(double val) { return ::sqrt(val); }
 __device__ __forceinline__ thrust::complex<float> sqrt(
     thrust::complex<float> val)
 {
@@ -90,7 +88,8 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 
 namespace gko {
 #if defined(__CUDA_ARCH__)
-#if __CUDA_ARCH__ >= 700
+// from the cuda_fp16.hpp
+#if __CUDA_ARCH__ >= 530
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
     return __hisnan(val);
@@ -109,7 +108,7 @@ __device__ __forceinline__ __half abs(const __half& val)
 }
 #endif
 
-#elif defined(__HIP_DEVICE_COMPILE__)
+#else  // Not nvidia device
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
     return __hisnan(val);
@@ -119,10 +118,6 @@ __device__ __forceinline__ bool is_nan(const __half& val)
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
 #endif
-
-// #if defined(__HIPCC__)
-
-// #endif
 
 
 namespace kernels {
