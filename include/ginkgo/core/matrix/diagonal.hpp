@@ -43,7 +43,7 @@ class Diagonal
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
       public ConvertibleTo<Diagonal<next_precision<next_precision<ValueType>>>>,
 #endif
       public Transposable,
@@ -86,7 +86,7 @@ public:
 
     void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
 
     void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result)
