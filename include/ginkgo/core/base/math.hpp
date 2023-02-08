@@ -15,6 +15,7 @@
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -28,9 +29,14 @@
 
 class __half;
 
+
 namespace thrust {
+
+
 template <typename T>
 class complex;
+
+
 }
 namespace std {
 
@@ -41,6 +47,7 @@ inline gko::half abs(std::complex<gko::half> a)
 {
     return gko::half(sqrt(float(a.real() * a.real() + a.imag() * a.imag())));
 }
+
 
 inline gko::half sqrt(gko::half a) { return gko::half(sqrt(float(a))); }
 
