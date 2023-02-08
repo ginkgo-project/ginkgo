@@ -51,7 +51,7 @@ class Hybrid;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
             public ConvertibleTo<
                 Ell<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -92,7 +92,7 @@ public:
 
     void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Ell<previous_precision<previous_precision<ValueType>>,
                      IndexType>;
 
