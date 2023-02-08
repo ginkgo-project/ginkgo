@@ -94,22 +94,19 @@ protected:
         int* const col_idxs = mat->get_col_idxs();
         value_type* const vals = mat->get_values();
         // clang-format off
-		row_ptrs[0] = 0; row_ptrs[1] = 2; row_ptrs[2] = 4; row_ptrs[3] = 6; row_ptrs[4] = 8; row_ptrs[5] = 10; row_ptrs[6] = 12;
-		col_idxs[0] = 0; col_idxs[1] = 1; 
-        col_idxs[2] = 0; col_idxs[3] = 1;
-		col_idxs[4] = 0; col_idxs[5] = 2; 
-        col_idxs[6] = 1; col_idxs[7] = 3;
-        col_idxs[8] = 2; col_idxs[9] = 4;
-        col_idxs[10] = 3; col_idxs[11] = 5;
+		row_ptrs[0] = 0; row_ptrs[1] = 2; row_ptrs[2] = 4; row_ptrs[3] = 6; 
+        row_ptrs[4] = 8; row_ptrs[5] = 10; row_ptrs[6] = 12;
+
+		col_idxs[0] = 0; col_idxs[1] = 1;  col_idxs[2] = 0; col_idxs[3] = 1;
+		col_idxs[4] = 0; col_idxs[5] = 2;  col_idxs[6] = 1; col_idxs[7] = 3;
+        col_idxs[8] = 2; col_idxs[9] = 4; col_idxs[10] = 3; col_idxs[11] = 5;
 
 		vals[0] = 2.0; vals[1] = 0.25; vals[2] = -1.0; vals[3] = -3.0;
-		vals[4] = 2.0; vals[5] = 0.2;
-		vals[6] = -1.5; vals[7] = 0.55; vals[8] = -1.0; vals[9] = 4.0;
-		vals[10] = 2.0; vals[11] = -0.25;
+		vals[4] = 2.0; vals[5] = 0.2;  vals[6] = -1.5; vals[7] = 0.55; 
+        vals[8] = -1.0; vals[9] = 4.0; vals[10] = 2.0; vals[11] = -0.25;
         vals[12] = 5.0; vals[13] = 4.25; vals[14] = -7.0; vals[15] = -3.0;
-		vals[16] = 2.0; vals[17] = 0.28;
-		vals[18] = -1.5; vals[19] = 1.55; vals[20] = -1.0; vals[21] = 4.0;
-		vals[22] = 21.0; vals[23] = -0.95;
+		vals[16] = 2.0; vals[17] = 0.28; vals[18] = -1.5; vals[19] = 1.55; 
+        vals[20] = -1.0; vals[21] = 4.0; vals[22] = 21.0; vals[23] = -0.95;
         // clang-format on
         return mat;
     }

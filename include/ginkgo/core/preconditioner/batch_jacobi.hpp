@@ -160,7 +160,8 @@ struct batched_blocks_storage_scheme {
 
 /**
  * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
- * by inverting the diagonal blocks (stored in a dense row major fashion) of the source operator.
+ * by inverting the diagonal blocks (stored in a dense row major fashion) of the
+ * source operator.
  *
  * Note: Batched Preconditioners do not support user facing apply.
  *
@@ -339,7 +340,11 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit BatchJacobi(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<BatchJacobi>(exec), num_blocks_{}, blocks_(exec)
+        : EnableBatchLinOp<BatchJacobi>(exec),
+          num_blocks_{},
+          blocks_(exec),
+          row_part_of_which_block_info_(exec),
+          storage_scheme_{batched_blocks_storage_scheme()}
     {
         parameters_.block_pointers.set_executor(this->get_executor());
     }
