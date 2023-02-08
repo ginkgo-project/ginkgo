@@ -98,7 +98,7 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
               public ConvertibleTo<
                   Fbcsr<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -156,7 +156,7 @@ public:
 
     void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Fbcsr<previous_precision<previous_precision<ValueType>>,
                        IndexType>;
 
