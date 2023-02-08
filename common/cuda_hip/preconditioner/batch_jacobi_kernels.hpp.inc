@@ -80,7 +80,7 @@ __global__
 template <typename Group, typename ValueType>
 __device__ __forceinline__ int choose_pivot(Group subwarp_grp,
                                             const int block_size,
-                                            const ValueType* const block_row,
+                                            const ValueType* const __restrict__ block_row,
                                             const int& perm, const int k)
 {
     auto my_abs_ele = abs(block_row[k]);
