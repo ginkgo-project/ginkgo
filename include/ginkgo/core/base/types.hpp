@@ -18,6 +18,9 @@
 #include <type_traits>
 
 
+#include <ginkgo/config.hpp>
+
+
 #ifdef __HIPCC__
 #include <hip/hip_runtime.h>
 #endif  // __HIPCC__
@@ -428,7 +431,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _enable_macro(CudaExecutor, cuda)
 
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
 #define GKO_ADAPT_HF(_macro) template _macro
 #else
 #define GKO_ADAPT_HF(_macro)                                                 \
