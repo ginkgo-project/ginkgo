@@ -132,8 +132,14 @@ namespace cuda {
 
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
-
+#if CUDA_VERSION >= 10020
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
+#else
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+#endif
 
 
 __device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }

@@ -24,15 +24,12 @@ function(ginkgo_benchmark_cusparse_linops type def)
 endfunction()
 
 function(ginkgo_benchmark_hipsparse_linops type def)
-    add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp)
+    set_source_files_properties(utils/hip_linops.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
+    hip_add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp
+    HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} -D${def}
+    CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+    NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS})
     target_compile_definitions(hipsparse_linops_${type} PUBLIC ${def})
-    EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
-    set_target_properties(hipsparse_linops_${type} PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
-    # use Thrust C++ device just for compilation, we don't use thrust::complex in the benchmarks
-    target_compile_definitions(hipsparse_linops_${type} PUBLIC -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
-    target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE
-        ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
-        ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
     target_link_libraries(hipsparse_linops_${type} Ginkgo::ginkgo ${HIPSPARSE_LIBRARIES})
 endfunction()
 
