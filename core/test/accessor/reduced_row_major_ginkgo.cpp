@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/half.hpp>  // necessary for gko::half
+
+
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
