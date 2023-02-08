@@ -76,15 +76,13 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
         res->parameters_ = parameters_;
 
-        const bool to_conjugate = false;
-
         this->get_executor()->run(batch_jacobi::make_transpose_block_jacobi(
             this->get_num_batch_entries(), this->get_size().at(0)[0],
             num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
             blocks_.get_const_data(), storage_scheme_,
             row_part_of_which_block_info_.get_const_data(),
-            res->blocks_.get_data(), to_conjugate));
+            res->blocks_.get_data(), false /*conjugate*/));
 
         return std::move(res);
     }
@@ -111,15 +109,13 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::conj_transpose()
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
         res->parameters_ = parameters_;
 
-        const bool to_conjugate = true;
-
         this->get_executor()->run(batch_jacobi::make_transpose_block_jacobi(
             this->get_num_batch_entries(), this->get_size().at(0)[0],
             num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
             blocks_.get_const_data(), storage_scheme_,
             row_part_of_which_block_info_.get_const_data(),
-            res->blocks_.get_data(), to_conjugate));
+            res->blocks_.get_data(), true /*conjugate*/));
 
         return std::move(res);
     }

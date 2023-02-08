@@ -160,7 +160,7 @@ struct batched_blocks_storage_scheme {
 
 /**
  * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
- * by inverting the diagonal blocks of the source operator.
+ * by inverting the diagonal blocks (stored in a dense row major fashion) of the source operator.
  *
  * Note: Batched Preconditioners do not support user facing apply.
  *
