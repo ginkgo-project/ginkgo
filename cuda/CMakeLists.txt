@@ -119,7 +119,6 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     endif()
 endif()
 
-target_compile_definitions(ginkgo_cuda PRIVATE GINKGO_COMPILE_KERNEL=1)
 ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
 
