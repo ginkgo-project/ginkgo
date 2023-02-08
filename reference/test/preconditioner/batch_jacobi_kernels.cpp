@@ -214,7 +214,6 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
-
         check_batched_block_jacobi_is_eqvt_to_unbatched(i, prec, unbatch_prec);
     }
 }
