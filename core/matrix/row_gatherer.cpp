@@ -47,11 +47,11 @@ template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
     run<
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
         const Dense<gko::half>*,
 #endif
         const Dense<float>*, const Dense<double>*,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
 #endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
@@ -63,11 +63,11 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
                                         const LinOp* beta, LinOp* out) const
 {
     run<
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
         const Dense<gko::half>*,
 #endif
         const Dense<float>*, const Dense<double>*,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
 #endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(

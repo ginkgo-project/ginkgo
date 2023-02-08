@@ -139,7 +139,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 }
 
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     Matrix<next_precision<next_precision<value_type>>, local_index_type,

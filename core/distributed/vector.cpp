@@ -290,7 +290,7 @@ void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 }
 
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
     Vector<next_precision<next_precision<ValueType>>>* result) const
