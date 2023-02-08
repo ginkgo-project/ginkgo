@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/factorization/par_ilut.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
