@@ -973,7 +973,9 @@ protected:
          *       per core.
          *       In CUDA and HIP executors this is the number of warps
          *       per SM.
-         *       In DPCPP, this is currently undefined.
+         *       In DPCPP, this is currently number of hardware threads per eu.
+         *       If the device does not support, it will be set as 1.
+         *       (TODO: check)
          */
         int num_pu_per_cu = -1;
 
@@ -2088,6 +2090,15 @@ public:
     int get_num_computing_units() const noexcept
     {
         return this->get_exec_info().num_computing_units;
+    }
+
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        return this->get_exec_info().num_computing_units *
+               this->get_exec_info().num_pu_per_cu;
     }
 
     /**

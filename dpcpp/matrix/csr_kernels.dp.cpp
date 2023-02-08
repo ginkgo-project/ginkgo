@@ -1107,9 +1107,7 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
                     const matrix::Dense<ValueType>* alpha = nullptr,
                     const matrix::Dense<ValueType>* beta = nullptr)
 {
-    constexpr int threads_per_cu = 8;
-    const auto num_subgroup =
-        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+    const auto num_subgroup = exec->get_num_warps() * classical_overweight;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),

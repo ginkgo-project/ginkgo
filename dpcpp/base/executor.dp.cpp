@@ -290,6 +290,22 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
     }
+
+    // Get the hardware threads per eu
+    if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+        this->get_exec_info().num_pu_per_cu = device.get_info<
+            sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+#else
+        this->get_exec_info().num_pu_per_cu = device.get_info<
+            sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
+#endif
+    } else {
+        // To make the usage still valid.
+        // TODO: check the value for other vendor gpu or cpu.
+        this->get_exec_info().num_pu_per_cu = 1;
+    }
+
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.
