@@ -59,7 +59,7 @@ template <typename ValueType = double>
 class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
       public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
@@ -166,7 +166,7 @@ public:
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Vector<previous_precision<previous_precision<ValueType>>>;
 
     void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
@@ -677,8 +677,6 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
         experimental::distributed::Vector<previous_precision<ValueType>>;
-    using snd_source_type = experimental::distributed::Vector<
-        previous_precision<previous_precision<ValueType>>>;
 
     static std::unique_ptr<target_type> create_empty(const source_type* source)
     {
@@ -686,12 +684,17 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
                                    source->get_communicator());
     }
 
+#if GINKGO_ENABLE_HALF
+    using snd_source_type = experimental::distributed::Vector<
+        previous_precision<previous_precision<ValueType>>>;
+
     static std::unique_ptr<target_type> create_empty(
         const snd_source_type* source)
     {
         return target_type::create(source->get_executor(),
                                    source->get_communicator());
     }
+#endif
 };
 
 
