@@ -100,7 +100,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
             public ConvertibleTo<
                 Csr<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -699,7 +699,7 @@ public:
 
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Csr<previous_precision<previous_precision<ValueType>>,
                      IndexType>;
 
