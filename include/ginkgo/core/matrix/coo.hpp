@@ -78,7 +78,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableCreateMethod<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
             public ConvertibleTo<
                 Coo<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -121,7 +121,7 @@ public:
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Coo<previous_precision<previous_precision<ValueType>>,
                      IndexType>;
 

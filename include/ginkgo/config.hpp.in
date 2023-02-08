@@ -135,7 +135,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Is half operation available ? */
 // clang-format off
-#define GKO_ENABLE_HALF @GINKGO_ENABLE_HALF@
+#cmakedefine01 GINKGO_ENABLE_HALF
 // clang-format on
 
 

@@ -193,7 +193,7 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 }
 
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
     Diagonal<next_precision<next_precision<ValueType>>>* result) const

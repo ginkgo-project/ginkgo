@@ -268,7 +268,7 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
       public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
                                   LocalIndexType, GlobalIndexType>>,
 #endif
@@ -299,7 +299,7 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Matrix<previous_precision<previous_precision<ValueType>>,
                         LocalIndexType, GlobalIndexType>;
 

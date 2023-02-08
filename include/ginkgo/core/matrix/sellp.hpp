@@ -71,7 +71,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
               public ConvertibleTo<
                   Sellp<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -113,7 +113,7 @@ public:
 
     void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Sellp<previous_precision<previous_precision<ValueType>>,
                        IndexType>;
 

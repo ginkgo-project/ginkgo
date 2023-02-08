@@ -198,7 +198,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
