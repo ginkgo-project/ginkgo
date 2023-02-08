@@ -24,7 +24,11 @@ function(ginkgo_benchmark_cusparse_linops type def)
 endfunction()
 
 function(ginkgo_benchmark_hipsparse_linops type def)
-    add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp)
+    set_source_files_properties(utils/hip_linops.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
+    hip_add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp
+    HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} -D${def}
+    CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+    NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS})
     set_source_files_properties(utils/hip_linops.hip.cpp PROPERTIES LANGUAGE HIP)
     target_compile_definitions(hipsparse_linops_${type} PUBLIC ${def})
     target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
