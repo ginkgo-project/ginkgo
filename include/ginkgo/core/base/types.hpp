@@ -862,5 +862,5 @@ using comm_index_type = int;
 }  // namespace experimental
 }  // namespace gko
 
-#include <ginkgo/core/base/half.hpp>
+
 #endif  // GKO_PUBLIC_CORE_BASE_TYPES_HPP_

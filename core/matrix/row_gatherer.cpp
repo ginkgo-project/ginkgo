@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
