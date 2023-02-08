@@ -81,7 +81,7 @@ template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
       public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
 #endif
       public ConvertibleTo<Coo<ValueType, int32>>,
@@ -277,7 +277,7 @@ public:
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
-#if GKO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF
     friend class Dense<previous_precision<previous_precision<ValueType>>>;
 
     void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
