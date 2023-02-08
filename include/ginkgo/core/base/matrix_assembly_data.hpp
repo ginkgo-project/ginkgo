@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>

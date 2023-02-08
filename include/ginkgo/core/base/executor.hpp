@@ -19,6 +19,7 @@
 
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>

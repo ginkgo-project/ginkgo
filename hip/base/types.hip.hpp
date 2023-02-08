@@ -21,6 +21,7 @@
 #endif
 #include <thrust/complex.h>
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
 #include "common/cuda_hip/base/runtime.hpp"

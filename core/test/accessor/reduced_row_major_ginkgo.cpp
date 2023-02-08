@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/half.hpp>  // necessary for gko::half
+
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
