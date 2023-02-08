@@ -17,6 +17,9 @@
 #include "utils.hpp"
 
 
+struct __half;
+
+
 namespace gko {
 namespace acc {
 namespace detail {

@@ -491,6 +491,11 @@ struct arth_type<half> {
 };
 
 template <typename T>
+struct arth_type<std::complex<T>> {
+    using type = std::complex<typename arth_type<T>::type>;
+};
+
+template <typename T>
 struct infinity_impl {
     // CUDA doesn't allow us to call std::numeric_limits functions
     // so we need to store the value instead.
@@ -701,7 +706,7 @@ GKO_INLINE constexpr int64 ceildiv(int64 num, int64 den)
 template <typename T>
 GKO_INLINE constexpr T zero()
 {
-    return T(0.0);
+    return T{};
 }
 
 
@@ -729,7 +734,7 @@ GKO_INLINE constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE constexpr T one()
 {
-    return T(1.0);
+    return T(1);
 }
 
 
@@ -1023,7 +1028,7 @@ template <typename T>
 GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T> abs(
     const T& x)
 {
-    return x >= zero<T>() ? x : static_cast<T>(-x);
+    return x >= zero<T>() ? x : -x;
 }
 
 
@@ -1209,19 +1214,12 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
  * @return NaN.
  */
 template <typename T>
-GKO_INLINE constexpr std::enable_if_t<
-    !is_complex_s<T>::value && !std::is_same<T, half>::value, T>
+GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value,
+                                      typename detail::arth_type<T>::type>
 nan()
 {
     return std::numeric_limits<T>::quiet_NaN();
 }
-
-template <typename T>
-GKO_INLINE constexpr std::enable_if_t<std::is_same<T, half>::value, float> nan()
-{
-    return std::numeric_limits<T>::quiet_NaN();
-}
-
 
 /**
  * Returns a complex with both components quiet NaN.
@@ -1231,7 +1229,9 @@ GKO_INLINE constexpr std::enable_if_t<std::is_same<T, half>::value, float> nan()
  * @return complex{NaN, NaN}.
  */
 template <typename T>
-GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value, T> nan()
+GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                      typename detail::arth_type<T>::type>
+nan()
 {
     return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};
 }

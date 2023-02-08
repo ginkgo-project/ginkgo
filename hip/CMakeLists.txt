@@ -70,7 +70,6 @@ if (GINKGO_HAVE_ROCTX)
 endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
-target_compile_definitions(ginkgo_hip PRIVATE GINKGO_COMPILE_KERNEL=1)
 
 
 ginkgo_compile_features(ginkgo_hip)
