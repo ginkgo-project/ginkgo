@@ -348,7 +348,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 stride_arnoldi, as_cuda_type(hessenberg_iter->get_values()),
                 stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(stop_status), as_cuda_type(reorth_status),
-                as_cuda_type(num_reorth->get_data()));
+                num_reorth->get_data());
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     }
 
@@ -388,8 +388,7 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
         givens_sin->get_stride(), as_cuda_type(givens_cos->get_values()),
         givens_cos->get_stride(), as_cuda_type(residual_norm->get_values()),
         as_cuda_type(residual_norm_collection->get_values()),
-        residual_norm_collection->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+        residual_norm_collection->get_stride(), stop_status->get_const_data());
 }
 
 
@@ -412,7 +411,7 @@ void arnoldi(std::shared_ptr<const CudaExecutor> exec,
         static_cast<unsigned int>(
             ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
         default_block_size>>>(as_cuda_type(final_iter_nums->get_data()),
-                              as_cuda_type(stop_status->get_const_data()),
+                              stop_status->get_const_data(),
                               final_iter_nums->get_num_elems());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
