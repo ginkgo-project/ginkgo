@@ -322,7 +322,12 @@ private:
 
 }  // namespace detail
 
-#ifdef SYCL_LANGUAGE_VERSION
+// sycl::half miss the arithmetic operator to result float not half before 5.7
+// (2022-06). It leads ? half : half/half ambiguous The same issue is reported
+// in https://github.com/intel/llvm/issues/6028
+#if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 ||   \
+     (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
 using half = sycl::half;
 #else
 /**
@@ -629,7 +634,9 @@ private:
     value_type imag_;
 };
 
-#ifndef SYCL_LANGUAGE_VERSION
+#if !(defined(SYCL_LANGUAGE_VERSION) && \
+      (__LIBSYCL_MAJOR_VERSION > 5 ||   \
+       (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7)))
 template <>
 struct numeric_limits<gko::half> {
     static constexpr bool is_specialized{true};
