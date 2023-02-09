@@ -69,6 +69,8 @@ private:
             const value_type* dense_block_ptr =
                 blocks_arr_entry_ + storage_scheme_.get_block_offset(
                                         block_idx, blocks_cumulative_storage_);
+            const auto stride =
+                storage_scheme_.get_stride(block_idx, block_ptrs_arr_);
 
             const int idx_start = block_ptrs_arr_[block_idx];
             const int idx_end = block_ptrs_arr_[block_idx + 1];
@@ -80,9 +82,7 @@ private:
             for (int dense_block_col = id_within_subwarp;
                  dense_block_col < bsize; dense_block_col += tile_size) {
                 const auto block_val =
-                    dense_block_ptr[dense_block_row *
-                                        storage_scheme_.get_stride(
-                                            block_idx, block_ptrs_arr_) +
+                    dense_block_ptr[dense_block_row * stride +
                                     dense_block_col];  // coalesced accesses
                 sum += block_val * r[dense_block_col + idx_start];
             }
@@ -107,6 +107,7 @@ public:
      * @param max_block_size Maximum block size
      * @param num_blocks  Number of diagonal blocks in a matrix
      * @param storage_scheme diagonal blocks storage scheme
+     * @param blocks_cumulative_storage the cumulative block storage array
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      * @param row_part_of_which_block_arr array containing block indices of the

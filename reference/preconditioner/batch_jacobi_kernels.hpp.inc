@@ -44,6 +44,10 @@ inline void extract_block_pattern_impl(
     const int row_idx_st = block_pointers[k];
     const int row_idx_end = block_pointers[k + 1];  // exclusive
 
+    const auto offset =
+        storage_scheme.get_block_offset(k, cumulative_block_storage);
+    const auto stride = storage_scheme.get_stride(k, block_pointers);
+
     // pattern is stored in row-major order
     for (int row_idx = row_idx_st; row_idx < row_idx_end; row_idx++) {
         for (int i = row_ptrs[row_idx]; i < row_ptrs[row_idx + 1]; i++) {
@@ -55,13 +59,9 @@ inline void extract_block_pattern_impl(
                 // - row_idx_st, col_idx - row_idx_st)
                 const auto dense_block_row = row_idx - row_idx_st;
                 const auto dense_block_col = col_idx - row_idx_st;
-                const auto offset = storage_scheme.get_block_offset(
-                    k, cumulative_block_storage);
-                auto& place =
-                    blocks_pattern[offset +
-                                   dense_block_row * storage_scheme.get_stride(
-                                                         k, block_pointers) +
-                                   dense_block_col];  // data-locality
+
+                auto& place = blocks_pattern[offset + dense_block_row * stride +
+                                             dense_block_col];  // data-locality
                 place = i;
             }
         }
@@ -158,6 +158,7 @@ inline void compute_block_jacobi_impl(
         batch_idx, num_blocks, cumulative_block_storage);
     const auto offset_indiv =
         storage_scheme.get_block_offset(block_idx, cumulative_block_storage);
+    const auto stride = storage_scheme.get_stride(block_idx, block_pointers);
     ValueType* dense_block_ptr =
         blocks + offset_batch +
         offset_indiv;  // the blocks are in row-major order
@@ -194,9 +195,7 @@ inline void compute_block_jacobi_impl(
     // store the dense block (take into account the col permutations)
     for (int row = 0; row < bsize; row++) {
         for (int col = 0; col < bsize; col++) {
-            dense_block_ptr[row * storage_scheme.get_stride(block_idx,
-                                                            block_pointers) +
-                            col_perm[col]] =
+            dense_block_ptr[row * stride + col_perm[col]] =
                 temp_dense_block[row * bsize + col];
         }
     }
