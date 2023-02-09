@@ -140,7 +140,13 @@ TEST_F(FloatToHalf, ConvertsNan)
 {
     half x = create_from_bits("0" "11111111" "00000000000000000000001");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1111111111"));
+    #endif
 }
 
 
@@ -148,7 +154,13 @@ TEST_F(FloatToHalf, ConvertsNegNan)
 {
     half x = create_from_bits("1" "11111111" "00010000000000000000000");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1111111111"));
+    #endif
 }
 
 
@@ -196,7 +208,13 @@ TEST_F(FloatToHalf, TruncatesLargeNumber)
 {
     half x = create_from_bits("1" "10001110" "10010011111000010000100");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // TODO: sycl::half seems to did rounding, but ours just truncates
+    ASSERT_EQ(get_bits(x), get_bits("1" "11110" "1001010000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("1" "11110" "1001001111"));
+    #endif
 
 }
 
@@ -246,7 +264,13 @@ TEST_F(HalfToFloat, ConvertsNan)
 {
     float x = create_from_bits("0" "11111" "0001001000");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "00010010000000000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "11111111111111111111111"));
+    #endif
 }
 
 
@@ -254,7 +278,13 @@ TEST_F(HalfToFloat, ConvertsNegNan)
 {
     float x = create_from_bits("1" "11111" "0000000001");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "00000000010000000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "11111111111111111111111"));
+    #endif
 }
 
 
