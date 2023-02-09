@@ -78,16 +78,9 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
         static_cast<GlobalIndexType>(local_range.end)};
 
     // make all range_start_ends available on each rank
-    auto mpi_exec = exec->get_master();
-    array<GlobalIndexType> ranges_start_end(mpi_exec, comm.size() * 2);
+    array<GlobalIndexType> ranges_start_end(exec, comm.size() * 2);
     ranges_start_end.fill(invalid_index<GlobalIndexType>());
-    std::vector<mpi::request> reqs;
-    reqs.push_back(comm.i_all_gather(mpi_exec, &range[0], 1,
-                                     ranges_start_end.get_data(), 1));
-    reqs.push_back(comm.i_all_gather(
-        mpi_exec, &range[1], 1, ranges_start_end.get_data() + comm.size(), 1));
-    mpi::wait_all(reqs);
-    ranges_start_end.set_executor(exec);
+    comm.all_gather(exec, range.data(), 2, ranges_start_end.get_data(), 2);
 
     // make_sort_by_range_start
     array<comm_index_type> part_ids(exec, comm.size());
