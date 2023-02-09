@@ -115,7 +115,6 @@ inline void invert_dense_block(const int block_size,
             swap_numbers(col_perm[piv], col_perm[k]);
         }
 
-
         const ValueType d = temp_dense_block[k * block_size + k];
 
         // SCAL (scaling the kth col)

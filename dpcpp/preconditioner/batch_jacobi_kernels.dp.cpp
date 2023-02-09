@@ -74,6 +74,17 @@ void batch_jacobi_apply(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
 
+template <typename IndexType>
+void find_row_is_part_of_which_block(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const row_part_of_which_block_info) GKO_NOT_IMPLEMENTED;
+
+// instantiate for index type int32
+template void find_row_is_part_of_which_block<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
+
 
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
