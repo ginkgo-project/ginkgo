@@ -405,7 +405,9 @@ private:
             matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
-            data.nonzeros.emplace_back(col, row, -entry);
+            if (row != col) {
+                data.nonzeros.emplace_back(col, row, -entry);
+            }
         }
 
         /**
