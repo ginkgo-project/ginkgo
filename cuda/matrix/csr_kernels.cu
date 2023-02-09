@@ -298,10 +298,8 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
                     a->get_const_col_idxs(),
                     as_cuda_type(a->get_const_row_ptrs()),
                     as_cuda_type(a->get_const_srow()),
-                    as_cuda_type(b->get_const_values()),
-                    as_cuda_type(b->get_stride()),
-                    as_cuda_type(c->get_values()),
-                    as_cuda_type(c->get_stride()));
+                    as_cuda_type(b->get_const_values()), b->get_stride(),
+                    as_cuda_type(c->get_values()), c->get_stride());
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
@@ -311,10 +309,8 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
                     a->get_const_col_idxs(),
                     as_cuda_type(a->get_const_row_ptrs()),
                     as_cuda_type(a->get_const_srow()),
-                    as_cuda_type(b->get_const_values()),
-                    as_cuda_type(b->get_stride()),
-                    as_cuda_type(c->get_values()),
-                    as_cuda_type(c->get_stride()));
+                    as_cuda_type(b->get_const_values()), b->get_stride(),
+                    as_cuda_type(c->get_values()), c->get_stride());
             }
         }
     }
