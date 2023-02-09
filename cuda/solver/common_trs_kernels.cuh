@@ -212,14 +212,14 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         size_type work_size{};
 
         // TODO: In nullptr is considered nullptr_t not casted to const
-        // ValueType* it works as expected now
+        // it does not work in cuda110/100 images
         sparselib::buffer_size_ext(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
             SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
-            &work_size);
+            matrix->get_const_col_idxs(), (const ValueType*)(nullptr), num_rhs,
+            solve_info, policy, &work_size);
 
         // allocate workspace
         work.resize_and_reset(work_size);
@@ -229,8 +229,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
-            work.get_data());
+            matrix->get_const_col_idxs(), (const ValueType*)(nullptr), num_rhs,
+            solve_info, policy, work.get_data());
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>* matrix,
