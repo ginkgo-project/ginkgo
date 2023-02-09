@@ -349,7 +349,13 @@ void batch_scale_kernel(  // TODO: consider to find a new kernel name
     }
 }
 
-
+#if 0
+template <typename ValueType, typename IndexType>
+void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
+                 const matrix::BatchDiagonal<ValueType>* const left_scale,
+                 const matrix::BatchDiagonal<ValueType>* const right_scale,
+                 matrix::BatchCsr<ValueType, IndexType>* const mat) GKO_NOT_IMPLEMENTED;
+#else
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::BatchDiagonal<ValueType>* const left_scale,
@@ -385,21 +391,12 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_CSR_SCALE);
+#endif
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
 
-#if 1
-template <typename ValueType, typename IndexType>
-void pre_diag_transform_system(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::BatchDiagonal<ValueType>* const left_op,
-    const matrix::BatchDiagonal<ValueType>* const right_op,
-    matrix::BatchCsr<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
-#else
 
 template <typename ValueType>
-__forceinline__ void pre_diag_scale_kernel(
+inline void pre_diag_scale_kernel(
     sycl::nd_item<3>& item_ct1, const int num_rows,
     ValueType* const __restrict__ a_values,
     const int* const __restrict__ col_idxs,
@@ -410,14 +407,14 @@ __forceinline__ void pre_diag_scale_kernel(
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range();
-    const int num_sg = sg.get_group_range();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
-    for (int i_row = sg_id; i_row < a.num_rows; i_row += num_sg) {
+    for (int i_row = sg_id; i_row < num_rows; i_row += num_sg) {
         const ValueType rowscale = left_scale[i_row];
-        for (int iz = a.row_ptrs[i_row] + sg.get_local_id();
-             iz < a.row_ptrs[i_row + 1]; iz += sg_size) {
-            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
+        for (int iz = row_ptrs[i_row] + sg.get_local_id();
+             iz < row_ptrs[i_row + 1]; iz += sg_size) {
+            a_values[iz] *= rowscale * right_scale[col_idxs[iz]];
         }
     }
     for (int iz = item_ct1.get_local_linear_id(); iz < num_rows * num_rhs;
@@ -436,15 +433,13 @@ void pre_diag_transform_system(
     matrix::BatchCsr<ValueType, IndexType>* const a,
     matrix::BatchDense<ValueType>* const b)
 {
-    const int num_batches = mat->get_num_batch_entries();
-    const auto num_rows = a->get_size().at()[0];
-    const auto num_cols = a->get_size().at()[1];
+    const int num_batches = a->get_num_batch_entries();
+    const int num_rows = a->get_size().at()[0];
+    const int num_cols = a->get_size().at()[1];
     const auto a_batch_stride = a->get_num_stored_elements() / num_batches;
     const int num_rhs = b->get_size().at()[1];
     const auto b_stride = b->get_stride().at();
 
-
-    const auto group_size = exec->get_exec_info().max_workgroup_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -455,14 +450,14 @@ void pre_diag_transform_system(
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
-                auto batch_id = group.get_linear_id();
+                auto batch_id = group.get_group_linear_id();
                 auto ab = a->get_values() + a_batch_stride * batch_id;
                 auto bb = batch::batch_entry_ptr(b->get_values(), b_stride,
                                                  num_rows, batch_id);
                 auto left_scaleb = batch::batch_entry_ptr(
-                    left_scale->get_const_values(), 1, num_rows, batch_id);
+                    left_op->get_const_values(), 1, num_rows, batch_id);
                 auto right_scaleb = batch::batch_entry_ptr(
-                    right_scale->get_const_values(), 1, num_cols, batch_id);
+                    right_op->get_const_values(), 1, num_cols, batch_id);
                 pre_diag_scale_kernel(item_ct1, num_rows, ab,
                                       a->get_const_col_idxs(),
                                       a->get_const_row_ptrs(), num_rhs,
@@ -470,20 +465,13 @@ void pre_diag_transform_system(
             });
     });
 }
-#endif
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
-#if 1
-template <typename ValueType, typename IndexType>
-void convert_to_batch_dense(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::BatchCsr<ValueType, IndexType>* const src,
-    matrix::BatchDense<ValueType>* const dest) GKO_NOT_IMPLEMENTED;
-#else
 
 template <typename ValueType>
-__forceinline__ void convert_to_batch_dense_kernel(
+inline void convert_to_batch_dense_kernel(
     sycl::nd_item<3>& item_ct1, const int num_rows, const int num_cols,
     const int* const row_ptrs, const int* const col_idxs,
     const ValueType* const values, const size_type dense_stride,
@@ -491,8 +479,8 @@ __forceinline__ void convert_to_batch_dense_kernel(
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range();
-    const int num_sg = sg.get_group_range();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
     for (int i_row = sg_id; i_row < num_rows; i_row += num_sg) {
         for (int j = sg.get_local_id(); j < num_cols; j += sg_size) {
@@ -516,7 +504,6 @@ void convert_to_batch_dense(
     const auto nnz = src->get_num_stored_elements() / num_batches;
     const auto dense_stride = dest->get_stride().at();
 
-    const auto group_size = exec->get_exec_info().max_workgroup_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -527,40 +514,32 @@ void convert_to_batch_dense(
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
-                auto batch_id = group.get_linear_id();
-
+                auto batch_id = group.get_group_linear_id();
                 const auto bvalues = src->get_const_values() + batch_id * nnz;
-                const auto bdense = dest->get_const_values() +
-                                    batch_id * dense_stride * num_rows;
-
+                auto bdense =
+                    dest->get_values() + batch_id * dense_stride * num_rows;
                 convert_to_batch_dense_kernel(
                     item_ct1, num_rows, num_cols, src->get_const_row_ptrs(),
                     src->get_const_col_idxs(), bvalues, dense_stride, bdense);
             });
     });
 }
-#endif
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
 
-#if 1
-template <typename ValueType, typename IndexType>
-void check_diagonal_entries_exist(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::BatchCsr<ValueType, IndexType>* const mtx,
-    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
-#else
 
-__forceinline__ void check_all_diagonal_kernel(
-    sycl::nd_item<3>& item_ct1, const int min_rows_cols,
-    const int* const __restrict__ row_ptrs,
-    const int* const __restrict__ col_idxs, bool* const __restrict__ all_diags,
-    int* tile_has_diags)
+inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
+                                      const int min_rows_cols,
+                                      const int* const __restrict__ row_ptrs,
+                                      const int* const __restrict__ col_idxs,
+                                      bool* const __restrict__ all_diags,
+                                      int* tile_has_diags)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range();
-    const int num_sg = sg.get_group_range();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
     int this_tile_has_diags = 1;
     for (int row = sg_id; row < min_rows_cols; row += num_sg) {
@@ -572,13 +551,15 @@ __forceinline__ void check_all_diagonal_kernel(
                 break;
             }
         }
-        const config::lane_mask_type row_has_diag = tile.ballot(has_diag);
-        this_tile_has_diags = this_tile_has_diags && row_has_diag;
+        // const config::lane_mask_type row_has_diag = tile.ballot(has_diag);
+        auto row_has_diag = sycl::ext::oneapi::group_ballot(sg, has_diag);
+        this_tile_has_diags =
+            this_tile_has_diags && row_has_diag[sg.get_local_id()];
     }
     if (sg.get_local_id() == 0) {
         tile_has_diags[sg_id] = this_tile_has_diags;
     }
-    sg.barrier();  // TODO: sync with sg or group?
+    sg.barrier();
 
     // reduce array to one warp
     if (sg_id == 0) {
@@ -589,13 +570,9 @@ __forceinline__ void check_all_diagonal_kernel(
         // warp-reduce
         int var =
             sg.get_local_id() < num_sg ? tile_has_diags[sg.get_local_id()] : 1;
-        /*
-        for (int k = sg_size / 2; k >= 1; k >>= 1) {
-          var = var && tile.shfl_down(var, k);
-        }
-        */
-        var = sycl::reduce_over_group(sg, var, sycl::and<>());
-        if (tile.thread_rank() == 0) {
+        var = sycl::reduce_over_group(sg, var, sycl::plus<>());
+        var = (var == (num_sg - sg_size) ? 0 : 1);
+        if (sg.get_local_id() == 0) {
             all_diags[0] = static_cast<bool>(var);
         }
     }
@@ -612,10 +589,11 @@ void check_diagonal_entries_exist(
         std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
     array<bool> d_result(exec, 1);
 
-    const auto group_size = exec->get_exec_info().max_workgroup_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
+    auto num_sg = config::warp_size;
+    //        device.get_info<sycl::info::device::max_sub_group_size>();
     const dim3 block(group_size);
     const dim3 grid(1);
 
@@ -623,42 +601,34 @@ void check_diagonal_entries_exist(
         sycl::accessor<int, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             tile_has_diags(sycl::range<1>(num_sg), cgh);
+        auto* d_result_ptr = &d_result;
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-          check_all_diagonal_kernel(
-              item_ct1,
-              nmin,
-              mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-              d_result.get_data(),
-              tile_has_diags.get_pointer();
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                check_all_diagonal_kernel(
+                    item_ct1, nmin, mtx->get_const_row_ptrs(),
+                    mtx->get_const_col_idxs(), d_result_ptr->get_data(),
+                    tile_has_diags.get_pointer());
+            });
     });
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }
-#endif
+
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
 
-#if 1
-template <typename ValueType, typename IndexType>
-void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
-                         const matrix::BatchDense<ValueType>* const a,
-                         const matrix::BatchDense<ValueType>* const b,
-                         matrix::BatchCsr<ValueType, IndexType>* const mtx)
-    GKO_NOT_IMPLEMENTED;
-#else
 
 template <typename ValueType>
-__forceinline__ void add_scaled_identity_kernel(
+inline void add_scaled_identity_kernel(
     sycl::nd_item<3>& item_ct1, const int num_rows, const int* const row_ptrs,
     const int* const col_idxs, ValueType* const __restrict__ values,
     const ValueType& alpha, const ValueType& beta)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range();
-    const int num_sg = sg.get_group_range();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
     for (int row = sg_id; row < num_rows; row += num_sg) {
         for (int iz = row_ptrs[row] + sg.get_local_id(); iz < row_ptrs[row + 1];
@@ -685,13 +655,6 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const auto a_stride = a->get_stride().at();
     const auto b_stride = b->get_stride().at();
 
-    add_scaled_identity<<<nbatch, default_block_size>>>(
-        nbatch, nrows, nnz, mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), as_cuda_type(mtx->get_values()), astride,
-        as_cuda_type(a->get_const_values()), bstride,
-        as_cuda_type(b->get_const_values()));
-
-    const auto group_size = exec->get_exec_info().max_workgroup_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -702,7 +665,7 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
-                auto batch_id = group.get_linear_id();
+                auto batch_id = group.get_group_linear_id();
 
                 ValueType* const values_b = mtx->get_values() + batch_id * nnz;
                 const ValueType* const alpha_b = batch::batch_entry_ptr(
@@ -710,13 +673,11 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                 const ValueType* const beta_b = batch::batch_entry_ptr(
                     b->get_const_values(), b_stride, 1, batch_id);
                 add_scaled_identity_kernel(
-                    item_ct1, num_rows, mtx->get_const_row_ptrs,
-                    mtx->get_const_col_idxs, values_b, alpha_b[0], beta_b[0]);
+                    item_ct1, num_rows, mtx->get_const_row_ptrs(),
+                    mtx->get_const_col_idxs(), values_b, alpha_b[0], beta_b[0]);
             });
     });
 }
-
-#endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
