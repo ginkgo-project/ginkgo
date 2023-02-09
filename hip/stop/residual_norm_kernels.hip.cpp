@@ -110,7 +110,7 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
 
     if (grid_size > 0) {
         hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
-                           tau->get_size()[1], rel_residual_goal,
+                           tau->get_size()[1], as_hip_type(rel_residual_goal),
                            as_hip_type(tau->get_const_values()),
                            as_hip_type(orig_tau->get_const_values()),
                            stoppingId, setFinalized,
@@ -192,7 +192,7 @@ void implicit_residual_norm(
     if (grid_size > 0) {
         hipLaunchKernelGGL(
             (implicit_residual_norm_kernel), grid_size, block_size, 0, 0,
-            tau->get_size()[1], rel_residual_goal,
+            tau->get_size()[1], as_hip_type(rel_residual_goal),
             as_hip_type(tau->get_const_values()),
             as_hip_type(orig_tau->get_const_values()), stoppingId, setFinalized,
             as_hip_type(stop_status->get_data()),

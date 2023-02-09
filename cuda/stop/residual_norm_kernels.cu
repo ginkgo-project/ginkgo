@@ -106,7 +106,7 @@ void residual_norm(std::shared_ptr<const CudaExecutor> exec,
 
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size>>>(
-            tau->get_size()[1], rel_residual_goal,
+            tau->get_size()[1], as_cuda_type(rel_residual_goal),
             as_cuda_type(tau->get_const_values()),
             as_cuda_type(orig_tau->get_const_values()), stoppingId,
             setFinalized, as_cuda_type(stop_status->get_data()),
@@ -185,7 +185,7 @@ void implicit_residual_norm(
 
     if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size>>>(
-            tau->get_size()[1], rel_residual_goal,
+            tau->get_size()[1], as_cuda_type(rel_residual_goal),
             as_cuda_type(tau->get_const_values()),
             as_cuda_type(orig_tau->get_const_values()), stoppingId,
             setFinalized, as_cuda_type(stop_status->get_data()),

@@ -142,11 +142,11 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = new_norm->get_size()[1];
     const auto grid = ceildiv(nrhs, default_block_size);
     if (grid > 0) {
-        hipLaunchKernelGGL(kernel::kcycle_check_stop_kernel, grid,
-                           default_block_size, 0, 0, nrhs,
-                           as_hip_type(old_norm->get_const_values()),
-                           as_hip_type(new_norm->get_const_values()), rel_tol,
-                           as_hip_type(dis_stop.get_data()));
+        hipLaunchKernelGGL(
+            kernel::kcycle_check_stop_kernel, grid, default_block_size, 0, 0,
+            nrhs, as_hip_type(old_norm->get_const_values()),
+            as_hip_type(new_norm->get_const_values()), as_hip_type(rel_tol),
+            as_hip_type(dis_stop.get_data()));
     }
     is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
 }
