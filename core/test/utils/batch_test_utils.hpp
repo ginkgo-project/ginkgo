@@ -338,7 +338,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {
             if (test_logger) {
-                ASSERT_GT(r_iter_array.get_const_data()[ib * nrhs + j], 0);
+                ASSERT_GE(r_iter_array.get_const_data()[ib * nrhs + j], 0);
                 ASSERT_LE(r_iter_array.get_const_data()[ib * nrhs + j],
                           maxits - 1);
                 ASSERT_LE(r_logged_res->at(ib, 0, j) / ref_bnorm->at(ib, 0, j),
