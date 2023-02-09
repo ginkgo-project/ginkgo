@@ -49,15 +49,17 @@ void sort_by_range_start(
     array<GlobalIndexType>& range_start_ends,
     array<experimental::distributed::comm_index_type>& part_ids)
 {
+    struct range {
+        GlobalIndexType idxs[2];
+    };
+
     auto part_ids_d = part_ids.get_data();
     auto num_parts = part_ids.get_num_elems();
-    auto range_starts = range_start_ends.get_data();
-    auto range_ends = range_starts + num_parts;
-    auto sort_it =
-        detail::make_zip_iterator(range_starts, range_ends, part_ids_d);
+    auto range_it = reinterpret_cast<range*>(range_start_ends.get_data());
+    auto sort_it = detail::make_zip_iterator(range_it, part_ids_d);
     // TODO: use TBB or parallel std with c++17
     std::sort(sort_it, sort_it + num_parts, [](const auto& a, const auto& b) {
-        return std::get<0>(a) < std::get<0>(b);
+        return std::get<0>(a).idxs[0] < std::get<0>(b).idxs[0];
     });
 }
 

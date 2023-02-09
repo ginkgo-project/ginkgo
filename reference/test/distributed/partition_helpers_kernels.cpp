@@ -64,7 +64,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<global_index_type> default_range_start_ends{
-        this->ref, {0, 4, 7, 9, 4, 7, 9, 11}};
+        this->ref, {0, 4, 4, 7, 7, 9, 9, 11}};
     gko::array<comm_index_type> default_part_ids{this->ref, {0, 1, 2, 3}};
 };
 
@@ -90,7 +90,7 @@ TYPED_TEST(PartitionHelpers, CanSortByRangeStart)
 {
     using global_index_type = typename TestFixture::global_index_type;
     gko::array<global_index_type> range_start_ends{this->ref,
-                                                   {7, 4, 0, 9, 9, 7, 4, 11}};
+                                                   {7, 9, 4, 7, 0, 4, 9, 11}};
     gko::array<comm_index_type> result_part_ids{this->ref, {2, 1, 0, 3}};
     auto part_ids = this->default_part_ids;
 

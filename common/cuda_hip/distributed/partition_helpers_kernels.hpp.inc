@@ -37,11 +37,17 @@ void sort_by_range_start(
     array<experimental::distributed::comm_index_type>& part_ids)
 {
     auto num_ranges = range_start_ends.get_num_elems() / 2;
-    auto starts = thrust::device_pointer_cast(range_start_ends.get_data());
-    auto ends = starts + num_ranges;
-    auto zip_it = thrust::make_zip_iterator(thrust::make_tuple(
-        ends, thrust::device_pointer_cast(part_ids.get_data())));
-    thrust::sort_by_key(thrust::device, starts, starts + num_ranges, zip_it);
+    auto strided_indices = thrust::make_transform_iterator(
+        thrust::make_counting_iterator(0),
+        [] __host__ __device__(const int i) { return 2 * i; });
+    auto start_it = thrust::make_permutation_iterator(
+        range_start_ends.get_data(), strided_indices);
+    auto end_it = thrust::make_permutation_iterator(
+        range_start_ends.get_data() + 1, strided_indices);
+    auto zip_it = thrust::make_zip_iterator(
+        thrust::make_tuple(end_it, part_ids.get_data()));
+    thrust::sort_by_key(thrust::device, start_it, start_it + num_ranges,
+                        zip_it);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
