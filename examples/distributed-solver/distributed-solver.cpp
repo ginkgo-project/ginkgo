@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
+    // @sect3{MPI environment}
+    // Start an scoped MPI environment, which gets cleaned up on the exit of the
+    // function.
     const gko::experimental::mpi::environment env(argc, argv);
     // @sect3{Type Definitiions}
     // Define the needed types. In a parallel program we need to differentiate
@@ -77,6 +80,7 @@ int main(int argc, char* argv[])
         ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
 
+    // Create an MPI communicator get the rank of the calling process.
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
@@ -135,7 +139,7 @@ int main(int argc, char* argv[])
                      device_id = gko::experimental::mpi::map_rank_to_device_id(
                          comm, gko::DpcppExecutor::get_num_devices("cpu"));
                  } else {
-                     GKO_NOT_IMPLEMENTED;
+                     throw std::runtime_error("No suitable DPC++ devices");
                  }
                  return gko::DpcppExecutor::create(
                      device_id, gko::ReferenceExecutor::create());
