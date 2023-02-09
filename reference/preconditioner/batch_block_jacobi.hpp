@@ -64,6 +64,7 @@ public:
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
      * @param storage_scheme diagonal blocks storage scheme
+     * @param blocks_cumulative_storage the cumulative block storage array
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      *
@@ -123,15 +124,14 @@ public:
 
             const auto offset = storage_scheme_.get_block_offset(
                 bidx, blocks_cumulative_storage_);
+            const auto stride =
+                storage_scheme_.get_stride(bidx, block_ptrs_arr_);
 
             for (int row = row_st; row < row_end; row++) {
                 ValueType sum = zero<ValueType>();
                 for (int col = 0; col < bsize; col++) {
                     const auto val =
-                        blocks_arr_entry_[offset +
-                                          (row - row_st) *
-                                              storage_scheme_.get_stride(
-                                                  bidx, block_ptrs_arr_) +
+                        blocks_arr_entry_[offset + (row - row_st) * stride +
                                           col];
                     sum += val * r.values[col + row_st];
                 }

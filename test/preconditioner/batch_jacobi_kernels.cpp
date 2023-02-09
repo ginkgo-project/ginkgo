@@ -169,18 +169,20 @@ void check_device_block_jacobi_equivalent_to_ref(
 
             const auto ref_dense_block_ptr = ref_prec->get_const_blocks() + 
             ref_storage_scheme.get_global_block_offset( batch_id, ref_prec->get_num_blocks(), block_id, ref_prec->get_const_blocks_cumulative_storage());
+            const auto ref_stride = ref_storage_scheme.get_stride(block_id, block_pointers_ref);
             const auto d_dense_block_ptr = d_prec->get_const_blocks() + 
             d_storage_scheme.get_global_block_offset( batch_id, d_prec->get_num_blocks(), block_id, 
             d_block_cumul_storage_copied_to_ref.get_const_data());
+            const auto d_stride = d_storage_scheme.get_stride(block_id, d_block_pointers_copied_to_ref.get_const_data());
 
             for(int r = 0; r < bsize; r++)
             {
                 for(int c = 0; c < bsize; c++)
                 {   
                     const auto ref_val_ptr = ref_dense_block_ptr + 
-                    r * ref_storage_scheme.get_stride(block_id, block_pointers_ref) + c;
+                    r * ref_stride + c;
                     const auto d_val_ptr = d_dense_block_ptr + 
-                    r * d_storage_scheme.get_stride(block_id, d_block_pointers_copied_to_ref.get_const_data()) + c;
+                    r * d_stride + c;
 
                     ValueType val;
                     exec->get_master()->copy_from(exec.get(), 1, d_val_ptr, &val);

@@ -139,16 +139,6 @@ void BatchJacobi<ValueType, IndexType>::detect_blocks(
     this->get_executor()->run(batch_jacobi::make_find_blocks(
         first_system, parameters_.max_block_size, num_blocks_,
         parameters_.block_pointers));
-
-    blocks_cumulative_storage_.resize_and_reset(num_blocks_ + 1);
-
-    // cumulative block storage
-    this->get_executor()->run(
-        batch_jacobi::make_compute_cumulative_block_storage(
-            num_blocks_, parameters_.block_pointers.get_const_data(),
-            blocks_cumulative_storage_.get_data()));
-
-    blocks_.resize_and_reset(this->compute_storage_space(num_batch));
 }
 
 
@@ -201,22 +191,22 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
 
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(num_batch, first_sys_csr.get());
-    } else {
-        // cumulative block storage
-        exec->run(batch_jacobi::make_compute_cumulative_block_storage(
-            num_blocks_, parameters_.block_pointers.get_const_data(),
-            blocks_cumulative_storage_.get_data()));
-
-        blocks_.resize_and_reset(this->compute_storage_space(num_batch));
+        exec->synchronize();
+        blocks_cumulative_storage_.resize_and_reset(num_blocks_ + 1);
     }
+
+    // cumulative block storage
+    exec->run(batch_jacobi::make_compute_cumulative_block_storage(
+        num_blocks_, parameters_.block_pointers.get_const_data(),
+        blocks_cumulative_storage_.get_data()));
+
+    blocks_.resize_and_reset(this->compute_storage_space(num_batch));
 
     exec->run(batch_jacobi::make_find_row_is_part_of_which_block(
         num_blocks_, parameters_.block_pointers.get_const_data(),
         row_part_of_which_block_info_.get_data()));
 
-    // Note: Storing each block in the same sized matrix and with same stride
-    // makes implementation(mainly accessing elements) easy with almost no
-    // effect on performance. Note: Row-major order offers advanatge in terms of
+    // Note: Row-major order offers advanatge in terms of
     // performance in both preconditioner generation and application for both
     // reference and cuda backend. Note: The pattern blocks in block_pattern are
     // also stored in a similar way.

@@ -70,6 +70,8 @@ struct batched_jacobi_blocks_storage_scheme {
      * Returns the offset of the batch with id "batch_id"
      *
      * @param batch_id the index of the batch entry in the batch
+     * @param num_blocks  number of blocks in an individual matrix entry
+     * @param block_storage_cumulative  the cumulative block storage array
      *
      * @return the offset of the group belonging to block with ID `block_id`
      */
@@ -86,6 +88,7 @@ struct batched_jacobi_blocks_storage_scheme {
      *
      * @param block_id the id of the block from the perspective of individual
      * batch entry
+     * @param blocks_storage_cumulative the cumulative block storage array
      *
      * @return the offset of the block with id: `block_id` within its batch
      * entry
@@ -103,8 +106,10 @@ struct batched_jacobi_blocks_storage_scheme {
      * entry
      *
      * @param batch_id the index of the batch entry in the batch
+     * @param num_blocks number of blocks in an individual matrix entry
      * @param block_id the id of the block from the perspective of individual
      * batch entry
+     * @param block_storage_cumulative  the cumulative block storage array
      *
      * @return the global offset of the block which belongs to the batch entry
      * with index = batch_id and has local id = "block_id" within its batch
@@ -122,6 +127,10 @@ struct batched_jacobi_blocks_storage_scheme {
 
     /**
      * Returns the stride between the rows of the block.
+     *
+     * @param block_idx the id of the block from the perspective of individual
+     * batch entry
+     * @param block_ptrs the block pointers array
      *
      * @return stride between rows of the block
      */
@@ -201,6 +210,13 @@ public:
         return row_part_of_which_block_info_.get_const_data();
     }
 
+    /**
+     *  Returns the cumulative blocks storage array
+     *
+     *  @note Returns nullptr in case of a scalar jacobi preconditioner
+     * (max_block_size = 1).
+     *
+     */
     const index_type* get_const_blocks_cumulative_storage() const noexcept
     {
         if (parameters_.max_block_size == 1) {
@@ -233,9 +249,10 @@ public:
      *
      * Element (`i`, `j`) of the block, which belongs to the batch entry with
      * index = batch_id and has local id = "block_id" within its batch entry is
-     * stored at the address = get_const_block_pointers() +
-     * storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id) +
-     * i * storage_scheme.get_stride() + j
+     * stored at the address = get_const_blocks() +
+     * storage_scheme.get_global_block_offset(batch_id, num_blocks, block_id,
+     * cumulative_blocks_storage) + i * storage_scheme.get_stride(block_id,
+     * block_pointers) + j
      *
      * @note Returns nullptr in case of a scalar jacobi preconditioner
      * (max_block_size = 1). The blocks array is empty in case of scalar jacobi
@@ -403,8 +420,7 @@ private:
     }
 
     /**
-     * Detects the diagonal blocks and allocates the memory needed to store the
-     * preconditioner.
+     * Detects the diagonal blocks
      */
     void detect_blocks(const size_type num_batch,
                        const matrix::Csr<ValueType, IndexType>* system_matrix);

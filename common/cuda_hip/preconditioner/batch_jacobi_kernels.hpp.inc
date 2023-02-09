@@ -92,6 +92,8 @@ __global__
         int* __restrict__ pattern_ptr =
             blocks_pattern + storage_scheme.get_block_offset(
                                  block_idx, blocks_cumulative_storage);
+        const auto stride =
+            storage_scheme.get_stride(block_idx, block_pointers);
 
         for (int i = sys_row_ptrs[row_idx] + id_within_warp;
              i < sys_row_ptrs[row_idx + 1]; i += tile_size) {
@@ -104,9 +106,8 @@ __global__
                 const int dense_block_col = col_idx - idx_start;
 
                 // The pattern is stored in row-major order
-                pattern_ptr[dense_block_row * storage_scheme.get_stride(
-                                                  block_idx, block_pointers) +
-                            dense_block_col] = i;  // coalesced accesses
+                pattern_ptr[dense_block_row * stride + dense_block_col] =
+                    i;  // coalesced accesses
             }
         }
     }
@@ -232,6 +233,8 @@ __global__
             blocks +
             storage_scheme.get_global_block_offset(
                 batch_idx, num_blocks, block_idx, blocks_cumulative_storage);
+        const auto stride =
+            storage_scheme.get_stride(block_idx, block_pointers);
 
         // each thread of the subwarp stores the column of the dense block/row
         // of the transposed block in its local memory
@@ -278,10 +281,7 @@ __global__
             const int col_diag_block = row_inv_transposed_mat;
 
             if (id_within_subwarp < block_size) {
-                current_block_data[row_diag_block *
-                                       storage_scheme.get_stride(
-                                           block_idx, block_pointers) +
-                                   col_diag_block] =
+                current_block_data[row_diag_block * stride + col_diag_block] =
                     val_to_write;  // non-coalesced accesses due to pivoting
             }
         }
