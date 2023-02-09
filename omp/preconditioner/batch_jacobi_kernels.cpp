@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_block_jacobi.hpp"
@@ -83,7 +84,9 @@ void batch_jacobi_apply(
     std::shared_ptr<const gko::OmpExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -91,7 +94,8 @@ void batch_jacobi_apply(
 {
     const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, blocks_array, block_ptrs,
+                              storage_scheme, cumulative_block_storage,
+                              blocks_array, block_ptrs,
                               row_part_of_which_block_info, r, z);
 }
 
@@ -103,7 +107,9 @@ void batch_jacobi_apply(
     std::shared_ptr<const gko::OmpExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -111,12 +117,33 @@ void batch_jacobi_apply(
 {
     const auto sys_mat_batch = gko::kernels::host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, blocks_array, block_ptrs,
+                              storage_scheme, cumulative_block_storage,
+                              blocks_array, block_ptrs,
                               row_part_of_which_block_info, r, z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
+
+
+template <typename IndexType>
+void compute_cumulative_block_storage(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const blocks_cumulative_storage)
+{
+#pragma omp parallel for
+    for (int i = 0; i < num_blocks; i++) {
+        const auto bsize = block_pointers[i + 1] - block_pointers[i];
+        blocks_cumulative_storage[i] = bsize * bsize;
+    }
+
+    components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
+}
+
+template void compute_cumulative_block_storage<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
 
 
 template <typename IndexType>
@@ -145,14 +172,17 @@ void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers, const IndexType* const,
     IndexType* const blocks_pattern)
 {
 #pragma omp parallel for
     for (size_type k = 0; k < num_blocks; k++) {
         extract_block_pattern_impl(k, first_sys_csr, storage_scheme,
-                                   block_pointers, blocks_pattern);
+                                   cumulative_block_storage, block_pointers,
+                                   blocks_pattern);
     }
 }
 
@@ -165,7 +195,9 @@ void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr, const uint32,
     const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
@@ -179,8 +211,8 @@ void compute_block_jacobi(
 
         const auto A_entry = gko::batch::batch_entry(A_batch, batch_idx);
         compute_block_jacobi_impl(batch_idx, block_idx, A_entry, num_blocks,
-                                  storage_scheme, block_pointers,
-                                  blocks_pattern, blocks);
+                                  storage_scheme, cumulative_block_storage,
+                                  block_pointers, blocks_pattern, blocks);
     }
 }
 
@@ -193,9 +225,10 @@ void transpose_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
     const size_type, const size_type num_blocks, const uint32,
     const IndexType* const block_pointers, const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const IndexType* const, ValueType* const out_blocks_array,
-    const bool to_conjugate)
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage, const IndexType* const,
+    ValueType* const out_blocks_array, const bool to_conjugate)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < nbatch * num_blocks; i++) {
@@ -204,7 +237,8 @@ void transpose_block_jacobi(
 
         tranpose_dense_block_impl(batch_idx, block_idx, num_blocks,
                                   block_pointers, blocks_array, storage_scheme,
-                                  out_blocks_array, to_conjugate);
+                                  cumulative_block_storage, out_blocks_array,
+                                  to_conjugate);
     }
 }
 

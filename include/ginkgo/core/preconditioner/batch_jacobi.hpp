@@ -48,14 +48,13 @@ namespace gko {
  */
 namespace preconditioner {
 
+
 /**
  * The storage scheme used by batched block-Jacobi blocks.
  *
- * @note All blocks are stored in row-major order as square matrices of size =
- * max_block_size and stride = max_block_size.
- *
- * @note The actual size of each block could be found out using the block
- * pointers array.
+ * @note All blocks are stored in row-major order as square matrices of size and
+ * stride = actual block size, which could be found out using the block pointers
+ * array.
  *
  * @note All the blocks corresponding to the first entry in the batch are
  * stored first, then all the blocks corresponding to the second entry and so
@@ -63,49 +62,22 @@ namespace preconditioner {
  *
  * @ingroup batch_jacobi
  */
-struct batched_blocks_storage_scheme {
-    batched_blocks_storage_scheme() = default;
-
-    batched_blocks_storage_scheme(const size_type max_block_size)
-        : max_block_size_{max_block_size}
-    {}
-
-    size_type max_block_size_;
-
-    /**
-     * Computes the storage space required for the requested number of blocks.
-     *
-     * @param batch_size the number of entries in the batch
-     * @param num_blocks  the number of blocks in a batched matrix entry
-     *
-     * @return the total memory (as the number of elements) that need to be
-     *         allocated for the scheme
-     *
-     * @note  To simplify using the method in situations where the number of
-     *        blocks is not known, for a special input `size_type{} - 1`
-     *        the method returns `0` to avoid overallocation of memory.
-     */
-    GKO_ATTRIBUTES size_type compute_storage_space(
-        const size_type batch_size, const size_type num_blocks) const noexcept
-    {
-        return (num_blocks + 1 == size_type{0})
-                   ? size_type{0}
-                   : batch_size * num_blocks * max_block_size_ *
-                         max_block_size_;
-    }
+template <typename IndexType = int32>
+struct batched_jacobi_blocks_storage_scheme {
+    batched_jacobi_blocks_storage_scheme() = default;
 
     /**
      * Returns the offset of the batch with id "batch_id"
      *
-     * @param num_blocks the number of blocks in a batched matrix entry
      * @param batch_id the index of the batch entry in the batch
      *
      * @return the offset of the group belonging to block with ID `block_id`
      */
     GKO_ATTRIBUTES size_type get_batch_offset(
-        const size_type num_blocks, const size_type batch_id) const noexcept
+        const size_type batch_id, const size_type num_blocks,
+        const IndexType* const block_storage_cumulative) const noexcept
     {
-        return batch_id * num_blocks * max_block_size_ * max_block_size_;
+        return batch_id * block_storage_cumulative[num_blocks];
     }
 
     /**
@@ -118,10 +90,11 @@ struct batched_blocks_storage_scheme {
      * @return the offset of the block with id: `block_id` within its batch
      * entry
      */
-    GKO_ATTRIBUTES size_type
-    get_block_offset(const size_type block_id) const noexcept
+    GKO_ATTRIBUTES size_type get_block_offset(
+        const size_type block_id,
+        const IndexType* const block_storage_cumulative) const noexcept
     {
-        return block_id * max_block_size_ * max_block_size_;
+        return block_storage_cumulative[block_id];
     }
 
     /**
@@ -129,7 +102,6 @@ struct batched_blocks_storage_scheme {
      * with index = batch_id and has local id = "block_id" within its batch
      * entry
      *
-     * @param num_blocks the number of blocks in a batched matrix entry
      * @param batch_id the index of the batch entry in the batch
      * @param block_id the id of the block from the perspective of individual
      * batch entry
@@ -139,11 +111,13 @@ struct batched_blocks_storage_scheme {
      * entry
      */
     GKO_ATTRIBUTES size_type get_global_block_offset(
-        const size_type num_blocks, const size_type batch_id,
-        const size_type block_id) const noexcept
+        const size_type batch_id, const size_type num_blocks,
+        const size_type block_id,
+        const IndexType* const block_storage_cumulative) const noexcept
     {
-        return this->get_batch_offset(num_blocks, batch_id) +
-               this->get_block_offset(block_id);
+        return this->get_batch_offset(batch_id, num_blocks,
+                                      block_storage_cumulative) +
+               this->get_block_offset(block_id, block_storage_cumulative);
     }
 
     /**
@@ -151,9 +125,10 @@ struct batched_blocks_storage_scheme {
      *
      * @return stride between rows of the block
      */
-    GKO_ATTRIBUTES size_type get_stride() const noexcept
+    GKO_ATTRIBUTES size_type get_stride(
+        const int block_idx, const IndexType* const block_ptrs) const noexcept
     {
-        return max_block_size_;
+        return block_ptrs[block_idx + 1] - block_ptrs[block_idx];
     }
 };
 
@@ -190,9 +165,10 @@ public:
      * @return the storage scheme used for storing Batched Jacobi blocks
      *
      */
-    const batched_blocks_storage_scheme& get_storage_scheme() const noexcept
+    const batched_jacobi_blocks_storage_scheme<index_type>&
+    get_blocks_storage_scheme() const noexcept
     {
-        return storage_scheme_;
+        return blocks_storage_scheme_;
     }
 
     /**
@@ -223,6 +199,14 @@ public:
             return nullptr;
         }
         return row_part_of_which_block_info_.get_const_data();
+    }
+
+    const index_type* get_const_blocks_cumulative_storage() const noexcept
+    {
+        if (parameters_.max_block_size == 1) {
+            return nullptr;
+        }
+        return blocks_cumulative_storage_.get_const_data();
     }
 
     /**
@@ -344,7 +328,9 @@ protected:
           num_blocks_{},
           blocks_(exec),
           row_part_of_which_block_info_(exec),
-          storage_scheme_{batched_blocks_storage_scheme()}
+          blocks_cumulative_storage_(exec),
+          blocks_storage_scheme_{
+              batched_jacobi_blocks_storage_scheme<index_type>()}
     {
         parameters_.block_pointers.set_executor(this->get_executor());
     }
@@ -363,14 +349,12 @@ protected:
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
-          storage_scheme_{
-              batched_blocks_storage_scheme(parameters_.max_block_size)},
-          blocks_(factory->get_executor(),
-                  storage_scheme_.compute_storage_space(
-                      system_matrix->get_num_batch_entries(),
-                      parameters_.block_pointers.get_num_elems() - 1)),
+          blocks_(factory->get_executor()),
           row_part_of_which_block_info_(factory->get_executor(),
-                                        system_matrix->get_size().at(0)[0])
+                                        system_matrix->get_size().at(0)[0]),
+          blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1),
+          blocks_storage_scheme_{
+              batched_jacobi_blocks_storage_scheme<index_type>()}
 
     {
         parameters_.block_pointers.set_executor(this->get_executor());
@@ -399,16 +383,37 @@ protected:
 
 private:
     /**
+     * Computes the storage space required for the requested number of blocks.
+     *
+     * @return the total memory (as the number of elements) that need to be
+     *         allocated for the scheme
+     *
+     * @note  To simplify using the method in situations where the number of
+     *        blocks is not known, for a special input `size_type{} - 1`
+     *        the method returns `0` to avoid overallocation of memory.
+     */
+    size_type compute_storage_space(const size_type num_batch) const noexcept
+    {
+        return (num_blocks_ + 1 == size_type{0})
+                   ? size_type{0}
+                   : num_batch *
+                         (this->get_executor()->copy_val_to_host(
+                             blocks_cumulative_storage_.get_const_data() +
+                             num_blocks_));
+    }
+
+    /**
      * Detects the diagonal blocks and allocates the memory needed to store the
      * preconditioner.
      */
     void detect_blocks(const size_type num_batch,
                        const matrix::Csr<ValueType, IndexType>* system_matrix);
 
-    batched_blocks_storage_scheme storage_scheme_;
+    batched_jacobi_blocks_storage_scheme<index_type> blocks_storage_scheme_;
     size_type num_blocks_;
     array<value_type> blocks_;
     array<index_type> row_part_of_which_block_info_;
+    array<index_type> blocks_cumulative_storage_;
 };
 
 
