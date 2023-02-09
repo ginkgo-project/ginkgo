@@ -51,6 +51,8 @@ GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
 GKO_REGISTER_OPERATION(transpose_block_jacobi,
                        batch_jacobi::transpose_block_jacobi);
+GKO_REGISTER_OPERATION(find_row_is_part_of_which_block,
+                       batch_jacobi::find_row_is_part_of_which_block);
 
 
 }  // namespace
@@ -135,29 +137,6 @@ void BatchJacobi<ValueType, IndexType>::detect_blocks(
         storage_scheme_.compute_storage_space(num_batch, num_blocks_));
 }
 
-namespace detail {
-
-template <typename IndexType>
-void find_row_is_part_of_which_block(
-    const size_type num_blocks, const size_type num_rows,
-    const gko::array<IndexType>& block_pointers,
-    gko::array<IndexType>& row_part_of_which_block_info)
-{
-    auto exec = block_pointers.get_executor();
-    gko::array<IndexType> block_pointers_ref(exec->get_master());
-    block_pointers_ref = block_pointers;
-    gko::array<IndexType> row_part_of_which_block_info_ref(exec->get_master(),
-                                                           num_rows);
-    for (size_type block_idx = 0; block_idx < num_blocks; block_idx++) {
-        for (IndexType i = block_pointers_ref.get_const_data()[block_idx];
-             i < block_pointers_ref.get_const_data()[block_idx + 1]; i++) {
-            row_part_of_which_block_info_ref.get_data()[i] = block_idx;
-        }
-    }
-    row_part_of_which_block_info = row_part_of_which_block_info_ref;
-}
-
-}  // namespace detail
 
 template <typename ValueType, typename IndexType>
 void BatchJacobi<ValueType, IndexType>::generate_precond(
@@ -210,9 +189,9 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
         this->detect_blocks(num_batch, first_sys_csr.get());
     }
 
-    detail::find_row_is_part_of_which_block(num_blocks_, num_rows,
-                                            parameters_.block_pointers,
-                                            row_part_of_which_block_info_);
+    exec->run(batch_jacobi::make_find_row_is_part_of_which_block(
+        num_blocks_, parameters_.block_pointers.get_const_data(),
+        row_part_of_which_block_info_.get_data()));
 
     // Note: Storing each block in the same sized matrix and with same stride
     // makes implementation(mainly accessing elements) easy with almost no

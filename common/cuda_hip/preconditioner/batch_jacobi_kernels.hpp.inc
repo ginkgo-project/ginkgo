@@ -31,6 +31,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 __global__
+    __launch_bounds__(default_block_size) void find_row_is_part_of_which_block_kernel(
+        const gko::size_type num_blocks,
+        const int* const __restrict__ block_pointers,
+        int* const __restrict__ row_part_of_which_block_info)
+{
+    const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    for (int block_idx = gid; block_idx < num_blocks;
+         block_idx += blockDim.x * gridDim.x) {
+        for (int i = block_pointers[block_idx];
+             i < block_pointers[block_idx + 1]; i++) {
+            row_part_of_which_block_info[i] = block_idx;  // uncoalseced
+                                                          // accesses
+        }
+    }
+}
+
+
+__global__
     __launch_bounds__(default_block_size) void extract_common_block_pattern_kernel(
         const int nrows, const int* const __restrict__ sys_row_ptrs,
         const int* const __restrict__ sys_col_idxs,
@@ -78,10 +97,9 @@ __global__
 
 
 template <typename Group, typename ValueType>
-__device__ __forceinline__ int choose_pivot(Group subwarp_grp,
-                                            const int block_size,
-                                            const ValueType* const __restrict__ block_row,
-                                            const int& perm, const int k)
+__device__ __forceinline__ int choose_pivot(
+    Group subwarp_grp, const int block_size,
+    const ValueType* const __restrict__ block_row, const int& perm, const int k)
 {
     auto my_abs_ele = abs(block_row[k]);
     if (perm > -1) {

@@ -119,6 +119,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
 
 
+template <typename IndexType>
+void find_row_is_part_of_which_block(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const row_part_of_which_block_info)
+{
+#pragma omp parallel for
+    for (size_type block_idx = 0; block_idx < num_blocks; block_idx++) {
+        for (IndexType i = block_pointers[block_idx];
+             i < block_pointers[block_idx + 1]; i++) {
+            row_part_of_which_block_info[i] = block_idx;
+        }
+    }
+}
+
+// instantiate for index type int32
+template void find_row_is_part_of_which_block<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
+
+
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
