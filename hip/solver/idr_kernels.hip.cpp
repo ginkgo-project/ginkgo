@@ -135,7 +135,7 @@ void solve_lower_triangular(const size_type nrhs,
                        as_hip_type(m->get_const_values()), m->get_stride(),
                        as_hip_type(f->get_const_values()), f->get_stride(),
                        as_hip_type(c->get_values()), c->get_stride(),
-                       as_hip_type(stop_status->get_const_data()));
+                       stop_status->get_const_data());
 }
 
 
@@ -168,7 +168,7 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
                 multidot_kernel, grid_dim, block_dim, 0, 0, size, nrhs,
                 as_hip_type(p_i), as_hip_type(g_k->get_values()),
                 g_k->get_stride(), as_hip_type(alpha->get_values()),
-                as_hip_type(stop_status->get_const_data()));
+                stop_status->get_const_data());
         } else {
             hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
                          g_k->get_values(), g_k->get_stride(),
@@ -183,14 +183,14 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec,
             as_hip_type(g->get_const_values()), g->get_stride(),
             as_hip_type(g_k->get_values()), g_k->get_stride(),
             as_hip_type(u->get_values()), u->get_stride(),
-            as_hip_type(stop_status->get_const_data()));
+            stop_status->get_const_data());
     }
     hipLaunchKernelGGL(update_g_kernel<default_block_size>,
                        ceildiv(size * g_k->get_stride(), default_block_size),
                        default_block_size, 0, 0, k, size, nrhs,
                        as_hip_type(g_k->get_const_values()), g_k->get_stride(),
                        as_hip_type(g->get_values()), g->get_stride(),
-                       as_hip_type(stop_status->get_const_data()));
+                       stop_status->get_const_data());
 }
 
 
@@ -221,7 +221,7 @@ void update_m(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
                                nrhs, as_hip_type(p_i),
                                as_hip_type(g_k->get_const_values()),
                                g_k->get_stride(), as_hip_type(m_i),
-                               as_hip_type(stop_status->get_const_data()));
+                               stop_status->get_const_data());
         } else {
             hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
                          g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -252,7 +252,7 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(f->get_values()), f->get_stride(),
                        as_hip_type(r->get_values()), r->get_stride(),
                        as_hip_type(x->get_values()), x->get_stride(),
-                       as_hip_type(stop_status->get_const_data()));
+                       stop_status->get_const_data());
     components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
                            zero<ValueType>());
 }
@@ -297,7 +297,7 @@ void step_1(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
         residual->get_stride(), as_hip_type(c->get_const_values()),
         c->get_stride(), as_hip_type(g->get_const_values()), g->get_stride(),
         as_hip_type(v->get_values()), v->get_stride(),
-        as_hip_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
@@ -324,7 +324,7 @@ void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
         as_hip_type(preconditioned_vector->get_const_values()),
         preconditioned_vector->get_stride(), as_hip_type(c->get_const_values()),
         c->get_stride(), as_hip_type(u->get_values()), u->get_stride(),
-        as_hip_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
@@ -355,12 +355,11 @@ void compute_omega(
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_omega_kernel), grid_dim,
-                       config::warp_size, 0, 0, nrhs, as_hip_type(kappa),
-                       as_hip_type(tht->get_const_values()),
-                       as_hip_type(residual_norm->get_const_values()),
-                       as_hip_type(omega->get_values()),
-                       as_hip_type(stop_status->get_const_data()));
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(compute_omega_kernel), grid_dim, config::warp_size, 0,
+        0, nrhs, as_hip_type(kappa), as_hip_type(tht->get_const_values()),
+        as_hip_type(residual_norm->get_const_values()),
+        as_hip_type(omega->get_values()), stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

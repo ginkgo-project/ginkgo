@@ -129,7 +129,7 @@ void solve_lower_triangular(const size_type nrhs,
         subspace_dim, nrhs, as_cuda_type(m->get_const_values()),
         m->get_stride(), as_cuda_type(f->get_const_values()), f->get_stride(),
         as_cuda_type(c->get_values()), c->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
 }
 
 
@@ -161,7 +161,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
             multidot_kernel<<<grid_dim, block_dim>>>(
                 size, nrhs, as_cuda_type(p_i), as_cuda_type(g_k->get_values()),
                 g_k->get_stride(), as_cuda_type(alpha->get_values()),
-                as_cuda_type(stop_status->get_const_data()));
+                stop_status->get_const_data());
         } else {
             cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
                         g_k->get_values(), g_k->get_stride(),
@@ -175,14 +175,14 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(g->get_const_values()), g->get_stride(),
                 as_cuda_type(g_k->get_values()), g_k->get_stride(),
                 as_cuda_type(u->get_values()), u->get_stride(),
-                as_cuda_type(stop_status->get_const_data()));
+                stop_status->get_const_data());
     }
     update_g_kernel<default_block_size>
         <<<ceildiv(size * g_k->get_stride(), default_block_size),
            default_block_size>>>(
             k, size, nrhs, as_cuda_type(g_k->get_const_values()),
             g_k->get_stride(), as_cuda_type(g->get_values()), g->get_stride(),
-            as_cuda_type(stop_status->get_const_data()));
+            stop_status->get_const_data());
 }
 
 
@@ -212,7 +212,7 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             multidot_kernel<<<grid_dim, block_dim>>>(
                 size, nrhs, as_cuda_type(p_i),
                 as_cuda_type(g_k->get_const_values()), g_k->get_stride(),
-                as_cuda_type(m_i), as_cuda_type(stop_status->get_const_data()));
+                as_cuda_type(m_i), stop_status->get_const_data());
         } else {
             cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
                         g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -242,7 +242,7 @@ void update_x_r_and_f(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(f->get_values()), f->get_stride(),
         as_cuda_type(r->get_values()), r->get_stride(),
         as_cuda_type(x->get_values()), x->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
     components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
                            zero<ValueType>());
 }
@@ -286,7 +286,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
         as_cuda_type(c->get_const_values()), c->get_stride(),
         as_cuda_type(g->get_const_values()), g->get_stride(),
         as_cuda_type(v->get_values()), v->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
@@ -313,7 +313,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
         preconditioned_vector->get_stride(),
         as_cuda_type(c->get_const_values()), c->get_stride(),
         as_cuda_type(u->get_values()), u->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+        stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
@@ -347,8 +347,7 @@ void compute_omega(
     compute_omega_kernel<<<grid_dim, config::warp_size>>>(
         nrhs, as_cuda_type(kappa), as_cuda_type(tht->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
-        as_cuda_type(omega->get_values()),
-        as_cuda_type(stop_status->get_const_data()));
+        as_cuda_type(omega->get_values()), stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

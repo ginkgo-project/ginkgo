@@ -269,7 +269,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     return;
                 }
                 using value_type = device_type<ValueType>;
-                value_type max_weight_agg = zero<value_type>();
+                auto max_weight_agg = zero<value_type>();
                 IndexType strongest_agg = -1;
                 for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
                     auto col = col_idxs[idx];
@@ -307,7 +307,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     return;
                 }
                 using value_type = device_type<ValueType>;
-                value_type max_weight_agg = zero<value_type>();
+                auto max_weight_agg = zero<value_type>();
                 IndexType strongest_agg = -1;
                 for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
                     auto col = col_idxs[idx];

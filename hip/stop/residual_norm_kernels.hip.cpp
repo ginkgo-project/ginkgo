@@ -143,12 +143,13 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__
-__launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
-    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-    const ValueType* __restrict__ tau,
-    const remove_complex<ValueType>* __restrict__ orig_tau, uint8 stoppingId,
-    bool setFinalized, stopping_status* __restrict__ stop_status,
-    bool* __restrict__ device_storage)
+    __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
+        size_type num_cols, remove_complex<ValueType> rel_residual_goal,
+        const ValueType* __restrict__ tau,
+        const remove_complex<ValueType>* __restrict__ orig_tau,
+        uint8 stoppingId, bool setFinalized,
+        stopping_status* __restrict__ stop_status,
+        bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
