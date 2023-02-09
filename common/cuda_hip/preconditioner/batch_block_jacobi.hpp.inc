@@ -41,7 +41,8 @@ private:
     {
         blocks_arr_entry_ =
             blocks_arr_batch_ +
-            storage_scheme_.get_batch_offset(num_blocks_, batch_id);
+            storage_scheme_.get_batch_offset(batch_id, num_blocks_,
+                                             blocks_cumulative_storage_);
     }
 
     __device__ constexpr int get_larger_power(int value, int guess = 1) const
@@ -66,7 +67,8 @@ private:
              row_idx += num_subwarp_grps_per_block) {
             const int block_idx = row_part_of_which_block_arr_[row_idx];
             const value_type* dense_block_ptr =
-                blocks_arr_entry_ + storage_scheme_.get_block_offset(block_idx);
+                blocks_arr_entry_ + storage_scheme_.get_block_offset(
+                                        block_idx, blocks_cumulative_storage_);
 
             const int idx_start = block_ptrs_arr_[block_idx];
             const int idx_end = block_ptrs_arr_[block_idx + 1];
@@ -79,7 +81,8 @@ private:
                  dense_block_col < bsize; dense_block_col += tile_size) {
                 const auto block_val =
                     dense_block_ptr[dense_block_row *
-                                        storage_scheme_.get_stride() +
+                                        storage_scheme_.get_stride(
+                                            block_idx, block_ptrs_arr_) +
                                     dense_block_col];  // coalesced accesses
                 sum += block_val * r[dense_block_col + idx_start];
             }
@@ -110,15 +113,18 @@ public:
      * blocks that the individual rows of the matrix are a part of
      *
      */
-    BatchBlockJacobi(const uint32 max_block_size, const size_type num_blocks,
-                     const gko::preconditioner::batched_blocks_storage_scheme&
-                         storage_scheme,
-                     const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr,
-                     const int* const row_part_of_which_block_arr)
+    BatchBlockJacobi(
+        const uint32 max_block_size, const size_type num_blocks,
+        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+            storage_scheme,
+        const int* const blocks_cumulative_storage,
+        const value_type* const blocks_arr_batch,
+        const int* const block_ptrs_arr,
+        const int* const row_part_of_which_block_arr)
         : max_block_size_{max_block_size},
           num_blocks_{num_blocks},
           storage_scheme_{storage_scheme},
+          blocks_cumulative_storage_{blocks_cumulative_storage},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr},
           row_part_of_which_block_arr_{row_part_of_which_block_arr}
@@ -188,7 +194,9 @@ public:
 private:
     const uint32 max_block_size_;
     const size_type num_blocks_;
-    const gko::preconditioner::batched_blocks_storage_scheme storage_scheme_;
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+        storage_scheme_;
+    const int* __restrict__ const blocks_cumulative_storage_;
     const value_type* const blocks_arr_batch_;
     const value_type* __restrict__ blocks_arr_entry_;
     const int* __restrict__ const block_ptrs_arr_;

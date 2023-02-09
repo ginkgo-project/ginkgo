@@ -30,6 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+__global__ void compute_block_storage_kernel(
+    const gko::size_type num_blocks,
+    const int* const __restrict__ block_pointers,
+    int* const __restrict__ blocks_cumulative_storage)
+{
+    const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    for (int i = gid; i < num_blocks; i += blockDim.x * gridDim.x) {
+        const auto bsize = block_pointers[i + 1] - block_pointers[i];
+        blocks_cumulative_storage[i] = bsize * bsize;
+    }
+}
+
 __global__
     __launch_bounds__(default_block_size) void find_row_is_part_of_which_block_kernel(
         const gko::size_type num_blocks,
@@ -54,7 +67,9 @@ __global__
         const int nrows, const int* const __restrict__ sys_row_ptrs,
         const int* const __restrict__ sys_col_idxs,
         const gko::size_type num_blocks,
-        const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
+        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+            storage_scheme,
+        const int* const __restrict__ blocks_cumulative_storage,
         const int* const __restrict__ block_pointers,
         const int* const __restrict__ row_in_which_block_info,
         int* const blocks_pattern)
@@ -75,7 +90,8 @@ __global__
         const int idx_start = block_pointers[block_idx];
         const int idx_end = block_pointers[block_idx + 1];
         int* __restrict__ pattern_ptr =
-            blocks_pattern + storage_scheme.get_block_offset(block_idx);
+            blocks_pattern + storage_scheme.get_block_offset(
+                                 block_idx, blocks_cumulative_storage);
 
         for (int i = sys_row_ptrs[row_idx] + id_within_warp;
              i < sys_row_ptrs[row_idx + 1]; i += tile_size) {
@@ -88,7 +104,8 @@ __global__
                 const int dense_block_col = col_idx - idx_start;
 
                 // The pattern is stored in row-major order
-                pattern_ptr[dense_block_row * storage_scheme.get_stride() +
+                pattern_ptr[dense_block_row * storage_scheme.get_stride(
+                                                  block_idx, block_pointers) +
                             dense_block_col] = i;  // coalesced accesses
             }
         }
@@ -183,7 +200,9 @@ __global__
     __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
         const gko::size_type nbatch, const int nnz,
         const ValueType* const A_vals, const gko::size_type num_blocks,
-        const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
+        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+            storage_scheme,
+        const int* const __restrict__ blocks_cumulative_storage,
         const int* const __restrict__ block_pointers,
         const int* const blocks_pattern, ValueType* const blocks)
 {
@@ -207,17 +226,20 @@ __global__
         assert(block_size <= subwarp_size);
 
         const int* __restrict__ current_block_pattern =
-            blocks_pattern + storage_scheme.get_block_offset(block_idx);
+            blocks_pattern + storage_scheme.get_block_offset(
+                                 block_idx, blocks_cumulative_storage);
         ValueType* __restrict__ current_block_data =
-            blocks + storage_scheme.get_global_block_offset(
-                         num_blocks, batch_idx, block_idx);
+            blocks +
+            storage_scheme.get_global_block_offset(
+                batch_idx, num_blocks, block_idx, blocks_cumulative_storage);
 
         // each thread of the subwarp stores the column of the dense block/row
         // of the transposed block in its local memory
         if (id_within_subwarp < block_size) {
             for (int a = 0; a < block_size; a++) {
                 const auto idx =
-                    current_block_pattern[a * storage_scheme.get_stride() +
+                    current_block_pattern[a * storage_scheme.get_stride(
+                                                  block_idx, block_pointers) +
                                           id_within_subwarp];  // coalseced
                                                                // accesses
                 ValueType val_to_fill = zero<ValueType>();
@@ -257,7 +279,8 @@ __global__
 
             if (id_within_subwarp < block_size) {
                 current_block_data[row_diag_block *
-                                       storage_scheme.get_stride() +
+                                       storage_scheme.get_stride(
+                                           block_idx, block_pointers) +
                                    col_diag_block] =
                     val_to_write;  // non-coalesced accesses due to pivoting
             }
@@ -272,7 +295,9 @@ __global__
         const size_type nbatch, const int nrows, const size_type num_blocks,
         const int* const __restrict__ block_pointers,
         const ValueType* const blocks_array,
-        const gko::preconditioner::batched_blocks_storage_scheme storage_scheme,
+        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+            storage_scheme,
+        const int* const __restrict__ blocks_cumulative_storage,
         const int* const row_part_of_which_block_info,
         ValueType* const out_blocks_array, const bool to_conjugate)
 {
@@ -298,14 +323,17 @@ __global__
         const auto row_dense_block = row_idx - row_start;
 
         const ValueType* __restrict__ dense_block_ptr =
-            blocks_array + storage_scheme.get_global_block_offset(
-                               num_blocks, batch_idx, block_idx);
+            blocks_array +
+            storage_scheme.get_global_block_offset(
+                batch_idx, num_blocks, block_idx, blocks_cumulative_storage);
 
         ValueType* __restrict__ out_dense_block_ptr =
-            out_blocks_array + storage_scheme.get_global_block_offset(
-                                   num_blocks, batch_idx, block_idx);
+            out_blocks_array +
+            storage_scheme.get_global_block_offset(
+                batch_idx, num_blocks, block_idx, blocks_cumulative_storage);
 
-        const auto stride = storage_scheme.get_stride();
+        const auto stride =
+            storage_scheme.get_stride(block_idx, block_pointers);
 
         for (int c = id_within_subwarp; c < bsize; c += subwarp_size) {
             const auto val =

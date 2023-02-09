@@ -220,13 +220,16 @@ public:
                 const auto blocks_arr =
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
                         prec->get_const_blocks());
-                const auto& storage_scheme = prec->get_storage_scheme();
+                const auto& storage_scheme = prec->get_blocks_storage_scheme();
+                const auto blocks_cumul_storage =
+                    prec->get_const_blocks_cumulative_storage();
 
                 dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
                     logger, amat,
                     device::BatchBlockJacobi<device_value_type>(
-                        max_block_size, num_blocks, storage_scheme, blocks_arr,
-                        block_ptrs_arr, row_part_of_which_block_arr),
+                        max_block_size, num_blocks, storage_scheme,
+                        blocks_cumul_storage, blocks_arr, block_ptrs_arr,
+                        row_part_of_which_block_arr),
                     b_b, x_b);
             }
 

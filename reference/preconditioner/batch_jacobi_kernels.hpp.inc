@@ -33,8 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 inline void extract_block_pattern_impl(
     const size_type k, const matrix::Csr<ValueType, int>* const first_sys_csr,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const int* const block_pointers, int* const blocks_pattern)
+    const preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage, const int* const block_pointers,
+    int* const blocks_pattern)
 {
     const int* row_ptrs = first_sys_csr->get_const_row_ptrs();
     const int* col_idxs = first_sys_csr->get_const_col_idxs();
@@ -53,11 +55,13 @@ inline void extract_block_pattern_impl(
                 // - row_idx_st, col_idx - row_idx_st)
                 const auto dense_block_row = row_idx - row_idx_st;
                 const auto dense_block_col = col_idx - row_idx_st;
-                const auto offset = storage_scheme.get_block_offset(k);
-                auto& place = blocks_pattern[offset +
-                                             dense_block_row *
-                                                 storage_scheme.get_stride() +
-                                             dense_block_col];  // data-locality
+                const auto offset = storage_scheme.get_block_offset(
+                    k, cumulative_block_storage);
+                auto& place =
+                    blocks_pattern[offset +
+                                   dense_block_row * storage_scheme.get_stride(
+                                                         k, block_pointers) +
+                                   dense_block_col];  // data-locality
                 place = i;
             }
         }
@@ -145,13 +149,15 @@ inline void compute_block_jacobi_impl(
     const size_type batch_idx, const size_type block_idx,
     const batch_csr::BatchEntry<const ValueType>& A_entry,
     const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
-    const int* const block_pointers, const int* const blocks_pattern,
-    ValueType* const blocks)
+    const preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage, const int* const block_pointers,
+    const int* const blocks_pattern, ValueType* const blocks)
 {
-    const auto offset_batch =
-        storage_scheme.get_batch_offset(num_blocks, batch_idx);
-    const auto offset_indiv = storage_scheme.get_block_offset(block_idx);
+    const auto offset_batch = storage_scheme.get_batch_offset(
+        batch_idx, num_blocks, cumulative_block_storage);
+    const auto offset_indiv =
+        storage_scheme.get_block_offset(block_idx, cumulative_block_storage);
     ValueType* dense_block_ptr =
         blocks + offset_batch +
         offset_indiv;  // the blocks are in row-major order
@@ -169,9 +175,11 @@ inline void compute_block_jacobi_impl(
     for (int row = 0; row < bsize; row++) {
         for (int col = 0; col < bsize; col++) {
             auto to_write = zero<ValueType>();
-            const auto idx = blocks_pattern[offset_indiv +
-                                            row * storage_scheme.get_stride() +
-                                            col];  // data locality
+            const auto idx =
+                blocks_pattern[offset_indiv +
+                               row * storage_scheme.get_stride(block_idx,
+                                                               block_pointers) +
+                               col];  // data locality
             if (idx >= 0) {
                 assert(idx < A_entry.num_nnz);
                 to_write = A_entry.values[idx];
@@ -186,7 +194,9 @@ inline void compute_block_jacobi_impl(
     // store the dense block (take into account the col permutations)
     for (int row = 0; row < bsize; row++) {
         for (int col = 0; col < bsize; col++) {
-            dense_block_ptr[row * storage_scheme.get_stride() + col_perm[col]] =
+            dense_block_ptr[row * storage_scheme.get_stride(block_idx,
+                                                            block_pointers) +
+                            col_perm[col]] =
                 temp_dense_block[row * bsize + col];
         }
     }
@@ -197,7 +207,9 @@ template <typename BatchMatrixType, typename ValueType>
 void batch_jacobi_apply_helper(
     const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
     const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage,
     const ValueType* const blocks_array, const int* const block_ptrs,
     const int* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -215,8 +227,8 @@ void batch_jacobi_apply_helper(
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     } else {
         block_jacobi_prec prec(max_block_size, num_blocks, storage_scheme,
-                               blocks_array, block_ptrs,
-                               row_part_of_which_block_info);
+                               cumulative_block_storage, blocks_array,
+                               block_ptrs, row_part_of_which_block_info);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }
@@ -226,18 +238,22 @@ void tranpose_dense_block_impl(
     const size_type batch_id, const size_type block_id,
     const size_type num_blocks, const int* const block_pointers,
     const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage,
     ValueType* const out_blocks_array, const bool to_conjugate)
 {
     const ValueType* dense_block_ptr =
         blocks_array +
-        storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id);
+        storage_scheme.get_global_block_offset(batch_id, num_blocks, block_id,
+                                               cumulative_block_storage);
     ValueType* out_dense_block_ptr =
         out_blocks_array +
-        storage_scheme.get_global_block_offset(num_blocks, batch_id, block_id);
+        storage_scheme.get_global_block_offset(batch_id, num_blocks, block_id,
+                                               cumulative_block_storage);
 
     const auto bsize = block_pointers[block_id + 1] - block_pointers[block_id];
-    const auto stride = storage_scheme.get_stride();
+    const auto stride = storage_scheme.get_stride(block_id, block_pointers);
 
     for (int r = 0; r < bsize; r++) {
         for (int c = 0; c < bsize; c++) {
