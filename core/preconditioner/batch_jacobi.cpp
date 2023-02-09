@@ -53,6 +53,8 @@ GKO_REGISTER_OPERATION(transpose_block_jacobi,
                        batch_jacobi::transpose_block_jacobi);
 GKO_REGISTER_OPERATION(find_row_is_part_of_which_block,
                        batch_jacobi::find_row_is_part_of_which_block);
+GKO_REGISTER_OPERATION(compute_cumulative_block_storage,
+                       batch_jacobi::compute_cumulative_block_storage);
 
 
 }  // namespace
@@ -72,9 +74,10 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
         // BatchJacobi enforces square matrices, so no dim transposition
         // necessary
         res->set_size(this->get_size());
-        res->storage_scheme_ = storage_scheme_;
+        res->blocks_storage_scheme_ = blocks_storage_scheme_;
         res->num_blocks_ = num_blocks_;
         res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
+        res->blocks_cumulative_storage_ = blocks_cumulative_storage_;
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
         res->parameters_ = parameters_;
 
@@ -82,7 +85,8 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::transpose() const
             this->get_num_batch_entries(), this->get_size().at(0)[0],
             num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
-            blocks_.get_const_data(), storage_scheme_,
+            blocks_.get_const_data(), blocks_storage_scheme_,
+            blocks_cumulative_storage_.get_const_data(),
             row_part_of_which_block_info_.get_const_data(),
             res->blocks_.get_data(), false /*conjugate*/));
 
@@ -105,9 +109,10 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::conj_transpose()
         // BatchJacobi enforces square matrices, so no dim transposition
         // necessary
         res->set_size(this->get_size());
-        res->storage_scheme_ = storage_scheme_;
+        res->blocks_storage_scheme_ = blocks_storage_scheme_;
         res->num_blocks_ = num_blocks_;
         res->row_part_of_which_block_info_ = row_part_of_which_block_info_;
+        res->blocks_cumulative_storage_ = blocks_cumulative_storage_;
         res->blocks_.resize_and_reset(blocks_.get_num_elems());
         res->parameters_ = parameters_;
 
@@ -115,7 +120,8 @@ std::unique_ptr<BatchLinOp> BatchJacobi<ValueType, IndexType>::conj_transpose()
             this->get_num_batch_entries(), this->get_size().at(0)[0],
             num_blocks_, parameters_.max_block_size,
             parameters_.block_pointers.get_const_data(),
-            blocks_.get_const_data(), storage_scheme_,
+            blocks_.get_const_data(), blocks_storage_scheme_,
+            blocks_cumulative_storage_.get_const_data(),
             row_part_of_which_block_info_.get_const_data(),
             res->blocks_.get_data(), true /*conjugate*/));
 
@@ -133,8 +139,16 @@ void BatchJacobi<ValueType, IndexType>::detect_blocks(
     this->get_executor()->run(batch_jacobi::make_find_blocks(
         first_system, parameters_.max_block_size, num_blocks_,
         parameters_.block_pointers));
-    blocks_.resize_and_reset(
-        storage_scheme_.compute_storage_space(num_batch, num_blocks_));
+
+    blocks_cumulative_storage_.resize_and_reset(num_blocks_ + 1);
+
+    // cumulative block storage
+    this->get_executor()->run(
+        batch_jacobi::make_compute_cumulative_block_storage(
+            num_blocks_, parameters_.block_pointers.get_const_data(),
+            blocks_cumulative_storage_.get_data()));
+
+    blocks_.resize_and_reset(this->compute_storage_space(num_batch));
 }
 
 
@@ -187,6 +201,13 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
 
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(num_batch, first_sys_csr.get());
+    } else {
+        // cumulative block storage
+        exec->run(batch_jacobi::make_compute_cumulative_block_storage(
+            num_blocks_, parameters_.block_pointers.get_const_data(),
+            blocks_cumulative_storage_.get_data()));
+
+        blocks_.resize_and_reset(this->compute_storage_space(num_batch));
     }
 
     exec->run(batch_jacobi::make_find_row_is_part_of_which_block(
@@ -201,8 +222,7 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     // also stored in a similar way.
 
     // array for storing the common pattern of the diagonal blocks
-    gko::array<IndexType> blocks_pattern(
-        exec, storage_scheme_.compute_storage_space(1, this->num_blocks_));
+    gko::array<IndexType> blocks_pattern(exec, this->compute_storage_space(1));
     blocks_pattern.fill(static_cast<IndexType>(-1));
 
     // Since all the matrices in the batch have the same sparisty pattern, it is
@@ -213,13 +233,15 @@ void BatchJacobi<ValueType, IndexType>::generate_precond(
     // values based on the common pattern.
 
     exec->run(batch_jacobi::make_extract_common_blocks_pattern(
-        first_sys_csr.get(), num_blocks_, storage_scheme_,
+        first_sys_csr.get(), num_blocks_, blocks_storage_scheme_,
+        blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         row_part_of_which_block_info_.get_const_data(),
         blocks_pattern.get_data()));
 
     exec->run(batch_jacobi::make_compute_block_jacobi(
-        sys_csr.get(), parameters_.max_block_size, num_blocks_, storage_scheme_,
+        sys_csr.get(), parameters_.max_block_size, num_blocks_,
+        blocks_storage_scheme_, blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
 }

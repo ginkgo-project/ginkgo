@@ -114,6 +114,7 @@ protected:
 
 TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
+
 template <typename ValueType>
 void check_batched_block_jacobi_is_eqvt_to_unbatched(
     const gko::size_type batch_idx,
@@ -125,7 +126,8 @@ void check_batched_block_jacobi_is_eqvt_to_unbatched(
     const auto block_ptrs = batch_prec->get_const_block_pointers();
 
     const auto blocks_batch_arr = batch_prec->get_const_blocks();
-    const auto& batched_storage_scheme = batch_prec->get_storage_scheme();
+    const auto& batched_storage_scheme =
+        batch_prec->get_blocks_storage_scheme();
 
     const auto blocks_unbatch_arr = unbatch_prec->get_blocks();
     auto storage_scheme_unbatch = unbatch_prec->get_storage_scheme();
@@ -143,8 +145,10 @@ void check_batched_block_jacobi_is_eqvt_to_unbatched(
                 const auto batch_val =
                     (blocks_batch_arr +
                      batched_storage_scheme.get_global_block_offset(
-                         num_blocks, batch_idx,
-                         k))[r * batched_storage_scheme.get_stride() + c];
+                         batch_idx, num_blocks, k,
+                         batch_prec->get_const_blocks_cumulative_storage()))
+                        [r * batched_storage_scheme.get_stride(k, block_ptrs) +
+                         c];
                 GKO_EXPECT_NEAR(unbatch_val, batch_val, tol);
             }
         }
@@ -177,10 +181,12 @@ TYPED_TEST(BatchJacobi,
     value_type* blocks_arr = nullptr;
     int* block_ptr = nullptr;
     int* row_part_of_which_block_arr = nullptr;
+    int* cumul_block_storage = nullptr;
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_storage_scheme(), blocks_arr,
-        block_ptr, row_part_of_which_block_arr, this->b.get(), this->x.get());
+        prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
+        cumul_block_storage, blocks_arr, block_ptr, row_part_of_which_block_arr,
+        this->b.get(), this->x.get());
 
     auto xs = this->x->unbatch();
 
@@ -246,8 +252,9 @@ TYPED_TEST(BatchJacobi,
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_storage_scheme(),
-        prec->get_const_blocks(), prec->get_const_block_pointers(),
+        prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
+        prec->get_const_blocks_cumulative_storage(), prec->get_const_blocks(),
+        prec->get_const_block_pointers(),
         prec->get_const_row_is_part_of_which_block_info(), this->b.get(),
         this->x.get());
 

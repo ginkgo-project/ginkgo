@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
@@ -73,7 +74,9 @@ template <typename BatchMatrixType, typename ValueType>
 void batch_jacobi_apply_helper(
     const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
     const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage,
     const ValueType* const blocks_array, const int* const block_ptrs,
     const int* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -103,7 +106,7 @@ void batch_jacobi_apply_helper(
             sizeof(ValueType);
         auto prec_block_jacobi = BatchBlockJacobi<device_type<ValueType>>(
             max_block_size, num_blocks, storage_scheme,
-            as_cuda_type(blocks_array), block_ptrs,
+            cumulative_block_storage, as_cuda_type(blocks_array), block_ptrs,
             row_part_of_which_block_info);
 
         batch_block_jacobi_apply<<<nbatch, default_block_size, shared_size>>>(
@@ -119,7 +122,9 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -127,8 +132,8 @@ void batch_jacobi_apply(
 {
     const auto a_ub = get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
-                              blocks_array, block_ptrs,
-                              row_part_of_which_block_info, r, z);
+                              cumulative_block_storage, blocks_array,
+                              block_ptrs, row_part_of_which_block_info, r, z);
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -142,7 +147,9 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
@@ -150,14 +157,35 @@ void batch_jacobi_apply(
 {
     const auto a_ub = get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(a_ub, num_blocks, max_block_size, storage_scheme,
-                              blocks_array, block_ptrs,
-                              row_part_of_which_block_info, r, z);
+                              cumulative_block_storage, blocks_array,
+                              block_ptrs, row_part_of_which_block_info, r, z);
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
+
+template <typename IndexType>
+void compute_cumulative_block_storage(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const blocks_cumulative_storage)
+{
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(num_blocks, default_block_size));
+
+    compute_block_storage_kernel<<<grid, block>>>(num_blocks, block_pointers,
+                                                  blocks_cumulative_storage);
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
+
+    components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
+}
+
+template void compute_cumulative_block_storage<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
 
 
 template <typename IndexType>
@@ -185,7 +213,9 @@ void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const row_part_of_which_block_info,
     IndexType* const blocks_pattern)
@@ -197,7 +227,8 @@ void extract_common_blocks_pattern(
     extract_common_block_pattern_kernel<<<grid, block>>>(
         static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), num_blocks, storage_scheme,
-        block_pointers, row_part_of_which_block_info, blocks_pattern);
+        cumulative_block_storage, block_pointers, row_part_of_which_block_info,
+        blocks_pattern);
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -213,7 +244,9 @@ void compute_block_jacobi_helper(
     syn::value_list<int, compiled_max_block_size>,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
@@ -227,10 +260,11 @@ void compute_block_jacobi_helper(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size, default_block_size));
 
-    compute_block_jacobi_kernel<subwarp_size><<<grid, block>>>(
-        nbatch, static_cast<int>(nnz),
-        as_cuda_type(sys_csr->get_const_values()), num_blocks, storage_scheme,
-        block_pointers, blocks_pattern, as_cuda_type(blocks));
+    compute_block_jacobi_kernel<subwarp_size>
+        <<<grid, block>>>(nbatch, static_cast<int>(nnz),
+                          as_cuda_type(sys_csr->get_const_values()), num_blocks,
+                          storage_scheme, cumulative_block_storage,
+                          block_pointers, blocks_pattern, as_cuda_type(blocks));
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -247,7 +281,9 @@ void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const uint32 user_given_max_block_size, const size_type num_blocks,
-    const preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
@@ -257,7 +293,8 @@ void compute_block_jacobi(
             return user_given_max_block_size <= compiled_block_size;
         },
         syn::value_list<int>(), syn::type_list<>(), sys_csr, num_blocks,
-        storage_scheme, block_pointers, blocks_pattern, blocks);
+        storage_scheme, cumulative_block_storage, block_pointers,
+        blocks_pattern, blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -271,7 +308,9 @@ void transpose_block_jacobi_helper(
     syn::value_list<int, compiled_max_block_size>, const size_type nbatch,
     const size_type nrows, const size_type num_blocks,
     const IndexType* const block_pointers, const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const row_part_of_which_block_info,
     ValueType* const out_blocks_array, const bool to_conjugate)
 {
@@ -282,11 +321,11 @@ void transpose_block_jacobi_helper(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nrows * nbatch * subwarp_size, default_block_size));
 
-    transpose_block_jacobi_kernel<subwarp_size>
-        <<<grid, block>>>(nbatch, static_cast<int>(nrows), num_blocks,
-                          block_pointers, as_cuda_type(blocks_array),
-                          storage_scheme, row_part_of_which_block_info,
-                          as_cuda_type(out_blocks_array), to_conjugate);
+    transpose_block_jacobi_kernel<subwarp_size><<<grid, block>>>(
+        nbatch, static_cast<int>(nrows), num_blocks, block_pointers,
+        as_cuda_type(blocks_array), storage_scheme, cumulative_block_storage,
+        row_part_of_which_block_info, as_cuda_type(out_blocks_array),
+        to_conjugate);
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -302,7 +341,9 @@ void transpose_block_jacobi(
     const size_type nrows, const size_type num_blocks,
     const uint32 user_given_max_block_size,
     const IndexType* const block_pointers, const ValueType* const blocks_array,
-    const gko::preconditioner::batched_blocks_storage_scheme& storage_scheme,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const row_part_of_which_block_info,
     ValueType* const out_blocks_array, const bool to_conjugate)
 {
@@ -312,7 +353,7 @@ void transpose_block_jacobi(
             return user_given_max_block_size <= compiled_block_size;
         },
         syn::value_list<int>(), syn::type_list<>(), nbatch, nrows, num_blocks,
-        block_pointers, blocks_array, storage_scheme,
+        block_pointers, blocks_array, storage_scheme, cumulative_block_storage,
         row_part_of_which_block_info, out_blocks_array, to_conjugate);
 }
 

@@ -53,7 +53,8 @@ private:
     {
         blocks_arr_entry_ =
             blocks_arr_batch_ +
-            storage_scheme_.get_batch_offset(num_blocks_, batch_id);
+            storage_scheme_.get_batch_offset(batch_id, num_blocks_,
+                                             blocks_cumulative_storage_);
     }
 
 public:
@@ -67,15 +68,19 @@ public:
      * @param block_ptrs_arr array of block pointers
      *
      */
-    BatchBlockJacobi(const uint32, const size_type num_blocks,
-                     const gko::preconditioner::batched_blocks_storage_scheme&
-                         storage_scheme,
-                     const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr, const int* const)
+    BatchBlockJacobi(
+        const uint32, const size_type num_blocks,
+        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+            storage_scheme,
+        const int* const blocks_cumulative_storage,
+        const value_type* const blocks_arr_batch,
+        const int* const block_ptrs_arr, const int* const)
         : num_blocks_{num_blocks},
           storage_scheme_{storage_scheme},
+          blocks_cumulative_storage_{blocks_cumulative_storage},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr}
+
     {}
 
     /**
@@ -116,7 +121,8 @@ public:
             const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
             const int bsize = row_end - row_st;
 
-            const auto offset = storage_scheme_.get_block_offset(bidx);
+            const auto offset = storage_scheme_.get_block_offset(
+                bidx, blocks_cumulative_storage_);
 
             for (int row = row_st; row < row_end; row++) {
                 ValueType sum = zero<ValueType>();
@@ -124,7 +130,8 @@ public:
                     const auto val =
                         blocks_arr_entry_[offset +
                                           (row - row_st) *
-                                              storage_scheme_.get_stride() +
+                                              storage_scheme_.get_stride(
+                                                  bidx, block_ptrs_arr_) +
                                           col];
                     sum += val * r.values[col + row_st];
                 }
@@ -136,7 +143,9 @@ public:
 
 private:
     const size_type num_blocks_;
-    const gko::preconditioner::batched_blocks_storage_scheme storage_scheme_;
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+        storage_scheme_;
+    const int* const blocks_cumulative_storage_;
     const value_type* const blocks_arr_batch_;
     const value_type* blocks_arr_entry_;
     const int* const block_ptrs_arr_;
