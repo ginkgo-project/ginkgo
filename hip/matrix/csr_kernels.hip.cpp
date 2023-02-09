@@ -303,9 +303,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_ptrs()),
                 as_hip_type(a->get_const_srow()),
-                as_hip_type(b->get_const_values()),
-                as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
-                as_hip_type(c->get_stride()));
+                as_hip_type(b->get_const_values()), b->get_stride(),
+                as_hip_type(c->get_values()), c->get_stride());
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -397,9 +396,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_ptrs()),
                 as_hip_type(a->get_const_srow()),
-                as_hip_type(b->get_const_values()),
-                as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
-                as_hip_type(c->get_stride()));
+                as_hip_type(b->get_const_values()), b->get_stride(),
+                as_hip_type(c->get_values()), c->get_stride());
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
