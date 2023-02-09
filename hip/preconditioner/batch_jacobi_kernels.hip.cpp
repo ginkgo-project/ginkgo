@@ -364,9 +364,8 @@ void transpose_block_jacobi(
             return user_given_max_block_size <= compiled_block_size;
         },
         syn::value_list<int>(), syn::type_list<>(), nbatch, nrows, num_blocks,
-        block_pointers, blocks_array, storage_scheme,
-        cumulative_block_storage row_part_of_which_block_info, out_blocks_array,
-        to_conjugate);
+        block_pointers, blocks_array, storage_scheme, cumulative_block_storage,
+        row_part_of_which_block_info, out_blocks_array, to_conjugate);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
