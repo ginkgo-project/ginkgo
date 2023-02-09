@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -65,7 +64,7 @@ namespace preconditioner {
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
  *
- * @note Currently overlaps are not supported (TODO).
+ * @note Currently overlap and coarse grid correction are not supported (TODO).
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type of the preconditioner
