@@ -260,7 +260,7 @@ public:
      *
      * @param exec  the Executor on which the partition should be built
      * @param ranges  the boundaries of the ranges representing each part.
-     *                Part parti_id[i] contains the indices
+     *                Part part_id[i] contains the indices
      *                [ranges[i], ranges[i + 1]). Has to contain at least
      *                one element. The first element has to be 0.
      * @param part_ids  the part ids of the provided ranges. If empty, then

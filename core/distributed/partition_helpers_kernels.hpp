@@ -53,7 +53,7 @@ namespace kernels {
 
 #define GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES(_type)          \
     void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec, \
-                                  array<_type>& range_start_ends,              \
+                                  const array<_type>& range_start_ends,        \
                                   bool* result)
 
 

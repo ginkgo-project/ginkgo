@@ -98,7 +98,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
         throw Error(__FILE__, __LINE__, "The partition contains gaps.");
     }
 
-    // remove duplicates
+    // join (now consecutive) starts and ends into combined array
     array<GlobalIndexType> ranges(exec, comm.size() + 1);
     exec->run(
         partition_helpers::make_compress_ranges(ranges_start_end, ranges));
