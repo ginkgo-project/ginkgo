@@ -93,7 +93,8 @@ all_to_all_pattern build_communication_pattern(
     std::partial_sum(send_sizes.cbegin(), send_sizes.cend(),
                      send_offsets.begin() + 1);
 
-    from_comm.all_to_all(send_sizes.data(), 1, recv_sizes.data(), 1);
+    from_comm.all_to_all(from_part->get_executor()->get_master(),
+                         send_sizes.data(), 1, recv_sizes.data(), 1);
     std::partial_sum(recv_sizes.cbegin(), recv_sizes.cend(),
                      recv_offsets.begin() + 1);
 
@@ -129,9 +130,8 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
     to_has_data_ = rank < new_n_parts;
 
     if (new_n_parts < old_n_parts) {
-        to_comm_ =
-            mpi::communicator(from_comm_.get(), to_has_data_, from_comm_.rank(),
-                              to_partition_->get_executor());
+        to_comm_ = mpi::communicator(from_comm_.get(), to_has_data_,
+                                     from_comm_.rank());
     } else {
         to_comm_ = from_comm_;
     }
@@ -192,26 +192,30 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     }
 
     auto tmp = Vector<ValueType>::create(
-        to_comm_, dim<2>{to_partition_->get_size(), 1},
+        from_partition_->get_executor()->get_master(), to_comm_,
+        dim<2>{to_partition_->get_size(), 1},
         dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = from->get_local_vector()->get_const_values();
     auto* recv_buffer = tmp->get_local_values();
 
     if (to_partition_->get_num_parts() > 1) {
-        from_comm_.all_to_all_v(send_buffer, send_sizes->data(),
+        from_comm_.all_to_all_v(from_partition_->get_executor()->get_master(),
+                                send_buffer, send_sizes->data(),
                                 send_offsets->data(), recv_buffer,
                                 recv_sizes->data(), recv_offsets->data());
     } else {
         const comm_index_type root = 0;
-        from_comm_.gather_v(send_buffer, (*send_sizes)[root], recv_buffer,
+        from_comm_.gather_v(from_partition_->get_executor()->get_master(),
+                            send_buffer, (*send_sizes)[root], recv_buffer,
                             recv_sizes->data(), recv_offsets->data(), root);
     }
 
     if (to_has_data()) {
         tmp->move_to(to);
     } else {
-        *to = *Vector<ValueType>::create(to_comm_);
+        *to = *Vector<ValueType>::create(
+            from_partition_->get_executor()->get_master(), to_comm_);
     }
 }
 
@@ -251,19 +255,22 @@ void repartitioner<LocalIndexType, GlobalIndexType>::scatter(
     }
 
     auto tmp = Vector<ValueType>::create(
-        from_comm_, dim<2>{from_partition_->get_size(), 1},
+        from_partition_->get_executor()->get_master(), from_comm_,
+        dim<2>{from_partition_->get_size(), 1},
         dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = to->get_local_vector()->get_const_values();
     auto* recv_buffer = tmp->get_local_values();
 
     if (to_partition_->get_num_parts() > 1) {
-        from_comm_.all_to_all_v(send_buffer, send_sizes->data(),
+        from_comm_.all_to_all_v(from_partition_->get_executor()->get_master(),
+                                send_buffer, send_sizes->data(),
                                 send_offsets->data(), recv_buffer,
                                 recv_sizes->data(), recv_offsets->data());
     } else {
         const comm_index_type root = 0;
-        from_comm_.scatter_v(send_buffer, send_sizes->data(),
+        from_comm_.scatter_v(from_partition_->get_executor()->get_master(),
+                             send_buffer, send_sizes->data(),
                              send_offsets->data(), recv_buffer,
                              (*recv_sizes)[root], root);
     }
@@ -371,13 +378,15 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         if (to_partition_->get_num_parts() > 1) {
-            from_comm_.all_to_all_v(send_buffer, pattern.send_sizes.data(),
-                                    pattern.send_offsets.data(), recv_buffer,
-                                    pattern.recv_sizes.data(),
-                                    pattern.recv_offsets.data());
+            from_comm_.all_to_all_v(
+                from_partition_->get_executor()->get_master(), send_buffer,
+                pattern.send_sizes.data(), pattern.send_offsets.data(),
+                recv_buffer, pattern.recv_sizes.data(),
+                pattern.recv_offsets.data());
         } else {
             const comm_index_type root = 0;
-            from_comm_.gather_v(send_buffer, pattern.send_sizes[root],
+            from_comm_.gather_v(from_partition_->get_executor()->get_master(),
+                                send_buffer, pattern.send_sizes[root],
                                 recv_buffer, pattern.recv_sizes.data(),
                                 pattern.recv_offsets.data(), root);
         }
@@ -391,8 +400,8 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
                              std::move(recv_values));
     new_local_data.sort_row_major();
 
-    auto tmp =
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(to_comm_);
+    auto tmp = Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+        to->get_executor(), to_comm_);
     if (to_has_data_) {
         tmp->read_distributed(new_local_data, to_partition_.get());
     }
