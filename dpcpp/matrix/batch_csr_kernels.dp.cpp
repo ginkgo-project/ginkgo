@@ -333,8 +333,7 @@ void batch_scale_kernel(  // TODO: consider to find a new kernel name
         const ValueType rowscale = left_scale[i_row];
         for (int iz = a.row_ptrs[i_row] + sg.get_local_id();
              iz < a.row_ptrs[i_row + 1]; iz += sg_size) {
-            auto scale_factor = rowscale * right_scale[a.col_idxs[iz]];
-            a.values[iz] *= scale_factor;
+            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
         }
     }
 }
@@ -350,6 +349,8 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto m_ub = get_batch_struct(mat);
     const auto ncols = mat->get_size().at()[1];
+    const auto left_values = left_scale->get_const_values();
+    const auto right_values = right_scale->get_const_values();
 
     const auto num_batches = m_ub.num_batch;
     auto device = exec->get_queue()->get_device();
@@ -368,11 +369,10 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto m_b = batch::batch_entry(m_ub, group_id);
-                    const auto left_b =
-                        batch::batch_entry_ptr(left_scale->get_const_values(),
-                                               1, m_ub.num_rows, group_id);
+                    const auto left_b = batch::batch_entry_ptr(
+                        left_values, 1, m_ub.num_rows, group_id);
                     const auto right_b = batch::batch_entry_ptr(
-                        right_scale->get_const_values(), 1, ncols, group_id);
+                        right_values, 1, ncols, group_id);
                     batch_scale_kernel(item_ct1, left_b, right_b, m_b);
                 });
     });
@@ -432,22 +432,29 @@ void pre_diag_transform_system(
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
+    // Extracting values to avoid doing so inside the lambda kernel
+    const auto left_values = left_op->get_const_values();
+    const auto right_values = right_op->get_const_values();
+    auto a_values = a->get_values();
+    auto b_values = b->get_values();
+    const auto col_idxs = a->get_const_col_idxs();
+    const auto row_ptrs = a->get_const_row_ptrs();
+
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto batch_id = group.get_group_linear_id();
-                auto ab = a->get_values() + a_batch_stride * batch_id;
-                auto bb = batch::batch_entry_ptr(b->get_values(), b_stride,
-                                                 num_rows, batch_id);
-                auto left_scaleb = batch::batch_entry_ptr(
-                    left_op->get_const_values(), 1, num_rows, batch_id);
-                auto right_scaleb = batch::batch_entry_ptr(
-                    right_op->get_const_values(), 1, num_cols, batch_id);
-                pre_diag_scale_kernel(item_ct1, num_rows, ab,
-                                      a->get_const_col_idxs(),
-                                      a->get_const_row_ptrs(), num_rhs,
-                                      b_stride, bb, left_scaleb, right_scaleb);
+                auto ab = a_values + a_batch_stride * batch_id;
+                auto bb = batch::batch_entry_ptr(b_values, b_stride, num_rows,
+                                                 batch_id);
+                auto left_scaleb =
+                    batch::batch_entry_ptr(left_values, 1, num_rows, batch_id);
+                auto right_scaleb =
+                    batch::batch_entry_ptr(right_values, 1, num_cols, batch_id);
+                pre_diag_scale_kernel(item_ct1, num_rows, ab, col_idxs,
+                                      row_ptrs, num_rhs, b_stride, bb,
+                                      left_scaleb, right_scaleb);
             });
     });
 }
@@ -496,17 +503,22 @@ void convert_to_batch_dense(
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
+    // Extracting values to avoid doing so inside the lambda kernel
+    const auto src_values = src->get_const_values();
+    auto dest_values = dest->get_values();
+    const auto col_idxs = src->get_const_col_idxs();
+    const auto row_ptrs = src->get_const_row_ptrs();
+
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto batch_id = group.get_group_linear_id();
-                const auto bvalues = src->get_const_values() + batch_id * nnz;
-                auto bdense =
-                    dest->get_values() + batch_id * dense_stride * num_rows;
-                convert_to_batch_dense_kernel(
-                    item_ct1, num_rows, num_cols, src->get_const_row_ptrs(),
-                    src->get_const_col_idxs(), bvalues, dense_stride, bdense);
+                const auto bvalues = src_values + batch_id * nnz;
+                auto bdense = dest_values + batch_id * dense_stride * num_rows;
+                convert_to_batch_dense_kernel(item_ct1, num_rows, num_cols,
+                                              row_ptrs, col_idxs, bvalues,
+                                              dense_stride, bdense);
             });
     });
 }
@@ -537,15 +549,15 @@ inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
                 break;
             }
         }
-        // const config::lane_mask_type row_has_diag = tile.ballot(has_diag);
-        auto row_has_diag = sycl::ext::oneapi::group_ballot(sg, has_diag);
-        this_tile_has_diags =
-            this_tile_has_diags && row_has_diag[sg.get_local_id()];
+        auto row_has_diag = sycl::ext::oneapi::group_ballot(sg, has_diag).any();
+        this_tile_has_diags = this_tile_has_diags && row_has_diag;
     }
     if (sg.get_local_id() == 0) {
         tile_has_diags[sg_id] = this_tile_has_diags;
     }
-    sg.barrier();
+
+    // workgroup sync, must-have
+    item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // reduce array to one warp
     if (sg_id == 0) {
@@ -556,8 +568,7 @@ inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
         // warp-reduce
         int var =
             sg.get_local_id() < num_sg ? tile_has_diags[sg.get_local_id()] : 1;
-        var = sycl::reduce_over_group(sg, var, sycl::plus<>());
-        var = (var == (num_sg - sg_size) ? 0 : 1);
+        var = sycl::ext::oneapi::group_ballot(sg, var).all();
         if (sg.get_local_id() == 0) {
             all_diags[0] = static_cast<bool>(var);
         }
@@ -575,27 +586,31 @@ void check_diagonal_entries_exist(
         std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
     array<bool> d_result(exec, 1);
 
-    auto device = exec->get_queue()->get_device();
-    auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
-    auto num_sg = config::warp_size;
-    //        device.get_info<sycl::info::device::max_sub_group_size>();
+    // Here num_sg should be compile-time known
+    constexpr auto group_size = config::max_block_size;
+    constexpr auto sg_size = config::warp_size;
+    constexpr auto num_sg = group_size / sg_size;
     const dim3 block(group_size);
     const dim3 grid(1);
+
+    // Extracting values to avoid doing so inside the lambda kernel
+    auto d_result_data = d_result.get_data();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto row_ptrs = mtx->get_const_row_ptrs();
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         sycl::accessor<int, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             tile_has_diags(sycl::range<1>(num_sg), cgh);
-        auto* d_result_ptr = &d_result;
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                check_all_diagonal_kernel(
-                    item_ct1, nmin, mtx->get_const_row_ptrs(),
-                    mtx->get_const_col_idxs(), d_result_ptr->get_data(),
-                    tile_has_diags.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(sg_size)]] {
+                                 check_all_diagonal_kernel(
+                                     item_ct1, nmin, row_ptrs, col_idxs,
+                                     d_result_data,
+                                     tile_has_diags.get_pointer());
+                             });
     });
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -647,20 +662,27 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
+    // Extracting values to avoid doing so inside the lambda kernel
+    const auto a_values = a->get_const_values();
+    const auto b_values = b->get_const_values();
+    auto mtx_values = mtx->get_values();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto batch_id = group.get_group_linear_id();
 
-                ValueType* const values_b = mtx->get_values() + batch_id * nnz;
-                const ValueType* const alpha_b = batch::batch_entry_ptr(
-                    a->get_const_values(), a_stride, 1, batch_id);
-                const ValueType* const beta_b = batch::batch_entry_ptr(
-                    b->get_const_values(), b_stride, 1, batch_id);
-                add_scaled_identity_kernel(
-                    item_ct1, num_rows, mtx->get_const_row_ptrs(),
-                    mtx->get_const_col_idxs(), values_b, alpha_b[0], beta_b[0]);
+                ValueType* const values_b = mtx_values + batch_id * nnz;
+                const ValueType* const alpha_b =
+                    batch::batch_entry_ptr(a_values, a_stride, 1, batch_id);
+                const ValueType* const beta_b =
+                    batch::batch_entry_ptr(b_values, b_stride, 1, batch_id);
+                add_scaled_identity_kernel(item_ct1, num_rows, row_ptrs,
+                                           col_idxs, values_b, alpha_b[0],
+                                           beta_b[0]);
             });
     });
 }
