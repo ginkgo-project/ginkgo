@@ -128,8 +128,9 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
     to_has_data_ = rank < new_n_parts;
 
     if (new_n_parts < old_n_parts) {
-        to_comm_ = mpi::communicator(from_comm_.get(), to_has_data_,
-                                     from_comm_.rank());
+        to_comm_ =
+            mpi::communicator(from_comm_.get(), to_has_data_, from_comm_.rank(),
+                              to_partition_->get_executor());
     } else {
         to_comm_ = from_comm_;
     }
@@ -190,7 +191,7 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     }
 
     auto tmp = Vector<ValueType>::create(
-        to->get_executor(), to_comm_, dim<2>{to_partition_->get_size(), 1},
+        to_comm_, dim<2>{to_partition_->get_size(), 1},
         dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = from->get_local_vector()->get_const_values();
@@ -209,7 +210,7 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     if (to_has_data()) {
         tmp->move_to(to);
     } else {
-        *to = *Vector<ValueType>::create(to->get_executor(), to_comm_);
+        *to = *Vector<ValueType>::create(to_comm_);
     }
 }
 
@@ -249,8 +250,7 @@ void repartitioner<LocalIndexType, GlobalIndexType>::scatter(
     }
 
     auto tmp = Vector<ValueType>::create(
-        from->get_executor(), from_comm_,
-        dim<2>{from_partition_->get_size(), 1},
+        from_comm_, dim<2>{from_partition_->get_size(), 1},
         dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = to->get_local_vector()->get_const_values();
@@ -286,33 +286,31 @@ auto write_local(std::shared_ptr<const Executor> exec,
     using md_local = device_matrix_data<ValueType, LocalIndexType>;
     using md_global = device_matrix_data<ValueType, GlobalIndexType>;
 
-    md_local diag_md(exec);
-    md_local offdiag_md(exec);
-    auto coo_diag =
+    md_local local_md(exec->get_master());
+    md_local non_local_md(exec->get_master());
+    auto coo_local =
         matrix::Coo<ValueType, LocalIndexType>::create(mat->get_executor());
-    auto coo_offdiag =
+    auto coo_non_local =
         matrix::Coo<ValueType, LocalIndexType>::create(mat->get_executor());
     as<ConvertibleTo<matrix::Coo<ValueType, LocalIndexType>>>(
-        mat->get_const_local_diag())
-        ->convert_to(coo_diag.get());
+        mat->get_local_matrix())
+        ->convert_to(coo_local.get());
     as<ConvertibleTo<matrix::Coo<ValueType, LocalIndexType>>>(
-        mat->get_const_local_offdiag())
-        ->convert_to(coo_offdiag.get());
-    coo_diag->write(diag_md);
-    coo_offdiag->write(offdiag_md);
+        mat->get_non_local_matrix())
+        ->convert_to(coo_non_local.get());
+    coo_local->write(local_md);
+    coo_non_local->write(non_local_md);
 
-    auto diag_nnz = diag_md.get_num_elems();
-    auto offdiag_nnz = offdiag_md.get_num_elems();
+    auto local_nnz = local_md.get_num_elems();
+    auto non_local_nnz = non_local_md.get_num_elems();
     md_global data{exec->get_master(),
-                   dim<2>{diag_md.get_size()[0],
-                          diag_md.get_size()[1] + offdiag_md.get_size()[1]},
-                   diag_nnz + offdiag_nnz};
+                   dim<2>{local_md.get_size()[0],
+                          local_md.get_size()[1] + non_local_md.get_size()[1]},
+                   local_nnz + non_local_nnz};
 
-    diag_md = md_local{exec->get_master(), diag_md};
-    offdiag_md = md_local{exec->get_master(), offdiag_md};
-
-    auto host_part = gko::clone(part->get_executor()->get_master(), part);
-    array<GlobalIndexType> map_diag_to_global(
+    auto host_part =
+        gko::make_temporary_clone(part->get_executor()->get_master(), part);
+    array<GlobalIndexType> map_local_to_global(
         exec->get_master(),
         part->get_part_size(mat->get_communicator().rank()));
     int local_idx = 0;
@@ -320,24 +318,24 @@ auto write_local(std::shared_ptr<const Executor> exec,
         if (host_part->get_part_ids()[rid] == mat->get_communicator().rank()) {
             for (int i = host_part->get_range_bounds()[rid];
                  i < host_part->get_range_bounds()[rid + 1]; ++i) {
-                map_diag_to_global.get_data()[local_idx++] = i;
+                map_local_to_global.get_data()[local_idx++] = i;
             }
         }
     }
 
-    for (int i = 0; i < diag_nnz; ++i) {
+    for (int i = 0; i < local_nnz; ++i) {
         data.get_row_idxs()[i] =
-            map_diag_to_global.get_data()[diag_md.get_row_idxs()[i]];
+            map_local_to_global.get_data()[local_md.get_row_idxs()[i]];
         data.get_col_idxs()[i] =
-            map_diag_to_global.get_data()[diag_md.get_col_idxs()[i]];
-        data.get_values()[i] = diag_md.get_values()[i];
+            map_local_to_global.get_data()[local_md.get_col_idxs()[i]];
+        data.get_values()[i] = local_md.get_values()[i];
     }
-    for (int i = 0; i < offdiag_nnz; ++i) {
-        data.get_row_idxs()[diag_nnz + i] =
-            map_diag_to_global.get_data()[offdiag_md.get_row_idxs()[i]];
-        data.get_col_idxs()[diag_nnz + i] =
-            mat->get_ghost_to_global_map()[offdiag_md.get_col_idxs()[i]];
-        data.get_values()[diag_nnz + i] = offdiag_md.get_values()[i];
+    for (int i = 0; i < non_local_nnz; ++i) {
+        data.get_row_idxs()[local_nnz + i] =
+            map_local_to_global.get_data()[non_local_md.get_row_idxs()[i]];
+        data.get_col_idxs()[local_nnz + i] =
+            mat->get_non_local_to_global()[non_local_md.get_col_idxs()[i]];
+        data.get_values()[local_nnz + i] = non_local_md.get_values()[i];
     }
 
     data = md_global{exec, data};
@@ -392,8 +390,8 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
                              std::move(recv_values));
     new_local_data.sort_row_major();
 
-    auto tmp = Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
-        to->get_executor(), to_comm_);
+    auto tmp =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(to_comm_);
     if (to_has_data_) {
         tmp->read_distributed(new_local_data, to_partition_.get());
     }
