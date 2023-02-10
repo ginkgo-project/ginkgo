@@ -33,10 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
 #define GKO_CORE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
 
+
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"

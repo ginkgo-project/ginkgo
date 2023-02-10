@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 #include <limits>
 
 
@@ -38,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+
 
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
