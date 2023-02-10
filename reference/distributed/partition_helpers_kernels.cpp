@@ -93,6 +93,22 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES);
 
 
+template <typename GlobalIndexType>
+void compress_ranges(std::shared_ptr<const DefaultExecutor> exec,
+                     const array<GlobalIndexType>& range_start_ends,
+                     array<GlobalIndexType>& range_offsets)
+{
+    range_offsets.get_data()[0] = range_start_ends.get_const_data()[0];
+    for (int i = 0; i < range_offsets.get_num_elems() - 1; ++i) {
+        range_offsets.get_data()[i + 1] =
+            range_start_ends.get_const_data()[2 * i + 1];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES);
+
+
 }  // namespace partition_helpers
 }  // namespace reference
 }  // namespace kernels
