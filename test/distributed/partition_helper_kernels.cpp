@@ -113,7 +113,7 @@ std::vector<IndexType> remove_indices(const std::vector<IndexType>& source,
     std::sort(idxs.begin(), idxs.end(), std::greater<>{});
     auto result = source;
     for (auto idx : idxs) {
-        result.erase(result.begin() + idx);
+        result.erase(result.begin() + 2 * idx, result.begin() + 2 * idx + 1);
     }
     return result;
 }
@@ -157,63 +157,60 @@ protected:
 TYPED_TEST_SUITE(PartitionHelpers, gko::test::IndexTypes);
 
 
-// TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
-//{
-//    using index_type = typename TestFixture::index_type;
-//    auto offsets =
-//        make_array(this->exec, create_ranges<index_type>(100));
-//    bool result = false;
-//
-//    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-//        this->exec, offsets, &result);
-//
-//    ASSERT_TRUE(result);
-//}
-//
-//
-// TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
-//{
-//    using index_type = typename TestFixture::index_type;
-//    auto full_range_ends = create_ranges<index_type>(100);
-//    auto removal_idxs = sample_unique(0, full_range_ends.size(), 4);
-//    auto start_ends = make_array(
-//        this->exec,
-//        std::make_pair(remove_indices(full_range_ends.first, removal_idxs),
-//                       remove_indices(full_range_ends.second, removal_idxs)));
-//    bool result = true;
-//
-//    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-//        this->exec, start_ends, &result);
-//
-//    ASSERT_FALSE(result);
-//}
-//
-//
-// TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
-//{
-//    using index_type = typename TestFixture::index_type;
-//    auto start_ends =
-//        make_array(this->ref, create_ranges<index_type>(1));
-//    bool result = false;
-//
-//    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-//        this->exec, start_ends, &result);
-//
-//    ASSERT_TRUE(result);
-//}
-//
-//
-// TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
-//{
-//    using index_type = typename TestFixture::index_type;
-//    auto start_ends = gko::array<index_type>(this->exec, {1});
-//    bool result = false;
-//
-//    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-//        this->exec, start_ends, &result);
-//
-//    ASSERT_TRUE(result);
-//}
+TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
+{
+    using index_type = typename TestFixture::index_type;
+    auto offsets = make_array(this->exec, create_ranges<index_type>(100));
+    bool result = false;
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
+        this->exec, offsets, &result);
+
+    ASSERT_TRUE(result);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
+{
+    using index_type = typename TestFixture::index_type;
+    auto full_range_ends = create_ranges<index_type>(100);
+    auto removal_idxs = sample_unique(0, full_range_ends.size() / 2, 4);
+    auto start_ends =
+        make_array(this->exec, remove_indices(full_range_ends, removal_idxs));
+    bool result = true;
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
+        this->exec, start_ends, &result);
+
+    ASSERT_FALSE(result);
+}
+
+
+ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
+{
+    using index_type = typename TestFixture::index_type;
+    auto start_ends =
+        make_array(this->ref, create_ranges<index_type>(1));
+    bool result = false;
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
+        this->exec, start_ends, &result);
+
+    ASSERT_TRUE(result);
+}
+
+
+ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
+{
+    using index_type = typename TestFixture::index_type;
+    auto start_ends = gko::array<index_type>(this->exec, {1});
+    bool result = false;
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
+        this->exec, start_ends, &result);
+
+    ASSERT_TRUE(result);
+}
 
 
 TYPED_TEST(PartitionHelpers, CanSortConsecutiveRanges)

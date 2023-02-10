@@ -71,17 +71,19 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               array<GlobalIndexType>& range_start_ends,
                               bool* result)
 {
+    struct end_start {
+        GlobalIndexType end;
+        GlobalIndexType start;
+    };
+
     auto num_parts = range_start_ends.get_num_elems() / 2;
-    auto range_starts = range_start_ends.get_data();
-    auto range_ends = range_starts + num_parts;
-    auto combined_it = detail::make_zip_iterator(range_starts + 1, range_ends);
+    auto range_it =
+        reinterpret_cast<end_start*>(range_start_ends.get_data() + 1);
 
     if (num_parts) {
-        *result = std::all_of(combined_it, combined_it + (num_parts - 1),
-                              [](const auto& start_end) {
-                                  return std::get<0>(start_end) ==
-                                         std::get<1>(start_end);
-                              });
+        *result =
+            std::all_of(range_it, range_it + num_parts - 1,
+                        [](const end_start& r) { return r.end == r.start; });
     } else {
         *result = true;
     }
