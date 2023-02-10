@@ -382,16 +382,6 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
 }
 
 
-std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(std::ostream& stream,
-                                                           std::string name,
-                                                           bool nested)
-{
-    auto fns = create_summary_fns(stream, name, nested);
-    return std::shared_ptr<ProfilerHook>{
-        new ProfilerHook{std::move(fns.first), std::move(fns.second)}};
-}
-
-
 std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
                                                           hook_function end)
 {

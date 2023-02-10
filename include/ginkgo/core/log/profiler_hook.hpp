@@ -244,16 +244,104 @@ public:
     static std::shared_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
+    struct summary_entry {
+        std::string name;
+        int64 inclusive_ns{};
+        int64 exclusive_ns{};
+        int64 count{};
+    };
+
+    struct nested_summary_entry {
+        std::string name;
+        int64 elapsed_ns{};
+        int64 count{};
+        std::vector<nested_summary_entry> children{};
+    };
+
+    /** Recieves the results from ProfilerHook::create_summary(). */
+    class summary_writer {
+    public:
+        virtual ~summary_writer() = default;
+
+        virtual void write(const std::vector<summary_entry>& entries,
+                           int64 overhead_ns) = 0;
+    };
+
+    /** Recieves the results from ProfilerHook::create_nested_summary(). */
+    class nested_summary_writer {
+    public:
+        virtual ~nested_summary_writer() = default;
+
+        virtual void write_nested(const nested_summary_entry& root,
+                                  int64 overhead_ns) = 0;
+    };
+
+    /**
+     * Writes the results from ProfilerHook::create_summary() and
+     * ProfilerHook::create_nested_summary() to a ASCII table in Markdown
+     * format.
+     */
+    class table_summary_writer : public summary_writer,
+                                 public nested_summary_writer {
+    public:
+        /**
+         * Constructs a writer on an output stream.
+         *
+         * @param output  the output stream to write the table to.
+         * @param header  the header to write above the table.
+         */
+        table_summary_writer(std::ostream& output = std::cerr,
+                             std::string header = "Runtime summary");
+
+        void write(const std::vector<summary_entry>& entries,
+                   int64 overhead) override;
+
+        void write_nested(const nested_summary_entry& root,
+                          int64 overhead) override;
+
+    private:
+        std::ostream* output_;
+        std::string header_;
+    };
+
     /**
      * Creates a logger measuring the runtime of Ginkgo events and printing a
      * summary when it is destroyed.
+     *
+     * @param writer  The summary_writer to receive the performance results.
+     * @param debug_check_nesting  Enable this flag if the output looks like it
+     *                             might contain incorrect nesting. This
+     *                             increases the overhead slightly, but
+     *                             recognizes mismatching push/pop pairs on the
+     *                             range stack.
+     *
      * @note For this logger to provide reliable GPU timings, enable
      *       synchronization via `set_synchronization(true)`.
-     * TODO gpu timer
      */
     static std::shared_ptr<ProfilerHook> create_summary(
-        std::ostream& output = std::cerr,
-        std::string name = "Profiling Summary", bool nested = false);
+        std::unique_ptr<summary_writer> writer =
+            std::make_unique<table_summary_writer>(),
+        bool debug_check_nesting = false);
+
+    /**
+     * Creates a logger measuring the runtime of Ginkgo events in a nested
+     * fashion and printing a summary when it is destroyed.
+     *
+     * @param writer  The nested_summary_writer to receive the performance
+     *                results.
+     * @param debug_check_nesting  Enable this flag if the output looks like it
+     *                             might contain incorrect nesting. This
+     *                             increases the overhead slightly, but
+     *                             recognizes mismatching push/pop pairs on the
+     *                             range stack.
+     *
+     * @note For this logger to provide reliable GPU timings, enable
+     *       synchronization via `set_synchronization(true)`.
+     */
+    static std::shared_ptr<ProfilerHook> create_nested_summary(
+        std::unique_ptr<nested_summary_writer> writer =
+            std::make_unique<table_summary_writer>(),
+        bool debug_check_nesting = false);
 
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions
