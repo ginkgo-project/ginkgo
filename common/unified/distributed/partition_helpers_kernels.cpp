@@ -50,21 +50,26 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               bool* result)
 {
     array<uint32> result_uint32{exec, 1};
-    auto num_ranges = std::max(range_start_ends.get_num_elems() / 2,
-                               static_cast<size_type>(1));
-    run_kernel_reduction(
-        exec,
-        [] GKO_KERNEL(const auto i, const auto* starts, const auto* ends) {
-            return starts[i + 1] == ends[i];
-        },
-        [] GKO_KERNEL(const auto a, const auto b) {
-            return static_cast<uint32>(a && b);
-        },
-        [] GKO_KERNEL(auto x) { return x; }, static_cast<uint32>(true),
-        result_uint32.get_data(), num_ranges - 1, range_start_ends.get_data(),
-        range_start_ends.get_data() + num_ranges);
-    *result =
-        static_cast<bool>(exec->copy_val_to_host(result_uint32.get_data()));
+    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    // need additional guard because DPCPP doesn't return the initial value for
+    // empty inputs
+    if (num_ranges > 1) {
+        run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(const auto i, const auto* ranges) {
+                return ranges[2 * i] == ranges[2 * i + 1];
+            },
+            [] GKO_KERNEL(const auto a, const auto b) {
+                return static_cast<uint32>(a && b);
+            },
+            [] GKO_KERNEL(auto x) { return x; }, static_cast<uint32>(true),
+            result_uint32.get_data(), num_ranges - 1,
+            range_start_ends.get_data() + 1);
+        *result =
+            static_cast<bool>(exec->copy_val_to_host(result_uint32.get_data()));
+    } else {
+        *result = true;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

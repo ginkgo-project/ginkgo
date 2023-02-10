@@ -119,7 +119,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
 {
     using global_index_type = typename TestFixture::global_index_type;
     gko::array<global_index_type> range_start_ends{this->ref,
-                                                   {7, 4, 0, 9, 9, 7, 4, 11}};
+                                                   {7, 9, 4, 7, 0, 4, 9, 11}};
     bool result = true;
 
     gko::kernels::reference::partition_helpers::check_consecutive_ranges(
