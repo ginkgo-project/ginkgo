@@ -148,7 +148,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
 
     auto r_1 = gko::test::solve_poisson_uniform(
         this->exec, this->solve_fn, this->opts_1, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(this->exec));
+        gko::preconditioner::BatchJacobi<value_type>::build()
+            .with_max_block_size(1u)
+            .on(this->exec));
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -341,10 +343,14 @@ TEST_F(BatchBicgstab, SolvesLargeDenseSystemEquivalentToReference)
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 33,
                                                                      1, false);
-    auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(ref));
-    auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
+    auto r_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(ref));
+    auto d_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
@@ -378,10 +384,14 @@ TEST_F(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(ref, 2, 91,
                                                                      1, false);
-    auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(ref));
-    auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
+    auto r_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(ref));
+    auto d_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)

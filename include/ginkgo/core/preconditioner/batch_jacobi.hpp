@@ -134,8 +134,9 @@ struct batched_jacobi_blocks_storage_scheme {
      *
      * @return stride between rows of the block
      */
-    GKO_ATTRIBUTES size_type get_stride(
-        const int block_idx, const IndexType* const block_ptrs) const noexcept
+    GKO_ATTRIBUTES size_type get_stride(const int block_idx,
+                                        const IndexType* const block_ptrs) const
+        noexcept
     {
         return block_ptrs[block_idx + 1] - block_ptrs[block_idx];
     }

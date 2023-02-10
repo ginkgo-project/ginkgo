@@ -150,7 +150,9 @@ TEST_F(BatchGmres, StencilSystemLoggerIsCorrect)
 
     auto r_1 = gko::test::solve_poisson_uniform(
         exec, solve_fn, opts_1, sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().with_max_block_size(1u).on(exec));
+        gko::preconditioner::BatchJacobi<value_type>::build()
+            .with_max_block_size(1u)
+            .on(exec));
 
     const int ref_iters = single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
