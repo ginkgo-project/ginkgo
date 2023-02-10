@@ -128,13 +128,12 @@ void apply_sparse_blas(const char* operation_name,
             add_or_set_member(test_case[operation_name], "components",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto gen_logger = create_operations_logger(
+                FLAGS_nested_names, test_case[operation_name]["components"],
+                allocator, 1);
             exec->add_logger(gen_logger);
             op->run();
             exec->remove_logger(gen_logger);
-            gen_logger->write_data(test_case[operation_name]["components"],
-                                   allocator, 1);
         }
 
         add_or_set_member(test_case[operation_name], "completed", true,

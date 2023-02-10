@@ -197,26 +197,28 @@ void run_preconditioner(const char* precond_name,
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
 
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
-            exec->add_logger(gen_logger);
-            if (exec->get_master() != exec) {
-                exec->get_master()->add_logger(gen_logger);
-            }
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
-                precond_op = precond->generate(system_matrix);
+            {
+                auto gen_logger = create_operations_logger(
+                    FLAGS_nested_names,
+                    this_precond_data["generate"]["components"], allocator,
+                    ic_gen.get_num_repetitions());
+                exec->add_logger(gen_logger);
+                if (exec->get_master() != exec) {
+                    exec->get_master()->add_logger(gen_logger);
+                }
+                for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
+                    precond_op = precond->generate(system_matrix);
+                }
+                if (exec->get_master() != exec) {
+                    exec->get_master()->remove_logger(gen_logger);
+                }
+                exec->remove_logger(gen_logger);
             }
-            if (exec->get_master() != exec) {
-                exec->get_master()->remove_logger(gen_logger);
-            }
-            exec->remove_logger(gen_logger);
 
-            gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, ic_gen.get_num_repetitions());
-
-            auto apply_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto apply_logger = create_operations_logger(
+                FLAGS_nested_names, this_precond_data["apply"]["components"],
+                allocator, ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
             if (exec->get_master() != exec) {
                 exec->get_master()->add_logger(apply_logger);
@@ -228,9 +230,6 @@ void run_preconditioner(const char* precond_name,
                 exec->get_master()->remove_logger(apply_logger);
             }
             exec->remove_logger(apply_logger);
-
-            apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, ic_apply.get_num_repetitions());
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);
