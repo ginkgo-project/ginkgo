@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/distributed/partition_helpers_kernels.hpp"
-
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
@@ -41,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
+#include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
@@ -63,8 +61,7 @@ T clamp(const T& v, const T& lo, const T& hi)
 template <typename IndexType>
 std::vector<IndexType> create_iota(IndexType min, IndexType max)
 {
-    std::vector<IndexType> iota(
-        clamp(max - min, IndexType(0), max));
+    std::vector<IndexType> iota(clamp(max - min, IndexType(0), max));
     std::iota(iota.begin(), iota.end(), min);
     return iota;
 }
@@ -98,7 +95,8 @@ std::vector<std::size_t> sample_unique(std::size_t min, std::size_t max,
     std::default_random_engine engine;
     auto values = create_iota(min, max);
     std::shuffle(values.begin(), values.end(), engine);
-    values.erase(values.begin() + clamp(n, gko::size_type(0), values.size()), values.end());
+    values.erase(values.begin() + clamp(n, gko::size_type(0), values.size()),
+                 values.end());
     return values;
 }
 
@@ -143,10 +141,9 @@ shuffle_range_and_pid(const range_container<IndexType>& ranges,
     auto result = std::make_pair(ranges, pid);
 
     auto num_ranges = result.second.size();
-    auto zip_it = gko::detail::make_zip_iterator(
-        result.first.first.begin(),
-        result.first.second.begin(),
-        result.second.begin());
+    auto zip_it = gko::detail::make_zip_iterator(result.first.first.begin(),
+                                                 result.first.second.begin(),
+                                                 result.second.begin());
     std::shuffle(zip_it, zip_it + num_ranges, engine);
 
     return result;
