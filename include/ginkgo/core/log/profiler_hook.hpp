@@ -245,16 +245,27 @@ public:
         std::shared_ptr<const Executor> exec);
 
     struct summary_entry {
+        /** The name of the range. */
         std::string name;
+        /** The total runtime of all invocations of the range in nanoseconds. */
         int64 inclusive_ns{};
+        /**
+         * The total runtime of all invocations of the range in nanoseconds,
+         * excluding the runtime of all nested ranges.
+         */
         int64 exclusive_ns{};
+        /** The total number of invocations of the range. */
         int64 count{};
     };
 
     struct nested_summary_entry {
+        /** The name of the range. */
         std::string name;
+        /** The total runtime of all invocations of the range in nanoseconds. */
         int64 elapsed_ns{};
+        /** The total number of invocations of the range. */
         int64 count{};
+        /** The nested ranges inside this range. */
         std::vector<nested_summary_entry> children{};
     };
 
@@ -263,6 +274,13 @@ public:
     public:
         virtual ~summary_writer() = default;
 
+        /**
+         * Callback to write out the summary results.
+         *
+         * @param entries  the vector of ranges with runtime and count.
+         * @param overhead_ns  an estimate of the profiler overhead in
+         *                     nanoseconds.
+         */
         virtual void write(const std::vector<summary_entry>& entries,
                            int64 overhead_ns) = 0;
     };
@@ -272,6 +290,13 @@ public:
     public:
         virtual ~nested_summary_writer() = default;
 
+        /**
+         * Callback to write out the summary results.
+         *
+         * @param root  the root range with runtime and count.
+         * @param overhead_ns  an estimate of the profiler overhead in
+         *                     nanoseconds.
+         */
         virtual void write_nested(const nested_summary_entry& root,
                                   int64 overhead_ns) = 0;
     };
@@ -294,10 +319,10 @@ public:
                              std::string header = "Runtime summary");
 
         void write(const std::vector<summary_entry>& entries,
-                   int64 overhead) override;
+                   int64 overhead_ns) override;
 
         void write_nested(const nested_summary_entry& root,
-                          int64 overhead) override;
+                          int64 overhead_ns) override;
 
     private:
         std::ostream* output_;
