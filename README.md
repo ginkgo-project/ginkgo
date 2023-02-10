@@ -40,7 +40,7 @@ For Ginkgo core library:
 *   C++14 compliant compiler, one of:
     *   _gcc 5.5+_
     *   _clang 3.9+_
-    *   _Intel compiler 2018+_
+    *   _Intel compiler 2019+_
     *   _Apple LLVM 8.0+_
     *   _Cray Compiler 14.0.1+_
     *   _NVHPC Compiler 22.7+_

@@ -138,30 +138,16 @@ build/cuda100/nompi/clang/all/release/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
 
-build/cuda100/nompi/intel/cuda/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
 # Build CUDA NVIDIA without omp
-build/cuda100/nompi/intel/cuda_wo_omp/release/shared:
+build/cuda100/nompi/clang/cuda_wo_omp/release/shared:
   extends:
     - .build_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
   variables:
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
@@ -578,20 +564,6 @@ test/nocuda/openmpi/clang/omp/debug/static:
   needs: [ "build/nocuda/openmpi/clang/omp/debug/static" ]
 
 # nocuda with the oldest supported compiler
-build/nocuda/nompi/intel/core/debug/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
-  variables:
-    # intel with old gcc without include path leads error: identifier "____m128d" is undefined
-    CXX_FLAGS: "-I /opt/intel/include/icc"
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_template
