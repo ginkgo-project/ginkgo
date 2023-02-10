@@ -84,7 +84,7 @@ std::string example_config = R"(
  *
  * @param value  the JSON value to test.
  */
-void validate_batch_option_object(const rapidjson::Value &value)
+void validate_batch_option_object(const rapidjson::Value& value)
 {
     if (!value.IsObject() || !value.HasMember("problem") ||
         !value["problem"].IsString()) {

@@ -437,6 +437,54 @@ std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    ValueType value)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType, itype>(size, value));
+    return res;
+}
+
+
+// creates a random matrix
+template <typename ValueType, typename RandomEngine>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    RandomEngine& engine)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType, itype>(
+        size,
+        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                       1.0),
+        engine));
+    return res;
+}
+
+
+// creates a zero vector
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
+    return res;
+}
+
+
+// creates a random vector
+template <typename ValueType, typename RandomEngine>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
+    RandomEngine& engine)
+{
+    return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
+}
+
+
 // utilities for computing norms and residuals
 template <typename ValueType>
 ValueType get_norm(const batch_vec<ValueType>* norm, size_type batch)
