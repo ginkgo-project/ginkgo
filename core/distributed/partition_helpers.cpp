@@ -62,6 +62,7 @@ GKO_REGISTER_OPERATION(sort_by_range_start,
                        partition_helpers::sort_by_range_start);
 GKO_REGISTER_OPERATION(check_consecutive_ranges,
                        partition_helpers::check_consecutive_ranges);
+GKO_REGISTER_OPERATION(compress_ranges, partition_helpers::compress_ranges);
 
 
 }  // namespace
@@ -99,9 +100,8 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 
     // remove duplicates
     array<GlobalIndexType> ranges(exec, comm.size() + 1);
-    exec->copy(1, ranges_start_end.get_data(), ranges.get_data());
-    exec->copy(comm.size(), ranges_start_end.get_data() + comm.size(),
-               ranges.get_data() + 1);
+    exec->run(
+        partition_helpers::make_compress_ranges(ranges_start_end, ranges));
 
     return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
         exec, ranges, part_ids);

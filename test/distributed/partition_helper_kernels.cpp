@@ -47,10 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using gko::experimental::distributed::comm_index_type;
 
-template <typename IndexType>
-using range_container =
-    std::pair<std::vector<IndexType>, std::vector<IndexType>>;
-
 
 // TODO: remove with c++17
 template <typename T>
@@ -70,12 +66,8 @@ std::vector<IndexType> create_iota(IndexType min, IndexType max)
 
 
 template <typename IndexType>
-std::vector<IndexType> create_ranges(gko::size_type num_ranges)
+std::vector<IndexType> create_range_offsets(gko::size_type num_ranges)
 {
-    struct repeated_value {
-        repeated_value(IndexType i) : vals{i, i} {}
-        IndexType vals[2];
-    };
     std::default_random_engine engine;
     std::uniform_int_distribution<IndexType> dist(5, 10);
     std::vector<IndexType> range_sizes(num_ranges);
@@ -85,12 +77,33 @@ std::vector<IndexType> create_ranges(gko::size_type num_ranges)
     std::vector<IndexType> range_offsets(num_ranges + 1, 0);
     std::partial_sum(range_sizes.begin(), range_sizes.end(),
                      range_offsets.begin() + 1);
+    return range_offsets;
+}
 
+
+template <typename IndexType>
+std::vector<IndexType> create_ranges(
+    const std::vector<IndexType>& range_offsets)
+{
+    struct repeated_value {
+        repeated_value(IndexType i) : vals{i, i} {}
+        IndexType vals[2];
+    };
+    gko::size_type num_ranges = range_offsets.size() - 1;
     std::vector<IndexType> ranges(num_ranges * 2, 0);
     auto ranges_it = reinterpret_cast<repeated_value*>(ranges.data() + 1);
     std::copy(range_offsets.begin() + 1, range_offsets.end() - 1, ranges_it);
     ranges.back() = range_offsets.back();
     return ranges;
+}
+
+
+template <typename IndexType>
+std::vector<IndexType> create_ranges(gko::size_type num_ranges)
+{
+    auto range_offsets = create_range_offsets<IndexType>(num_ranges);
+
+    return create_ranges(range_offsets);
 }
 
 
@@ -249,4 +262,18 @@ TYPED_TEST(PartitionHelpers, CanSortNonConsecutiveRanges)
 
     GKO_ASSERT_ARRAY_EQ(expected_start_ends, start_ends);
     GKO_ASSERT_ARRAY_EQ(expected_part_ids, part_ids_arr);
+}
+
+
+TYPED_TEST(PartitionHelpers, CanCompressRanges)
+{
+    using index_type = typename TestFixture::index_type;
+    auto expected_offsets = create_range_offsets<index_type>(100);
+    auto ranges = make_array(this->exec, create_ranges(expected_offsets));
+    gko::array<index_type> offsets{this->exec, expected_offsets.size()};
+
+    gko::kernels::EXEC_NAMESPACE::partition_helpers::compress_ranges(
+        this->exec, ranges, offsets);
+
+    GKO_ASSERT_ARRAY_EQ(offsets, make_array(this->exec, expected_offsets));
 }
