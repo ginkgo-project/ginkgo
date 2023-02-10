@@ -84,8 +84,7 @@ protected:
 
     void assert_same_precond(const Schwarz* a, const Schwarz* b)
     {
-        ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
-        ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
+        ASSERT_EQ(a->get_size(), b->get_size());
         ASSERT_EQ(a->get_parameters().local_solver_factory,
                   b->get_parameters().local_solver_factory);
     }
@@ -149,7 +148,7 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
-    copy->copy_from(give(this->schwarz));
+    copy->move_from(gko::lend(this->schwarz));
 
     this->assert_same_precond(lend(copy), lend(tmp));
 }

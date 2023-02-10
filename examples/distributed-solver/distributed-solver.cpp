@@ -45,9 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
-    // @sect3{MPI environment}
-    // Start an scoped MPI environment, which gets cleaned up on the exit of the
-    // function.
+    // @sect3{Initialize the MPI environment}
+    // Since this is an MPI program, we need to initialize and finalize
+    // MPI at the begin and end respectively of our program. This can be easily
+    // done with the following helper construct that uses RAII to automate the
+    // initialization and finalization.
     const gko::experimental::mpi::environment env(argc, argv);
     // @sect3{Type Definitiions}
     // Define the needed types. In a parallel program we need to differentiate
@@ -84,11 +86,11 @@ int main(int argc, char* argv[])
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
-    // @sect3{Initialization and User Input Handling}
-    // Since this is an MPI program, we need to initialize and finalize
-    // MPI at the begin and end respectively of our program. This can be easily
-    // done with the following helper construct that uses RAII to automize the
-    // initialization and finalization.
+    // @sect3{User Input Handling}
+    // User input settings:
+    // - The executor, defaults to reference.
+    // - The number of grid points, defaults to 100.
+    // - The number of iterations, defaults to 1000.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
@@ -100,9 +102,6 @@ int main(int argc, char* argv[])
 
     ValueType t_init = gko::experimental::mpi::get_walltime();
 
-    // User input settings:
-    // - The executor, defaults to reference.
-    // - The number of grid points, defaults to 100.
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);

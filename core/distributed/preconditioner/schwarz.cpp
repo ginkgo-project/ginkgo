@@ -76,8 +76,10 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 {
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    this->local_solver_->apply(gko::detail::get_local(dense_b),
-                               gko::detail::get_local(dense_x));
+    if (this->local_solver_ != nullptr) {
+        this->local_solver_->apply(gko::detail::get_local(dense_b),
+                                   gko::detail::get_local(dense_x));
+    }
 }
 
 
@@ -97,11 +99,15 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate()
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
+    std::shared_ptr<const LinOp> system_matrix)
 {
     if (parameters_.local_solver_factory) {
-        this->local_solver_ =
-            parameters_.local_solver_factory->generate(local_system_matrix_);
+        this->local_solver_ = parameters_.local_solver_factory->generate(
+            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                 GlobalIndexType>>(
+                system_matrix)
+                ->get_local_matrix());
     } else {
         GKO_NOT_IMPLEMENTED;
     }
