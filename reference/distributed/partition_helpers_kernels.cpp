@@ -68,7 +68,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename GlobalIndexType>
 void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                              array<GlobalIndexType>& range_start_ends,
+                              const array<GlobalIndexType>& range_start_ends,
                               bool* result)
 {
     struct end_start {
@@ -77,8 +77,8 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
     };
 
     auto num_parts = range_start_ends.get_num_elems() / 2;
-    auto range_it =
-        reinterpret_cast<end_start*>(range_start_ends.get_data() + 1);
+    auto range_it = reinterpret_cast<const end_start*>(
+        range_start_ends.get_const_data() + 1);
 
     if (num_parts) {
         *result =
