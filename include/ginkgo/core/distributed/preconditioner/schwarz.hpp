@@ -88,17 +88,6 @@ public:
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
 
-    /**
-     * Returns the local system matrix (rank-local diagonal block).
-     *
-     * @return the local system matrix
-     */
-    std::shared_ptr<const LinOp> get_local_system_matrix() const
-    {
-        return local_system_matrix_;
-    }
-
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -131,20 +120,16 @@ protected:
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Schwarz>(factory->get_executor(),
                                gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          local_system_matrix_{std::move(
-              as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                   GlobalIndexType>>(
-                  system_matrix.get())
-                  ->get_local_matrix())}
+          parameters_{factory->get_parameters()}
     {
-        this->generate();
+        this->generate(system_matrix);
     }
 
     /**
      * Generates the preconditoner.
      */
-    void generate();
+    void generate(std::shared_ptr<const LinOp> system_matrix);
+
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -155,7 +140,6 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::shared_ptr<const LinOp> local_system_matrix_;
     std::shared_ptr<const LinOp> local_solver_;
 };
 
