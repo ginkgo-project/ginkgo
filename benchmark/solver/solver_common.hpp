@@ -448,24 +448,25 @@ void solve_system(const std::string& solver_name,
             // slow run, get the time of each functions
             auto x_clone = clone(x);
 
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
-            exec->add_logger(gen_logger);
-            if (exec != exec->get_master()) {
-                exec->get_master()->add_logger(gen_logger);
-            }
+            {
+                auto gen_logger = create_operations_logger(
+                    FLAGS_nested_names, solver_json["generate"]["components"],
+                    allocator, 1);
+                exec->add_logger(gen_logger);
+                if (exec != exec->get_master()) {
+                    exec->get_master()->add_logger(gen_logger);
+                }
 
-            auto precond = precond_factory.at(precond_name)(exec);
-            solver = generate_solver(exec, give(precond), solver_name,
-                                     FLAGS_max_iters)
-                         ->generate(system_matrix);
+                auto precond = precond_factory.at(precond_name)(exec);
+                solver = generate_solver(exec, give(precond), solver_name,
+                                         FLAGS_max_iters)
+                             ->generate(system_matrix);
 
-            exec->remove_logger(gen_logger);
-            if (exec != exec->get_master()) {
-                exec->get_master()->remove_logger(gen_logger);
+                exec->remove_logger(gen_logger);
+                if (exec != exec->get_master()) {
+                    exec->get_master()->remove_logger(gen_logger);
+                }
             }
-            gen_logger->write_data(solver_json["generate"]["components"],
-                                   allocator, 1);
 
             if (auto prec =
                     dynamic_cast<const gko::Preconditionable*>(solver.get())) {
@@ -477,22 +478,23 @@ void solve_system(const std::string& solver_name,
                     solver_json["preconditioner"], allocator);
             }
 
-            auto apply_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
-            exec->add_logger(apply_logger);
-            if (exec != exec->get_master()) {
-                exec->get_master()->add_logger(apply_logger);
+            {
+                auto apply_logger = create_operations_logger(
+                    FLAGS_nested_names, solver_json["apply"]["components"],
+                    allocator, 1);
+                exec->add_logger(apply_logger);
+                if (exec != exec->get_master()) {
+                    exec->get_master()->add_logger(apply_logger);
+                }
+
+
+                solver->apply(b, x_clone);
+
+                exec->remove_logger(apply_logger);
+                if (exec != exec->get_master()) {
+                    exec->get_master()->remove_logger(apply_logger);
+                }
             }
-
-
-            solver->apply(b, x_clone);
-
-            exec->remove_logger(apply_logger);
-            if (exec != exec->get_master()) {
-                exec->get_master()->remove_logger(apply_logger);
-            }
-            apply_logger->write_data(solver_json["apply"]["components"],
-                                     allocator, 1);
 
             // slow run, gets the recurrent and true residuals of each iteration
             if (b->get_size()[1] == 1) {
