@@ -335,7 +335,7 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)                     \
+    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType);                    \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS(ValueType, IndexType)
 

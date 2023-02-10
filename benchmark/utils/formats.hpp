@@ -172,9 +172,9 @@ using csr = gko::matrix::Csr<etype, itype>;
 using coo = gko::matrix::Coo<etype, itype>;
 using ell = gko::matrix::Ell<etype, itype>;
 using ell_mixed = gko::matrix::Ell<gko::next_precision<etype>, itype>;
-using batch_csr = gko::matrix::BatchCsr<etype, itype>;
-using batch_ell = gko::matrix::BatchEll<etype, itype>;
-using batch_dense = gko::matrix::BatchDense<etype, itype>;
+using batch_csr = gko::matrix::BatchCsr<etype>;
+using batch_ell = gko::matrix::BatchEll<etype>;
+using batch_dense = gko::matrix::BatchDense<etype>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
@@ -264,7 +264,6 @@ std::unique_ptr<gko::LinOp> read_splib_matrix_from_data(
     gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(data);
     return mat;
 }
->>>>>>> Add BatchCsr spmv benchmarking
 
 
 /**

@@ -43,12 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
+#include "benchmark/spmv/spmv_common.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
-#include "benchmark/utils/timer.hpp"
-#include "benchmark/utils/types.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
@@ -57,7 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Command-line arguments
-DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 DEFINE_uint32(num_duplications, 1, "The number of duplications");
 DEFINE_uint32(num_batches, 1, "The number of batch entries");
 DEFINE_string(batch_scaling, "none", "Whether to use scaled matrices");
