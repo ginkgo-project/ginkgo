@@ -211,3 +211,147 @@ TEST(ProfilerHook, ScopeGuard)
 
     ASSERT_EQ(output, expected);
 }
+
+
+void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
+{
+    auto range1 = logger->user_range("foo");
+    {
+        auto range2 = logger->user_range("bar");
+    }
+    {
+        auto range2 = logger->user_range("bar");
+    }
+    {
+        auto range3 = logger->user_range("baz");
+        {
+            auto range4 = logger->user_range("bazz");
+        }
+        {
+            auto range5 = logger->user_range("bazzz");
+        }
+    }
+    auto range6 = logger->user_range("bazzzz");
+}
+
+struct test_summary_writer : gko::log::ProfilerHook::summary_writer {
+    void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
+               gko::int64 overhead_ns) override
+    {
+        /*
+         * total(
+         *   foo(
+         *     bar()
+         *     bar()
+         *     baz(
+         *       bazz()
+         *       bazzz()
+         *     )
+         *     bazzzz()
+         *   )
+         * )
+         */
+        ASSERT_EQ(e.size(), 7);
+        ASSERT_EQ(e[0].name, "total");
+        ASSERT_EQ(e[0].count, 1);
+        ASSERT_EQ(e[1].name, "foo");
+        ASSERT_EQ(e[1].count, 1);
+        ASSERT_EQ(e[2].name, "bar");
+        ASSERT_EQ(e[2].count, 2);
+        ASSERT_EQ(e[3].name, "baz");
+        ASSERT_EQ(e[3].count, 1);
+        ASSERT_EQ(e[4].name, "bazz");
+        ASSERT_EQ(e[4].count, 1);
+        ASSERT_EQ(e[5].name, "bazzz");
+        ASSERT_EQ(e[5].count, 1);
+        ASSERT_EQ(e[6].name, "bazzzz");
+        ASSERT_EQ(e[6].count, 1);
+        ASSERT_EQ(e[0].inclusive_ns, e[0].exclusive_ns + e[1].inclusive_ns);
+        ASSERT_EQ(e[1].inclusive_ns, e[1].exclusive_ns + e[2].inclusive_ns +
+                                         e[3].inclusive_ns + e[6].inclusive_ns);
+        ASSERT_EQ(e[2].inclusive_ns, e[2].exclusive_ns);
+        ASSERT_EQ(e[3].inclusive_ns,
+                  e[3].exclusive_ns + e[4].inclusive_ns + e[5].inclusive_ns);
+        ASSERT_EQ(e[4].inclusive_ns, e[4].exclusive_ns);
+        ASSERT_EQ(e[5].inclusive_ns, e[5].exclusive_ns);
+        ASSERT_EQ(e[6].inclusive_ns, e[6].exclusive_ns);
+    }
+};
+
+TEST(ProfilerHook, SummaryWorks)
+{
+    auto logger = gko::log::ProfilerHook::create_summary(
+        std::make_unique<test_summary_writer>());
+    call_ranges_unique(logger);
+}
+
+
+void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
+{
+    auto range1 = logger->user_range("foo");
+    {
+        auto range2 = logger->user_range("foo");
+    }
+    {
+        auto range2 = logger->user_range("foo");
+    }
+    {
+        auto range3 = logger->user_range("bar");
+        {
+            auto range4 = logger->user_range("baz");
+        }
+        {
+            auto range5 = logger->user_range("bazz");
+        }
+    }
+    auto range6 = logger->user_range("baz");
+}
+
+struct test_nested_summary_writer
+    : gko::log::ProfilerHook::nested_summary_writer {
+    void write_nested(const gko::log::ProfilerHook::nested_summary_entry& e,
+                      gko::int64 overhead_ns) override
+    {
+        /*
+         * total(
+         *   foo(
+         *     foo()
+         *     foo()
+         *     bar(
+         *       baz()
+         *       bazz()
+         *     )
+         *     baz()
+         *   )
+         * )
+         */
+        ASSERT_EQ(e.name, "total");
+        ASSERT_EQ(e.count, 1);
+        ASSERT_EQ(e.children.size(), 1);
+        auto& f = e.children[0];
+        ASSERT_EQ(f.name, "foo");
+        ASSERT_EQ(f.count, 1);
+        ASSERT_EQ(f.children.size(), 3);
+        ASSERT_EQ(f.children[0].name, "foo");
+        ASSERT_EQ(f.children[0].count, 2);
+        ASSERT_EQ(f.children[0].children.size(), 0);
+        ASSERT_EQ(f.children[1].name, "bar");
+        ASSERT_EQ(f.children[1].count, 1);
+        ASSERT_EQ(f.children[1].children.size(), 2);
+        ASSERT_EQ(f.children[2].name, "baz");
+        ASSERT_EQ(f.children[2].count, 1);
+        ASSERT_EQ(f.children[2].children.size(), 0);
+        auto& b = f.children[1];
+        ASSERT_EQ(b.children[0].name, "baz");
+        ASSERT_EQ(b.children[0].count, 1);
+        ASSERT_EQ(b.children[1].name, "bazz");
+        ASSERT_EQ(b.children[1].count, 1);
+    }
+};
+
+TEST(ProfilerHook, NestedSummaryWorks)
+{
+    auto logger = gko::log::ProfilerHook::create_nested_summary(
+        std::make_unique<test_nested_summary_writer>());
+    call_ranges(logger);
+}
