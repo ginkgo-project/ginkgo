@@ -46,8 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
-// #include "core/matrix/batch_struct.hpp"
-// #include "core/synthesizer/implementation_selection.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "dpcpp/base/config.hpp"
@@ -61,14 +59,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
-
-// #include "dpcpp/base/config.hpp"
-// #include "dpcpp/base/dim3.dp.hpp"
-// #include "dpcpp/base/onemkl_bindings.hpp"
-// #include "dpcpp/components/atomic.dp.hpp"
-// #include "dpcpp/components/cooperative_groups.dp.hpp"
-// #include "dpcpp/components/reduction.dp.hpp"
-// #include "dpcpp/components/thread_ids.dp.hpp"
 
 
 namespace gko {
@@ -131,14 +121,13 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
 
-    const dim3 block(group_size);  // Is there any perf diff between 1D vs 3D gr
+    const dim3 block(group_size);
     const dim3 grid(num_batches);
 
     // Launch a kernel that has nbatches blocks, each block has max group size
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) {  // TODO: enforce subgroup_size?
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
                 const auto a_b = batch::batch_entry(a_ub, group_id);
@@ -344,18 +333,12 @@ void batch_scale_kernel(  // TODO: consider to find a new kernel name
         const ValueType rowscale = left_scale[i_row];
         for (int iz = a.row_ptrs[i_row] + sg.get_local_id();
              iz < a.row_ptrs[i_row + 1]; iz += sg_size) {
-            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
+            auto scale_factor = rowscale * right_scale[a.col_idxs[iz]];
+            a.values[iz] *= scale_factor;
         }
     }
 }
 
-#if 0
-template <typename ValueType, typename IndexType>
-void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
-                 const matrix::BatchDiagonal<ValueType>* const left_scale,
-                 const matrix::BatchDiagonal<ValueType>* const right_scale,
-                 matrix::BatchCsr<ValueType, IndexType>* const mat) GKO_NOT_IMPLEMENTED;
-#else
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::BatchDiagonal<ValueType>* const left_scale,
@@ -365,35 +348,38 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto ncols = mat->get_size().at()[1];
     const auto m_ub = get_batch_struct(mat);
+    const auto ncols = mat->get_size().at()[1];
 
-    const auto num_batches = mat->get_num_batch_entries();
+    const auto num_batches = m_ub.num_batch;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
+    constexpr auto subgroup_size = config::warp_size;
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                auto group = item_ct1.get_group();
-                auto group_id = group.get_group_linear_id();
-                const auto m_b = batch::batch_entry(m_ub, group_id);
-                const auto left_b = batch::batch_entry_ptr(
-                    left_scale->get_const_values(), 1, m_b.num_rows, group_id);
-                const auto right_b = batch::batch_entry_ptr(
-                    right_scale->get_const_values(), 1, ncols, group_id);
-                batch_scale_kernel(item_ct1, left_b, right_b, m_b);
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto group_id = group.get_group_linear_id();
+                    const auto m_b = batch::batch_entry(m_ub, group_id);
+                    const auto left_b =
+                        batch::batch_entry_ptr(left_scale->get_const_values(),
+                                               1, m_ub.num_rows, group_id);
+                    const auto right_b = batch::batch_entry_ptr(
+                        right_scale->get_const_values(), 1, ncols, group_id);
+                    batch_scale_kernel(item_ct1, left_b, right_b, m_b);
+                });
     });
 }
 
-#endif
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
-
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_SCALE);
 
 template <typename ValueType>
 inline void pre_diag_scale_kernel(
@@ -407,7 +393,7 @@ inline void pre_diag_scale_kernel(
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
+    const int sg_size = sg.get_max_local_range().size();
     const int num_sg = sg.get_group_range().size();
 
     for (int i_row = sg_id; i_row < num_rows; i_row += num_sg) {
@@ -418,7 +404,7 @@ inline void pre_diag_scale_kernel(
         }
     }
     for (int iz = item_ct1.get_local_linear_id(); iz < num_rows * num_rhs;
-         iz += item_ct1.get_local_range(2)) {
+         iz += item_ct1.get_local_range().size()) {
         const int row = iz / num_rhs;
         const int col = iz % num_rhs;
         b[row * b_stride + col] *= left_scale[row];
@@ -436,9 +422,9 @@ void pre_diag_transform_system(
     const int num_batches = a->get_num_batch_entries();
     const int num_rows = a->get_size().at()[0];
     const int num_cols = a->get_size().at()[1];
-    const auto a_batch_stride = a->get_num_stored_elements() / num_batches;
+    const size_type a_batch_stride = a->get_num_stored_elements() / num_batches;
     const int num_rhs = b->get_size().at()[1];
-    const auto b_stride = b->get_stride().at();
+    const size_type b_stride = b->get_stride().at();
 
     auto device = exec->get_queue()->get_device();
     auto group_size =
