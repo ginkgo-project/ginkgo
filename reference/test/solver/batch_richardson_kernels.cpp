@@ -182,10 +182,14 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 
     auto result1 = gko::test::solve_poisson_uniform<value_type>(
         this->exec, this->solve_fn, opts, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
+        gko::preconditioner::BatchJacobi<value_type>::build()
+            .with_max_block_size(1u)
+            .on(this->exec));
     auto result2 = gko::test::solve_poisson_uniform<value_type>(
         this->exec, this->solve_fn, opts_slower, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
+        gko::preconditioner::BatchJacobi<value_type>::build()
+            .with_max_block_size(1u)
+            .on(this->exec));
 
     const int* const iter_arr1 = result1.logdata.iter_counts.get_const_data();
     const int* const iter_arr2 = result2.logdata.iter_counts.get_const_data();
