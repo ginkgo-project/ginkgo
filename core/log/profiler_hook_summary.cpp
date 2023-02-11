@@ -365,8 +365,11 @@ ProfilerHook::nested_summary_entry build_tree(const nested_summary& summary)
 std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
     std::unique_ptr<summary_writer> writer, bool debug_check_nesting)
 {
+    // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
+    // related to move-only functors
     std::shared_ptr<summary> data{
-        new summary{}, [writer = std::move(writer)](summary* ptr) {
+        new summary{}, [writer = std::shared_ptr<summary_writer>{
+                            std::move(writer)}](summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
             writer->write(ptr->entries, ptr->overhead_ns);
@@ -382,9 +385,11 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
 std::shared_ptr<ProfilerHook> ProfilerHook::create_nested_summary(
     std::unique_ptr<nested_summary_writer> writer, bool debug_check_nesting)
 {
+    // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
+    // related to move-only functors
     std::shared_ptr<nested_summary> data{
-        new nested_summary{},
-        [writer = std::move(writer)](nested_summary* ptr) {
+        new nested_summary{}, [writer = std::shared_ptr<nested_summary_writer>{
+                                   std::move(writer)}](nested_summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
             writer->write_nested(build_tree(*ptr), ptr->overhead_ns);
