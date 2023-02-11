@@ -57,7 +57,12 @@ class HipTestFixture : public ::testing::Test {
 protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          exec(gko::HipExecutor::create(
+              0, ref, false, gko::default_hip_alloc_mode, stream.get()))
+#else
           exec(gko::HipExecutor::create(0, ref))
+#endif
     {}
 
     void TearDown()
@@ -68,6 +73,9 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::hip_stream stream;
+#endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> exec;
 };

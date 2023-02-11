@@ -309,6 +309,35 @@ void HipExecutor::init_handles()
 }
 
 
+hip_stream::hip_stream() : stream_{}
+{
+    GKO_ASSERT_NO_HIP_ERRORS(hipStreamCreate(&stream_));
+}
+
+
+hip_stream::~hip_stream()
+{
+    if (stream_) {
+        hipStreamDestroy(stream_);
+    }
+}
+
+
+hip_stream::hip_stream(hip_stream&& other)
+    : stream_{std::exchange(other.stream_, nullptr)}
+{}
+
+
+hip_stream& hip_stream::operator=(hip_stream&& other)
+{
+    stream_ = std::exchange(other.stream_, nullptr);
+    return *this;
+}
+
+
+GKO_HIP_STREAM_STRUCT* hip_stream::get() const { return stream_; }
+
+
 namespace log {
 
 

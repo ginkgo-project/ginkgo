@@ -298,6 +298,35 @@ void CudaExecutor::init_handles()
 }
 
 
+cuda_stream::cuda_stream() : stream_{}
+{
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
+}
+
+
+cuda_stream::~cuda_stream()
+{
+    if (stream_) {
+        cudaStreamDestroy(stream_);
+    }
+}
+
+
+cuda_stream::cuda_stream(cuda_stream&& other)
+    : stream_{std::exchange(other.stream_, nullptr)}
+{}
+
+
+cuda_stream& cuda_stream::operator=(cuda_stream&& other)
+{
+    stream_ = std::exchange(other.stream_, nullptr);
+    return *this;
+}
+
+
+CUstream_st* cuda_stream::get() const { return stream_; }
+
+
 namespace log {
 
 

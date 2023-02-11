@@ -287,6 +287,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
+    NONDEFAULT_STREAM: "ON"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
