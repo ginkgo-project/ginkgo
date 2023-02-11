@@ -1715,6 +1715,40 @@ private:
 };
 
 
+/**
+ * An RAII wrapper for a custom CUDA stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class cuda_stream {
+public:
+    /** Creates a new custom CUDA stream. */
+    cuda_stream();
+
+    /** Destroys the custom CUDA stream, if it wasn't moved-from already. */
+    ~cuda_stream();
+
+    cuda_stream(const cuda_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    cuda_stream(cuda_stream&&);
+
+    cuda_stream& operator=(const cuda_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    cuda_stream& operator=(cuda_stream&&);
+
+    /**
+     * Returns the native CUDA stream handle.
+     * In a moved-from cuda_stream, this will return nullptr.
+     */
+    CUstream_st* get() const;
+
+private:
+    CUstream_st* stream_;
+};
+
+
 namespace kernels {
 namespace cuda {
 using DefaultExecutor = CudaExecutor;
@@ -1918,6 +1952,40 @@ private:
     handle_manager<hipsparseContext> hipsparse_handle_;
 
     allocation_mode alloc_mode_;
+    GKO_HIP_STREAM_STRUCT* stream_;
+};
+
+
+/**
+ * An RAII wrapper for a custom HIP stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class hip_stream {
+public:
+    /** Creates a new custom HIP stream. */
+    hip_stream();
+
+    /** Destroys the custom HIP stream, if it wasn't moved-from already. */
+    ~hip_stream();
+
+    hip_stream(const hip_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    hip_stream(hip_stream&&);
+
+    hip_stream& operator=(const hip_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    hip_stream& operator=(hip_stream&&);
+
+    /**
+     * Returns the native HIP stream handle.
+     * In a moved-from hip_stream, this will return nullptr.
+     */
+    GKO_HIP_STREAM_STRUCT* get() const;
+
+private:
     GKO_HIP_STREAM_STRUCT* stream_;
 };
 

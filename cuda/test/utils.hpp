@@ -57,7 +57,12 @@ class CudaTestFixture : public ::testing::Test {
 protected:
     CudaTestFixture()
         : ref(gko::ReferenceExecutor::create()),
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          exec(gko::CudaExecutor::create(
+              0, ref, false, gko::default_cuda_alloc_mode, stream.get()))
+#else
           exec(gko::CudaExecutor::create(0, ref))
+#endif
     {}
 
     void TearDown()
@@ -68,6 +73,9 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::cuda_stream stream;
+#endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> exec;
 };

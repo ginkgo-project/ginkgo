@@ -154,6 +154,21 @@ scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
     GKO_NOT_COMPILED(hip);
 
 
+hip_stream::hip_stream() GKO_NOT_COMPILED(hip);
+
+
+hip_stream::~hip_stream() {}
+
+
+hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
+
+
+hip_stream& hip_stream::operator=(hip_stream&&) GKO_NOT_COMPILED(hip);
+
+
+GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);
+
+
 namespace log {
 
 
