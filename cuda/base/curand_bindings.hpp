@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <curand.h>
-#include <driver_types.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
