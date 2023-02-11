@@ -72,8 +72,9 @@ namespace multigrid {
  * @ingroup Multigrid
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename WorkingType = ValueType>
+class Pgm : public EnableLinOp<Pgm<ValueType, IndexType, WorkingType>>,
             public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<Pgm>;
     friend class EnablePolymorphicObject<Pgm, LinOp>;
@@ -90,6 +91,12 @@ public:
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
+    }
+
+    std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
+    get_working_coarse_matrix() const
+    {
+        return working_coarse_matrix_;
     }
 
     /**
@@ -192,15 +199,18 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
+        working_coarse_matrix_{};
     array<IndexType> agg_;
 };
 
 
-template <typename ValueType = default_precision, typename IndexType = int32>
+template <typename ValueType = default_precision,
+          typename WorkingType = ValueType, typename IndexType = int32>
 using AmgxPgm
     [[deprecated("This class is deprecated and will be removed in the next "
                  "major release. Please use Pgm instead.")]] =
-        Pgm<ValueType, IndexType>;
+        Pgm<ValueType, WorkingType, IndexType>;
 
 
 }  // namespace multigrid

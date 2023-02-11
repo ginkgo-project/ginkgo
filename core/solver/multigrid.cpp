@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -523,6 +524,7 @@ void Multigrid::generate()
     auto num_rows = this->get_system_matrix()->get_size()[0];
     size_type level = 0;
     auto matrix = this->get_system_matrix();
+    auto working_matrix = matrix;
     auto exec = this->get_executor();
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
@@ -532,7 +534,7 @@ void Multigrid::generate()
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
         auto mg_level = as<gko::multigrid::MultigridLevel>(
-            share(mg_level_factory->generate(matrix)));
+            share(mg_level_factory->generate(working_matrix)));
         if (mg_level->get_coarse_op()->get_size()[0] == num_rows) {
             // do not reduce dimension
             break;
@@ -548,7 +550,7 @@ void Multigrid::generate()
 #endif
             std::complex<float>, std::complex<double>>(
             mg_level,
-            [this](auto mg_level, auto index, auto matrix) {
+            [&, this](auto mg_level, auto index, auto matrix) {
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
                 handle_list<value_type>(
@@ -567,6 +569,10 @@ void Multigrid::generate()
                         post_smoother_list_, parameters_.smoother_iters,
                         parameters_.smoother_relax);
                 }
+                working_matrix =
+                    gko::as<gko::multigrid::Pgm<value_type, int, double>>(
+                        mg_level)
+                        ->get_working_coarse_matrix();
             },
             index, mg_level->get_fine_op());
 
