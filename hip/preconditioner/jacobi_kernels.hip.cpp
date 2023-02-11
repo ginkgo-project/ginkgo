@@ -76,7 +76,7 @@ constexpr int default_grid_size = 32 * 32 * 128;
 #include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
 
+}  // namespace
 }  // namespace jacobi
 }  // namespace hip
 }  // namespace kernels
-}  // namespace gko

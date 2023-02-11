@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_BASE_THRUST_HIP_HPP_
 #define GKO_HIP_BASE_THRUST_HIP_HPP_
 
-#include <ginkgo/config.hpp>
-
 
 #include <thrust/execution_policy.h>
+
+
+#include <ginkgo/config.hpp>
 #if GINKGO_HIP_PLATFORM_HCC
 #include <thrust/system/hip/detail/execution_policy.h>
 #else
