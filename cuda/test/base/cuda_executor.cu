@@ -95,11 +95,18 @@ protected:
     void SetUp()
     {
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+        cuda = gko::CudaExecutor::create(
+            0, omp, false, gko::default_cuda_alloc_mode, stream.get());
+#else
         cuda = gko::CudaExecutor::create(0, omp);
+#endif
         cuda2 = gko::CudaExecutor::create(
-            gko::CudaExecutor::get_num_devices() - 1, omp);
+            gko::CudaExecutor::get_num_devices() - 1, omp, false,
+            gko::default_cuda_alloc_mode, cuda->get_stream());
         cuda3 = gko::CudaExecutor::create(0, omp, false,
-                                          gko::allocation_mode::unified_global);
+                                          gko::allocation_mode::unified_global,
+                                          cuda->get_stream());
     }
 
     void TearDown()
@@ -110,6 +117,9 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::cuda_stream stream;
+#endif
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<gko::CudaExecutor> cuda2;
