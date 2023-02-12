@@ -700,6 +700,22 @@ TYPED_TEST(Dense, ComputesNorm1Mixed)
 }
 
 
+TYPED_TEST(Dense, ComputesMean)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using MeanVector = gko::matrix::Dense<T>;
+    auto mtx(gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}, I<T>{-1.0, -1.0}},
+        this->exec));
+    auto result = MeanVector::create(this->exec, gko::dim<2>{1, 2});
+
+    mtx->compute_mean(result.get());
+
+    GKO_ASSERT_MTX_NEAR(result, l<T>({{1.0, 1.5}}), 1e-2);
+}
+
+
 TYPED_TEST(Dense, ComputeDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
