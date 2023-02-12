@@ -23,4 +23,8 @@ if(GINKGO_BUILD_BENCHMARKS)
     endif()
 endif()
 
+if (GINKGO_TEST_NONDEFAULT_STREAM)
+    add_subdirectory(identify_stream_usage)
+endif()
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
