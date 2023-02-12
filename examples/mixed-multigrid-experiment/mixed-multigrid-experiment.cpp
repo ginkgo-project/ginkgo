@@ -112,7 +112,13 @@ int main(int argc, char* argv[])
     std::cout << "b: " << b_file << std::endl;
     // clang-format on
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream(A_file), exec));
+    // auto A = share(gko::read<mtx>(std::ifstream(A_file), exec));
+    auto f = std::ifstream(A_file);
+    auto A = gko::share(mtx::create(exec, std::make_shared<mtx::classical>()));
+    auto mat_data =
+        gko::read_raw<typename mtx::value_type, typename mtx::index_type>(f);
+    // mat_data.remove_zeros();
+    A->read(mat_data);
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));

@@ -1111,9 +1111,9 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto num_subgroup =
         exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
-    const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
-                 int64(num_subgroup / nsg_in_group));
+    auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subwarp_size);
+    // std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
+    //          int64(num_subgroup / nsg_in_group));
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
@@ -1191,6 +1191,8 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        // using average
+        max_length_per_row = a->get_num_stored_elements() / a->get_size()[0];
         max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
@@ -1316,6 +1318,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        // using average
+        max_length_per_row = a->get_num_stored_elements() / a->get_size()[0];
         max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),

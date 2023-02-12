@@ -14,21 +14,24 @@ l-shape-const-o-3-l-7
 "
 RESULT_FOLDER=$1
 for num_levels in 3 10; do
-    output=${RESULT_FOLDER}/collect_${num_levels}.csv
+    output=${RESULT_FOLDER}/collect_case_${num_levels}.csv
     echo "matrix, final residual, iteration count, generation time[ms], total execution time[ms], executation time per iteration[ms]" > ${output}
     for list in AMGX_LISTS MFEM_LISTS; do
         for matrix in ${!list}; do
             echo "matrix ${matrix} in ${mtx}"
+            line=""
             for mixed_mode in 0 1 2 3; do
                 echo "|_ mixed_mode ${mixed_mode}"
-
+                if [[ "${mixed_mode}" != "0" ]]; then
+                    line="${line}, "
+                fi
                 label="${matrix}_mixed${mixed_mode}_level${num_levels}"
                 file="${RESULT_FOLDER}/${label}.txt"
                 residual_norm=$(tail -n 5 ${file} | head -n 1)
                 info=$(tail -n 4 ${file} | sed -E 's/[^0-9\.]//g' | tr '\n' ',' | sed -E 's/,$/\n/g')
-                echo "${label}, ${residual_norm}, ${info}" >> ${output}
-
+                line="${line}${label}, ${residual_norm}, ${info}"
             done
+            echo "${line}" >> "${output}"
         done
     done
 done

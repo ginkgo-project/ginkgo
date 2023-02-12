@@ -251,11 +251,10 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     const matrix::Dense<ValueType>* beta = nullptr)
 {
     const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() *
-                        classical_oversubscription;
-    const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
-                 int64(nwarps / warps_in_block));
+                        exec->get_num_multiprocessor() * classical_overweight;
+    auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subwarp_size);
+    // std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
+    //          int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
     const auto block = spmv_block_size;
 
@@ -362,6 +361,9 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
+            // using average
+            max_length_per_row =
+                a->get_num_stored_elements() / a->get_size()[0];
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
@@ -456,6 +458,9 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
+            // using average
+            max_length_per_row =
+                a->get_num_stored_elements() / a->get_size()[0];
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
