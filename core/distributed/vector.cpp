@@ -468,14 +468,23 @@ void Vector<ValueType>::compute_norm1(LinOp* result, array<char>& tmp) const
 
 
 template <typename ValueType>
+void Vector<ValueType>::compute_mean(LinOp* result) const
+{}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
+{}
+
+template <typename ValueType>
 ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 {
     return local_.at(row, col);
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }

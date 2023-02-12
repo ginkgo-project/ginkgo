@@ -80,6 +80,7 @@ GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
+GKO_REGISTER_OPERATION(compute_mean, dense::compute_mean);
 GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
 GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
@@ -218,6 +219,14 @@ void Dense<ValueType>::compute_norm1(LinOp* result) const
 {
     auto exec = this->get_executor();
     this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_mean(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_mean_impl(make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -458,6 +467,34 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
         make_temporary_conversion<remove_complex<ValueType>>(result);
     array<char> tmp{exec};
     exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_mean(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_mean_impl(LinOp* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_mean(this, dense_res.get(), tmp));
 }
 
 

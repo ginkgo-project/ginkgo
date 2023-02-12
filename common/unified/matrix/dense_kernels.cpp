@@ -310,6 +310,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 
 
 template <typename ValueType>
+void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Dense<ValueType>* x,
+                  matrix::Dense<remove_complex<ValueType>>* result,
+                  array<char>& tmp)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL);
+
+
+template <typename ValueType>
 void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              size_type& result)

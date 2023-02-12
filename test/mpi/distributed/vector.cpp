@@ -619,6 +619,29 @@ TYPED_TEST(VectorReductions, ComputesNorm1WithTmpIsSameAsDense)
                         r<value_type>::value);
 }
 
+TYPED_TEST(VectorReductions, ComputesMeanIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_mean(this->real_res.get());
+    this->dense_x->compute_mean(this->dense_real_res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+TYPED_TEST(VectorReductions, ComputesMeanWithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_mean(this->real_res.get(), this->tmp);
+    this->dense_x->compute_mean(this->dense_real_res.get(), this->dense_tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
 
 TYPED_TEST(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
 {
