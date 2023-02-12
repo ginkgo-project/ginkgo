@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 inline void init_executor(std::shared_ptr<gko::ReferenceExecutor>,
                           std::shared_ptr<gko::ReferenceExecutor>& exec)
 {
-    return gko::ReferenceExecutor::create();
+    exec = gko::ReferenceExecutor::create();
 }
 
 
@@ -68,7 +68,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
         if (gko::CudaExecutor::get_num_devices() == 0) {
             throw std::runtime_error{"No suitable CUDA devices"};
         }
-        return gko::CudaExecutor::create(
+        exec = gko::CudaExecutor::create(
             gko::experimental::mpi::map_rank_to_device_id(
                 MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
             ref, false, gko::default_cuda_alloc_mode, stream);
