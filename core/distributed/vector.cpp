@@ -30,10 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/distributed/vector.hpp>
-
-
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 
 
 #include "core/distributed/vector_kernels.hpp"
@@ -574,10 +572,50 @@ void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
 
 
 template <typename ValueType>
+void Vector<ValueType>::compute_mean(LinOp* result) const
+{
+    array<char> tmp{this->get_executor()};
+    this->compute_mean(result, tmp);
+}
+
+
+void Vector<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
+{
+    using MeanVector = local_vector_type;
+    const auto global_size = this->get_size()[0];
+    const auto local_size = this->get_local_vector()->get_size()[0];
+    const auto num_vecs = static_cast<int>(this->get_size()[1]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, num_vecs));
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    auto dense_res = make_temporary_clone(exec, as<MeanVector>(result));
+    this->get_local_vector()->compute_mean(dense_res.get());
+
+    // scale by its weight ie ratio of local to global size
+    auto weight = initialize<matrix::Dense<remove_complex<ValueType>>>(
+        1, {static_cast<remove_complex<ValueType>>(local_size) / global_size},
+        this->get_executor());
+    dense_res->scale(weight.get());
+
+    exec->synchronize();
+    if (mpi::requires_host_buffer(exec, comm)) {
+        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_reduction_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(exec->get_master(),
+                        host_reduction_buffer_->get_values(), num_vecs,
+                        MPI_SUM);
+        dense_res->copy_from(host_reduction_buffer_.get());
+    } else {
+        comm.all_reduce(exec, dense_res->get_values(), num_vecs, MPI_SUM);
+    }
+}
+
+template <typename ValueType>
 ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 {
     return local_.at(row, col);
 }
+
 
 template <typename ValueType>
 ValueType Vector<ValueType>::at_local(size_type row,
@@ -585,6 +623,7 @@ ValueType Vector<ValueType>::at_local(size_type row,
 {
     return local_.at(row, col);
 }
+
 
 template <typename ValueType>
 ValueType& Vector<ValueType>::at_local(size_type idx) noexcept

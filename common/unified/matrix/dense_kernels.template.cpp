@@ -279,6 +279,22 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
+void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Dense<ValueType>* x,
+                  matrix::Dense<ValueType>* result, array<char>& tmp)
+{
+    using ValueType_nc = gko::remove_complex<ValueType>;
+    run_kernel_col_reduction_cached(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto x, auto total_size) {
+            return x(i, j) / static_cast<ValueType_nc>(total_size);
+        },
+        GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
+        tmp, x, x->get_size()[0]);
+}
+
+
+template <typename ValueType>
 void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              size_type& result)
