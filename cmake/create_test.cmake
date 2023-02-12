@@ -71,6 +71,10 @@ function(ginkgo_add_test test_name test_target_name)
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
+    if (GINKGO_TEST_NONDEFAULT_STREAM)
+        set_tests_properties(${REL_BINARY_DIR}/${test_name} PROPERTIES
+                             ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:identify_stream_usage>)
+    endif()
 endfunction()
 
 ## Normal test
