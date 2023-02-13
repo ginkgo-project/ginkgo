@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -68,7 +67,7 @@ namespace reorder {
  * max_diag_sum aims at maximizing the sum of absolute values
  * for the diagonal entries.
  */
-enum class reordering_strategy { max_diagonal_product, max_diagonal_sum };
+enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
 
 
 /**
@@ -82,16 +81,16 @@ enum class reordering_strategy { max_diagonal_product, max_diagonal_sum };
  * for choosing the weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      c(i, j) = log2(a_i) - log2(abs(a(i, j))) if a(i, j) is nonzero and
- * infinity otherwise Here, a_i is the maximum absolute value in row i of the
- * matrix A. In this case, the implementation computes a row permutation P and
- * row and column scaling coefficients L and R such that the matrix P*L*A*R has
- * values with unity absolute value on the diagonal and smaller or equal entries
- * everywhere else.
+ *      $c(i, j) = log_2(a_i) - log_2(abs(a(i, j)))$ if $a(i, j) \neq 0 $ and
+ * $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in row
+ * i of the matrix A. In this case, the implementation computes a row
+ * permutation P and row and column scaling coefficients L and R such that the
+ * matrix P*L*A*R has values with unity absolute value on the diagonal and
+ * smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      c(i, j) = a_i - abs(a(i, j)) if a(i, j) is nonzero and infinity
- * otherwise In this case, no scaling coefficients are computed.
+ *      $c(i, j) = a_i - abs(a(i, j))$ if $a(i, j) \neq 0$ and $c(i, j) =
+ * \infty$ otherwise. In this case, no scaling coefficients are computed.
  *
  * @note  This class is derived from polymorphic object but is not a LinOp as it
  * does not make sense for this class to implement the apply methods. The
@@ -114,7 +113,6 @@ public:
     using DiagonalMatrix = matrix::Diagonal<ValueType>;
     using value_type = ValueType;
     using index_type = IndexType;
-
 
     /**
      * Gets the permutation (permutation matrix, output of the algorithm) of the
@@ -165,8 +163,8 @@ public:
         /**
          * This parameter controls the goal of the permutation.
          */
-        reordering_strategy GKO_FACTORY_PARAMETER_SCALAR(
-            strategy, reordering_strategy::max_diagonal_product);
+        mc64_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            strategy, mc64_strategy::max_diagonal_product);
 
         /**
          * This parameter controls the tolerance below which a weight is
@@ -180,7 +178,7 @@ public:
          * for the addressable priority queue used in generating the
          * minimum weight perfect matching.
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(log2_degree, 4);
+        int GKO_FACTORY_PARAMETER_SCALAR(deg_log2, 4);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Mc64, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

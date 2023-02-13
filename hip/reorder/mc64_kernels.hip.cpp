@@ -52,8 +52,11 @@ namespace mc64 {
 template <typename ValueType, typename IndexType>
 void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* mtx,
-                        array<remove_complex<ValueType>>& workspace,
-                        gko::reorder::reordering_strategy strategy)
+                        array<remove_complex<ValueType>>& weights_array,
+                        array<remove_complex<ValueType>>& dual_u_array,
+                        array<remove_complex<ValueType>>& distance_array,
+                        array<remove_complex<ValueType>>& row_maxima_array,
+                        gko::reorder::mc64_strategy strategy)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -64,10 +67,12 @@ template <typename ValueType, typename IndexType>
 void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
                       size_type num_rows, const IndexType* row_ptrs,
                       const IndexType* col_idxs,
-                      const array<ValueType>& workspace,
+                      const array<ValueType>& weights_array,
+                      const array<ValueType>& dual_u_array,
                       array<IndexType>& permutation,
                       array<IndexType>& inv_permutation,
-                      array<IndexType>& parents,
+                      array<IndexType>& matched_idxs_array,
+                      array<IndexType>& unmatched_rows_array,
                       ValueType tolerance) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
@@ -78,9 +83,12 @@ template <typename ValueType, typename IndexType>
 void shortest_augmenting_path(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
     const IndexType* row_ptrs, const IndexType* col_idxs,
-    array<ValueType>& workspace, array<IndexType>& permutation,
+    array<ValueType>& weights_array, array<ValueType>& dual_u_array,
+    array<ValueType>& distance_array, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
-    array<IndexType>& parents,
+    array<IndexType>& parents_array, array<IndexType>& handles_array,
+    array<IndexType>& generation_array, array<IndexType>& marked_cols_array,
+    array<IndexType>& matched_idxs_array,
     addressable_priority_queue<ValueType, IndexType>& Q,
     std::vector<IndexType>& q_j, ValueType tolerance) GKO_NOT_IMPLEMENTED;
 
@@ -89,14 +97,17 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_scaling(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    const array<remove_complex<ValueType>>& workspace,
-    const array<IndexType>& permutation, const array<IndexType>& parents,
-    gko::reorder::reordering_strategy strategy,
-    gko::matrix::Diagonal<ValueType>* row_scaling,
-    gko::matrix::Diagonal<ValueType>* col_scaling) GKO_NOT_IMPLEMENTED;
+void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
+                     const matrix::Csr<ValueType, IndexType>* mtx,
+                     const array<remove_complex<ValueType>>& weights_array,
+                     const array<remove_complex<ValueType>>& dual_u_array,
+                     const array<remove_complex<ValueType>>& row_maxima_array,
+                     const array<IndexType>& permutation,
+                     const array<IndexType>& matched_idxs_array,
+                     gko::reorder::mc64_strategy strategy,
+                     gko::matrix::Diagonal<ValueType>* row_scaling,
+                     gko::matrix::Diagonal<ValueType>* col_scaling)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL);
