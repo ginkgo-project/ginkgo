@@ -104,6 +104,8 @@ int main(int argc, char* argv[])
     }
     const std::string A_file = argc >= 7 ? argv[6] : "data/A.mtx";
     const std::string b_file = argc >= 8 ? argv[7] : "ones";
+    const int switch_to_single = mixed_mode % 400 / 10;
+    const int switch_to_half = mixed_mode % 400 % 10;
     std::cout << "mixed mode: " << mixed_mode << std::endl;
     // clang-format off
     if (mixed_mode == 0) {
@@ -118,6 +120,17 @@ int main(int argc, char* argv[])
     } else if (mixed_mode == 3) {
         std::cout << "          first level is double" << std::endl
                   << ", the rest of levels are half" << std::endl;
+    } else if (mixed_mode >= 400 && mixed_mode <= 499) {
+        if (switch_to_single > switch_to_half || switch_to_single < 1) {
+            std::cout << "switch to single should be eariler than switch to half" << std::endl;
+            std::cout << "switch to single should >= 1" << std::endl;
+            std::exit(1);
+        }
+        std::cout << "0 ~ " << switch_to_single - 1 << " levels use double" << std::endl
+                  << switch_to_single << " ~ " << switch_to_half - 1 << " levels use single" << std::endl
+                  << "rest use half" << std::endl;
+    } else {
+        std::exit(1);
     }
     std::cout << "The maxium number of levels: " << num_max_levels << std::endl;
     std::cout << "cycle mode: " << cycle_mode << std::endl;
@@ -347,6 +360,29 @@ int main(int argc, char* argv[])
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
+    } else if (mixed_mode >= 400 && mixed_mode <= 499) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
+                .with_post_uses_pre(true)
+                .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
+                .with_level_selector([=](const gko::size_type level,
+                                         const gko::LinOp*) -> gko::size_type {
+                    if (level >= switch_to_half) {
+                        return 2;
+                    }
+                    if (level >= switch_to_single) {
+                        return 1;
+                    }
+                    return 0;
+                })
+                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
     }
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
@@ -356,63 +392,69 @@ int main(int argc, char* argv[])
     auto gen_toc = std::chrono::steady_clock::now();
     gen_time +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
-    auto mg_level_list = solver->get_mg_level_list();
-    std::cout << "Level: " << mg_level_list.size() << std::endl;
-    int prev_n = solver->get_system_matrix()->get_size()[0];
-    int prev_nnz =
-        gko::as<mtx>(solver->get_system_matrix())->get_num_stored_elements();
-    int total_n = prev_n;
-    int total_nnz = prev_nnz;
-    std::cout << "0, " << prev_n << ", " << prev_nnz
-              << ", prev_n(%), prev_nnz(%), total_n(%), total_nnz(%)"
-              << std::endl;
     auto cg_solver = gko::share(cg::build()
                                     .with_generated_preconditioner(solver)
                                     .with_criteria(cg_iter_stop, cg_tol_stop)
                                     .on(exec)
                                     ->generate(A));
 
-    for (int i = 1; i < mg_level_list.size(); i++) {
-        auto op = mg_level_list.at(i)->get_fine_op();
-        int n = op->get_size()[0];
-        int num_stored_elements = 0;
-        if ((mixed_mode == 2 && i >= 2) || (mixed_mode == 3 && i >= 1)) {
-            auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
-            num_stored_elements = csr->get_num_stored_elements();
-        } else if ((mixed_mode == 1 && i >= 1) || (mixed_mode == 2 && i == 1)) {
-            auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
-            num_stored_elements = csr->get_num_stored_elements();
-        } else {
-            auto csr = gko::as<mtx>(op);
-            num_stored_elements = csr->get_num_stored_elements();
+
+    auto mg_level_list = solver->get_mg_level_list();
+    std::cout << "Level: " << mg_level_list.size() << std::endl;
+    if (mixed_mode <= 3) {
+        int prev_n = solver->get_system_matrix()->get_size()[0];
+        int prev_nnz = gko::as<mtx>(solver->get_system_matrix())
+                           ->get_num_stored_elements();
+        int total_n = prev_n;
+        int total_nnz = prev_nnz;
+        std::cout << "0, " << prev_n << ", " << prev_nnz
+                  << ", prev_n(%), prev_nnz(%), total_n(%), total_nnz(%)"
+                  << std::endl;
+
+        for (int i = 1; i < mg_level_list.size(); i++) {
+            auto op = mg_level_list.at(i)->get_fine_op();
+            int n = op->get_size()[0];
+            int num_stored_elements = 0;
+            if ((mixed_mode == 2 && i >= 2) || (mixed_mode == 3 && i >= 1)) {
+                auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            } else if ((mixed_mode == 1 && i >= 1) ||
+                       (mixed_mode == 2 && i == 1)) {
+                auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            } else {
+                auto csr = gko::as<mtx>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            }
+            std::cout << i << ", " << n << ", " << num_stored_elements << ", "
+                      << float(n) / prev_n << ", "
+                      << float(num_stored_elements) / prev_nnz << ", "
+                      << float(n) / total_n << ", "
+                      << float(num_stored_elements) / total_nnz << std::endl;
+            prev_n = n;
+            prev_nnz = num_stored_elements;
         }
-        std::cout << i << ", " << n << ", " << num_stored_elements << ", "
-                  << float(n) / prev_n << ", "
-                  << float(num_stored_elements) / prev_nnz << ", "
-                  << float(n) / total_n << ", "
-                  << float(num_stored_elements) / total_nnz << std::endl;
-        prev_n = n;
-        prev_nnz = num_stored_elements;
-    }
-    {
-        auto op = mg_level_list.at(mg_level_list.size() - 1)->get_coarse_op();
-        int n = op->get_size()[0];
-        int num_stored_elements = 0;
-        if (mixed_mode == 2 || mixed_mode == 3) {
-            auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
-            num_stored_elements = csr->get_num_stored_elements();
-        } else if (mixed_mode == 1) {
-            auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
-            num_stored_elements = csr->get_num_stored_elements();
-        } else {
-            auto csr = gko::as<mtx>(op);
-            num_stored_elements = csr->get_num_stored_elements();
+        {
+            auto op =
+                mg_level_list.at(mg_level_list.size() - 1)->get_coarse_op();
+            int n = op->get_size()[0];
+            int num_stored_elements = 0;
+            if (mixed_mode == 2 || mixed_mode == 3) {
+                auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            } else if (mixed_mode == 1) {
+                auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            } else {
+                auto csr = gko::as<mtx>(op);
+                num_stored_elements = csr->get_num_stored_elements();
+            }
+            std::cout << mg_level_list.size() << ", " << n << ", "
+                      << num_stored_elements << ", " << float(n) / prev_n
+                      << ", " << float(num_stored_elements) / prev_nnz << ", "
+                      << float(n) / total_n << ", "
+                      << float(num_stored_elements) / total_nnz << std::endl;
         }
-        std::cout << mg_level_list.size() << ", " << n << ", "
-                  << num_stored_elements << ", " << float(n) / prev_n << ", "
-                  << float(num_stored_elements) / prev_nnz << ", "
-                  << float(n) / total_n << ", "
-                  << float(num_stored_elements) / total_nnz << std::endl;
     }
 
     int warmup = 2;
