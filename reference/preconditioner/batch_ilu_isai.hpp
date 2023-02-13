@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/base/config.hpp"
 
 
+#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace host {
