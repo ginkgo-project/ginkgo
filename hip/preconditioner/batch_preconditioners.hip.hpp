@@ -40,6 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/reduction.hip.hpp"
 
 
+#include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
