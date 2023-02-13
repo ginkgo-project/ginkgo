@@ -34,11 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_PRECONDITIONER_BATCH_ILU_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
-
-
-#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 
 
 namespace gko {

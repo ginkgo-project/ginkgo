@@ -34,11 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
-
-
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 namespace gko {
