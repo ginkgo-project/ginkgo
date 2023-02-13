@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/base/config.hpp"
 
 
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace host {
@@ -80,7 +83,8 @@ public:
           storage_scheme_{storage_scheme},
           blocks_cumulative_storage_{blocks_cumulative_storage},
           blocks_arr_batch_{blocks_arr_batch},
-          block_ptrs_arr_{block_ptrs_arr}
+          block_ptrs_arr_{block_ptrs_arr},
+          blocks_arr_entry_{}
 
     {}
 
