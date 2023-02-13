@@ -153,9 +153,9 @@ TYPED_TEST(Mc64, HasSensibleDefaults)
     auto mc64 = reorder_type::build().on(this->exec)->generate(this->id3_mtx);
 
     ASSERT_EQ(mc64->get_parameters().strategy,
-              gko::reorder::reordering_strategy::max_diagonal_product);
+              gko::reorder::mc64_strategy::max_diagonal_product);
     ASSERT_EQ(mc64->get_parameters().tolerance, real_type{1e-14});
-    ASSERT_EQ(mc64->get_parameters().log2_degree, 4);
+    ASSERT_EQ(mc64->get_parameters().deg_log2, 4);
 }
 
 
@@ -165,7 +165,7 @@ TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
 
     auto mc64 =
         reorder_type::build()
-            .with_strategy(gko::reorder::reordering_strategy::max_diagonal_sum)
+            .with_strategy(gko::reorder::mc64_strategy::max_diagonal_sum)
             .on(this->exec)
             ->generate(this->id3_mtx);
 
@@ -192,7 +192,7 @@ TYPED_TEST(Mc64, CanBeCreatedWithLog2Degree)
     using reorder_type = typename TestFixture::reorder_type;
 
     auto mc64 = reorder_type::build()
-                    .with_log2_degree(2)
+                    .with_deg_log2(2)
                     .on(this->exec)
                     ->generate(this->id3_mtx);
 

@@ -57,8 +57,11 @@ namespace mc64 {
 template <typename ValueType, typename IndexType>
 void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* mtx,
-                        array<remove_complex<ValueType>>& value_workspace,
-                        gko::reorder::reordering_strategy strategy)
+                        array<remove_complex<ValueType>>& weights_array,
+                        array<remove_complex<ValueType>>& dual_u_array,
+                        array<remove_complex<ValueType>>& distance_array,
+                        array<remove_complex<ValueType>>& row_maxima_array,
+                        gko::reorder::mc64_strategy strategy)
 {
     constexpr auto inf =
         std::numeric_limits<remove_complex<ValueType>>::infinity();
@@ -68,13 +71,13 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto values = mtx->get_const_values();
     auto calculate_weight =
-        strategy == gko::reorder::reordering_strategy::max_diagonal_sum
+        strategy == gko::reorder::mc64_strategy::max_diagonal_sum
             ? [](ValueType a) { return abs(a); }
             : [](ValueType a) { return std::log2(abs(a)); };
-    auto weights = value_workspace.get_data();
-    auto dual_u = weights + nnz;
-    auto distance = dual_u + num_rows;
-    auto row_maxima = distance + num_rows;
+    auto weights = weights_array.get_data();
+    auto dual_u = dual_u_array.get_data();
+    auto distance = distance_array.get_data();
+    auto row_maxima = row_maxima_array.get_data();
     for (IndexType col = 0; col < num_rows; col++) {
         dual_u[col] = inf;
         distance[col] = inf;
@@ -87,7 +90,7 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto weight = calculate_weight(values[idx]);
             weights[idx] = weight;
-            if (weight > row_max) row_max = weight;
+            row_max = std::max(weight, row_max);
         }
 
         row_maxima[row] = row_max;
@@ -96,7 +99,9 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
             const auto weight = row_max - weights[idx];
             weights[idx] = weight;
             const auto col = col_idxs[idx];
-            if (weight < dual_u[col]) dual_u[col] = weight;
+            if (weight < dual_u[col]) {
+                dual_u[col] = weight;
+            }
         }
     }
 }
@@ -107,26 +112,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 // Assume -1 in permutation and inv_permutation
 template <typename ValueType, typename IndexType>
-void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
-                      size_type num_rows, const IndexType* row_ptrs,
-                      const IndexType* col_idxs,
-                      const array<ValueType>& value_workspace,
-                      array<IndexType>& permutation,
-                      array<IndexType>& inv_permutation,
-                      array<IndexType>& index_workspace, ValueType tolerance)
+void initial_matching(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
+    const IndexType* row_ptrs, const IndexType* col_idxs,
+    const array<ValueType>& weights_array, const array<ValueType>& dual_u_array,
+    array<IndexType>& permutation, array<IndexType>& inv_permutation,
+    array<IndexType>& matched_idxs_array,
+    array<IndexType>& unmatched_rows_array, ValueType tolerance)
 {
     const auto nnz = row_ptrs[num_rows];
-    const auto weights = value_workspace.get_const_data();
-    const auto dual_u = weights + nnz;
+    const auto weights = weights_array.get_const_data();
+    const auto dual_u = dual_u_array.get_const_data();
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
-    auto idxs = index_workspace.get_data() + 4 * num_rows;
-    auto unmatched = idxs + num_rows;
+    auto idxs = matched_idxs_array.get_data();
+    auto unmatched = unmatched_rows_array.get_data();
     auto um_cnt = 0;
 
-    // For each row, look for an unmatched column col for which weight(row, col)
-    // = 0. If one is found, add the edge (row, col) to the matching and move on
-    // to the next row.
+    // In the following comments, w(row, col) will refer to the reduced weight
+    // abs(weights(row, col) - dual_u(col)) where dual_u is a dual vector
+    // needed for non-negativity of all weights.
+    // For each row, look for an unmatched column col for which
+    // w(row, col) < tolerance. If one is found, add the edge (row, col) to the
+    // matching and move on to the next row.
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
@@ -147,11 +155,11 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
         }
     }
 
-    // For remaining unmatched rows, look for a matched column with weight(row,
-    // col) = 0 that is matched to another row, row_1. If there is another
-    // column col_1 with weight(row_1, col_1) = 0 that is not yet matched,
-    // replace the matched edge (row_1, col) with the two new matched edges
-    // (row, col) and (row_1, col_1).
+    // For remaining unmatched rows, look for a matched column with i
+    // w(row, col) < tolerance that is matched to another row, row_1.
+    // If there is another column col_1 with w(row_1, col_1) < tolerance
+    // that is not yet matched, replace the matched edge (row_1, col)
+    // with the two new matched edges (row, col) and (row_1, col_1).
     auto um = 0;
     auto row = unmatched[um];
     // If row == 0 we passed the last unmatched row and reached the
@@ -201,33 +209,50 @@ template <typename ValueType, typename IndexType>
 void shortest_augmenting_path(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
     const IndexType* row_ptrs, const IndexType* col_idxs,
-    array<ValueType>& value_workspace, array<IndexType>& permutation,
+    array<ValueType>& weights_array, array<ValueType>& dual_u_array,
+    array<ValueType>& distance_array, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
-    array<IndexType>& index_workspace,
+    array<IndexType>& parents_array, array<IndexType>& handles_array,
+    array<IndexType>& generation_array, array<IndexType>& marked_cols_array,
+    array<IndexType>& matched_idxs_array,
     addressable_priority_queue<ValueType, IndexType>& Q,
     std::vector<IndexType>& q_j, ValueType tolerance)
 {
     constexpr auto inf = std::numeric_limits<ValueType>::infinity();
     const auto nnz = row_ptrs[num_rows];
-    auto weights = value_workspace.get_data();
-    auto dual_u = weights + nnz;
-    auto distance = dual_u + num_rows;
+    auto weights = weights_array.get_data();
+    auto dual_u = dual_u_array.get_data();
+    auto distance = distance_array.get_data();
 
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
 
-    auto parents = index_workspace.get_data();
+    auto parents = parents_array.get_data();
     // Handles to access and update entries in the addressable priority queue.
-    auto handles = parents + num_rows;
+    auto handles = handles_array.get_data();
     // Generation array to mark visited nodes.
-    auto generation = handles + num_rows;
-    // Set of marked columns whos shortest alternating paths and distances to
+    // It can take four states:
+    //  - gen[col] = #rows + root: The distance to col is smaller than the
+    //      length of the currently shortest augmenting path.
+    //  - gen[col] = - #rows - root: The distance to col is within a tolerance
+    //      of the currently shortest distance to the root. In this case, col
+    //      is placed into the vector q_j holding the nodes with the shortest
+    //      known distance to the root.
+    //  - gen[col] = root: The distance to col is smaller than the length of
+    //      the currently shortest augmenting path but larger than the currently
+    //      shortest known distance to the root. In this case, col is placed
+    //      into the priority queue Q.
+    //  - gen[col] = - root: The shortest possible distance for col to the root
+    //      has been found. If encountered again, col does not need to be
+    //      considered another time.
+    auto generation = generation_array.get_data();
+    // Set of marked columns whose shortest alternating paths and distances to
     // the root are known.
-    auto marked_cols = generation + num_rows;
+    auto marked_cols = marked_cols_array.get_data();
     // Indices of the nonzero entries corresponding to the matched column in
     // each matched row. So, if row i is matched to column j, W(i,j) is found
     // at weights[idxs[i]] where W is the weight matrix.
-    auto idxs = marked_cols + num_rows;
+    auto idxs = matched_idxs_array.get_data();
 
     Q.reset();
     q_j.clear();
@@ -297,14 +322,18 @@ void shortest_augmenting_path(
             // q_j is known to contain only entries with shortest known
             // distance to the root, so if it is not empty we do not
             // have to operate on the priority queue.
-            if (lsap <= lsp) break;
+            if (lsap <= lsp) {
+                break;
+            }
             const auto col = q_j.back();
             q_j.pop_back();
             generation[col] = -root;
             marked_cols[marked_counter++] = col;
             row = ip[col];
         } else {
-            if (Q.empty()) break;
+            if (Q.empty()) {
+                break;
+            }
             auto col = Q.min_val();
             while (generation[col] == -root && !Q.empty()) {
                 // If col is already marked because it previously was in q_j
@@ -312,9 +341,13 @@ void shortest_augmenting_path(
                 Q.pop_min();
                 col = Q.min_val();
             }
-            if (Q.empty()) break;
+            if (Q.empty()) {
+                break;
+            }
             lsp = distance[col];
-            if (lsap <= lsp) break;
+            if (lsap <= lsp) {
+                break;
+            }
             generation[col] = -root;
             marked_cols[marked_counter++] = col;
             Q.pop_min();
@@ -331,7 +364,9 @@ void shortest_augmenting_path(
 
             // col is already marked. Note that root will never be 0 as this row
             // is guaranteed to already be part of the initial matching.
-            if (gen == -root) continue;
+            if (gen == -root) {
+                continue;
+            }
 
             const ValueType dnew = lsp + weights[idx] - dual_u[col] - dual_vi;
 
@@ -374,7 +409,9 @@ void shortest_augmenting_path(
             row = parents[col];
             ip[col] = row;
             auto idx = row_ptrs[row];
-            while (col_idxs[idx] != col) idx++;
+            while (col_idxs[idx] != col) {
+                idx++;
+            }
             idxs[row] = idx;
             std::swap(col, p[row]);
         } while (row != root);
@@ -393,10 +430,12 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* mtx,
-                     const array<remove_complex<ValueType>>& value_workspace,
+                     const array<remove_complex<ValueType>>& weights_array,
+                     const array<remove_complex<ValueType>>& dual_u_array,
+                     const array<remove_complex<ValueType>>& row_maxima_array,
                      const array<IndexType>& permutation,
-                     const array<IndexType>& index_workspace,
-                     gko::reorder::reordering_strategy strategy,
+                     const array<IndexType>& matched_idxs_array,
+                     gko::reorder::mc64_strategy strategy,
                      gko::matrix::Diagonal<ValueType>* row_scaling,
                      gko::matrix::Diagonal<ValueType>* col_scaling)
 {
@@ -407,15 +446,15 @@ void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto values = mtx->get_const_values();
-    const auto weights = value_workspace.get_const_data();
-    const auto dual_u = weights + nnz;
-    const auto row_maxima = dual_u + 2 * num_rows;
+    const auto weights = weights_array.get_const_data();
+    const auto dual_u = dual_u_array.get_const_data();
+    const auto row_maxima = row_maxima_array.get_const_data();
     const auto p = permutation.get_const_data();
-    const auto idxs = index_workspace.get_const_data() + 4 * num_rows;
+    const auto idxs = matched_idxs_array.get_const_data();
     auto rv = row_scaling->get_values();
     auto cv = col_scaling->get_values();
 
-    if (strategy == gko::reorder::reordering_strategy::max_diagonal_product) {
+    if (strategy == gko::reorder::mc64_strategy::max_diagonal_product) {
         for (size_type i = 0; i < num_rows; i++) {
             const remove_complex<ValueType> u_val = std::exp2(dual_u[i]);
             const remove_complex<ValueType> v_val =
@@ -433,6 +472,7 @@ void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL);
+
 
 }  // namespace mc64
 }  // namespace reference
