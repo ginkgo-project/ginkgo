@@ -103,9 +103,9 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Mc64 : public EnablePolymorphicObject<Mc64<ValueType, IndexType>,
-                                            ReorderingBase>,
+                                            ReorderingBase<IndexType>>,
              public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Mc64, ReorderingBase>;
+    friend class EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>;
 
 public:
     using matrix_type = matrix::Csr<ValueType, IndexType>;
@@ -192,11 +192,12 @@ protected:
                   std::shared_ptr<LinOp> system_matrix);
 
     explicit Mc64(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Mc64, ReorderingBase>(std::move(exec))
+        : EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>(
+              std::move(exec))
     {}
 
     explicit Mc64(const Factory* factory, const ReorderingBaseArgs& args)
-        : EnablePolymorphicObject<Mc64, ReorderingBase>(
+        : EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
