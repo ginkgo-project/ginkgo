@@ -66,7 +66,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             residual(row, col) = b(row, col);
         },
         // Note: default_stride only applied to objects created using
-        // creat_with_config_of as this guarantees identical stride.
+        // create_with_config_of as this guarantees identical stride.
         b->get_size(), b->get_stride(), b, residual, stop_status);
 }
 
