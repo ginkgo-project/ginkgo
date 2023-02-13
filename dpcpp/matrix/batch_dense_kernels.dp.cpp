@@ -74,16 +74,93 @@ namespace dpcpp {
  */
 namespace batch_dense {
 
+template <typename ValueType>
+inline void single_matvec_kernel(
+    sycl::nd_item<3>& item_ct1,
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
+
+    for (int row = sg_id; row < a.num_rows; row += num_sg) {
+        ValueType temp = zero<ValueType>();
+        for (int j = sg.get_local_id(); j < a.num_rhs; j += sg_size) {
+            const ValueType val = a.values[row * a.stride + j];
+            temp += val * b[j];
+        }
+        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
+        if (sg.get_local_id() == 0) {
+            c[row] = temp;
+        }
+    }
+}
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::BatchDense<ValueType>* a,
                   const matrix::BatchDense<ValueType>* b,
-                  matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                  matrix::BatchDense<ValueType>* c)
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+
+    if (b_ub.num_rhs > 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    const auto num_batches = a_ub.num_batch;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto a_b = batch::batch_entry(a_ub, group_id);
+                const auto b_b = batch::batch_entry(b_ub, group_id);
+                const auto c_b = batch::batch_entry(c_ub, group_id);
+                single_matvec_kernel(item_ct1, a_b, b_b.values, c_b.values);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
 
+template <typename ValueType>
+inline void single_advanced_matvec_kernel(
+    sycl::nd_item<3>& item_ct1, const ValueType alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
+
+    for (int row = sg_id; row < a.num_rows; row += num_sg) {
+        ValueType temp = zero<ValueType>();
+        for (int j = sg.get_local_id(); j < a.num_rhs; j += sg_size) {
+            const ValueType val = a.values[row * a.stride + j];
+            temp += alpha * val * b[j];
+        }
+        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
+        if (sg.get_local_id() == 0) {
+            c[row] = temp + beta * c[row];
+        }
+    }
+}
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
@@ -91,24 +168,152 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::BatchDense<ValueType>* a,
            const matrix::BatchDense<ValueType>* b,
            const matrix::BatchDense<ValueType>* beta,
-           matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* c)
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+
+    if (b_ub.num_rhs > 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    const auto num_batches = a_ub.num_batch;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto a_b = batch::batch_entry(a_ub, group_id);
+                const auto b_b = batch::batch_entry(b_ub, group_id);
+                const auto c_b = batch::batch_entry(c_ub, group_id);
+                const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
+                const auto beta_b = batch::batch_entry(beta_ub, group_id);
+                single_advanced_matvec_kernel(item_ct1, alpha_b.values[0], a_b,
+                                              b_b.values, beta_b.values[0],
+                                              c_b.values);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 
+template <typename ValueType>
+inline void single_scale_kernel(
+    sycl::nd_item<3>& item_ct1,
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<ValueType>& x)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = item_ct1.get_local_linear_id(); li < max_li;
+         li += item_ct1.get_local_range().size()) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
 
 template <typename ValueType>
 void scale(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::BatchDense<ValueType>* alpha,
-           matrix::BatchDense<ValueType>* x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* x)
+{
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+
+    const auto num_batches = x_ub.num_batch;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
+                const auto x_b = batch::batch_entry(x_ub, group_id);
+                single_scale_kernel(item_ct1, alpha_b, x_b);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
+template <typename ValueType>
+inline void add_scaled_kernel(
+    sycl::nd_item<3>& item_ct1,
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<ValueType>& y)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = item_ct1.get_local_linear_id(); li < max_li;
+         li += item_ct1.get_local_range().size()) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::BatchDense<ValueType>* alpha,
                 const matrix::BatchDense<ValueType>* x,
-                matrix::BatchDense<ValueType>* y) GKO_NOT_IMPLEMENTED;
+                matrix::BatchDense<ValueType>* y)
+{
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+
+    const auto num_batches = x_ub.num_batch;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
+                const auto x_b = batch::batch_entry(x_ub, group_id);
+                const auto y_b = batch::batch_entry(y_ub, group_id);
+                add_scaled_kernel(item_ct1, alpha_b, x_b, y_b);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
