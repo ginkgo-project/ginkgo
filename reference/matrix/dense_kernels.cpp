@@ -400,11 +400,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 template <typename ValueType>
 void compute_mean(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType>* x,
-                  matrix::Dense<remove_complex<ValueType>>* result,
-                  array<char>&)
+                  matrix::Dense<ValueType>* result, array<char>&)
 {
+    using ValueType_nc = gko::remove_complex<ValueType>;
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<remove_complex<ValueType>>();
+        result->at(0, j) = zero<ValueType>();
+    }
+
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        const ValueType_nc alpha = static_cast<ValueType_nc>(i) / (i + 1);
+        const ValueType_nc beta = static_cast<ValueType_nc>(1) / (i + 1);
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) = alpha * result->at(0, j) + beta * x->at(i, j);
+        }
     }
 }
 

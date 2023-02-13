@@ -479,9 +479,7 @@ void Dense<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
+    auto dense_res = make_temporary_conversion<ValueType>(result);
     exec->run(dense::make_compute_mean(this, dense_res.get(), tmp));
 }
 
@@ -491,8 +489,7 @@ void Dense<ValueType>::compute_mean_impl(LinOp* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
+    auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
     exec->run(dense::make_compute_mean(this, dense_res.get(), tmp));
 }

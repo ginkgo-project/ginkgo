@@ -717,8 +717,8 @@ TYPED_TEST(Dense, ComputesMean)
 
     mtx->compute_mean(result.get());
 
-    EXPECT_EQ(result->at(0, 0), T_nc{0.5});
-    EXPECT_EQ(result->at(0, 1), T_nc{1.25});
+    EXPECT_EQ(result->at(0, 0), T_nc{1.0});
+    EXPECT_EQ(result->at(0, 1), T_nc{1.5});
 }
 
 
