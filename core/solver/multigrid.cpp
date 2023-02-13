@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/log/profiler_hook.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -409,6 +410,11 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                                const std::shared_ptr<const LinOp>& matrix,
                                const LinOp* b, LinOp* x, cycle_mode mode)
 {
+    // std::string range = "cycle" + std::to_string(level);
+    // log::profiling_scope_guard prof{
+    //     range.c_str(),
+    //     log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+    //     log::end_nvtx};
     auto total_level = multigrid->get_mg_level_list().size();
 
     auto r = r_list.at(level);

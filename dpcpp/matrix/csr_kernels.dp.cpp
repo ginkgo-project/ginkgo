@@ -1111,7 +1111,7 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto num_subgroup =
         exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
-    auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subwarp_size);
+    auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subgroup_size);
     // std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
     //          int64(num_subgroup / nsg_in_group));
     const dim3 grid(gridx, b->get_size()[1]);

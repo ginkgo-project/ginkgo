@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
     using pgm2 = gko::multigrid::Pgm<MixedType, IndexType, ValueType>;
     using pgm3 = gko::multigrid::Pgm<MixedType2, IndexType, ValueType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -90,9 +91,20 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const int mixed_mode = argc >= 3 ? std::atoi(argv[2]) : 1;
     const unsigned num_max_levels = argc >= 4 ? std::atoi(argv[3]) : 10u;
-    const std::string A_file = argc >= 5 ? argv[4] : "data/A.mtx";
-    const std::string b_file = argc >= 6 ? argv[5] : "ones";
-    std::cout << "mixed mode  " << mixed_mode << std::endl;
+    const std::string cycle_mode = argc >= 5 ? argv[4] : "v";
+    const std::string mg_mode =
+        argc >= 6 ? argv[5] : "solver";  // or cg (or preconditioner)
+    if (cycle_mode != "v" && cycle_mode != "w" && cycle_mode != "f") {
+        std::cout << "cycle_mode should be v, w, f";
+        return -1;
+    }
+    if (mg_mode != "solver" && mg_mode != "cg") {
+        std::cout << "mg_mode should be solver, cg";
+        return -1;
+    }
+    const std::string A_file = argc >= 7 ? argv[6] : "data/A.mtx";
+    const std::string b_file = argc >= 8 ? argv[7] : "ones";
+    std::cout << "mixed mode: " << mixed_mode << std::endl;
     // clang-format off
     if (mixed_mode == 0) {
         std::cout << "         all leverls are double" << std::endl;
@@ -108,8 +120,19 @@ int main(int argc, char* argv[])
                   << ", the rest of levels are half" << std::endl;
     }
     std::cout << "The maxium number of levels: " << num_max_levels << std::endl;
+    std::cout << "cycle mode: " << cycle_mode << std::endl;
+    std::cout << "mg mode: " << mg_mode << std::endl;
     std::cout << "A: " << A_file << std::endl;
     std::cout << "b: " << b_file << std::endl;
+    gko::solver::multigrid::cycle cycle;
+    if (cycle_mode == "v") {
+        cycle = gko::solver::multigrid::cycle::v;
+    } else if (cycle_mode == "f") {
+        cycle = gko::solver::multigrid::cycle::f;
+    } if (cycle_mode == "w") {
+        cycle = gko::solver::multigrid::cycle::w;
+    }
+
     // clang-format on
     // Read data
     // auto A = share(gko::read<mtx>(std::ifstream(A_file), exec));
@@ -135,32 +158,52 @@ int main(int argc, char* argv[])
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
-    x->copy_from(host_x);
-    b->copy_from(host_b);
+    x->copy_from(host_x.get());
+    b->copy_from(host_b.get());
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(initres);
+    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
+    b->compute_norm2(lend(initres));
 
     // copy b again
-    b->copy_from(host_b);
+    b->copy_from(host_b.get());
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-9;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
+    const unsigned mg_iter = mg_mode == "solver" ? 100u : 1u;
+    const gko::solver::initial_guess_mode initial_mode =
+        mg_mode == "solver" ? gko::solver::initial_guess_mode::provided
+                            : gko::solver::initial_guess_mode::zero;
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(mg_iter).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
+    auto cg_iter_stop =
+        gko::share(gko::stop::Iteration::build().with_max_iters(300u).on(exec));
+    auto cg_tol_stop =
+        gko::share(gko::stop::ImplicitResidualNorm<ValueType>::build()
+                       .with_baseline(gko::stop::mode::initial_resnorm)
+                       .with_reduction_factor(1e-12)
+                       .on(exec));
+
+    std::vector<std::shared_ptr<const gko::stop::CriterionFactory>> criterion;
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
+    criterion.push_back(iter_stop);
+    if (mg_mode == "solver") {
+        iter_stop->add_logger(logger);
+        tol_stop->add_logger(logger);
+        criterion.push_back(tol_stop);
+    } else if (mg_mode == "cg") {
+        cg_iter_stop->add_logger(logger);
+        cg_tol_stop->add_logger(logger);
+    }
 
     // Create smoother factory (ir with bj)
     auto smoother_gen = gko::share(
@@ -231,7 +274,9 @@ int main(int argc, char* argv[])
                             .with_post_uses_pre(true)
                             .with_mg_level(mg_level_gen)
                             .with_coarsest_solver(coarsest_solver_gen)
-                            .with_criteria(iter_stop, tol_stop)
+                            .with_criteria(criterion)
+                            .with_cycle(cycle)
+                            .with_default_initial_guess(initial_mode)
                             .on(exec);
     } else if (mixed_mode == 1) {
         multigrid_gen =
@@ -252,7 +297,9 @@ int main(int argc, char* argv[])
                     return level >= 1 ? 1 : level;
                 })
                 .with_coarsest_solver(coarsest_solver_gen2)
-                .with_criteria(iter_stop, tol_stop)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
                 .on(exec);
     } else if (mixed_mode == 2) {
         multigrid_gen =
@@ -273,7 +320,9 @@ int main(int argc, char* argv[])
                     return level >= 2 ? 2 : level;
                 })
                 .with_coarsest_solver(coarsest_solver_gen3)
-                .with_criteria(iter_stop, tol_stop)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
                 .on(exec);
     } else if (mixed_mode == 3) {
         multigrid_gen =
@@ -294,13 +343,15 @@ int main(int argc, char* argv[])
                     return level >= 1 ? 1 : level;
                 })
                 .with_coarsest_solver(coarsest_solver_gen3)
-                .with_criteria(iter_stop, tol_stop)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
                 .on(exec);
     }
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
     // auto solver = solver_gen->generate(A);
-    auto solver = multigrid_gen->generate(A);
+    auto solver = gko::share(multigrid_gen->generate(A));
     exec->synchronize();
     auto gen_toc = std::chrono::steady_clock::now();
     gen_time +=
@@ -315,7 +366,11 @@ int main(int argc, char* argv[])
     std::cout << "0, " << prev_n << ", " << prev_nnz
               << ", prev_n(%), prev_nnz(%), total_n(%), total_nnz(%)"
               << std::endl;
-
+    auto cg_solver = gko::share(cg::build()
+                                    .with_generated_preconditioner(solver)
+                                    .with_criteria(cg_iter_stop, cg_tol_stop)
+                                    .on(exec)
+                                    ->generate(A));
 
     for (int i = 1; i < mg_level_list.size(); i++) {
         auto op = mg_level_list.at(i)->get_fine_op();
@@ -362,27 +417,30 @@ int main(int argc, char* argv[])
 
     int warmup = 2;
     int rep = 5;
+    std::shared_ptr<const gko::LinOp> run_solver =
+        (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
+                              : gko::as<gko::LinOp>(cg_solver);
     auto x_run = x->clone();
     for (int i = 0; i < warmup; i++) {
         x_run->copy_from(lend(x));
-        solver->apply(lend(b), lend(x_run));
+        run_solver->apply(lend(b), lend(x_run));
     }
 
     // auto prof =
     // gko::share(gko::log::ProfilerHook::create_for_executor(exec));
-    // exec->add_logger(prof);
+    // solver->add_logger(prof);
     // Solve system
     std::chrono::nanoseconds time(0);
     for (int i = 0; i < rep; i++) {
         x_run->copy_from(lend(x));
         exec->synchronize();
         auto tic = std::chrono::steady_clock::now();
-        solver->apply(lend(b), lend(x_run));
+        run_solver->apply(lend(b), lend(x_run));
         exec->synchronize();
         auto toc = std::chrono::steady_clock::now();
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
     }
-    // exec->remove_logger(prof.get());
+    // solver->remove_logger(prof.get());
 
 
     // Calculate residual
@@ -391,19 +449,22 @@ int main(int argc, char* argv[])
     b->compute_norm2(lend(res));
 
     std::cout << "Initial residual norm sqrt(r^T r): \n";
-    write(std::cout, initres);
+    write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r): \n";
-    write(std::cout, res);
+    write(std::cout, lend(res));
 
+    std::string prefix =
+        (mg_mode == "solver") ? "Multigrid" : "Cg With Multigrid";
     // Print solver statistics
-    std::cout << "Multigrid iteration count:     "
-              << logger->get_num_iterations() << std::endl;
+    std::cout << prefix
+              << " iteration count:     " << logger->get_num_iterations()
+              << std::endl;
     std::cout << "Multigrid generation time [ms]: "
               << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
-    std::cout << "Multigrid execution time [ms]: "
+    std::cout << prefix << " execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 / rep
               << std::endl;
-    std::cout << "Multigrid execution time per iteraion[ms]: "
+    std::cout << prefix << " execution time per iteraion[ms]: "
               << static_cast<double>(time.count()) / 1000000.0 /
                      logger->get_num_iterations() / rep
               << std::endl;
