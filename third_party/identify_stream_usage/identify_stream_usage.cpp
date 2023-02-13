@@ -184,9 +184,13 @@ __attribute__((init_priority(1001))) std::unordered_map<std::string, void*>
 DEFINE_OVERLOAD(cudaEventRecord, ARG(cudaEvent_t event, cudaStream_t stream),
                 ARG(event, stream));
 
+#if CUDA_VERSION >= 11000
+
 DEFINE_OVERLOAD(cudaEventRecordWithFlags,
                 ARG(cudaEvent_t event, cudaStream_t stream, unsigned int flags),
                 ARG(event, stream, flags));
+
+#endif
 
 // Execution APIS:
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EXECUTION.html#group__CUDART__EXECUTION
@@ -198,9 +202,14 @@ DEFINE_OVERLOAD(cudaLaunchCooperativeKernel,
                 ARG(const void* func, dim3 gridDim, dim3 blockDim, void** args,
                     size_t sharedMem, cudaStream_t stream),
                 ARG(func, gridDim, blockDim, args, sharedMem, stream));
+
+#if CUDA_VERSION >= 10000
+
 DEFINE_OVERLOAD(cudaLaunchHostFunc,
                 ARG(cudaStream_t stream, cudaHostFn_t fn, void* userData),
                 ARG(stream, fn, userData));
+
+#endif
 
 // Memory transfer APIS:
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY.html#group__CUDART__MEMORY
@@ -257,6 +266,9 @@ DEFINE_OVERLOAD(cudaMemsetAsync,
 
 // Memory allocation APIS:
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html#group__CUDART__MEMORY__POOLS
+
+#if CUDA_VERSION >= 11020
+
 DEFINE_OVERLOAD(cudaFreeAsync, ARG(void* devPtr, cudaStream_t stream),
                 ARG(devPtr, stream));
 DEFINE_OVERLOAD(cudaMallocAsync,
@@ -266,6 +278,8 @@ DEFINE_OVERLOAD(cudaMallocFromPoolAsync,
                 ARG(void** ptr, size_t size, cudaMemPool_t memPool,
                     cudaStream_t stream),
                 ARG(ptr, size, memPool, stream));
+
+#endif
 
 /**
  * @brief Function to collect all the original CUDA symbols corresponding to
