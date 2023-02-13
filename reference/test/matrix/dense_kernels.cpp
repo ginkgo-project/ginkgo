@@ -708,8 +708,7 @@ TYPED_TEST(Dense, ComputesMean)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using T_nc = gko::remove_complex<T>;
-    using MeanVector = gko::matrix::Dense<T_nc>;
+    using MeanVector = gko::matrix::Dense<T>;
     auto mtx(gko::initialize<Mtx>(
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}, I<T>{-1.0, -1.0}},
         this->exec));
@@ -717,8 +716,7 @@ TYPED_TEST(Dense, ComputesMean)
 
     mtx->compute_mean(result.get());
 
-    EXPECT_EQ(result->at(0, 0), T_nc{1.0});
-    EXPECT_EQ(result->at(0, 1), T_nc{1.5});
+    GKO_ASSERT_MTX_NEAR(result, l<T>({{1.0, 1.5}}), 1e-2);
 }
 
 
