@@ -79,87 +79,101 @@ protected:
                                             {0., 0., 0., 4., 2., 0.},
                                             {0., 5., 8., 0., 0., 0.}},
                                            ref)),
-          value_workspace{ref, 31},  // 13 (nnz) + 3 * 6 (n)
-          initialized_value_workspace_sum{
-              ref,
-              I<real_type>{2.,  1.,  0.,  0., 4., 0., 2., 0., 1.,  0.,  2.,
-                           3.,  0.,  0.,  1., 0., 0., 0., 1., inf, inf, inf,
-                           inf, inf, inf, 3., 5., 6., 4., 4., 8.}},
+          weights{ref, 13},
+          dual_u{ref, 6},
+          distance{ref, 6},
+          row_maxima{ref, 6},
+          initialized_weights_sum{ref, I<real_type>{2., 1., 0., 0., 4., 0., 2.,
+                                                    0., 1., 0., 2., 3., 0.}},
+          initialized_dual_u_sum{ref, I<real_type>{0., 1., 0., 0., 0., 1.}},
+          initialized_row_maxima_sum{ref, I<real_type>{3., 5., 6., 4., 4., 8.}},
           // if the logarithms are merged together, the rounding messes up the
           // accuracy for GKO_ASSRT_ARRAY_EQ
-          initialized_value_workspace_product{
+          initialized_weights_product{
               ref,
-              I<real_type>{real_type{std::log2(3.)},
-                           real_type{std::log2(3.)} - real_type{std::log2(2.)},
-                           0.,
-                           0.,
-                           real_type{std::log2(5.)},
-                           0.,
-                           real_type{std::log2(6.)} - real_type{std::log2(4.)},
-                           0.,
-                           real_type{std::log2(4.)} - real_type{std::log2(3.)},
-                           0.,
-                           real_type{std::log2(4.)} - real_type{std::log2(2.)},
-                           real_type{std::log2(8.)} - real_type{std::log2(5.)},
-                           0.,
-                           0.,
-                           real_type{std::log2(3.)} - real_type{std::log2(2.)},
-                           0.,
-                           0.,
-                           0.,
-                           real_type{std::log2(4.)} - real_type{std::log2(3.)},
-                           inf,
-                           inf,
-                           inf,
-                           inf,
-                           inf,
-                           inf,
-                           real_type{std::log2(3.)},
-                           real_type{std::log2(5.)},
-                           real_type{std::log2(6.)},
-                           real_type{std::log2(4.)},
-                           real_type{std::log2(4.)},
-                           real_type{std::log2(8.)}}},
+              I<real_type>{
+                  real_type{std::log2(3.)},
+                  real_type{std::log2(3.)} - real_type{std::log2(2.)}, 0., 0.,
+                  real_type{std::log2(5.)}, 0.,
+                  real_type{std::log2(6.)} - real_type{std::log2(4.)}, 0.,
+                  real_type{std::log2(4.)} - real_type{std::log2(3.)}, 0.,
+                  real_type{std::log2(4.)} - real_type{std::log2(2.)},
+                  real_type{std::log2(8.)} - real_type{std::log2(5.)}, 0.}},
+          initialized_dual_u_product{
+              ref,
+              I<real_type>{
+                  0., real_type{std::log2(3.)} - real_type{std::log2(2.)}, 0.,
+                  0., 0., real_type{std::log2(4.)} - real_type{std::log2(3.)}}},
+          initialized_row_maxima_product{
+              ref,
+              I<real_type>{real_type{std::log2(3.)}, real_type{std::log2(5.)},
+                           real_type{std::log2(6.)}, real_type{std::log2(4.)},
+                           real_type{std::log2(4.)}, real_type{std::log2(8.)}}},
+          initialized_distance{ref, I<real_type>{inf, inf, inf, inf, inf, inf}},
           empty_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_inverse_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
-          empty_index_workspace{ref, 36},  // 6 * 6 (n)
-          initial_matching_index_workspace{
-              ref, I<index_type>{0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
-                                 1, 3, 5, 8, 0, 12, 4, -1, 0, 0, 0, 0}},
+          empty_matched_idxs{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          empty_unmatched_rows{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_parents{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_handles{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_generation{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_marked_cols{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 0, 12}},
+          initial_unmatched_rows{ref, I<index_type>{4, -1, 0, 0, 0, 0}},
           initial_matching_permutation{ref, I<index_type>{1, 0, 3, 5, -1, 2}},
           initial_matching_inverse_permutation{
               ref, I<index_type>{1, 0, 5, 2, -1, 3}},
           final_permutation{ref, I<index_type>{1, 0, 3, 5, 4, 2}},
           final_inverse_permutation{ref, I<index_type>{1, 0, 5, 2, 4, 3}},
-          final_index_workspace{
-              ref, I<index_type>{0, 0, 3,  4,  4,  2,  0, 0,  0, 0, 0, 0,
-                                 0, 0, -4, -4, 0,  -4, 3, 5,  2, 0, 0, 0,
-                                 1, 3, 5,  8,  10, 12, 4, -1, 0, 0, 0, 0}},
-          final_value_workspace{
-              ref, I<real_type>{2., 1.,  0., 0., 4.,  0.,  2., 0., 1.,  0.,  2.,
-                                3., 0.,  0., 1., -1., -2., 0., 0., inf, inf, 1.,
-                                0., inf, 1., 3., 5.,  6.,  4., 4., 8.}},
+          final_parents{ref, I<index_type>{0, 0, 3, 4, 4, 2}},
+          final_handles{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          final_generation{ref, I<index_type>{0, 0, -4, -4, 0, -4}},
+          final_marked_cols{ref, I<index_type>{3, 5, 2, 0, 0, 0}},
+          final_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 10, 12}},
+          final_weights{ref, I<real_type>{2., 1., 0., 0., 4., 0., 2., 0., 1.,
+                                          0., 2., 3., 0.}},
+          final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
+          final_distance{ref, I<real_type>{inf, inf, 1., 0., inf, 1.}},
+          final_row_maxima{ref, I<real_type>{3., 5., 6., 4., 4., 8.}},
           tolerance{10 * std::numeric_limits<real_type>::epsilon()}
-    {
-        empty_index_workspace.fill(gko::zero<index_type>());
-    }
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<real_type> tmp;
-    gko::array<real_type> value_workspace;
-    gko::array<real_type> initialized_value_workspace_sum;
-    gko::array<real_type> initialized_value_workspace_product;
-    gko::array<real_type> final_value_workspace;
+    gko::array<real_type> weights;
+    gko::array<real_type> dual_u;
+    gko::array<real_type> distance;
+    gko::array<real_type> row_maxima;
+    gko::array<real_type> initialized_weights_sum;
+    gko::array<real_type> initialized_dual_u_sum;
+    gko::array<real_type> initialized_row_maxima_sum;
+    gko::array<real_type> initialized_weights_product;
+    gko::array<real_type> initialized_dual_u_product;
+    gko::array<real_type> initialized_row_maxima_product;
+    gko::array<real_type> initialized_distance;
+    gko::array<real_type> final_weights;
+    gko::array<real_type> final_dual_u;
+    gko::array<real_type> final_distance;
+    gko::array<real_type> final_row_maxima;
     gko::array<index_type> empty_permutation;
     gko::array<index_type> empty_inverse_permutation;
-    gko::array<index_type> empty_index_workspace;
+    gko::array<index_type> empty_matched_idxs;
+    gko::array<index_type> empty_unmatched_rows;
     gko::array<index_type> initial_matching_permutation;
     gko::array<index_type> initial_matching_inverse_permutation;
-    gko::array<index_type> initial_matching_index_workspace;
+    gko::array<index_type> initial_parents;
+    gko::array<index_type> initial_handles;
+    gko::array<index_type> initial_generation;
+    gko::array<index_type> initial_marked_cols;
+    gko::array<index_type> initial_matched_idxs;
+    gko::array<index_type> initial_unmatched_rows;
     gko::array<index_type> final_permutation;
     gko::array<index_type> final_inverse_permutation;
-    gko::array<index_type> final_index_workspace;
+    gko::array<index_type> final_parents;
+    gko::array<index_type> final_handles;
+    gko::array<index_type> final_generation;
+    gko::array<index_type> final_marked_cols;
+    gko::array<index_type> final_matched_idxs;
     std::shared_ptr<matrix_type> mtx;
     const real_type tolerance;
 };
@@ -170,22 +184,26 @@ TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 TYPED_TEST(Mc64, InitializeWeightsSum)
 {
     gko::kernels::reference::mc64::initialize_weights(
-        this->ref, this->mtx.get(), this->value_workspace,
-        gko::reorder::reordering_strategy::max_diagonal_sum);
+        this->ref, this->mtx.get(), this->weights, this->dual_u, this->distance,
+        this->row_maxima, gko::reorder::mc64_strategy::max_diagonal_sum);
 
-    GKO_ASSERT_ARRAY_EQ(this->value_workspace,
-                        this->initialized_value_workspace_sum);
+    GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_sum);
+    GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_sum);
+    GKO_ASSERT_ARRAY_EQ(this->distance, this->initialized_distance);
+    GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_sum);
 }
 
 
 TYPED_TEST(Mc64, InitializeWeightsProduct)
 {
     gko::kernels::reference::mc64::initialize_weights(
-        this->ref, this->mtx.get(), this->value_workspace,
-        gko::reorder::reordering_strategy::max_diagonal_product);
+        this->ref, this->mtx.get(), this->weights, this->dual_u, this->distance,
+        this->row_maxima, gko::reorder::mc64_strategy::max_diagonal_product);
 
-    GKO_ASSERT_ARRAY_EQ(this->value_workspace,
-                        this->initialized_value_workspace_product);
+    GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_product);
+    GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_product);
+    GKO_ASSERT_ARRAY_EQ(this->distance, this->initialized_distance);
+    GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_product);
 }
 
 
@@ -195,16 +213,18 @@ TYPED_TEST(Mc64, InitialMatching)
 
     gko::kernels::reference::mc64::initial_matching(
         this->ref, num_rows, this->mtx->get_const_row_ptrs(),
-        this->mtx->get_const_col_idxs(), this->initialized_value_workspace_sum,
-        this->empty_permutation, this->empty_inverse_permutation,
-        this->empty_index_workspace, this->tol);
+        this->mtx->get_const_col_idxs(), this->initialized_weights_sum,
+        this->initialized_dual_u_sum, this->empty_permutation,
+        this->empty_inverse_permutation, this->empty_matched_idxs,
+        this->empty_unmatched_rows, this->tol);
 
     GKO_ASSERT_ARRAY_EQ(this->empty_permutation,
                         this->initial_matching_permutation);
     GKO_ASSERT_ARRAY_EQ(this->empty_inverse_permutation,
                         this->initial_matching_inverse_permutation);
-    GKO_ASSERT_ARRAY_EQ(this->empty_index_workspace,
-                        this->initial_matching_index_workspace);
+    GKO_ASSERT_ARRAY_EQ(this->empty_matched_idxs, this->initial_matched_idxs);
+    GKO_ASSERT_ARRAY_EQ(this->empty_unmatched_rows,
+                        this->initial_unmatched_rows);
 }
 
 
@@ -217,19 +237,26 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
 
     gko::kernels::reference::mc64::shortest_augmenting_path(
         this->ref, this->mtx->get_size()[0], this->mtx->get_const_row_ptrs(),
-        this->mtx->get_const_col_idxs(), this->initialized_value_workspace_sum,
+        this->mtx->get_const_col_idxs(), this->initialized_weights_sum,
+        this->initialized_dual_u_sum, this->initialized_distance,
         this->initial_matching_permutation,
         this->initial_matching_inverse_permutation, 4 * gko::one<index_type>(),
-        this->initial_matching_index_workspace, Q, q_j, this->tol);
+        this->initial_parents, this->initial_handles, this->initial_generation,
+        this->initial_marked_cols, this->initial_matched_idxs, Q, q_j,
+        this->tol);
 
     GKO_ASSERT_ARRAY_EQ(this->initial_matching_permutation,
                         this->final_permutation);
     GKO_ASSERT_ARRAY_EQ(this->initial_matching_inverse_permutation,
                         this->final_inverse_permutation);
-    GKO_ASSERT_ARRAY_EQ(this->initial_matching_index_workspace,
-                        this->final_index_workspace);
-    GKO_ASSERT_ARRAY_EQ(this->initialized_value_workspace_sum,
-                        this->final_value_workspace);
+    GKO_ASSERT_ARRAY_EQ(this->initial_parents, this->final_parents);
+    GKO_ASSERT_ARRAY_EQ(this->initial_handles, this->final_handles);
+    GKO_ASSERT_ARRAY_EQ(this->initial_generation, this->final_generation);
+    GKO_ASSERT_ARRAY_EQ(this->initial_marked_cols, this->final_marked_cols);
+    GKO_ASSERT_ARRAY_EQ(this->initial_matched_idxs, this->final_matched_idxs);
+    GKO_ASSERT_ARRAY_EQ(this->initialized_weights_sum, this->final_weights);
+    GKO_ASSERT_ARRAY_EQ(this->initialized_dual_u_sum, this->final_dual_u);
+    GKO_ASSERT_ARRAY_EQ(this->initialized_distance, this->final_distance);
 }
 
 
@@ -242,7 +269,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
 
     auto mc64_factory =
         gko::reorder::Mc64<value_type, index_type>::build()
-            .with_strategy(gko::reorder::reordering_strategy::max_diagonal_sum)
+            .with_strategy(gko::reorder::mc64_strategy::max_diagonal_sum)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
@@ -273,8 +300,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
 
     auto mc64_factory =
         gko::reorder::Mc64<value_type, index_type>::build()
-            .with_strategy(
-                gko::reorder::reordering_strategy::max_diagonal_product)
+            .with_strategy(gko::reorder::mc64_strategy::max_diagonal_product)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
@@ -324,8 +350,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
 
     auto mc64_factory =
         gko::reorder::Mc64<value_type, index_type>::build()
-            .with_strategy(
-                gko::reorder::reordering_strategy::max_diagonal_product)
+            .with_strategy(gko::reorder::mc64_strategy::max_diagonal_product)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(mtx);
 
@@ -356,8 +381,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
 
     auto mc64_factory =
         gko::reorder::Mc64<value_type, index_type>::build()
-            .with_strategy(
-                gko::reorder::reordering_strategy::max_diagonal_product)
+            .with_strategy(gko::reorder::mc64_strategy::max_diagonal_product)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(mtx);
 

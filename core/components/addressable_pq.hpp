@@ -60,6 +60,7 @@ struct addressable_priority_queue {
     /**
      * Inserts the given key-value pair into the PQ.
      * Duplicate keys are allowed, they may be returned in an arbitrary order.
+     *
      * @returns a handle for the pair to be used when modifying the key.
      */
     std::size_t insert(KeyType key, ValueType value)
@@ -95,16 +96,22 @@ struct addressable_priority_queue {
 
     /**
      * Returns the minimum key from the queue.
+     *
+     * @return the minimun key from the queue
      */
     KeyType min_key() const { return m_keys[0]; }
 
     /**
      * Returns the value belonging to the minimum key from the queue.
+     *
+     * @return the value corresponding to the minimun key
      */
     ValueType min_val() const { return m_values[0]; }
 
     /**
      * Returns the key-value pair with the minimum key from the queue.
+     *
+     * @return the key-value pair corresponding to the minimun key
      */
     std::pair<KeyType, ValueType> min() const { return {min_key(), min_val()}; }
 
@@ -123,11 +130,15 @@ struct addressable_priority_queue {
 
     /**
      * Returns the number of key-value pairs in the queue.
+     *
+     * @return  the number of key-value pairs in the queue
      */
     std::size_t size() const { return m_keys.size(); }
 
     /**
      * Returns true if and only if the queue has size 0.
+     *
+     * @return if queue has size 0
      */
     bool empty() const { return size() == 0; }
 
@@ -140,8 +151,6 @@ struct addressable_priority_queue {
     }
 
 private:
-    // constexpr static int degree = 1 << Degree_Log2;
-
     std::size_t parent(std::size_t i) const { return (i - 1) / degree; }
 
     std::size_t first_child(std::size_t i) const { return degree * i + 1; }
@@ -154,6 +163,10 @@ private:
         std::swap(m_handle_pos[m_handles[i]], m_handle_pos[m_handles[j]]);
     }
 
+    /**
+     * Moves the key-value pair at position i down (toward the leaves)
+     * until its key is smaller or equal to the one of all its children.
+     */
     void sift_down(std::size_t i)
     {
         auto cur = i;
@@ -171,6 +184,10 @@ private:
         }
     }
 
+    /**
+     * Moves the key-value pair at position i up (toward the root)
+     * until its key is larger or equal to the one of its parent.
+     * */
     void sift_up(std::size_t i)
     {
         auto cur = i;

@@ -54,29 +54,39 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType)       \
-    void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,       \
-                            const matrix::Csr<ValueType, IndexType>* mtx,      \
-                            array<remove_complex<ValueType>>& value_workspace, \
-                            gko::reorder::reordering_strategy strategy)
+#define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType) \
+    void initialize_weights(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* mtx,                    \
+        array<remove_complex<ValueType>>& weights_array,                 \
+        array<remove_complex<ValueType>>& dual_u_array,                  \
+        array<remove_complex<ValueType>>& distance_array,                \
+        array<remove_complex<ValueType>>& row_maxima_array,              \
+        gko::reorder::mc64_strategy strategy)
 
 
-#define GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL(ValueType, IndexType)    \
-    void initial_matching(                                                \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,  \
-        const IndexType* row_ptrs, const IndexType* col_idxs,             \
-        const array<ValueType>& value_workspace,                          \
-        array<IndexType>& permutation, array<IndexType>& inv_permutation, \
-        array<IndexType>& index_workspace, ValueType tolerance)
+#define GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL(ValueType, IndexType)       \
+    void initial_matching(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,     \
+        const IndexType* row_ptrs, const IndexType* col_idxs,                \
+        const array<ValueType>& weights_array,                               \
+        const array<ValueType>& dual_u_array, array<IndexType>& permutation, \
+        array<IndexType>& inv_permutation,                                   \
+        array<IndexType>& matched_idxs_array,                                \
+        array<IndexType>& unmatched_rows_array, ValueType tolerance)
 
 
 #define GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType) \
     void shortest_augmenting_path(                                             \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,       \
         const IndexType* row_ptrs, const IndexType* col_idxs,                  \
-        array<ValueType>& value_workspace, array<IndexType>& permutation,      \
+        array<ValueType>& weights_array, array<ValueType>& dual_u_array,       \
+        array<ValueType>& distance_array, array<IndexType>& permutation,       \
         array<IndexType>& inv_permutation, IndexType root,                     \
-        array<IndexType>& index_workspace,                                     \
+        array<IndexType>& parents_array, array<IndexType>& handles_array,      \
+        array<IndexType>& generation_array,                                    \
+        array<IndexType>& marked_cols_array,                                   \
+        array<IndexType>& matched_idxs_array,                                  \
         addressable_priority_queue<ValueType, IndexType>& Q,                   \
         std::vector<IndexType>& q_j, ValueType tolerance)
 
@@ -85,10 +95,12 @@ namespace kernels {
     void compute_scaling(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         const matrix::Csr<ValueType, IndexType>* mtx,                 \
-        const array<remove_complex<ValueType>>& value_workspace,      \
+        const array<remove_complex<ValueType>>& weights_array,        \
+        const array<remove_complex<ValueType>>& dual_u_array,         \
+        const array<remove_complex<ValueType>>& row_maxima_array,     \
         const array<IndexType>& permutation,                          \
-        const array<IndexType>& index_workspace,                      \
-        gko::reorder::reordering_strategy strategy,                   \
+        const array<IndexType>& matched_idxs_array,                   \
+        gko::reorder::mc64_strategy strategy,                         \
         gko::matrix::Diagonal<ValueType>* row_scaling,                \
         gko::matrix::Diagonal<ValueType>* col_scaling)
 
