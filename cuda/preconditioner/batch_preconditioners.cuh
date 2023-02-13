@@ -34,17 +34,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_PRECONDITIONER_BATCH_PRECONDITIONERS_CUH_
 
 
-#include "core/matrix/batch_struct.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/load_store.cuh"
-#include "cuda/components/reduction.cuh"
-
-
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
+#include "core/matrix/batch_struct.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/load_store.cuh"
+#include "cuda/components/reduction.cuh"
 
 
 namespace gko {

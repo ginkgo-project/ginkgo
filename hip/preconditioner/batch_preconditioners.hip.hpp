@@ -34,17 +34,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
 
 
-#include "core/matrix/batch_struct.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/load_store.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-
-
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
+#include "core/matrix/batch_struct.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/load_store.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 
 
 namespace gko {
