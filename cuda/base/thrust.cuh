@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/system/cuda/detail/execution_policy.h>
 
 
+#include <ginkgo/core/base/executor.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {

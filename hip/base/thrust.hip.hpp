@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #if GINKGO_HIP_PLATFORM_HCC
 #include <thrust/system/hip/detail/execution_policy.h>
 #else
