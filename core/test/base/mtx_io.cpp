@@ -330,6 +330,28 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 }
 
 
+TEST(MtxReader, ReadsSparseRealSkewSymetricMtxWithExplicitDiagonal)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real skew-symmetric\n"
+        "3 3 3\n"
+        "1 1 0.0\n"
+        "2 1 2.0\n"
+        "3 1 3.0\n");
+
+    auto data = gko::read_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(3, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 0.0));
+    ASSERT_EQ(v[1], tpl(0, 1, -2.0));
+    ASSERT_EQ(v[2], tpl(0, 2, -3.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 2.0));
+    ASSERT_EQ(v[4], tpl(2, 0, 3.0));
+}
+
+
 TEST(MtxReader, ReadsSparsePatternMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
