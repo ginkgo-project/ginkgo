@@ -50,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
 
 
 class BatchDense : public CommonTestFixture {
@@ -430,4 +429,3 @@ TEST_F(BatchDense, AddScaledIdentityNonSquareIsEquivalentToReference)
 }
 
 
-#endif
