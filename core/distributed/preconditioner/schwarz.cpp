@@ -109,7 +109,11 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 system_matrix)
                 ->get_local_matrix());
     } else {
-        GKO_NOT_IMPLEMENTED;
+        if (parameters_.generated_inner_solvers) {
+            this->local_solver_ = parameters_.generated_inner_solvers;
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
     }
 }
 
