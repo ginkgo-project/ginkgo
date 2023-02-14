@@ -99,7 +99,7 @@ public:
         /**
          * Generated Inner solvers.
          */
-        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_VECTOR(
             generated_inner_solvers, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
