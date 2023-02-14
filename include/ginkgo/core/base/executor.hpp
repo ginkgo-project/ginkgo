@@ -332,7 +332,7 @@ namespace detail {
  * It is used to implement the @ref GKO_REGISTER_OPERATION macro.
  *
  * @tparam Closure  the type of the functor of taking parameters
- *                  (std::shared_ptr<const Executor>, int)
+ *                  (std::shared_ptr<const Executor>)
  */
 template <typename Closure>
 class RegisteredOperation : public Operation {
@@ -343,19 +343,11 @@ public:
      * @param name  the name to be used for this operation
      * @param op  a functor object which will be called with the executor.
      */
-    RegisteredOperation(const char* name, int num_params, Closure op)
-        : name_(name), num_params_(num_params), op_(std::move(op))
+    RegisteredOperation(const char* name, Closure op)
+        : name_(name), op_(std::move(op))
     {}
 
-    const char* get_name() const noexcept override
-    {
-        static auto name = [this] {
-            std::ostringstream oss;
-            oss << name_ << '#' << num_params_;
-            return oss.str();
-        }();
-        return name.c_str();
-    }
+    const char* get_name() const noexcept override { return name_; }
 
     void run(std::shared_ptr<const ReferenceExecutor> exec) const override
     {
@@ -384,16 +376,15 @@ public:
 
 private:
     const char* name_;
-    int num_params_;
     Closure op_;
 };
 
 
 template <typename Closure>
 RegisteredOperation<Closure> make_register_operation(const char* name,
-                                                     int num_params, Closure op)
+                                                     Closure op)
 {
-    return RegisteredOperation<Closure>{name, num_params, std::move(op)};
+    return RegisteredOperation<Closure>{name, std::move(op)};
 }
 
 
@@ -476,7 +467,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
     auto make_##_name(Args&&... args)                                          \
     {                                                                          \
         return ::gko::detail::make_register_operation(                         \
-            #_name, sizeof...(Args), [&args...](auto exec) {                   \
+            #_kernel, [&args...](auto exec) {                                  \
                 using exec_type = decltype(exec);                              \
                 if (std::is_same<                                              \
                         exec_type,                                             \
@@ -570,7 +561,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
     auto make_##_name(Args&&... args)                                        \
     {                                                                        \
         return ::gko::detail::make_register_operation(                       \
-            #_name, sizeof...(Args),                                         \
+            #_kernel,                                                        \
             [&args...](auto) { _kernel(std::forward<Args>(args)...); });     \
     }                                                                        \
     static_assert(true,                                                      \
