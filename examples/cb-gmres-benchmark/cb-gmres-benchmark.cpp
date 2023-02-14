@@ -285,7 +285,8 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                   << std::setw(widths[i++]) << result.init_res_norm << delim
                   << std::setw(widths[i++]) << result.res_norm << delim
                   << std::setw(widths[i++])
-                  << result.res_norm / result.init_res_norm << '\n';
+                  << result.res_norm / result.init_res_norm << '\n'
+                  << std::flush;
     };
 
     // val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());

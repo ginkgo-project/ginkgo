@@ -20,6 +20,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -265,6 +266,8 @@ struct compression_helper {
         }
     }
 
+    void set_use_compressor(bool use_compr) { use_compr_ = false; }
+
 
 private:
     std::string compressor_;
@@ -365,6 +368,11 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto residual_norm_collection =
             Vector::create(exec, dim<2>{krylov_dim + 1, num_rhs});
         auto residual_norm = VectorNorms::create(exec, dim<2>{1, num_rhs});
+        // ADDED stop_compression
+        // auto residual_norm_host =
+        //     VectorNorms::create(exec->get_master(), dim<2>{1, num_rhs});
+        // auto last_residual_norm_host =
+        //     VectorNorms::create(exec->get_master(), dim<2>{1, num_rhs});
         // 1st row of arnoldi_norm: == eta * norm2(old_next_krylov_basis)
         //                          with eta == 1 / sqrt(2)
         //                          (computed right before updating
@@ -401,6 +409,9 @@ void CbGmres<ValueType>::apply_dense_impl(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
             arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
             &final_iter_nums, reduction_tmp, krylov_dim));
+        // ADDED stop_compression
+        // residual_norm_host->copy_from(residual_norm.get());
+        // last_residual_norm_host->copy_from(residual_norm_host.get());
         // residual_norm = norm(residual)
         // residual_norm_collection = {residual_norm, 0, ..., 0}
         // krylov_bases(:, 1) = residual / residual_norm
@@ -502,6 +513,15 @@ void CbGmres<ValueType>::apply_dense_impl(
                     }
                 }
             }
+            // ADDED stop_compression
+            // if (total_iter > 0) {
+            //     for (size_type i = 0; i < num_rhs; ++i) {
+            //         if (last_residual_norm_host->at(0, i) <=
+            //             residual_norm_host->at(0, i)) {
+            //             comp_helper.set_use_compressor(false);
+            //         }
+            //     }
+            // }
 
             if (perform_reset || restart_iter == krylov_dim) {
                 perform_reset = false;
@@ -509,6 +529,9 @@ void CbGmres<ValueType>::apply_dense_impl(
                 // use a view in case this is called earlier
                 auto hessenberg_view = hessenberg->create_submatrix(
                     span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
+
+                // ADDED stop_compression
+                // last_residual_norm_host->copy_from(residual_norm_host.get());
 
                 // print_krylov_vectors(krylov_bases_range, restart_iter + 1,
                 //                     total_iter);
@@ -540,6 +563,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 // krylov_bases(:, 1) = residual / residual_norm
                 // next_krylov_basis = residual / residual_norm
                 // final_iter_nums = {0, ..., 0}
+                // ADDED stop_compression
+                // residual_norm_host->copy_from(residual_norm.get());
                 comp_helper.compress(0, helper);  // ADDED
                 restart_iter = 0;
             }
