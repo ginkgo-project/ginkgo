@@ -68,6 +68,8 @@ class repartitioner : public EnableCreateMethod<
                           repartitioner<LocalIndexType, GlobalIndexType>> {
     friend class EnableCreateMethod<repartitioner>;
 
+    using communicator = gko::experimental::mpi::communicator;
+
 public:
     template <typename ValueType>
     void gather(const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
@@ -79,7 +81,7 @@ public:
     template <typename ValueType>
     void scatter(const Vector<ValueType>* to, Vector<ValueType>* from) const;
 
-    mpi::communicator get_to_communicator() const { return to_comm_; }
+    communicator get_to_communicator() const { return to_comm_; }
 
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
     get_from_partition() const
@@ -98,7 +100,7 @@ public:
 
 protected:
     repartitioner(
-        const mpi::communicator from_comm,
+        const communicator from_comm,
         std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
             from_partition,
         std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
@@ -110,8 +112,8 @@ private:
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
         to_partition_;
 
-    const mpi::communicator from_comm_;
-    mpi::communicator to_comm_;
+    const communicator from_comm_;
+    communicator to_comm_;
 
     std::shared_ptr<std::vector<comm_index_type>> default_send_sizes_;
     std::shared_ptr<std::vector<comm_index_type>> default_send_offsets_;

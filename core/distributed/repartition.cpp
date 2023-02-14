@@ -61,7 +61,7 @@ struct all_to_all_pattern {
 
 template <typename LocalIndexType, typename GlobalIndexType>
 all_to_all_pattern build_communication_pattern(
-    const mpi::communicator from_comm,
+    const experimental::mpi::communicator from_comm,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> from_part,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> to_part,
     const array<GlobalIndexType>& indices)
@@ -107,7 +107,7 @@ all_to_all_pattern build_communication_pattern(
 
 template <typename LocalIndexType, typename GlobalIndexType>
 repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
-    mpi::communicator from_comm,
+    experimental::mpi::communicator from_comm,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
         from_partition,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
@@ -134,8 +134,8 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
     to_has_data_ = rank < new_n_parts;
 
     if (new_n_parts < old_n_parts) {
-        to_comm_ = mpi::communicator(from_comm_.get(), to_has_data_,
-                                     from_comm_.rank());
+        to_comm_ = experimental::mpi::communicator(
+            from_comm_.get(), to_has_data_, from_comm_.rank());
     } else {
         to_comm_ = from_comm_;
     }
