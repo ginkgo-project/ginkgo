@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_LOAD_STORE_CUH_
 
 
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {

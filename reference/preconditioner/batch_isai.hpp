@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_PRECONDITIONER_BATCH_ISAI_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
 

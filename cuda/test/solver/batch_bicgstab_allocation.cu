@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 }
 }  // namespace kernels
 }  // namespace gko
@@ -52,7 +52,7 @@ namespace cuda {
 TEST(BatchBicgstab, CanAssignVectorsToGlobalMemory)
 {
     using T = double;
-    using PC = gko::kernels::cuda::BatchJacobi<T>;
+    using PC = gko::kernels::cuda::BatchScalarJacobi<T>;
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
@@ -72,7 +72,7 @@ TEST(BatchBicgstab, CanAssignVectorsToGlobalMemory)
 TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
 {
     using T = double;
-    using PC = gko::kernels::cuda::BatchJacobi<T>;
+    using PC = gko::kernels::cuda::BatchScalarJacobi<T>;
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
@@ -92,7 +92,7 @@ TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
 TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
 {
     using T = double;
-    using PC = gko::kernels::cuda::BatchJacobi<T>;
+    using PC = gko::kernels::cuda::BatchScalarJacobi<T>;
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
@@ -111,7 +111,7 @@ TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
 TEST(BatchBicgstab, AssignsMultipleRHSCorrectly)
 {
     using T = double;
-    using PC = gko::kernels::cuda::BatchJacobi<T>;
+    using PC = gko::kernels::cuda::BatchScalarJacobi<T>;
     const int nrows = 5;
     const int nrhs = 3;
     const int nnz = 16;

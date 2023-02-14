@@ -43,28 +43,113 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+namespace batch_jacobi {
+
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void batch_jacobi_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
+    const size_type num_blocks, const uint32 max_block_size,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
 
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
-                        const matrix::BatchEll<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
 
 
-template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
-                        const matrix::BatchCsr<ValueType>* const a,
-                        const matrix::BatchDense<ValueType>* const b,
-                        matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
+template <typename IndexType>
+void compute_cumulative_block_storage(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const blocks_cumulative_storage) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
+template void compute_cumulative_block_storage<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
 
 
+template <typename IndexType>
+void find_row_is_part_of_which_block(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    const IndexType* const block_pointers,
+    IndexType* const row_part_of_which_block_info) GKO_NOT_IMPLEMENTED;
+
+// instantiate for index type int32
+template void find_row_is_part_of_which_block<int>(
+    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    int32* const);
+
+
+template <typename ValueType, typename IndexType>
+void extract_common_blocks_pattern(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
+    const size_type num_blocks,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const IndexType* const block_pointers,
+    const IndexType* const row_part_of_which_block_info,
+    IndexType* const blocks_pattern) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_block_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    const uint32 max_block_size, const size_type num_blocks,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const IndexType* const block_pointers,
+    const IndexType* const blocks_pattern,
+    ValueType* const blocks) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void transpose_block_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
+    const size_type nrows, const size_type num_blocks,
+    const uint32 max_block_size, const IndexType* const block_pointers,
+    const ValueType* const blocks_array,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const IndexType* const row_part_of_which_block_info,
+    ValueType* const out_blocks_array,
+    const bool to_conjugate) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL);
+
+}  // namespace batch_jacobi
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
