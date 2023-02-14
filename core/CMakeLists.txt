@@ -60,6 +60,7 @@ target_sources(ginkgo
     preconditioner/batch_ilu.cpp
     preconditioner/batch_ilu_isai.cpp
     preconditioner/batch_isai.cpp
+    preconditioner/batch_jacobi.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp

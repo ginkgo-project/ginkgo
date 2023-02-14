@@ -34,6 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
 
 
+#include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
@@ -45,11 +52,12 @@ namespace kernels {
 namespace hip {
 
 
+#include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_isai.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 }  // namespace hip
 }  // namespace kernels

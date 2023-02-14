@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_JACOBI_HPP_
-#define GKO_REFERENCE_PRECONDITIONER_BATCH_JACOBI_HPP_
+#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_SCALAR_JACOBI_HPP_
+#define GKO_REFERENCE_PRECONDITIONER_BATCH_SCALAR_JACOBI_HPP_
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -47,7 +47,7 @@ namespace host {
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
 template <typename ValueType>
-class BatchJacobi final {
+class BatchScalarJacobi final {
 public:
     /**
      * The size of the work vector required in case of dynamic allocation.
@@ -144,4 +144,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_JACOBI_HPP_
+#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_SCALAR_JACOBI_HPP_

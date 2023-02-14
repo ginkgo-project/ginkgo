@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_dispatch.hpp"
 #include "reference/base/config.hpp"
-#include "reference/preconditioner/batch_identity.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
 
 
 namespace gko {
