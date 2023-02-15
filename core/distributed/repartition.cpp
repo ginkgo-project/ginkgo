@@ -306,8 +306,9 @@ auto write_local(std::shared_ptr<const Executor> exec, array<int>& sorting_idx,
     as<ConvertibleTo<matrix::Coo<ValueType, LocalIndexType>>>(
         mat->get_non_local_matrix())
         ->convert_to(coo_non_local.get());
-    coo_local->write(local_md);
-    coo_non_local->write(non_local_md);
+    // TODO
+    coo_local->move_to(local_md);
+    coo_non_local->move_to(non_local_md);
 
     auto local_nnz = local_md.get_num_elems();
     auto non_local_nnz = non_local_md.get_num_elems();
