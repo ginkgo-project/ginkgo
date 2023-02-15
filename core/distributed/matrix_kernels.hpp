@@ -67,12 +67,29 @@ namespace kernels {
         array<GlobalIndexType>& non_local_to_global)
 
 
+#define GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN(LocalIndexType,  \
+                                                          GlobalIndexType) \
+    void build_local_nonlocal_scatter_pattern(                             \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const array<GlobalIndexType>& row_indices,                         \
+        const array<GlobalIndexType>& col_indices,                         \
+        const experimental::distributed::Partition<                        \
+            LocalIndexType, GlobalIndexType>* row_partition,               \
+        const experimental::distributed::Partition<                        \
+            LocalIndexType, GlobalIndexType>* col_partition,               \
+        comm_index_type local_part, array<LocalIndexType>& local_scatter,  \
+        array<LocalIndexType>& non_local_scatter)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename LocalIndexType,              \
               typename GlobalIndexType>                                 \
     GKO_DECLARE_BUILD_LOCAL_NONLOCAL(ValueType, LocalIndexType,         \
-                                     GlobalIndexType)
+                                     GlobalIndexType);                  \
+    template <typename LocalIndexType, typename GlobalIndexType>        \
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN(LocalIndexType,   \
+                                                      GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,

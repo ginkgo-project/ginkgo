@@ -154,6 +154,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                 \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)
 
+#define GKO_STUB_LOCAL_GLOBAL_INDEX_TYPE(_macro)                               \
+    template <typename LocalIndexType, typename GlobalIndexType>               \
+    _macro(LocalIndexType, GlobalIndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro)
+
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
@@ -266,6 +271,8 @@ namespace distributed_matrix {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+GKO_STUB_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
 
 
 }  // namespace distributed_matrix

@@ -44,6 +44,72 @@ namespace kernels {
 namespace reference {
 namespace distributed_matrix {
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void build_local_nonlocal_scatter_pattern(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<GlobalIndexType>& row_indices,
+    const array<GlobalIndexType>& col_indices,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        row_partition,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<LocalIndexType>& local_scatter,
+    array<LocalIndexType>& non_local_scatter)
+{
+    using partition_type =
+        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
+    auto input_row_idxs = row_indices.get_const_data();
+    auto input_col_idxs = col_indices.get_const_data();
+    auto row_part_ids = row_partition->get_part_ids();
+    auto col_part_ids = col_partition->get_part_ids();
+    auto num_parts = row_partition->get_num_parts();
+
+    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
+                         size_type hint) {
+        auto range_bounds = partition->get_range_bounds();
+        auto num_ranges = partition->get_num_ranges();
+        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
+            return hint;
+        } else {
+            auto it = std::upper_bound(range_bounds + 1,
+                                       range_bounds + num_ranges + 1, idx);
+            return static_cast<size_type>(std::distance(range_bounds + 1, it));
+        }
+    };
+
+    vector<LocalIndexType> local_entries(exec);
+    vector<LocalIndexType> non_local_entries(exec);
+    size_type row_range_id = 0;
+    size_type col_range_id = 0;
+    for (size_type i = 0; i < row_indices.get_num_elems(); ++i) {
+        auto global_row = input_row_idxs[i];
+        row_range_id = find_range(global_row, row_partition, row_range_id);
+        if (row_part_ids[row_range_id] == local_part) {
+            auto global_col = input_col_idxs[i];
+            col_range_id = find_range(global_col, col_partition, col_range_id);
+            if (col_part_ids[col_range_id] == local_part) {
+                local_entries.push_back(i);
+            } else {
+                non_local_entries.push_back(i);
+            }
+        }
+    }
+
+    // create local matrix
+    local_scatter.resize_and_reset(local_entries.size());
+    for (size_type i = 0; i < local_entries.size(); ++i) {
+        local_scatter.get_data()[i] = local_entries[i];
+    }
+
+    // 4. fill non_local_data
+    non_local_scatter.resize_and_reset(non_local_entries.size());
+    for (size_type i = 0; i < non_local_entries.size(); ++i) {
+        non_local_scatter.get_data()[i] = non_local_entries[i];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(

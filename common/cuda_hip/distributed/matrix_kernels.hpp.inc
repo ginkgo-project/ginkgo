@@ -51,6 +51,22 @@ struct input_type {
     {}
 };
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::build_scatter_pattern(
+    const array<GlobalIndexType>& row_indices,
+    const array<GlobalIndexType>& column_indices,
+    const Partition<local_index_type, global_index_type>* row_partition,
+    const Partition<local_index_type, global_index_type>* col_partition,
+    array<LocalIndexType>& local_values,
+    array<LocalIndexType>& non_local_values)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
