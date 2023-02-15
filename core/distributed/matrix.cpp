@@ -258,6 +258,29 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::build_scatter_pattern(
 }
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::build_scatter_pattern(
+    const array<GlobalIndexType>& row_indices,
+    const array<GlobalIndexType>& column_indices,
+    const Partition<local_index_type, global_index_type>* row_partition,
+    const Partition<local_index_type, global_index_type>* col_partition,
+    array<LocalIndexType>& local_values,
+    array<LocalIndexType>& non_local_values)
+{
+    const auto comm = this->get_communicator();
+    GKO_ASSERT_EQ(comm.size(), row_partition->get_num_parts());
+    GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
+    auto exec = this->get_executor();
+    auto local_part = comm.rank();
+
+    // build local, non-local matrix data and communication structures
+    exec->run(matrix::make_build_local_nonlocal_scatter_pattern(
+        row_indices, column_indices,
+        make_temporary_clone(exec, row_partition).get(),
+        make_temporary_clone(exec, col_partition).get(), local_part,
+        local_values, non_local_values));
+}
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     const Partition<local_index_type, global_index_type>* row_partition,

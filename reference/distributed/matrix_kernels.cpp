@@ -211,6 +211,8 @@ void build_local_nonlocal_scatter_pattern(
     }
 }
 
+GKO_INSTANTIATE_FOR_EACH_LOCAL_AND_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN);
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
