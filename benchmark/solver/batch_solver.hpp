@@ -316,6 +316,17 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_left_scaling_op(scaling_op)
             .with_right_scaling_op(scaling_op)
             .on(exec);
+    } else if (description == "cg") {
+        using Solver = gko::solver::BatchCg<etype>;
+        return Solver::build()
+            .with_default_max_iterations(static_cast<int>(FLAGS_max_iters))
+            .with_default_residual_tol(
+                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
+            .with_preconditioner(prec_fact)
+            .with_tolerance_type(toltype)
+            .with_left_scaling_op(scaling_op)
+            .with_right_scaling_op(scaling_op)
+            .on(exec);
     } else if (description == "gmres") {
         using Solver = gko::solver::BatchGmres<etype>;
         return Solver::build()
@@ -346,18 +357,25 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                   rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto& solver_case = test_case["batch_solver"];
         auto solver_name = sol_name.c_str();
-        if (!FLAGS_overwrite && solver_case.HasMember(solver_name)) {
+        auto precond_name = prec_name.c_str();
+        auto& solver_case = test_case["batch_solver"];
+        if (!solver_case.HasMember(solver_name)) {
+            add_or_set_member(solver_case, solver_name,
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+        }
+        auto& solver_precond_case = solver_case[solver_name];
+        if (!FLAGS_overwrite && solver_precond_case.HasMember(precond_name)) {
             return;
         }
 
         std::shared_ptr<gko::BatchLinOpFactory> prec_fact =
             get_preconditioner(exec, prec_name);
 
-        add_or_set_member(solver_case, solver_name,
+        add_or_set_member(solver_precond_case, precond_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
-        auto& solver_json = solver_case[solver_name];
+        auto& solver_json = solver_precond_case[precond_name];
         const size_type nbatch = system_matrix->get_num_batch_entries();
         add_or_set_member(
             solver_json, "matrix_format",
@@ -417,20 +435,36 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                               allocator);
             const bool have_logiters =
                 (logger->get_num_iterations().get_num_elems() >= nbatch * nrhs);
-            for (size_type i = 0; i < nbatch; ++i) {
-                add_or_set_member(
-                    solver_json["num_iters"], std::to_string(i).c_str(),
-                    rapidjson::Value(rapidjson::kArrayType), allocator);
-                for (size_type j = 0; j < nrhs; ++j) {
-                    if (have_logiters) {
-                        solver_json["num_iters"][std::to_string(i).c_str()]
-                            .PushBack(logger->get_num_iterations()
-                                          .get_const_data()[i * nrhs + j],
-                                      allocator);
-                    } else {
-                        solver_json["num_iters"][std::to_string(i).c_str()]
-                            .PushBack(1, allocator);
+
+            if (!FLAGS_using_suite_sparse) {
+                for (size_type i = 0; i < nbatch; ++i) {
+                    add_or_set_member(
+                        solver_json["num_iters"], std::to_string(i).c_str(),
+                        rapidjson::Value(rapidjson::kArrayType), allocator);
+                    for (size_type j = 0; j < nrhs; ++j) {
+                        if (have_logiters) {
+                            solver_json["num_iters"][std::to_string(i).c_str()]
+                                .PushBack(logger->get_num_iterations()
+                                              .get_const_data()[i * nrhs + j],
+                                          allocator);
+                        } else {
+                            solver_json["num_iters"][std::to_string(i).c_str()]
+                                .PushBack(1, allocator);
+                        }
                     }
+                }
+            } else {
+                add_or_set_member(
+                    solver_json["num_iters"], std::to_string(0).c_str(),
+                    rapidjson::Value(rapidjson::kArrayType), allocator);
+                if (have_logiters) {
+                    solver_json["num_iters"][std::to_string(0).c_str()]
+                        .PushBack(
+                            logger->get_num_iterations().get_const_data()[0],
+                            allocator);
+                } else {
+                    solver_json["num_iters"][std::to_string(0).c_str()]
+                        .PushBack(1, allocator);
                 }
             }
         }
@@ -586,8 +620,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
     } catch (const std::exception& e) {
-        add_or_set_member(test_case["batch_solver"], "completed", false,
-                          allocator);
+        add_or_set_member(test_case["batch_solver"][sol_name.c_str()],
+                          "completed", false, allocator);
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
@@ -623,11 +657,6 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
     auto exec = get_executor(FLAGS_gpu_timer);
     auto solvers = split(FLAGS_batch_solvers, ',');
     auto preconditioners = split(FLAGS_preconditioners, ',');
-    if (preconditioners.size() > 1) {
-        std::cout << "Only the first preconditioner in the list will be used: ";
-        std::cout << preconditioners[0] << std::endl;
-    }
-    const auto preconditioner = preconditioners[0];
 
     rapidjson::Document test_cases;
     if (io_from_std) {
@@ -758,13 +787,16 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
                       << " batches, each of size "
                       << system_matrix->get_size().at(0) << std::endl;
 
-            auto sol_name = begin(solvers);
             for (const auto& solver_name : solvers) {
-                std::clog << "\tRunning solver: " << *sol_name << std::endl;
-                solve_system(solver_name, preconditioner, exec, system_matrix,
-                             lend(b), scaling_op, lend(x), test_case,
-                             allocator);
-                backup_results(test_cases);
+                for (const auto& preconditioner_name : preconditioners) {
+                    std::clog << "\tRunning solver: " << solver_name.c_str()
+                              << ", with preconditioner: "
+                              << preconditioner_name.c_str() << std::endl;
+                    solve_system(solver_name, preconditioner_name, exec,
+                                 system_matrix, lend(b), scaling_op, lend(x),
+                                 test_case, allocator);
+                    backup_results(test_cases);
+                }
             }
         } catch (const std::exception& e) {
             std::cerr << "Error setting up solver, what(): " << e.what()
