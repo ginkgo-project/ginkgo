@@ -81,7 +81,9 @@ if(GINKGO_BUILD_MPI)
         mpi/exception.cpp
         distributed/matrix.cpp
         distributed/vector.cpp
-        distributed/preconditioner/schwarz.cpp)
+        distributed/repartition.cpp
+        distributed/preconditioner/schwarz.cpp
+        )
 endif()
 
 ginkgo_compile_features(ginkgo)

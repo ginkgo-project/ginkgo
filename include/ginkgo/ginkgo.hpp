@@ -80,6 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
+#include <ginkgo/core/distributed/repartition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include <ginkgo/core/factorization/factorization.hpp>
