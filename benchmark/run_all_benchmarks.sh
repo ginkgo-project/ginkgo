@@ -38,11 +38,6 @@ if [ ! "${WARMUP_RUNS}" ]; then
     echo "WARMUP_RUNS environment variable not set - assuming \"${WARMUP_RUNS}\"" 1>&2
 fi
 
-if [ ! "${WARMUP_RUNS}" ]; then
-    WARMUP_RUNS="1"
-    echo "WARMUP_RUNS environment variable not set - assuming \"${WARMUP_RUNS}\"" 1>&2
-fi
-
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS  environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
