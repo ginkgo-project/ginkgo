@@ -268,33 +268,6 @@ TEST_F(EnableDistributedPolymorphicObject, CopiesObjectIsLogged)
 }
 
 
-TEST_F(EnableDistributedPolymorphicObject, MovesObjectByCopyFromUniquePtr)
-{
-    auto copy = DummyDistributedObject::create(ref, comm, 7);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_NE(copy, obj);
-    ASSERT_EQ(copy->get_executor(), ref);
-    ASSERT_EQ(copy->x, 5);
-    ASSERT_EQ(copy->get_communicator().get(), comm.get());
-}
-
-
-TEST_F(EnableDistributedPolymorphicObject,
-       MovesObjectByCopyFromUniquePtrIsLogged)
-{
-    auto before_logger = *this->logger;
-    auto copy = DummyDistributedObject::create(ref, comm, 7);
-    copy->add_logger(logger);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
-    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
-}
-
-
 TEST_F(EnableDistributedPolymorphicObject, MovesObject)
 {
     auto copy = DummyDistributedObject::create(ref, comm, 7);
@@ -317,32 +290,6 @@ TEST_F(EnableDistributedPolymorphicObject, MovesObjectIsLogged)
     copy->add_logger(logger);
 
     copy->move_from(obj);
-
-    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
-    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
-}
-
-
-TEST_F(EnableDistributedPolymorphicObject, MovesFromUniquePtr)
-{
-    auto copy = DummyDistributedObject::create(ref, comm, 7);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_NE(copy, obj);
-    ASSERT_EQ(copy->get_executor(), ref);
-    ASSERT_EQ(copy->x, 5);
-    ASSERT_EQ(copy->get_communicator().get(), comm.get());
-}
-
-
-TEST_F(EnableDistributedPolymorphicObject, MovesFromUniquePtrIsLogged)
-{
-    auto before_logger = *this->logger;
-    auto copy = DummyDistributedObject::create(ref, comm, 7);
-    copy->add_logger(logger);
-
-    copy->copy_from(gko::give(obj));
 
     ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
     ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);

@@ -182,7 +182,7 @@ TYPED_TEST(CbGmres, CanBeMoved)
     auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
     auto r_copy = static_cast<Solver*>(copy.get());
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();

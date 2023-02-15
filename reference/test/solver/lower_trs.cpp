@@ -112,7 +112,7 @@ TYPED_TEST(LowerTrs, CanBeMoved)
     auto copy =
         Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));

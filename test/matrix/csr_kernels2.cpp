@@ -97,7 +97,7 @@ protected:
     void set_up_mat_data()
     {
         mtx2 = Mtx::create(ref);
-        mtx2->copy_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
+        mtx2->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
         dmtx2 = Mtx::create(exec);
         dmtx2->copy_from(mtx2);
     }
@@ -146,9 +146,9 @@ protected:
         std::shared_ptr<StrategyType> strategy;
         set_up_strategy<Mtx>(strategy);
         mtx = Mtx::create(ref, strategy);
-        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
-        square_mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
+        square_mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -179,7 +179,7 @@ protected:
         std::shared_ptr<StrategyType> strategy;
         set_up_strategy<ComplexMtx>(strategy);
         complex_mtx = ComplexMtx::create(ref, strategy);
-        complex_mtx->copy_from(
+        complex_mtx->move_from(
             gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
         complex_dmtx = ComplexMtx::create(exec, strategy);
         complex_dmtx->copy_from(complex_mtx);

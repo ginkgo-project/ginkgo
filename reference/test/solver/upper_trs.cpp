@@ -110,7 +110,7 @@ TYPED_TEST(UpperTrs, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = this->upper_trs_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->upper_trs_solver));
+    copy->move_from(this->upper_trs_solver);
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));

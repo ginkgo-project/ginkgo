@@ -367,8 +367,8 @@ Hybrid<ValueType, IndexType>::compute_absolute() const
     auto abs_hybrid = absolute_type::create(
         exec, this->get_size(), this->get_strategy<absolute_type>());
 
-    abs_hybrid->ell_->copy_from(ell_->compute_absolute());
-    abs_hybrid->coo_->copy_from(coo_->compute_absolute());
+    abs_hybrid->ell_->move_from(ell_->compute_absolute());
+    abs_hybrid->coo_->move_from(coo_->compute_absolute());
 
     return abs_hybrid;
 }

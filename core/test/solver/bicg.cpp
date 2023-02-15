@@ -121,7 +121,7 @@ TYPED_TEST(Bicg, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->bicg_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();

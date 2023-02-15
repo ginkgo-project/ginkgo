@@ -251,7 +251,7 @@ TYPED_TEST(Dense, CanBeCopied)
 TYPED_TEST(Dense, CanBeMoved)
 {
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(std::move(this->mtx));
+    mtx_copy->move_from(this->mtx);
     this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(mtx_copy->get_stride(), 4);
 }

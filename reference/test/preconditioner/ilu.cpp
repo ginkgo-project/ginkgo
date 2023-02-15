@@ -225,7 +225,7 @@ TYPED_TEST(Ilu, CanBeMoved)
     auto moved =
         ilu_prec_type::build().on(this->exec)->generate(u_l_composition);
 
-    moved->copy_from(std::move(ilu));
+    moved->move_from(ilu);
 
     ASSERT_EQ(before_l_solver.get(), moved->get_l_solver().get());
     ASSERT_EQ(before_u_solver.get(), moved->get_u_solver().get());

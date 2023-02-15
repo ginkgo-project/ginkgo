@@ -468,11 +468,11 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
     auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
     auto residual1 = gko::initialize<Mtx>({0.}, this->exec);
-    residual1->copy_from(b1->clone());
+    residual1->copy_from(b1);
     auto residual2 = gko::initialize<Mtx>({0.}, this->exec);
-    residual2->copy_from(b2->clone());
+    residual2->copy_from(b2);
     auto residualC = gko::initialize<Mtx>({0.}, this->exec);
-    residualC->copy_from(bc->clone());
+    residualC->copy_from(bc);
 
     locmtx->apply(alpha, x1, beta, residual1);
     locmtx->apply(alpha, x2, beta, residual2);

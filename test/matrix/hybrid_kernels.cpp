@@ -80,7 +80,7 @@ protected:
                                std::make_shared<Mtx::automatic>())
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->copy_from(gen_mtx(532, 231, 1));
+        mtx->move_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, num_vectors, 1);
         y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -200,7 +200,7 @@ TEST_F(Hybrid, ConvertEmptyCooToCsrIsEquivalentToRef)
 {
     auto balanced_mtx =
         Mtx::create(ref, std::make_shared<Mtx::column_limit>(4));
-    balanced_mtx->copy_from(gen_mtx(400, 200, 4, 4));
+    balanced_mtx->move_from(gen_mtx(400, 200, 4, 4));
     auto dbalanced_mtx =
         Mtx::create(exec, std::make_shared<Mtx::column_limit>(4));
     dbalanced_mtx->copy_from(balanced_mtx);

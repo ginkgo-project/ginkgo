@@ -135,7 +135,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         vals.get_const_data(), coarse_coo.get()));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
-    coarse_csr->copy_from(std::move(coarse_coo));
+    coarse_csr->move_from(coarse_coo);
     return std::move(coarse_csr);
 }
 
