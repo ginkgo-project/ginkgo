@@ -46,7 +46,7 @@ __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
     auto lower_end = row_begin;
     for (auto nz = row_begin; nz < row_end; nz++) {
         const auto col = cols[nz];
-        if (col <= row) {
+        if (col < row) {
             postorder_cols[lower_end] = inv_postorder[cols[nz]];
             lower_end++;
         }
@@ -76,22 +76,25 @@ template <int subwarp_size, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
         IndexType num_rows, const IndexType* row_ptrs,
-        const IndexType* lower_ends, const IndexType* postorder_cols,
-        const IndexType* postorder_parent, IndexType* row_nnz)
+        const IndexType* lower_ends, const IndexType* inv_postorder,
+        const IndexType* postorder_cols, const IndexType* postorder_parent,
+        IndexType* row_nnz)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
         return;
     }
     const auto row_begin = row_ptrs[row];
+    const auto diag_postorder = inv_postorder[row];
     const auto lower_end = lower_ends[row];
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto lane = subwarp.thread_rank();
     IndexType count{};
-    for (auto nz = row_begin + lane; nz < lower_end - 1; nz += subwarp_size) {
+    for (auto nz = row_begin + lane; nz < lower_end; nz += subwarp_size) {
         auto node = postorder_cols[nz];
-        const auto next_node = postorder_cols[nz + 1];
+        const auto next_node =
+            nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
         while (node < next_node) {
             count++;
             node = postorder_parent[node];
@@ -110,25 +113,28 @@ template <int subwarp_size, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
         IndexType num_rows, const IndexType* row_ptrs,
-        const IndexType* lower_ends, const IndexType* postorder_cols,
-        const IndexType* postorder, const IndexType* postorder_parent,
-        const IndexType* out_row_ptrs, IndexType* out_cols)
+        const IndexType* lower_ends, const IndexType* inv_postorder,
+        const IndexType* postorder_cols, const IndexType* postorder,
+        const IndexType* postorder_parent, const IndexType* out_row_ptrs,
+        IndexType* out_cols)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
         return;
     }
     const auto row_begin = row_ptrs[row];
+    const auto diag_postorder = inv_postorder[row];
     const auto lower_end = lower_ends[row];
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto lane = subwarp.thread_rank();
     const auto prefix_mask = (config::lane_mask_type(1) << lane) - 1;
     auto out_base = out_row_ptrs[row];
-    for (auto base = row_begin; base < lower_end - 1; base += subwarp_size) {
+    for (auto base = row_begin; base < lower_end; base += subwarp_size) {
         auto nz = base + lane;
-        auto node = nz < lower_end - 1 ? postorder_cols[nz] : -1;
-        const auto next_node = nz < lower_end - 1 ? postorder_cols[nz + 1] : -1;
+        auto node = nz < lower_end ? postorder_cols[nz] : diag_postorder;
+        const auto next_node =
+            nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
         bool pred = node < next_node;
         auto mask = subwarp.ballot(pred);
         while (mask) {
