@@ -339,7 +339,7 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
 										sycl::ext::oneapi::experimental::printf("AT1 = (%f)\n", c[idxs.row * c_stride + column_id]);
 */
                     atomic_add(&(c[idxs.row * c_stride + column_id]), scale(temp_val));
-/**/
+/* */
                 }
                 temp_val = zero<ValueType>();
                 new_value = false;
@@ -352,13 +352,14 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                 tile_block, idxs.row, &temp_val);
 //                [](ValueType a, ValueType b) { return a + b; });
             if (is_first_in_segment) {
-/*
+/* 
 								ValueType aux = scale(temp_val);
 								sycl::ext::oneapi::experimental::printf("AT2 = (%f,%f)\n", temp_val, aux);
                 atomic_add(&(c[idxs.row * c_stride + column_id]), aux);   
 								sycl::ext::oneapi::experimental::printf("AT2 = (%f)\n", c[idxs.row * c_stride + column_id]);
 */
                 atomic_add(&(c[idxs.row * c_stride + column_id]), scale(temp_val));
+/**/
             }
             temp_val = zero<ValueType>();
         }
@@ -442,8 +443,8 @@ void abstract_spmv(
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
                 b, b_stride, c, c_stride, 
 //                [](const ValueType& x) { return x; },
-//                [](const ValueType& x) { return x + x; },
-								[&scale_factor](const ValueType& x) { return scale_factor * x; },
+                [](const ValueType& x) { return x + x; },
+//								[&scale_factor](const ValueType& x) { return scale_factor * x; },
 								item_ct1);
 }
 
