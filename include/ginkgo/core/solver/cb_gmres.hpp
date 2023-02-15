@@ -65,7 +65,8 @@ enum class storage_precision {
     integer,
     ireduce1,
     ireduce2,
-    use_pressio
+    use_pressio,
+    use_frsz
 };
 
 
@@ -143,6 +144,12 @@ public:
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
 
+        /**
+         * Function that initializes the compressor if `storage_precision` is
+         * set to `use_pressio`.
+         * The argument of the function must be able to cast to a libpressio
+         * compressor `pressio_compressor*`
+         */
         std::function<void(void*)> GKO_FACTORY_PARAMETER_SCALAR(init_compressor,
                                                                 nullptr);
     };

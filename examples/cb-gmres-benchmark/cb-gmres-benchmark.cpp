@@ -38,15 +38,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include <libpressio_ext/cpp/json.h>
 #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_meta.h>
 #include <nlohmann/json.hpp>
+
+
+struct user_launch_parameter {
+    std::string exec_string{"reference"};
+    std::string matrix_path{"data/A.mtx"};
+    std::string compression_json_folder{"lp_configs"};
+    unsigned stop_iter{101};
+    double stop_rel_res_norm{1e-16};
+    unsigned jacobi_bs{0};
+    unsigned krylov_dim{100};
+};
 
 struct solver_settings {
     unsigned krylov_dim;
@@ -57,131 +71,282 @@ struct solver_settings {
     std::function<void(void*)> init_compressor;
 };
 
+template <typename T>
 struct solver_result {
     unsigned iters;
     double time_s;
-    double init_res_norm;
-    double res_norm;
+    T init_res_norm;
+    T res_norm;
+    const std::vector<T>* residual_norm_history;
 };
 
 
-// Helper function which measures the time of `solver->apply(b, x)` in seconds
-// To get an accurate result, the solve is repeated multiple times (while
-// ensuring the initial guess is always the same). The result of the solve will
-// be written to x.
+/**
+ * Logs both the residual norm history and the iteration count.
+ * Note: the residual norm history logs only the norm of the first vector!
+ */
 template <typename ValueType>
-solver_result benchmark_solver(
-    std::shared_ptr<const gko::Executor> exec, solver_settings s_s,
-    std::shared_ptr<gko::matrix::Csr<ValueType, int>> A,
-    const gko::matrix::Dense<ValueType>* b,
-    const gko::matrix::Dense<ValueType>* x)
-{
+class ConvergenceHistoryLogger : public gko::log::Logger {
+public:
     using RealValueType = gko::remove_complex<ValueType>;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
-    constexpr int repeats{1};
-    double duration{0};
-    solver_result result{};
-    // Make a copy of x, so we can re-use the same initial guess multiple times
-    auto x_copy = x->clone();
 
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-
-    auto res_norm = gko::initialize<real_vec>({0.0}, exec);
-    auto tmp = gko::clone(b);
-
-    A->apply(one, x_copy, neg_one, tmp);
-    tmp->compute_norm2(res_norm);
-    result.init_res_norm = exec->copy_val_to_host(res_norm->get_const_values());
-
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(s_s.stop_iter).on(exec));
-    auto tol_stop = gko::share(
-        gko::stop::ResidualNorm<ValueType>::build()
-            .with_reduction_factor(static_cast<RealValueType>(s_s.stop_rel_res))
-            .with_baseline(gko::stop::mode::rhs_norm)
-            .on(exec));
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
-    // Create solver:
-    auto solver_gen = gko::solver::CbGmres<ValueType>::build()
-                          .with_criteria(iter_stop, tol_stop)
-                          .with_krylov_dim(s_s.krylov_dim)
-                          .with_storage_precision(s_s.storage_prec)
-                          .with_generated_preconditioner(s_s.precond)
-                          .with_init_compressor(s_s.init_compressor)
-                          .on(exec);
-
-    // Generate the actual solver from the factory and the matrix.
-    auto solver = solver_gen->generate(A);
-
-    for (int i = 0; i < repeats; ++i) {
-        // No need to copy it in the first iteration
-        if (i != 0) {
-            x_copy->copy_from(x);
-        }
-        // Make sure all previous executor operations have finished before
-        // starting the time
-        exec->synchronize();
-        auto tic = std::chrono::steady_clock::now();
-        solver->apply(b, x_copy);
-        // Make sure all computations are done before stopping the time
-        exec->synchronize();
-        auto tac = std::chrono::steady_clock::now();
-        duration += std::chrono::duration<double>(tac - tic).count();
+    void on_criterion_check_completed(
+        const gko::stop::Criterion* criterion,
+        const gko::size_type& num_iterations, const gko::LinOp* residual,
+        const gko::LinOp* residual_norm, const gko::LinOp* solution,
+        const gko::uint8& stopping_id, const bool& set_finalized,
+        const gko::array<gko::stopping_status>* status, const bool& one_changed,
+        const bool& all_converged) const override
+    {
+        this->on_criterion_check_completed(criterion, num_iterations, residual,
+                                           residual_norm, nullptr, solution,
+                                           stopping_id, set_finalized, status,
+                                           one_changed, all_converged);
     }
-    // Copy the solution back to x, so the caller has the result
-    // x->copy_from(x_copy);
 
-    // To measure if your solution has actually converged, the error of the
-    // solution is measured.
-    // one, neg_one are objects that represent the numbers which allow for a
-    // uniform interface when computing on any device. To compute the residual,
-    // the (advanced) apply method is used.
-    // tmp = Ax - tmp
-    tmp->copy_from(b);
-    A->apply(one, x_copy, neg_one, tmp);
-    tmp->compute_norm2(res_norm);
+    void on_criterion_check_completed(
+        const gko::stop::Criterion* criterion,
+        const gko::size_type& num_iterations, const gko::LinOp* residual,
+        const gko::LinOp* residual_norm, const gko::LinOp* implicit_sq_resnorm,
+        const gko::LinOp* solution, const gko::uint8& stopping_id,
+        const bool& set_finalized,
+        const gko::array<gko::stopping_status>* status, const bool& one_changed,
+        const bool& all_converged) const override
+    {
+        num_iterations_ = num_iterations;
+        residual_norm_history_.push_back(
+            residual_norm->get_executor()->copy_val_to_host(
+                reinterpret_cast<const gko::matrix::Dense<RealValueType>*>(
+                    residual_norm)
+                    ->get_const_values()));
+    }
 
-    result.iters = logger->get_num_iterations();
-    result.time_s = duration / static_cast<double>(repeats);
-    result.res_norm = exec->copy_val_to_host(res_norm->get_const_values());
-    return result;
-}
+    /**
+     * Creates a convergence logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     */
+    static std::unique_ptr<ConvergenceHistoryLogger> create()
+    {
+        return std::unique_ptr<ConvergenceHistoryLogger>(
+            new ConvergenceHistoryLogger());
+    }
+
+    void reset()
+    {
+        num_iterations_ = 0;
+        residual_norm_history_.clear();
+    }
+
+    std::size_t get_num_iterations() const { return num_iterations_; }
+
+    const std::vector<RealValueType>& get_residual_norm_history() const
+    {
+        return residual_norm_history_;
+    }
+
+protected:
+    /**
+     * Creates a Convergence logger.
+     */
+    explicit ConvergenceHistoryLogger()
+        : gko::log::Logger(gko::log::Logger::criterion_check_completed_mask),
+          residual_norm_history_{}
+    {
+        residual_norm_history_.reserve(21000);
+    }
+
+private:
+    mutable std::size_t num_iterations_{};
+    mutable std::vector<RealValueType> residual_norm_history_;
+};
+
+
+template <typename ValueType, typename IndexType = int>
+class Benchmark {
+private:
+    using RealValueType = gko::remove_complex<ValueType>;
+    using Vector = gko::matrix::Dense<ValueType>;
+    using NormVector = gko::matrix::Dense<RealValueType>;
+    static constexpr int repeats{1};
+
+public:
+    Benchmark(std::shared_ptr<const gko::Executor> exec,
+              std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> mtx,
+              std::unique_ptr<Vector> init_x, std::unique_ptr<Vector> rhs)
+        : exec_{std::move(exec)},
+          mtx_{std::move(mtx)},
+          init_x_{std::move(init_x)},
+          rhs_{std::move(rhs)},
+          one_{gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec_)},
+          neg_one_{
+              gko::initialize<gko::matrix::Dense<ValueType>>({-1.0}, exec_)},
+          x_{Vector::create(exec_, init_x_->get_size())},
+          residual_{Vector::create(exec_, rhs_->get_size())},
+          res_norm_{gko::initialize<NormVector>({0.0}, exec_)},
+          convergence_history_logger_{
+              ConvergenceHistoryLogger<ValueType>::create()}
+    {
+        x_->copy_from(init_x_.get());
+        rhs_->compute_norm2(res_norm_);
+        rhs_norm_ = exec_->copy_val_to_host(res_norm_->get_const_values());
+        this->compute_residual_norm();
+    }
+
+    // Helper function which measures the time of `solver->apply(rhs, x)` in
+    // seconds To get an accurate result, the solve is repeated multiple
+    // times (while ensuring the initial guess is always the same). The
+    // result of the solve will be written to x.
+    // Note: Finish processing the residual_norm_history before the destructor
+    //       of this object is called! Otherwise, you read undefined memory!
+    solver_result<RealValueType> benchmark_solver(solver_settings s_s)
+    {
+        double duration{0};
+        solver_result<RealValueType> result{};
+
+        this->reset();
+
+        // Reset x to the initial guess
+        result.init_res_norm = this->compute_residual_norm();
+
+        auto iter_stop = gko::share(gko::stop::Iteration::build()
+                                        .with_max_iters(s_s.stop_iter)
+                                        .on(exec_));
+        auto tol_stop =
+            gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                           .with_reduction_factor(
+                               static_cast<RealValueType>(s_s.stop_rel_res))
+                           .with_baseline(gko::stop::mode::rhs_norm)
+                           .on(exec_));
+        // std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        //    gko::log::Convergence<ValueType>::create();
+        // iter_stop->add_logger(logger);
+        // tol_stop->add_logger(logger);
+        iter_stop->add_logger(convergence_history_logger_);
+
+        // Create solver:
+        auto solver_gen = gko::solver::CbGmres<ValueType>::build()
+                              .with_criteria(iter_stop, tol_stop)
+                              .with_krylov_dim(s_s.krylov_dim)
+                              .with_storage_precision(s_s.storage_prec)
+                              .with_generated_preconditioner(s_s.precond)
+                              .with_init_compressor(s_s.init_compressor)
+                              .on(exec_);
+
+        // Generate the actual solver from the factory and the matrix.
+        auto solver = solver_gen->generate(mtx_);
+
+        for (int i = 0; i < repeats; ++i) {
+            // No need to copy it in the first iteration
+            if (i != 0) {
+                x_->copy_from(init_x_.get());
+            }
+            // Make sure all previous executor operations have finished before
+            // starting the time
+            exec_->synchronize();
+            auto tic = std::chrono::steady_clock::now();
+            solver->apply(rhs_, x_);
+            // Make sure all computations are done before stopping the time
+            exec_->synchronize();
+            auto tac = std::chrono::steady_clock::now();
+            duration += std::chrono::duration<double>(tac - tic).count();
+        }
+
+        result.iters = convergence_history_logger_->get_num_iterations();
+        result.time_s = duration / static_cast<double>(repeats);
+        result.res_norm = this->compute_residual_norm();
+        result.residual_norm_history =
+            &convergence_history_logger_->get_residual_norm_history();
+        return result;
+    }
+
+    RealValueType get_rhs_norm() const { return rhs_norm_; }
+
+private:
+    RealValueType compute_residual_norm()
+    {
+        residual_->copy_from(rhs_);
+        mtx_->apply(one_, x_, neg_one_, residual_);
+        residual_->compute_norm2(res_norm_);
+        res_norm_value_ =
+            exec_->copy_val_to_host(res_norm_->get_const_values());
+        return res_norm_value_;
+    }
+
+    void reset()
+    {
+        x_->copy_from(init_x_.get());
+        convergence_history_logger_->reset();
+    }
+
+    std::shared_ptr<const gko::Executor> exec_;
+    std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>> mtx_;
+    std::unique_ptr<const Vector> init_x_;
+    std::unique_ptr<const Vector> rhs_;
+    std::unique_ptr<const Vector> one_;
+    std::unique_ptr<const Vector> neg_one_;
+    RealValueType rhs_norm_;
+    std::unique_ptr<Vector> x_;
+    std::unique_ptr<Vector> residual_;
+    std::unique_ptr<NormVector> res_norm_;
+    RealValueType res_norm_value_;
+    std::shared_ptr<ConvergenceHistoryLogger<ValueType>>
+        convergence_history_logger_;
+};
 
 
 template <typename ValueType, typename IndexType>
-void run_benchmarks(std::shared_ptr<gko::Executor> exec,
-                    const std::string matrix_path,
-                    const std::string compression_json_folder,
-                    const unsigned max_iters, const double rel_res_norm)
+void run_benchmarks(const user_launch_parameter& launch_param)
 {
     using RealValueType = gko::remove_complex<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
     using real_vec = gko::matrix::Dense<RealValueType>;
-    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using mtx_t = gko::matrix::Csr<ValueType, IndexType>;
     using cb_gmres = gko::solver::CbGmres<ValueType>;
 
+    // Map which generates the appropriate executor
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    auto exec = exec_map.at(launch_param.exec_string)();  // throws if not valid
+
     constexpr char delim = ';';
+    constexpr char res_norm_history_delim = '&';
     constexpr char kv_delim = ':';
     const std::string data_begin = "{\n";
     const std::string data_end = "}\n";
 
-    auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
+    auto mtx =
+        share(gko::read<mtx_t>(std::ifstream(launch_param.matrix_path), exec));
 
-    const auto A_size = A->get_size();
-    auto b = vec::create(exec, gko::dim<2>{A_size[0], 1});
-    auto x = vec::create(exec, gko::dim<2>{A_size[1], 1});
+    const auto mtx_size = mtx->get_size();
+    auto rhs = vec::create(exec, gko::dim<2>{mtx_size[0], 1});
+    auto init_x = vec::create(exec, gko::dim<2>{mtx_size[1], 1});
 
-    double b_norm{};
+    double rhs_norm{};
 
     {  // Prepare values and delete all temporaries afterwards
         auto res_host =
-            vec::create(exec->get_master(), gko::dim<2>{A_size[1], 1});
+            vec::create(exec->get_master(), gko::dim<2>{mtx_size[1], 1});
         ValueType tmp_norm{};
         for (gko::size_type i = 0; i < res_host->get_size()[0]; ++i) {
             const auto val = std::sin(static_cast<ValueType>(i));
@@ -197,32 +362,34 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
         auto b_host_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
         b->compute_norm2(b_host_norm);
 
-        b_norm = b_host_norm->at(0, 0);
+        rhs_norm = b_host_norm->at(0, 0);
 
         // As an initial guess, use the right-hand side
-        auto x_host = clone(exec->get_master(), x);
-        for (gko::size_type i = 0; i < x_host->get_size()[0]; ++i) {
-            x_host->at(i, 0) = 0;
+        auto init_x_host = clone(exec->get_master(), init_x);
+        for (gko::size_type i = 0; i < init_x_host->get_size()[0]; ++i) {
+            init_x_host->at(i, 0) = 0;
         }
-        x->copy_from(x_host);
+        init_x->copy_from(init_x_host);
     }
+
+    Benchmark b_object(exec, mtx, std::move(init_x), std::move(rhs));
 
     using precond_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     // Default_settings
     solver_settings default_ss{};
-    default_ss.stop_iter = max_iters;
-    default_ss.stop_rel_res = rel_res_norm;
-    default_ss.krylov_dim = 100u;
+    default_ss.stop_iter = launch_param.stop_iter;
+    default_ss.stop_rel_res = launch_param.stop_rel_res_norm;
+    default_ss.krylov_dim = launch_param.krylov_dim;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
-    //*
-    default_ss.precond = precond_type::build()
-                             .with_max_block_size(32u)
-                             .with_skip_sorting(true)
-                             .on(exec)
-                             ->generate(A);
-    /*/
-    default_ss.precond = nullptr;
-    //*/
+    if (launch_param.jacobi_bs <= 0) {
+        default_ss.precond = nullptr;
+    } else {
+        default_ss.precond = precond_type::build()
+                                 .with_max_block_size(launch_param.jacobi_bs)
+                                 .with_skip_sorting(true)
+                                 .on(exec)
+                                 ->generate(mtx);
+    }
     default_ss.init_compressor = nullptr;
 
     const auto tt_str = [](int reduction) {
@@ -247,10 +414,11 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     // Make sure the output is in scientific notation for easier comparison
     std::cout << std::scientific << std::setprecision(4);
     std::cout << "Matrix" << kv_delim
-              << matrix_path.substr(matrix_path.find_last_of('/') + 1) << delim
-              << " size" << kv_delim << A_size[0] << " x " << A_size[1]
-              << delim;
-    std::cout << " b-norm" << kv_delim << b_norm << delim;
+              << launch_param.matrix_path.substr(
+                     launch_param.matrix_path.find_last_of('/') + 1)
+              << delim << " size" << kv_delim << mtx_size[0] << " x "
+              << mtx_size[1] << delim;
+    std::cout << " rhs_norm" << kv_delim << rhs_norm << delim;
     std::cout << " Stopping criteria (iters)" << kv_delim
               << default_ss.stop_iter << delim << " res_norm" << kv_delim
               << default_ss.stop_rel_res << delim;
@@ -265,18 +433,23 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     const std::array<int, 7> widths{28, 11, 12, 11, 17, 16, 15};
     // Print the header
     // clang-format off
-    int i = 0;
-    std::cout << std::setw(widths[i++]) << "Name" << delim
-              << std::setw(widths[i++]) << "Comp. info" << delim
-              << std::setw(widths[i++]) << "Time [s]" << delim
-              << std::setw(widths[i++]) << "Iterations" << delim
-              << std::setw(widths[i++]) << "res norm before" << delim
-              << std::setw(widths[i++]) << "res norm after" << delim
-              << std::setw(widths[i++]) << "rel res norm" << '\n';
+    {
+        int i = 0;
+        std::cout << std::setw(widths[i++]) << "Name" << delim
+                  << std::setw(widths[i++]) << "Comp. info" << delim
+                  << std::setw(widths[i++]) << "Time [s]" << delim
+                  << std::setw(widths[i++]) << "Iterations" << delim
+                  << std::setw(widths[i++]) << "res norm before" << delim
+                  << std::setw(widths[i++]) << "res norm after" << delim
+                  << std::setw(widths[i++]) << "rel res norm" << delim
+                  << " residual norm history (delim: " << res_norm_history_delim
+                  << ")" << '\n';
+    }
     // clang-format on
-    const auto print_result = [&widths](const std::string& bench_name,
-                                        const std::string& comp_info,
-                                        const solver_result& result) {
+    const auto print_result = [&widths](
+                                  const std::string& bench_name,
+                                  const std::string& comp_info,
+                                  const solver_result<RealValueType>& result) {
         int i = 0;
         std::cout << std::setw(widths[i++]) << bench_name << delim
                   << std::setw(widths[i++]) << comp_info << delim
@@ -285,39 +458,47 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                   << std::setw(widths[i++]) << result.init_res_norm << delim
                   << std::setw(widths[i++]) << result.res_norm << delim
                   << std::setw(widths[i++])
-                  << result.res_norm / result.init_res_norm << '\n'
-                  << std::flush;
+                  << result.res_norm / result.init_res_norm << delim;
+        for (std::size_t i = 0; i < result.residual_norm_history->size(); ++i) {
+            if (i != 0) {
+                std::cout << res_norm_history_delim;
+            }
+            std::cout << result.residual_norm_history->at(i);
+        }
+        std::cout << '\n' << std::flush;
     };
 
-    // val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
     auto cur_settings = default_ss;
     cur_settings.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
     print_result(get_name(0), std::to_string(sizeof(ValueType) * 8),
-                 benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+                 b_object.benchmark_solver(cur_settings));
 
     //*
     if (get_name(0) != get_name(1)) {
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::reduce1;
         print_result(get_name(1), std::to_string(sizeof(ValueType) * 8 / 2),
-                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+                     b_object.benchmark_solver(cur_settings));
     }
 
     if (get_name(1) != get_name(2)) {
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::reduce2;
         print_result(get_name(2), std::to_string(sizeof(ValueType) * 8 / 4),
-                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+                     b_object.benchmark_solver(cur_settings));
     }
 
     //*
-    for (int i = 1; i <= 64; i += 1) {
+    std::initializer_list<int> comp_rate_list{1,  4,  8,  12, 16,
+                                              20, 24, 28, 32, 64};
+    for (auto rate : comp_rate_list) {
         cur_settings = default_ss;
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_pressio;
-        cur_settings.init_compressor = [i](void* p_compressor) {
+        cur_settings.init_compressor = [rate, &b_object](void* p_compressor) {
             auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
-            nlohmann::json j = {{"pressio:compressor", "zfp"}, {"zfp:rate", i}};
+            nlohmann::json j = {{"pressio:compressor", "zfp"},
+                                {"zfp:rate", rate}};
             pressio_options options_from_file(static_cast<pressio_options>(j));
             pressio library;
             pc_ = library.get_compressor("pressio");
@@ -325,13 +506,13 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             pc_->set_name("pressio");
             pc_->set_options(options_from_file);
         };
-        print_result("ZFP_FR", std::to_string(i),
-                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+        print_result("ZFP_FR", std::to_string(rate),
+                     b_object.benchmark_solver(cur_settings));
     }
     /*/
     std::vector<std::string> compression_json_files;
-    for (auto config_path :
-         std::filesystem::directory_iterator(compression_json_folder)) {
+    for (auto config_path : std::filesystem::directory_iterator(
+             launch_param.compression_json_folder)) {
         compression_json_files.emplace_back(config_path.path().string());
     }
     std::sort(compression_json_files.begin(), compression_json_files.end());
@@ -364,7 +545,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
             pc_->set_options(options_from_file);
         };
         print_result(bench_name, "file",
-                     benchmark_solver(exec, cur_settings, A, b.get(), x.get()));
+                     b_object.benchmark_solver(cur_settings));
     }
     //*/
 
@@ -374,58 +555,44 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
 
 int main(int argc, char* argv[])
 {
+    user_launch_parameter launch_param{};
+
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
                   << " [path/to/matrix.mtx] [path/to/compresson/json/folder]"
-                     " [max_iters] [rel_res_norm] [{double,float}] "
-                     "[{cuda,omp,hip,dpcpp,reference}]"
-                  << std::endl;
+                     " [stop_iter] [stop_rel_res_norm] [jacobi_block_size] "
+                     "[precision={double,float}] "
+                     "[exec={cuda,omp,hip,dpcpp,reference}]\n";
+        std::cerr << "Default values:"
+                  << "\npath/to/matrix.mtx: " << launch_param.matrix_path
+                  << "\npath/to/comp/json/folder: "
+                  << launch_param.compression_json_folder
+                  << "\nstop_iter: " << launch_param.stop_iter
+                  << "\nstop_rel_res_norm: " << launch_param.stop_rel_res_norm
+                  << "\njacobi_block_size: " << launch_param.jacobi_bs
+                  << "\nprecision: "
+                  << "double"
+                  << "\nexec: "
+                  << "reference" << std::endl;
         std::exit(-1);
     }
 
-    int c_param = 1;  // stores the current parameter index
-    const std::string matrix_path =
-        argc >= c_param + 1 ? argv[c_param] : "data/A.mtx";
-    const std::string compression_json_folder =
-        argc >= ++c_param + 1 ? argv[c_param] : "lp_configs";
-    const unsigned max_iters =
-        argc >= ++c_param + 1 ? std::stoi(argv[c_param]) : 101;
-    const double rel_res_norm =
-        argc >= ++c_param + 1 ? std::stof(argv[c_param]) : 1e-16;
-    const std::string precision =
-        argc >= ++c_param + 1 ? argv[c_param] : "double";
-    const auto executor_string =
-        argc >= ++c_param + 1 ? argv[c_param] : "reference";
-    // Map which generates the appropriate executor
-    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-        exec_map{
-            {"omp", [] { return gko::OmpExecutor::create(); }},
-            {"cuda",
-             [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
-             }},
-            {"hip",
-             [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
-             }},
-            {"dpcpp",
-             [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
-             }},
-            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
-    // executor where Ginkgo will perform the computation
-    const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    int c_param = 0;  // stores the current parameter index
+    if (argc > ++c_param) launch_param.matrix_path = argv[c_param];
+    if (argc > ++c_param) launch_param.compression_json_folder = argv[c_param];
+    if (argc > ++c_param) launch_param.stop_iter = std::stoi(argv[c_param]);
+    if (argc > ++c_param)
+        launch_param.stop_rel_res_norm = std::stof(argv[c_param]);
+    if (argc > ++c_param) launch_param.jacobi_bs = std::stoi(argv[c_param]);
+
+    const std::string precision = argc > ++c_param ? argv[c_param] : "double";
+    if (argc > ++c_param) launch_param.exec_string = argv[c_param];
 
     if (precision == std::string("double")) {
-        run_benchmarks<double, int>(exec, matrix_path, compression_json_folder,
-                                    max_iters, rel_res_norm);
+        run_benchmarks<double, int>(launch_param);
     } else if (precision == std::string("float")) {
-        run_benchmarks<float, int>(exec, matrix_path, compression_json_folder,
-                                   max_iters, rel_res_norm);
+        run_benchmarks<float, int>(launch_param);
     } else {
         std::cerr << "Unknown precision string \"" << argv[4]
                   << "\". Supported values: \"double\", \"float\"\n";
