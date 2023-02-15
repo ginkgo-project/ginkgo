@@ -429,7 +429,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
                             default_ss.precond.get())
                             ->get_storage_scheme()
                             .block_offset)
-              << '\n';
+              << " Krylov dim" << kv_delim << default_ss.krylov_dim << '\n';
     const std::array<int, 7> widths{28, 11, 12, 11, 17, 16, 15};
     // Print the header
     // clang-format off
