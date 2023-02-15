@@ -179,7 +179,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data,
-                    array<int>& scatter_pattern)
+                    array<IndexType>& scatter_pattern)
 {
     array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
                                                        data.get_num_elems()};

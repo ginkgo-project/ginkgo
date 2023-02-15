@@ -83,7 +83,7 @@ namespace kernels {
     ValueType, IndexType)                                                  \
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,       \
                         device_matrix_data<ValueType, IndexType>& data,    \
-                        array<int>& scatter_pattern)
+                        array<IndexType>& scatter_pattern)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \

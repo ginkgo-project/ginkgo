@@ -143,8 +143,11 @@ public:
      * Sorts the matrix entries in row-major order
      * This means that they will be sorted by row index first, and then by
      * column index inside each row.
+     *
+     * @param scatter_pattern an array to store the permutation performed
+     * relative to original array
      */
-    void sort_row_major(array<int>& scatter_pattern);
+    void sort_row_major(array<IndexType>& scatter_pattern);
 
     /**
      * Removes all zero entries from the storage.
