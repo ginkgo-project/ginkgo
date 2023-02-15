@@ -119,6 +119,8 @@ public:
 
     void move_to(Dense<ValueType>* other) override;
 
+    void move_to(device_mat_data& data);
+
     void read(const mat_data& data) override;
 
     void read(const device_mat_data& data) override;
@@ -126,6 +128,8 @@ public:
     void read(device_mat_data&& data) override;
 
     void write(mat_data& data) const override;
+
+    void write(device_mat_data& data) const;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 

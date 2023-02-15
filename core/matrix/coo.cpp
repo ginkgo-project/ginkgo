@@ -196,6 +196,16 @@ void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 
 
 template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(device_mat_data& data)
+{
+    data = device_mat_data{
+        this->get_executor(), this->get_size(), std::move(this->row_idxs_),
+        std::move(this->col_idxs_), std::move(this->values_)};
+    this->set_size({});
+}
+
+
+template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::resize(dim<2> new_size, size_type nnz)
 {
     this->set_size(new_size);
@@ -246,6 +256,12 @@ void Coo<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::write(device_mat_data& data) const
+{
+    data = device_mat_data{this->get_executor(), this->get_size(),
+                           this->row_idxs_, this->col_idxs_, this->values_};
+}
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>
