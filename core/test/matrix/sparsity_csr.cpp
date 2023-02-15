@@ -201,7 +201,7 @@ TYPED_TEST(SparsityCsr, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(this->mtx));
+    copy->move_from(this->mtx);
 
     this->assert_equal_to_original_mtx(copy);
 }

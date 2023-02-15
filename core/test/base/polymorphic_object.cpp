@@ -247,31 +247,6 @@ TEST_F(EnablePolymorphicObject, CopiesObjectIsLogged)
 }
 
 
-TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtr)
-{
-    auto copy = DummyObject::create(ref, 7);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_NE(copy, obj);
-    ASSERT_EQ(copy->get_executor(), ref);
-    ASSERT_EQ(copy->x, 5);
-}
-
-
-TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtrIsLogged)
-{
-    auto before_logger = *this->logger;
-    auto copy = DummyObject::create(ref, 7);
-    copy->add_logger(logger);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
-    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
-}
-
-
 TEST_F(EnablePolymorphicObject, MovesObject)
 {
     auto copy = DummyObject::create(ref, 7);
@@ -293,31 +268,6 @@ TEST_F(EnablePolymorphicObject, MovesObjectIsLogged)
     copy->add_logger(logger);
 
     copy->move_from(obj);
-
-    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
-    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
-}
-
-
-TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
-{
-    auto copy = DummyObject::create(ref, 7);
-
-    copy->copy_from(gko::give(obj));
-
-    ASSERT_NE(copy, obj);
-    ASSERT_EQ(copy->get_executor(), ref);
-    ASSERT_EQ(copy->x, 5);
-}
-
-
-TEST_F(EnablePolymorphicObject, MovesFromUniquePtrIsLogged)
-{
-    auto before_logger = *this->logger;
-    auto copy = DummyObject::create(ref, 7);
-    copy->add_logger(logger);
-
-    copy->copy_from(gko::give(obj));
 
     ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
     ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);

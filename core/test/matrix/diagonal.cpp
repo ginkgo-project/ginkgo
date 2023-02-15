@@ -145,7 +145,7 @@ TYPED_TEST(Diagonal, CanBeMoved)
     using Diag = typename TestFixture::Diag;
     auto copy = Diag::create(this->exec);
 
-    copy->copy_from(std::move(this->diag));
+    copy->move_from(this->diag);
 
     this->assert_equal_to_original_mtx(copy);
 }

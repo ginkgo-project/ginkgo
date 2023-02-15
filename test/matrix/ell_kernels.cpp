@@ -77,7 +77,7 @@ protected:
     {
         mtx = Mtx::create(ref, gko::dim<2>{}, num_stored_elements_per_row,
                           stride);
-        mtx->copy_from(gen_mtx(num_rows, num_cols));
+        mtx->move_from(gen_mtx(num_rows, num_cols));
         expected = gen_mtx(num_rows, num_vectors);
         expected2 = Vec2::create(ref);
         expected2->copy_from(expected);

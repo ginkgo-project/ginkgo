@@ -248,7 +248,7 @@ TYPED_TEST(Pgm, CanBeMoved)
     using MgLevel = typename TestFixture::MgLevel;
     auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->mg_level));
+    copy->move_from(this->mg_level);
     auto copy_mtx = copy->get_system_matrix();
     auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();

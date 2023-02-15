@@ -182,7 +182,7 @@ TYPED_TEST(RowGatherer, CanBeMoved)
     using i_type = typename TestFixture::i_type;
     auto mtx_copy = gko::matrix::RowGatherer<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(std::move(this->mtx));
+    mtx_copy->move_from(this->mtx);
 
     this->assert_equal_to_original_mtx(mtx_copy);
 }

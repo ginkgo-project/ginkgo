@@ -234,7 +234,7 @@ TYPED_TEST(Multigrid, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->multigrid_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();

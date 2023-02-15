@@ -254,7 +254,7 @@ TYPED_TEST(Jacobi, CanBeMoved)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(give(this->bj));
+    copy->move_from(this->bj);
 
     this->assert_same_precond(copy.get(), tmp);
 }
@@ -273,7 +273,7 @@ TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(give(this->adaptive_bj));
+    copy->move_from(this->adaptive_bj);
 
     this->assert_same_precond(copy.get(), tmp);
 }

@@ -1096,7 +1096,7 @@ TYPED_TEST(Jacobi, ConvertsToDense)
     using value_type = typename TestFixture::value_type;
     auto dense = Vec::create(this->exec);
 
-    dense->copy_from(this->bj_factory->generate(this->mtx));
+    dense->move_from(this->bj_factory->generate(this->mtx));
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1116,7 +1116,7 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
     auto half_tol = std::sqrt(r<value_type>::value);
     auto dense = Vec::create(this->exec);
 
-    dense->copy_from(this->adaptive_bj_factory->generate(this->mtx));
+    dense->move_from(this->adaptive_bj_factory->generate(this->mtx));
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1135,7 +1135,7 @@ TYPED_TEST(Jacobi, ConvertsEmptyToDense)
     auto empty = gko::share(Vec::create(this->exec));
     auto res = Vec::create(this->exec);
 
-    res->copy_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
+    res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
 
     ASSERT_FALSE(res->get_size());
 }

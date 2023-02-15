@@ -205,7 +205,7 @@ TYPED_TEST(Ic, CanBeMoved)
     auto moved =
         ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
 
-    moved->copy_from(std::move(ic));
+    moved->move_from(ic);
 
     ASSERT_EQ(before_l_solver, moved->get_l_solver());
     ASSERT_EQ(before_lh_solver, moved->get_lh_solver());
