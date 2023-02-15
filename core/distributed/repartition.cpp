@@ -476,7 +476,7 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
 
     auto exec = from->get_executor();
 
-    array<int> sorting_idx(exec);
+    array<LocalIndexType> sorting_idx(exec);
     md_global local_data =
         write_local(exec, sorting_idx, from, from_partition_.get());
     auto local_arrays = std::move(local_data).empty_out();
