@@ -614,6 +614,14 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
     return *this;
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType,
+            GlobalIndexType>::add_scaled_identity_impl(const LinOp* a,
+                                                       const LinOp* b)
+{
+    as<ScaledIdentityAddable>(local_mtx_)->add_scaled_identity(a, b);
+    as<gko::matrix::Csr<ValueType, LocalIndexType>>(non_local_mtx_)->scale(b);
+}
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
