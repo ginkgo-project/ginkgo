@@ -337,9 +337,114 @@ const std::map<std::string,
     batch_precond_factory{
         {"none",
          [](std::shared_ptr<const gko::Executor> exec) { return nullptr; }},
-        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::BatchJacobi<etype, itype>::build().on(
-                 exec);
+        {"scalar_jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build()
+                 .with_max_block_size(1u)
+                 .on(exec);
+         }},
+        {"jacobi_2",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build()
+                 .with_max_block_size(2u)
+                 .on(exec);
+         }},
+        {"jacobi_4",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build()
+                 .with_max_block_size(4u)
+                 .on(exec);
+         }},
+        {"jacobi_16",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build()
+                 .with_max_block_size(16u)
+                 .on(exec);
+         }},
+        {"jacobi_32",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build()
+                 .with_max_block_size(32u)
+                 .on(exec);
+         }},
+        {"isai_1",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIsai<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_sparsity_power(1)
+                 .with_isai_input_matrix_type(
+                     gko::preconditioner::batch_isai_input_matrix_type::general)
+                 .on(exec);
+         }},
+        {"isai_2",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIsai<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_sparsity_power(2)
+                 .with_isai_input_matrix_type(
+                     gko::preconditioner::batch_isai_input_matrix_type::general)
+                 .on(exec);
+         }},
+        {"isai_3",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIsai<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_sparsity_power(3)
+                 .with_isai_input_matrix_type(
+                     gko::preconditioner::batch_isai_input_matrix_type::general)
+                 .on(exec);
+         }},
+        {"ilu0",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIlu<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::exact_ilu)
+                 .on(exec);
+         }},
+        {"parilu_5",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIlu<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+                 .with_parilu_num_sweeps(5)
+                 .on(exec);
+         }},
+        {"parilu_10",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIlu<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+                 .with_parilu_num_sweeps(10)
+                 .on(exec);
+         }},
+        {"parilu_30",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIlu<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+                 .with_parilu_num_sweeps(30)
+                 .on(exec);
+         }},
+        {"ilu_isai_1",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIluIsai<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::exact_ilu)
+                 .with_lower_factor_isai_sparsity_power(1)
+                 .with_upper_factor_isai_sparsity_power(1)
+                 .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::
+                                      spmv_isai_simple)
+                 .on(exec);
+         }},
+        {"ilu_isai_2", [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchIluIsai<etype, itype>::build()
+                 .with_skip_sorting(true)
+                 .with_ilu_type(gko::preconditioner::batch_ilu_type::exact_ilu)
+                 .with_lower_factor_isai_sparsity_power(2)
+                 .with_upper_factor_isai_sparsity_power(2)
+                 .with_apply_type(gko::preconditioner::batch_ilu_isai_apply::
+                                      spmv_isai_simple)
+                 .on(exec);
          }}};
 
 
