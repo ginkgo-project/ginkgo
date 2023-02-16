@@ -249,13 +249,12 @@ __device__ __forceinline__ void update_x(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int global_gap, const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             const int restart, LogType logger,
-                             PrecType prec_shared, const BatchMatrixType a,
-                             const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x,
-                             ValueType* const workspace = nullptr)
+__global__ void apply_kernel(
+    const gko::kernels::batch_gmres::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, const int restart, LogType logger,
+    PrecType prec_shared, const BatchMatrixType a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -266,18 +265,49 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-#if GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM
-        assert(workspace != nullptr);
-        ValueType* const r_sh = workspace + ibatch * (global_gap);
-#else
         extern __shared__ char local_mem_sh[];
-        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-#endif
-        ValueType* const z_sh = r_sh + nrows;
-        ValueType* const w_sh = z_sh + nrows;
-        ValueType* const x_sh = w_sh + nrows;
-        ValueType* const helper_sh = x_sh + nrows;
-        ValueType* const cs_sh = helper_sh + nrows;
+        const int gmem_offset =
+            ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
+
+        ValueType* r_sh;
+        ValueType* z_sh;
+        ValueType* w_sh;
+        ValueType* x_sh;
+        ValueType* helper_sh;
+
+        if (sconf.n_shared >= 1) {
+            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        } else {
+            r_sh = workspace + gmem_offset;
+        }
+        if (sconf.n_shared == 1) {
+            z_sh = workspace + gmem_offset;
+        } else {
+            z_sh = r_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 2) {
+            w_sh = workspace + gmem_offset;
+        } else {
+            w_sh = z_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 3) {
+            x_sh = workspace + gmem_offset;
+        } else {
+            x_sh = w_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 4) {
+            helper_sh = workspace + gmem_offset;
+        } else {
+            helper_sh = x_sh + sconf.padded_vec_len;
+        }
+
+        ValueType* cs_sh;
+        if (sconf.n_shared == 5) {
+            cs_sh = workspace + gmem_offset;
+        } else {
+            cs_sh = helper_sh + sconf.padded_vec_len;
+        }
+
         ValueType* const sn_sh = cs_sh + restart;
         ValueType* const y_sh = sn_sh + restart;
         ValueType* const s_sh = y_sh + restart;
