@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -70,27 +71,6 @@ namespace dpcpp {
  */
 namespace batch_ell {
 
-template <typename ValueType>
-inline void matvec_kernel(
-    sycl::nd_item<3> item_ct1,
-    const gko::batch_ell::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const gko::batch_dense::BatchEntry<ValueType>& c)
-{
-    for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
-         tidx += item_ct1.get_local_range().size()) {
-        auto temp = zero<ValueType>();
-        for (size_type idx = 0; idx < a.num_stored_elems_per_row; idx++) {
-            const auto col_idx = a.col_idxs[tidx + idx * a.stride];
-            if (col_idx < idx)
-                break;
-            else
-                temp += a.values[tidx + idx * a.stride] *
-                        b.values[col_idx * b.stride];
-        }
-        c.values[tidx * c.stride] = temp;
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
@@ -125,27 +105,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SPMV_KERNEL);
 
-template <typename ValueType>
-inline void advanced_matvec_kernel(
-    sycl::nd_item<3> item_ct1, const ValueType alpha,
-    const gko::batch_ell::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
-{
-    for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
-         tidx += item_ct1.get_local_range().size()) {
-        auto temp = zero<ValueType>();
-        for (size_type idx = 0; idx < a.num_stored_elems_per_row; idx++) {
-            const auto col_idx = a.col_idxs[tidx + idx * a.stride];
-            if (col_idx < idx)
-                break;
-            else
-                temp += alpha * a.values[tidx + idx * a.stride] *
-                        b.values[col_idx * b.stride];
-        }
-        c.values[tidx * c.stride] = temp + beta * c.values[tidx * c.stride];
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
@@ -342,57 +301,6 @@ void convert_from_batch_csc(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC);
 
-template <typename IndexType>
-inline void check_diagonal_entries_kernel(
-    sycl::nd_item<3> item_ct1, const IndexType num_min_rows_cols,
-    const size_type row_stride, const size_type max_nnz_per_row,
-    const IndexType* const __restrict__ col_idxs,
-    bool* const __restrict__ has_all_diags)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    if (item_ct1.get_local_linear_id() == 0) {
-        *has_all_diags = true;
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
-
-    if (sg_id == 0 && num_min_rows_cols > 0) {
-        bool row_has_diag_local{false};
-        if (sg.get_local_id() == 0) {
-            if (col_idxs[0] == 0) {
-                row_has_diag_local = true;
-            }
-        }
-        auto row_has_diag =
-            sycl::ext::oneapi::group_ballot(sg, row_has_diag_local).any();
-        if (!row_has_diag) {
-            if (sg.get_local_id() == 0) {
-                *has_all_diags = false;
-            }
-            return;
-        }
-    } else if (sg_id < num_min_rows_cols) {
-        bool row_has_diag_local{false};
-        for (IndexType iz = sg.get_local_id(); iz < max_nnz_per_row;
-             iz += sg_size) {
-            if (col_idxs[iz * row_stride + sg_id] == sg_id) {  // or = sg_id
-                row_has_diag_local = true;
-                break;
-            }
-        }
-        auto row_has_diag =
-            sycl::ext::oneapi::group_ballot(sg, row_has_diag_local).any();
-        if (!row_has_diag) {
-            if (sg.get_local_id() == 0) {
-                *has_all_diags = false;
-            }
-            return;
-        }
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
@@ -432,38 +340,6 @@ void check_diagonal_entries_exist(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CHECK_DIAGONAL_ENTRIES_EXIST);
 
-template <typename ValueType>
-inline void add_scaled_identity_kernel(
-    sycl::nd_item<3> item_ct1, const int nrows, const size_type row_stride,
-    const int max_nnz_per_row, const int* const col_idxs,
-    ValueType* const __restrict__ values, const ValueType& alpha,
-    const ValueType& beta)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int row = sg_id; row < nrows; row += num_sg) {
-        if (row == 0) {
-            for (int iz = sg.get_local_id(); iz < max_nnz_per_row;
-                 iz += sg_size) {
-                values[iz * row_stride] *= beta;
-            }
-            if (sg.get_local_id() == 0 && col_idxs[0] == 0) {
-                values[0] += alpha;
-            }
-        } else {
-            for (int iz = sg.get_local_id(); iz < max_nnz_per_row;
-                 iz += sg_size) {
-                values[iz * row_stride + row] *= beta;
-                if (row == col_idxs[iz * row_stride + row]) {
-                    values[iz * row_stride + row] += alpha;
-                }
-            }
-        }
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
