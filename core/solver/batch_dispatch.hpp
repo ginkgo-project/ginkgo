@@ -84,7 +84,17 @@ using DeviceValueType = gko::kernels::hip::hip_type<ValueType>;
 
 #elif defined GKO_COMPILING_DPCPP
 
-#error "Batch solvers are not yet supported on DPC++!"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/log/batch_loggers.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+#include "dpcpp/preconditioner/batch_block_jacobi.hpp"
+#include "dpcpp/preconditioner/batch_identity.hpp"
+#include "dpcpp/preconditioner/batch_ilu.hpp"
+#include "dpcpp/preconditioner/batch_ilu_isai.hpp"
+#include "dpcpp/preconditioner/batch_isai.hpp"
+#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp"
+#include "dpcpp/stop/batch_criteria.hpp"
+
 
 namespace gko {
 
