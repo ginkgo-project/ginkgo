@@ -116,6 +116,15 @@ void device_matrix_data<ValueType, IndexType>::sort_row_major()
 
 
 template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::sort_row_major(
+    array<IndexType>& scatter_pattern)
+{
+    this->values_.get_executor()->run(
+        components::make_sort_row_major(*this, scatter_pattern));
+}
+
+
+template <typename ValueType, typename IndexType>
 void device_matrix_data<ValueType, IndexType>::remove_zeros()
 {
     this->values_.get_executor()->run(components::make_remove_zeros(

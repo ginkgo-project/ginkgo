@@ -79,6 +79,12 @@ namespace kernels {
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,    \
                         device_matrix_data<ValueType, IndexType>& data)
 
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL_WITH_SCATTER( \
+    ValueType, IndexType)                                                  \
+    void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,       \
+                        device_matrix_data<ValueType, IndexType>& data,    \
+                        array<IndexType>& scatter_pattern)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
     template <typename ValueType, typename IndexType>                         \
@@ -91,7 +97,11 @@ namespace kernels {
     GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL(ValueType,           \
                                                          IndexType);          \
     template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType,           \
+                                                         IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL_WITH_SCATTER(        \
+        ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
