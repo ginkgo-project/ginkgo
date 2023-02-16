@@ -252,8 +252,12 @@ struct compression_helper {
             rhelper.get_bases().get_data() + krylov_idx * num_rows_);
         host_exec->copy_from(exec, num_rows_, raw_krylov_base,
                              reinterpret_cast<ValueType*>(in_temp_.data()));
-        pc_->compress(&in_temp_, &p_data_vec_[0]);
-        pc_->decompress(&p_data_vec_[0], &out_temp_);
+        if (pc_->compress(&in_temp_, &p_data_vec_[0])) {
+            std::cerr << pc_->error_msg() << '\n';
+        }
+        if (pc_->decompress(&p_data_vec_[0], &out_temp_)) {
+            std::cerr << pc_->error_msg() << '\n';
+        }
         exec->copy_from(host_exec, num_rows_,
                         reinterpret_cast<const ValueType*>(out_temp_.data()),
                         raw_krylov_base);

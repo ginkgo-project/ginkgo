@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 #include <chrono>
+#include <cinttypes>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -446,27 +447,27 @@ void run_benchmarks(const user_launch_parameter& launch_param)
                   << ")" << '\n';
     }
     // clang-format on
-    const auto print_result = [&widths](
-                                  const std::string& bench_name,
-                                  const std::string& comp_info,
-                                  const solver_result<RealValueType>& result) {
-        int i = 0;
-        std::cout << std::setw(widths[i++]) << bench_name << delim
-                  << std::setw(widths[i++]) << comp_info << delim
-                  << std::setw(widths[i++]) << result.time_s << delim
-                  << std::setw(widths[i++]) << result.iters << delim
-                  << std::setw(widths[i++]) << result.init_res_norm << delim
-                  << std::setw(widths[i++]) << result.res_norm << delim
-                  << std::setw(widths[i++])
-                  << result.res_norm / result.init_res_norm << delim;
-        for (std::size_t i = 0; i < result.residual_norm_history->size(); ++i) {
-            if (i != 0) {
-                std::cout << res_norm_history_delim;
+    const auto print_result =
+        [&widths](const std::string& bench_name, const std::string& comp_info,
+                  const solver_result<RealValueType>& result) {
+            int i = 0;
+            std::cout << std::setw(widths[i++]) << bench_name << delim
+                      << std::setw(widths[i++]) << comp_info << delim
+                      << std::setw(widths[i++]) << result.time_s << delim
+                      << std::setw(widths[i++]) << result.iters << delim
+                      << std::setw(widths[i++]) << result.init_res_norm << delim
+                      << std::setw(widths[i++]) << result.res_norm << delim
+                      << std::setw(widths[i++])
+                      << result.res_norm / result.init_res_norm << delim;
+            /*
+            for (std::size_t i = 0; i < result.residual_norm_history->size();
+            ++i) { if (i != 0) { std::cout << res_norm_history_delim;
+                }
+                std::cout << result.residual_norm_history->at(i);
             }
-            std::cout << result.residual_norm_history->at(i);
-        }
-        std::cout << '\n' << std::flush;
-    };
+            */
+            std::cout << '\n' << std::flush;
+        };
 
     auto cur_settings = default_ss;
     cur_settings.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
@@ -488,7 +489,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
                      b_object.benchmark_solver(cur_settings));
     }
 
-    //*
+    /*
     std::initializer_list<int> comp_rate_list{1,  4,  8,  12, 16,
                                               20, 24, 28, 32, 64};
     for (auto rate : comp_rate_list) {
@@ -509,36 +510,123 @@ void run_benchmarks(const user_launch_parameter& launch_param)
         print_result("ZFP_FR", std::to_string(rate),
                      b_object.benchmark_solver(cur_settings));
     }
-    /*/
+    */
+    for (std::int32_t rate : {2, 4, 8, 12, 16, 20, 32}) {
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        cur_settings.init_compressor = [rate, &b_object](void* p_compressor) {
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            // pc_->set_options({});
+            pc_->set_name("pressio");
+            pc_->set_options({{"pressio:compressor", "digit_rounding"},
+                              {"digit_rounding:prec", rate}});
+        };
+        print_result("digit_rounding", std::to_string(rate),
+                     b_object.benchmark_solver(cur_settings));
+    }
+    for (std::int32_t rate : {2, 4, 8, 12, 16}) {
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        cur_settings.init_compressor = [rate, &b_object](void* p_compressor) {
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            // pc_->set_options({});
+            pc_->set_name("pressio");
+            pc_->set_options({
+                {"pressio:compressor", "bit_grooming"},
+                {"bit_grooming:error_control_mode", int{0}},
+                {"bit_grooming:mode", int{2}},
+                {"bit_grooming:n_sig_digits", rate},
+            });
+        };
+        print_result("bit_grooming", std::to_string(rate),
+                     b_object.benchmark_solver(cur_settings));
+    }
+    // FRSZ2
+    for (std::uint64_t rate : {8, 12, 16, 20, 32}) {
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        cur_settings.init_compressor = [rate, &b_object](void* p_compressor) {
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            // pc_->set_options({});
+            pc_->set_name("pressio");
+            pc_->set_options({{"pressio:compressor", "frsz2"},
+                              {"frsz2:bits", rate},
+                              {"frsz2:max_exp_block_size", uint64_t{8}},
+                              {"frsz2:max_work_block_size", uint64_t{4}}});
+            // std::cout << pc_->get_options() << '\n';
+        };
+        print_result("FRSZ2", std::to_string(rate),
+                     b_object.benchmark_solver(cur_settings));
+    }
+    // print_output
+    /*
+    for (  // std::uint64_t rate : {2, 4, 8, 12, 16, 20, 32}
+        double rate : {1e-4, 1e-6, 1e-8, 1e-12}) {
+        cur_settings = default_ss;
+        cur_settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_pressio;
+        cur_settings.init_compressor = [rate, &b_object](void* p_compressor) {
+            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            // pc_->set_options({});
+            pc_->set_name("pressio");
+            // pc_->set_options({{"pressio:compressor", "frsz2"},
+            //                   {"frsz2:bits", rate},
+            //                   {"frsz2:max_exp_block_size", uint64_t{8}},
+            //                   {"frsz2:max_work_block_size", uint64_t{4}}});
+            pc_->set_options({
+                {"pressio:compressor", "noop"},  //, {"frsz:epsilon", rate}});
+                {"pressio:metric", "write_debug_inputs"},
+                {"write_debug_inputs:io", "numpy"},
+                {"write_debug_inputs:write_input", true},
+                {"write_debug_inputs:display_paths", true},
+            });
+            std::cout << pc_->get_options() << '\n';
+        };
+        print_result("FRSZ2", std::to_string(rate),
+                     b_object.benchmark_solver(cur_settings));
+    }
+    */
+
+    /*
+    // Read from File:
     std::vector<std::string> compression_json_files;
     for (auto config_path : std::filesystem::directory_iterator(
              launch_param.compression_json_folder)) {
         compression_json_files.emplace_back(config_path.path().string());
     }
-    std::sort(compression_json_files.begin(), compression_json_files.end());
-    for (auto config_file : compression_json_files) {
-        if (config_file.size() < 6 ||
+    std::sort(compression_json_files.begin(),
+    compression_json_files.end()); for (auto config_file :
+    compression_json_files) { if (config_file.size() < 6 ||
             config_file.substr(config_file.size() - 5) !=
                 std::string(".json")) {
             continue;
         }
         auto begin_file_name = config_file.rfind('/');
         begin_file_name =
-            begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
-        const auto file_name = config_file.substr(
-            begin_file_name, config_file.size() - begin_file_name - 5);
-        std::string bench_name = str_pre + file_name + str_post;
-        cur_settings = default_ss;
+            begin_file_name == std::string::npos ? 0 : begin_file_name +
+    1; const auto file_name = config_file.substr( begin_file_name,
+    config_file.size() - begin_file_name - 5); std::string bench_name =
+    str_pre + file_name + str_post; cur_settings = default_ss;
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_pressio;
         cur_settings.init_compressor = [lp_config =
-                                            config_file](void* p_compressor) {
-            auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
-            std::ifstream pressio_input_file(lp_config);
-            nlohmann::json j;
-            pressio_input_file >> j;
-            pressio_options options_from_file(static_cast<pressio_options>(j));
-            pressio library;
+                                            config_file](void*
+    p_compressor) { auto& pc_ =
+    *static_cast<pressio_compressor*>(p_compressor); std::ifstream
+    pressio_input_file(lp_config); nlohmann::json j; pressio_input_file
+    >> j; pressio_options
+    options_from_file(static_cast<pressio_options>(j)); pressio library;
             pc_ = library.get_compressor("pressio");
             // pc_->set_options({});
             pc_->set_name("pressio");
