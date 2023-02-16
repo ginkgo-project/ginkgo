@@ -298,7 +298,8 @@ void abstract_spmv(
     sycl::nd_item<3> item_ct1)
 {
 		ValueType scale_factor = alpha[0];
-		auto lambda = [scale_factor](const ValueType& x) { return scale_factor * x; };
+//		auto lambda = [scale_factor](const ValueType& x) { return scale_factor * x; };
+		auto lambda = [&](const ValueType& x) { return scale_factor * x; };
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
                 b, b_stride, c, c_stride, 
 //                [](const ValueType& x) { return x; },
@@ -670,7 +671,22 @@ void absolute_kernel(
     const auto start_in_blk = item_ct1.get_local_id(1) * subgroup_size + 
 															item_ct1.get_local_id(2);
     const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
-
+/**/
+ 		if (item_ct1.get_global_linear_id() == 0) {
+			sycl::ext::oneapi::experimental::printf("kernel absolute_kernel(%d,%d)\n", 
+				subgroup_size, item_ct1.get_sub_group().get_local_range().get(0));
+			sycl::ext::oneapi::experimental::printf("%ld - %ld - %d %ld - %ld - %d\n",
+				item_ct1.get_local_range(0),
+				item_ct1.get_local_range(1),
+				item_ct1.get_local_range(2),
+				item_ct1.get_global_range(0),
+				item_ct1.get_global_range(1),
+				item_ct1.get_global_range(2));
+			sycl::ext::oneapi::experimental::printf("%ld  %ld - %d - %ld  %ld - %d - %d\n",
+				column_id, start_blk, jump_blk, num_blks, start_in_blk, jump_in_blk, block_size);
+//			sycl::ext::oneapi::experimental::printf("%f\n", scale(1.0));
+		}
+/**/
     offsets_data_res[0] = 0;
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local = 
@@ -764,8 +780,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     spmv2(exec, a, b, c);
 }
 
-
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV_KERNEL);
 
 
@@ -780,7 +794,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL);
@@ -863,7 +876,6 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL);
 
@@ -877,6 +889,7 @@ void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const DpcppExecutor> exec,
@@ -1004,7 +1017,6 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL);
 
@@ -1053,7 +1065,6 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL);
 
@@ -1093,6 +1104,7 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,

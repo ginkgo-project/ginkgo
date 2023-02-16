@@ -67,7 +67,7 @@ namespace bccoo {
 void get_default_block_size(std::shared_ptr<const OmpExecutor> exec,
                             size_type* block_size)
 {
-    *block_size = 10;
+    *block_size = 32;
 }
 
 
