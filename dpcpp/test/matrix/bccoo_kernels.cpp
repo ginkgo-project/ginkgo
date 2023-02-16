@@ -403,6 +403,21 @@ TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
 }
 
 
+TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
+{
+    set_up_apply_data_blk();
+    auto dense_mtx_blk = gko::matrix::Dense<vtype>::create(ref);
+    auto coo_mtx_blk = gko::matrix::Coo<vtype>::create(ref);
+    auto dcoo_mtx_blk = gko::matrix::Coo<vtype>::create(dpcpp);
+
+    mtx_blk->convert_to(dense_mtx_blk.get());
+    dense_mtx_blk->convert_to(coo_mtx_blk.get());
+    dmtx_blk->convert_to(dcoo_mtx_blk.get());
+
+    GKO_ASSERT_MTX_NEAR(coo_mtx_blk.get(), dcoo_mtx_blk.get(), 0);
+}
+
+
 TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data_blk();
