@@ -81,7 +81,6 @@ void build_local_nonlocal(
     array<LocalIndexType>& local_gather_idxs,
     array<comm_index_type>& recv_sizes,
     array<GlobalIndexType>& non_local_to_global)
-    array<GlobalIndexType>& non_local_to_global)
 {
     GKO_NOT_IMPLEMENTED;
 }
