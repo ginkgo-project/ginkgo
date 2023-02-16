@@ -76,11 +76,15 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-  target_sources(
-    ginkgo
-    PRIVATE mpi/exception.cpp distributed/matrix.cpp
-            distributed/partition_helpers.cpp
-            distributed/preconditioner/schwarz.cpp distributed/vector.cpp)
+    target_sources(ginkgo
+        PRIVATE
+        mpi/exception.cpp
+        distributed/matrix.cpp
+        distributed/vector.cpp
+        distributed/repartition.cpp
+        distributed/partition_helpers.cpp
+        distributed/preconditioner/schwarz.cpp
+        )
 endif()
 
 ginkgo_compile_features(ginkgo)

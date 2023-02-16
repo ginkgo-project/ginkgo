@@ -81,6 +81,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
+#include <ginkgo/core/distributed/repartition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include <ginkgo/core/factorization/factorization.hpp>
@@ -122,6 +123,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>

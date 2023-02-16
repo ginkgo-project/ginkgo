@@ -401,6 +401,11 @@ public:
         return non_local_mtx_;
     }
 
+    const GlobalIndexType* get_non_local_to_global() const
+    {
+        return non_local_to_global_.get_const_data();
+    }
+
     /**
      * Copy constructs a Matrix.
      *
