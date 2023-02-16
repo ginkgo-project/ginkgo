@@ -58,10 +58,12 @@ class Executor;
 
 /**
  * This class is used for function parameters in the place of raw pointers.
- * It can be converted to from raw pointers, shared pointers and unique pointers
- * of the specified type or any derived type. This allows functions to be called
- * without having to use gko::lend or calling .get() for every pointer argument.
- * It probably has no use outside of function parameters, as it is immutable.
+ * Pointer parameters should be used for everything that does not involve
+ * transfer of ownership. It can be converted to from raw pointers, shared
+ * pointers and unique pointers of the specified type or any derived type. This
+ * allows functions to be called without having to use gko::lend or calling
+ * .get() for every pointer argument. It probably has no use outside of function
+ * parameters, as it is immutable.
  *
  * @tparam T  the pointed-to type
  */
