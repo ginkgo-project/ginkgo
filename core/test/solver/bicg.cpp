@@ -110,8 +110,7 @@ TYPED_TEST(Bicg, CanBeCopied)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -125,8 +124,7 @@ TYPED_TEST(Bicg, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -138,8 +136,7 @@ TYPED_TEST(Bicg, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
 }
 
 

@@ -96,9 +96,9 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         if (parameters_.symmetric_sparsity) {
-            exec->run(make_symbolic_cholesky(mtx, factors));
+            exec->run(make_symbolic_cholesky(mtx.get(), factors));
         } else {
-            exec->run(make_symbolic_lu(mtx, factors));
+            exec->run(make_symbolic_lu(mtx.get(), factors));
         }
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;

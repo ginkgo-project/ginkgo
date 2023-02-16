@@ -167,8 +167,7 @@ TYPED_TEST(CbGmres, CanBeCopied)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_copy->get_storage_precision(),
               this->solver->get_storage_precision());
     ASSERT_EQ(r_copy->get_krylov_dim(), this->solver->get_krylov_dim());
@@ -186,8 +185,7 @@ TYPED_TEST(CbGmres, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_copy->get_storage_precision(), this->storage_precision);
     ASSERT_EQ(r_copy->get_krylov_dim(), 100u);
 }
@@ -202,8 +200,7 @@ TYPED_TEST(CbGmres, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = r_clone->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_mtx.get()), this->mtx,
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_clone->get_storage_precision(),
               this->solver->get_storage_precision());
     ASSERT_EQ(r_clone->get_krylov_dim(), this->solver->get_krylov_dim());

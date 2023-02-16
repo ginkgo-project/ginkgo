@@ -64,17 +64,6 @@ struct make_void {
 }  // namespace detail
 
 
-template <typename T>
-struct dont_deduce {
-    using type = T;
-};
-
-
-// Avoid a parameter being involved in type deduction
-template <typename T>
-using dont_deduce_t = typename dont_deduce<T>::type;
-
-
 // Added in C++17
 template <typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;

@@ -122,7 +122,7 @@ protected:
             f(gko::with_matrix_type<Csr>(strategy),
               ConcreteCsr::create(this->ref, strategy),
               [](gko::pointer_param<const gko::LinOp> local_mat) {
-                  auto local_csr = gko::as<ConcreteCsr>(local_mat.get());
+                  auto local_csr = gko::as<ConcreteCsr>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename ConcreteCsr::classical>(
                       local_csr->get_strategy()));
@@ -145,8 +145,7 @@ protected:
               Fbcsr<value_type, local_index_type>::create(this->ref, 5),
               [](gko::pointer_param<const gko::LinOp> local_mat) {
                   auto local_fbcsr =
-                      gko::as<Fbcsr<value_type, local_index_type>>(
-                          local_mat.get());
+                      gko::as<Fbcsr<value_type, local_index_type>>(local_mat);
 
                   ASSERT_EQ(local_fbcsr->get_block_size(), 5);
               });
@@ -165,7 +164,7 @@ protected:
             f(gko::with_matrix_type<Hybrid>(strategy),
               Concrete::create(this->ref, strategy),
               [](gko::pointer_param<const gko::LinOp> local_mat) {
-                  auto local_hy = gko::as<Concrete>(local_mat.get());
+                  auto local_hy = gko::as<Concrete>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename Concrete::column_limit>(
                       local_hy->get_strategy()));
