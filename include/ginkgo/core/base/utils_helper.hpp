@@ -84,15 +84,15 @@ public:
         : pointer_param{ptr.get()}
     {}
 
-    pointer_param(const pointer_param&) = default;
-
-    pointer_param(pointer_param&&) = default;
-
     /** Initializes the pointer_param from a pointer_param of a derived type. */
     template <typename U,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
     pointer_param(const pointer_param<U>& ptr) : pointer_param{ptr.get()}
     {}
+
+    pointer_param(const pointer_param&) = default;
+
+    pointer_param(pointer_param&&) = default;
 
     /** @return a reference to the underlying pointee. */
     T& operator*() const { return *ptr_; }
@@ -133,7 +133,7 @@ struct is_clonable_impl<T, xstd::void_t<decltype(std::declval<T>().clone())>>
 template <typename T>
 constexpr bool is_clonable()
 {
-    return is_clonable_impl<typename std::decay<T>::type>::value;
+    return is_clonable_impl<std::decay_t<T>>::value;
 }
 
 
@@ -149,7 +149,7 @@ struct is_clonable_to_impl<
 template <typename T>
 constexpr bool is_clonable_to()
 {
-    return is_clonable_to_impl<typename std::decay<T>::type>::value;
+    return is_clonable_to_impl<std::decay_t<T>>::value;
 }
 
 
@@ -163,7 +163,7 @@ template <typename T>
 struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
-using have_ownership_s = have_ownership_impl<typename std::decay<T>::type>;
+using have_ownership_s = have_ownership_impl<std::decay_t<T>>;
 
 template <typename T>
 constexpr bool have_ownership()
@@ -333,9 +333,9 @@ template <typename Pointer>
  *         NotSupported.
  */
 template <typename T, typename U>
-inline typename std::decay<T>::type* as(U* obj)
+inline std::decay_t<T>* as(U* obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj)) {
+    if (auto p = dynamic_cast<std::decay_t<T>*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -359,9 +359,9 @@ inline typename std::decay<T>::type* as(U* obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline const typename std::decay<T>::type* as(const U* obj)
+inline const std::decay_t<T>* as(const U* obj)
 {
-    if (auto p = dynamic_cast<const typename std::decay<T>::type*>(obj)) {
+    if (auto p = dynamic_cast<const std::decay_t<T>*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -384,7 +384,7 @@ inline const typename std::decay<T>::type* as(const U* obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline typename std::decay<T>::type* as(pointer_param<U> obj)
+inline std::decay_t<T>* as(pointer_param<U> obj)
 {
     return as<T>(obj.get());
 }
@@ -403,7 +403,7 @@ inline typename std::decay<T>::type* as(pointer_param<U> obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline const typename std::decay<T>::type* as(pointer_param<const U> obj)
+inline const std::decay_t<T>* as(pointer_param<const U> obj)
 {
     return as<T>(obj.get());
 }
@@ -422,12 +422,11 @@ inline const typename std::decay<T>::type* as(pointer_param<const U> obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline std::unique_ptr<typename std::decay<T>::type> as(
-    std::unique_ptr<U>&& obj)
+inline std::unique_ptr<std::decay_t<T>> as(std::unique_ptr<U>&& obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj.get())) {
+    if (auto p = dynamic_cast<std::decay_t<T>*>(obj.get())) {
         obj.release();
-        return std::unique_ptr<typename std::decay<T>::type>{p};
+        return std::unique_ptr<std::decay_t<T>>{p};
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            name_demangling::get_type_name(typeid(*obj)));
@@ -447,9 +446,9 @@ inline std::unique_ptr<typename std::decay<T>::type> as(
  *         NotSupported. This pointer shares ownership with the input pointer.
  */
 template <typename T, typename U>
-inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
+inline std::shared_ptr<std::decay_t<T>> as(std::shared_ptr<U> obj)
 {
-    auto ptr = std::dynamic_pointer_cast<typename std::decay<T>::type>(obj);
+    auto ptr = std::dynamic_pointer_cast<std::decay_t<T>>(obj);
     if (ptr) {
         return ptr;
     } else {
@@ -473,11 +472,9 @@ inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
  *         NotSupported. This pointer shares ownership with the input pointer.
  */
 template <typename T, typename U>
-inline std::shared_ptr<const typename std::decay<T>::type> as(
-    std::shared_ptr<const U> obj)
+inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
 {
-    auto ptr =
-        std::dynamic_pointer_cast<const typename std::decay<T>::type>(obj);
+    auto ptr = std::dynamic_pointer_cast<const std::decay_t<T>>(obj);
     if (ptr) {
         return ptr;
     } else {

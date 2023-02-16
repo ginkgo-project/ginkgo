@@ -312,8 +312,8 @@ struct mtx_io_traits<gko::matrix::Fft3> {
 /**
  * Writes a matrix into an output stream in matrix market format.
  *
- * @tparam MatrixType  a WritableToMatrixData object providing data to be
- *                     written.
+ * @tparam MatrixPtrType  a (smart or raw) pointer to a WritableToMatrixData
+ *                        object providing data to be written.
  * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written
@@ -341,8 +341,8 @@ inline void write(
  * so files from a big endian processor can't be read from a little endian
  * processor and vice-versa.
  *
- * @tparam MatrixType  a WritableToMatrixData object providing data to be
- *                     written.
+ * @tparam MatrixPtrType  a (smart or raw) pointer to a WritableToMatrixData
+ *                        object providing data to be written.
  * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written

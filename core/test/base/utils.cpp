@@ -61,6 +61,59 @@ struct Base2 {
 struct MultipleDerived : Base, Base2 {};
 
 
+TEST(PointerParam, WorksForRawPointers)
+{
+    auto obj = std::make_unique<Derived>();
+    auto ptr = obj.get();
+
+    gko::pointer_param<Base> param(ptr);
+    gko::pointer_param<Derived> param2(ptr);
+
+    ASSERT_EQ(param.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), ptr);
+}
+
+
+TEST(PointerParam, WorksForSharedPointers)
+{
+    auto obj = std::make_shared<Derived>();
+    auto ptr = obj.get();
+
+    // no difference whether we use lvalue or rvalue
+    gko::pointer_param<Base> param1(obj);
+    gko::pointer_param<Base> param2(std::move(obj));
+    gko::pointer_param<Derived> param3(obj);
+    gko::pointer_param<Derived> param4(std::move(obj));
+
+    ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param3.get(), ptr);
+    ASSERT_EQ(param4.get(), ptr);
+    // shared_ptr was unmodified
+    ASSERT_EQ(obj.get(), ptr);
+}
+
+
+TEST(PointerParam, WorksForUniquePointers)
+{
+    auto obj = std::make_unique<Derived>();
+    auto ptr = obj.get();
+
+    // no difference whether we use lvalue or rvalue
+    gko::pointer_param<Base> param1(obj);
+    gko::pointer_param<Base> param2(std::move(obj));
+    gko::pointer_param<Derived> param3(obj);
+    gko::pointer_param<Derived> param4(std::move(obj));
+
+    ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param3.get(), ptr);
+    ASSERT_EQ(param4.get(), ptr);
+    // shared_ptr was unmodified
+    ASSERT_EQ(obj.get(), ptr);
+}
+
+
 struct ClonableDerived : Base {
     ClonableDerived(std::shared_ptr<const gko::Executor> exec = nullptr)
         : executor(exec)
