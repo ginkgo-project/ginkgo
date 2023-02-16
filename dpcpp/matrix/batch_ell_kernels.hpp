@@ -51,14 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
-#include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/reduction.dp.hpp"
-#include "dpcpp/components/segment_scan.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -74,10 +67,9 @@ namespace batch_ell {
 
 template <typename ValueType>
 inline void matvec_kernel(
-    sycl::nd_item<3> item_ct1,
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const gko::batch_dense::BatchEntry<ValueType>& c)
+    const gko::batch_dense::BatchEntry<ValueType>& c, sycl::nd_item<3> item_ct1)
 {
     for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
          tidx += item_ct1.get_local_range().size()) {
@@ -97,10 +89,10 @@ inline void matvec_kernel(
 
 template <typename ValueType>
 inline void advanced_matvec_kernel(
-    sycl::nd_item<3> item_ct1, const ValueType alpha,
-    const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c,
+    sycl::nd_item<3> item_ct1)
 {
     for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
          tidx += item_ct1.get_local_range().size()) {
@@ -120,10 +112,10 @@ inline void advanced_matvec_kernel(
 
 template <typename IndexType>
 inline void check_diagonal_entries_kernel(
-    sycl::nd_item<3> item_ct1, const IndexType num_min_rows_cols,
-    const size_type row_stride, const size_type max_nnz_per_row,
+    const IndexType num_min_rows_cols, const size_type row_stride,
+    const size_type max_nnz_per_row,
     const IndexType* const __restrict__ col_idxs,
-    bool* const __restrict__ has_all_diags)
+    bool* const __restrict__ has_all_diags, sycl::nd_item<3> item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -173,10 +165,9 @@ inline void check_diagonal_entries_kernel(
 
 template <typename ValueType>
 inline void add_scaled_identity_kernel(
-    sycl::nd_item<3> item_ct1, const int nrows, const size_type row_stride,
-    const int max_nnz_per_row, const int* const col_idxs,
-    ValueType* const __restrict__ values, const ValueType& alpha,
-    const ValueType& beta)
+    const int nrows, const size_type row_stride, const int max_nnz_per_row,
+    const int* const col_idxs, ValueType* const __restrict__ values,
+    const ValueType& alpha, const ValueType& beta, sycl::nd_item<3> item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();

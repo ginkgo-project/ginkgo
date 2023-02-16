@@ -52,14 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/iterator_factory.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
-#include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/reduction.dp.hpp"
-#include "dpcpp/components/segment_scan.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -74,11 +67,10 @@ namespace dpcpp {
 namespace batch_csr {
 
 template <typename ValueType>
-__dpct_inline__ void matvec_kernel(
-    sycl::nd_item<3>& item_ct1,
-    const gko::batch_csr::BatchEntry<const ValueType>& a,
-    const batch_dense::BatchEntry<const ValueType>& b,
-    const batch_dense::BatchEntry<ValueType>& c)
+inline void matvec_kernel(const gko::batch_csr::BatchEntry<const ValueType>& a,
+                          const batch_dense::BatchEntry<const ValueType>& b,
+                          const batch_dense::BatchEntry<ValueType>& c,
+                          sycl::nd_item<3>& item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
 
@@ -109,11 +101,11 @@ __dpct_inline__ void matvec_kernel(
 
 
 template <typename ValueType>
-__dpct_inline__ void advanced_matvec_kernel(
-    sycl::nd_item<3>& item_ct1, const ValueType alpha,
-    const gko::batch_csr::BatchEntry<const ValueType>& a,
+inline void advanced_matvec_kernel(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c,
+    sycl::nd_item<3>& item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
 
@@ -153,9 +145,8 @@ inline void convert_batch_csr_to_csc(
 
 template <typename ValueType>
 void batch_scale_kernel(  // TODO: consider to find a new kernel name
-    sycl::nd_item<3>& item_ct1, const ValueType* const left_scale,
-    const ValueType* const right_scale,
-    const gko::batch_csr::BatchEntry<ValueType>& a)
+    const ValueType* const left_scale, const ValueType* const right_scale,
+    const gko::batch_csr::BatchEntry<ValueType>& a, sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -174,13 +165,12 @@ void batch_scale_kernel(  // TODO: consider to find a new kernel name
 
 template <typename ValueType>
 inline void pre_diag_scale_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows,
-    ValueType* const __restrict__ a_values,
+    const int num_rows, ValueType* const __restrict__ a_values,
     const int* const __restrict__ col_idxs,
     const int* const __restrict__ row_ptrs, const int num_rhs,
     const size_type b_stride, ValueType* const __restrict__ b,
     const ValueType* const __restrict__ left_scale,
-    const ValueType* const __restrict__ right_scale)
+    const ValueType* const __restrict__ right_scale, sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -205,10 +195,10 @@ inline void pre_diag_scale_kernel(
 
 template <typename ValueType>
 inline void convert_to_batch_dense_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows, const int num_cols,
-    const int* const row_ptrs, const int* const col_idxs,
-    const ValueType* const values, const size_type dense_stride,
-    ValueType* const dense)
+    const int num_rows, const int num_cols, const int* const row_ptrs,
+    const int* const col_idxs, const ValueType* const values,
+    const size_type dense_stride, ValueType* const dense,
+    sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -227,12 +217,12 @@ inline void convert_to_batch_dense_kernel(
 }
 
 
-inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
-                                      const int min_rows_cols,
+inline void check_all_diagonal_kernel(const int min_rows_cols,
                                       const int* const __restrict__ row_ptrs,
                                       const int* const __restrict__ col_idxs,
                                       bool* const __restrict__ all_diags,
-                                      int* tile_has_diags)
+                                      int* tile_has_diags,
+                                      sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -278,9 +268,9 @@ inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
 
 template <typename ValueType>
 inline void add_scaled_identity_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows, const int* const row_ptrs,
-    const int* const col_idxs, ValueType* const __restrict__ values,
-    const ValueType& alpha, const ValueType& beta)
+    const int num_rows, const int* const row_ptrs, const int* const col_idxs,
+    ValueType* const __restrict__ values, const ValueType& alpha,
+    const ValueType& beta, sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();

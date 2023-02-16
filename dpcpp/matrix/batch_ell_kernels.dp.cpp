@@ -49,14 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
-#include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/reduction.dp.hpp"
-#include "dpcpp/components/segment_scan.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
@@ -97,7 +90,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 const auto a_b = gko::batch::batch_entry(a_ub, batch_id);
                 const auto b_b = gko::batch::batch_entry(b_ub, batch_id);
                 const auto c_b = gko::batch::batch_entry(c_ub, batch_id);
-                matvec_kernel(item_ct1, a_b, b_b, c_b);
+                matvec_kernel(a_b, b_b, c_b, item_ct1);
             });
     });
 }
@@ -140,7 +133,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 const auto beta_b = gko::batch::batch_entry(beta_ub, batch_id);
                 const ValueType alphav = alpha_b.values[0];
                 const ValueType betav = beta_b.values[0];
-                advanced_matvec_kernel(item_ct1, alphav, a_b, b_b, betav, c_b);
+                advanced_matvec_kernel(alphav, a_b, b_b, betav, c_b, item_ct1);
             });
     });
 }
@@ -329,9 +322,9 @@ void check_diagonal_entries_exist(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto batch_id = group.get_group_linear_id();
-                check_diagonal_entries_kernel(item_ct1, nmin, row_stride,
-                                              max_nnz_per_row, col_idxs,
-                                              d_result_data);
+                check_diagonal_entries_kernel(nmin, row_stride, max_nnz_per_row,
+                                              col_idxs, d_result_data,
+                                              item_ct1);
             });
     });
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
@@ -379,9 +372,9 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                     batch::batch_entry_ptr(a_values, a_stride, 1, batch_id);
                 const ValueType* const beta_b =
                     batch::batch_entry_ptr(b_values, b_stride, 1, batch_id);
-                add_scaled_identity_kernel(item_ct1, nrows, row_stride,
-                                           max_nnz_per_row, col_idxs, values_b,
-                                           alpha_b[0], beta_b[0]);
+                add_scaled_identity_kernel(nrows, row_stride, max_nnz_per_row,
+                                           col_idxs, values_b, alpha_b[0],
+                                           beta_b[0], item_ct1);
             });
     });
 }

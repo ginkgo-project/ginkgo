@@ -43,14 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
-#include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/reduction.dp.hpp"
-#include "dpcpp/components/segment_scan.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_diagonal_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
@@ -103,8 +96,8 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
                     x_values, x_stride, num_rows, batch_id);
                 const auto d_ptr = gko::batch::batch_entry_ptr(
                     diag_values, 1, mindim, batch_id);
-                apply_kernel(item_ct1, num_rows, num_cols, d_ptr, num_rhs,
-                             b_stride, b_ptr, x_stride, x_ptr);
+                apply_kernel(num_rows, num_cols, d_ptr, num_rhs, b_stride,
+                             b_ptr, x_stride, x_ptr, item_ct1);
             });
     });
 }
@@ -143,8 +136,8 @@ void apply_in_place(std::shared_ptr<const DpcppExecutor> exec,
                                  b_values, stride, num_rows, batch_id);
                              const auto d_ptr = gko::batch::batch_entry_ptr(
                                  diag_values, 1, num_rows, batch_id);
-                             apply_in_place_kernel(item_ct1, num_rows, stride,
-                                                   num_rhs, d_ptr, b_ptr);
+                             apply_in_place_kernel(num_rows, stride, num_rhs,
+                                                   d_ptr, b_ptr, item_ct1);
                          });
     });
 }
