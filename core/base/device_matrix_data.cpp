@@ -51,6 +51,8 @@ GKO_REGISTER_OPERATION(soa_to_aos, components::soa_to_aos);
 GKO_REGISTER_OPERATION(remove_zeros, components::remove_zeros);
 GKO_REGISTER_OPERATION(sum_duplicates, components::sum_duplicates);
 GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
+GKO_REGISTER_OPERATION(sort_row_major_with_scatter,
+                       components::sort_row_major_with_scatter);
 
 
 }  // anonymous namespace
@@ -116,11 +118,12 @@ void device_matrix_data<ValueType, IndexType>::sort_row_major()
 
 
 template <typename ValueType, typename IndexType>
-void device_matrix_data<ValueType, IndexType>::sort_row_major(
-    array<IndexType>& scatter_pattern)
+template <typename SortingIndexType>
+void device_matrix_data<ValueType, IndexType>::sort_row_major_with_scatter(
+    array<SortingIndexType>& scatter_pattern)
 {
     this->values_.get_executor()->run(
-        components::make_sort_row_major(*this, scatter_pattern));
+        components::make_sort_row_major_with_scatter(*this, scatter_pattern));
 }
 
 
@@ -169,10 +172,17 @@ device_matrix_data<ValueType, IndexType>::empty_out()
     return result;
 }
 
-
 #define GKO_DECLARE_DEVICE_MATRIX_DATA(ValueType, IndexType) \
-    struct device_matrix_data<ValueType, IndexType>
+    class device_matrix_data<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DEVICE_MATRIX_DATA);
 
 
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_WITH_SCATTER( \
+    ValueType, SortingIndexType, IndexType)                         \
+    void device_matrix_data<ValueType, IndexType>::                 \
+        sort_row_major_with_scatter<SortingIndexType>(              \
+            array<SortingIndexType> & scatter_pattern)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_WITH_SCATTER);
 }  // namespace gko

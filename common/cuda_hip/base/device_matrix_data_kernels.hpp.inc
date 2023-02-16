@@ -147,3 +147,14 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
+
+template <typename ValueType, typename SortingIndexType, typename IndexType>
+void sort_row_major_with_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                                 device_matrix_data<ValueType, IndexType>& data,
+                                 array<SortingIndexType>& scatter_pattern)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL_WITH_SCATTER);

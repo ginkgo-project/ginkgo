@@ -147,7 +147,8 @@ public:
      * @param scatter_pattern an array to store the permutation performed
      * relative to original array
      */
-    void sort_row_major(array<IndexType>& scatter_pattern);
+    template <typename SortingIndexType>
+    void sort_row_major_with_scatter(array<SortingIndexType>& scatter_pattern);
 
     /**
      * Removes all zero entries from the storage.
