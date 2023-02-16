@@ -55,14 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
-#include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/reduction.dp.hpp"
-#include "dpcpp/components/segment_scan.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/matrix/batch_dense_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
@@ -109,7 +102,7 @@ void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto a_b = batch::batch_entry(a_ub, group_id);
                 const auto b_b = batch::batch_entry(b_ub, group_id);
                 const auto c_b = batch::batch_entry(c_ub, group_id);
-                single_matvec_kernel(item_ct1, a_b, b_b.values, c_b.values);
+                single_matvec_kernel(a_b, b_b.values, c_b.values, item_ct1);
             });
     });
 }
@@ -155,9 +148,9 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto c_b = batch::batch_entry(c_ub, group_id);
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto beta_b = batch::batch_entry(beta_ub, group_id);
-                single_advanced_matvec_kernel(item_ct1, alpha_b.values[0], a_b,
+                single_advanced_matvec_kernel(alpha_b.values[0], a_b,
                                               b_b.values, beta_b.values[0],
-                                              c_b.values);
+                                              c_b.values, item_ct1);
             });
     });
 }
@@ -189,7 +182,7 @@ void scale(std::shared_ptr<const DpcppExecutor> exec,
                 auto group_id = group.get_group_linear_id();
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto x_b = batch::batch_entry(x_ub, group_id);
-                single_scale_kernel(item_ct1, alpha_b, x_b);
+                single_scale_kernel(alpha_b, x_b, item_ct1);
             });
     });
 }
@@ -243,7 +236,7 @@ void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto x_b = batch::batch_entry(x_ub, group_id);
                 const auto y_b = batch::batch_entry(y_ub, group_id);
-                add_scaled_kernel(item_ct1, alpha_b, x_b, y_b);
+                add_scaled_kernel(alpha_b, x_b, y_b, item_ct1);
             });
     });
     //}
@@ -281,7 +274,7 @@ void add_scale(std::shared_ptr<const DpcppExecutor> exec,  // Not a good name!!!
                 const auto beta_b = batch::batch_entry(beta_ub, group_id);
                 const auto x_b = batch::batch_entry(x_ub, group_id);
                 const auto y_b = batch::batch_entry(y_ub, group_id);
-                add_scaled_advanced_kernel(item_ct1, alpha_b, x_b, beta_b, y_b);
+                add_scaled_advanced_kernel(alpha_b, x_b, beta_b, y_b, item_ct1);
             });
     });
 }
@@ -336,7 +329,7 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                 const auto x_b = batch::batch_entry(x_ub, group_id);
                 const auto y_b = batch::batch_entry(y_ub, group_id);
                 const auto res_b = batch::batch_entry(res_ub, group_id);
-                compute_dot_product_kernel(item_ct1, x_b, y_b, res_b);
+                compute_dot_product_kernel(x_b, y_b, res_b, item_ct1);
             });
     });
 }
@@ -378,7 +371,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                 auto group_id = group.get_group_linear_id();
                 const auto x_b = batch::batch_entry(x_ub, group_id);
                 const auto res_b = batch::batch_entry(res_ub, group_id);
-                compute_norm2_kernel(item_ct1, x_b, res_b);
+                compute_norm2_kernel(x_b, res_b, item_ct1);
             });
     });
 }
@@ -476,9 +469,9 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
                     orig_values + group_id * orig_stride * nrows;
                 ValueType* const trans_b =
                     trans_values + group_id * trans_stride * ncols;
-                transpose_kernel(item_ct1, nrows, ncols, orig_stride, orig_b,
-                                 trans_stride, trans_b,
-                                 [](ValueType x) { return x; });
+                transpose_kernel(
+                    nrows, ncols, orig_stride, orig_b, trans_stride, trans_b,
+                    [](ValueType x) { return x; }, item_ct1);
             });
     });
 }
@@ -517,9 +510,9 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     orig_values + group_id * orig_stride * nrows;
                 ValueType* const trans_b =
                     trans_values + group_id * trans_stride * ncols;
-                transpose_kernel(item_ct1, nrows, ncols, orig_stride, orig_b,
-                                 trans_stride, trans_b,
-                                 [](ValueType x) { return conj(x); });
+                transpose_kernel(
+                    nrows, ncols, orig_stride, orig_b, trans_stride, trans_b,
+                    [](ValueType x) { return conj(x); }, item_ct1);
             });
     });
 }
@@ -551,7 +544,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
                 auto group_id = group.get_group_linear_id();
                 const auto x_b = batch::batch_entry(x_ub, group_id);
                 const auto result_b = batch::batch_entry(result_ub, group_id);
-                copy_kernel(item_ct1, x_b, result_b);
+                copy_kernel(x_b, result_b, item_ct1);
             });
     });
 }
@@ -606,8 +599,8 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
                 const auto right_ptr =
                     batch::batch_entry_ptr(right_values, 1, num_rhs, group_id);
 
-                batch_scale_kernel(item_ct1, num_rows, x_stride, num_rhs,
-                                   left_ptr, right_ptr, x_ptr);
+                batch_scale_kernel(num_rows, x_stride, num_rhs, left_ptr,
+                                   right_ptr, x_ptr, item_ct1);
             });
     });
 }
@@ -650,8 +643,8 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                     mtx_values + group_id * mtx_stride * num_rows;
                 const auto alpha_b = alpha_values[group_id * a_stride];
                 const auto beta_b = beta_values[group_id * b_stride];
-                add_scaled_identity_kernel(item_ct1, num_rows, num_cols,
-                                           mtx_stride, mtx_b, alpha_b, beta_b);
+                add_scaled_identity_kernel(num_rows, num_cols, mtx_stride,
+                                           mtx_b, alpha_b, beta_b, item_ct1);
             });
     });
 }
