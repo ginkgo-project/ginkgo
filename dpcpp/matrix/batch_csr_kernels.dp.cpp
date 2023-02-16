@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -70,39 +71,6 @@ namespace dpcpp {
  * @ingroup batch_csr
  */
 namespace batch_csr {
-
-template <typename ValueType>
-void matvec_kernel(sycl::nd_item<3>& item_ct1,
-                   const gko::batch_csr::BatchEntry<const ValueType>& a,
-                   const batch_dense::BatchEntry<const ValueType>& b,
-                   const batch_dense::BatchEntry<ValueType>& c)
-{
-    auto sg = item_ct1.get_sub_group();
-
-    for (int row_and_rhs_combination = sg.get_group_id();
-         row_and_rhs_combination < a.num_rows * b.num_rhs;
-         row_and_rhs_combination += sg.get_group_range().size()) {
-        const int row = row_and_rhs_combination / b.num_rhs;
-        const int rhs = row_and_rhs_combination % b.num_rhs;
-
-        const int row_start = a.row_ptrs[row];
-        const int row_end = a.row_ptrs[row + 1];
-
-        ValueType temp = zero<ValueType>();
-        for (int i = sg.get_local_id() + row_start; i < row_end;
-             i += sg.get_local_range().size()) {
-            const int col = a.col_idxs[i];
-            const ValueType val = a.values[i];
-            temp += val * b.values[col * b.stride + rhs];
-        }
-
-        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
-
-        if (sg.get_local_id() == 0) {
-            c.values[row * c.stride + rhs] = temp;
-        }
-    }
-}
 
 
 template <typename ValueType, typename IndexType>
@@ -141,40 +109,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
 
-template <typename ValueType>
-void advanced_matvec_kernel(
-    sycl::nd_item<3>& item_ct1, const ValueType alpha,
-    const gko::batch_csr::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
-{
-    auto sg = item_ct1.get_sub_group();
-
-    for (int row_and_rhs_combination = sg.get_group_id();
-         row_and_rhs_combination < a.num_rows * b.num_rhs;
-         row_and_rhs_combination += sg.get_group_range().size()) {
-        const int row = row_and_rhs_combination / b.num_rhs;
-        const int rhs = row_and_rhs_combination % b.num_rhs;
-
-        const int row_start = a.row_ptrs[row];
-        const int row_end = a.row_ptrs[row + 1];
-
-        ValueType temp = zero<ValueType>();
-        for (int i = sg.get_local_id() + row_start; i < row_end;
-             i += sg.get_local_range().size()) {
-            const int col = a.col_idxs[i];
-            const ValueType val = a.values[i];
-            temp += alpha * val * b.values[col * b.stride + rhs];
-        }
-
-        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
-
-        if (sg.get_local_id() == 0) {
-            c.values[row * c.stride + rhs] =
-                temp + beta * c.values[row * c.stride + rhs];
-        }
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
@@ -234,13 +168,6 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_batch_csr_to_csc(
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* batch_csr_vals, IndexType* row_idxs, IndexType* col_ptrs,
-    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
@@ -318,25 +245,6 @@ void is_sorted_by_column_index(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
-template <typename ValueType>
-void batch_scale_kernel(  // TODO: consider to find a new kernel name
-    sycl::nd_item<3>& item_ct1, const ValueType* const left_scale,
-    const ValueType* const right_scale,
-    const gko::batch_csr::BatchEntry<ValueType>& a)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int i_row = sg_id; i_row < a.num_rows; i_row += num_sg) {
-        const ValueType rowscale = left_scale[i_row];
-        for (int iz = a.row_ptrs[i_row] + sg.get_local_id();
-             iz < a.row_ptrs[i_row + 1]; iz += sg_size) {
-            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
-        }
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
@@ -363,53 +271,24 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto m_b = batch::batch_entry(m_ub, group_id);
-                    const auto left_b = batch::batch_entry_ptr(
-                        left_values, 1, m_ub.num_rows, group_id);
-                    const auto right_b = batch::batch_entry_ptr(
-                        right_values, 1, ncols, group_id);
-                    batch_scale_kernel(item_ct1, left_b, right_b, m_b);
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto m_b = batch::batch_entry(m_ub, group_id);
+                const auto left_b = batch::batch_entry_ptr(
+                    left_values, 1, m_ub.num_rows, group_id);
+                const auto right_b =
+                    batch::batch_entry_ptr(right_values, 1, ncols, group_id);
+                batch_scale_kernel(item_ct1, left_b, right_b, m_b);
+            });
     });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SCALE);
 
-template <typename ValueType>
-inline void pre_diag_scale_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows,
-    ValueType* const __restrict__ a_values,
-    const int* const __restrict__ col_idxs,
-    const int* const __restrict__ row_ptrs, const int num_rhs,
-    const size_type b_stride, ValueType* const __restrict__ b,
-    const ValueType* const __restrict__ left_scale,
-    const ValueType* const __restrict__ right_scale)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_max_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int i_row = sg_id; i_row < num_rows; i_row += num_sg) {
-        const ValueType rowscale = left_scale[i_row];
-        for (int iz = row_ptrs[i_row] + sg.get_local_id();
-             iz < row_ptrs[i_row + 1]; iz += sg_size) {
-            a_values[iz] *= rowscale * right_scale[col_idxs[iz]];
-        }
-    }
-    for (int iz = item_ct1.get_local_linear_id(); iz < num_rows * num_rhs;
-         iz += item_ct1.get_local_range().size()) {
-        const int row = iz / num_rhs;
-        const int col = iz % num_rhs;
-        b[row * b_stride + col] *= left_scale[row];
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void pre_diag_transform_system(
@@ -463,28 +342,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
 
-template <typename ValueType>
-inline void convert_to_batch_dense_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows, const int num_cols,
-    const int* const row_ptrs, const int* const col_idxs,
-    const ValueType* const values, const size_type dense_stride,
-    ValueType* const dense)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int i_row = sg_id; i_row < num_rows; i_row += num_sg) {
-        for (int j = sg.get_local_id(); j < num_cols; j += sg_size) {
-            dense[i_row * dense_stride + j] = zero<ValueType>();
-        }
-        for (int iz = row_ptrs[i_row] + sg.get_local_id();
-             iz < row_ptrs[i_row + 1]; iz += sg_size) {
-            dense[i_row * dense_stride + col_idxs[iz]] = values[iz];
-        }
-    }
-}
 template <typename ValueType, typename IndexType>
 void convert_to_batch_dense(
     std::shared_ptr<const DpcppExecutor> exec,
@@ -527,54 +384,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
 
 
-inline void check_all_diagonal_kernel(sycl::nd_item<3>& item_ct1,
-                                      const int min_rows_cols,
-                                      const int* const __restrict__ row_ptrs,
-                                      const int* const __restrict__ col_idxs,
-                                      bool* const __restrict__ all_diags,
-                                      int* tile_has_diags)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    int this_tile_has_diags = 1;
-    for (int row = sg_id; row < min_rows_cols; row += num_sg) {
-        const int row_sz = row_ptrs[row + 1] - row_ptrs[row];
-        int has_diag = 0;
-        for (int iz = sg.get_local_id(); iz < row_sz; iz += sg_size) {
-            has_diag = static_cast<int>(col_idxs[iz + row_ptrs[row]] == row);
-            if (has_diag) {
-                break;
-            }
-        }
-        auto row_has_diag = sycl::ext::oneapi::group_ballot(sg, has_diag).any();
-        this_tile_has_diags = this_tile_has_diags && row_has_diag;
-    }
-    if (sg.get_local_id() == 0) {
-        tile_has_diags[sg_id] = this_tile_has_diags;
-    }
-
-    // workgroup sync, must-have
-    item_ct1.barrier(sycl::access::fence_space::local_space);
-
-    // reduce array to one warp
-    if (sg_id == 0) {
-        for (int i = sg_size + sg.get_local_id(); i < num_sg; i += sg_size) {
-            tile_has_diags[i % sg_size] =
-                tile_has_diags[i % sg_size] && tile_has_diags[i];
-        }
-        // warp-reduce
-        int var =
-            sg.get_local_id() < num_sg ? tile_has_diags[sg.get_local_id()] : 1;
-        var = sycl::ext::oneapi::group_ballot(sg, var).all();
-        if (sg.get_local_id() == 0) {
-            all_diags[0] = static_cast<bool>(var);
-        }
-    }
-}
-
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const DpcppExecutor> exec,
@@ -603,14 +412,13 @@ void check_diagonal_entries_exist(
                        sycl::access::target::local>
             tile_has_diags(sycl::range<1>(num_sg), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(sg_size)]] {
-                                 check_all_diagonal_kernel(
-                                     item_ct1, nmin, row_ptrs, col_idxs,
-                                     d_result_data,
-                                     tile_has_diags.get_pointer());
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(sg_size)]] {
+                check_all_diagonal_kernel(item_ct1, nmin, row_ptrs, col_idxs,
+                                          d_result_data,
+                                          tile_has_diags.get_pointer());
+            });
     });
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -619,28 +427,6 @@ void check_diagonal_entries_exist(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
 
-
-template <typename ValueType>
-inline void add_scaled_identity_kernel(
-    sycl::nd_item<3>& item_ct1, const int num_rows, const int* const row_ptrs,
-    const int* const col_idxs, ValueType* const __restrict__ values,
-    const ValueType& alpha, const ValueType& beta)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int row = sg_id; row < num_rows; row += num_sg) {
-        for (int iz = row_ptrs[row] + sg.get_local_id(); iz < row_ptrs[row + 1];
-             iz += sg_size) {
-            values[iz] *= beta;
-            if (row == col_idxs[iz]) {
-                values[iz] += alpha;
-            }
-        }
-    }
-}
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
