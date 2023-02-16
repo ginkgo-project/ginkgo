@@ -248,7 +248,7 @@ inf_norm(PtrType&& mat, size_t col = 0)
     using std::abs;
     using no_cpx_t = gko::remove_complex<T>;
     no_cpx_t norm = 0.0;
-    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
+    for (std::size_t i = 0; i < mat->get_size()[0]; ++i) {
         no_cpx_t absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }

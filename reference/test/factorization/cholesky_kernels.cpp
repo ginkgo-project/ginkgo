@@ -344,7 +344,7 @@ TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
     auto combined_factor_ref = this->combined_factor(l_factor_ref);
 
     std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx, combined_factor);
+    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
 }
@@ -406,7 +406,7 @@ TYPED_TEST(Cholesky, SymbolicFactorizeAni1Amd)
     auto combined_factor_ref = this->combined_factor(l_factor_ref);
 
     std::unique_ptr<matrix_type> combined_factor;
-    gko::factorization::symbolic_cholesky(mtx, combined_factor);
+    gko::factorization::symbolic_cholesky(mtx.get(), combined_factor);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
 }

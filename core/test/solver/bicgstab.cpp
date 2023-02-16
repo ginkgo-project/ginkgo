@@ -107,7 +107,7 @@ TYPED_TEST(Bicgstab, CanBeCopied)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx.get()), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -121,7 +121,7 @@ TYPED_TEST(Bicgstab, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx.get()), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -195,7 +195,7 @@ TYPED_TEST(Bicgstab, CanSetCriteriaAgain)
 
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
-    auto niter = gko::as<gko::stop::Iteration::Factory>(new_crit_fac.get())
+    auto niter = gko::as<gko::stop::Iteration::Factory>(new_crit_fac)
                      ->get_parameters()
                      .max_iters;
 

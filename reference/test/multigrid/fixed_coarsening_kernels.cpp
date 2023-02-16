@@ -197,10 +197,8 @@ TYPED_TEST(FixedCoarsening, CanBeCopied)
     auto copy_mtx = copy->get_system_matrix();
     auto copy_coarse = copy->get_coarse_op();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_coarse.get()),
-                        this->coarse, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -215,10 +213,8 @@ TYPED_TEST(FixedCoarsening, CanBeMoved)
     auto copy_mtx = copy->get_system_matrix();
     auto copy_coarse = copy->get_coarse_op();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_coarse.get()),
-                        this->coarse, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -230,10 +226,8 @@ TYPED_TEST(FixedCoarsening, CanBeCloned)
     auto clone_mtx = clone->get_system_matrix();
     auto clone_coarse = clone->get_coarse_op();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_mtx.get()), this->mtx,
-                        0.0);
-    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_coarse.get()),
-                        this->coarse, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
 }
 
 
