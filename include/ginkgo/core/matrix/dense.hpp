@@ -1291,7 +1291,7 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 /**
  * Creates a view of a given Dense vector.
  *
- * @tparam ValueType  the underlying value type of the vector
+ * @tparam VecPtr  a (smart or raw) pointer to the vector.
  *
  * @param vector  the vector on which to create the view
  */
@@ -1307,7 +1307,7 @@ make_dense_view(VecPtr&& vector)
 /**
  * Creates a view of a given Dense vector.
  *
- * @tparam ValueType  the underlying value type of the vector
+ * @tparam VecPtr  a (smart or raw) pointer to the vector.
  *
  * @param vector  the vector on which to create the view
  */
