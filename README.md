@@ -70,6 +70,10 @@ The Ginkgo DPC++ module has the following __additional__ requirements:
     * oneMKL
     * oneDPL
 
+The Ginkgo MPI module has the following __additional__ requirements:
+
+* MPI 3.1+, ideally with GPUDirect support for best performance
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
