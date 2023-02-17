@@ -116,7 +116,7 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                             const size_type c_stride, Closure scale,
                  						sycl::nd_item<3> item_ct1)
 {
-/**/
+/*
  		if (item_ct1.get_global_linear_id() == 0) {
 			sycl::ext::oneapi::experimental::printf("kernel spmv_kernel(%d,%d)\n", subgroup_size, item_ct1.get_sub_group().get_local_range().get(0));
 			sycl::ext::oneapi::experimental::printf("%ld - %ld - %d %ld - %ld - %d\n",
@@ -128,7 +128,7 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
 				item_ct1.get_global_range(2));
 //			sycl::ext::oneapi::experimental::printf("%f\n", scale(1.0));
 		}
-/**/
+*/
     const auto column_id = item_ct1.get_group(1); // blockIdx.y;
     const auto start_blk = item_ct1.get_group(2); // blockIdx.x;
 //    const auto jump_blk = item_ct1.get_num_group(0); // gridDim.x;
@@ -671,7 +671,7 @@ void absolute_kernel(
     const auto start_in_blk = item_ct1.get_local_id(1) * subgroup_size + 
 															item_ct1.get_local_id(2);
     const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
-/**/
+/*
  		if (item_ct1.get_global_linear_id() == 0) {
 			sycl::ext::oneapi::experimental::printf("kernel absolute_kernel(%d,%d)\n", 
 				subgroup_size, item_ct1.get_sub_group().get_local_range().get(0));
@@ -686,7 +686,7 @@ void absolute_kernel(
 				column_id, start_blk, jump_blk, num_blks, start_in_blk, jump_in_blk, block_size);
 //			sycl::ext::oneapi::experimental::printf("%f\n", scale(1.0));
 		}
-/**/
+*/
     offsets_data_res[0] = 0;
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local = 

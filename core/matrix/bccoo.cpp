@@ -161,7 +161,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     // For non initialized result objects, the compression and block_size
     // values are copied from "this"
     if ((compress_res == matrix::bccoo::compression::def_value) &&
-        (block_size_res == 0)) {
+        			(block_size_res == 0)) {
         block_size_res = block_size_src;
         compress_res = compress_src;
     } else {

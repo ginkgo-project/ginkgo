@@ -107,8 +107,8 @@ protected:
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
-//        mtx_blk->copy_from(gen_mtx(532, 231));
-/**/
+        mtx_blk->copy_from(gen_mtx(532, 231));
+/*
 //				std::unique_ptr<Vec> mat = gen_mtx(532, 231);
 				auto mat = gen_mtx(532, 231);
 				for(int i=0; i<532; i++) {
@@ -121,9 +121,10 @@ protected:
 //        mtx_blk->copy_from(gko::share(&mat));
 //        mtx_blk->copy_from(mat);
         mtx_blk->copy_from(gko::clone(ref, mat));
-/**/
+*/
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
+/*
 				for(int i=0; i<231; i++) {
 						int k = i % num_vectors;
 						for(int j=0; j<num_vectors; j++) {
@@ -131,18 +132,23 @@ protected:
 								k++; if (k == num_vectors) k = 0;
 						}
 				}
+*/
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         //        dmtx_blk = Mtx::create(dpcpp, 32,
         //        gko::matrix::bccoo::compression::block);
-//        dmtx_blk =
-//            Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::block);
-//        dmtx_blk->copy_from(mtx_blk);
-				dmtx_blk = gko::clone(dpcpp, mtx_blk);
-        dresult = gko::clone(dpcpp, expected);
-        dy = gko::clone(dpcpp, y);
-        dalpha = gko::clone(dpcpp, alpha);
-        dbeta = gko::clone(dpcpp, beta);
+        dmtx_blk =
+            Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::block);
+        dmtx_blk->copy_from(mtx_blk.get());
+//				dmtx_blk = gko::clone(dpcpp, mtx_blk);
+        dresult = Vec::create(dpcpp);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(dpcpp);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(dpcpp);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(dpcpp);
+        dbeta->copy_from(beta.get());
     }
 /*
     void unsort_mtx()
