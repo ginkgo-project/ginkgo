@@ -111,8 +111,8 @@ gko::matrix_data<etype, itype> generate_block_diagonal(
     auto num_blocks = config["num_blocks"].GetUint();
     auto block_size = config["block_size"].GetUint();
     auto block = gko::matrix_data<etype, itype>(
-        gko::dim<2>(block_size),
-        std::uniform_real_distribution<rc_etype>(-1.0, 1.0), engine);
+        gko::dim<2>(block_size), std::uniform_real_distribution<>(-1.0, 1.0),
+        engine);
     return gko::matrix_data<etype, itype>::diag(num_blocks, block);
 }
 

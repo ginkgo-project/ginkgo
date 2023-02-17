@@ -139,6 +139,8 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         exec, std::make_shared<
                   typename matrix::Csr<ValueType, IndexType>::classical>());
     coarse_csr->copy_from(std::move(coarse_coo));
+    // auto half_scalar = initialize<matrix::Dense<ValueType>>({0.5}, exec);
+    // coarse_csr->scale(half_scalar.get());
     return std::move(coarse_csr);
 }
 

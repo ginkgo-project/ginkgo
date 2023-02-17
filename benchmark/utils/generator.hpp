@@ -127,10 +127,7 @@ struct DefaultSystemGenerator {
     {
         auto res = Vec::create(exec);
         res->read(gko::matrix_data<ValueType, itype>(
-            size,
-            std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
-                                                                           1.0),
-            get_engine()));
+            size, std::uniform_real_distribution<>(-1.0, 1.0), get_engine()));
         return res;
     }
 

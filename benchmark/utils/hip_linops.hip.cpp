@@ -360,7 +360,13 @@ private:
 
 }  // namespace detail
 
-
+#if GKO_BENCHMARK_USE_HALF_PRECISION
+STUB_CREATE_SPARSELIB_LINOP(hipsparse_csr);
+STUB_CREATE_SPARSELIB_LINOP(hipsparse_csrmm);
+STUB_CREATE_SPARSELIB_LINOP(hipsparse_coo);
+STUB_CREATE_SPARSELIB_LINOP(hipsparse_ell);
+STUB_CREATE_SPARSELIB_LINOP(hipsparse_hybrid);
+#else
 IMPL_CREATE_SPARSELIB_LINOP(hipsparse_csr, detail::HipsparseCsr<etype, itype>);
 IMPL_CREATE_SPARSELIB_LINOP(hipsparse_csrmm,
                             detail::HipsparseCsrmm<etype, itype>);
@@ -372,3 +378,4 @@ IMPL_CREATE_SPARSELIB_LINOP(
     detail::HipsparseHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX, 0>);
 IMPL_CREATE_SPARSELIB_LINOP(hipsparse_hybrid,
                             detail::HipsparseHybrid<etype, itype>);
+#endif

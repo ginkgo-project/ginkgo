@@ -105,6 +105,8 @@ endfunction(ginkgo_add_single_benchmark_executable)
 # All remaining arguments will be treated as source files
 function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
     ginkgo_add_single_benchmark_executable(
+        "${name}_half" "${use_lib_linops}" "GKO_BENCHMARK_USE_HALF_PRECISION" "h" ${ARGN})
+    ginkgo_add_single_benchmark_executable(
         "${name}" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" "d" ${ARGN})
     ginkgo_add_single_benchmark_executable(
         "${name}_single" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_PRECISION" "s" ${ARGN})
@@ -116,6 +118,7 @@ endfunction(ginkgo_add_typed_benchmark_executables)
 
 
 if (GINKGO_BUILD_CUDA)
+    ginkgo_benchmark_cusparse_linops(h GKO_BENCHMARK_USE_HALF_PRECISION)
     ginkgo_benchmark_cusparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
@@ -125,6 +128,7 @@ if (GINKGO_BUILD_CUDA)
     target_include_directories(cuda_timer SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 endif()
 if (GINKGO_BUILD_HIP)
+    ginkgo_benchmark_hipsparse_linops(h GKO_BENCHMARK_USE_HALF_PRECISION)
     ginkgo_benchmark_hipsparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_hipsparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_hipsparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
@@ -137,6 +141,7 @@ if (GINKGO_BUILD_HIP)
 endif()
 
 if (GINKGO_BUILD_DPCPP)
+    ginkgo_benchmark_onemkl_linops(h GKO_BENCHMARK_USE_HALF_PRECISION)
     ginkgo_benchmark_onemkl_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_onemkl_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_onemkl_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)

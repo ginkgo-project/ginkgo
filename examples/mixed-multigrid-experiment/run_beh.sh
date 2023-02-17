@@ -7,9 +7,14 @@ MG_MODE=$3
 MATRIX="$4"
 B="$5"
 
+# all double
+./mixed-multigrid-solver ${EXECUTOR} 0 10 v ${MG_MODE} ${MATRIX} ${B} > ${RESULT_FOLDER}/beh_${MG_MODE}.txt
 for (( single=1; single <= 9; single++ )); do
+    # single 
+    ./mixed-multigrid-solver ${EXECUTOR} 4${single} 10 v ${MG_MODE} ${MATRIX} ${B} > ${RESULT_FOLDER}/beh_${MG_MODE}_${single}.txt
     for (( half=${single}; half <= 9; half++ )); do
-    ./mixed-multigrid-solver ${EXECUTOR} 4${single}${half} 10 v ${MG_MODE} ${MATRIX} ${B} > ${RESULT_FOLDER}/beh_${MG_MODE}_${single}_${half}.txt
+        # (single-)half
+        ./mixed-multigrid-solver ${EXECUTOR} 4${single}${half} 10 v ${MG_MODE} ${MATRIX} ${B} > ${RESULT_FOLDER}/beh_${MG_MODE}_${single}_${half}.txt
     done
 done
 

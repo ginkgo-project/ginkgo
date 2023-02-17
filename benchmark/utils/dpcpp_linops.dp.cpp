@@ -185,7 +185,11 @@ private:
 
 }  // namespace detail
 
-
+#if GKO_BENCHMARK_USE_HALF_PRECISION
+STUB_CREATE_SPARSELIB_LINOP(onemkl_csr);
+STUB_CREATE_SPARSELIB_LINOP(onemkl_optimized_csr);
+#else
 IMPL_CREATE_SPARSELIB_LINOP(onemkl_csr, detail::OnemklCsr<false, etype, itype>);
 IMPL_CREATE_SPARSELIB_LINOP(onemkl_optimized_csr,
                             detail::OnemklCsr<true, etype, itype>);
+#endif

@@ -104,8 +104,8 @@ int main(int argc, char* argv[])
     }
     const std::string A_file = argc >= 7 ? argv[6] : "data/A.mtx";
     const std::string b_file = argc >= 8 ? argv[7] : "ones";
-    const int switch_to_single = mixed_mode % 400 / 10;
-    const int switch_to_half = mixed_mode % 400 % 10;
+    int switch_to_single = mixed_mode % 400 / 10;
+    int switch_to_half = mixed_mode % 400 % 10;
     std::cout << "mixed mode: " << mixed_mode << std::endl;
     // clang-format off
     if (mixed_mode == 0) {
@@ -120,6 +120,13 @@ int main(int argc, char* argv[])
     } else if (mixed_mode == 3) {
         std::cout << "          first level is double" << std::endl
                   << ", the rest of levels are half" << std::endl;
+    } else if (mixed_mode == 4) {
+        std::cout << "          all level is float" << std::endl;
+    } else if (mixed_mode == 5) {
+        std::cout << "          first level is float" << std::endl
+                  << ", the rest of levels are half" << std::endl;
+    } else if (mixed_mode == 6) {
+        std::cout << "          all level is half" << std::endl;
     } else if (mixed_mode >= 400 && mixed_mode <= 499) {
         if (switch_to_single > switch_to_half || switch_to_single < 1) {
             std::cout << "switch to single should be eariler than switch to half" << std::endl;
@@ -129,6 +136,14 @@ int main(int argc, char* argv[])
         std::cout << "0 ~ " << switch_to_single - 1 << " levels use double" << std::endl
                   << switch_to_single << " ~ " << switch_to_half - 1 << " levels use single" << std::endl
                   << "rest use half" << std::endl;
+    } else if (mixed_mode >= 40 && mixed_mode <= 49) {
+        switch_to_single = mixed_mode%40%10;
+        if (switch_to_single < 1) {
+            std::cout << "switch to single should >= 1" << std::endl;
+            std::exit(1);
+        }
+        std::cout << "0 ~ " << switch_to_single - 1 << " levels use double" << std::endl
+                  << "rest use float" << std::endl;
     } else {
         std::exit(1);
     }
@@ -155,6 +170,19 @@ int main(int argc, char* argv[])
         gko::read_raw<typename mtx::value_type, typename mtx::index_type>(f);
     // mat_data.remove_zeros();
     A->read(mat_data);
+    // scaling
+    // auto A = B;
+    // auto A = gko::share(mtx::create(exec, B->get_size(), 0,
+    //                                 std::make_shared<mtx::classical>()));
+    // auto diag = A->extract_diagonal()->clone(exec->get_master());
+    // ValueType max_diag = 0;
+    // for (int i = 0; i < diag->get_size()[0]; i++) {
+    //     if (std::abs(diag->get_values()[i]) > max_diag) {
+    //         max_diag = std::abs(diag->get_values()[i]);
+    //     }
+    // }
+    // auto scale = gko::initialize<vec>({1 / max_diag}, exec);
+    // A->scale(scale.get());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
@@ -173,6 +201,11 @@ int main(int argc, char* argv[])
     auto b = vec::create(exec);
     x->copy_from(host_x.get());
     b->copy_from(host_b.get());
+    // b->scale(scale.get());
+    // auto b = vec::create(exec, bb->get_size());
+    // Scaling
+    // b = bb;
+    // diag->inverse_apply(bb.get(), b.get());
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -360,6 +393,47 @@ int main(int argc, char* argv[])
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
+    } else if (mixed_mode == 4) {
+        multigrid_gen = mg::build()
+                            .with_max_levels(num_max_levels)
+                            .with_min_coarse_rows(64u)
+                            .with_pre_smoother(smoother_gen2)
+                            .with_post_uses_pre(true)
+                            .with_mg_level(mg_level_gen2)
+                            .with_coarsest_solver(coarsest_solver_gen2)
+                            .with_criteria(criterion)
+                            .with_cycle(cycle)
+                            .with_default_initial_guess(initial_mode)
+                            .on(exec);
+    } else if (mixed_mode == 5) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                .with_pre_smoother(smoother_gen2, smoother_gen3)
+                .with_post_uses_pre(true)
+                .with_mg_level(mg_level_gen2, mg_level_gen3)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == 6) {
+        multigrid_gen = mg::build()
+                            .with_max_levels(num_max_levels)
+                            .with_min_coarse_rows(64u)
+                            .with_pre_smoother(smoother_gen3)
+                            .with_post_uses_pre(true)
+                            .with_mg_level(mg_level_gen3)
+                            .with_coarsest_solver(coarsest_solver_gen3)
+                            .with_criteria(criterion)
+                            .with_cycle(cycle)
+                            .with_default_initial_guess(initial_mode)
+                            .on(exec);
     } else if (mixed_mode >= 400 && mixed_mode <= 499) {
         multigrid_gen =
             mg::build()
@@ -379,6 +453,26 @@ int main(int argc, char* argv[])
                     return 0;
                 })
                 .with_coarsest_solver(coarsest_solver_gen3)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode >= 40 && mixed_mode <= 49) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                .with_pre_smoother(smoother_gen, smoother_gen2)
+                .with_post_uses_pre(true)
+                .with_mg_level(mg_level_gen, mg_level_gen2)
+                .with_level_selector([=](const gko::size_type level,
+                                         const gko::LinOp*) -> gko::size_type {
+                    if (level >= switch_to_single) {
+                        return 1;
+                    }
+                    return 0;
+                })
+                .with_coarsest_solver(coarsest_solver_gen2)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -459,7 +553,7 @@ int main(int argc, char* argv[])
 
     int warmup = 2;
     int rep = 5;
-    std::shared_ptr<const gko::LinOp> run_solver =
+    std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
                               : gko::as<gko::LinOp>(cg_solver);
     auto x_run = x->clone();
@@ -468,9 +562,8 @@ int main(int argc, char* argv[])
         run_solver->apply(lend(b), lend(x_run));
     }
 
-    // auto prof =
-    // gko::share(gko::log::ProfilerHook::create_for_executor(exec));
-    // solver->add_logger(prof);
+    auto prof = gko::share(gko::log::ProfilerHook::create_for_executor(exec));
+    run_solver->add_logger(prof);
     // Solve system
     std::chrono::nanoseconds time(0);
     for (int i = 0; i < rep; i++) {
@@ -482,7 +575,7 @@ int main(int argc, char* argv[])
         auto toc = std::chrono::steady_clock::now();
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
     }
-    // solver->remove_logger(prof.get());
+    run_solver->remove_logger(prof.get());
 
 
     // Calculate residual

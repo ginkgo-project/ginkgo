@@ -568,6 +568,9 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
                            cusparseOperation_t trans, cusparseSpMVAlg_t alg)
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
+    // misaligned issue
+    cudaDataType_t cu_workingvalue = gko::kernels::cuda::cuda_data_type<
+        typename gko::detail::arth_type<ValueType>::type>();
     using gko::kernels::cuda::as_culibs_type;
     auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
     auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -586,13 +589,14 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     gko::size_type buffer_size = 0;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
-        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
+        mat, vecb, &scalars.get_const_data()[1], vecx, cu_workingvalue, alg,
         &buffer_size));
     gko::array<char> buffer_array(gpu_exec, buffer_size);
     auto dbuffer = buffer_array.get_data();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
-        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg, dbuffer));
+        mat, vecb, &scalars.get_const_data()[1], vecx, cu_workingvalue, alg,
+        dbuffer));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
 }
@@ -794,7 +798,19 @@ private:
 
 }  // namespace detail
 
-
+#if GKO_BENCHMARK_USE_HALF_PRECISION
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csrex);
+IMPL_CREATE_SPARSELIB_LINOP(cusparse_csr,
+                            detail::CusparseGenericCsr<etype, itype>);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmp);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmm);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_gcsr);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_gcsr2);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_gcoo);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_coo);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_ell);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_hybrid);
+#else
 #if CUDA_VERSION < 11021
 IMPL_CREATE_SPARSELIB_LINOP(cusparse_csrex,
                             detail::CusparseCsrEx<etype, itype>);
@@ -852,3 +868,4 @@ IMPL_CREATE_SPARSELIB_LINOP(cusparse_coo,
 STUB_CREATE_SPARSELIB_LINOP(cusparse_ell);
 STUB_CREATE_SPARSELIB_LINOP(cusparse_hybrid);
 #endif  // CUDA_VERSION >= 11000
+#endif

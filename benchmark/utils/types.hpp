@@ -43,11 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using itype = gko::int32;
 
 
-#if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION) ||         \
+#if defined(GKO_BENCHMARK_USE_HALF_PRECISION) ||           \
+    defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION) ||         \
     defined(GKO_BENCHMARK_USE_SINGLE_PRECISION) ||         \
     defined(GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION) || \
     defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
 // separate ifdefs to catch duplicate definitions
+#ifdef GKO_BENCHMARK_USE_HALF_PRECISION
+using etype = gko::half;
+#endif
 #ifdef GKO_BENCHMARK_USE_DOUBLE_PRECISION
 using etype = double;
 #endif

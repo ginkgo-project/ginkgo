@@ -278,11 +278,12 @@ protected:
      * @param num_nonzeros  number of nonzeros
      */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
+                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {},
+                value_type value = one<ValueType>())
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
-          value_(exec, {one<ValueType>()})
+          value_(exec, {value})
     {
         row_ptrs_.fill(0);
     }
