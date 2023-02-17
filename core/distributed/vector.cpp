@@ -125,6 +125,37 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    dim<2> global_size, std::unique_ptr<const local_vector_type> local_vector)
+{
+    auto non_const_local_vector = local_vector_type::create(
+        local_vector->get_executor(), local_vector->get_size(),
+        detail::array_const_cast(
+            make_const_array_view(local_vector->get_executor(),
+                                  local_vector->get_num_stored_elements(),
+                                  local_vector->get_const_values())),
+        local_vector->get_stride());
+
+    return std::unique_ptr<const Vector<ValueType>>(
+        new Vector<ValueType>(std::move(exec), std::move(comm), global_size,
+                              std::move(non_const_local_vector)));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::unique_ptr<const local_vector_type> local_vector)
+{
+    auto global_size =
+        compute_global_size(exec, comm, local_vector->get_size());
+    return Vector<ValueType>::create_const(
+        std::move(exec), std::move(comm), global_size, std::move(local_vector));
+}
+
+
+template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
     ptr_param<const Vector> other)
 {
@@ -585,9 +616,9 @@ Vector<ValueType>::create_real_view() const
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return real_type::create(this->get_executor(), this->get_communicator(),
-                             dim<2>{num_global_rows, num_cols},
-                             local_.create_real_view());
+    return real_type::create_const(
+        this->get_executor(), this->get_communicator(),
+        dim<2>{num_global_rows, num_cols}, local_.create_real_view());
 }
 
 

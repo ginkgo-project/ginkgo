@@ -458,6 +458,36 @@ public:
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size,
+        std::unique_ptr<const local_vector_type> local_vector);
+
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector.The global size will be deduced from the local sizes, which will
+     * incur a collective communication.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        std::unique_ptr<const local_vector_type> local_vector);
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
