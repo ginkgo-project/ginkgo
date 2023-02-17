@@ -82,10 +82,7 @@ following:
 *   _cmake 3.13+_
 *   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.5+_
-    *   _Cygwin : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_
-
-__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
@@ -96,7 +93,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
 
 The Ginkgo OMP module has the following __additional__ requirements:
-*  _MinGW_ or _Cygwin_
+*  _MinGW_
 
 In these environments, two problems can be encountered, the solution for which is described in the
 [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
