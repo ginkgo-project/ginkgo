@@ -138,6 +138,7 @@ protected:
         //        dmtx_blk = Mtx::create(dpcpp, 32,
         //        gko::matrix::bccoo::compression::block);
         dmtx_blk =
+//            Mtx::create(dpcpp, 10, gko::matrix::bccoo::compression::block);
             Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::block);
         dmtx_blk->copy_from(mtx_blk.get());
 //				dmtx_blk = gko::clone(dpcpp, mtx_blk);

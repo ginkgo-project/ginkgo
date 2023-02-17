@@ -84,7 +84,7 @@ namespace {
 
 
 /**
- * The device function of COO spmv
+ * The device function of BCCOO spmv
  *
  * @param nnz  the number of nonzeros in the matrix
  * @param num_lines  the maximum round of each warp
@@ -116,6 +116,15 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                             const size_type c_stride, Closure scale,
                  						sycl::nd_item<3> item_ct1)
 {
+    const auto column_id = item_ct1.get_group(1); // blockIdx.y;
+    const auto start_blk = item_ct1.get_group(2); // blockIdx.x;
+    const auto jump_blk = item_ct1.get_group_range(2); // gridDim.x;
+
+//    const auto start_in_blk = threadIdx.y * subgroup_size + threadIdx.x;
+    const auto start_in_blk = item_ct1.get_local_id(1) * subgroup_size + 
+															item_ct1.get_local_id(2);
+//    const auto jump_in_blk = blockDim.y * subgroup_size;
+    const auto jump_in_blk = item_ct1.get_local_range(1) * subgroup_size;
 /*
  		if (item_ct1.get_global_linear_id() == 0) {
 			sycl::ext::oneapi::experimental::printf("kernel spmv_kernel(%d,%d)\n", subgroup_size, item_ct1.get_sub_group().get_local_range().get(0));
@@ -126,28 +135,21 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
 				item_ct1.get_global_range(0),
 				item_ct1.get_global_range(1),
 				item_ct1.get_global_range(2));
-//			sycl::ext::oneapi::experimental::printf("%f\n", scale(1.0));
+			sycl::ext::oneapi::experimental::printf("%ld  %ld - %d - %ld  %ld - %d - %d\n",
+				column_id, start_blk, jump_blk, num_blks, start_in_blk, jump_in_blk, block_size);
 		}
 */
-    const auto column_id = item_ct1.get_group(1); // blockIdx.y;
-    const auto start_blk = item_ct1.get_group(2); // blockIdx.x;
-//    const auto jump_blk = item_ct1.get_num_group(0); // gridDim.x;
-//    const auto jump_blk = item_ct1.get_global_range(2); // gridDim.x;
-    const auto jump_blk = item_ct1.get_group_range(2); // gridDim.x;
-
-//    const auto start_in_blk = threadIdx.y * subgroup_size + threadIdx.x;
-    const auto start_in_blk = item_ct1.get_local_id(1) * subgroup_size + 
-															item_ct1.get_local_id(2);
-//    const auto jump_in_blk = blockDim.y * subgroup_size;
-    const auto jump_in_blk = item_ct1.get_local_range(1) * subgroup_size;
-
     ValueType temp_val = zero<ValueType>();
     bool new_value = false;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
     		const auto tile_block = group::tiled_partition<subgroup_size>(
         		group::this_thread_block(item_ct1));
-
+/*
+ 				if (item_ct1.get_global_linear_id() == 0) {
+						sycl::ext::oneapi::experimental::printf("(X)(%d)\n", blk);
+				}
+*/
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs idxs = {};
@@ -163,8 +165,20 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                  ? get_value_chunk<uint8>(
                        chunk_data, blk_idxs.shf_row + block_size_local - 1)
                  : 0);
+/*
+ 				if (item_ct1.get_global_linear_id() == 0) {
+						sycl::ext::oneapi::experimental::printf("(Y)(%d)\n", block_size_local);
+				}
+*/
         for (size_type pos = start_in_blk; pos < block_size_local;
-             pos += jump_in_blk) {
+             		pos += jump_in_blk) {
+/*
+ 						if (item_ct1.get_global_linear_id() == 0) {
+								sycl::ext::oneapi::experimental::printf("(Z)(%d)\n", pos);
+						}
+*/
+//						if (item_ct1.get_global_id(2) < block_size_local) 
+            {
             idxs.row = blk_idxs.row_frs;
             new_value = (pos < block_size_local);
             if (new_value) {
@@ -185,24 +199,18 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                                      blk_idxs.shf_row + pos + jump_in_blk)
                            : last_row)
                     : blk_idxs.row_frs;
-            // segmented scan
+            // segmented scan (Fail if some threads are not active in workgroup?)
             if (tile_block.any(idxs.row != next_row)) {
                 bool is_first_in_segment = segment_scan<subgroup_size>(
                     tile_block, idxs.row, &temp_val);
 //                    [](ValueType &a, ValueType &b) { return a + b; });
                 if (is_first_in_segment) {
-/* */
-										ValueType aux = scale(temp_val);
-//										sycl::ext::oneapi::experimental::printf("AT1 = (%f,%f)\n", temp_val, aux);
-                    atomic_add(&(c[idxs.row * c_stride + column_id]), aux);
-//										sycl::ext::oneapi::experimental::printf("AT1 = (%f)\n", c[idxs.row * c_stride + column_id]);
-/*
                     atomic_add(&(c[idxs.row * c_stride + column_id]), scale(temp_val));
-*/
                 }
                 temp_val = zero<ValueType>();
                 new_value = false;
             }
+						}
 	
         }
         // segmented scan
@@ -211,14 +219,7 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                 tile_block, idxs.row, &temp_val);
 //                [](ValueType a, ValueType b) { return a + b; });
             if (is_first_in_segment) {
-/* */
-								ValueType aux = scale(temp_val);
-//								sycl::ext::oneapi::experimental::printf("AT2 = (%f,%f)\n", temp_val, aux);
-                atomic_add(&(c[idxs.row * c_stride + column_id]), aux);   
-//								sycl::ext::oneapi::experimental::printf("AT2 = (%f)\n", c[idxs.row * c_stride + column_id]);
-/*
                 atomic_add(&(c[idxs.row * c_stride + column_id]), scale(temp_val));
-*/
             }
             temp_val = zero<ValueType>();
         }
@@ -227,20 +228,6 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
 
 
 template <typename ValueType, typename IndexType>
-/*
-void abstract_spmv(const size_type nnz, const size_type num_lines,
-                   const ValueType* __restrict__ val,
-                   const IndexType* __restrict__ col,
-                   const IndexType* __restrict__ row,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
-{
-    spmv_kernel(
-        nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [](const ValueType& x) { return x; }, item_ct1);
-}
-*/
 void abstract_spmv(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chk,
@@ -250,42 +237,17 @@ void abstract_spmv(
     ValueType* __restrict__ c, const size_type c_stride,
     sycl::nd_item<3> item_ct1)
 {
-		auto lambda = [](const ValueType& x) { return x; };
+/*
+ 		if (item_ct1.get_global_linear_id() == 0) {
+			sycl::ext::oneapi::experimental::printf("NNZ(%d)\n", nnz);
+		} 
+*/
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
-//                b, b_stride, c, c_stride, [](const ValueType& x) { return x; },
-                b, b_stride, c, c_stride, lambda,
+                b, b_stride, c, c_stride, [](const ValueType& x) { return x; },
 								item_ct1);
 }
 
-/*
-            abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(),
-                nnz, num_blocks_matrix, block_size, num_lines,
-                (alpha->get_const_values()),
-                (a->get_const_chunk()),
-                (a->get_const_offsets()),
-                (a->get_const_types()),
-                (a->get_const_cols()),
-                (a->get_const_rows()),
-                (b->get_const_values()), b->get_stride(),
-                (c->get_values()), c->get_stride());
 
-template <typename ValueType, typename IndexType>
-void abstract_spmv(const size_type nnz, const size_type num_lines,
-                   const ValueType* __restrict__ alpha,
-                   const ValueType* __restrict__ val,
-                   const IndexType* __restrict__ col,
-                   const IndexType* __restrict__ row,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
-{
-    ValueType scale_factor = alpha[0];
-    spmv_kernel(
-        nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType& x) { return scale_factor * x; },
-        item_ct1);
-}
-*/
 template <typename ValueType, typename IndexType>
 void abstract_spmv(
     const size_type nnz, const size_type num_blks, const size_type block_size,
@@ -298,112 +260,14 @@ void abstract_spmv(
     sycl::nd_item<3> item_ct1)
 {
 		ValueType scale_factor = alpha[0];
-//		auto lambda = [scale_factor](const ValueType& x) { return scale_factor * x; };
-		auto lambda = [&](const ValueType& x) { return scale_factor * x; };
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
                 b, b_stride, c, c_stride, 
-//                [](const ValueType& x) { return x; },
-//                [](const ValueType& x) { return x + x; },
-//								[scale_factor](const ValueType& x) { return scale_factor * x; },
-								lambda,
+								[scale_factor](const ValueType& x) { return scale_factor * x; },
 								item_ct1);
 }
 
 GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
 
-
-/**
- * The device function of COO spmm
- *
- * @param nnz  the number of nonzeros in the matrix
- * @param num_elems  the maximum number of nonzeros in each warp
- * @param val  the value array of the matrix
- * @param col  the column index array of the matrix
- * @param row  the row index array of the matrix
- * @param num_cols the number of columns of the matrix
- * @param b  the input dense vector
- * @param b_stride  the stride of the input dense vector
- * @param c  the output dense vector
- * @param c_stride  the stride of the output dense vector
- * @param scale  the function on the added value
- *
- * @tparam ValueType  type of values stored in the matrix
- * @tparam IndexType  type of matrix indexes stored in the structure
- * @tparam Closure  type of the function used to write the result
- */
-template <typename ValueType, typename IndexType, typename Closure>
-void spmm_kernel(const size_type nnz, const size_type num_elems,
-                 const ValueType* __restrict__ val,
-                 const IndexType* __restrict__ col,
-                 const IndexType* __restrict__ row, const size_type num_cols,
-                 const ValueType* __restrict__ b, const size_type b_stride,
-                 ValueType* __restrict__ c, const size_type c_stride,
-                 Closure scale, sycl::nd_item<3> item_ct1)
-{
-/*
-    ValueType temp = zero<ValueType>();
-    const auto coo_idx =
-        (static_cast<size_type>(item_ct1.get_local_range().get(1)) *
-             item_ct1.get_group(2) +
-         item_ct1.get_local_id(1)) *
-        num_elems;
-    const auto column_id =
-        item_ct1.get_group(1) * item_ct1.get_local_range().get(2) +
-        item_ct1.get_local_id(2);
-    const auto coo_end =
-        (coo_idx + num_elems > nnz) ? nnz : coo_idx + num_elems;
-    if (column_id < num_cols && coo_idx < nnz) {
-        auto curr_row = row[coo_idx];
-        auto idx = coo_idx;
-        for (; idx < coo_end - 1; idx++) {
-            temp += val[idx] * b[col[idx] * b_stride + column_id];
-            const auto next_row = row[idx + 1];
-            if (next_row != curr_row) {
-                atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp));
-                curr_row = next_row;
-                temp = zero<ValueType>();
-            }
-        }
-        temp += val[idx] * b[col[idx] * b_stride + column_id];
-        atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp));
-    }
-*/
-}
-
-/*
-template <typename ValueType, typename IndexType>
-void abstract_spmm(const size_type nnz, const size_type num_elems,
-                   const ValueType* __restrict__ val,
-                   const IndexType* __restrict__ col,
-                   const IndexType* __restrict__ row, const size_type num_cols,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
-{
-    spmm_kernel(
-        nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [](const ValueType& x) { return x; }, item_ct1);
-}
-
-template <typename ValueType, typename IndexType>
-void abstract_spmm(const size_type nnz, const size_type num_elems,
-                   const ValueType* __restrict__ alpha,
-                   const ValueType* __restrict__ val,
-                   const IndexType* __restrict__ col,
-                   const IndexType* __restrict__ row, const size_type num_cols,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
-{
-    ValueType scale_factor = alpha[0];
-    spmm_kernel(
-        nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType& x) { return scale_factor * x; },
-        item_ct1);
-}
-
-GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
-*/
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
@@ -458,8 +322,6 @@ void convert_row_idxs_to_ptrs(
     IndexType* __restrict__ ptrs, size_type length,
 		sycl::nd_item<3> item_ct1)
 {
-//    const auto tidx = item_ct1.get_local_id(2) + 
-//										item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
 		const auto tidx = item_ct1.get_global_id(2);
     if (tidx == 0) {
         ptrs[0] = 0;
@@ -529,10 +391,8 @@ void initialize_zero_dense(
     ValueType* __restrict__ result,
     sycl::nd_item<3> item_ct1)
 {
-    const auto tidx_x = item_ct1.get_local_id(2) + 
-										item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
-    const auto tidx_y = item_ct1.get_local_id(1) + 
-										item_ct1.get_local_range().get(1) * item_ct1.get_group(1);
+		const auto tidx_x = item_ct1.get_global_id(2);
+		const auto tidx_y = item_ct1.get_global_id(1);
     if (tidx_x < num_cols && tidx_y < num_rows) {
         result[tidx_y * stride + tidx_x] = zero<ValueType>();
     }
