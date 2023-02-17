@@ -102,7 +102,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
-                          ptr_param<local_vector_type> local_vector)
+                          std::unique_ptr<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
@@ -114,7 +114,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
-                          ptr_param<local_vector_type> local_vector)
+                          std::unique_ptr<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
       DistributedBase{comm},
       local_{exec}
@@ -587,8 +587,7 @@ Vector<ValueType>::create_real_view() const
 
     return real_type::create(this->get_executor(), this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
-                             const_cast<typename real_type::local_vector_type*>(
-                                 local_.create_real_view().get()));
+                             local_.create_real_view());
 }
 
 
