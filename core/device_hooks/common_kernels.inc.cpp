@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/batch_tridiagonal_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -912,6 +913,9 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 }  // namespace batch_csr
+
+
+namespace batch_tridiagonal {}  // namespace batch_tridiagonal
 
 
 namespace batch_ell {

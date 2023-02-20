@@ -34,6 +34,7 @@ target_sources(ginkgo_cuda
     matrix/batch_diagonal_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu
+    matrix/batch_tridiagonal_kernels.cu
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu

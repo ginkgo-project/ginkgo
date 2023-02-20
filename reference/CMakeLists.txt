@@ -27,6 +27,7 @@ target_sources(ginkgo_reference
     matrix/batch_dense_kernels.cpp
     matrix/batch_diagonal_kernels.cpp
     matrix/batch_ell_kernels.cpp
+    matrix/batch_tridiagonal_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
@@ -57,13 +58,13 @@ target_sources(ginkgo_reference
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/cb_gmres_kernels.cpp
+    solver/cb_gmres_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
+    solver/common_gmres_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gcr_kernels.cpp
     solver/gmres_kernels.cpp
-    solver/cb_gmres_kernels.cpp
-    solver/common_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
