@@ -185,6 +185,7 @@ struct workspace_traits<Gcr<ValueType>> {
     constexpr static int residual = 0;
     // preconditioned vector
     constexpr static int precon_residual = 1;
+    // A* preconditioned vector
     constexpr static int A_precon_residual = 2;
     // krylov bases (p in the algorithm)
     constexpr static int krylov_bases_p = 3;
