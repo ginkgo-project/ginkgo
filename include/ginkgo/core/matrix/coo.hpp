@@ -216,7 +216,7 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(pointer_param<const LinOp> b, pointer_param<LinOp> x)
+    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
@@ -228,8 +228,7 @@ public:
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(pointer_param<const LinOp> b,
-                        pointer_param<LinOp> x) const
+    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
@@ -247,8 +246,8 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(pointer_param<const LinOp> alpha,
-                  pointer_param<const LinOp> b, pointer_param<LinOp> x)
+    LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                  ptr_param<LinOp> x)
     {
         this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -262,9 +261,8 @@ public:
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply2(pointer_param<const LinOp> alpha,
-                        pointer_param<const LinOp> b,
-                        pointer_param<LinOp> x) const
+    const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                        ptr_param<LinOp> x) const
     {
         this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));

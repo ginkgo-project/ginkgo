@@ -114,12 +114,12 @@ public:
         return *this;                                \
     }                                                \
     mutable _type _name##_ {}
-#define GKO_UPDATER_REGISTER_PTR_PARAMETER(_type, _name)   \
-    const Updater& _name(pointer_param<_type> value) const \
-    {                                                      \
-        _name##_ = value.get();                            \
-        return *this;                                      \
-    }                                                      \
+#define GKO_UPDATER_REGISTER_PTR_PARAMETER(_type, _name) \
+    const Updater& _name(ptr_param<_type> value) const   \
+    {                                                    \
+        _name##_ = value.get();                          \
+        return *this;                                    \
+    }                                                    \
     mutable _type* _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);

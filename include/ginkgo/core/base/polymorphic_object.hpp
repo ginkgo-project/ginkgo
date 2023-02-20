@@ -234,7 +234,7 @@ public:
      *
      * @return this
      */
-    PolymorphicObject* move_from(pointer_param<PolymorphicObject> other)
+    PolymorphicObject* move_from(ptr_param<PolymorphicObject> other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
@@ -436,7 +436,7 @@ public:
         return copy_from(other.get());
     }
 
-    AbstractObject* move_from(pointer_param<PolymorphicObject> other)
+    AbstractObject* move_from(ptr_param<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
             this->PolymorphicBase::move_from(other.get()));
@@ -510,7 +510,7 @@ public:
      */
     virtual void convert_to(result_type* result) const = 0;
 
-    void convert_to(pointer_param<result_type> result) const
+    void convert_to(ptr_param<result_type> result) const
     {
         convert_to(result.get());
     }
@@ -531,7 +531,7 @@ public:
      */
     virtual void move_to(result_type* result) = 0;
 
-    void move_to(pointer_param<result_type> result) { move_to(result.get()); }
+    void move_to(ptr_param<result_type> result) { move_to(result.get()); }
 };
 
 

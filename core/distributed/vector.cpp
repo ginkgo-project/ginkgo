@@ -102,7 +102,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
-                          pointer_param<local_vector_type> local_vector)
+                          ptr_param<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
@@ -114,7 +114,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
-                          pointer_param<local_vector_type> local_vector)
+                          ptr_param<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
       DistributedBase{comm},
       local_{exec}
@@ -126,7 +126,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
-    pointer_param<const Vector> other)
+    ptr_param<const Vector> other)
 {
     // De-referencing `other` before calling the functions (instead of
     // using operator `->`) is currently required to be compatible with
@@ -138,7 +138,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
 
 template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
-    pointer_param<const Vector<ValueType>> other,
+    ptr_param<const Vector<ValueType>> other,
     std::shared_ptr<const Executor> exec)
 {
     return (*other).create_with_type_of_impl(exec, {}, {}, 0);
@@ -147,7 +147,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
 
 template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
-    pointer_param<const Vector<ValueType>> other,
+    ptr_param<const Vector<ValueType>> other,
     std::shared_ptr<const Executor> exec, const dim<2>& global_size,
     const dim<2>& local_size, size_type stride)
 {
@@ -179,7 +179,7 @@ void Vector<ValueType>::read_distributed_impl(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const device_matrix_data<ValueType, int64>& data,
-    pointer_param<const Partition<int64, int64>> partition)
+    ptr_param<const Partition<int64, int64>> partition)
 {
     this->read_distributed_impl(data, partition.get());
 }
@@ -188,7 +188,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const device_matrix_data<ValueType, int64>& data,
-    pointer_param<const Partition<int32, int64>> partition)
+    ptr_param<const Partition<int32, int64>> partition)
 {
     this->read_distributed_impl(data, partition.get());
 }
@@ -197,7 +197,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const device_matrix_data<ValueType, int32>& data,
-    pointer_param<const Partition<int32, int32>> partition)
+    ptr_param<const Partition<int32, int32>> partition)
 {
     this->read_distributed_impl(data, partition.get());
 }
@@ -206,7 +206,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const matrix_data<ValueType, int64>& data,
-    pointer_param<const Partition<int64, int64>> partition)
+    ptr_param<const Partition<int64, int64>> partition)
 {
     this->read_distributed(
         device_matrix_data<value_type, int64>::create_from_host(
@@ -218,7 +218,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const matrix_data<ValueType, int64>& data,
-    pointer_param<const Partition<int32, int64>> partition)
+    ptr_param<const Partition<int32, int64>> partition)
 {
     this->read_distributed(
         device_matrix_data<value_type, int64>::create_from_host(
@@ -230,7 +230,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::read_distributed(
     const matrix_data<ValueType, int32>& data,
-    pointer_param<const Partition<int32, int32>> partition)
+    ptr_param<const Partition<int32, int32>> partition)
 {
     this->read_distributed(
         device_matrix_data<value_type, int32>::create_from_host(
@@ -311,7 +311,7 @@ Vector<ValueType>::make_complex() const
 
 template <typename ValueType>
 void Vector<ValueType>::make_complex(
-    pointer_param<Vector::complex_type> result) const
+    ptr_param<Vector::complex_type> result) const
 {
     this->get_local_vector()->make_complex(&result->local_);
 }
@@ -331,7 +331,7 @@ Vector<ValueType>::get_real() const
 
 
 template <typename ValueType>
-void Vector<ValueType>::get_real(pointer_param<Vector::real_type> result) const
+void Vector<ValueType>::get_real(ptr_param<Vector::real_type> result) const
 {
     this->get_local_vector()->get_real(&result->local_);
 }
@@ -351,29 +351,29 @@ Vector<ValueType>::get_imag() const
 
 
 template <typename ValueType>
-void Vector<ValueType>::get_imag(pointer_param<Vector::real_type> result) const
+void Vector<ValueType>::get_imag(ptr_param<Vector::real_type> result) const
 {
     this->get_local_vector()->get_imag(&result->local_);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::scale(pointer_param<const LinOp> alpha)
+void Vector<ValueType>::scale(ptr_param<const LinOp> alpha)
 {
     local_.scale(alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::inv_scale(pointer_param<const LinOp> alpha)
+void Vector<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
 {
     local_.inv_scale(alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::add_scaled(pointer_param<const LinOp> alpha,
-                                   pointer_param<const LinOp> b)
+void Vector<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+                                   ptr_param<const LinOp> b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
     local_.add_scaled(alpha, dense_b->get_local_vector());
@@ -381,8 +381,8 @@ void Vector<ValueType>::add_scaled(pointer_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Vector<ValueType>::sub_scaled(pointer_param<const LinOp> alpha,
-                                   pointer_param<const LinOp> b)
+void Vector<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+                                   ptr_param<const LinOp> b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
     local_.sub_scaled(alpha, dense_b->get_local_vector());
@@ -390,8 +390,8 @@ void Vector<ValueType>::sub_scaled(pointer_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_dot(pointer_param<const LinOp> b,
-                                    pointer_param<LinOp> result) const
+void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                    ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_dot(b, result, tmp);
@@ -399,8 +399,8 @@ void Vector<ValueType>::compute_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_dot(pointer_param<const LinOp> b,
-                                    pointer_param<LinOp> result,
+void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                    ptr_param<LinOp> result,
                                     array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -426,8 +426,8 @@ void Vector<ValueType>::compute_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
-                                         pointer_param<LinOp> result) const
+void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_conj_dot(b, result, tmp);
@@ -435,8 +435,8 @@ void Vector<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
-                                         pointer_param<LinOp> result,
+void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result,
                                          array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -462,7 +462,7 @@ void Vector<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm2(pointer_param<LinOp> result) const
+void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_norm2(result, tmp);
@@ -470,7 +470,7 @@ void Vector<ValueType>::compute_norm2(pointer_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm2(pointer_param<LinOp> result,
+void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result,
                                       array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
@@ -496,7 +496,7 @@ void Vector<ValueType>::compute_norm2(pointer_param<LinOp> result,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm1(pointer_param<LinOp> result) const
+void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_norm1(result, tmp);
@@ -504,7 +504,7 @@ void Vector<ValueType>::compute_norm1(pointer_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm1(pointer_param<LinOp> result,
+void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
                                       array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;

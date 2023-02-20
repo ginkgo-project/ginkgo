@@ -926,7 +926,7 @@ public:
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
      * Dense matrix.
      */
-    void scale(pointer_param<const LinOp> alpha)
+    void scale(ptr_param<const LinOp> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -939,7 +939,7 @@ public:
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
      * 1x1 Dense matrix.
      */
-    void inv_scale(pointer_param<const LinOp> alpha)
+    void inv_scale(ptr_param<const LinOp> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));

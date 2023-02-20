@@ -106,8 +106,7 @@ protected:
     virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
                                           initial_guess_mode guess) const = 0;
 
-    void apply_with_initial_guess(pointer_param<const LinOp> b,
-                                  pointer_param<LinOp> x,
+    void apply_with_initial_guess(ptr_param<const LinOp> b, ptr_param<LinOp> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(b.get(), x.get(), guess);
@@ -130,10 +129,10 @@ protected:
                                           initial_guess_mode guess) const = 0;
 
 
-    void apply_with_initial_guess(pointer_param<const LinOp> alpha,
-                                  pointer_param<const LinOp> b,
-                                  pointer_param<const LinOp> beta,
-                                  pointer_param<LinOp> x,
+    void apply_with_initial_guess(ptr_param<const LinOp> alpha,
+                                  ptr_param<const LinOp> b,
+                                  ptr_param<const LinOp> beta,
+                                  ptr_param<LinOp> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(alpha.get(), b.get(), beta.get(), x.get(),
