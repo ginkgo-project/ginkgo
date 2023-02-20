@@ -161,7 +161,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     // For non initialized result objects, the compression and block_size
     // values are copied from "this"
     if ((compress_res == matrix::bccoo::compression::def_value) &&
-        			(block_size_res == 0)) {
+        (block_size_res == 0)) {
         block_size_res = block_size_src;
         compress_res = compress_src;
     } else {
@@ -439,7 +439,13 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     if (compress == matrix::bccoo::compression::def_value) {
         exec->run(bccoo::make_get_default_compression(&compress));
     }
-
+    /*
+        if (compress == matrix::bccoo::compression::element) {
+          printf ("ELEMENT_COMPRESSION with block_size = %ld\n", block_size);
+        } else {
+          printf (" BLOCK_COMPRESSION  with block_size = %ld\n", block_size);
+        }
+    */
     if (compress == matrix::bccoo::compression::element) {
         // Creation of some components of Bccoo
         array<IndexType> rows(exec_master, num_blocks);
@@ -531,9 +537,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         uint8* chunk_data = chunk.get_data();
 
         // Creation of auxiliary vectors and scalar
-        array<IndexType> rows_blk(exec, block_size);
-        array<IndexType> cols_blk(exec, block_size);
-        array<ValueType> vals_blk(exec, block_size);
+        array<IndexType> rows_blk(exec_master, block_size);
+        array<IndexType> cols_blk(exec_master, block_size);
+        array<ValueType> vals_blk(exec_master, block_size);
         uint8 type_blk = {};
 
         // Computation of chunk

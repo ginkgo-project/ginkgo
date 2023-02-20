@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 namespace gko {
 
 
@@ -135,4 +134,4 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
 }
 
 
-}  // gko namespace
+}  // namespace gko

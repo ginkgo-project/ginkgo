@@ -87,7 +87,7 @@ __dpct_inline__ bool segment_scan(
  * the thread is the first element of its segment with same `ind`.
  */
 template <unsigned subgroup_size, typename ValueType, typename IndexType,
-					typename Operator>
+          typename Operator>
 __dpct_inline__ bool segment_scan(
     const group::thread_block_tile<subgroup_size>& group, const IndexType ind,
     ValueType* __restrict__ val, Operator op)
@@ -105,7 +105,7 @@ __dpct_inline__ bool segment_scan(
         }
         add_val = group.shfl_down(add_val, i);
         if (group.thread_rank() < subgroup_size - i) {
-//            *val += add_val;
+            //            *val += add_val;
             *val = op(*val, add_val);
         }
     }
