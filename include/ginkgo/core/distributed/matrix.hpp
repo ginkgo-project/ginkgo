@@ -312,7 +312,7 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -326,7 +326,7 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -346,9 +346,9 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             row_partition,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -362,9 +362,9 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             row_partition,
-        pointer_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -517,7 +517,7 @@ protected:
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
-                    pointer_param<const LinOp> matrix_template);
+                    ptr_param<const LinOp> matrix_template);
 
     /**
      * Creates an empty distributed matrix with specified types for the local
@@ -535,8 +535,8 @@ protected:
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
-                    pointer_param<const LinOp> local_matrix_template,
-                    pointer_param<const LinOp> non_local_matrix_template);
+                    ptr_param<const LinOp> local_matrix_template,
+                    ptr_param<const LinOp> non_local_matrix_template);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared

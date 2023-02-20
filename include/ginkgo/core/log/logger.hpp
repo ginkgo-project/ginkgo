@@ -610,7 +610,7 @@ public:
      */
     virtual void remove_logger(const Logger* logger) = 0;
 
-    void remove_logger(pointer_param<const Logger> logger)
+    void remove_logger(ptr_param<const Logger> logger)
     {
         remove_logger(logger.get());
     }
@@ -661,7 +661,7 @@ public:
         }
     }
 
-    void remove_logger(pointer_param<const Logger> logger)
+    void remove_logger(ptr_param<const Logger> logger)
     {
         remove_logger(logger.get());
     }

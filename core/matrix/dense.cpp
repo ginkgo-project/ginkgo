@@ -153,7 +153,7 @@ void Dense<ValueType>::fill(const ValueType value)
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale(pointer_param<const LinOp> alpha)
+void Dense<ValueType>::scale(ptr_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
     this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -161,7 +161,7 @@ void Dense<ValueType>::scale(pointer_param<const LinOp> alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::inv_scale(pointer_param<const LinOp> alpha)
+void Dense<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
     this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
@@ -169,8 +169,8 @@ void Dense<ValueType>::inv_scale(pointer_param<const LinOp> alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled(pointer_param<const LinOp> alpha,
-                                  pointer_param<const LinOp> b)
+void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+                                  ptr_param<const LinOp> b)
 {
     auto exec = this->get_executor();
     this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -179,8 +179,8 @@ void Dense<ValueType>::add_scaled(pointer_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled(pointer_param<const LinOp> alpha,
-                                  pointer_param<const LinOp> b)
+void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+                                  ptr_param<const LinOp> b)
 {
     auto exec = this->get_executor();
     this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -189,8 +189,8 @@ void Dense<ValueType>::sub_scaled(pointer_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(pointer_param<const LinOp> b,
-                                   pointer_param<LinOp> result) const
+void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                   ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -199,8 +199,8 @@ void Dense<ValueType>::compute_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
-                                        pointer_param<LinOp> result) const
+void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                        ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_conj_dot_impl(
@@ -210,7 +210,7 @@ void Dense<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(pointer_param<LinOp> result) const
+void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
@@ -218,7 +218,7 @@ void Dense<ValueType>::compute_norm2(pointer_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm1(pointer_param<LinOp> result) const
+void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
@@ -341,8 +341,8 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(pointer_param<const LinOp> b,
-                                   pointer_param<LinOp> result,
+void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                   ptr_param<LinOp> result,
                                    array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
@@ -376,8 +376,8 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(pointer_param<const LinOp> b,
-                                        pointer_param<LinOp> result,
+void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                        ptr_param<LinOp> result,
                                         array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
@@ -412,7 +412,7 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(pointer_param<LinOp> result,
+void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
                                      array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -441,7 +441,7 @@ void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm1(pointer_param<LinOp> result,
+void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result,
                                      array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -1018,7 +1018,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::transpose(pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::transpose(ptr_param<Dense<ValueType>> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
@@ -1028,8 +1028,7 @@ void Dense<ValueType>::transpose(pointer_param<Dense<ValueType>> output) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::conj_transpose(
-    pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::conj_transpose(ptr_param<Dense<ValueType>> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
@@ -1185,7 +1184,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::permute(
 
 template <typename ValueType>
 void Dense<ValueType>::permute(const array<int32>* permutation_indices,
-                               pointer_param<Dense<ValueType>> output) const
+                               ptr_param<Dense<ValueType>> output) const
 {
     this->permute_impl(permutation_indices, output.get());
 }
@@ -1193,7 +1192,7 @@ void Dense<ValueType>::permute(const array<int32>* permutation_indices,
 
 template <typename ValueType>
 void Dense<ValueType>::permute(const array<int64>* permutation_indices,
-                               pointer_param<Dense<ValueType>> output) const
+                               ptr_param<Dense<ValueType>> output) const
 {
     this->permute_impl(permutation_indices, output.get());
 }
@@ -1220,18 +1219,16 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_permute(
-    const array<int32>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::inverse_permute(const array<int32>* permutation_indices,
+                                       ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_permute_impl(permutation_indices, output.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_permute(
-    const array<int64>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::inverse_permute(const array<int64>* permutation_indices,
+                                       ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_permute_impl(permutation_indices, output.get());
 }
@@ -1259,7 +1256,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
 
 template <typename ValueType>
 void Dense<ValueType>::row_permute(const array<int32>* permutation_indices,
-                                   pointer_param<Dense<ValueType>> output) const
+                                   ptr_param<Dense<ValueType>> output) const
 {
     this->row_permute_impl(permutation_indices, output.get());
 }
@@ -1267,7 +1264,7 @@ void Dense<ValueType>::row_permute(const array<int32>* permutation_indices,
 
 template <typename ValueType>
 void Dense<ValueType>::row_permute(const array<int64>* permutation_indices,
-                                   pointer_param<Dense<ValueType>> output) const
+                                   ptr_param<Dense<ValueType>> output) const
 {
     this->row_permute_impl(permutation_indices, output.get());
 }
@@ -1317,7 +1314,7 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 
 template <typename ValueType>
 void Dense<ValueType>::row_gather(const array<int32>* row_idxs,
-                                  pointer_param<LinOp> row_collection) const
+                                  ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1327,7 +1324,7 @@ void Dense<ValueType>::row_gather(const array<int32>* row_idxs,
 
 template <typename ValueType>
 void Dense<ValueType>::row_gather(const array<int64>* row_idxs,
-                                  pointer_param<LinOp> row_collection) const
+                                  ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1336,10 +1333,10 @@ void Dense<ValueType>::row_gather(const array<int64>* row_idxs,
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(pointer_param<const LinOp> alpha,
+void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   const array<int32>* gather_indices,
-                                  pointer_param<const LinOp> beta,
-                                  pointer_param<LinOp> out) const
+                                  ptr_param<const LinOp> beta,
+                                  ptr_param<LinOp> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1354,10 +1351,10 @@ void Dense<ValueType>::row_gather(pointer_param<const LinOp> alpha,
 }
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(pointer_param<const LinOp> alpha,
+void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   const array<int64>* gather_indices,
-                                  pointer_param<const LinOp> beta,
-                                  pointer_param<LinOp> out) const
+                                  ptr_param<const LinOp> beta,
+                                  ptr_param<LinOp> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1393,18 +1390,16 @@ std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::column_permute(
-    const array<int32>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::column_permute(const array<int32>* permutation_indices,
+                                      ptr_param<Dense<ValueType>> output) const
 {
     this->column_permute_impl(permutation_indices, output.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::column_permute(
-    const array<int64>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+void Dense<ValueType>::column_permute(const array<int64>* permutation_indices,
+                                      ptr_param<Dense<ValueType>> output) const
 {
     this->column_permute_impl(permutation_indices, output.get());
 }
@@ -1433,7 +1428,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
 template <typename ValueType>
 void Dense<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+    ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_row_permute_impl(permutation_indices, output.get());
 }
@@ -1442,7 +1437,7 @@ void Dense<ValueType>::inverse_row_permute(
 template <typename ValueType>
 void Dense<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+    ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_row_permute_impl(permutation_indices, output.get());
 }
@@ -1471,7 +1466,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
 template <typename ValueType>
 void Dense<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+    ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_column_permute_impl(permutation_indices, output.get());
 }
@@ -1480,7 +1475,7 @@ void Dense<ValueType>::inverse_column_permute(
 template <typename ValueType>
 void Dense<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices,
-    pointer_param<Dense<ValueType>> output) const
+    ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_column_permute_impl(permutation_indices, output.get());
 }
@@ -1488,7 +1483,7 @@ void Dense<ValueType>::inverse_column_permute(
 
 template <typename ValueType>
 void Dense<ValueType>::extract_diagonal(
-    pointer_param<Diagonal<ValueType>> output) const
+    ptr_param<Diagonal<ValueType>> output) const
 {
     auto exec = this->get_executor();
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
@@ -1528,8 +1523,7 @@ Dense<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute(
-    pointer_param<absolute_type> output) const
+void Dense<ValueType>::compute_absolute(ptr_param<absolute_type> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
@@ -1550,7 +1544,7 @@ Dense<ValueType>::make_complex() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::make_complex(pointer_param<complex_type> result) const
+void Dense<ValueType>::make_complex(ptr_param<complex_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -1571,7 +1565,7 @@ Dense<ValueType>::get_real() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_real(pointer_param<real_type> result) const
+void Dense<ValueType>::get_real(ptr_param<real_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -1592,7 +1586,7 @@ Dense<ValueType>::get_imag() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_imag(pointer_param<real_type> result) const
+void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();

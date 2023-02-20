@@ -756,7 +756,7 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(pointer_param<const Executor> src_exec, size_type num_elems,
+    void copy_from(ptr_param<const Executor> src_exec, size_type num_elems,
                    const T* src_ptr, T* dest_ptr) const
     {
         const auto src_loc = reinterpret_cast<uintptr>(src_ptr);

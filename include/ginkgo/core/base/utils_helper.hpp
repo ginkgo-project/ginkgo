@@ -68,33 +68,32 @@ class Executor;
  * @tparam T  the pointed-to type
  */
 template <typename T>
-class pointer_param {
+class ptr_param {
 public:
-    /** Initializes the pointer_param from a raw pointer. */
-    pointer_param(T* ptr) : ptr_{ptr} {}
+    /** Initializes the ptr_param from a raw pointer. */
+    ptr_param(T* ptr) : ptr_{ptr} {}
 
-    /** Initializes the pointer_param from a shared_ptr. */
+    /** Initializes the ptr_param from a shared_ptr. */
     template <typename U,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
-    pointer_param(const std::shared_ptr<U>& ptr) : pointer_param{ptr.get()}
+    ptr_param(const std::shared_ptr<U>& ptr) : ptr_param{ptr.get()}
     {}
 
-    /** Initializes the pointer_param from a unique_ptr. */
+    /** Initializes the ptr_param from a unique_ptr. */
     template <typename U, typename Deleter,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
-    pointer_param(const std::unique_ptr<U, Deleter>& ptr)
-        : pointer_param{ptr.get()}
+    ptr_param(const std::unique_ptr<U, Deleter>& ptr) : ptr_param{ptr.get()}
     {}
 
-    /** Initializes the pointer_param from a pointer_param of a derived type. */
+    /** Initializes the ptr_param from a ptr_param of a derived type. */
     template <typename U,
               std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
-    pointer_param(const pointer_param<U>& ptr) : pointer_param{ptr.get()}
+    ptr_param(const ptr_param<U>& ptr) : ptr_param{ptr.get()}
     {}
 
-    pointer_param(const pointer_param&) = default;
+    ptr_param(const ptr_param&) = default;
 
-    pointer_param(pointer_param&&) = default;
+    ptr_param(ptr_param&&) = default;
 
     /** @return a reference to the underlying pointee. */
     T& operator*() const { return *ptr_; }
@@ -108,9 +107,9 @@ public:
     /** @return true iff the underlying pointer is non-null. */
     explicit operator bool() const { return ptr_; }
 
-    pointer_param& operator=(const pointer_param&) = delete;
+    ptr_param& operator=(const ptr_param&) = delete;
 
-    pointer_param& operator=(pointer_param&&) = delete;
+    ptr_param& operator=(ptr_param&&) = delete;
 
 private:
     T* ptr_;
@@ -375,7 +374,7 @@ inline const std::decay_t<T>* as(const U* obj)
 
 
 /**
- * Performs polymorphic type conversion on a pointer_param.
+ * Performs polymorphic type conversion on a ptr_param.
  *
  * @tparam T  requested result type
  * @tparam U  static type of the passed object
@@ -386,7 +385,7 @@ inline const std::decay_t<T>* as(const U* obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline std::decay_t<T>* as(pointer_param<U> obj)
+inline std::decay_t<T>* as(ptr_param<U> obj)
 {
     return as<T>(obj.get());
 }
@@ -405,7 +404,7 @@ inline std::decay_t<T>* as(pointer_param<U> obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline const std::decay_t<T>* as(pointer_param<const U> obj)
+inline const std::decay_t<T>* as(ptr_param<const U> obj)
 {
     return as<T>(obj.get());
 }

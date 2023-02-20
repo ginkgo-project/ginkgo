@@ -66,8 +66,8 @@ TEST(PointerParam, WorksForRawPointers)
     auto obj = std::make_unique<Derived>();
     auto ptr = obj.get();
 
-    gko::pointer_param<Base> param(ptr);
-    gko::pointer_param<Derived> param2(ptr);
+    gko::ptr_param<Base> param(ptr);
+    gko::ptr_param<Derived> param2(ptr);
 
     ASSERT_EQ(param.get(), static_cast<Base*>(ptr));
     ASSERT_EQ(param2.get(), ptr);
@@ -80,10 +80,10 @@ TEST(PointerParam, WorksForSharedPointers)
     auto ptr = obj.get();
 
     // no difference whether we use lvalue or rvalue
-    gko::pointer_param<Base> param1(obj);
-    gko::pointer_param<Base> param2(std::move(obj));
-    gko::pointer_param<Derived> param3(obj);
-    gko::pointer_param<Derived> param4(std::move(obj));
+    gko::ptr_param<Base> param1(obj);
+    gko::ptr_param<Base> param2(std::move(obj));
+    gko::ptr_param<Derived> param3(obj);
+    gko::ptr_param<Derived> param4(std::move(obj));
 
     ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
     ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));
@@ -100,10 +100,10 @@ TEST(PointerParam, WorksForUniquePointers)
     auto ptr = obj.get();
 
     // no difference whether we use lvalue or rvalue
-    gko::pointer_param<Base> param1(obj);
-    gko::pointer_param<Base> param2(std::move(obj));
-    gko::pointer_param<Derived> param3(obj);
-    gko::pointer_param<Derived> param4(std::move(obj));
+    gko::ptr_param<Base> param1(obj);
+    gko::ptr_param<Base> param2(std::move(obj));
+    gko::ptr_param<Derived> param3(obj);
+    gko::ptr_param<Derived> param4(std::move(obj));
 
     ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
     ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));

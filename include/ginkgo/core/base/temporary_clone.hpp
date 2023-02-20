@@ -141,7 +141,7 @@ public:
      *                   only the result be copied back afterwards?
      */
     explicit temporary_clone(std::shared_ptr<const Executor> exec,
-                             pointer_param<T> ptr, bool copy_data = true)
+                             ptr_param<T> ptr, bool copy_data = true)
     {
         if (ptr->get_executor()->memory_accessible(exec)) {
             // just use the object we already have

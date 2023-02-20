@@ -155,7 +155,7 @@ public:
      *
      * @return this
      */
-    LinOp* apply(pointer_param<const LinOp> b, pointer_param<LinOp> x)
+    LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -171,8 +171,7 @@ public:
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp* apply(pointer_param<const LinOp> b,
-                       pointer_param<LinOp> x) const
+    const LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -195,8 +194,8 @@ public:
      *
      * @return this
      */
-    LinOp* apply(pointer_param<const LinOp> alpha, pointer_param<const LinOp> b,
-                 pointer_param<const LinOp> beta, pointer_param<LinOp> x)
+    LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                 ptr_param<const LinOp> beta, ptr_param<LinOp> x)
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -215,10 +214,8 @@ public:
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply(pointer_param<const LinOp> alpha,
-                       pointer_param<const LinOp> b,
-                       pointer_param<const LinOp> beta,
-                       pointer_param<LinOp> x) const
+    const LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                       ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -838,8 +835,8 @@ public:
      * @param b  Scalar to multiply this before adding the scaled identity to
      *           it.
      */
-    void add_scaled_identity(pointer_param<const LinOp> const a,
-                             pointer_param<const LinOp> const b)
+    void add_scaled_identity(ptr_param<const LinOp> const a,
+                             ptr_param<const LinOp> const b)
     {
         GKO_ASSERT_IS_SCALAR(a);
         GKO_ASSERT_IS_SCALAR(b);
@@ -895,32 +892,30 @@ public:
     using EnablePolymorphicObject<ConcreteLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
 
-    const ConcreteLinOp* apply(pointer_param<const LinOp> b,
-                               pointer_param<LinOp> x) const
+    const ConcreteLinOp* apply(ptr_param<const LinOp> b,
+                               ptr_param<LinOp> x) const
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    ConcreteLinOp* apply(pointer_param<const LinOp> b, pointer_param<LinOp> x)
+    ConcreteLinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    const ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
-                               pointer_param<const LinOp> b,
-                               pointer_param<const LinOp> beta,
-                               pointer_param<LinOp> x) const
+    const ConcreteLinOp* apply(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b,
+                               ptr_param<const LinOp> beta,
+                               ptr_param<LinOp> x) const
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
-    ConcreteLinOp* apply(pointer_param<const LinOp> alpha,
-                         pointer_param<const LinOp> b,
-                         pointer_param<const LinOp> beta,
-                         pointer_param<LinOp> x)
+    ConcreteLinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                         ptr_param<const LinOp> beta, ptr_param<LinOp> x)
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
