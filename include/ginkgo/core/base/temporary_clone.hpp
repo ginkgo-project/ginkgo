@@ -188,6 +188,9 @@ private:
 }  // namespace detail
 
 
+template <typename T>
+struct err {};
+
 /**
  * Creates a temporary_clone.
  *
@@ -197,12 +200,14 @@ private:
  *
  * @param exec  the executor where the clone will be created
  * @param ptr  a pointer to the object of which the clone will be created
+ *
+ * @tparam Ptr  the (raw or smart) pointer type to be temporarily cloned
  */
 template <typename Ptr>
-detail::temporary_clone<std::remove_reference_t<decltype(*std::declval<Ptr>())>>
-make_temporary_clone(std::shared_ptr<const Executor> exec, Ptr&& ptr)
+detail::temporary_clone<detail::pointee<Ptr>> make_temporary_clone(
+    std::shared_ptr<const Executor> exec, Ptr&& ptr)
 {
-    using T = std::remove_reference_t<decltype(*std::declval<Ptr>())>;
+    using T = detail::pointee<Ptr>;
     return detail::temporary_clone<T>(std::move(exec), std::forward<Ptr>(ptr));
 }
 
@@ -218,12 +223,14 @@ make_temporary_clone(std::shared_ptr<const Executor> exec, Ptr&& ptr)
  *
  * @param exec  the executor where the uninitialized clone will be created
  * @param ptr  a pointer to the object of which the clone will be created
+ *
+ * @tparam Ptr  the (raw or smart) pointer type to be temporarily cloned
  */
 template <typename Ptr>
-detail::temporary_clone<std::remove_reference_t<decltype(*std::declval<Ptr>())>>
-make_temporary_output_clone(std::shared_ptr<const Executor> exec, Ptr&& ptr)
+detail::temporary_clone<detail::pointee<Ptr>> make_temporary_output_clone(
+    std::shared_ptr<const Executor> exec, Ptr&& ptr)
 {
-    using T = std::remove_reference_t<decltype(*std::declval<Ptr>())>;
+    using T = detail::pointee<Ptr>;
     static_assert(
         !std::is_const<T>::value,
         "make_temporary_output_clone should only be used on non-const objects");
