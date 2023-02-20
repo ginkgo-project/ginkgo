@@ -78,7 +78,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -100,7 +100,7 @@ protected:
         EXPECT_EQ(s[0], 0);
     }
 
-    void assert_empty(gko::pointer_param<const Mtx> m)
+    void assert_empty(gko::ptr_param<const Mtx> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);

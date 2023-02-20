@@ -61,9 +61,8 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                }}};
 
 
-void output(
-    gko::pointer_param<const gko::WritableToMatrixData<double, int>> mtx,
-    std::string name)
+void output(gko::ptr_param<const gko::WritableToMatrixData<double, int>> mtx,
+            std::string name)
 {
     std::ofstream stream{name};
     std::cerr << "Writing " << name << std::endl;

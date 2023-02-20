@@ -71,16 +71,16 @@ protected:
     Matrix() : engine(42) {}
 
     void validate(
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             row_partition,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             col_partition,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             d_row_partition,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             d_col_partition,
         gko::device_matrix_data<value_type, global_index_type> input)

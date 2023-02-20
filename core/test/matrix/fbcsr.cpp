@@ -76,8 +76,8 @@ protected:
     FbcsrSample() : ref(gko::ReferenceExecutor::create()) {}
 
     void assert_matrices_are_same(
-        gko::pointer_param<const gko::matrix::Fbcsr<value_type, index_type>> bm,
-        gko::pointer_param<const gko::matrix::Csr<value_type, index_type>> cm,
+        gko::ptr_param<const gko::matrix::Fbcsr<value_type, index_type>> bm,
+        gko::ptr_param<const gko::matrix::Csr<value_type, index_type>> cm,
         const gko::matrix::Diagonal<value_type>* const diam = nullptr,
         const gko::matrix_data<value_type, index_type>* const md = nullptr)
     {
@@ -275,7 +275,7 @@ protected:
     std::vector<index_type> orig_rowptrs;
     std::vector<index_type> orig_colinds;
 
-    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();

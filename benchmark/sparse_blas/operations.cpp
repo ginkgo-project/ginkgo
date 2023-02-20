@@ -77,9 +77,8 @@ DEFINE_int32(spgemm_rowlength, 10,
 using Mtx = gko::matrix::Csr<etype, itype>;
 
 
-std::pair<bool, double> validate_result(
-    gko::pointer_param<const Mtx> correct_mtx,
-    gko::pointer_param<const Mtx> test_mtx)
+std::pair<bool, double> validate_result(gko::ptr_param<const Mtx> correct_mtx,
+                                        gko::ptr_param<const Mtx> test_mtx)
 {
     auto ref = gko::ReferenceExecutor::create();
     auto host_correct_mtx = gko::make_temporary_clone(ref, correct_mtx);

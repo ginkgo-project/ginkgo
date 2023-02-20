@@ -71,10 +71,10 @@ protected:
     Vector() : engine(42) {}
 
     void validate(
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             partition,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             d_partition,
         const gko::device_matrix_data<value_type, global_index_type>& input)

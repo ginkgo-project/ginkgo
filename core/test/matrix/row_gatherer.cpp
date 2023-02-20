@@ -75,7 +75,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::pointer_param<const gko::matrix::RowGatherer<i_type>> m)
+        gko::ptr_param<const gko::matrix::RowGatherer<i_type>> m)
     {
         auto gather = m->get_const_row_idxs();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));

@@ -249,8 +249,7 @@ protected:
         return std::move(result);
     }
 
-    std::unique_ptr<Csr> clone_allocations(
-        gko::pointer_param<const Csr> csr_mtx)
+    std::unique_ptr<Csr> clone_allocations(gko::ptr_param<const Csr> csr_mtx)
     {
         const auto num_elems = csr_mtx->get_num_stored_elements();
         auto sparsity = csr_mtx->clone();
@@ -260,7 +259,7 @@ protected:
         return sparsity;
     }
 
-    std::unique_ptr<Csr> transpose(gko::pointer_param<const Csr> mtx)
+    std::unique_ptr<Csr> transpose(gko::ptr_param<const Csr> mtx)
     {
         return gko::as<Csr>(mtx->transpose());
     }

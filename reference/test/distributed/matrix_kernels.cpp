@@ -85,10 +85,10 @@ protected:
 
     void validate(
         gko::dim<2> size,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             row_partition,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             col_partition,
         std::initializer_list<global_index_type> input_rows,

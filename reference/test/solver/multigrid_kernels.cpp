@@ -323,7 +323,7 @@ protected:
           x2(gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec))
     {}
 
-    static void assert_same_step(gko::pointer_param<const gko::LinOp> lo,
+    static void assert_same_step(gko::ptr_param<const gko::LinOp> lo,
                                  std::vector<int> v2)
     {
         auto v1 = dynamic_cast<const DummyFactory*>(lo.get())->get_step();
@@ -331,7 +331,7 @@ protected:
     }
 
     static void assert_same_step(
-        gko::pointer_param<const gko::multigrid::MultigridLevel> rp,
+        gko::ptr_param<const gko::multigrid::MultigridLevel> rp,
         std::vector<int> rstr, std::vector<int> prlg)
     {
         auto dummy = dynamic_cast<const DummyRPFactory*>(rp.get());
