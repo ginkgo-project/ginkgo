@@ -66,8 +66,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    ptr_param<const LinOp> local_matrix_type)
-    : Matrix(exec, comm, local_matrix_type, local_matrix_type)
+    ptr_param<const LinOp> local_matrix_template)
+    : Matrix(exec, comm, local_matrix_template, local_matrix_template)
 {}
 
 
