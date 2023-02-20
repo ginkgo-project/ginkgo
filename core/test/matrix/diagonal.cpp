@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Diag> diag;
 
-    void assert_equal_to_original_mtx(gko::pointer_param<const Diag> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Diag> m)
     {
         auto v = m->get_const_values();
         ASSERT_EQ(m->get_size(), gko::dim<2>(3, 3));

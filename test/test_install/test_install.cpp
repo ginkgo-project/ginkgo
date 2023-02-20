@@ -46,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-void assert_similar_matrices(gko::pointer_param<const gko::matrix::Dense<>> m1,
-                             gko::pointer_param<const gko::matrix::Dense<>> m2,
+void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,
+                             gko::ptr_param<const gko::matrix::Dense<>> m2,
                              double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
@@ -63,8 +63,8 @@ void assert_similar_matrices(gko::pointer_param<const gko::matrix::Dense<>> m1,
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<double>& A_raw,
-                gko::pointer_param<const gko::matrix::Dense<>> b,
-                gko::pointer_param<gko::matrix::Dense<>> x)
+                gko::ptr_param<const gko::matrix::Dense<>> b,
+                gko::ptr_param<gko::matrix::Dense<>> x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
@@ -93,8 +93,8 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
                   const gko::matrix_data<double>& A_raw,
-                  gko::pointer_param<const gko::matrix::Dense<>> b,
-                  gko::pointer_param<gko::matrix::Dense<>> x)
+                  gko::ptr_param<const gko::matrix::Dense<>> b,
+                  gko::ptr_param<gko::matrix::Dense<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));

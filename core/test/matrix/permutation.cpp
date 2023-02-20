@@ -65,7 +65,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::pointer_param<gko::matrix::Permutation<i_type>> m)
+        gko::ptr_param<gko::matrix::Permutation<i_type>> m)
     {
         auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));

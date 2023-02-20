@@ -77,7 +77,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(gko::pointer_param<const Mtx> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();

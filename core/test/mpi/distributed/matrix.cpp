@@ -104,7 +104,7 @@ protected:
     void forall_matrix_types(F&& f)
     {
         using namespace gko::matrix;
-        auto empty_test = [](gko::pointer_param<const gko::LinOp>) {};
+        auto empty_test = [](gko::ptr_param<const gko::LinOp>) {};
         {
             SCOPED_TRACE("With Coo");
             f(gko::with_matrix_type<Coo>(),
@@ -121,7 +121,7 @@ protected:
             auto strategy = std::make_shared<typename ConcreteCsr::classical>();
             f(gko::with_matrix_type<Csr>(strategy),
               ConcreteCsr::create(this->ref, strategy),
-              [](gko::pointer_param<const gko::LinOp> local_mat) {
+              [](gko::ptr_param<const gko::LinOp> local_mat) {
                   auto local_csr = gko::as<ConcreteCsr>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename ConcreteCsr::classical>(
@@ -143,7 +143,7 @@ protected:
             SCOPED_TRACE("With Fbcsr with block_size");
             f(gko::with_matrix_type<Fbcsr>(5),
               Fbcsr<value_type, local_index_type>::create(this->ref, 5),
-              [](gko::pointer_param<const gko::LinOp> local_mat) {
+              [](gko::ptr_param<const gko::LinOp> local_mat) {
                   auto local_fbcsr =
                       gko::as<Fbcsr<value_type, local_index_type>>(local_mat);
 
@@ -163,7 +163,7 @@ protected:
                 std::make_shared<typename Concrete::column_limit>(11);
             f(gko::with_matrix_type<Hybrid>(strategy),
               Concrete::create(this->ref, strategy),
-              [](gko::pointer_param<const gko::LinOp> local_mat) {
+              [](gko::ptr_param<const gko::LinOp> local_mat) {
                   auto local_hy = gko::as<Concrete>(local_mat);
 
                   ASSERT_NO_THROW(gko::as<typename Concrete::column_limit>(
@@ -183,7 +183,7 @@ protected:
     }
 
     template <typename LocalMatrixType, typename NonLocalMatrixType>
-    void expected_interface_no_throw(gko::pointer_param<dist_mtx_type> mat,
+    void expected_interface_no_throw(gko::ptr_param<dist_mtx_type> mat,
                                      LocalMatrixType&& local_matrix_type,
                                      NonLocalMatrixType&& non_local_matrix_type)
     {

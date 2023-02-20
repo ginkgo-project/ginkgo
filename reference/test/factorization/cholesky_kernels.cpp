@@ -65,7 +65,7 @@ protected:
     Cholesky() : ref(gko::ReferenceExecutor::create()), tmp{ref} {}
 
     std::unique_ptr<matrix_type> combined_factor(
-        gko::pointer_param<const matrix_type> l_factor)
+        gko::ptr_param<const matrix_type> l_factor)
     {
         auto one = gko::initialize<gko::matrix::Dense<value_type>>(
             {gko::one<value_type>()}, ref);

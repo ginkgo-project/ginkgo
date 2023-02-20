@@ -77,7 +77,7 @@ protected:
         return gko::test::detail::get_rand_value<T>(distb, engine);
     }
 
-    void generate_sin(gko::pointer_param<Dense> x)
+    void generate_sin(gko::ptr_param<Dense> x)
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {

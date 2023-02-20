@@ -179,14 +179,14 @@ protected:
     std::shared_ptr<const gko::stop::CriterionFactory> criterion;
 
     static int get_value(
-        gko::pointer_param<const gko::multigrid::MultigridLevel> rp)
+        gko::ptr_param<const gko::multigrid::MultigridLevel> rp)
     {
         return dynamic_cast<const DummyRPFactory*>(rp.get())
             ->get_parameters()
             .value;
     }
 
-    static int get_value(gko::pointer_param<const gko::LinOp> lo)
+    static int get_value(gko::ptr_param<const gko::LinOp> lo)
     {
         return dynamic_cast<const DummyFactory*>(lo.get())
             ->get_parameters()

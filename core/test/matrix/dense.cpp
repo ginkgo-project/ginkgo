@@ -58,7 +58,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::pointer_param<gko::matrix::Dense<value_type>> m)
+        gko::ptr_param<gko::matrix::Dense<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 2 * m->get_stride());
@@ -70,8 +70,7 @@ protected:
         ASSERT_EQ(m->at(1, 2), value_type{3.5});
     }
 
-    static void assert_empty(
-        gko::pointer_param<gko::matrix::Dense<value_type>> m)
+    static void assert_empty(gko::ptr_param<gko::matrix::Dense<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);

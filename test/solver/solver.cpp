@@ -116,13 +116,13 @@ struct SimpleSolverTest {
     }
 
     static const gko::LinOp* get_preconditioner(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return solver->get_preconditioner().get();
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return solver->get_stop_criterion_factory().get();
     }
@@ -209,7 +209,7 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
     }
 
     static const gko::LinOp* get_preconditioner(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return solver->get_solver().get();
     }
@@ -342,13 +342,13 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     }
 
     static const gko::LinOp* get_preconditioner(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return nullptr;
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return nullptr;
     }
@@ -393,13 +393,13 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static const gko::LinOp* get_preconditioner(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return nullptr;
     }
 
     static const gko::stop::CriterionFactory* get_stop_criterion_factory(
-        gko::pointer_param<const solver_type> solver)
+        gko::ptr_param<const solver_type> solver)
     {
         return nullptr;
     }
@@ -871,7 +871,7 @@ protected:
     }
 
 
-    void assert_empty_state(gko::pointer_param<const SolverType> solver,
+    void assert_empty_state(gko::ptr_param<const SolverType> solver,
                             std::shared_ptr<const gko::Executor> expected_exec)
     {
         ASSERT_FALSE(solver->get_size());

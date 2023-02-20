@@ -95,7 +95,7 @@ protected:
                            I<index_type>{0, 0, 2, 2, 2, 2, 3, 4, 4, 4});
     }
 
-    bool is_coo_matrix_sorted(gko::pointer_param<Coo> mtx)
+    bool is_coo_matrix_sorted(gko::ptr_param<Coo> mtx)
     {
         auto rows = mtx->get_const_row_idxs();
         auto cols = mtx->get_const_col_idxs();
@@ -119,7 +119,7 @@ protected:
         return true;
     }
 
-    bool is_csr_matrix_sorted(gko::pointer_param<Csr> mtx)
+    bool is_csr_matrix_sorted(gko::ptr_param<Csr> mtx)
     {
         auto size = mtx->get_size();
         auto rows = mtx->get_const_row_ptrs();

@@ -124,8 +124,8 @@ protected:
         }
     }
 
-    void assert_same_precond(gko::pointer_param<const Bj> a,
-                             gko::pointer_param<const Bj> b)
+    void assert_same_precond(gko::ptr_param<const Bj> a,
+                             gko::ptr_param<const Bj> b)
     {
         ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
         ASSERT_EQ(a->get_size()[1], b->get_size()[1]);

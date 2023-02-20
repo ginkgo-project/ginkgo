@@ -90,7 +90,7 @@ protected:
           mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
-    void assert_equal_to_mtx(gko::pointer_param<const Csr> m)
+    void assert_equal_to_mtx(gko::ptr_param<const Csr> m)
     {
         ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
         ASSERT_EQ(m->get_num_stored_elements(),
@@ -106,7 +106,7 @@ protected:
         }
     }
 
-    void assert_equal_to_mtx(gko::pointer_param<const SparCsr> m)
+    void assert_equal_to_mtx(gko::ptr_param<const SparCsr> m)
     {
         ASSERT_EQ(m->get_size(), refspcmtx->get_size());
         ASSERT_EQ(m->get_num_nonzeros(), refspcmtx->get_num_nonzeros());

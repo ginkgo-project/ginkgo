@@ -71,7 +71,7 @@ protected:
 
     void validate(
         const gko::dim<2> size,
-        gko::pointer_param<const gko::experimental::distributed::Partition<
+        gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
             partition,
         I<global_index_type> input_rows, I<global_index_type> input_cols,

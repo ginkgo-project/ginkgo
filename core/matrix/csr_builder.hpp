@@ -65,7 +65,7 @@ public:
     /**
      * Initializes a CsrBuilder from an existing CSR matrix.
      */
-    explicit CsrBuilder(pointer_param<Csr<ValueType, IndexType>> matrix)
+    explicit CsrBuilder(ptr_param<Csr<ValueType, IndexType>> matrix)
         : matrix_{matrix.get()}
     {}
 
