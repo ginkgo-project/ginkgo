@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   check-format:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
     steps:
       - name: Checkout the latest code (shallow clone)
