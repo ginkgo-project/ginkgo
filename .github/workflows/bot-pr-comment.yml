@@ -17,7 +17,7 @@ jobs:
       run: cp --preserve .github/label.sh /tmp && /tmp/label.sh
   check_format:
     name: check-format
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'check-format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -36,7 +36,7 @@ jobs:
           path: format.patch
   format:
     name: format
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -66,7 +66,7 @@ jobs:
   format-rebase:
     name: format-rebase
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format-rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout the latest code
       uses: actions/checkout@v2
