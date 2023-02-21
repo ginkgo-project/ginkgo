@@ -109,6 +109,7 @@ int main(int argc, char* argv[])
         num_elements_y + overlap * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
+    const auto dx = 1.0 / static_cast<double>(num_elements_y);
 
     // Pick the requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -335,7 +336,7 @@ int main(int argc, char* argv[])
 
     auto one = gko::initialize<vec>({1}, exec);
     auto exact_solution = dist_vec ::create(
-        exec, comm, vec::create(exec, gko::dim<2>{1, num_vertices_y}).get());
+        exec, comm, vec::create(exec, gko::dim<2>{num_vertices_y, 1}).get());
     exact_solution->fill(1.0);
 
     std::vector<int> send_sizes(comm.size());
@@ -426,23 +427,24 @@ int main(int argc, char* argv[])
         // need to restrict to owned dofs
         double t = 0.0;
         auto x_view =
-            vec::create(exec, gko::dim<2>{num_vertices_y, num_vertices_x},
+            vec::create(exec, gko::dim<2>{num_vertices_x, num_vertices_y},
                         gko::make_array_view(exec, x->get_num_stored_elements(),
                                              x->get_values()),
-                        num_vertices_x);
+                        1);
         for (int iy = 0; iy < num_vertices_y; ++iy) {
             auto interior_row_x = dist_vec ::create(
                 exec, comm,
-                x->create_submatrix(
-                     {static_cast<gko::size_type>(iy)},
-                     {rank == 0 ? 0 : overlap, rank == comm.size() - 1
-                                                   ? num_elements_x
-                                                   : num_elements_x - overlap})
+                x_view
+                    ->create_submatrix(
+                        {rank == 0 ? 0 : overlap,
+                         rank == comm.size() - 1 ? num_vertices_x
+                                                 : num_vertices_x - overlap},
+                        {static_cast<gko::size_type>(iy)})
                     .get());
             auto error = gko::clone(exact_solution);
             error->sub_scaled(one.get(), interior_row_x.get());
             error->compute_dot(error.get(), local_error.get());
-            t += local_error->at(0);
+            t += local_error->at(0) * dx;
         }
         if (rank == 0) {
             std::cout << it << ": " << std::sqrt(t) << std::endl;
