@@ -58,9 +58,10 @@ void sort_by_range_start(
     auto range_it = reinterpret_cast<range*>(range_start_ends.get_data());
     auto sort_it = detail::make_zip_iterator(range_it, part_ids_d);
     // TODO: use TBB or parallel std with c++17
-    std::sort(sort_it, sort_it + num_parts, [](const auto& a, const auto& b) {
-        return std::get<0>(a).idxs[0] < std::get<0>(b).idxs[0];
-    });
+    std::stable_sort(sort_it, sort_it + num_parts,
+                     [](const auto& a, const auto& b) {
+                         return std::get<0>(a).idxs[0] < std::get<0>(b).idxs[0];
+                     });
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

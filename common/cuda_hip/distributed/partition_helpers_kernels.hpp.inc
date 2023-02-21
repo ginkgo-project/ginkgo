@@ -46,8 +46,8 @@ void sort_by_range_start(
         range_start_ends.get_data() + 1, strided_indices);
     auto zip_it = thrust::make_zip_iterator(
         thrust::make_tuple(end_it, part_ids.get_data()));
-    thrust::sort_by_key(thrust::device, start_it, start_it + num_ranges,
-                        zip_it);
+    thrust::stable_sort_by_key(thrust::device, start_it, start_it + num_ranges,
+                               zip_it);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

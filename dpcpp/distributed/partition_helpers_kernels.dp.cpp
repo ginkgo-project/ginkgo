@@ -61,8 +61,9 @@ void sort_by_range_start(
         range_start_ends.get_data(), [](auto i) { return 2 * i + 1; });
     auto zip_it =
         oneapi::dpl::make_zip_iterator(start_it, end_it, part_ids.get_data());
-    std::sort(policy, zip_it, zip_it + num_ranges,
-              [](auto a, auto b) { return std::get<0>(a) < std::get<0>(b); });
+    std::stable_sort(policy, zip_it, zip_it + num_ranges, [](auto a, auto b) {
+        return std::get<0>(a) < std::get<0>(b);
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
