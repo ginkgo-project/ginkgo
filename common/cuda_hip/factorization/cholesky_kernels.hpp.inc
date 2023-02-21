@@ -85,6 +85,9 @@ __global__
         return;
     }
     const auto row_begin = row_ptrs[row];
+    // instead of relying on the input containing a diagonal, we artificially
+    // introduce the diagonal entry (in postorder indexing) as a sentinel after
+    // the last lower triangular entry.
     const auto diag_postorder = inv_postorder[row];
     const auto lower_end = lower_ends[row];
     const auto subwarp =
@@ -123,6 +126,9 @@ __global__
         return;
     }
     const auto row_begin = row_ptrs[row];
+    // instead of relying on the input containing a diagonal, we artificially
+    // introduce the diagonal entry (in postorder indexing) as a sentinel after
+    // the last lower triangular entry.
     const auto diag_postorder = inv_postorder[row];
     const auto lower_end = lower_ends[row];
     const auto subwarp =

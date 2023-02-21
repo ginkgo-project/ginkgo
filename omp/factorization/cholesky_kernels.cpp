@@ -74,6 +74,9 @@ void cholesky_symbolic_count(
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
+        // instead of relying on the input containing a diagonal, we
+        // artificially introduce the diagonal entry (in postorder indexing) as
+        // a sentinel after the last lower triangular entry.
         const auto diag_postorder = inv_postorder[row];
         // transform strictly lower triangular entries into sorted postorder
         auto lower_end = row_begin;
@@ -128,6 +131,9 @@ void cholesky_symbolic_factorize(
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
+        // instead of relying on the input containing a diagonal, we
+        // artificially introduce the diagonal entry (in postorder indexing) as
+        // a sentinel after the last lower triangular entry.
         const auto diag_postorder = inv_postorder[row];
         const auto lower_end = lower_ends[row];
         // Now move from each node to its LCA with other nodes to cut off a path

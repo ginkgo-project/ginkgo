@@ -101,6 +101,9 @@ void cholesky_symbolic_count(
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
+            // instead of relying on the input containing a diagonal, we
+            // artificially introduce the diagonal entry (in postorder indexing)
+            // as a sentinel after the last lower triangular entry.
             const auto diag_postorder = inv_postorder[row];
             const auto lower_end = lower_ends[row];
             IndexType count{};
@@ -145,6 +148,9 @@ void cholesky_symbolic_factorize(
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
+            // instead of relying on the input containing a diagonal, we
+            // artificially introduce the diagonal entry (in postorder indexing)
+            // as a sentinel after the last lower triangular entry.
             const auto diag_postorder = inv_postorder[row];
             const auto lower_end = lower_ends[row];
             auto out_nz = out_row_ptrs[row];
