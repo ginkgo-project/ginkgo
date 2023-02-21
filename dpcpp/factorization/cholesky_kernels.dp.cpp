@@ -83,7 +83,7 @@ void cholesky_symbolic_count(
             auto lower_end = row_begin;
             for (auto nz = row_begin; nz < row_end; nz++) {
                 const auto col = cols[nz];
-                if (col <= row) {
+                if (col < row) {
                     postorder_cols[lower_end] = inv_postorder[cols[nz]];
                     lower_end++;
                 }
@@ -101,11 +101,17 @@ void cholesky_symbolic_count(
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
+            // instead of relying on the input containing a diagonal, we
+            // artificially introduce the diagonal entry (in postorder indexing)
+            // as a sentinel after the last lower triangular entry.
+            const auto diag_postorder = inv_postorder[row];
             const auto lower_end = lower_ends[row];
             IndexType count{};
-            for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
+            for (auto nz = row_begin; nz < lower_end; ++nz) {
                 auto node = postorder_cols[nz];
-                const auto next_node = postorder_cols[nz + 1];
+                const auto next_node = nz < lower_end - 1
+                                           ? postorder_cols[nz + 1]
+                                           : diag_postorder;
                 while (node < next_node) {
                     count++;
                     node = postorder_parent[node];
@@ -142,11 +148,17 @@ void cholesky_symbolic_factorize(
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
+            // instead of relying on the input containing a diagonal, we
+            // artificially introduce the diagonal entry (in postorder indexing)
+            // as a sentinel after the last lower triangular entry.
+            const auto diag_postorder = inv_postorder[row];
             const auto lower_end = lower_ends[row];
             auto out_nz = out_row_ptrs[row];
-            for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
+            for (auto nz = row_begin; nz < lower_end; ++nz) {
                 auto node = postorder_cols[nz];
-                const auto next_node = postorder_cols[nz + 1];
+                const auto next_node = nz < lower_end - 1
+                                           ? postorder_cols[nz + 1]
+                                           : diag_postorder;
                 while (node < next_node) {
                     out_cols[out_nz] = postorder[node];
                     out_nz++;

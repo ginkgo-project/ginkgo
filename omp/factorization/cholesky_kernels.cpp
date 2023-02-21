@@ -74,23 +74,26 @@ void cholesky_symbolic_count(
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
-        // transform lower triangular entries into sorted postorder
+        // instead of relying on the input containing a diagonal, we
+        // artificially introduce the diagonal entry (in postorder indexing) as
+        // a sentinel after the last lower triangular entry.
+        const auto diag_postorder = inv_postorder[row];
+        // transform strictly lower triangular entries into sorted postorder
         auto lower_end = row_begin;
         for (auto nz = row_begin; nz < row_end; nz++) {
             const auto col = cols[nz];
-            if (col <= row) {
+            if (col < row) {
                 postorder_cols[lower_end] = inv_postorder[col];
                 lower_end++;
             }
         }
         std::sort(postorder_cols + row_begin, postorder_cols + lower_end);
-        // the subtree root should be the last entry as a sentinel
-        GKO_ASSERT(postorder_cols[lower_end - 1] == inv_postorder[row]);
         // Now move from each node to its LCA with other nodes to cut off a path
         IndexType count{};
-        for (auto nz = row_begin; nz < lower_end - 1; nz++) {
+        for (auto nz = row_begin; nz < lower_end; nz++) {
             auto node = postorder_cols[nz];
-            const auto next_node = postorder_cols[nz + 1];
+            const auto next_node =
+                nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
             // move upwards until we find the LCA with next_node
             while (node < next_node) {
                 count++;
@@ -128,12 +131,17 @@ void cholesky_symbolic_factorize(
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
+        // instead of relying on the input containing a diagonal, we
+        // artificially introduce the diagonal entry (in postorder indexing) as
+        // a sentinel after the last lower triangular entry.
+        const auto diag_postorder = inv_postorder[row];
         const auto lower_end = lower_ends[row];
         // Now move from each node to its LCA with other nodes to cut off a path
         auto out_nz = out_row_ptrs[row];
-        for (auto nz = row_begin; nz < lower_end - 1; nz++) {
+        for (auto nz = row_begin; nz < lower_end; nz++) {
             auto node = postorder_cols[nz];
-            const auto next_node = postorder_cols[nz + 1];
+            const auto next_node =
+                nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
             // move upwards until we find the LCA with next_node
             while (node < next_node) {
                 out_cols[out_nz] = postorder[node];

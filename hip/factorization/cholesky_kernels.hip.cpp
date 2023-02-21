@@ -115,7 +115,7 @@ void cholesky_symbolic_count(
             ceildiv(num_rows, default_block_size / config::warp_size);
         cholesky_symbolic_count_kernel<config::warp_size>
             <<<num_blocks, default_block_size>>>(num_rows, row_ptrs, lower_ends,
-                                                 postorder_cols,
+                                                 inv_postorder, postorder_cols,
                                                  postorder_parent, row_nnz);
     }
 }
@@ -149,8 +149,8 @@ void cholesky_symbolic_factorize(
         ceildiv(num_rows, default_block_size / config::warp_size);
     cholesky_symbolic_factorize_kernel<config::warp_size>
         <<<num_blocks, default_block_size>>>(
-            num_rows, row_ptrs, lower_ends, postorder_cols, postorder,
-            postorder_parent, out_row_ptrs, out_cols);
+            num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
+            postorder, postorder_parent, out_row_ptrs, out_cols);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

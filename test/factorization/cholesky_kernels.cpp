@@ -66,6 +66,10 @@ protected:
 
     Cholesky() : tmp{ref}, dtmp{exec}
     {
+        matrices.emplace_back(
+            "example small",
+            gko::initialize<matrix_type>(
+                {{1, 0, 1, 0}, {0, 1, 0, 1}, {1, 0, 1, 0}, {0, 0, 0, 1}}, ref));
         matrices.emplace_back("example", gko::initialize<matrix_type>(
                                              {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
                                               {0, 1, 0, 1, 0, 0, 0, 0, 0, 1},
@@ -90,6 +94,19 @@ protected:
                                                 {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
                                                 {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
                                                ref));
+        matrices.emplace_back(
+            "missing diagonal",
+            gko::initialize<matrix_type>({{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+                                          {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
+                                          {1, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+                                          {0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
+                                          {0, 0, 0, 1, 0, 1, 0, 0, 0, 0},
+                                          {0, 0, 0, 0, 1, 1, 1, 0, 0, 0},
+                                          {0, 0, 0, 0, 0, 1, 1, 1, 0, 1},
+                                          {0, 0, 0, 0, 0, 0, 1, 1, 0, 0},
+                                          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+                                          {0, 0, 0, 0, 0, 0, 1, 0, 1, 0}},
+                                         ref));
         std::ifstream ani1_stream{gko::matrices::location_ani1_mtx};
         matrices.emplace_back("ani1", gko::read<matrix_type>(ani1_stream, ref));
         std::ifstream ani1_amd_stream{gko::matrices::location_ani1_amd_mtx};

@@ -64,7 +64,7 @@ DEFINE_string(solvers, "cg",
               "Supported values are: bicgstab, bicg, cb_gmres_keep, "
               "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
               "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
-              "lower_trs, upper_trs, overhead");
+              "lower_trs, upper_trs, symm_direct, direct, overhead");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -250,6 +250,19 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
     } else if (description == "upper_trs") {
         return gko::solver::UpperTrs<etype>::build()
             .with_num_rhs(FLAGS_nrhs)
+            .on(exec);
+    } else if (description == "symm_direct") {
+        return gko::experimental::solver::Direct<etype, itype>::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<etype, itype>::build()
+                    .with_symmetric_sparsity(true)
+                    .on(exec))
+            .on(exec);
+    } else if (description == "direct") {
+        return gko::experimental::solver::Direct<etype, itype>::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<etype, itype>::build().on(
+                    exec))
             .on(exec);
     } else if (description == "overhead") {
         return add_criteria_precond_finalize<gko::Overhead<etype>>(
