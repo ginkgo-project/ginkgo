@@ -1116,6 +1116,17 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
         make_temporary_clone(exec, row_collection).get()));
 }
 
+template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_scatter_impl(const array<IndexType>* row_idxs,
+                                        Dense<OutputType>* row_collection) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_idxs->get_num_elems(),
+                        row_collection->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
+}
+
 
 template <typename ValueType>
 template <typename IndexType>
@@ -1368,6 +1379,19 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
         out.get());
 }
 
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const array<int32>* scatter_indices,
+                                   Dense* row_colletion)
+{
+    this->row_scatter_impl(scatter_indices, row_colletion);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const array<int64>* scatter_indices,
+                                   Dense* row_colletion)
+{
+    this->row_scatter_impl(scatter_indices, row_colletion);
+}
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::column_permute(

@@ -539,6 +539,13 @@ public:
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
 
+    /**
+     * `row_collection(scatter_indices(i), j) = this(i, j)
+     */
+    void row_scatter(const array<int32>* scatter_indices, Dense* row_colletion);
+
+    void row_scatter(const array<int64>* scatter_indices, Dense* row_colletion);
+
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
 
@@ -1244,6 +1251,10 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
+
+    template <typename OutputType, typename IndexType>
+    void row_scatter_impl(const array<IndexType>* row_idxs,
+                          Dense<OutputType>* row_collection) const;
 
     template <typename IndexType>
     void column_permute_impl(const array<IndexType>* permutation,

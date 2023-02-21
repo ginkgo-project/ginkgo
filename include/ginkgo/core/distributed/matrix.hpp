@@ -568,6 +568,16 @@ private:
 };
 
 
+class LocalMatrix {
+public:
+protected:
+    explicit LocalMatrix(std::shared_ptr<const Executor> exec,
+                         std::unique_ptr<LinOp> mtx);
+
+private:
+    std::unique_ptr<LinOp> mtx_;
+};
+
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko
