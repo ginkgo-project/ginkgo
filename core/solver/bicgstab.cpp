@@ -172,16 +172,18 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, r, dense_x, nullptr, rho);
         rr->compute_conj_dot(r, rho, reduction_tmp);
 
-        if (stop_criterion->update()
+        bool all_stopped =
+            stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r)
                 .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r, dense_x, nullptr, rho, &stop_status, all_stopped);
+        if (all_stopped) {
             break;
         }
 
@@ -204,7 +206,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(r), gko::detail::get_local(s),
             gko::detail::get_local(v), rho, alpha, beta, &stop_status));
 
-        auto all_converged =
+        all_stopped =
             stop_criterion->update()
                 .num_iterations(iter)
                 .residual(s)
@@ -216,7 +218,9 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                               gko::detail::get_local(y), alpha,
                                               &stop_status));
         }
-        if (all_converged) {
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r, dense_x, nullptr, rho, &stop_status, all_stopped);
+        if (all_stopped) {
             break;
         }
 

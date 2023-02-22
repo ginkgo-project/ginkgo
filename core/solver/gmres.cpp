@@ -295,14 +295,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         ++total_iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual, dense_x, residual_norm);
-        if (stop_criterion->update()
+        bool all_stopped =
+            stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual)
                 .residual_norm(residual_norm)
                 .solution(dense_x)
-                .check(RelativeStoppingId, false, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, total_iter, residual, dense_x, residual_norm, nullptr,
+            &stop_status, all_stopped);
+        if (all_stopped) {
             break;
         }
 
