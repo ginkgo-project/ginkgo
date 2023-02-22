@@ -222,28 +222,34 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, residual_ptr, dense_x);
 
         if (iter == 0) {
             // In iter 0, the iteration and residual are updated.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .residual(residual_ptr)
+                                   .solution(dense_x)
+                                   .check(relative_stopping_id, true,
+                                          &stop_status, &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, iter, residual_ptr, dense_x, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         } else {
             // In the other iterations, the residual can be updated separately.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .solution(dense_x)
-                    // we have the residual check later
-                    .ignore_residual_check(true)
-                    .check(relative_stopping_id, false, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .solution(dense_x)
+                                   // we have the residual check later
+                                   .ignore_residual_check(true)
+                                   .check(relative_stopping_id, false,
+                                          &stop_status, &one_changed);
+            if (all_stopped) {
+                this->template log<log::Logger::iteration_complete>(
+                    this, iter, nullptr, dense_x, nullptr, nullptr,
+                    &stop_status, all_stopped);
                 break;
             }
             residual_ptr = residual;
@@ -251,12 +257,16 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             residual->copy_from(dense_b);
             this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
                                              residual);
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            all_stopped = stop_criterion->update()
+                              .num_iterations(iter)
+                              .residual(residual_ptr)
+                              .solution(dense_x)
+                              .check(relative_stopping_id, true, &stop_status,
+                                     &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, iter, residual_ptr, dense_x, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         }

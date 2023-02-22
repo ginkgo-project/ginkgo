@@ -691,9 +691,8 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
 
         while (true) {
             ++iter;
-            this->template log<log::Logger::iteration_complete>(this, iter,
-                                                                nullptr, x);
-            if (stop_criterion->update()
+            bool all_stopped =
+                stop_criterion->update()
                     .num_iterations(iter)
                     // TODO: combine the out-of-cycle residual computation
                     // currently, the residual will computed additionally in
@@ -701,7 +700,11 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                     // residual check.
                     .solution(x)
                     .check(RelativeStoppingId, true, &stop_status,
-                           &one_changed)) {
+                           &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, iter, nullptr, x, nullptr, nullptr, &stop_status,
+                all_stopped);
+            if (all_stopped) {
                 break;
             }
             auto mode = multigrid::cycle_mode::first_of_cycle |
