@@ -79,9 +79,13 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
         static_cast<GlobalIndexType>(local_range.end)};
 
     // make all range_start_ends available on each rank
-    array<GlobalIndexType> ranges_start_end(exec, comm.size() * 2);
+    // note: not all combination of MPI + GPU library seem to support
+    // mixing host and device buffers, e.g. OpenMPI 4.0.5 and Rocm 4.0
+    auto mpi_exec = exec->get_master();
+    array<GlobalIndexType> ranges_start_end(mpi_exec, comm.size() * 2);
     ranges_start_end.fill(invalid_index<GlobalIndexType>());
-    comm.all_gather(exec, range.data(), 2, ranges_start_end.get_data(), 2);
+    comm.all_gather(mpi_exec, range.data(), 2, ranges_start_end.get_data(), 2);
+    ranges_start_end.set_executor(exec);
 
     // make_sort_by_range_start
     array<comm_index_type> part_ids(exec, comm.size());
