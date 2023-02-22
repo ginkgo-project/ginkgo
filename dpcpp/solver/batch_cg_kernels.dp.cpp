@@ -123,14 +123,15 @@ public:
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
                 slm_storage(sycl::range<1>(shmem_per_blk), cgh);
+            ValueType* slm_ptr = slm_storage.get_pointer();
 
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
-                    apply_kernel(sconf, max_iters, res_tol, logger, prec, a,
-                                 b.values, x.values, slm_storage.get_pointer(),
-                                 item_ct1, workspace_data);
+                    apply_kernel<StopType>(sconf, max_iters, res_tol, logger,
+                                           prec, a, b.values, x.values, slm_ptr,
+                                           item_ct1, workspace_data);
                 });
         });
     }
