@@ -743,7 +743,7 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
 }
 
 
-TYPED_TEST(Stream, CatchesIterations)
+TYPED_TEST(Stream, CatchesIterationsWithoutStoppingStatus)
 {
     using Dense = gko::matrix::Dense<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
@@ -762,12 +762,43 @@ TYPED_TEST(Stream, CatchesIterations)
 
     logger->template on<gko::log::Logger::iteration_complete>(
         solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get(), implicit_sq_residual_norm.get());
+        residual_norm.get(), implicit_sq_residual_norm.get(), nullptr, false);
 
     GKO_ASSERT_STR_CONTAINS(out.str(),
                             "iteration " + std::to_string(num_iters));
     GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
     GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
+}
+
+
+TYPED_TEST(Stream, CatchesIterationsWithStoppingStatus)
+{
+    using Dense = gko::matrix::Dense<TypeParam>;
+    auto exec = gko::ReferenceExecutor::create();
+    std::stringstream out;
+    auto logger = gko::log::Stream<TypeParam>::create(
+        gko::log::Logger::iteration_complete_mask, out);
+    auto solver = Dense::create(exec);
+    auto residual = Dense::create(exec);
+    auto solution = Dense::create(exec);
+    auto residual_norm = Dense::create(exec);
+    auto implicit_sq_residual_norm = Dense::create(exec);
+    std::stringstream ptrstream_solver;
+    ptrstream_solver << solver.get();
+    std::stringstream ptrstream_residual;
+    ptrstream_residual << residual.get();
+    gko::array<gko::stopping_status> stop_status(exec, 1);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        solver.get(), num_iters, residual.get(), solution.get(),
+        residual_norm.get(), implicit_sq_residual_norm.get(), &stop_status,
+        true);
+
+    GKO_ASSERT_STR_CONTAINS(out.str(),
+                            "iteration " + std::to_string(num_iters));
+    GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
+    GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
+    GKO_ASSERT_STR_CONTAINS(out.str(), "Stopped the iteration process true");
 }
 
 
@@ -788,15 +819,17 @@ TYPED_TEST(Stream, CatchesIterationsWithVerbose)
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
     auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->template on<gko::log::Logger::iteration_complete>(
         solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get());
+        residual_norm.get(), nullptr, &stop_status, true);
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "-4.4");
     GKO_ASSERT_STR_CONTAINS(os, "-2.2");
     GKO_ASSERT_STR_CONTAINS(os, "-3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "Finalized:")
 }
 
 

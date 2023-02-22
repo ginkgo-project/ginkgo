@@ -57,37 +57,9 @@ void Convergence<ValueType>::on_criterion_check_completed(
     const array<stopping_status>* status, const bool& one_changed,
     const bool& stopped) const
 {
-    if (stopped) {
-        array<stopping_status> tmp(status->get_executor()->get_master(),
-                                   *status);
-        this->convergence_status_ = true;
-        for (int i = 0; i < status->get_num_elems(); i++) {
-            if (!tmp.get_data()[i].has_converged()) {
-                this->convergence_status_ = false;
-                break;
-            }
-        }
-        this->num_iterations_ = num_iterations;
-        if (residual != nullptr) {
-            this->residual_.reset(residual->clone().release());
-        }
-        if (implicit_sq_resnorm != nullptr) {
-            this->implicit_sq_resnorm_.reset(
-                implicit_sq_resnorm->clone().release());
-        }
-        if (residual_norm != nullptr) {
-            this->residual_norm_.reset(residual_norm->clone().release());
-        } else if (residual != nullptr) {
-            using NormVector = matrix::Dense<remove_complex<ValueType>>;
-            detail::vector_dispatch<ValueType>(
-                residual, [&](const auto* dense_r) {
-                    this->residual_norm_ =
-                        NormVector::create(residual->get_executor(),
-                                           dim<2>{1, residual->get_size()[1]});
-                    dense_r->compute_norm2(this->residual_norm_);
-                });
-        }
-    }
+    this->on_iteration_complete(nullptr, num_iterations, residual, nullptr,
+                                residual_norm, implicit_sq_resnorm, status,
+                                stopped);
 }
 
 
@@ -102,6 +74,47 @@ void Convergence<ValueType>::on_criterion_check_completed(
     this->on_criterion_check_completed(
         criterion, num_iterations, residual, residual_norm, nullptr, solution,
         stopping_id, set_finalized, status, one_changed, stopped);
+}
+
+
+template <typename ValueType>
+void Convergence<ValueType>::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* x, const LinOp* residual_norm,
+    const LinOp* implicit_resnorm_sq, const array<stopping_status>* status,
+    const bool stopped) const
+{
+    if (stopped) {
+        array<stopping_status> tmp(status->get_executor()->get_master(),
+                                   *status);
+        this->convergence_status_ = true;
+        for (int i = 0; i < status->get_num_elems(); i++) {
+            if (!tmp.get_data()[i].has_converged()) {
+                this->convergence_status_ = false;
+                break;
+            }
+        }
+        this->num_iterations_ = num_iterations;
+        if (residual != nullptr) {
+            this->residual_.reset(residual->clone().release());
+        }
+        if (implicit_resnorm_sq != nullptr) {
+            this->implicit_sq_resnorm_.reset(
+                implicit_resnorm_sq->clone().release());
+        }
+        if (residual_norm != nullptr) {
+            this->residual_norm_.reset(residual_norm->clone().release());
+        } else if (residual != nullptr) {
+            using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            detail::vector_dispatch<ValueType>(
+                residual, [&](const auto* dense_r) {
+                    this->residual_norm_ =
+                        NormVector::create(residual->get_executor(),
+                                           dim<2>{1, residual->get_size()[1]});
+                    dense_r->compute_norm2(this->residual_norm_);
+                });
+        }
+    }
 }
 
 
