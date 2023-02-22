@@ -48,7 +48,7 @@ namespace experimental {
 namespace distributed {
 
 struct all_to_all_pattern {
-    using comm_vector = array<comm_index_type>;
+    using comm_vector = std::vector<comm_index_type>;
     comm_vector send_sizes;
     comm_vector send_offsets;
     comm_vector recv_sizes;
@@ -64,18 +64,18 @@ all_to_all_pattern build_communication_pattern(
 {
     const auto from_n_parts = from_part->get_num_parts();
 
-    auto ref_exec = to_part->get_executor()->get_master();
-    auto host_to_part = gko::clone(ref_exec, to_part.get());
+    auto host_to_part =
+        gko::clone(to_part->get_executor()->get_master(), to_part.get());
 
     const auto* to_ranges = host_to_part->get_range_bounds();
     const auto* to_pid = host_to_part->get_part_ids();
     const auto to_n_ranges = host_to_part->get_num_ranges();
 
-    using comm_vector = array<comm_index_type>;
-    comm_vector send_sizes(ref_exec, from_n_parts);
-    comm_vector send_offsets(ref_exec, from_n_parts + 1);
-    comm_vector recv_sizes(ref_exec, from_n_parts);
-    comm_vector recv_offsets(ref_exec, from_n_parts + 1);
+    using comm_vector = std::vector<comm_index_type>;
+    comm_vector send_sizes(from_n_parts);
+    comm_vector send_offsets(from_n_parts + 1);
+    comm_vector recv_sizes(from_n_parts);
+    comm_vector recv_offsets(from_n_parts + 1);
 
     auto find_to_range = [&](GlobalIndexType idx) {
         auto it =
@@ -86,18 +86,15 @@ all_to_all_pattern build_communication_pattern(
     for (size_type i = 0; i < indices.get_num_elems(); ++i) {
         auto to_range = find_to_range(indices.get_const_data()[i]);
         auto recv_pid = to_pid[to_range];
-        send_sizes.get_data()[recv_pid]++;
+        send_sizes[recv_pid]++;
     }
-    std::partial_sum(send_sizes.get_data(),
-                     send_sizes.get_data() + from_n_parts,
-                     send_offsets.get_data() + 1);
+    std::partial_sum(send_sizes.cbegin(), send_sizes.cend(),
+                     send_offsets.begin() + 1);
 
-    from_comm.all_to_all(ref_exec, send_sizes.get_data(), 1,
-                         recv_sizes.get_data(), 1);
-
-    std::partial_sum(recv_sizes.get_data(),
-                     recv_sizes.get_data() + from_n_parts,
-                     recv_offsets.get_data() + 1);
+    from_comm.all_to_all(from_part->get_executor()->get_master(),
+                         send_sizes.data(), 1, recv_sizes.data(), 1);
+    std::partial_sum(recv_sizes.cbegin(), recv_sizes.cend(),
+                     recv_offsets.begin() + 1);
 
     return all_to_all_pattern{send_sizes, send_offsets, recv_sizes,
                               recv_offsets};
@@ -157,13 +154,13 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
         from_comm_, from_partition_, to_partition_, owned_global_idxs);
 
     default_send_sizes_ =
-        std::make_shared<gko::array<comm_index_type>>(pattern.send_sizes);
+        std::make_shared<std::vector<comm_index_type>>(pattern.send_sizes);
     default_send_offsets_ =
-        std::make_shared<gko::array<comm_index_type>>(pattern.send_offsets);
+        std::make_shared<std::vector<comm_index_type>>(pattern.send_offsets);
     default_recv_sizes_ =
-        std::make_shared<gko::array<comm_index_type>>(pattern.recv_sizes);
+        std::make_shared<std::vector<comm_index_type>>(pattern.recv_sizes);
     default_recv_offsets_ =
-        std::make_shared<gko::array<comm_index_type>>(pattern.recv_offsets);
+        std::make_shared<std::vector<comm_index_type>>(pattern.recv_offsets);
 }
 
 
@@ -180,10 +177,10 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
     if (!from_partition_->has_ordered_parts()) {
         GKO_NOT_IMPLEMENTED;
     }
-    std::shared_ptr<gko::array<comm_index_type>> send_sizes;
-    std::shared_ptr<gko::array<comm_index_type>> send_offsets;
-    std::shared_ptr<gko::array<comm_index_type>> recv_sizes;
-    std::shared_ptr<gko::array<comm_index_type>> recv_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> send_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> send_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> recv_offsets;
 
     if (from->get_size()[1] == 1) {
         send_sizes = default_send_sizes_;
@@ -194,26 +191,24 @@ void repartitioner<LocalIndexType, GlobalIndexType>::gather(
         GKO_NOT_IMPLEMENTED;
     }
 
-    const auto elems = recv_offsets->get_num_elems();
     auto tmp = Vector<ValueType>::create(
         from_partition_->get_executor()->get_master(), to_comm_,
         dim<2>{to_partition_->get_size(), 1},
-        dim<2>{static_cast<size_type>(recv_offsets->get_data()[elems - 1]), 1});
+        dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = from->get_local_vector()->get_const_values();
     auto* recv_buffer = tmp->get_local_values();
 
     if (to_partition_->get_num_parts() > 1) {
-        from_comm_.all_to_all_v(
-            from_partition_->get_executor()->get_master(), send_buffer,
-            send_sizes->get_data(), send_offsets->get_data(), recv_buffer,
-            recv_sizes->get_data(), recv_offsets->get_data());
+        from_comm_.all_to_all_v(from_partition_->get_executor()->get_master(),
+                                send_buffer, send_sizes->data(),
+                                send_offsets->data(), recv_buffer,
+                                recv_sizes->data(), recv_offsets->data());
     } else {
         const comm_index_type root = 0;
         from_comm_.gather_v(from_partition_->get_executor()->get_master(),
-                            send_buffer, send_sizes->get_data()[root],
-                            recv_buffer, recv_sizes->get_data(),
-                            recv_offsets->get_data(), root);
+                            send_buffer, (*send_sizes)[root], recv_buffer,
+                            recv_sizes->data(), recv_offsets->data(), root);
     }
 
     if (to_has_data()) {
@@ -245,10 +240,10 @@ void repartitioner<LocalIndexType, GlobalIndexType>::scatter(
     //     GKO_NOT_IMPLEMENTED;
     // }
 
-    std::shared_ptr<gko::array<comm_index_type>> send_sizes;
-    std::shared_ptr<gko::array<comm_index_type>> send_offsets;
-    std::shared_ptr<gko::array<comm_index_type>> recv_sizes;
-    std::shared_ptr<gko::array<comm_index_type>> recv_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> send_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> send_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> recv_offsets;
 
     if (to->get_size()[1] == 1 || !to_has_data()) {
         send_sizes = default_recv_sizes_;
@@ -259,26 +254,25 @@ void repartitioner<LocalIndexType, GlobalIndexType>::scatter(
         GKO_NOT_IMPLEMENTED;
     }
 
-    const auto elems = recv_offsets->get_num_elems();
     auto tmp = Vector<ValueType>::create(
         from_partition_->get_executor()->get_master(), from_comm_,
         dim<2>{from_partition_->get_size(), 1},
-        dim<2>{static_cast<size_type>(recv_offsets->get_data()[elems - 1]), 1});
+        dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
 
     const auto* send_buffer = to->get_local_vector()->get_const_values();
     auto* recv_buffer = tmp->get_local_values();
 
     if (to_partition_->get_num_parts() > 1) {
-        from_comm_.all_to_all_v(
-            from_partition_->get_executor()->get_master(), send_buffer,
-            send_sizes->get_data(), send_offsets->get_data(), recv_buffer,
-            recv_sizes->get_data(), recv_offsets->get_data());
+        from_comm_.all_to_all_v(from_partition_->get_executor()->get_master(),
+                                send_buffer, send_sizes->data(),
+                                send_offsets->data(), recv_buffer,
+                                recv_sizes->data(), recv_offsets->data());
     } else {
         const comm_index_type root = 0;
         from_comm_.scatter_v(from_partition_->get_executor()->get_master(),
-                             send_buffer, send_sizes->get_data(),
-                             send_offsets->get_data(), recv_buffer,
-                             recv_sizes->get_data()[root], root);
+                             send_buffer, send_sizes->data(),
+                             send_offsets->data(), recv_buffer,
+                             (*recv_sizes)[root], root);
     }
 
     tmp->move_to(from);
@@ -428,23 +422,20 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
     auto pattern = build_communication_pattern(from_comm_, from_partition_,
                                                to_partition_, indices);
 
-
-    const auto elems = pattern.recv_offsets.get_num_elems();
-    const auto new_local_nnz = pattern.recv_offsets.get_data()[elems - 1];
+    const auto new_local_nnz = pattern.recv_offsets.back();
     array<ValueType> recv_values(local_to_data.get_executor(), new_local_nnz);
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         if (to_partition_->get_num_parts() > 1) {
             from_comm_.all_to_all_v(
-                exec, send_buffer, pattern.send_sizes.get_data(),
-                pattern.send_offsets.get_data(), recv_buffer,
-                pattern.recv_sizes.get_data(), pattern.recv_offsets.get_data());
+                exec, send_buffer, pattern.send_sizes.data(),
+                pattern.send_offsets.data(), recv_buffer,
+                pattern.recv_sizes.data(), pattern.recv_offsets.data());
         } else {
             const comm_index_type root = 0;
-            from_comm_.gather_v(exec, send_buffer,
-                                pattern.send_sizes.get_data()[root],
-                                recv_buffer, pattern.recv_sizes.get_data(),
-                                pattern.recv_offsets.get_data(), root);
+            from_comm_.gather_v(exec, send_buffer, pattern.send_sizes[root],
+                                recv_buffer, pattern.recv_sizes.data(),
+                                pattern.recv_offsets.data(), root);
         }
     };
     communicate(from.get_const_data(), recv_values.get_data());
@@ -494,8 +485,7 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
     auto pattern = build_communication_pattern(
         from_comm_, from_partition_, to_partition_, local_arrays.row_idxs);
 
-    const auto elems = pattern.recv_offsets.get_num_elems();
-    const auto new_local_nnz = pattern.recv_offsets.get_data()[elems - 1];
+    const auto new_local_nnz = pattern.recv_offsets.back();
     array<GlobalIndexType> recv_rows(to->get_executor(), new_local_nnz);
     array<GlobalIndexType> recv_cols(to->get_executor(), new_local_nnz);
     array<ValueType> recv_values(to->get_executor(), new_local_nnz);
@@ -505,16 +495,15 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
         if (to_partition_->get_num_parts() > 1) {
             from_comm_.all_to_all_v(
                 from_partition_->get_executor()->get_master(), send_buffer,
-                pattern.send_sizes.get_data(), pattern.send_offsets.get_data(),
-                recv_buffer, pattern.recv_sizes.get_data(),
-                pattern.recv_offsets.get_data());
+                pattern.send_sizes.data(), pattern.send_offsets.data(),
+                recv_buffer, pattern.recv_sizes.data(),
+                pattern.recv_offsets.data());
         } else {
             const comm_index_type root = 0;
             from_comm_.gather_v(from_partition_->get_executor()->get_master(),
-                                send_buffer,
-                                pattern.send_sizes.get_data()[root],
-                                recv_buffer, pattern.recv_sizes.get_data(),
-                                pattern.recv_offsets.get_data(), root);
+                                send_buffer, pattern.send_sizes[root],
+                                recv_buffer, pattern.recv_sizes.data(),
+                                pattern.recv_offsets.data(), root);
         }
     };
     communicate(local_arrays.row_idxs.get_const_data(), recv_rows.get_data());
@@ -525,9 +514,9 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
 
 
     int ctr = 0;
-    for (int rank = 0; rank < pattern.recv_sizes.get_num_elems(); ++rank) {
-        auto elems = pattern.recv_sizes.get_data()[rank];
-        auto offset = pattern.recv_offsets.get_data()[rank];
+    for (int rank = 0; rank < pattern.recv_sizes.size(); ++rank) {
+        auto elems = pattern.recv_sizes[rank];
+        auto offset = pattern.recv_offsets[rank];
         if (elems == 0) continue;
         for (int i = ctr; i < ctr + elems; ++i) {
             recv_sorting_idx.get_data()[i] += offset;
