@@ -143,7 +143,6 @@ int main(int argc, char* argv[])
             .on(exec);
     auto solver = solver_gen->generate(A);
 
-
     // First we add facilities to only print to a file. It's possible to select
     // events, using masks, e.g. only iterations mask:
     // gko::log::Logger::iteration_complete_mask. See the documentation of
@@ -153,14 +152,21 @@ int main(int argc, char* argv[])
         gko::log::Logger::all_events_mask, filestream));
     solver->add_logger(stream_logger);
 
+    // This adds a simple logger that only reports convergence state at the end
+    // of the solver. Specifically it captures the last residual norm, the
+    // final number of iterations, and the converged or not converged status.
+    std::shared_ptr<gko::log::Convergence<ValueType>> convergence_logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(convergence_logger);
+
     // Add another logger which puts all the data in an object, we can later
     // retrieve this object in our code. Here we only have want Executor
     // and criterion check completed events.
-    std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
-        gko::log::Logger::executor_events_mask |
-        gko::log::Logger::criterion_check_completed_mask);
+    std::shared_ptr<gko::log::Record> record_logger =
+        gko::log::Record::create(gko::log::Logger::executor_events_mask |
+                                 gko::log::Logger::iteration_complete_mask);
     exec->add_logger(record_logger);
-    residual_criterion->add_logger(record_logger);
+    solver->add_logger(record_logger);
 
     // Solve system
     solver->apply(b, x);
@@ -168,21 +174,18 @@ int main(int argc, char* argv[])
     // Print the residual of the last criterion check event (where
     // convergence happened)
     auto residual =
-        record_logger->get().criterion_check_completed.back()->residual.get();
+        record_logger->get().iteration_completed.back()->residual.get();
     auto residual_d = gko::as<vec>(residual);
     print_vector("Residual", residual_d);
 
     // Print solution
     std::cout << "Solution (x):\n";
     write(std::cout, x);
-
-    // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(res);
-
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, res);
+    write(std::cout,
+          gko::as<vec>(convergence_logger->get_residual_norm()));
+    std::cout << "Number of iterations "
+              << convergence_logger->get_num_iterations() << std::endl;
+    std::cout << "Convergence status " << std::boolalpha
+              << convergence_logger->has_converged() << std::endl;
 }

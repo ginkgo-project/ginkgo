@@ -107,21 +107,10 @@ int main(int argc, char* argv[])
 
     // copy b again
     b->copy_from(host_x);
-    gko::size_type max_iters = 10000u;
-    RealValueType outer_reduction_factor{1e-12};
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
-    auto tol_stop =
-        gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                       .with_reduction_factor(outer_reduction_factor)
-                       .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
 
     // Create solver factory
+    gko::size_type max_iters = 10000u;
+    RealValueType outer_reduction_factor{1e-12};
     RealValueType inner_reduction_factor{1e-2};
     auto solver_gen =
         ir::build()
@@ -132,11 +121,19 @@ int main(int argc, char* argv[])
                             .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
                     .on(exec))
-            .with_criteria(iter_stop, tol_stop)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(max_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(outer_reduction_factor)
+                    .on(exec))
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
 
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
 
     // Solve system
     exec->synchronize();
@@ -146,10 +143,8 @@ int main(int argc, char* argv[])
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    // Calculate residual
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(res);
+    // Get residual
+    auto res = gko::as<real_vec>(logger->get_residual_norm());
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
     write(std::cout, initres);
