@@ -186,7 +186,8 @@ public:
      * @param obj  the object
      * @param name  its name
      */
-    void set_object_name(const PolymorphicObject* obj, std::string name);
+    void set_object_name(ptr_param<const PolymorphicObject> obj,
+                         std::string name);
 
     /**
      * Should the events call executor->synchronize on operations and
@@ -200,6 +201,7 @@ public:
      * profile.
      *
      * @param name  the name of the range
+     *
      * @return  the scope guard. It will begin a range immediately and end it at
      *          the end of its scope.
      */
@@ -270,9 +272,9 @@ public:
     };
 
     /** Recieves the results from ProfilerHook::create_summary(). */
-    class summary_writer {
+    class SummaryWriter {
     public:
-        virtual ~summary_writer() = default;
+        virtual ~SummaryWriter() = default;
 
         /**
          * Callback to write out the summary results.
@@ -286,9 +288,9 @@ public:
     };
 
     /** Recieves the results from ProfilerHook::create_nested_summary(). */
-    class nested_summary_writer {
+    class NestedSummaryWriter {
     public:
-        virtual ~nested_summary_writer() = default;
+        virtual ~NestedSummaryWriter() = default;
 
         /**
          * Callback to write out the summary results.
@@ -306,8 +308,8 @@ public:
      * ProfilerHook::create_nested_summary() to a ASCII table in Markdown
      * format.
      */
-    class table_summary_writer : public summary_writer,
-                                 public nested_summary_writer {
+    class TableSummaryWriter : public SummaryWriter,
+                               public NestedSummaryWriter {
     public:
         /**
          * Constructs a writer on an output stream.
@@ -315,8 +317,8 @@ public:
          * @param output  the output stream to write the table to.
          * @param header  the header to write above the table.
          */
-        table_summary_writer(std::ostream& output = std::cerr,
-                             std::string header = "Runtime summary");
+        TableSummaryWriter(std::ostream& output = std::cerr,
+                           std::string header = "Runtime summary");
 
         void write(const std::vector<summary_entry>& entries,
                    int64 overhead_ns) override;
@@ -333,7 +335,7 @@ public:
      * Creates a logger measuring the runtime of Ginkgo events and printing a
      * summary when it is destroyed.
      *
-     * @param writer  The summary_writer to receive the performance results.
+     * @param writer  The SummaryWriter to receive the performance results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
      *                             might contain incorrect nesting. This
      *                             increases the overhead slightly, but
@@ -344,15 +346,15 @@ public:
      *       synchronization via `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_summary(
-        std::unique_ptr<summary_writer> writer =
-            std::make_unique<table_summary_writer>(),
+        std::unique_ptr<SummaryWriter> writer =
+            std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);
 
     /**
      * Creates a logger measuring the runtime of Ginkgo events in a nested
      * fashion and printing a summary when it is destroyed.
      *
-     * @param writer  The nested_summary_writer to receive the performance
+     * @param writer  The NestedSummaryWriter to receive the performance
      *                results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
      *                             might contain incorrect nesting. This
@@ -364,8 +366,8 @@ public:
      *       synchronization via `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_nested_summary(
-        std::unique_ptr<nested_summary_writer> writer =
-            std::make_unique<table_summary_writer>(),
+        std::unique_ptr<NestedSummaryWriter> writer =
+            std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);
 
     /**
@@ -411,6 +413,7 @@ public:
 
     profiling_scope_guard(const profiling_scope_guard&) = delete;
 
+    // TODO17: unnecessary with guaranteed RVO
     /** Move-constructs from another scope guard, other will be left empty. */
     profiling_scope_guard(profiling_scope_guard&& other);
 

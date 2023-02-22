@@ -48,11 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/helpers.hpp"
 
 
-struct json_summary_writer : gko::log::ProfilerHook::summary_writer,
-                             gko::log::ProfilerHook::nested_summary_writer {
-    json_summary_writer(rapidjson::Value& object,
-                        rapidjson::MemoryPoolAllocator<>& alloc,
-                        gko::uint32 repetitions)
+struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
+                           gko::log::ProfilerHook::NestedSummaryWriter {
+    JsonSummaryWriter(rapidjson::Value& object,
+                      rapidjson::MemoryPoolAllocator<>& alloc,
+                      gko::uint32 repetitions)
         : object{&object}, alloc{&alloc}, repetitions{repetitions}
     {}
 
@@ -107,10 +107,10 @@ inline std::shared_ptr<gko::log::ProfilerHook> create_operations_logger(
 {
     if (nested) {
         return gko::log::ProfilerHook::create_nested_summary(
-            std::make_unique<json_summary_writer>(object, alloc, repetitions));
+            std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     } else {
         return gko::log::ProfilerHook::create_summary(
-            std::make_unique<json_summary_writer>(object, alloc, repetitions));
+            std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     }
 }
 

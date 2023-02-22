@@ -42,12 +42,12 @@ namespace log {
 namespace {
 
 
-std::string fmt_duration(int64 time_ns)
+std::string format_duration(int64 time_ns)
 {
     std::stringstream ss;
     ss << std::setprecision(1) << std::fixed;
-    std::array<int64, 7> ranges{{1000, 1'000'000, 1'000'000'000, 60'000'000'000,
-                                 3'600'000'000'000, 86'400'000'000'000,
+    std::array<int64, 7> ranges{{999, 999'999, 999'999'999, 59'999'999'999,
+                                 3'599'999'999'999, 86'399'999'999'999,
                                  std::numeric_limits<int64>::max()}};
     std::array<const char*, 7> units{
         {"ns", "us", "ms", "s ", "m ", "h ", "d "}};
@@ -55,21 +55,21 @@ std::string fmt_duration(int64 time_ns)
         std::distance(ranges.begin(),
                       std::lower_bound(ranges.begin(), ranges.end(), time_ns));
     if (unit == 0) {
-        ss << time_ns << ' ' << units[unit];
+        ss << double(time_ns) << ' ' << units[unit];
     } else {
-        ss << (time_ns / double(ranges[unit - 1])) << ' ' << units[unit];
+        ss << (time_ns / double(ranges[unit - 1] + 1)) << ' ' << units[unit];
     }
     return ss.str();
 }
 
 
-std::string fmt_avg_duration(int64 time_ns, int64 count)
+std::string format_avg_duration(int64 time_ns, int64 count)
 {
-    return fmt_duration(time_ns / std::max(count, int64{1}));
+    return format_duration(time_ns / std::max(count, int64{1}));
 }
 
 
-std::string fmt_fraction(int64 part, int64 whole)
+std::string format_fraction(int64 part, int64 whole)
 {
     std::stringstream ss;
     ss << std::setprecision(1) << std::fixed;
@@ -120,17 +120,17 @@ void print_table(const std::array<std::string, size>& headers,
 }  // namespace
 
 
-ProfilerHook::table_summary_writer::table_summary_writer(std::ostream& output,
-                                                         std::string header)
+ProfilerHook::TableSummaryWriter::TableSummaryWriter(std::ostream& output,
+                                                     std::string header)
     : output_{&output}, header_{std::move(header)}
 {}
 
 
-void ProfilerHook::table_summary_writer::write(
+void ProfilerHook::TableSummaryWriter::write(
     const std::vector<summary_entry>& entries, int64 overhead_ns)
 {
     (*output_) << header_ << '\n'
-               << "Overhead estimate " << fmt_duration(overhead_ns) << '\n';
+               << "Overhead estimate " << format_duration(overhead_ns) << '\n';
     auto sorted_entries = entries;
     std::sort(sorted_entries.begin(), sorted_entries.end(),
               [](const summary_entry& lhs, const summary_entry& rhs) {
@@ -143,21 +143,21 @@ void ProfilerHook::table_summary_writer::write(
     for (const auto& entry : sorted_entries) {
         table.emplace_back(std::array<std::string, 6>{
             " " + entry.name + " ",
-            " " + fmt_duration(entry.inclusive_ns) + " ",
-            " " + fmt_duration(entry.exclusive_ns) + " ",
+            " " + format_duration(entry.inclusive_ns) + " ",
+            " " + format_duration(entry.exclusive_ns) + " ",
             " " + std::to_string(entry.count) + " ",
-            " " + fmt_avg_duration(entry.inclusive_ns, entry.count) + " ",
-            " " + fmt_avg_duration(entry.exclusive_ns, entry.count) + " "});
+            " " + format_avg_duration(entry.inclusive_ns, entry.count) + " ",
+            " " + format_avg_duration(entry.exclusive_ns, entry.count) + " "});
     }
     print_table(headers, table, *output_);
 }
 
 
-void ProfilerHook::table_summary_writer::write_nested(
+void ProfilerHook::TableSummaryWriter::write_nested(
     const nested_summary_entry& root, int64 overhead_ns)
 {
     (*output_) << header_ << '\n'
-               << "Overhead estimate " << fmt_duration(overhead_ns) << '\n';
+               << "Overhead estimate " << format_duration(overhead_ns) << '\n';
     std::vector<std::array<std::string, 5>> table;
     std::array<std::string, 5> headers(
         {" name ", " total ", " fraction ", " count ", " avg "});
@@ -165,6 +165,12 @@ void ProfilerHook::table_summary_writer::write_nested(
                             int64 parent_elapsed_ns,
                             std::size_t depth) -> void {
         std::vector<int64> child_permutation(node.children.size());
+        const auto total_child_duration =
+            std::accumulate(node.children.begin(), node.children.end(), int64{},
+                            [](int64 acc, const nested_summary_entry& child) {
+                                return acc + child.elapsed_ns;
+                            });
+        const auto self_duration = node.elapsed_ns - total_child_duration;
         std::iota(child_permutation.begin(), child_permutation.end(), 0);
         std::sort(child_permutation.begin(), child_permutation.end(),
                   [&node](int64 lhs, int64 rhs) {
@@ -174,13 +180,26 @@ void ProfilerHook::table_summary_writer::write_nested(
                   });
         table.emplace_back(std::array<std::string, 5>{
             std::string(2 * depth + 1, ' ') + node.name + " ",
-            " " + fmt_duration(node.elapsed_ns) + " ",
-            fmt_fraction(node.elapsed_ns, parent_elapsed_ns) + " ",
+            " " + format_duration(node.elapsed_ns) + " ",
+            format_fraction(node.elapsed_ns, parent_elapsed_ns) + " ",
             " " + std::to_string(node.count) + " ",
-            " " + fmt_avg_duration(node.elapsed_ns, node.count) + " "});
+            " " + format_avg_duration(node.elapsed_ns, node.count) + " "});
+        nested_summary_entry self_entry{
+            "(self)", self_duration, node.count, {}};
+        bool printed_self = false;
         for (const auto child_id : child_permutation) {
+            // print (self) entry before smaller entry ...
+            if (!printed_self &&
+                node.children[child_id].elapsed_ns < self_duration) {
+                visitor(visitor, self_entry, node.elapsed_ns, depth + 1);
+                printed_self = true;
+            }
             visitor(visitor, node.children[child_id], node.elapsed_ns,
                     depth + 1);
+        }
+        // ... or at the end
+        if (!printed_self && !node.children.empty()) {
+            visitor(visitor, self_entry, node.elapsed_ns, depth + 1);
         }
     };
     visitor(visitor, root, root.elapsed_ns, 0);
