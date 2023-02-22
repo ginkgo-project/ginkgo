@@ -123,11 +123,6 @@ int main(int argc, char* argv[])
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
 
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
     // Create smoother factory (ir with bj)
     auto smoother_gen = gko::share(
         ir::build()
@@ -206,6 +201,10 @@ int main(int argc, char* argv[])
     gen_time +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
 
     // Solve system
     exec->synchronize();
@@ -216,7 +215,8 @@ int main(int argc, char* argv[])
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    // Calculate residual
+    // Calculate residual explicitly, because the residual is not
+    // available inside of the multigrid solver
     auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(one, x, neg_one, b);
     b->compute_norm2(res);

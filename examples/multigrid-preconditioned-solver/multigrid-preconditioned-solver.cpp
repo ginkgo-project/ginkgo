@@ -105,20 +105,6 @@ int main(int argc, char* argv[])
     // copy b again
     b->copy_from(host_b);
 
-    // Prepare the stopping criteria
-    const gko::remove_complex<ValueType> tolerance = 1e-8;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_baseline(gko::stop::mode::absolute)
-                                   .with_reduction_factor(tolerance)
-                                   .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     multigrid_gen =
@@ -127,10 +113,17 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec);
-    auto solver_gen = cg::build()
-                          .with_criteria(iter_stop, tol_stop)
-                          .with_preconditioner(multigrid_gen)
-                          .on(exec);
+    const gko::remove_complex<ValueType> tolerance = 1e-8;
+    auto solver_gen =
+        cg::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(tolerance)
+                    .on(exec))
+            .with_preconditioner(multigrid_gen)
+            .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
@@ -139,6 +132,11 @@ int main(int argc, char* argv[])
     auto gen_toc = std::chrono::steady_clock::now();
     gen_time +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
+
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
 
     // Solve system
     exec->synchronize();
@@ -150,9 +148,7 @@ int main(int argc, char* argv[])
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(res);
+    auto res = gko::as<vec>(logger->get_residual_norm());
 
     std::cout << "Initial residual norm sqrt(r^T r): \n";
     write(std::cout, initres);
