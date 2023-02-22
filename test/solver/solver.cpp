@@ -515,10 +515,12 @@ struct DummyLogger : gko::log::Logger {
 
     void on_iteration_complete(const gko::LinOp* solver,
                                const gko::size_type& it, const gko::LinOp* r,
-                               const gko::LinOp* x = nullptr,
-                               const gko::LinOp* tau = nullptr) const override
+                               const gko::LinOp* x ,
+                               const gko::LinOp* tau,
+                               const gko::LinOp* implicit_tau,
+                               const gko::array<gko::stopping_status>* status, bool all_stopped) const override
     {
-        iteration_complete++;
+        iteration_complete = it;
     }
 
     mutable int iteration_complete = 0;
@@ -1187,6 +1189,6 @@ TYPED_TEST(Solver, LogsIterationComplete)
         solver->apply(b, x);
 
         ASSERT_EQ(this->logger->iteration_complete,
-                  before_logger.iteration_complete + num_iteration + 1);
+                  before_logger.iteration_complete + num_iteration);
     }
 }

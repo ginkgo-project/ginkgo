@@ -295,7 +295,7 @@ void Record::on_iteration_complete(const LinOp* solver,
                                    const LinOp* residual_norm) const
 {
     this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
+                                residual_norm, nullptr, nullptr, false);
 }
 
 
@@ -305,11 +305,22 @@ void Record::on_iteration_complete(const LinOp* solver,
                                    const LinOp* residual_norm,
                                    const LinOp* implicit_sq_residual_norm) const
 {
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr, nullptr, false);
+}
+void Record::on_iteration_complete(const LinOp* solver,
+                                   const size_type& num_iterations,
+                                   const LinOp* residual, const LinOp* x,
+                                   const LinOp* residual_norm,
+                                   const LinOp* implicit_resnorm_sq,
+                                   const array<stopping_status>* status,
+                                   bool stopped) const
+{
     append_deque(
         data_.iteration_completed,
         (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
-            solver, num_iterations, residual, solution, residual_norm,
-            implicit_sq_residual_norm})));
+            solver, num_iterations, residual, x, residual_norm,
+            implicit_resnorm_sq, status, stopped})));
 }
 
 

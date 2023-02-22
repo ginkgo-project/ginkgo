@@ -172,21 +172,13 @@ template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
-    // TODO2.0: Remove when deprecating simple overload
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& it,
+    void on_iteration_complete(const gko::LinOp*, const gko::size_type&,
                                const gko::LinOp* residual,
                                const gko::LinOp* solution,
-                               const gko::LinOp* residual_norm) const override
-    {
-        on_iteration_complete(solver, it, residual, solution, residual_norm,
-                              nullptr);
-    }
-
-    void on_iteration_complete(
-        const gko::LinOp*, const gko::size_type&, const gko::LinOp* residual,
-        const gko::LinOp* solution, const gko::LinOp* residual_norm,
-        const gko::LinOp* implicit_sq_residual_norm) const override
+                               const gko::LinOp* residual_norm,
+                               const gko::LinOp* implicit_sq_residual_norm,
+                               const gko::array<gko::stopping_status>* status,
+                               bool all_stopped) const override
     {
         timestamps.PushBack(std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - start)
@@ -264,7 +256,9 @@ struct IterationLogger : gko::log::Logger {
     void on_iteration_complete(const gko::LinOp*,
                                const gko::size_type& num_iterations,
                                const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*) const override
+                               const gko::LinOp*, const gko::LinOp*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
     {
         this->num_iters = num_iterations;
     }

@@ -93,10 +93,10 @@ TYPED_TEST(Convergence, CanLogData)
     auto logger = gko::log::Convergence<TypeParam>::create(
         gko::log::Logger::criterion_events_mask);
 
-    logger->template on<gko::log::Logger::criterion_check_completed>(
-        nullptr, 100, this->residual.get(), this->residual_norm.get(),
-        this->implicit_sq_resnorm.get(), this->solution.get(), 0, false,
-        &this->status, false, true);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        nullptr, 100, this->residual.get(), this->solution.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
+        &this->status, true);
 
     ASSERT_EQ(logger->has_converged(), true);
     ASSERT_EQ(logger->get_num_iterations(), 100);
@@ -115,10 +115,10 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
     auto logger = gko::log::Convergence<TypeParam>::create(
         gko::log::Logger::criterion_events_mask);
 
-    logger->template on<gko::log::Logger::criterion_check_completed>(
-        nullptr, 100, this->residual.get(), this->residual_norm.get(),
-        this->implicit_sq_resnorm.get(), this->solution.get(), 0, false,
-        &this->status, false, false);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        nullptr, 100, this->residual.get(), this->solution.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
+        &this->status, false);
 
     ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
@@ -133,9 +133,9 @@ TYPED_TEST(Convergence, CanComputeResidualNorm)
     auto logger = gko::log::Convergence<TypeParam>::create(
         gko::log::Logger::criterion_events_mask);
 
-    logger->template on<gko::log::Logger::criterion_check_completed>(
-        nullptr, 100, this->residual.get(), nullptr, nullptr, nullptr, 0, false,
-        &this->status, false, true);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        nullptr, 100, this->residual.get(), nullptr, nullptr, nullptr,
+        &this->status, true);
 
     GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
                         this->residual_norm, r<TypeParam>::value);
