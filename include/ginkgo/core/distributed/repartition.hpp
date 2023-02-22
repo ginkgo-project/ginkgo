@@ -129,11 +129,10 @@ private:
     const mpi::communicator from_comm_;
     mpi::communicator to_comm_;
 
-    std::shared_ptr<std::vector<comm_index_type>> default_send_sizes_;
-    std::shared_ptr<std::vector<comm_index_type>> default_send_offsets_;
-
-    std::shared_ptr<std::vector<comm_index_type>> default_recv_sizes_;
-    std::shared_ptr<std::vector<comm_index_type>> default_recv_offsets_;
+    std::shared_ptr<gko::array<comm_index_type>> default_send_sizes_;
+    std::shared_ptr<gko::array<comm_index_type>> default_send_offsets_;
+    std::shared_ptr<gko::array<comm_index_type>> default_recv_sizes_;
+    std::shared_ptr<gko::array<comm_index_type>> default_recv_offsets_;
 
     bool to_has_data_;
 };
