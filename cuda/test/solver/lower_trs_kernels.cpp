@@ -96,13 +96,13 @@ protected:
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
-        mtx->convert_to(csr_mtx.get());
+        mtx->convert_to(csr_mtx);
         d_csr_mtx = CsrMtx::create(cuda);
         d_x = gko::clone(cuda, x);
-        d_csr_mtx->copy_from(csr_mtx.get());
+        d_csr_mtx->copy_from(csr_mtx);
         b2 = Mtx::create(ref);
         d_b2 = gko::clone(cuda, b);
-        b2->copy_from(b.get());
+        b2->copy_from(b);
     }
 
     std::shared_ptr<Mtx> b;
@@ -142,8 +142,8 @@ TEST_F(LowerTrs, CudaSingleRhsApplySyncfreeIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    solver->apply(b2, x);
+    d_solver->apply(d_b2, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
@@ -157,8 +157,8 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    solver->apply(b2, x);
+    d_solver->apply(d_b2, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
@@ -177,11 +177,11 @@ TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
-    d_b2->convert_to(db2_strided.get());
+    d_b2->convert_to(db2_strided);
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(db2_strided.get(), dx_strided.get());
+    solver->apply(b2, x);
+    d_solver->apply(db2_strided, dx_strided);
 
     GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
 }
@@ -197,7 +197,7 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
-    d_b2->convert_to(db2_strided.get());
+    d_b2->convert_to(db2_strided);
     // The cuSPARSE Generic SpSM implementation uses the wrong stride here
     // so the input and output stride need to match
 #if CUDA_VERSION >= 11031
@@ -206,8 +206,8 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
 #endif
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(db2_strided.get(), dx_strided.get());
+    solver->apply(b2, x);
+    d_solver->apply(db2_strided, dx_strided);
 
     GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
 }
@@ -219,7 +219,7 @@ TEST_F(LowerTrs, CudaApplyThrowsWithWrongNumRHS)
     auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
-    ASSERT_THROW(d_solver->apply(d_b2.get(), d_x.get()), gko::ValueMismatch);
+    ASSERT_THROW(d_solver->apply(d_b2, d_x), gko::ValueMismatch);
 }
 
 

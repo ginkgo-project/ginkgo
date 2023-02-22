@@ -135,7 +135,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto trans_ref_linop = this->rsorted_ref->transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
@@ -162,7 +162,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
         gko::test::generate_random_fbcsr<value_type, index_type>(
             this->ref, rand_brows, rand_bcols, block_size, false, false,
             std::default_random_engine(43));
-    rand_hip->copy_from(gko::lend(rsorted_ref2));
+    rand_hip->copy_from(rsorted_ref2);
 
     auto trans_ref_linop = rsorted_ref2->transpose();
     std::unique_ptr<const Mtx> trans_ref =
@@ -182,18 +182,18 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
     this->generate_sin(x_ref.get());
     auto x_hip = Dense::create(this->hip);
-    x_hip->copy_from(x_ref.get());
+    x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
     auto prod_hip = Dense::create(this->hip, prod_ref->get_size());
 
-    rand_hip->apply(x_hip.get(), prod_hip.get());
-    this->rsorted_ref->apply(x_ref.get(), prod_ref.get());
+    rand_hip->apply(x_hip, prod_hip);
+    this->rsorted_ref->apply(x_ref, prod_ref);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
@@ -206,18 +206,18 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
     this->generate_sin(x_ref.get());
     auto x_hip = Dense::create(this->hip);
-    x_hip->copy_from(x_ref.get());
+    x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     auto prod_hip = Dense::create(this->hip, prod_ref->get_size());
 
-    rand_hip->apply(x_hip.get(), prod_hip.get());
-    this->rsorted_ref->apply(x_ref.get(), prod_ref.get());
+    rand_hip->apply(x_hip, prod_hip);
+    this->rsorted_ref->apply(x_ref, prod_ref);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
@@ -231,30 +231,29 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
     this->generate_sin(x_ref.get());
     auto x_hip = Dense::create(this->hip);
-    x_hip->copy_from(x_ref.get());
+    x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
     this->generate_sin(prod_ref.get());
     auto prod_hip = Dense::create(this->hip);
-    prod_hip->copy_from(prod_ref.get());
+    prod_hip->copy_from(prod_ref);
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
     auto alpha = Dense::create(this->hip);
-    alpha->copy_from(alpha_ref.get());
+    alpha->copy_from(alpha_ref);
     auto beta = Dense::create(this->hip);
-    beta->copy_from(beta_ref.get());
+    beta->copy_from(beta_ref);
 
-    rand_hip->apply(alpha.get(), x_hip.get(), beta.get(), prod_hip.get());
-    this->rsorted_ref->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
-                             prod_ref.get());
+    rand_hip->apply(alpha, x_hip, beta, prod_hip);
+    this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
@@ -268,30 +267,29 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto x_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
     this->generate_sin(x_ref.get());
     auto x_hip = Dense::create(this->hip);
-    x_hip->copy_from(x_ref.get());
+    x_hip->copy_from(x_ref);
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     this->generate_sin(prod_ref.get());
     auto prod_hip = Dense::create(this->hip);
-    prod_hip->copy_from(prod_ref.get());
+    prod_hip->copy_from(prod_ref);
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
     auto alpha = Dense::create(this->hip);
-    alpha->copy_from(alpha_ref.get());
+    alpha->copy_from(alpha_ref);
     auto beta = Dense::create(this->hip);
-    beta->copy_from(beta_ref.get());
+    beta->copy_from(beta_ref);
 
-    rand_hip->apply(alpha.get(), x_hip.get(), beta.get(), prod_hip.get());
-    this->rsorted_ref->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
-                             prod_ref.get());
+    rand_hip->apply(alpha, x_hip, beta, prod_hip);
+    this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
@@ -304,7 +302,7 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
     auto trans_ref_linop = this->rsorted_ref->conj_transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
@@ -322,7 +320,7 @@ TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
 
     ASSERT_TRUE(rand_hip->is_sorted_by_column_index());
 }
@@ -336,7 +334,7 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     index_type* const colinds = mat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
     auto unsrt_hip = Mtx::create(this->hip);
-    unsrt_hip->copy_from(gko::lend(mat));
+    unsrt_hip->copy_from(mat);
 
     ASSERT_FALSE(unsrt_hip->is_sorted_by_column_index());
 }
@@ -347,9 +345,9 @@ TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     auto rand_ref = Mtx::create(this->ref);
-    rand_ref->copy_from(this->rsorted_ref.get());
+    rand_ref->copy_from(this->rsorted_ref);
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
 
     rand_ref->compute_absolute_inplace();
     rand_hip->compute_absolute_inplace();
@@ -364,7 +362,7 @@ TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     auto rand_hip = Mtx::create(this->hip);
-    rand_hip->copy_from(gko::lend(this->rsorted_ref));
+    rand_hip->copy_from(this->rsorted_ref);
 
     auto abs_mtx = this->rsorted_ref->compute_absolute();
     auto dabs_mtx = rand_hip->compute_absolute();

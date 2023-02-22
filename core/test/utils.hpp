@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 #include "core/base/extended_float.hpp"
@@ -236,6 +237,22 @@ template <typename Precision1, typename Precision2>
 constexpr double r_mixed()
 {
     return std::max<double>(r<Precision1>::value, r<Precision2>::value);
+}
+
+
+template <typename PtrType>
+gko::remove_complex<typename gko::detail::pointee<PtrType>::value_type>
+inf_norm(PtrType&& mat, size_t col = 0)
+{
+    using T = typename gko::detail::pointee<PtrType>::value_type;
+    using std::abs;
+    using no_cpx_t = gko::remove_complex<T>;
+    no_cpx_t norm = 0.0;
+    for (std::size_t i = 0; i < mat->get_size()[0]; ++i) {
+        no_cpx_t absEntry = abs(mat->at(i, col));
+        if (norm < absEntry) norm = absEntry;
+    }
+    return norm;
 }
 
 

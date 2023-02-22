@@ -173,10 +173,10 @@ protected:
           ilu_factory_sort(ilu_type::build().with_skip_sorting(false).on(exec))
     {
         auto tmp_csr = Csr::create(exec);
-        mtx_small->convert_to(gko::lend(tmp_csr));
+        mtx_small->convert_to(tmp_csr);
         mtx_csr_small = std::move(tmp_csr);
         auto tmp_csr2 = Csr::create(exec);
-        mtx_small2->convert_to(gko::lend(tmp_csr2));
+        mtx_small2->convert_to(tmp_csr2);
         mtx_csr_small2 = std::move(tmp_csr2);
     }
 
@@ -266,12 +266,10 @@ TYPED_TEST(Ilu, LUFactorFunctionsSetProperly)
 {
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
-    auto lin_op_l_factor =
-        static_cast<const gko::LinOp*>(gko::lend(factors->get_l_factor()));
-    auto lin_op_u_factor =
-        static_cast<const gko::LinOp*>(gko::lend(factors->get_u_factor()));
-    auto first_operator = gko::lend(factors->get_operators()[0]);
-    auto second_operator = gko::lend(factors->get_operators()[1]);
+    auto lin_op_l_factor = gko::as<gko::LinOp>(factors->get_l_factor());
+    auto lin_op_u_factor = gko::as<gko::LinOp>(factors->get_u_factor());
+    auto first_operator = factors->get_operators()[0];
+    auto second_operator = factors->get_operators()[1];
 
     ASSERT_EQ(lin_op_l_factor, first_operator);
     ASSERT_EQ(lin_op_u_factor, second_operator);
@@ -283,7 +281,7 @@ TYPED_TEST(Ilu, GenerateForCooIdentity)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     auto coo_mtx = gko::share(Coo::create(this->exec));
-    this->identity->convert_to(gko::lend(coo_mtx));
+    this->identity->convert_to(coo_mtx);
 
     auto factors = this->ilu_factory_skip->generate(coo_mtx);
     auto l_factor = factors->get_l_factor();
@@ -299,7 +297,7 @@ TYPED_TEST(Ilu, GenerateForCsrIdentity)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     auto csr_mtx = gko::share(Csr::create(this->exec));
-    this->identity->convert_to(gko::lend(csr_mtx));
+    this->identity->convert_to(csr_mtx);
 
     auto factors = this->ilu_factory_skip->generate(csr_mtx);
     auto l_factor = factors->get_l_factor();
@@ -351,12 +349,12 @@ TYPED_TEST(Ilu, ApplyMethodDenseSmall)
     using value_type = typename TestFixture::value_type;
     using Dense = typename TestFixture::Dense;
     const auto x = gko::initialize<Dense>({1., 2., 3.}, this->exec);
-    auto b_lu = Dense::create_with_config_of(gko::lend(x));
-    auto b_ref = Dense::create_with_config_of(gko::lend(x));
+    auto b_lu = Dense::create_with_config_of(x);
+    auto b_ref = Dense::create_with_config_of(x);
 
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
-    factors->apply(gko::lend(x), gko::lend(b_lu));
-    this->mtx_small->apply(gko::lend(x), gko::lend(b_ref));
+    factors->apply(x, b_lu);
+    this->mtx_small->apply(x, b_ref);
 
     GKO_ASSERT_MTX_NEAR(b_lu, b_ref, r<value_type>::value);
 }

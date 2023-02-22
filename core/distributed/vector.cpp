@@ -304,7 +304,7 @@ Vector<ValueType>::make_complex() const
         this->get_executor(), this->get_communicator(), this->get_size(),
         this->get_local_vector()->get_size(),
         this->get_local_vector()->get_stride());
-    this->make_complex(result.get());
+    this->make_complex(result);
     return result;
 }
 
@@ -325,7 +325,7 @@ Vector<ValueType>::get_real() const
                                     this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
-    this->get_real(result.get());
+    this->get_real(result);
     return result;
 }
 
@@ -345,7 +345,7 @@ Vector<ValueType>::get_imag() const
                                     this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
-    this->get_imag(result.get());
+    this->get_imag(result);
     return result;
 }
 
@@ -602,7 +602,7 @@ Vector<ValueType>::create_real_view()
 
     return real_type::create(this->get_executor(), this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
-                             local_.create_real_view().get());
+                             local_.create_real_view());
 }
 
 

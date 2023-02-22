@@ -153,9 +153,9 @@ protected:
         auto dense_x = as<matrix::Dense<ValueType>>(x);
 
         auto x_clone = dense_x->clone();
-        this->apply(b, x_clone.get());
+        this->apply(b, x_clone);
         dense_x->scale(beta);
-        dense_x->add_scaled(alpha, x_clone.get());
+        dense_x->add_scaled(alpha, x_clone);
     }
 
     explicit Overhead(std::shared_ptr<const Executor> exec)

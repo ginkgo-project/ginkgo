@@ -77,8 +77,8 @@ DEFINE_int32(spgemm_rowlength, 10,
 using Mtx = gko::matrix::Csr<etype, itype>;
 
 
-std::pair<bool, double> validate_result(const Mtx* correct_mtx,
-                                        const Mtx* test_mtx)
+std::pair<bool, double> validate_result(gko::ptr_param<const Mtx> correct_mtx,
+                                        gko::ptr_param<const Mtx> test_mtx)
 {
     auto ref = gko::ReferenceExecutor::create();
     auto host_correct_mtx = gko::make_temporary_clone(ref, correct_mtx);
@@ -169,15 +169,15 @@ public:
     {
         auto ref = gko::ReferenceExecutor::create();
         auto correct = Mtx::create(ref, mtx_out_->get_size());
-        gko::make_temporary_clone(ref, mtx_)->apply(mtx2_.get(), correct.get());
-        return validate_result(correct.get(), mtx_out_.get());
+        gko::make_temporary_clone(ref, mtx_)->apply(mtx2_, correct);
+        return validate_result(correct, mtx_out_);
     }
 
     gko::size_type get_flops() const override
     {
         auto host_exec = mtx_->get_executor()->get_master();
-        auto host_mtx = gko::make_temporary_clone(host_exec, lend(mtx_));
-        auto host_mtx2 = gko::make_temporary_clone(host_exec, lend(mtx2_));
+        auto host_mtx = gko::make_temporary_clone(host_exec, mtx_);
+        auto host_mtx2 = gko::make_temporary_clone(host_exec, mtx2_);
         // count the individual products a_ik * b_kj
         gko::size_type work{};
         for (gko::size_type row = 0; row < host_mtx->get_size()[0]; row++) {
@@ -209,7 +209,7 @@ public:
                         gko::dim<2>{mtx_->get_size()[0], mtx2_->get_size()[1]});
     }
 
-    void run() override { mtx_->apply(lend(mtx2_), lend(mtx_out_)); }
+    void run() override { mtx_->apply(mtx2_, mtx_out_); }
 
 private:
     const Mtx* mtx_;
@@ -246,10 +246,10 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto correct = gko::make_temporary_clone(ref, mtx2_.get());
-        gko::make_temporary_clone(ref, mtx_)->apply(
-            scalar_.get(), id_.get(), scalar_.get(), correct.get());
-        return validate_result(correct.get(), mtx_out_.get());
+        auto correct = gko::make_temporary_clone(ref, mtx2_);
+        gko::make_temporary_clone(ref, mtx_)->apply(scalar_, id_, scalar_,
+                                                    correct.get());
+        return validate_result(correct.get(), mtx_out_);
     }
 
     gko::size_type get_flops() const override
@@ -269,10 +269,7 @@ public:
 
     void prepare() override { mtx_out_ = mtx2_->clone(); }
 
-    void run() override
-    {
-        mtx_->apply(scalar_.get(), id_.get(), scalar_.get(), mtx_out_.get());
-    }
+    void run() override { mtx_->apply(scalar_, id_, scalar_, mtx_out_); }
 
 private:
     const Mtx* mtx_;
@@ -291,9 +288,8 @@ public:
     {
         auto ref = gko::ReferenceExecutor::create();
         return validate_result(
-            gko::as<Mtx>(gko::make_temporary_clone(ref, mtx_)->transpose())
-                .get(),
-            mtx_out_.get());
+            gko::as<Mtx>(gko::make_temporary_clone(ref, mtx_)->transpose()),
+            mtx_out_);
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -320,7 +316,7 @@ public:
     explicit SortOperation(const Mtx* mtx)
     {
         mtx_shuffled_ = mtx->clone();
-        gko::test::unsort_matrix(mtx_shuffled_.get(), get_engine());
+        gko::test::unsort_matrix(mtx_shuffled_, get_engine());
         mtx_out_ = mtx_shuffled_->clone();
     }
 
@@ -329,7 +325,7 @@ public:
         auto ref = gko::ReferenceExecutor::create();
         auto mtx_sorted = gko::clone(ref, mtx_shuffled_);
         mtx_sorted->sort_by_column_index();
-        return validate_result(mtx_sorted.get(), mtx_out_.get());
+        return validate_result(mtx_sorted, mtx_out_);
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -342,7 +338,7 @@ public:
                mtx_shuffled_->get_size()[0] * sizeof(itype);
     }
 
-    void prepare() override { mtx_out_->copy_from(mtx_shuffled_.get()); }
+    void prepare() override { mtx_out_->copy_from(mtx_shuffled_); }
 
     void run() override
     {

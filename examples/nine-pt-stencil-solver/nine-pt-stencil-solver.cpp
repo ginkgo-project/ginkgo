@@ -293,7 +293,7 @@ void solve_system(const std::string& executor_string,
     auto solver = solver_gen->generate(gko::give(matrix));
 
     // Solve system
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(b, x);
 }
 
 

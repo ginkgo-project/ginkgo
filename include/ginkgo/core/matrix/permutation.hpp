@@ -243,7 +243,7 @@ protected:
                 }
             }
         }
-        out->copy_from(std::move(tmp));
+        out->move_from(tmp);
     }
 
 

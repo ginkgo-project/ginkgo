@@ -76,17 +76,6 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> bicgstab_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes, TypenameNameGenerator);
@@ -102,7 +91,7 @@ TYPED_TEST(Bicgstab, BicgstabFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto bicgstab_solver = static_cast<Solver*>(this->solver.get());
+    auto bicgstab_solver = gko::as<Solver>(this->solver.get());
     ASSERT_NE(bicgstab_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(bicgstab_solver->get_system_matrix(), this->mtx);
 }
@@ -114,12 +103,11 @@ TYPED_TEST(Bicgstab, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->bicgstab_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -129,12 +117,11 @@ TYPED_TEST(Bicgstab, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->bicgstab_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -145,9 +132,8 @@ TYPED_TEST(Bicgstab, CanBeCloned)
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    auto clone_mtx = gko::as<Solver>(clone.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx.get()), this->mtx, 0.0);
 }
 
 
@@ -157,8 +143,7 @@ TYPED_TEST(Bicgstab, CanBeCleared)
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
+    auto solver_mtx = gko::as<Solver>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -186,10 +171,9 @@ TYPED_TEST(Bicgstab, CanSetPreconditionerGenerator)
             .on(this->exec);
 
     auto solver = bicgstab_factory->generate(this->mtx);
-    auto precond = dynamic_cast<const gko::solver::Bicgstab<value_type>*>(
-        gko::lend(solver->get_preconditioner()));
+    auto precond = gko::as<gko::solver::Bicgstab<value_type>>(
+        solver->get_preconditioner());
 
-    ASSERT_NE(precond, nullptr);
     ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(precond->get_system_matrix(), this->mtx);
 }
@@ -211,10 +195,9 @@ TYPED_TEST(Bicgstab, CanSetCriteriaAgain)
 
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
-    auto niter =
-        static_cast<const gko::stop::Iteration::Factory*>(new_crit_fac.get())
-            ->get_parameters()
-            .max_iters;
+    auto niter = gko::as<gko::stop::Iteration::Factory>(new_crit_fac)
+                     ->get_parameters()
+                     .max_iters;
 
     ASSERT_EQ(niter, 5);
 }

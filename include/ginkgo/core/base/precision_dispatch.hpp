@@ -82,7 +82,7 @@ make_temporary_conversion(Ptr&& matrix)
     auto result = detail::temporary_conversion<
         MaybeConstDense>::template create<NextDense>(matrix);
     if (!result) {
-        GKO_NOT_SUPPORTED(matrix);
+        GKO_NOT_SUPPORTED(*matrix);
     }
     return result;
 }

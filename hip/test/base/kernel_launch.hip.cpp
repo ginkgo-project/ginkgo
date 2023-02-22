@@ -109,7 +109,7 @@ protected:
         }
         zero_dense->fill(0.0);
         zero_dense2->fill(0.0);
-        iota_dense->copy_from(ref_iota_dense.get());
+        iota_dense->copy_from(ref_iota_dense);
         zero_array.set_executor(exec);
         iota_array.set_executor(exec);
         iota_transp_array.set_executor(exec);

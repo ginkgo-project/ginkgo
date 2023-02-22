@@ -105,10 +105,10 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         const auto factor_nnz = symbolic->get_num_nonzeros();
         factors = matrix_type::create(exec, mtx->get_size(), factor_nnz);
         const auto symbolic_exec = symbolic->get_executor();
-        exec->copy_from(symbolic_exec.get(), factor_nnz,
+        exec->copy_from(symbolic_exec, factor_nnz,
                         symbolic->get_const_col_idxs(),
                         factors->get_col_idxs());
-        exec->copy_from(symbolic_exec.get(), num_rows + 1,
+        exec->copy_from(symbolic_exec, num_rows + 1,
                         symbolic->get_const_row_ptrs(),
                         factors->get_row_ptrs());
         // update srow to be safe

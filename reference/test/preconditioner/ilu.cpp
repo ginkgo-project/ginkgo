@@ -183,9 +183,9 @@ TYPED_TEST(Ilu, SetsCorrectMatrices)
     std::unique_ptr<Mtx> converted_l_factor{Mtx::create(this->exec)};
     std::unique_ptr<Mtx> converted_u_factor{Mtx::create(this->exec)};
     gko::as<gko::ConvertibleTo<Mtx>>(internal_l_factor.get())
-        ->convert_to(converted_l_factor.get());
+        ->convert_to(converted_l_factor);
     gko::as<gko::ConvertibleTo<Mtx>>(internal_u_factor.get())
-        ->convert_to(converted_u_factor.get());
+        ->convert_to(converted_u_factor);
     GKO_ASSERT_MTX_NEAR(converted_l_factor, this->l_factor, 0);
     GKO_ASSERT_MTX_NEAR(converted_u_factor, this->u_factor, 0);
 }
@@ -205,7 +205,7 @@ TYPED_TEST(Ilu, CanBeCopied)
     auto copied =
         ilu_prec_type::build().on(this->exec)->generate(u_l_composition);
 
-    copied->copy_from(ilu.get());
+    copied->copy_from(ilu);
 
     ASSERT_EQ(before_l_solver.get(), copied->get_l_solver().get());
     ASSERT_EQ(before_u_solver.get(), copied->get_u_solver().get());
@@ -225,7 +225,7 @@ TYPED_TEST(Ilu, CanBeMoved)
     auto moved =
         ilu_prec_type::build().on(this->exec)->generate(u_l_composition);
 
-    moved->copy_from(std::move(ilu));
+    moved->move_from(ilu);
 
     ASSERT_EQ(before_l_solver.get(), moved->get_l_solver().get());
     ASSERT_EQ(before_u_solver.get(), moved->get_u_solver().get());
@@ -295,15 +295,15 @@ TYPED_TEST(Ilu, SolvesCustomTypeDefaultFactorySingleRhs)
     using Mtx = typename TestFixture::Mtx;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner =
         ilu_prec_type::build().on(this->exec)->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     // Since it uses Bicgstab with default parmeters, the result will not be
     // accurate
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-1);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), 1e-1);
 }
 
 
@@ -313,16 +313,15 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithParIlu)
     using value_type = typename TestFixture::value_type;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
     auto par_ilu_fact =
         gko::factorization::ParIlu<value_type>::build().on(this->exec);
     auto par_ilu = gko::share(par_ilu_fact->generate(this->mtx));
 
     auto preconditioner = this->ilu_pre_factory->generate(par_ilu);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}),
-                        r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), r<TypeParam>::value * 1e+1);
 }
 
 
@@ -331,14 +330,13 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithComposition)
     using Mtx = typename TestFixture::Mtx;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}),
-                        r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), r<TypeParam>::value * 1e+1);
 }
 
 
@@ -347,13 +345,12 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMtx)
     using Mtx = typename TestFixture::Mtx;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}),
-                        r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), r<TypeParam>::value * 1e+1);
 }
 
 
@@ -363,13 +360,13 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMixedMtx)
         gko::next_precision<typename TestFixture::value_type>>;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
-        x.get(), l({-0.125, 0.25, 1.0}),
+        x, l({-0.125, 0.25, 1.0}),
         (r_mixed<TypeParam, typename Mtx::value_type>()) * 1e+1);
 }
 
@@ -381,13 +378,12 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithComplexMtx)
     const auto b = gko::initialize<Mtx>(
         {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(),
-                        l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
+    GKO_ASSERT_MTX_NEAR(x, l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
                         r<TypeParam>::value * 1e+1);
 }
 
@@ -400,13 +396,13 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMixedComplexMtx)
     const auto b = gko::initialize<Mtx>(
         {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
-        x.get(), l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
+        x, l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
         (r_mixed<TypeParam, typename Mtx::value_type>()) * 1e+1);
 }
 
@@ -416,13 +412,13 @@ TYPED_TEST(Ilu, SolvesReverseSingleRhs)
     using Mtx = typename TestFixture::Mtx;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
     auto preconditioner =
         this->ilu_rev_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.625, 0.875, 1.75}),
+    GKO_ASSERT_MTX_NEAR(x, l({-0.625, 0.875, 1.75}),
                         r<TypeParam>::value * 1e+1);
 }
 
@@ -440,10 +436,9 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
-                          x.get());
+    preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.0, 2.0, -1.0}), r<TypeParam>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}), r<TypeParam>::value);
 }
 
 
@@ -460,10 +455,9 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
-                          x.get());
+    preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.0, 2.0, -1.0}),
+    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}),
                         (r_mixed<TypeParam, typename Mtx::value_type>()));
 }
 
@@ -489,10 +483,9 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
-                          x.get());
+    preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(),
+    GKO_ASSERT_MTX_NEAR(x,
                         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
                            complex_type{-1.0, 2.0}}),
                         r<TypeParam>::value);
@@ -520,11 +513,10 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
-                          x.get());
+    preconditioner->apply(alpha_linop, b, beta_linop, x);
 
     GKO_ASSERT_MTX_NEAR(
-        x.get(),
+        x,
         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
            complex_type{-1.0, 2.0}}),
         (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()));
@@ -544,11 +536,9 @@ TYPED_TEST(Ilu, SolvesAdvancedReverseSingleRhs)
     auto preconditioner =
         this->ilu_rev_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
-                          x.get());
+    preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.75, 6.25, 1.5}),
-                        r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x, l({-7.75, 6.25, 1.5}), r<TypeParam>::value * 1e+1);
 }
 
 
@@ -559,13 +549,13 @@ TYPED_TEST(Ilu, SolvesMultipleRhs)
     const auto b = gko::initialize<Mtx>(
         {I<T>{1.0, 8.0}, I<T>{3.0, 21.0}, I<T>{6.0, 24.0}}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 2});
-    x->copy_from(b.get());
+    x->copy_from(b);
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
+    GKO_ASSERT_MTX_NEAR(x, l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
                         r<TypeParam>::value * 1e+1);
 }
 
@@ -577,24 +567,23 @@ TYPED_TEST(Ilu, SolvesDifferentNumberOfRhs)
     const auto b1 = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, this->exec);
     auto x11 = Mtx::create(this->exec, gko::dim<2>{3, 1});
     auto x12 = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x11->copy_from(b1.get());
-    x12->copy_from(b1.get());
+    x11->copy_from(b1);
+    x12->copy_from(b1);
     const auto b2 = gko::initialize<Mtx>(
         {I<T>{1.0, 8.0}, I<T>{3.0, 21.0}, I<T>{6.0, 24.0}}, this->exec);
     auto x2 = Mtx::create(this->exec, gko::dim<2>{3, 2});
-    x2->copy_from(b2.get());
+    x2->copy_from(b2);
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
 
-    preconditioner->apply(b1.get(), x11.get());
-    preconditioner->apply(b2.get(), x2.get());
-    preconditioner->apply(b1.get(), x12.get());
+    preconditioner->apply(b1, x11);
+    preconditioner->apply(b2, x2);
+    preconditioner->apply(b1, x12);
 
-    GKO_ASSERT_MTX_NEAR(x11.get(), l({-3.0, 2.0, 1.0}),
+    GKO_ASSERT_MTX_NEAR(x11, l({-3.0, 2.0, 1.0}), r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x2, l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
                         r<TypeParam>::value * 1e+1);
-    GKO_ASSERT_MTX_NEAR(x2.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
-                        r<TypeParam>::value * 1e+1);
-    GKO_ASSERT_MTX_NEAR(x12.get(), x11.get(), r<TypeParam>::value * 1e+1);
+    GKO_ASSERT_MTX_NEAR(x12, x11, r<TypeParam>::value * 1e+1);
 }
 
 
@@ -618,14 +607,14 @@ TEST_F(DefaultIlu, SolvesDefaultSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b.get());
+    x->copy_from(b);
 
     auto preconditioner =
         default_ilu_prec_type::build().on(this->exec)->generate(this->mtx);
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     // Since it uses TRS per default, the result should be accurate
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
@@ -640,11 +629,11 @@ TEST_F(DefaultIlu, CanBeUsedAsPreconditioner)
             ->generate(this->mtx);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
-    x->copy_from(b.get());
+    x->copy_from(b);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
@@ -661,11 +650,11 @@ TEST_F(DefaultIlu, CanBeUsedAsGeneratedPreconditioner)
             ->generate(this->mtx);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
-    x->copy_from(b.get());
+    x->copy_from(b);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 

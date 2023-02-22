@@ -323,7 +323,7 @@ TYPED_TEST(Lu, FactorizeAmdWorks)
                 gko::matrices::location_ani1_amd_lu_mtx);
     auto pattern = gko::share(
         gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
-    pattern->copy_from(this->mtx_lu.get());
+    pattern->copy_from(this->mtx_lu);
     auto factory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(pattern)

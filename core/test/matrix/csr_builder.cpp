@@ -72,7 +72,7 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    gko::matrix::CsrBuilder<value_type, index_type> builder{this->mtx.get()};
+    gko::matrix::CsrBuilder<value_type, index_type> builder{this->mtx};
 
     auto builder_col_idxs = builder.get_col_idx_array().get_data();
     auto builder_values = builder.get_value_array().get_data();
@@ -111,7 +111,7 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
     this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
     was_called = false;
 
-    gko::matrix::CsrBuilder<value_type, index_type>{this->mtx.get()};
+    gko::matrix::CsrBuilder<value_type, index_type>{this->mtx};
 
     ASSERT_TRUE(was_called);
 }

@@ -52,49 +52,11 @@ namespace test {
 
 // Plan for now: shuffle values and column indices to unsort the given matrix
 // without changing the represented matrix.
-template <typename ValueType, typename IndexType, typename RandomEngine>
-void unsort_matrix(matrix::Csr<ValueType, IndexType>* mtx,
-                   RandomEngine&& engine)
+template <typename MtxPtr, typename RandomEngine>
+void unsort_matrix(MtxPtr&& mtx, RandomEngine&& engine)
 {
-    using value_type = ValueType;
-    using index_type = IndexType;
-    auto size = mtx->get_size();
-    if (mtx->get_num_stored_elements() <= 0) {
-        return;
-    }
-    const auto exec = mtx->get_executor();
-    const auto master = exec->get_master();
-
-    // If exec is not the master/host, extract the master and perform the
-    // unsorting there, followed by copying it back
-    if (exec != master) {
-        auto h_mtx = mtx->clone(master);
-        unsort_matrix(lend(h_mtx), engine);
-        mtx->copy_from(lend(h_mtx));
-        return;
-    }
-
-    auto vals = mtx->get_values();
-    auto row_ptrs = mtx->get_row_ptrs();
-    auto cols = mtx->get_col_idxs();
-
-    for (index_type row = 0; row < size[0]; ++row) {
-        auto start = row_ptrs[row];
-        auto end = row_ptrs[row + 1];
-        auto it = gko::detail::make_zip_iterator(cols + start, vals + start);
-        std::shuffle(it, it + (end - start), engine);
-    }
-}
-
-
-// Plan for now: shuffle values and column indices to unsort the given matrix
-// without changing the represented matrix.
-template <typename ValueType, typename IndexType, typename RandomEngine>
-void unsort_matrix(matrix::Coo<ValueType, IndexType>* mtx,
-                   RandomEngine&& engine)
-{
-    using value_type = ValueType;
-    using index_type = IndexType;
+    using value_type = gko::detail::pointee<decltype(mtx->get_values())>;
+    using index_type = gko::detail::pointee<decltype(mtx->get_col_idxs())>;
     auto nnz = mtx->get_num_stored_elements();
     if (nnz <= 0) {
         return;
@@ -107,8 +69,8 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType>* mtx,
     // unsorting there, followed by copying it back
     if (exec != master) {
         auto h_mtx = mtx->clone(master);
-        unsort_matrix(lend(h_mtx), engine);
-        mtx->copy_from(lend(h_mtx));
+        unsort_matrix(h_mtx, engine);
+        mtx->copy_from(h_mtx);
         return;
     }
     matrix_data<value_type, index_type> data;

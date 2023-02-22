@@ -428,10 +428,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
     r->copy_from(b);  // n * b
-    matrix->apply(neg_one, x, one, r.get());
+    matrix->apply(neg_one, x, one, r);
 
     // first cycle
-    mg_level->get_restrict_op()->apply(r.get(), g.get());
+    mg_level->get_restrict_op()->apply(r, g);
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
@@ -462,7 +462,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     // prolong
-    mg_level->get_prolong_op()->apply(next_one, e.get(), next_one, x);
+    mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
 
     // end or origin previous
     bool use_post = has_property(mode, cycle_mode::end_of_cycle) ||
@@ -498,7 +498,7 @@ void Multigrid::generate()
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = level_selector_(level, lend(matrix));
+        auto index = level_selector_(level, matrix.get());
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
@@ -558,7 +558,7 @@ void Multigrid::generate()
                 coarsest_solver_ = matrix::Identity<value_type>::create(
                     exec, matrix->get_size()[0]);
             } else {
-                auto temp_index = solver_selector_(level, lend(matrix));
+                auto temp_index = solver_selector_(level, matrix.get());
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);
@@ -632,7 +632,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                 auto x_clone = dense_x->clone();
                 this->apply_dense_impl(dense_b, x_clone.get(), guess);
                 dense_x->scale(dense_beta);
-                dense_x->add_scaled(dense_alpha, x_clone.get());
+                dense_x->add_scaled(dense_alpha, x_clone);
             },
             alpha, b, beta, x);
     };

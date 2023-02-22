@@ -168,7 +168,7 @@ TYPED_TEST(SparsityCsr, AppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0), T{7.0});
     EXPECT_EQ(y->at(1), T{1.0});
@@ -182,7 +182,7 @@ TYPED_TEST(SparsityCsr, AppliesToMixedDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0), T{7.0});
     EXPECT_EQ(y->at(1), T{1.0});
@@ -197,7 +197,7 @@ TYPED_TEST(SparsityCsr, AppliesToDenseMatrix)
         {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0, 0), T{7.0});
     EXPECT_EQ(y->at(1, 0), T{1.0});
@@ -215,7 +215,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0), T{-5.0});
     EXPECT_EQ(y->at(1), T{3.0});
@@ -231,7 +231,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0), T{-5.0});
     EXPECT_EQ(y->at(1), T{3.0});
@@ -249,7 +249,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseMatrix)
     auto y =
         gko::initialize<Vec>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0, 0), T{-5.0});
     EXPECT_EQ(y->at(1, 0), T{3.0});
@@ -266,7 +266,7 @@ TYPED_TEST(SparsityCsr, AppliesToComplex)
                                   this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0), T(7.0, 14.0));
     EXPECT_EQ(y->at(1), T(1.0, 2.0));
@@ -282,7 +282,7 @@ TYPED_TEST(SparsityCsr, AppliesToMixedComplex)
                                   this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0), T(7.0, 14.0));
     EXPECT_EQ(y->at(1), T(1.0, 2.0));
@@ -301,7 +301,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToComplex)
     auto y =
         gko::initialize<ComplexVec>({T{1.0, 2.0}, T{2.0, 4.0}}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0), T(-5.0, -10.0));
     EXPECT_EQ(y->at(1), T(3.0, 6.0));
@@ -321,7 +321,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedComplex)
     auto y =
         gko::initialize<ComplexVec>({T{1.0, 2.0}, T{2.0, 4.0}}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0), T(-5.0, -10.0));
     EXPECT_EQ(y->at(1), T(3.0, 6.0));
@@ -334,7 +334,7 @@ TYPED_TEST(SparsityCsr, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -344,7 +344,7 @@ TYPED_TEST(SparsityCsr, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -354,7 +354,7 @@ TYPED_TEST(SparsityCsr, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{3});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -432,13 +432,13 @@ TYPED_TEST(SparsityCsr, RemovesDiagonalElementsForFullRankMatrix)
     // clang-format on
     auto tmp_mtx =
         Mtx::create(this->exec, mtx_s->get_size(), mtx_s->get_num_nonzeros());
-    tmp_mtx->copy_from(mtx2.get());
+    tmp_mtx->copy_from(mtx2);
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         this->exec, mtx2->get_const_row_ptrs(), mtx2->get_const_col_idxs(),
         tmp_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp_mtx.get(), mtx_s.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(tmp_mtx, mtx_s, 0.0);
 }
 
 
@@ -455,13 +455,13 @@ TYPED_TEST(SparsityCsr, RemovesDiagonalElementsForIncompleteRankMatrix)
     // clang-format on
     auto tmp_mtx =
         Mtx::create(this->exec, mtx_s->get_size(), mtx_s->get_num_nonzeros());
-    tmp_mtx->copy_from(mtx2.get());
+    tmp_mtx->copy_from(mtx2);
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         this->exec, mtx2->get_const_row_ptrs(), mtx2->get_const_col_idxs(),
         tmp_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp_mtx.get(), mtx_s.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(tmp_mtx, mtx_s, 0.0);
 }
 
 
@@ -479,7 +479,7 @@ TYPED_TEST(SparsityCsr, SquareMtxIsConvertibleToAdjacencyMatrix)
 
     auto adj_mat = mtx2->to_adjacency_matrix();
 
-    GKO_ASSERT_MTX_NEAR(adj_mat.get(), mtx_s.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(adj_mat, mtx_s, 0.0);
 }
 
 

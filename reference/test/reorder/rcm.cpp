@@ -105,7 +105,7 @@ TYPED_TEST(Rcm, CanBeCopied)
     auto rcm = this->rcm_factory->generate(this->id3_mtx);
     auto rcm_copy = this->rcm_factory->generate(this->not_id3_mtx);
 
-    rcm_copy->copy_from(rcm.get());
+    rcm_copy->copy_from(rcm);
 
     ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[0], 2);
     ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[1], 1);
@@ -118,7 +118,7 @@ TYPED_TEST(Rcm, CanBeMoved)
     auto rcm = this->rcm_factory->generate(this->id3_mtx);
     auto rcm_move = this->rcm_factory->generate(this->not_id3_mtx);
 
-    rcm->move_to(rcm_move.get());
+    rcm->move_to(rcm_move);
 
     ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[0], 2);
     ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[1], 1);

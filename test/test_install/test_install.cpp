@@ -46,8 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-void assert_similar_matrices(const gko::matrix::Dense<>* m1,
-                             const gko::matrix::Dense<>* m2, double prec)
+void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,
+                             gko::ptr_param<const gko::matrix::Dense<>> m2,
+                             double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
     assert(m1->get_size()[1] == m2->get_size()[1]);
@@ -62,13 +63,14 @@ void assert_similar_matrices(const gko::matrix::Dense<>* m1,
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<double>& A_raw,
-                const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
+                gko::ptr_param<const gko::matrix::Dense<>> b,
+                gko::ptr_param<gko::matrix::Dense<>> x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
     auto x_clone = gko::clone(x);
     test->read(A_raw);
-    test->apply(b, gko::lend(x_clone));
+    test->apply(b, x_clone);
     // x_clone has the device result if using HIP or CUDA, otherwise it is
     // reference only
 
@@ -78,11 +80,11 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
     auto test_ref = Mtx::create(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
     test_ref->read(A_raw);
-    test_ref->apply(b, gko::lend(x_ref));
+    test_ref->apply(b, x_ref);
 
     // Actually check that `x_clone` is similar to `x_ref`
-    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
-    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-14);
+    auto x_clone_ref = gko::clone(exec_ref, x_clone);
+    assert_similar_matrices(x_clone_ref, x_ref, 1e-14);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -91,7 +93,8 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
                   const gko::matrix_data<double>& A_raw,
-                  const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
+                  gko::ptr_param<const gko::matrix::Dense<>> b,
+                  gko::ptr_param<gko::matrix::Dense<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
@@ -110,7 +113,7 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 #if HAS_REFERENCE
     A->read(A_raw);
     auto x_clone = gko::clone(x);
-    solver_gen->generate(A)->apply(b, gko::lend(x_clone));
+    solver_gen->generate(A)->apply(b, x_clone);
     // x_clone has the device result if using HIP or CUDA, otherwise it is
     // reference only
 
@@ -130,11 +133,11 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
                     .on(exec_ref))
             .on(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
-    solver_gen->generate(A_ref)->apply(b, gko::lend(x_ref));
+    solver_gen->generate(A_ref)->apply(b, x_ref);
 
     // Actually check that `x_clone` is similar to `x_ref`
-    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
-    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-12);
+    auto x_clone_ref = gko::clone(exec_ref, x_clone);
+    assert_similar_matrices(x_clone_ref, x_ref, 1e-12);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
 }
@@ -351,7 +354,7 @@ int main()
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/csr.hpp
@@ -363,19 +366,19 @@ int main()
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/identity.hpp
@@ -399,7 +402,7 @@ int main()
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_spmv<Mtx>(exec, A_raw, b, x);
     }
 
     // core/matrix/sparsity_csr.hpp
@@ -433,37 +436,37 @@ int main()
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/ir.hpp

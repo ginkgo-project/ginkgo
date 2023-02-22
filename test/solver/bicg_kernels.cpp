@@ -74,7 +74,7 @@ protected:
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
-        result->copy_from(tmp_mtx.get());
+        result->copy_from(tmp_mtx);
         return result;
     }
 
@@ -256,8 +256,8 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
@@ -288,8 +288,8 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
     auto solver = bicg_factory->generate(std::move(mtx_ani));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx_ani));
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
 }

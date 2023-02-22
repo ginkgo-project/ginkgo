@@ -76,11 +76,11 @@ protected:
                                         exec))
     {
         csr1 = Csr::create(exec);
-        csr1->copy_from(dense1.get());
+        csr1->copy_from(dense1);
         csr2 = Csr::create(exec);
-        csr2->copy_from(dense2.get());
+        csr2->copy_from(dense2);
         csr3 = Csr::create(exec);
-        csr3->copy_from(dense3.get());
+        csr3->copy_from(dense3);
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
     }
@@ -127,8 +127,8 @@ TYPED_TEST(Diagonal, ConvertsToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->diag1->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->diag1->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
 }
@@ -147,8 +147,8 @@ TYPED_TEST(Diagonal, MovesToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->diag1->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->diag1->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
 }
@@ -157,7 +157,7 @@ TYPED_TEST(Diagonal, MovesToPrecision)
 TYPED_TEST(Diagonal, AppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag1->apply(this->dense1.get(), this->dense2.get());
+    this->diag1->apply(this->dense1, this->dense2);
 
     EXPECT_EQ(this->dense2->at(0, 0), value_type{2.0});
     EXPECT_EQ(this->dense2->at(0, 1), value_type{4.0});
@@ -175,10 +175,10 @@ TYPED_TEST(Diagonal, AppliesToMixedDense)
     using mixed_value_type = typename MixedDense::value_type;
     auto mdense1 = MixedDense::create(this->exec);
     auto mdense2 = MixedDense::create(this->exec);
-    this->dense1->convert_to(mdense1.get());
-    this->dense2->convert_to(mdense2.get());
+    this->dense1->convert_to(mdense1);
+    this->dense2->convert_to(mdense2);
 
-    this->diag1->apply(mdense1.get(), mdense2.get());
+    this->diag1->apply(mdense1, mdense2);
 
     EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{2.0});
     EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{4.0});
@@ -192,7 +192,7 @@ TYPED_TEST(Diagonal, AppliesToMixedDense)
 TYPED_TEST(Diagonal, RightAppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag2->rapply(this->dense1.get(), this->dense2.get());
+    this->diag2->rapply(this->dense1, this->dense2);
 
     EXPECT_EQ(this->dense2->at(0, 0), value_type{2.0});
     EXPECT_EQ(this->dense2->at(0, 1), value_type{6.0});
@@ -210,10 +210,10 @@ TYPED_TEST(Diagonal, RightAppliesToMixedDense)
     using mixed_value_type = typename MixedDense::value_type;
     auto mdense1 = MixedDense::create(this->exec);
     auto mdense2 = MixedDense::create(this->exec);
-    this->dense1->convert_to(mdense1.get());
-    this->dense2->convert_to(mdense2.get());
+    this->dense1->convert_to(mdense1);
+    this->dense2->convert_to(mdense2);
 
-    this->diag2->rapply(mdense1.get(), mdense2.get());
+    this->diag2->rapply(mdense1, mdense2);
 
     EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{2.0});
     EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{6.0});
@@ -227,7 +227,7 @@ TYPED_TEST(Diagonal, RightAppliesToMixedDense)
 TYPED_TEST(Diagonal, InverseAppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag1->inverse_apply(this->dense3.get(), this->dense2.get());
+    this->diag1->inverse_apply(this->dense3, this->dense2);
 
     EXPECT_EQ(this->dense2->at(0, 0), value_type{1.0});
     EXPECT_EQ(this->dense2->at(0, 1), value_type{1.5});
@@ -245,10 +245,10 @@ TYPED_TEST(Diagonal, InverseAppliesToMixedDense)
     using mixed_value_type = typename MixedDense::value_type;
     auto mdense2 = MixedDense::create(this->exec);
     auto mdense3 = MixedDense::create(this->exec);
-    this->dense2->convert_to(mdense2.get());
-    this->dense3->convert_to(mdense3.get());
+    this->dense2->convert_to(mdense2);
+    this->dense3->convert_to(mdense3);
 
-    this->diag1->inverse_apply(mdense3.get(), mdense2.get());
+    this->diag1->inverse_apply(mdense3, mdense2);
 
     EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{1.0});
     EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{1.5});
@@ -266,8 +266,7 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToDense)
     auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
     auto beta = gko::initialize<Dense>({2.0}, this->exec);
 
-    this->diag1->apply(alpha.get(), this->dense1.get(), beta.get(),
-                       this->dense2.get());
+    this->diag1->apply(alpha, this->dense1, beta, this->dense2);
 
     EXPECT_EQ(this->dense2->at(0, 0), value_type{0.0});
     EXPECT_EQ(this->dense2->at(0, 1), value_type{0.0});
@@ -287,10 +286,10 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedDense)
     auto mdense2 = MixedDense::create(this->exec);
     auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
     auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
-    this->dense1->convert_to(mdense1.get());
-    this->dense2->convert_to(mdense2.get());
+    this->dense1->convert_to(mdense1);
+    this->dense2->convert_to(mdense2);
 
-    this->diag1->apply(alpha.get(), mdense1.get(), beta.get(), mdense2.get());
+    this->diag1->apply(alpha, mdense1, beta, mdense2);
 
     EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{0.0});
     EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{0.0});
@@ -308,7 +307,7 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongInnerDimensions)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
-    ASSERT_THROW(this->diag2->apply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag2->apply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -320,7 +319,7 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfRows)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
-    ASSERT_THROW(this->diag1->apply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag1->apply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -332,7 +331,7 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfCols)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x2 times 2x3 = 2x2 --> mismatch for cols of dense1 and result
-    ASSERT_THROW(this->diag1->apply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag1->apply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -344,7 +343,7 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongInnerDimensions)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
-    ASSERT_THROW(this->diag1->rapply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag1->rapply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -356,7 +355,7 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfRows)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x3 times 3x3 = 3x3 --> mismatch for rows of dense1 and result
-    ASSERT_THROW(this->diag2->rapply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag2->rapply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -368,7 +367,7 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfCols)
         gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
-    ASSERT_THROW(this->diag2->rapply(this->dense1.get(), result.get()),
+    ASSERT_THROW(this->diag2->rapply(this->dense1, result),
                  gko::DimensionMismatch);
 }
 
@@ -376,7 +375,7 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfCols)
 TYPED_TEST(Diagonal, AppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag1->apply(this->csr1.get(), this->csr2.get());
+    this->diag1->apply(this->csr1, this->csr2);
 
     const auto values = this->csr2->get_const_values();
     const auto row_ptrs = this->csr2->get_const_row_ptrs();
@@ -404,7 +403,7 @@ TYPED_TEST(Diagonal, AppliesToCsr)
 TYPED_TEST(Diagonal, RightAppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag2->rapply(this->csr1.get(), this->csr2.get());
+    this->diag2->rapply(this->csr1, this->csr2);
 
     const auto values = this->csr2->get_const_values();
     const auto row_ptrs = this->csr2->get_const_row_ptrs();
@@ -432,7 +431,7 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
 TYPED_TEST(Diagonal, InverseAppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag1->inverse_apply(this->csr3.get(), this->csr2.get());
+    this->diag1->inverse_apply(this->csr3, this->csr2);
 
     const auto values = this->csr2->get_const_values();
     const auto row_ptrs = this->csr2->get_const_row_ptrs();
@@ -464,7 +463,7 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongInnerDimensions)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
-    ASSERT_THROW(this->diag2->apply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag2->apply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -476,7 +475,7 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfRows)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
-    ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag1->apply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -488,7 +487,7 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfCols)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x2 times 2x3 = 2x2 --> mismatch for cols of csr1 and result
-    ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag1->apply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -500,7 +499,7 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongInnerDimensions)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
-    ASSERT_THROW(this->diag1->rapply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag1->rapply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -512,7 +511,7 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfRows)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x3 times 3x3 = 3x3 --> mismatch for rows of csr1 and result
-    ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag2->rapply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -524,7 +523,7 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfCols)
         gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
-    ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
+    ASSERT_THROW(this->diag2->rapply(this->csr1, result),
                  gko::DimensionMismatch);
 }
 
@@ -533,7 +532,7 @@ TYPED_TEST(Diagonal, ConvertsToCsr)
 {
     using value_type = typename TestFixture::value_type;
 
-    this->diag1->convert_to(this->csr1.get());
+    this->diag1->convert_to(this->csr1);
 
     const auto nnz = this->csr1->get_num_stored_elements();
     const auto row_ptrs = this->csr1->get_const_row_ptrs();
@@ -590,7 +589,7 @@ TYPED_TEST(Diagonal, AppliesToComplex)
                              exec);
     auto dense2 = Vec::create(exec, gko::dim<2>{2, 3});
 
-    this->diag1->apply(dense1.get(), dense2.get());
+    this->diag1->apply(dense1, dense2);
 
     GKO_ASSERT_MTX_NEAR(dense2,
                         l({{complex_type{2.0, 4.0}, complex_type{4.0, 8.0},
@@ -616,7 +615,7 @@ TYPED_TEST(Diagonal, AppliesToMixedComplex)
         exec);
     auto mdense2 = Vec::create(exec, gko::dim<2>{2, 3});
 
-    this->diag1->apply(mdense1.get(), mdense2.get());
+    this->diag1->apply(mdense1, mdense2);
 
     GKO_ASSERT_MTX_NEAR(
         mdense2,
@@ -650,7 +649,7 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
     auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
     auto beta = gko::initialize<Scalar>({2.0}, this->exec);
 
-    this->diag1->apply(alpha.get(), dense1.get(), beta.get(), dense2.get());
+    this->diag1->apply(alpha, dense1, beta, dense2);
 
     GKO_ASSERT_MTX_NEAR(dense2,
                         l({{complex_type{0.0, 0.0}, complex_type{0.0, 0.0},
@@ -684,7 +683,7 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedComplex)
     auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
     auto beta = gko::initialize<Scalar>({2.0}, this->exec);
 
-    this->diag1->apply(alpha.get(), dense1.get(), beta.get(), dense2.get());
+    this->diag1->apply(alpha, dense1, beta, dense2);
 
     GKO_ASSERT_MTX_NEAR(
         dense2,

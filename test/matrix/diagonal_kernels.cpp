@@ -162,8 +162,8 @@ TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->apply(dense1.get(), denseexpected1.get());
-    ddiag->apply(ddense1.get(), denseresult1.get());
+    diag->apply(dense1, denseexpected1);
+    ddiag->apply(ddense1, denseresult1);
 
     GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, r<value_type>::value);
 }
@@ -173,8 +173,8 @@ TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->rapply(dense2.get(), denseexpected2.get());
-    ddiag->rapply(ddense2.get(), denseresult2.get());
+    diag->rapply(dense2, denseexpected2);
+    ddiag->rapply(ddense2, denseresult2);
 
     GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, r<value_type>::value);
 }
@@ -184,8 +184,8 @@ TEST_F(Diagonal, InverseApplyToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->inverse_apply(dense1.get(), denseexpected1.get());
-    ddiag->inverse_apply(ddense1.get(), denseresult1.get());
+    diag->inverse_apply(dense1, denseexpected1);
+    ddiag->inverse_apply(ddense1, denseresult1);
 
     GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, r<value_type>::value);
 }
@@ -195,8 +195,8 @@ TEST_F(Diagonal, ApplyToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->apply(csr1.get(), csrexpected1.get());
-    ddiag->apply(dcsr1.get(), csrresult1.get());
+    diag->apply(csr1, csrexpected1);
+    ddiag->apply(dcsr1, csrresult1);
 
     GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, r<value_type>::value);
 }
@@ -206,8 +206,8 @@ TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->rapply(csr2.get(), csrexpected2.get());
-    ddiag->rapply(dcsr2.get(), csrresult2.get());
+    diag->rapply(csr2, csrexpected2);
+    ddiag->rapply(dcsr2, csrresult2);
 
     GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, r<value_type>::value);
 }
@@ -217,8 +217,8 @@ TEST_F(Diagonal, InverseApplyToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->inverse_apply(csr1.get(), csrexpected1.get());
-    ddiag->inverse_apply(dcsr1.get(), csrresult1.get());
+    diag->inverse_apply(csr1, csrexpected1);
+    ddiag->inverse_apply(dcsr1, csrresult1);
 
     GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, r<value_type>::value);
 }
@@ -228,8 +228,8 @@ TEST_F(Diagonal, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->convert_to(csr1.get());
-    ddiag->convert_to(dcsr1.get());
+    diag->convert_to(csr1);
+    ddiag->convert_to(dcsr1);
 
     GKO_ASSERT_MTX_NEAR(csr1, dcsr1, 0);
 }

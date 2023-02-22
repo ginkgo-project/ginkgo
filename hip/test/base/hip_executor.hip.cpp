@@ -184,7 +184,7 @@ TEST_F(HipExecutor, CopiesDataToHip)
     int orig[] = {3, 8};
     auto* copy = hip->alloc<int>(2);
 
-    hip->copy_from(omp.get(), 2, orig, copy);
+    hip->copy_from(omp, 2, orig, copy);
 
     hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy);
     ASSERT_NO_THROW(hip->synchronize());
@@ -212,7 +212,7 @@ TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
     int orig[] = {3, 8};
     auto* copy = hip3->alloc<int>(2);
 
-    hip3->copy_from(omp.get(), 2, orig, copy);
+    hip3->copy_from(omp, 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(hip3->synchronize());
@@ -237,7 +237,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
     auto orig = hip->alloc<int>(2);
     hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
-    omp->copy_from(hip.get(), 2, orig, copy);
+    omp->copy_from(hip, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -280,7 +280,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
-    hip2->copy_from(hip.get(), 2, orig, copy_hip2);
+    hip2->copy_from(hip, 2, orig, copy_hip2);
 
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
@@ -290,7 +290,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(hip2.get(), 2, copy_hip2, copy);
+    omp->copy_from(hip2, 2, copy_hip2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     hip2->free(copy_hip2);

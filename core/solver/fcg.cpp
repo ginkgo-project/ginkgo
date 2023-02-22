@@ -208,7 +208,7 @@ void Fcg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

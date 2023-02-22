@@ -178,25 +178,19 @@ protected:
     std::shared_ptr<typename DummyFactory::Factory> lo_factory2;
     std::shared_ptr<const gko::stop::CriterionFactory> criterion;
 
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
+    static int get_value(
+        gko::ptr_param<const gko::multigrid::MultigridLevel> rp)
     {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
+        return dynamic_cast<const DummyRPFactory*>(rp.get())
+            ->get_parameters()
+            .value;
     }
 
-    static int get_value(const gko::multigrid::MultigridLevel* rp)
+    static int get_value(gko::ptr_param<const gko::LinOp> lo)
     {
-        return dynamic_cast<const DummyRPFactory*>(rp)->get_parameters().value;
-    }
-
-    static int get_value(const gko::LinOp* lo)
-    {
-        return dynamic_cast<const DummyFactory*>(lo)->get_parameters().value;
+        return dynamic_cast<const DummyFactory*>(lo.get())
+            ->get_parameters()
+            .value;
     }
 };
 
@@ -226,12 +220,11 @@ TYPED_TEST(Multigrid, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->multigrid_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -241,12 +234,11 @@ TYPED_TEST(Multigrid, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->multigrid_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -258,8 +250,7 @@ TYPED_TEST(Multigrid, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(4, 4));
     auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
 }
 
 
@@ -334,20 +325,20 @@ TYPED_TEST(Multigrid, EachLevelAreDistinct)
 
     ASSERT_EQ(mg_level.size(), 2);
     ASSERT_NE(mg_level.at(0), mg_level.at(1));
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 5);
     ASSERT_EQ(pre_smoother.size(), 2);
     ASSERT_NE(pre_smoother.at(0), pre_smoother.at(1));
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
     ASSERT_EQ(mid_smoother.size(), 2);
     ASSERT_NE(mid_smoother.at(0), mid_smoother.at(1));
-    ASSERT_EQ(this->get_value(mid_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(1)), 5);
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_NE(post_smoother.at(0), post_smoother.at(1));
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 5);
     ASSERT_NE(coarsest_solver, nullptr);
 }
 
@@ -614,14 +605,14 @@ TYPED_TEST(Multigrid, TwoMgLevel)
 
     ASSERT_EQ(mg_level.size(), 2);
     ASSERT_NE(mg_level.at(0), mg_level.at(1));
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
-    ASSERT_EQ(this->get_value(mid_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(1).get()), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 2);
+    ASSERT_EQ(this->get_value(mid_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(1)), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 5);
     // coarset_solver is identity by default
     ASSERT_NE(identity, nullptr);
 }
@@ -656,14 +647,14 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
 
     ASSERT_EQ(mg_level.size(), 2);
     ASSERT_NE(mg_level.at(0), mg_level.at(1));
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(1).get()), 5);
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(1)), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
     ASSERT_NE(identity, nullptr);
 }
 
@@ -696,20 +687,20 @@ TYPED_TEST(Multigrid, CustomSelectorWithSameSize)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(mg_level.size(), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 2);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 5);
     // pre_smoother use the same index as mg_level
     ASSERT_EQ(pre_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
     // pre_smoother use the same index as mg_level
     ASSERT_EQ(mid_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(mid_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(mid_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(1)), 2);
     // post_smoother has the same index as mg_level
     ASSERT_EQ(post_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 5);
 }
 
 
@@ -741,20 +732,20 @@ TYPED_TEST(Multigrid, CustomSelectorWithOneSmootherRelaxation)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(mg_level.size(), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 2);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 5);
     // pre_smoother always uses the same factory
     ASSERT_EQ(pre_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
     // mid_smoother always uses the same factory
     ASSERT_EQ(mid_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(mid_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(mid_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(mid_smoother.at(1)), 5);
     // post_smoother always uses the same factory
     ASSERT_EQ(post_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
 }
 
 
@@ -785,20 +776,20 @@ TYPED_TEST(Multigrid, CustomSelectorWithMix)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(mg_level.size(), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(0).get()), 2);
-    ASSERT_EQ(this->get_value(mg_level.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(mg_level.at(0)), 2);
+    ASSERT_EQ(this->get_value(mg_level.at(1)), 5);
     // pre_smoother always uses the same factory
     ASSERT_EQ(pre_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
     // mid_smoother uses the nullptr by default
     ASSERT_EQ(mid_smoother.size(), 2);
-    ASSERT_EQ(mid_smoother.at(0).get(), nullptr);
-    ASSERT_EQ(mid_smoother.at(1).get(), nullptr);
+    ASSERT_EQ(mid_smoother.at(0), nullptr);
+    ASSERT_EQ(mid_smoother.at(1), nullptr);
     // post_smoother uses the same index as mg_level
     ASSERT_EQ(post_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
 }
 
 
@@ -820,8 +811,8 @@ TYPED_TEST(Multigrid, PostUsesPre)
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
 
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 2);
     // post_smoother ignore the manual setting because the post_uses_pre = true
     // the elements are copied from pre_smoother, so the pointers are the same
     ASSERT_EQ(post_smoother.size(), 2);
@@ -850,8 +841,8 @@ TYPED_TEST(Multigrid, MidUsesPre)
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
 
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 2);
     // mid is handled by the pre smoother of next level, so the mid_smoother is
     // empty mid_smoother ignores the manual setting because
     // multigrid::mid_smooth_type::pre_smoother
@@ -881,8 +872,8 @@ TYPED_TEST(Multigrid, MidUsesPost)
     auto post_smoother = solver->get_post_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
 
-    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
     // mid is handled by the post smoother of previous level, so the
     // mid_smoother is empty mid_smoother ignores the manual setting because
     // multigrid::mid_smooth_type::post_smoother
@@ -913,8 +904,8 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPre)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(pre_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 2);
     // post uses pre
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_EQ(post_smoother.at(0).get(), pre_smoother.at(0).get());
@@ -949,8 +940,8 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
     auto post_smoother = solver->get_post_smoother_list();
 
     ASSERT_EQ(pre_smoother.size(), 2);
-    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1)), 2);
     // post uses pre
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_EQ(post_smoother.at(0).get(), pre_smoother.at(0).get());
@@ -977,7 +968,7 @@ TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
 
-    ASSERT_EQ(this->get_value(coarsest_solver.get()), 5);
+    ASSERT_EQ(this->get_value(coarsest_solver), 5);
 }
 
 
@@ -1001,7 +992,7 @@ TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
 
-    ASSERT_EQ(this->get_value(coarsest_solver.get()), 2);
+    ASSERT_EQ(this->get_value(coarsest_solver), 2);
 }
 
 

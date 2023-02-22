@@ -87,7 +87,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // Throws an exception if it is not convertible.
     auto csr_system_matrix = CsrMatrix::create(exec);
     as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-        ->convert_to(csr_system_matrix.get());
+        ->convert_to(csr_system_matrix);
     // If necessary, sort it
     if (!skip_sorting) {
         csr_system_matrix->sort_by_column_index();
@@ -144,7 +144,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // We also have to move from the CSR matrix if it was not already sorted.
     if (!skip_sorting || coo_system_matrix_ptr == nullptr) {
         coo_system_matrix_unique_ptr = CooMatrix::create(exec);
-        csr_system_matrix->move_to(coo_system_matrix_unique_ptr.get());
+        csr_system_matrix->move_to(coo_system_matrix_unique_ptr);
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
     }
 

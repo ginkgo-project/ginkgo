@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Diag> diag;
 
-    void assert_equal_to_original_mtx(const Diag* m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Diag> m)
     {
         auto v = m->get_const_values();
         ASSERT_EQ(m->get_size(), gko::dim<2>(3, 3));
@@ -88,7 +88,7 @@ TYPED_TEST(Diagonal, KnowsItsSize)
 
 TYPED_TEST(Diagonal, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->diag.get());
+    this->assert_equal_to_original_mtx(this->diag);
 }
 
 
@@ -132,11 +132,11 @@ TYPED_TEST(Diagonal, CanBeCopied)
     using Diag = typename TestFixture::Diag;
     auto copy = Diag::create(this->exec);
 
-    copy->copy_from(this->diag.get());
+    copy->copy_from(this->diag);
 
-    this->assert_equal_to_original_mtx(this->diag.get());
+    this->assert_equal_to_original_mtx(this->diag);
     this->diag->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -145,9 +145,9 @@ TYPED_TEST(Diagonal, CanBeMoved)
     using Diag = typename TestFixture::Diag;
     auto copy = Diag::create(this->exec);
 
-    copy->copy_from(std::move(this->diag));
+    copy->move_from(this->diag);
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -157,7 +157,7 @@ TYPED_TEST(Diagonal, CanBeCloned)
 
     auto clone = this->diag->clone();
 
-    this->assert_equal_to_original_mtx(this->diag.get());
+    this->assert_equal_to_original_mtx(this->diag);
     this->diag->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(dynamic_cast<Diag*>(clone.get()));
 }

@@ -148,26 +148,26 @@ int main(int argc, char* argv[])
     for (auto i = 0u; i < max_iterations; ++i) {
         std::cout << "{ ";
         // (A - zI)y = x
-        solver->apply(lend(x), lend(y));
-        system_matrix->apply(lend(one), lend(y), lend(neg_one), lend(x));
-        x->compute_norm2(lend(norm));
+        solver->apply(x, y);
+        system_matrix->apply(one, y, neg_one, x);
+        x->compute_norm2(norm);
         std::cout << "\"system_residual\": "
                   << clone(this_exec, norm)->get_values()[0] << ", ";
-        x->copy_from(lend(y));
+        x->copy_from(y);
         // x = y / || y ||
-        x->compute_norm2(lend(norm));
+        x->compute_norm2(norm);
         inv_norm->get_values()[0] =
             real_precision{1.0} / clone(this_exec, norm)->get_values()[0];
-        x->scale(lend(clone(exec, inv_norm)));
+        x->scale(clone(exec, inv_norm));
         // g = x^* A x
-        A->apply(lend(x), lend(tmp));
-        x->compute_dot(lend(tmp), lend(g));
+        A->apply(x, tmp);
+        x->compute_dot(tmp, g);
         auto g_val = clone(this_exec, g)->get_values()[0];
         std::cout << "\"eigenvalue\": " << g_val << ", ";
         // ||Ax - gx|| < tol * g
         auto v = gko::initialize<vec>({-g_val}, exec);
-        tmp->add_scaled(lend(v), lend(x));
-        tmp->compute_norm2(lend(norm));
+        tmp->add_scaled(v, x);
+        tmp->compute_norm2(norm);
         auto res_val = clone(exec->get_master(), norm)->get_values()[0];
         std::cout << "\"residual\": " << res_val / g_val << " }," << std::endl;
         if (abs(res_val) < residual_goal * abs(g_val)) {

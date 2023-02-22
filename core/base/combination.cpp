@@ -167,11 +167,11 @@ void Combination<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
                                   cache_.one);
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            operators_[0]->apply(lend(coefficients_[0]), dense_b,
-                                 lend(cache_.zero), dense_x);
+            operators_[0]->apply(coefficients_[0], dense_b, cache_.zero,
+                                 dense_x);
             for (size_type i = 1; i < operators_.size(); ++i) {
-                operators_[i]->apply(lend(coefficients_[i]), dense_b,
-                                     lend(cache_.one), dense_x);
+                operators_[i]->apply(coefficients_[i], dense_b, cache_.one,
+                                     dense_x);
             }
         },
         b, x);
@@ -188,9 +188,9 @@ void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                 cache_.intermediate_x->get_size() != dense_x->get_size()) {
                 cache_.intermediate_x = dense_x->clone();
             }
-            this->apply_impl(dense_b, lend(cache_.intermediate_x));
+            this->apply_impl(dense_b, cache_.intermediate_x.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, lend(cache_.intermediate_x));
+            dense_x->add_scaled(dense_alpha, cache_.intermediate_x);
         },
         alpha, b, beta, x);
 }

@@ -163,8 +163,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
     Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
-    this->ell_->convert_to(result->ell_.get());
-    this->coo_->convert_to(result->coo_.get());
+    this->ell_->convert_to(result->ell_);
+    this->coo_->convert_to(result->coo_);
     // TODO set strategy correctly
     // There is no way to correctly clone the strategy like in
     // Csr::convert_to
@@ -340,8 +340,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), lend(diag)));
-    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), lend(diag)));
+    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), diag.get()));
+    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), diag.get()));
     return diag;
 }
 
@@ -367,8 +367,8 @@ Hybrid<ValueType, IndexType>::compute_absolute() const
     auto abs_hybrid = absolute_type::create(
         exec, this->get_size(), this->get_strategy<absolute_type>());
 
-    abs_hybrid->ell_->copy_from(ell_->compute_absolute());
-    abs_hybrid->coo_->copy_from(coo_->compute_absolute());
+    abs_hybrid->ell_->move_from(ell_->compute_absolute());
+    abs_hybrid->coo_->move_from(coo_->compute_absolute());
 
     return abs_hybrid;
 }

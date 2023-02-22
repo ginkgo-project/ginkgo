@@ -108,7 +108,7 @@ TYPED_TEST(Ir, SolvesTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -122,7 +122,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemMixed)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
                         (r_mixed<value_type, TypeParam>()) * 1e1);
@@ -141,7 +141,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -163,7 +163,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemMixedComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -197,7 +197,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
+    solver_factory->generate(this->mtx)->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -214,7 +214,7 @@ TYPED_TEST(Ir, SolvesMultipleTriangularSystems)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
                         r<value_type>::value * 1e1);
@@ -231,7 +231,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -247,7 +247,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixed)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -268,7 +268,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -293,7 +293,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -315,7 +315,7 @@ TYPED_TEST(Ir, SolvesMultipleStencilSystemsUsingAdvancedApply)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
                         r<value_type>::value * 1e1);
@@ -330,7 +330,7 @@ TYPED_TEST(Ir, SolvesTransposedTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -344,7 +344,7 @@ TYPED_TEST(Ir, SolvesConjTransposedTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -367,7 +367,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -398,7 +398,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
+    solver_factory->generate(this->mtx)->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -421,7 +421,7 @@ TYPED_TEST(Ir, RichardsonTransposedSolvesTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -444,7 +444,7 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -481,8 +481,8 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         } else {
             ref_x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
         }
-        solver->apply(lend(b), lend(x));
-        ref_solver->apply(lend(b), lend(ref_x));
+        solver->apply(b, x);
+        ref_solver->apply(b, ref_x);
 
         GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
     }

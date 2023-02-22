@@ -106,7 +106,7 @@ TYPED_TEST(Idr, SolvesDenseSystem)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), r<value_type>::value * 1e1);
 }
@@ -120,7 +120,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixed)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}),
                         (r_mixed<value_type, TypeParam>()) * 1e1);
@@ -139,7 +139,7 @@ TYPED_TEST(Idr, SolvesDenseSystemComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
@@ -161,7 +161,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
@@ -193,7 +193,7 @@ TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
 }
@@ -211,7 +211,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystems)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}),
                         half_tol);
@@ -244,7 +244,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsWithComplexSubspace)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}),
                         half_tol);
@@ -261,7 +261,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), r<value_type>::value * 1e1);
 }
@@ -277,7 +277,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}),
                         (r_mixed<value_type, TypeParam>()) * 1e1);
@@ -299,7 +299,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
@@ -324,7 +324,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
@@ -347,7 +347,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsUsingAdvancedApply)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}),
                         half_tol);
@@ -373,7 +373,7 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
         gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     auto one_op = gko::initialize<gko::matrix::Dense<value_type>>(
         {gko::one<value_type>()}, this->exec);
@@ -381,7 +381,7 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
         {-gko::one<value_type>()}, this->exec);
     auto resnorm = gko::matrix::Dense<gko::remove_complex<value_type>>::create(
         this->exec, gko::dim<2>{1, 1});
-    locmtx->apply(neg_one_op.get(), x.get(), one_op.get(), b.get());
+    locmtx->apply(neg_one_op, x, one_op, b);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -409,27 +409,13 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck2)
         gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
         l({0.13517641417299162, 0.75117689075221139, 0.47572853185155239,
            -0.50927993095367852, 0.13463333820848167, 0.23126768306576015}),
         half_tol * 1e-1);
-}
-
-
-template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
-{
-    using std::abs;
-    using no_cpx_t = gko::remove_complex<T>;
-    no_cpx_t norm = 0.0;
-    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
-        no_cpx_t absEntry = abs(mat->at(i, col));
-        if (norm < absEntry) norm = absEntry;
-    }
-    return norm;
 }
 
 
@@ -466,9 +452,9 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
         xc->at(i, 1) = x2->at(i);
     }
 
-    solver->apply(b1.get(), x1.get());
-    solver->apply(b2.get(), x2.get());
-    solver->apply(bc.get(), xc.get());
+    solver->apply(b1, x1);
+    solver->apply(b2, x2);
+    solver->apply(bc, xc);
     auto testMtx =
         gko::initialize<Mtx>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
                               I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.}},
@@ -482,22 +468,22 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
     auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
     auto residual1 = gko::initialize<Mtx>({0.}, this->exec);
-    residual1->copy_from(b1->clone());
+    residual1->copy_from(b1);
     auto residual2 = gko::initialize<Mtx>({0.}, this->exec);
-    residual2->copy_from(b2->clone());
+    residual2->copy_from(b2);
     auto residualC = gko::initialize<Mtx>({0.}, this->exec);
-    residualC->copy_from(bc->clone());
+    residualC->copy_from(bc);
 
-    locmtx->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
-    locmtx->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
-    locmtx->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
+    locmtx->apply(alpha, x1, beta, residual1);
+    locmtx->apply(alpha, x2, beta, residual2);
+    locmtx->apply(alpha, xc, beta, residualC);
 
-    auto normS1 = infNorm(residual1.get());
-    auto normS2 = infNorm(residual2.get());
-    auto normC1 = infNorm(residualC.get(), 0);
-    auto normC2 = infNorm(residualC.get(), 1);
-    auto normB1 = infNorm(bc.get(), 0);
-    auto normB2 = infNorm(bc.get(), 1);
+    auto normS1 = inf_norm(residual1);
+    auto normS2 = inf_norm(residual2);
+    auto normC1 = inf_norm(residualC, 0);
+    auto normC2 = inf_norm(residualC, 1);
+    auto normB1 = inf_norm(bc, 0);
+    auto normB2 = inf_norm(bc, 1);
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
@@ -519,7 +505,7 @@ TYPED_TEST(Idr, SolvesTransposedDenseSystem)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
 }
@@ -534,7 +520,7 @@ TYPED_TEST(Idr, SolvesConjTransposedDenseSystem)
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
 }

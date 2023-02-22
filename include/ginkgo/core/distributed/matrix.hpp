@@ -454,8 +454,7 @@ protected:
                     mpi::communicator comm, MatrixType matrix_template)
         : Matrix(
               exec, comm,
-              matrix_template.template create<ValueType, LocalIndexType>(exec)
-                  .get())
+              matrix_template.template create<ValueType, LocalIndexType>(exec))
     {}
 
     /**
@@ -494,13 +493,12 @@ protected:
                     mpi::communicator comm,
                     LocalMatrixType local_matrix_template,
                     NonLocalMatrixType non_local_matrix_template)
-        : Matrix(exec, comm,
-                 local_matrix_template
-                     .template create<ValueType, LocalIndexType>(exec)
-                     .get(),
-                 non_local_matrix_template
-                     .template create<ValueType, LocalIndexType>(exec)
-                     .get())
+        : Matrix(
+              exec, comm,
+              local_matrix_template.template create<ValueType, LocalIndexType>(
+                  exec),
+              non_local_matrix_template
+                  .template create<ValueType, LocalIndexType>(exec))
     {}
 
     /**

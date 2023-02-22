@@ -341,17 +341,17 @@ struct SolverGenerator : DefaultSystemGenerator<> {
                 auto tmp = create_matrix_sin<etype>(exec, vec_size);
                 auto scalar = gko::matrix::Dense<rc_etype>::create(
                     exec->get_master(), gko::dim<2>{1, vec_size[1]});
-                tmp->compute_norm2(scalar.get());
+                tmp->compute_norm2(scalar);
                 for (gko::size_type i = 0; i < vec_size[1]; ++i) {
                     scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
                 }
                 // normalize sin-vector
                 if (gko::is_complex_s<etype>::value) {
-                    tmp->scale(scalar->make_complex().get());
+                    tmp->scale(scalar->make_complex());
                 } else {
-                    tmp->scale(scalar.get());
+                    tmp->scale(scalar);
                 }
-                system_matrix->apply(tmp.get(), rhs.get());
+                system_matrix->apply(tmp, rhs);
                 return rhs;
             }
             throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
@@ -417,7 +417,7 @@ void solve_system(const std::string& solver_name,
         add_or_set_member(solver_json, "iteration_timestamps",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         if (b->get_size()[1] == 1 && !FLAGS_overhead) {
-            auto rhs_norm = compute_norm2(lend(b));
+            auto rhs_norm = compute_norm2(b);
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         }
         for (auto stage : {"generate", "apply"}) {
@@ -439,7 +439,7 @@ void solve_system(const std::string& solver_name,
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_warmup_max_iters)
                          ->generate(system_matrix);
-            solver->apply(lend(b), lend(x_clone));
+            solver->apply(b, x_clone);
             exec->synchronize();
         }
 
@@ -460,20 +460,20 @@ void solve_system(const std::string& solver_name,
                                      FLAGS_max_iters)
                          ->generate(system_matrix);
 
-            exec->remove_logger(gko::lend(gen_logger));
+            exec->remove_logger(gen_logger);
             if (exec != exec->get_master()) {
-                exec->get_master()->remove_logger(gko::lend(gen_logger));
+                exec->get_master()->remove_logger(gen_logger);
             }
             gen_logger->write_data(solver_json["generate"]["components"],
                                    allocator, 1);
 
             if (auto prec =
-                    dynamic_cast<const gko::Preconditionable*>(lend(solver))) {
+                    dynamic_cast<const gko::Preconditionable*>(solver.get())) {
                 add_or_set_member(solver_json, "preconditioner",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
                 write_precond_info(
-                    lend(clone(exec->get_master(), prec->get_preconditioner())),
+                    clone(exec->get_master(), prec->get_preconditioner()).get(),
                     solver_json["preconditioner"], allocator);
             }
 
@@ -485,11 +485,11 @@ void solve_system(const std::string& solver_name,
             }
 
 
-            solver->apply(lend(b), lend(x_clone));
+            solver->apply(b, x_clone);
 
-            exec->remove_logger(gko::lend(apply_logger));
+            exec->remove_logger(apply_logger);
             if (exec != exec->get_master()) {
-                exec->get_master()->remove_logger(gko::lend(apply_logger));
+                exec->get_master()->remove_logger(apply_logger);
             }
             apply_logger->write_data(solver_json["apply"]["components"],
                                      allocator, 1);
@@ -498,12 +498,12 @@ void solve_system(const std::string& solver_name,
             if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
-                    lend(system_matrix), b, solver_json["recurrent_residuals"],
+                    system_matrix, b, solver_json["recurrent_residuals"],
                     solver_json["true_residuals"],
                     solver_json["implicit_residuals"],
                     solver_json["iteration_timestamps"], allocator);
                 solver->add_logger(res_logger);
-                solver->apply(lend(b), lend(x_clone));
+                solver->apply(b, x_clone);
                 if (!res_logger->has_implicit_res_norms()) {
                     solver_json.RemoveMember("implicit_residuals");
                 }
@@ -532,10 +532,10 @@ void solve_system(const std::string& solver_name,
                 solver->add_logger(it_logger);
             }
             apply_timer->tic();
-            solver->apply(lend(b), lend(x_clone));
+            solver->apply(b, x_clone);
             apply_timer->toc();
             if (ic.get_num_repetitions() == 0) {
-                solver->remove_logger(gko::lend(it_logger));
+                solver->remove_logger(it_logger);
             }
         }
         it_logger->write_data(solver_json["apply"], allocator);
@@ -545,12 +545,12 @@ void solve_system(const std::string& solver_name,
             if (solver_json["apply"].HasMember("iterations") &&
                 solver_json["apply"]["iterations"].GetInt() == 0) {
                 auto error =
-                    compute_direct_error(lend(solver), lend(b), lend(x_clone));
+                    compute_direct_error(solver.get(), b, x_clone.get());
                 add_or_set_member(solver_json, "forward_error", error,
                                   allocator);
             }
-            auto residual = compute_residual_norm(lend(system_matrix), lend(b),
-                                                  lend(x_clone));
+            auto residual =
+                compute_residual_norm(system_matrix.get(), b, x_clone.get());
             add_or_set_member(solver_json, "residual_norm", residual,
                               allocator);
         }
@@ -653,7 +653,7 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                     }
                     solve_system(solver_name, precond_name,
                                  precond_solver_name->c_str(), exec, timer,
-                                 system_matrix, lend(b), lend(x), test_case,
+                                 system_matrix, b.get(), x.get(), test_case,
                                  allocator);
                     if (do_print) {
                         backup_results(test_cases);

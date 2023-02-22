@@ -177,7 +177,7 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(upper_trs::make_solve(
-                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                this->get_system_matrix().get(), this->solve_struct_.get(),
                 this->get_parameters().unit_diagonal, parameters_.algorithm,
                 trans_b, trans_x, dense_b, dense_x));
         },
@@ -199,7 +199,7 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
             auto x_clone = dense_x->clone();
             this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

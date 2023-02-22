@@ -76,7 +76,7 @@ struct conversion_sort_helper<matrix::Csr<ValueType, IndexType>> {
         std::shared_ptr<const Executor>& exec, Source* source)
     {
         auto editable_mtx = mtx_type::create(exec);
-        as<ConvertibleTo<mtx_type>>(source)->convert_to(lend(editable_mtx));
+        as<ConvertibleTo<mtx_type>>(source)->convert_to(editable_mtx);
         editable_mtx->sort_by_column_index();
         return editable_mtx;
     }

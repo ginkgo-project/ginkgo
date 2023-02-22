@@ -95,7 +95,7 @@ void FixedCoarsening<ValueType, IndexType>::generate()
     auto restrict_op = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim,
                          fixed_coarsening_op->get_strategy()));
-    exec->copy_from(parameters_.coarse_rows.get_executor().get(), coarse_dim,
+    exec->copy_from(parameters_.coarse_rows.get_executor(), coarse_dim,
                     parameters_.coarse_rows.get_const_data(),
                     restrict_op->get_col_idxs());
     exec->run(fixed_coarsening::make_fill_array(restrict_op->get_values(),
@@ -111,8 +111,8 @@ void FixedCoarsening<ValueType, IndexType>::generate()
     coarse_matrix->set_strategy(fixed_coarsening_op->get_strategy());
     auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
     tmp->set_strategy(fixed_coarsening_op->get_strategy());
-    fixed_coarsening_op->apply(prolong_op.get(), tmp.get());
-    restrict_op->apply(tmp.get(), coarse_matrix.get());
+    fixed_coarsening_op->apply(prolong_op, tmp);
+    restrict_op->apply(tmp, coarse_matrix);
 
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }

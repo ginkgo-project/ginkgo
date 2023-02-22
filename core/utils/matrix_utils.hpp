@@ -275,7 +275,7 @@ void make_hpd(matrix_data<ValueType, IndexType>& data,
  */
 template <typename MtxType>
 void remove_diagonal_entry_from_row(
-    MtxType* const mtx, const typename MtxType::index_type row_to_process)
+    MtxType* mtx, const typename MtxType::index_type row_to_process)
 {
     using value_type = typename MtxType::value_type;
     using index_type = typename MtxType::index_type;
@@ -295,7 +295,7 @@ void remove_diagonal_entry_from_row(
  * Ensures each row has a diagonal entry.
  */
 template <typename MtxType>
-void ensure_all_diagonal_entries(MtxType* const mtx)
+void ensure_all_diagonal_entries(MtxType* mtx)
 {
     using value_type = typename MtxType::value_type;
     using index_type = typename MtxType::index_type;

@@ -100,17 +100,6 @@ protected:
     std::unique_ptr<Solver> solver;
     std::unique_ptr<typename Solver::Factory> cb_gmres_big_factory;
     std::unique_ptr<Solver> big_solver;
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 
@@ -174,12 +163,11 @@ TYPED_TEST(CbGmres, CanBeCopied)
     auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
     auto r_copy = static_cast<Solver*>(copy.get());
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_copy->get_storage_precision(),
               this->solver->get_storage_precision());
     ASSERT_EQ(r_copy->get_krylov_dim(), this->solver->get_krylov_dim());
@@ -193,12 +181,11 @@ TYPED_TEST(CbGmres, CanBeMoved)
     auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
     auto r_copy = static_cast<Solver*>(copy.get());
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = r_copy->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_copy->get_storage_precision(), this->storage_precision);
     ASSERT_EQ(r_copy->get_krylov_dim(), 100u);
 }
@@ -213,8 +200,7 @@ TYPED_TEST(CbGmres, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = r_clone->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
     ASSERT_EQ(r_clone->get_storage_precision(),
               this->solver->get_storage_precision());
     ASSERT_EQ(r_clone->get_krylov_dim(), this->solver->get_krylov_dim());

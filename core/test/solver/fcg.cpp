@@ -102,12 +102,12 @@ TYPED_TEST(Fcg, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()),
-                        this->mtx.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()), this->mtx,
+                        0.0);
 }
 
 
@@ -117,12 +117,12 @@ TYPED_TEST(Fcg, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()),
-                        this->mtx.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()), this->mtx,
+                        0.0);
 }
 
 
@@ -134,8 +134,8 @@ TYPED_TEST(Fcg, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = dynamic_cast<Solver*>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(clone_mtx.get()),
-                        this->mtx.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(clone_mtx.get()), this->mtx,
+                        0.0);
 }
 
 

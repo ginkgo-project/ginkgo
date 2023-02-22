@@ -175,7 +175,7 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
     int orig[] = {3, 8};
     auto* copy = cuda->alloc<int>(2);
 
-    cuda->copy_from(omp.get(), 2, orig, copy);
+    cuda->copy_from(omp, 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
@@ -196,7 +196,7 @@ TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
     int orig[] = {3, 8};
     auto* copy = cuda3->alloc<int>(2);
 
-    cuda3->copy_from(omp.get(), 2, orig, copy);
+    cuda3->copy_from(omp, 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda3->synchronize());
@@ -218,7 +218,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
     auto orig = cuda->alloc<int>(2);
     init_data<<<1, 1>>>(orig);
 
-    omp->copy_from(cuda.get(), 2, orig, copy);
+    omp->copy_from(cuda, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -261,7 +261,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     init_data<<<1, 1>>>(orig);
 
     auto copy_cuda2 = cuda2->alloc<int>(2);
-    cuda2->copy_from(cuda.get(), 2, orig, copy_cuda2);
+    cuda2->copy_from(cuda, 2, orig, copy_cuda2);
 
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
@@ -271,7 +271,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
+    omp->copy_from(cuda2, 2, copy_cuda2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     cuda2->free(copy_cuda2);

@@ -652,7 +652,7 @@ TYPED_TEST(Jacobi, AppliesToVector)
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), r<value_type>::value);
 }
@@ -666,7 +666,7 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesToVector)
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto sj = this->scalar_j_factory->generate(this->mtx);
 
-    sj->apply(b.get(), x.get());
+    sj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -0.25, -0.5, 1.0, -0.25}),
                         r<value_type>::value);
@@ -681,7 +681,7 @@ TYPED_TEST(Jacobi, AppliesToMixedVector)
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({1.0, 0.0, 0.0, 1.0, 0.0}),
@@ -703,7 +703,7 @@ TYPED_TEST(Jacobi, AppliesToComplexVector)
         this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -728,7 +728,7 @@ TYPED_TEST(Jacobi, AppliesToMixedComplexVector)
         this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -747,7 +747,7 @@ TYPED_TEST(Jacobi, AppliesToVectorWithAdaptivePrecision)
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto bj = this->adaptive_bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), half_tol);
 }
@@ -769,7 +769,7 @@ TYPED_TEST(Jacobi, AppliesToVectorWithAdaptivePrecisionAndSmallBlocks)
                   .on(this->exec)
                   ->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), half_tol);
 }
@@ -792,7 +792,7 @@ TYPED_TEST(Jacobi, AppliesToMultipleVectors)
                              this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
@@ -817,7 +817,7 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesToMultipleVectors)
                              this->exec);
     auto sj = this->scalar_j_factory->generate(this->mtx);
 
-    sj->apply(b.get(), x.get());
+    sj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -844,7 +844,7 @@ TYPED_TEST(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecision)
                              this->exec);
     auto bj = this->adaptive_bj_factory->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
@@ -877,7 +877,7 @@ TYPED_TEST(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecisionAndSmallBlocks)
                   .on(this->exec)
                   ->generate(this->mtx);
 
-    bj->apply(b.get(), x.get());
+    bj->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
@@ -895,7 +895,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToVector)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
                         r<value_type>::value);
@@ -912,7 +912,7 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesLinearCombinationToVector)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto sj = this->scalar_j_factory->generate(this->mtx);
 
-    sj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    sj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.5, -3.0, 4.0, -3.5}),
                         r<value_type>::value);
@@ -929,7 +929,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
@@ -953,7 +953,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
@@ -978,7 +978,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedComplexVector)
     auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -999,7 +999,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToVectorWithAdaptivePrecision)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto bj = this->adaptive_bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), half_tol);
 }
@@ -1025,7 +1025,7 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMultipleVectors)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
@@ -1053,7 +1053,7 @@ TYPED_TEST(Jacobi, ScalarAppliesLinearCombinationToMultipleVectors)
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto sj = this->scalar_j_factory->generate(this->mtx);
 
-    sj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    sj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -1.5}, {0.5, 2.5}, {-3.0, -1.0}, {4.0, 0.0}, {-3.5, 0.5}}),
@@ -1082,7 +1082,7 @@ TYPED_TEST(Jacobi,
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto bj = this->adaptive_bj_factory->generate(this->mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    bj->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
@@ -1096,7 +1096,7 @@ TYPED_TEST(Jacobi, ConvertsToDense)
     using value_type = typename TestFixture::value_type;
     auto dense = Vec::create(this->exec);
 
-    dense->copy_from(this->bj_factory->generate(this->mtx));
+    dense->move_from(this->bj_factory->generate(this->mtx));
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1116,7 +1116,7 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
     auto half_tol = std::sqrt(r<value_type>::value);
     auto dense = Vec::create(this->exec);
 
-    dense->copy_from(this->adaptive_bj_factory->generate(this->mtx));
+    dense->move_from(this->adaptive_bj_factory->generate(this->mtx));
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1135,7 +1135,7 @@ TYPED_TEST(Jacobi, ConvertsEmptyToDense)
     auto empty = gko::share(Vec::create(this->exec));
     auto res = Vec::create(this->exec);
 
-    res->copy_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
+    res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
 
     ASSERT_FALSE(res->get_size());
 }

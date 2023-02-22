@@ -134,7 +134,7 @@ class Diagonal;
  *
  * Here, if $L$ is a matrix, LinOp::apply() refers to the matrix vector
  * product, and `L->apply(a, b)` computes $b = L \cdot a$.
- * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update $x:=x+b$.
+ * `x->add_scaled(one, b)` is the `axpy` vector update $x:=x+b$.
  *
  * The interesting part of this example is the apply() routine at line 4 of the
  * function body. Since this routine is part of the LinOp base class, the

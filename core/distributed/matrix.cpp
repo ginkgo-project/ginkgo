@@ -107,8 +107,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_.get());
-    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
+    result->local_mtx_->copy_from(this->local_mtx_);
+    result->non_local_mtx_->copy_from(this->non_local_mtx_);
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
@@ -126,8 +126,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->move_from(this->local_mtx_.get());
-    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
+    result->local_mtx_->move_from(this->local_mtx_);
+    result->non_local_mtx_->move_from(this->non_local_mtx_);
     result->gather_idxs_ = std::move(this->gather_idxs_);
     result->send_offsets_ = std::move(this->send_offsets_);
     result->recv_offsets_ = std::move(this->recv_offsets_);
@@ -199,9 +199,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(std::move(non_local_data));
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    exec->get_master()->copy_from(exec.get(), num_parts,
-                                  recv_sizes_array.get_const_data(),
-                                  recv_sizes_.data());
+    exec->get_master()->copy_from(
+        exec, num_parts, recv_sizes_array.get_const_data(), recv_sizes_.data());
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
                      recv_offsets_.begin() + 1);
     comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
@@ -325,7 +324,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
             auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
-            local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+            local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
             auto exec = this->get_executor();
@@ -334,7 +333,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
             non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                                  one_scalar_.get(), local_x.get());
+                                  one_scalar_.get(), local_x);
         },
         b, x);
 }
@@ -359,7 +358,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
-                              local_beta, local_x.get());
+                              local_beta, local_x);
             req.wait();
 
             auto exec = this->get_executor();
@@ -368,7 +367,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
             non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
-                                  one_scalar_.get(), local_x.get());
+                                  one_scalar_.get(), local_x);
         },
         alpha, b, beta, x);
 }
@@ -404,8 +403,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        local_mtx_->copy_from(other.local_mtx_.get());
-        non_local_mtx_->copy_from(other.non_local_mtx_.get());
+        local_mtx_->copy_from(other.local_mtx_);
+        non_local_mtx_->copy_from(other.non_local_mtx_);
         gather_idxs_ = other.gather_idxs_;
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
@@ -428,8 +427,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        local_mtx_->move_from(other.local_mtx_.get());
-        non_local_mtx_->move_from(other.non_local_mtx_.get());
+        local_mtx_->move_from(other.local_mtx_);
+        non_local_mtx_->move_from(other.non_local_mtx_);
         gather_idxs_ = std::move(other.gather_idxs_);
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);

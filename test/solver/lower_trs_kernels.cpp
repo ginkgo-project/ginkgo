@@ -116,8 +116,8 @@ TEST_F(LowerTrs, ApplyFullDenseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -133,8 +133,8 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -148,8 +148,8 @@ TEST_F(LowerTrs, ApplyFullSparseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -165,8 +165,8 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -180,8 +180,8 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -197,8 +197,8 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -212,8 +212,8 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -229,8 +229,8 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -244,8 +244,8 @@ TEST_F(LowerTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -261,8 +261,8 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -276,8 +276,8 @@ TEST_F(LowerTrs, ApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -293,8 +293,8 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -308,8 +308,8 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -325,8 +325,8 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -340,8 +340,8 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -358,8 +358,8 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -377,8 +377,8 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -395,8 +395,8 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -411,8 +411,8 @@ TEST_F(LowerTrs, ClassicalApplyFullSparseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -429,8 +429,8 @@ TEST_F(LowerTrs, ClassicalApplyFullSparseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -445,8 +445,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -463,8 +463,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -479,8 +479,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularSparseMtxIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -497,8 +497,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -513,8 +513,8 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -531,8 +531,8 @@ TEST_F(LowerTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -547,8 +547,8 @@ TEST_F(LowerTrs, ClassicalApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -566,8 +566,8 @@ TEST_F(LowerTrs,
     auto solver = lower_trs_factory->generate(mtx);
     auto d_solver = d_lower_trs_factory->generate(dmtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -582,8 +582,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -601,8 +601,8 @@ TEST_F(LowerTrs,
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -617,8 +617,8 @@ TEST_F(LowerTrs, ClassicalApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
@@ -637,8 +637,8 @@ TEST_F(LowerTrs,
     auto solver = lower_trs_factory->generate(mtx_l);
     auto d_solver = d_lower_trs_factory->generate(dmtx_l);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(db.get(), dx.get());
+    solver->apply(b, x);
+    d_solver->apply(db, dx);
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }

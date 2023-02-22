@@ -92,7 +92,7 @@ void symbolic_cholesky(
     const auto scalar =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-    lt_factor->apply(scalar.get(), id.get(), scalar.get(), factors.get());
+    lt_factor->apply(scalar, id, scalar, factors);
 }
 
 
@@ -181,7 +181,7 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
     array<IndexType> out_row_ptr_array{exec, std::move(host_out_row_ptr_array)};
     array<IndexType> out_col_idx_array{exec, out_nnz};
     array<ValueType> out_val_array{exec, out_nnz};
-    exec->copy_from(host_exec.get(), out_nnz, out_col_idxs.data(),
+    exec->copy_from(host_exec, out_nnz, out_col_idxs.data(),
                     out_col_idx_array.get_data());
     factors = matrix_type::create(
         exec, mtx->get_size(), std::move(out_val_array),

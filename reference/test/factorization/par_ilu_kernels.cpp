@@ -181,10 +181,10 @@ protected:
               par_ilu_type::build().with_skip_sorting(false).on(exec))
     {
         auto tmp_csr = Csr::create(exec);
-        mtx_small->convert_to(gko::lend(tmp_csr));
+        mtx_small->convert_to(tmp_csr);
         mtx_csr_small = std::move(tmp_csr);
         auto tmp_csr2 = Csr::create(exec);
-        mtx_small2->convert_to(gko::lend(tmp_csr2));
+        mtx_small2->convert_to(tmp_csr2);
         mtx_csr_small2 = std::move(tmp_csr2);
     }
 
@@ -228,7 +228,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
     auto empty_mtx = this->empty_csr->clone();
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(empty_mtx), true);
+        this->ref, empty_mtx.get(), true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
@@ -248,7 +248,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), true);
+        this->ref, matrix.get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -267,7 +267,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), true);
+        this->ref, matrix.get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -296,7 +296,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), false);
+        this->ref, matrix.get(), false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -308,9 +308,9 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
     using Csr = typename TestFixture::Csr;
     using index_type = typename TestFixture::index_type;
     auto small_csr_l_expected = Csr::create(this->ref);
-    this->small_l_expected->convert_to(gko::lend(small_csr_l_expected));
+    this->small_l_expected->convert_to(small_csr_l_expected);
     auto small_csr_u_expected = Csr::create(this->ref);
-    this->small_u_expected->convert_to(gko::lend(small_csr_u_expected));
+    this->small_u_expected->convert_to(small_csr_u_expected);
     auto num_row_ptrs = this->mtx_csr_small->get_size()[0] + 1;
     std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
     std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
@@ -318,7 +318,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, gko::lend(this->mtx_csr_small), l_row_ptrs, u_row_ptrs);
+        this->ref, this->mtx_csr_small.get(), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            small_csr_l_expected->get_const_row_ptrs()));
@@ -333,11 +333,11 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     using Csr = typename TestFixture::Csr;
     auto empty_mtx = this->empty_csr->clone();
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(empty_mtx), true);
+        this->ref, empty_mtx.get(), true);
     auto empty_mtx_l_expected = Csr::create(this->ref);
-    this->identity->convert_to(gko::lend(empty_mtx_l_expected));
+    this->identity->convert_to(empty_mtx_l_expected);
     auto empty_mtx_u_expected = Csr::create(this->ref);
-    this->identity->convert_to(gko::lend(empty_mtx_u_expected));
+    this->identity->convert_to(empty_mtx_u_expected);
     auto num_row_ptrs = empty_mtx->get_size()[0] + 1;
     std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
     std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
@@ -345,7 +345,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, gko::lend(empty_mtx), l_row_ptrs, u_row_ptrs);
+        this->ref, empty_mtx.get(), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            empty_mtx_l_expected->get_const_row_ptrs()));
@@ -380,8 +380,7 @@ TYPED_TEST(ParIlu, KernelInitializeLU)
     std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, gko::lend(this->mtx_csr_small), gko::lend(actual_l),
-        gko::lend(actual_u));
+        this->ref, this->mtx_csr_small.get(), actual_l.get(), actual_u.get());
 
     GKO_ASSERT_MTX_NEAR(actual_l, expected_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, expected_u, r<value_type>::value);
@@ -394,12 +393,11 @@ TYPED_TEST(ParIlu, KernelInitializeLUZeroMatrix)
     using Csr = typename TestFixture::Csr;
     auto actual_l = Csr::create(this->ref);
     auto actual_u = Csr::create(this->ref);
-    actual_l->copy_from(gko::lend(this->identity));
-    actual_u->copy_from(gko::lend(this->identity));
+    actual_l->copy_from(this->identity);
+    actual_u->copy_from(this->identity);
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, gko::lend(this->empty_csr), gko::lend(actual_l),
-        gko::lend(actual_u));
+        this->ref, this->empty_csr.get(), actual_l.get(), actual_u.get());
 
     GKO_ASSERT_MTX_NEAR(actual_l, this->identity, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, this->identity, r<value_type>::value);
@@ -428,17 +426,16 @@ TYPED_TEST(ParIlu, KernelComputeLU)
     auto u_csr = Csr::create(this->ref);
     auto mtx_coo = Coo::create(this->ref);
     constexpr unsigned int iterations = 1;
-    l_dense->convert_to(gko::lend(l_csr));
-    u_dense->convert_to(gko::lend(u_csr));
-    this->mtx_small->convert_to(gko::lend(mtx_coo));
+    l_dense->convert_to(l_csr);
+    u_dense->convert_to(u_csr);
+    this->mtx_small->convert_to(mtx_coo);
     // The expected result of U also needs to be transposed
     auto u_expected_lin_op = this->small_u_expected->transpose();
     auto u_expected = std::unique_ptr<Dense>(
         static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        this->ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
-        gko::lend(u_csr));
+        this->ref, iterations, mtx_coo.get(), l_csr.get(), u_csr.get());
 
     GKO_ASSERT_MTX_NEAR(l_csr, this->small_l_expected, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_csr, u_expected, r<value_type>::value);
@@ -507,12 +504,10 @@ TYPED_TEST(ParIlu, LUFactorFunctionsSetProperly)
 {
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
-    auto lin_op_l_factor =
-        static_cast<const gko::LinOp*>(gko::lend(factors->get_l_factor()));
-    auto lin_op_u_factor =
-        static_cast<const gko::LinOp*>(gko::lend(factors->get_u_factor()));
-    auto first_operator = gko::lend(factors->get_operators()[0]);
-    auto second_operator = gko::lend(factors->get_operators()[1]);
+    auto lin_op_l_factor = gko::as<gko::LinOp>(factors->get_l_factor());
+    auto lin_op_u_factor = gko::as<gko::LinOp>(factors->get_u_factor());
+    auto first_operator = factors->get_operators()[0];
+    auto second_operator = factors->get_operators()[1];
 
     ASSERT_EQ(lin_op_l_factor, first_operator);
     ASSERT_EQ(lin_op_u_factor, second_operator);
@@ -524,7 +519,7 @@ TYPED_TEST(ParIlu, GenerateForCooIdentity)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     auto coo_mtx = gko::share(Coo::create(this->exec));
-    this->identity->convert_to(gko::lend(coo_mtx));
+    this->identity->convert_to(coo_mtx);
 
     auto factors = this->ilu_factory_skip->generate(coo_mtx);
     auto l_factor = factors->get_l_factor();
@@ -540,7 +535,7 @@ TYPED_TEST(ParIlu, GenerateForCsrIdentity)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     auto csr_mtx = gko::share(Csr::create(this->exec));
-    this->identity->convert_to(gko::lend(csr_mtx));
+    this->identity->convert_to(csr_mtx);
 
     auto factors = this->ilu_factory_skip->generate(csr_mtx);
     auto l_factor = factors->get_l_factor();
@@ -592,12 +587,12 @@ TYPED_TEST(ParIlu, ApplyMethodDenseSmall)
     using value_type = typename TestFixture::value_type;
     using Dense = typename TestFixture::Dense;
     const auto x = gko::initialize<Dense>({1., 2., 3.}, this->exec);
-    auto b_lu = Dense::create_with_config_of(gko::lend(x));
-    auto b_ref = Dense::create_with_config_of(gko::lend(x));
+    auto b_lu = Dense::create_with_config_of(x);
+    auto b_ref = Dense::create_with_config_of(x);
 
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
-    factors->apply(gko::lend(x), gko::lend(b_lu));
-    this->mtx_small->apply(gko::lend(x), gko::lend(b_ref));
+    factors->apply(x, b_lu);
+    this->mtx_small->apply(x, b_ref);
 
     GKO_ASSERT_MTX_NEAR(b_lu, b_ref, r<value_type>::value);
 }

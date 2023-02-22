@@ -45,8 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // To get an accurate result, the solve is repeated multiple times (while
 // ensuring the initial guess is always the same). The result of the solve will
 // be written to x.
-double measure_solve_time_in_s(const gko::Executor* exec, gko::LinOp* solver,
-                               const gko::LinOp* b, gko::LinOp* x)
+double measure_solve_time_in_s(std::shared_ptr<const gko::Executor> exec,
+                               gko::LinOp* solver, const gko::LinOp* b,
+                               gko::LinOp* x)
 {
     constexpr int repeats{5};
     double duration{0};
@@ -61,14 +62,14 @@ double measure_solve_time_in_s(const gko::Executor* exec, gko::LinOp* solver,
         // starting the time
         exec->synchronize();
         auto tic = std::chrono::steady_clock::now();
-        solver->apply(b, lend(x_copy));
+        solver->apply(b, x_copy);
         // Make sure all computations are done before stopping the time
         exec->synchronize();
         auto tac = std::chrono::steady_clock::now();
         duration += std::chrono::duration<double>(tac - tic).count();
     }
     // Copy the solution back to x, so the caller has the result
-    x->copy_from(lend(x_copy));
+    x->copy_from(x_copy);
     return duration / static_cast<double>(repeats);
 }
 
@@ -139,11 +140,11 @@ int main(int argc, char* argv[])
             ValueType{1} / std::sqrt(static_cast<ValueType>(A_size[0]));
     }
     auto b_norm = gko::initialize<real_vec>({0.0}, exec);
-    b_host->compute_norm2(lend(b_norm));
-    auto b = clone(exec, lend(b_host));
+    b_host->compute_norm2(b_norm);
+    auto b = clone(exec, b_host);
 
     // As an initial guess, use the right-hand side
-    auto x_keep = clone(lend(b));
+    auto x_keep = clone(b);
     auto x_reduce = clone(x_keep);
 
     const RealValueType reduction_factor{1e-6};
@@ -182,10 +183,10 @@ int main(int argc, char* argv[])
     auto solver_reduce = solver_gen_reduce->generate(A);
 
     // Solve both system and measure the time for each.
-    auto time_keep = measure_solve_time_in_s(lend(exec), lend(solver_keep),
-                                             lend(b), lend(x_keep));
-    auto time_reduce = measure_solve_time_in_s(lend(exec), lend(solver_reduce),
-                                               lend(b), lend(x_reduce));
+    auto time_keep =
+        measure_solve_time_in_s(exec, solver_keep.get(), b.get(), x_keep.get());
+    auto time_reduce = measure_solve_time_in_s(exec, solver_reduce.get(),
+                                               b.get(), x_reduce.get());
 
     // Make sure the output is in scientific notation for easier comparison
     std::cout << std::scientific;
@@ -204,19 +205,19 @@ int main(int argc, char* argv[])
 
     auto res_norm_keep = gko::initialize<real_vec>({0.0}, exec);
     auto res_norm_reduce = gko::initialize<real_vec>({0.0}, exec);
-    auto tmp = gko::clone(gko::lend(b));
+    auto tmp = gko::clone(b);
 
     // tmp = Ax - tmp
-    A->apply(lend(one), lend(x_keep), lend(neg_one), lend(tmp));
-    tmp->compute_norm2(lend(res_norm_keep));
+    A->apply(one, x_keep, neg_one, tmp);
+    tmp->compute_norm2(res_norm_keep);
 
     std::cout << "\nResidual norm without compression:\n";
-    write(std::cout, lend(res_norm_keep));
+    write(std::cout, res_norm_keep);
 
-    tmp->copy_from(lend(b));
-    A->apply(lend(one), lend(x_reduce), lend(neg_one), lend(tmp));
-    tmp->compute_norm2(lend(res_norm_reduce));
+    tmp->copy_from(b);
+    A->apply(one, x_reduce, neg_one, tmp);
+    tmp->compute_norm2(res_norm_reduce);
 
     std::cout << "\nResidual norm with compression:\n";
-    write(std::cout, lend(res_norm_reduce));
+    write(std::cout, res_norm_reduce);
 }
