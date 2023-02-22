@@ -360,3 +360,67 @@ TEST(ProfilerHook, NestedSummaryWorks)
 
     // The assertions happen in the destructor of `logger`
 }
+
+
+TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
+{
+    using gko::log::ProfilerHook;
+    std::stringstream ss;
+    ProfilerHook::TableSummaryWriter writer(ss, "Test header");
+    std::vector<ProfilerHook::summary_entry> entries;
+    entries.push_back({"empty", 0, 0, 0});  // division by zero
+    entries.push_back({"short", 1, 0, 1});
+    entries.push_back({"shortish", 1'200, 1'000, 1});
+    entries.push_back(
+        {"medium", 1'000'000, 500'000, 4});  // check division by count
+    entries.push_back({"long", 120'000'000'000, 60'000'000'000, 1});
+    entries.push_back({"eternal", 86'400'000'000'000, 86'400'000'000'000, 1});
+
+    writer.write(entries, 1'000'000'000);
+
+    ASSERT_EQ(ss.str(), R"(Test header
+Overhead estimate 1.0 s 
+|   name   | total  | total (self) | count |   avg    | avg (self) |
+|----------|-------:|-------------:|------:|---------:|-----------:|
+| eternal  | 1.0 d  |       1.0 d  |     1 |   1.0 d  |     1.0 d  |
+| long     | 2.0 m  |       1.0 m  |     1 |   2.0 m  |     1.0 m  |
+| medium   | 1.0 ms |     500.0 us |     4 | 250.0 us |   125.0 us |
+| shortish | 1.2 us |       1.0 us |     1 |   1.2 us |     1.0 us |
+| short    | 1.0 ns |       0.0 ns |     1 |   1.0 ns |     0.0 ns |
+| empty    | 0.0 ns |       0.0 ns |     0 |   0.0 ns |     0.0 ns |
+)");
+}
+
+
+TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorks)
+{
+    using gko::log::ProfilerHook;
+    std::stringstream ss;
+    ProfilerHook::TableSummaryWriter writer(ss, "Test header");
+    ProfilerHook::nested_summary_entry entry{
+        "root",
+        2000,
+        1,
+        {ProfilerHook::nested_summary_entry{"foo", 100, 5, {}},
+         ProfilerHook::nested_summary_entry{
+             "bar",
+             1000,
+             2,
+             {ProfilerHook::nested_summary_entry{"child", 100, 2, {}}}},
+         ProfilerHook::nested_summary_entry{"baz", 1, 2, {}}}};
+
+    writer.write_nested(entry, 1);
+
+    ASSERT_EQ(ss.str(), R"(Test header
+Overhead estimate 1.0 ns
+|    name    |  total   | fraction | count |   avg    |
+|------------|---------:|---------:|------:|---------:|
+| root       |   2.0 us |  100.0 % |     1 |   2.0 us |
+|   bar      |   1.0 us |   50.0 % |     2 | 500.0 ns |
+|     (self) | 900.0 ns |   90.0 % |     2 | 450.0 ns |
+|     child  | 100.0 ns |   10.0 % |     2 |  50.0 ns |
+|   (self)   | 899.0 ns |   45.0 % |     1 | 899.0 ns |
+|   foo      | 100.0 ns |    5.0 % |     5 |  20.0 ns |
+|   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |
+)");
+}
