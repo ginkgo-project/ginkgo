@@ -102,7 +102,7 @@ void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto a_b = batch::batch_entry(a_ub, group_id);
                 const auto b_b = batch::batch_entry(b_ub, group_id);
                 const auto c_b = batch::batch_entry(c_ub, group_id);
-                single_matvec_kernel(a_b, b_b.values, c_b.values, item_ct1);
+                matvec_kernel(a_b, b_b.values, c_b.values, item_ct1);
             });
     });
 }
@@ -148,9 +148,8 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto c_b = batch::batch_entry(c_ub, group_id);
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto beta_b = batch::batch_entry(beta_ub, group_id);
-                single_advanced_matvec_kernel(alpha_b.values[0], a_b,
-                                              b_b.values, beta_b.values[0],
-                                              c_b.values, item_ct1);
+                advanced_matvec_kernel(alpha_b.values[0], a_b, b_b.values,
+                                       beta_b.values[0], c_b.values, item_ct1);
             });
     });
 }
