@@ -125,7 +125,8 @@ public:
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
-    virtual void on_##_event_name(__VA_ARGS__) const {}              \
+    virtual void on_##_event_name(__VA_ARGS__) const                 \
+    {}                                                               \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
@@ -408,7 +409,7 @@ protected:
      * @param set_finalized  whether this finalizes the iteration
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
-     * @param all_converged  whether all right hand sides
+     * @param all_converged  whether all right hand sides are converged
      */
     virtual void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& it, const LinOp* r,
@@ -427,6 +428,26 @@ protected:
      * iterations.
      *
      * @param it  the current iteration count
+     * @param r  the residual (optional)
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the residual norm (optional)
+     * @param status  the stopping status of the right hand sides (optional)
+     * @param stopped  whether all right hand sides have stopped (invalid if
+     *                 status is not provided)
+     */
+    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
+                              const size_type& it, const LinOp* r,
+                              const LinOp* x, const LinOp* tau,
+                              const LinOp* implicit_tau_sq,
+                              const array<stopping_status>* status,
+                              bool stopped)
+protected:
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
@@ -435,11 +456,17 @@ protected:
      * deprecated. Please use the one with the additional implicit_tau_sq
      * parameter as below.
      */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
-                              const size_type& it, const LinOp* r,
-                              const LinOp* x = nullptr,
-                              const LinOp* tau = nullptr)
-protected:
+    [[deprecated(
+        "Please use the version with the additional implicit_tau_sq, status "
+        "and stopped parameter.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x = nullptr,
+                          const LinOp* tau = nullptr) const
+    {
+        this->on_iteration_complete(solver, it, r, x, tau, nullptr, nullptr,
+                                    false);
+    }
+
     /**
      * Register the `iteration_complete` event which logs every completed
      * iterations.
@@ -450,13 +477,17 @@ protected:
      * @param tau  the residual norm (optional)
      * @param implicit_tau_sq  the implicit residual norm squared (optional)
      */
-    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
-                                       const LinOp* r, const LinOp* x,
-                                       const LinOp* tau,
-                                       const LinOp* implicit_tau_sq) const
+    [[deprecated(
+        "Please use the version with the additional status and stopped "
+        "parameter.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x, const LinOp* tau,
+                          const LinOp* implicit_tau_sq) const
     {
-        this->on_iteration_complete(solver, it, r, x, tau);
+        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq,
+                                    nullptr, false);
     }
+
 
 public:
     /**
