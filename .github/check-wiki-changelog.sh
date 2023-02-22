@@ -15,7 +15,8 @@ else
   HAS_WIKI="$(cat Changelog.md | grep -E ${PR} || echo false)"
   if [[ "${HAS_WIKI}" == "false" ]]; then
     echo "This PR does not create the corresponding entry in wiki/Changelog"
-    echo "Please add [#${PR_NUMBER}](https://github.com/ginkgo-project/ginkgo/pull/${PR_NUMBER}) in the wiki/Changelog page"
+    echo "Please add [#${PR_NUMBER}](https://github.com/ginkgo-project/ginkgo/pull/${PR_NUMBER})"
+    echo "to the changelog at https://github.com/ginkgo-project/ginkgo/wiki/Changelog"
     echo "Alternatively, use the label 1:ST:no-changelog-entry to skip this check."
     exit 1
   else

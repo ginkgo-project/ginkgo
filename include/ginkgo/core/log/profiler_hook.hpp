@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
 
 
+#include <iostream>
 #include <unordered_map>
 
 
@@ -59,9 +60,14 @@ enum class profile_event_category {
     factory,
     /** Stopping criterion events. */
     criterion,
+    /** User-defined events. */
+    user,
     /** For development use. */
     internal,
 };
+
+
+class profiling_scope_guard;
 
 
 /**
@@ -180,7 +186,8 @@ public:
      * @param obj  the object
      * @param name  its name
      */
-    void set_object_name(const PolymorphicObject* obj, std::string name);
+    void set_object_name(ptr_param<const PolymorphicObject> obj,
+                         std::string name);
 
     /**
      * Should the events call executor->synchronize on operations and
@@ -188,6 +195,17 @@ public:
      * execution timeline of kernels synchronous.
      */
     void set_synchronization(bool synchronize);
+
+    /**
+     * Creates a scope guard for a user-defined range to be included in the
+     * profile.
+     *
+     * @param name  the name of the range
+     *
+     * @return  the scope guard. It will begin a range immediately and end it at
+     *          the end of its scope.
+     */
+    profiling_scope_guard user_range(const char* name) const;
 
     /** The Ginkgo yellow background color as packed 32 bit ARGB value. */
     constexpr static uint32 color_yellow_argb = 0xFFFFCB05U;
@@ -228,6 +246,130 @@ public:
     static std::shared_ptr<ProfilerHook> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
+    struct summary_entry {
+        /** The name of the range. */
+        std::string name;
+        /** The total runtime of all invocations of the range in nanoseconds. */
+        int64 inclusive_ns{};
+        /**
+         * The total runtime of all invocations of the range in nanoseconds,
+         * excluding the runtime of all nested ranges.
+         */
+        int64 exclusive_ns{};
+        /** The total number of invocations of the range. */
+        int64 count{};
+    };
+
+    struct nested_summary_entry {
+        /** The name of the range. */
+        std::string name;
+        /** The total runtime of all invocations of the range in nanoseconds. */
+        int64 elapsed_ns{};
+        /** The total number of invocations of the range. */
+        int64 count{};
+        /** The nested ranges inside this range. */
+        std::vector<nested_summary_entry> children{};
+    };
+
+    /** Recieves the results from ProfilerHook::create_summary(). */
+    class SummaryWriter {
+    public:
+        virtual ~SummaryWriter() = default;
+
+        /**
+         * Callback to write out the summary results.
+         *
+         * @param entries  the vector of ranges with runtime and count.
+         * @param overhead_ns  an estimate of the profiler overhead in
+         *                     nanoseconds.
+         */
+        virtual void write(const std::vector<summary_entry>& entries,
+                           int64 overhead_ns) = 0;
+    };
+
+    /** Recieves the results from ProfilerHook::create_nested_summary(). */
+    class NestedSummaryWriter {
+    public:
+        virtual ~NestedSummaryWriter() = default;
+
+        /**
+         * Callback to write out the summary results.
+         *
+         * @param root  the root range with runtime and count.
+         * @param overhead_ns  an estimate of the profiler overhead in
+         *                     nanoseconds.
+         */
+        virtual void write_nested(const nested_summary_entry& root,
+                                  int64 overhead_ns) = 0;
+    };
+
+    /**
+     * Writes the results from ProfilerHook::create_summary() and
+     * ProfilerHook::create_nested_summary() to a ASCII table in Markdown
+     * format.
+     */
+    class TableSummaryWriter : public SummaryWriter,
+                               public NestedSummaryWriter {
+    public:
+        /**
+         * Constructs a writer on an output stream.
+         *
+         * @param output  the output stream to write the table to.
+         * @param header  the header to write above the table.
+         */
+        TableSummaryWriter(std::ostream& output = std::cerr,
+                           std::string header = "Runtime summary");
+
+        void write(const std::vector<summary_entry>& entries,
+                   int64 overhead_ns) override;
+
+        void write_nested(const nested_summary_entry& root,
+                          int64 overhead_ns) override;
+
+    private:
+        std::ostream* output_;
+        std::string header_;
+    };
+
+    /**
+     * Creates a logger measuring the runtime of Ginkgo events and printing a
+     * summary when it is destroyed.
+     *
+     * @param writer  The SummaryWriter to receive the performance results.
+     * @param debug_check_nesting  Enable this flag if the output looks like it
+     *                             might contain incorrect nesting. This
+     *                             increases the overhead slightly, but
+     *                             recognizes mismatching push/pop pairs on the
+     *                             range stack.
+     *
+     * @note For this logger to provide reliable GPU timings, enable
+     *       synchronization via `set_synchronization(true)`.
+     */
+    static std::shared_ptr<ProfilerHook> create_summary(
+        std::unique_ptr<SummaryWriter> writer =
+            std::make_unique<TableSummaryWriter>(),
+        bool debug_check_nesting = false);
+
+    /**
+     * Creates a logger measuring the runtime of Ginkgo events in a nested
+     * fashion and printing a summary when it is destroyed.
+     *
+     * @param writer  The NestedSummaryWriter to receive the performance
+     *                results.
+     * @param debug_check_nesting  Enable this flag if the output looks like it
+     *                             might contain incorrect nesting. This
+     *                             increases the overhead slightly, but
+     *                             recognizes mismatching push/pop pairs on the
+     *                             range stack.
+     *
+     * @note For this logger to provide reliable GPU timings, enable
+     *       synchronization via `set_synchronization(true)`.
+     */
+    static std::shared_ptr<ProfilerHook> create_nested_summary(
+        std::unique_ptr<NestedSummaryWriter> writer =
+            std::make_unique<TableSummaryWriter>(),
+        bool debug_check_nesting = false);
+
     /**
      * Creates a logger annotating Ginkgo events with a custom set of functions
      * for range begin and end.
@@ -246,6 +388,44 @@ private:
     bool synchronize_;
     hook_function begin_hook_;
     hook_function end_hook_;
+};
+
+
+/**
+ * Scope guard that annotates its scope with the provided profiler hooks.
+ */
+class profiling_scope_guard {
+public:
+    /**
+     * Creates the scope guard
+     *
+     * @param name  the name of the profiler range
+     * @param category  the category of the profiler range
+     * @param begin  the hook function to begin a range
+     * @param end  the hook function to end a range
+     */
+    profiling_scope_guard(const char* name, profile_event_category category,
+                          ProfilerHook::hook_function begin,
+                          ProfilerHook::hook_function end);
+
+    /** Calls the range end function if the scope guard was not moved from. */
+    ~profiling_scope_guard();
+
+    profiling_scope_guard(const profiling_scope_guard&) = delete;
+
+    // TODO17: unnecessary with guaranteed RVO
+    /** Move-constructs from another scope guard, other will be left empty. */
+    profiling_scope_guard(profiling_scope_guard&& other);
+
+    profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
+
+    profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
+
+private:
+    bool empty_;
+    const char* name_;
+    profile_event_category category_;
+    ProfilerHook::hook_function end_;
 };
 
 

@@ -87,29 +87,13 @@ void end_roctx(const char*, profile_event_category);
 void finalize_tau();
 
 
-class profiling_scope_guard {
+class default_profiling_scope_guard : log::profiling_scope_guard {
 public:
-    profiling_scope_guard(const char* name,
-                          ProfilerHook::hook_function begin = begin_tau,
-                          ProfilerHook::hook_function end = end_tau)
-        : name_{name}, end_{end}
-    {
-        begin(name, profile_event_category::internal);
-    }
-
-    ~profiling_scope_guard() { end_(name_, profile_event_category::internal); }
-
-    profiling_scope_guard(const profiling_scope_guard&) = delete;
-
-    profiling_scope_guard(profiling_scope_guard&&) = delete;
-
-    profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
-
-    profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
-
-private:
-    const char* name_;
-    ProfilerHook::hook_function end_;
+    default_profiling_scope_guard(const char* name)
+        : log::profiling_scope_guard{name,
+                                     log::profile_event_category::internal,
+                                     log::begin_tau, log::begin_tau}
+    {}
 };
 
 
@@ -119,7 +103,7 @@ namespace kernels {
 namespace reference {
 
 
-using log::profiling_scope_guard;
+using profiling_scope_guard = log::default_profiling_scope_guard;
 
 
 }  // namespace reference
@@ -128,7 +112,7 @@ using log::profiling_scope_guard;
 namespace omp {
 
 
-using log::profiling_scope_guard;
+using profiling_scope_guard = log::default_profiling_scope_guard;
 
 
 }  // namespace omp
@@ -141,7 +125,8 @@ class profiling_scope_guard : log::profiling_scope_guard {
 public:
     profiling_scope_guard(const char* name)
         : log::profiling_scope_guard{
-              name, log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+              name, log::profile_event_category::internal,
+              log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
               log::end_nvtx}
     {}
 };
@@ -157,11 +142,13 @@ namespace hip {
 class profiling_scope_guard : log::profiling_scope_guard {
 public:
     profiling_scope_guard(const char* name)
-        : log::profiling_scope_guard{name, log::begin_roctx, log::end_nvtx}
+        : log::profiling_scope_guard{name,
+                                     log::profile_event_category::internal,
+                                     log::begin_roctx, log::end_nvtx}
     {}
 };
 #else
-using log::profiling_scope_guard;
+using profiling_scope_guard = log::default_profiling_scope_guard;
 #endif
 
 
@@ -177,7 +164,8 @@ public:
     {
         auto functions = log::create_vtune_fns();
         guard_ = std::make_unique<log::profiling_scope_guard>(
-            name, std::move(functions.first), std::move(functions.second));
+            name, log::profile_event_category::internal,
+            std::move(functions.first), std::move(functions.second));
     }
 
 private:

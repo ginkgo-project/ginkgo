@@ -265,10 +265,17 @@ void ProfilerHook::on_criterion_check_completed(
 bool ProfilerHook::needs_propagation() const { return true; }
 
 
-void ProfilerHook::set_object_name(const PolymorphicObject* obj,
+void ProfilerHook::set_object_name(ptr_param<const PolymorphicObject> obj,
                                    std::string name)
 {
-    name_map_[obj] = name;
+    name_map_[obj.get()] = name;
+}
+
+
+profiling_scope_guard ProfilerHook::user_range(const char* name) const
+{
+    return profiling_scope_guard{name, profile_event_category::user,
+                                 begin_hook_, end_hook_};
 }
 
 
@@ -281,6 +288,9 @@ void ProfilerHook::set_synchronization(bool synchronize)
 void ProfilerHook::maybe_synchronize(const Executor* exec) const
 {
     if (synchronize_) {
+        profiling_scope_guard sync_guard{"synchronize",
+                                         profile_event_category::internal,
+                                         begin_hook_, end_hook_};
         exec->synchronize();
     }
 }
@@ -377,6 +387,34 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
 {
     return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
 }
+
+
+/**
+ * Scope guard that annotates its scope with the provided profiler hooks.
+ */
+profiling_scope_guard::profiling_scope_guard(const char* name,
+                                             profile_event_category category,
+                                             ProfilerHook::hook_function begin,
+                                             ProfilerHook::hook_function end)
+    : empty_{false}, name_{name}, category_{category}, end_{end}
+{
+    begin(name, category);
+}
+
+profiling_scope_guard::~profiling_scope_guard()
+{
+    if (!empty_) {
+        end_(name_, category_);
+    }
+}
+
+profiling_scope_guard::profiling_scope_guard(profiling_scope_guard&& other)
+    : empty_{std::exchange(other.empty_, true)},
+      name_{std::exchange(other.name_, nullptr)},
+      category_{other.category_},
+      end_{
+          std::exchange(other.end_, [](const char*, profile_event_category) {})}
+{}
 
 
 }  // namespace log

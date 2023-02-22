@@ -29,6 +29,8 @@ target_sources(ginkgo
     log/logger.cpp
     log/performance_hint.cpp
     log/profiler_hook.cpp
+    log/profiler_hook_summary.cpp
+    log/profiler_hook_summary_writer.cpp
     log/tau.cpp
     log/vtune.cpp
     log/record.cpp
