@@ -62,6 +62,14 @@ class Vector;
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 class Matrix;
 
+struct all_to_all_pattern {
+    using comm_vector = std::vector<comm_index_type>;
+    comm_vector send_sizes;
+    comm_vector send_offsets;
+    comm_vector recv_sizes;
+    comm_vector recv_offsets;
+};
+
 
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class repartitioner : public EnableCreateMethod<
@@ -136,6 +144,8 @@ private:
     std::shared_ptr<std::vector<comm_index_type>> default_recv_offsets_;
 
     bool to_has_data_;
+
+    all_to_all_pattern pattern_;
 };
 
 

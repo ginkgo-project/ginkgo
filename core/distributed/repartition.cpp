@@ -47,14 +47,6 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 
-struct all_to_all_pattern {
-    using comm_vector = std::vector<comm_index_type>;
-    comm_vector send_sizes;
-    comm_vector send_offsets;
-    comm_vector recv_sizes;
-    comm_vector recv_offsets;
-};
-
 template <typename LocalIndexType, typename GlobalIndexType>
 all_to_all_pattern build_communication_pattern(
     const mpi::communicator from_comm,
@@ -150,17 +142,17 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
             }
         }
     }
-    auto pattern = build_communication_pattern(
-        from_comm_, from_partition_, to_partition_, owned_global_idxs);
+    pattern_ = build_communication_pattern(from_comm_, from_partition_,
+                                           to_partition_, owned_global_idxs);
 
     default_send_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.send_sizes);
+        std::make_shared<std::vector<comm_index_type>>(pattern_.send_sizes);
     default_send_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.send_offsets);
+        std::make_shared<std::vector<comm_index_type>>(pattern_.send_offsets);
     default_recv_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.recv_sizes);
+        std::make_shared<std::vector<comm_index_type>>(pattern_.recv_sizes);
     default_recv_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.recv_offsets);
+        std::make_shared<std::vector<comm_index_type>>(pattern_.recv_offsets);
 }
 
 
@@ -401,41 +393,21 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
     auto rows = append(local_indices, non_local_indices);
     auto exec = local_to_data.get_executor();
     auto rank = from_comm_.rank();
-    array<GlobalIndexType> map_local_to_global(
-        exec->get_master(), from_partition_->get_part_size(rank));
-    int local_idx = 0;
-    for (int rid = 0; rid < from_partition_->get_num_ranges(); ++rid) {
-        if (from_partition_->get_part_ids()[rid] == rank) {
-            for (int i = from_partition_->get_range_bounds()[rid];
-                 i < from_partition_->get_range_bounds()[rid + 1]; ++i) {
-                map_local_to_global.get_data()[local_idx++] = i;
-            }
-        }
-    }
 
-    array<GlobalIndexType> indices(exec->get_master(), rows.get_num_elems());
-    for (int i = 0; i < rows.get_num_elems(); ++i) {
-        indices.get_data()[i] =
-            map_local_to_global.get_data()[rows.get_const_data()[i]];
-    }
-
-    auto pattern = build_communication_pattern(from_comm_, from_partition_,
-                                               to_partition_, indices);
-
-    const auto new_local_nnz = pattern.recv_offsets.back();
+    const auto new_local_nnz = pattern_.recv_offsets.back();
     array<ValueType> recv_values(local_to_data.get_executor(), new_local_nnz);
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         if (to_partition_->get_num_parts() > 1) {
             from_comm_.all_to_all_v(
-                exec, send_buffer, pattern.send_sizes.data(),
-                pattern.send_offsets.data(), recv_buffer,
-                pattern.recv_sizes.data(), pattern.recv_offsets.data());
+                exec, send_buffer, pattern_.send_sizes.data(),
+                pattern_.send_offsets.data(), recv_buffer,
+                pattern_.recv_sizes.data(), pattern_.recv_offsets.data());
         } else {
             const comm_index_type root = 0;
-            from_comm_.gather_v(exec, send_buffer, pattern.send_sizes[root],
-                                recv_buffer, pattern.recv_sizes.data(),
-                                pattern.recv_offsets.data(), root);
+            from_comm_.gather_v(exec, send_buffer, pattern_.send_sizes[root],
+                                recv_buffer, pattern_.recv_sizes.data(),
+                                pattern_.recv_offsets.data(), root);
         }
     };
     communicate(from.get_const_data(), recv_values.get_data());
@@ -482,10 +454,7 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
         write_local(exec, sorting_idx, from, from_partition_.get());
     auto local_arrays = std::move(local_data).empty_out();
 
-    auto pattern = build_communication_pattern(
-        from_comm_, from_partition_, to_partition_, local_arrays.row_idxs);
-
-    const auto new_local_nnz = pattern.recv_offsets.back();
+    const auto new_local_nnz = pattern_.recv_offsets.back();
     array<GlobalIndexType> recv_rows(to->get_executor(), new_local_nnz);
     array<GlobalIndexType> recv_cols(to->get_executor(), new_local_nnz);
     array<ValueType> recv_values(to->get_executor(), new_local_nnz);
@@ -495,15 +464,15 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
         if (to_partition_->get_num_parts() > 1) {
             from_comm_.all_to_all_v(
                 from_partition_->get_executor()->get_master(), send_buffer,
-                pattern.send_sizes.data(), pattern.send_offsets.data(),
-                recv_buffer, pattern.recv_sizes.data(),
-                pattern.recv_offsets.data());
+                pattern_.send_sizes.data(), pattern_.send_offsets.data(),
+                recv_buffer, pattern_.recv_sizes.data(),
+                pattern_.recv_offsets.data());
         } else {
             const comm_index_type root = 0;
             from_comm_.gather_v(from_partition_->get_executor()->get_master(),
-                                send_buffer, pattern.send_sizes[root],
-                                recv_buffer, pattern.recv_sizes.data(),
-                                pattern.recv_offsets.data(), root);
+                                send_buffer, pattern_.send_sizes[root],
+                                recv_buffer, pattern_.recv_sizes.data(),
+                                pattern_.recv_offsets.data(), root);
         }
     };
     communicate(local_arrays.row_idxs.get_const_data(), recv_rows.get_data());
@@ -514,9 +483,9 @@ repartitioner<LocalIndexType, GlobalIndexType>::gather(
 
 
     int ctr = 0;
-    for (int rank = 0; rank < pattern.recv_sizes.size(); ++rank) {
-        auto elems = pattern.recv_sizes[rank];
-        auto offset = pattern.recv_offsets[rank];
+    for (int rank = 0; rank < pattern_.recv_sizes.size(); ++rank) {
+        auto elems = pattern_.recv_sizes[rank];
+        auto offset = pattern_.recv_offsets[rank];
         if (elems == 0) continue;
         for (int i = ctr; i < ctr + elems; ++i) {
             recv_sorting_idx.get_data()[i] += offset;
