@@ -74,30 +74,30 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        size_type, const gko::batch_ell::BatchEntry<const ValueType>& mat,
-        ValueType* const __restrict__ work)
+        const gko::batch_ell::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        // const auto col = mat.col_idxs;
-        // const auto val = mat.values;
-        // work_ = work;
-        // for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x)
-        // {
-        //     auto temp = one<ValueType>();
-        //     for (size_type idx = 0; idx < mat.num_stored_elems_per_row;
-        //     idx++) {
-        //         const auto ind = tidx + idx * mat.stride;
-        //         const auto col_idx = col[ind];
-        //         if (col_idx < idx) {
-        //             break;
-        //         } else {
-        //             const bool found = (col_idx == tidx);
-        //             if (found) {
-        //                 temp = one<ValueType>() / val[ind];
-        //             }
-        //         }
-        //     }
-        //     work_[tidx] = temp;
-        // }
+        const auto col = mat.col_idxs;
+        const auto val = mat.values;
+        work_ = work;
+        for (int tidx = item_ct1.get_local_linear_id(); tidx < mat.num_rows;
+             tidx += item_ct1.get_local_range().size()) {
+            auto temp = one<ValueType>();
+            for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
+                const auto ind = tidx + idx * mat.stride;
+                const auto col_idx = col[ind];
+                if (col_idx < idx) {
+                    break;
+                } else {
+                    const bool found = (col_idx == tidx);
+                    if (found) {
+                        temp = one<ValueType>() / val[ind];
+                    }
+                }
+            }
+            work_[tidx] = temp;
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     /**
@@ -110,27 +110,27 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        size_type, const gko::batch_csr::BatchEntry<const ValueType>& mat,
-        ValueType* const __restrict__ work)
+        const gko::batch_csr::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        // work_ = work;
-        // constexpr auto warp_size = config::warp_size;
-        // const auto tile =
-        //     group::tiled_partition<warp_size>(group::this_thread_block());
-        // const int tile_rank = threadIdx.x / warp_size;
-        // const int num_tiles = (blockDim.x - 1) / warp_size + 1;
-        // for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
-        //     for (int j = mat.row_ptrs[irow] + tile.thread_rank();
-        //          j < mat.row_ptrs[irow + 1]; j += warp_size) {
-        //         const int found = (mat.col_idxs[j] == irow);
-        //         if (found) {
-        //             work_[irow] = (mat.values[j] != zero<ValueType>())
-        //                               ? one<ValueType>() / mat.values[j]
-        //                               : one<ValueType>();
-        //         }
-        //     }
-        // }
-        // __syncthreads();
+        work_ = work;
+        const auto sg = item_ct1.get_sub_group();
+        const int sg_id = sg.get_group_id();
+        const int sg_size = sg.get_local_range().size();
+        const int num_sg = sg.get_group_range().size();
+
+        for (int irow = sg_id; irow < mat.num_rows; irow += num_sg) {
+            for (int j = mat.row_ptrs[irow] + sg.get_local_id();
+                 j < mat.row_ptrs[irow + 1]; j += sg_size) {
+                const int found = (mat.col_idxs[j] == irow);
+                if (found) {
+                    work_[irow] = (mat.values[j] != zero<ValueType>())
+                                      ? one<ValueType>() / mat.values[j]
+                                      : one<ValueType>();
+                }
+            }
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     /**
@@ -143,58 +143,50 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        size_type, const gko::batch_dense::BatchEntry<const ValueType>& mat,
-        ValueType* const __restrict__ work)
+        const gko::batch_dense::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        // work_ = work;
-        // constexpr auto warp_size = config::warp_size;
-        // const auto tile =
-        //     group::tiled_partition<warp_size>(group::this_thread_block());
-        // const int tile_rank = threadIdx.x / warp_size;
-        // const int num_tiles = (blockDim.x - 1) / warp_size + 1;
-        // for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
-        //     const int iz = irow * static_cast<int>(mat.stride) + irow;
-        //     work_[irow] = (mat.values[iz] != zero<ValueType>())
-        //                       ? one<ValueType>() / mat.values[iz]
-        //                       : one<ValueType>();
-        // }
-        // __syncthreads();
+        work_ = work;
+        const auto sg = item_ct1.get_sub_group();
+        const int sg_id = sg.get_group_id();
+        const int sg_size = sg.get_local_range().size();
+        const int num_sg = sg.get_group_range().size();
+
+        for (int irow = sg_id; irow < mat.num_rows; irow += num_sg) {
+            const int iz = irow * static_cast<int>(mat.stride) + irow;
+            work_[irow] = (mat.values[iz] != zero<ValueType>())
+                              ? one<ValueType>() / mat.values[iz]
+                              : one<ValueType>();
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
-                               ValueType* const z) const
+                               ValueType* const z,
+                               sycl::nd_item<3> item_ct1) const
     {
-        // TODO
-        // for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
-        //     z[i] = work_[i] * r[i];
-        // }
+        for (int i = item_ct1.get_local_linear_id(); i < num_rows;
+             i += item_ct1.get_local_range().size()) {
+            z[i] = work_[i] * r[i];
+        }
     }
 
 private:
     ValueType* __restrict__ work_;
 };
 
-
-template <typename BatchMatrixType, typename ValueType>
+// Here: all sys_mat_batch, b_values, a_values are calculated for each batch
+// before passing into this function
+template <typename BatchMatrixEntryType, typename ValueType>
 void batch_scalar_jacobi_apply(BatchScalarJacobi<ValueType> prec,
-                               const BatchMatrixType sys_mat_batch,
-                               const size_type nbatch, const int nrows,
-                               const ValueType* const b_values,
-                               ValueType* const x_values)
+                               const BatchMatrixEntryType& sys_mat_batch,
+                               const int nrows, const ValueType* const b_values,
+                               ValueType* const x_values,
+                               ValueType* const __restrict__ work,
+                               sycl::nd_item<3> item_ct1)
 {
-    // for (size_type batch_id = blockIdx.x; batch_id < nbatch;
-    //      batch_id += gridDim.x) {
-    //     const auto sys_mat_batch_entry =
-    //         gko::batch::batch_entry(sys_mat_batch, batch_id);
-
-    //     extern __shared__ char sh_mem[];
-    //     ValueType* work = reinterpret_cast<ValueType*>(sh_mem);
-
-    //     prec.generate(batch_id, sys_mat_batch_entry, work);
-    //     __syncthreads();
-    //     prec.apply(nrows, b_values + batch_id * nrows,
-    //                x_values + batch_id * nrows);
-    // }
+    prec.generate(sys_mat_batch, work);
+    prec.apply(nrows, b_values, x_values, item_ct1);
 }
 
 
