@@ -73,7 +73,7 @@ namespace dpcpp {
 namespace batch_dense {
 
 template <typename ValueType>
-inline void single_matvec_kernel(
+inline void matvec_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     sycl::nd_item<3>& item_ct1)
@@ -98,7 +98,7 @@ inline void single_matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_advanced_matvec_kernel(
+inline void advanced_matvec_kernel(
     const ValueType alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
