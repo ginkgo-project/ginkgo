@@ -100,6 +100,7 @@ bool check_pop_status(Summary& s, const char* name, bool allow_pop_root)
     return true;
 }
 
+
 template <typename Summary>
 void pop_all(Summary& s)
 {
@@ -363,12 +364,12 @@ ProfilerHook::nested_summary_entry build_tree(const nested_summary& summary)
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
-    std::unique_ptr<summary_writer> writer, bool debug_check_nesting)
+    std::unique_ptr<SummaryWriter> writer, bool debug_check_nesting)
 {
     // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
     // related to move-only functors
     std::shared_ptr<summary> data{
-        new summary{}, [writer = std::shared_ptr<summary_writer>{
+        new summary{}, [writer = std::shared_ptr<SummaryWriter>{
                             std::move(writer)}](summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
@@ -383,12 +384,12 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_nested_summary(
-    std::unique_ptr<nested_summary_writer> writer, bool debug_check_nesting)
+    std::unique_ptr<NestedSummaryWriter> writer, bool debug_check_nesting)
 {
     // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
     // related to move-only functors
     std::shared_ptr<nested_summary> data{
-        new nested_summary{}, [writer = std::shared_ptr<nested_summary_writer>{
+        new nested_summary{}, [writer = std::shared_ptr<NestedSummaryWriter>{
                                    std::move(writer)}](nested_summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);

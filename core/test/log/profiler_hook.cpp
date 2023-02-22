@@ -160,14 +160,14 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
     auto linop = gko::share(DummyLinOp::create(exec));
     auto factory = DummyLinOp::build().on(exec);
     auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
-    logger->set_object_name(linop.get(), "obj");
-    logger->set_object_name(factory.get(), "obj_factory");
+    logger->set_object_name(linop, "obj");
+    logger->set_object_name(factory, "obj_factory");
     exec->add_logger(logger);
 
-    linop->copy_from(linop.get());
-    linop->move_from(linop.get());
-    linop->apply(linop.get(), linop.get());
-    linop->apply(scalar.get(), linop.get(), scalar.get(), linop.get());
+    linop->copy_from(linop);
+    linop->move_from(linop);
+    linop->apply(linop, linop);
+    linop->apply(scalar, linop, scalar, linop);
     factory->generate(linop);
     logger->on_criterion_check_started(nullptr, 0, nullptr, nullptr, nullptr, 0,
                                        false);
@@ -175,7 +175,7 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                          nullptr, 0, false, nullptr, false,
                                          false);
 
-    exec->remove_logger(logger.get());
+    exec->remove_logger(logger);
     ASSERT_EQ(output, expected);
 }
 
@@ -234,7 +234,7 @@ void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
     auto range6 = logger->user_range("bazzzz");
 }
 
-struct test_summary_writer : gko::log::ProfilerHook::summary_writer {
+struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
     void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
                gko::int64 overhead_ns) override
     {
@@ -281,8 +281,11 @@ struct test_summary_writer : gko::log::ProfilerHook::summary_writer {
 TEST(ProfilerHook, SummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_summary(
-        std::make_unique<test_summary_writer>());
+        std::make_unique<TestSummaryWriter>());
+
     call_ranges_unique(logger);
+
+    // The assertions happen in the destructor of `logger`
 }
 
 
@@ -307,8 +310,7 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
     auto range6 = logger->user_range("baz");
 }
 
-struct test_nested_summary_writer
-    : gko::log::ProfilerHook::nested_summary_writer {
+struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
     void write_nested(const gko::log::ProfilerHook::nested_summary_entry& e,
                       gko::int64 overhead_ns) override
     {
@@ -352,6 +354,9 @@ struct test_nested_summary_writer
 TEST(ProfilerHook, NestedSummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_nested_summary(
-        std::make_unique<test_nested_summary_writer>());
+        std::make_unique<TestNestedSummaryWriter>());
+
     call_ranges(logger);
+
+    // The assertions happen in the destructor of `logger`
 }
