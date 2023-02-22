@@ -58,8 +58,8 @@ target_sources(ginkgo
     matrix/scaled_permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
+    multigrid/pgm.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
@@ -72,6 +72,7 @@ target_sources(ginkgo
     solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
+    solver/chebyshev.cpp
     solver/direct.cpp
     solver/fcg.cpp
     solver/gcr.cpp
