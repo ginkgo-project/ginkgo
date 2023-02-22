@@ -35,8 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
-
 #include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+#include "dpcpp/preconditioner/batch_identity.hpp"
 
 
 namespace gko {
@@ -49,7 +52,31 @@ void batch_identity_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
                           const matrix::BatchCsr<ValueType>* const a,
                           const matrix::BatchDense<ValueType>* const b,
                           matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto x_ub = get_batch_struct(x);
+    const size_type num_batches = a->get_num_batch_entries();
+
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto batch_id = group.get_group_linear_id();
+                const auto a_b = gko::batch::batch_entry(a_ub, batch_id);
+                const auto b_b = gko::batch::batch_entry(b_ub, batch_id);
+                const auto x_b = gko::batch::batch_entry(x_ub, batch_id);
+                BatchIdentity<ValueType> prec{};
+                prec.apply(b_b.num_rows, b_b.values, x_b.values, item_ct1);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
 

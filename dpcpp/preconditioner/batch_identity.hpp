@@ -71,32 +71,33 @@ public:
      * @param work  A 'work-vector', which is unneecessary here as no
      * preconditioner values are to be stored.
      */
-    void generate(size_type,
-                  const gko::batch_csr::BatchEntry<const ValueType>& mat,
-                  ValueType* const work)
+    void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {}
 
-    void generate(size_type,
-                  const gko::batch_ell::BatchEntry<const ValueType>& mat,
-                  ValueType* const work)
+    void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {}
 
-    void generate(size_type,
-                  const gko::batch_dense::BatchEntry<const ValueType>& mat,
-                  ValueType* const work)
+    void generate(const gko::batch_dense::BatchEntry<const ValueType>& mat,
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {}
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z) const
+               const gko::batch_dense::BatchEntry<ValueType>& z,
+               sycl::nd_item<3> item_ct1) const
+    {}
+
+    __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
+                               ValueType* const z,
+                               sycl::nd_item<3> item_ct1) const
     {
-        // TODO
-        // for (int i = 0; i < r.num_rows; i++) {
-        //     for (int j = 0; j < r.num_rhs; j++)
-        //         z.values[i * z.stride + j] = r.values[i * r.stride + j];
-        // }
+        for (int li = item_ct1.get_local_linear_id(); li < num_rows;
+             li += item_ct1.get_local_range().size()) {
+            z[li] = r[li];
+        }
     }
 };
-
 
 }  // namespace dpcpp
 }  // namespace kernels
