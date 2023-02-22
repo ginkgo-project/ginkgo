@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/matrix/batch_vector_kernels.hpp"
 
 
-// namespace {
+namespace {
 
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
@@ -141,8 +141,6 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
     }
 }
 
-//}  // namespace
-
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
@@ -173,11 +171,11 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
        __shared__ real_type norms_rhs_sh[1];
        __shared__ real_type norms_res_sh[1];
      */
-    auto& rho_old_sh = local_mem_sh[0];
-    auto& rho_new_sh = local_mem_sh[1];
-    auto& alpha_sh = local_mem_sh[2];
-    auto& norms_rhs_sh = local_mem_sh[3];
-    auto& norms_res_sh = local_mem_sh[4];
+    ValueType* rho_old_sh = local_mem_sh;
+    ValueType* rho_new_sh = local_mem_sh + 1;
+    ValueType* alpha_sh = local_mem_sh + 2;
+    ValueType* norms_rhs_sh = local_mem_sh + 3;
+    ValueType* norms_res_sh = local_mem_sh + 4;
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
@@ -190,7 +188,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     ValueType* prec_work_sh;
     if (sconf.n_shared >= 1) {
         // r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        r_sh = local_mem_sh[5];
+        r_sh = local_mem_sh + 5;
     } else {
         r_sh = workspace + gmem_offset;
     }
@@ -227,7 +225,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
 
     // generate preconditioner
-    prec_shared.generate(A_global_entry, prec_work_sh, item_ct1);
+    prec_shared.generate(ibatch, A_global_entry, prec_work_sh, item_ct1);
 
     // initialization
     // compute b norms
@@ -236,7 +234,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     // rho_old = r' * z (' is for hermitian transpose)
     // p = z
     initialize(nrows, A_global_entry, b_global_entry, x_global_entry, x_sh,
-               r_sh, prec_shared, z_sh, rho_old_sh, p_sh, norms_rhs_sh,
+               r_sh, prec_shared, z_sh, rho_old_sh[0], p_sh, norms_rhs_sh[0],
                item_ct1);
 
     // stopping criterion object
@@ -244,7 +242,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
     int iter = 0;
     for (; iter < max_iter; iter++) {
-        norms_res_sh = sqrt(abs(rho_old_sh));
+        norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
         //            __syncthreads();
         if (stop.check_converged(norms_res_sh)) {
             break;
@@ -257,8 +255,8 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
         // r = r - alpha * Ap
-        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, alpha_sh, x_sh, r_sh,
-                       item_ct1);
+        update_x_and_r(nrows, rho_old_sh[0], p_sh, Ap_sh, alpha_sh[0], x_sh,
+                       r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // z = precond * r
@@ -267,19 +265,19 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
         if (sg_id == 0) {
             // rho_new =  (r)' * (z)
-            compute_dot_product_sg_kernel(nrows, r_sh, z_sh, rho_new_sh,
+            compute_dot_product_sg_kernel(nrows, r_sh, z_sh, rho_new_sh[0],
                                           item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // beta = rho_new / rho_old
         // p = z + beta * p
-        update_p(nrows, rho_new_sh, rho_old_sh, z_sh, p_sh, item_ct1);
+        update_p(nrows, rho_new_sh[0], rho_old_sh[0], z_sh, p_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // rho_old = rho_new
         if (item_ct1.get_local_linear_id() == 0) {
-            rho_old_sh = rho_new_sh;
+            rho_old_sh[0] = rho_new_sh[0];
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
@@ -287,8 +285,8 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     logger.log_iteration(ibatch, iter, norms_res_sh[0]);
 
     // copy x back to global memory
-    single_copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
+    copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 }
 
-#endif
+}  // namespace

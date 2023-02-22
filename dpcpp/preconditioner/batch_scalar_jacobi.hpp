@@ -74,7 +74,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        const gko::batch_ell::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_ell::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
         const auto col = mat.col_idxs;
@@ -110,7 +110,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_csr::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
         work_ = work;
@@ -143,7 +143,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __dpct_inline__ void generate(
-        const gko::batch_dense::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_dense::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
         work_ = work;
@@ -185,7 +185,7 @@ void batch_scalar_jacobi_apply(BatchScalarJacobi<ValueType> prec,
                                ValueType* const __restrict__ work,
                                sycl::nd_item<3> item_ct1)
 {
-    prec.generate(sys_mat_batch, work);
+    prec.generate(1, sys_mat_batch, work, item_ct1);
     prec.apply(nrows, b_values, x_values, item_ct1);
 }
 

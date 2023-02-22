@@ -298,7 +298,7 @@ public:
      */
     void generate(size_type batch_id,
                   const gko::batch_csr::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {
         GKO_NOT_IMPLEMENTED;
         // common_generate_for_all_system_matrix_types(batch_id, work);
@@ -306,7 +306,7 @@ public:
 
     void generate(size_type batch_id,
                   const gko::batch_ell::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {
         GKO_NOT_IMPLEMENTED;
         // common_generate_for_all_system_matrix_types(batch_id, work);
@@ -314,7 +314,7 @@ public:
 
     void generate(size_type batch_id,
                   const gko::batch_dense::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const work, sycl::nd_item<3> item_ct1)
     {
         GKO_NOT_IMPLEMENTED;
         // common_generate_for_all_system_matrix_types(batch_id, work);
@@ -322,7 +322,8 @@ public:
 
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z) const
+               const gko::batch_dense::BatchEntry<ValueType>& z,
+               sycl::nd_item<3> item_ct1) const
     {
         GKO_NOT_IMPLEMENTED;
         // // z = precond * r

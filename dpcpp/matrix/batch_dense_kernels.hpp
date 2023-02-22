@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
@@ -73,7 +74,7 @@ namespace dpcpp {
 namespace batch_dense {
 
 template <typename ValueType>
-inline void matvec_kernel(
+__dpct_inline__ void matvec_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     sycl::nd_item<3>& item_ct1)
