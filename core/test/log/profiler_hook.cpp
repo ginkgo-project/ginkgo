@@ -375,10 +375,7 @@ TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
         {"medium", 1'000'000, 500'000, 4});  // check division by count
     entries.push_back({"long", 120'000'000'000, 60'000'000'000, 1});
     entries.push_back({"eternal", 86'400'000'000'000, 86'400'000'000'000, 1});
-
-    writer.write(entries, 1'000'000'000);
-
-    ASSERT_EQ(ss.str(), R"(Test header
+    const auto expected = R"(Test header
 Overhead estimate 1.0 s 
 |   name   | total  | total (self) | count |   avg    | avg (self) |
 |----------|-------:|-------------:|------:|---------:|-----------:|
@@ -388,7 +385,11 @@ Overhead estimate 1.0 s
 | shortish | 1.2 us |       1.0 us |     1 |   1.2 us |     1.0 us |
 | short    | 1.0 ns |       0.0 ns |     1 |   1.0 ns |     0.0 ns |
 | empty    | 0.0 ns |       0.0 ns |     0 |   0.0 ns |     0.0 ns |
-)");
+)";
+
+    writer.write(entries, 1'000'000'000);
+
+    ASSERT_EQ(ss.str(), expected);
 }
 
 
@@ -408,10 +409,7 @@ TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorks)
              2,
              {ProfilerHook::nested_summary_entry{"child", 100, 2, {}}}},
          ProfilerHook::nested_summary_entry{"baz", 1, 2, {}}}};
-
-    writer.write_nested(entry, 1);
-
-    ASSERT_EQ(ss.str(), R"(Test header
+    const auto expected = R"(Test header
 Overhead estimate 1.0 ns
 |    name    |  total   | fraction | count |   avg    |
 |------------|---------:|---------:|------:|---------:|
@@ -422,5 +420,9 @@ Overhead estimate 1.0 ns
 |   (self)   | 899.0 ns |   45.0 % |     1 | 899.0 ns |
 |   foo      | 100.0 ns |    5.0 % |     5 |  20.0 ns |
 |   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |
-)");
+)";
+
+    writer.write_nested(entry, 1);
+
+    ASSERT_EQ(ss.str(), expected);
 }
