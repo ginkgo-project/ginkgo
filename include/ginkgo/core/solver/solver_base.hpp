@@ -106,6 +106,12 @@ protected:
     virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
                                           initial_guess_mode guess) const = 0;
 
+    void apply_with_initial_guess(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                  initial_guess_mode guess) const
+    {
+        apply_with_initial_guess(b.get(), x.get(), guess);
+    }
+
     /**
      * Performs the operation x = alpha * op(b) + beta * x with a initial guess
      * statement, where op is this linear operator and the initial guess
@@ -121,6 +127,17 @@ protected:
     virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
                                           const LinOp* beta, LinOp* x,
                                           initial_guess_mode guess) const = 0;
+
+
+    void apply_with_initial_guess(ptr_param<const LinOp> alpha,
+                                  ptr_param<const LinOp> b,
+                                  ptr_param<const LinOp> beta,
+                                  ptr_param<LinOp> x,
+                                  initial_guess_mode guess) const
+    {
+        apply_with_initial_guess(alpha.get(), b.get(), beta.get(), x.get(),
+                                 guess);
+    }
 
     /**
      * Get the default initial guess

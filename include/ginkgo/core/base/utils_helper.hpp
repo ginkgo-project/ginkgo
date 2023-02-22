@@ -56,29 +56,72 @@ namespace gko {
 class Executor;
 
 
+/**
+ * This class is used for function parameters in the place of raw pointers.
+ * Pointer parameters should be used for everything that does not involve
+ * transfer of ownership. It can be converted to from raw pointers, shared
+ * pointers and unique pointers of the specified type or any derived type. This
+ * allows functions to be called without having to use gko::lend or calling
+ * .get() for every pointer argument. It probably has no use outside of function
+ * parameters, as it is immutable.
+ *
+ * @tparam T  the pointed-to type
+ */
+template <typename T>
+class ptr_param {
+public:
+    /** Initializes the ptr_param from a raw pointer. */
+    ptr_param(T* ptr) : ptr_{ptr} {}
+
+    /** Initializes the ptr_param from a shared_ptr. */
+    template <typename U,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    ptr_param(const std::shared_ptr<U>& ptr) : ptr_param{ptr.get()}
+    {}
+
+    /** Initializes the ptr_param from a unique_ptr. */
+    template <typename U, typename Deleter,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    ptr_param(const std::unique_ptr<U, Deleter>& ptr) : ptr_param{ptr.get()}
+    {}
+
+    /** Initializes the ptr_param from a ptr_param of a derived type. */
+    template <typename U,
+              std::enable_if_t<std::is_base_of<T, U>::value>* = nullptr>
+    ptr_param(const ptr_param<U>& ptr) : ptr_param{ptr.get()}
+    {}
+
+    ptr_param(const ptr_param&) = default;
+
+    ptr_param(ptr_param&&) = default;
+
+    /** @return a reference to the underlying pointee. */
+    T& operator*() const { return *ptr_; }
+
+    /** @return the underlying pointer. */
+    T* operator->() const { return ptr_; }
+
+    /** @return the underlying pointer. */
+    T* get() const { return ptr_; }
+
+    /** @return true iff the underlying pointer is non-null. */
+    explicit operator bool() const { return ptr_; }
+
+    ptr_param& operator=(const ptr_param&) = delete;
+
+    ptr_param& operator=(ptr_param&&) = delete;
+
+private:
+    T* ptr_;
+};
+
+
 namespace detail {
 
 
 template <typename T>
-struct pointee_impl {};
-
-template <typename T>
-struct pointee_impl<T*> {
-    using type = T;
-};
-
-template <typename T, typename Deleter>
-struct pointee_impl<std::unique_ptr<T, Deleter>> {
-    using type = T;
-};
-
-template <typename T>
-struct pointee_impl<std::shared_ptr<T>> {
-    using type = T;
-};
-
-template <typename T>
-using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
+using pointee =
+    std::remove_reference_t<decltype(*std::declval<std::decay_t<T>>())>;
 
 
 template <typename T, typename = void>
@@ -91,7 +134,7 @@ struct is_clonable_impl<T, xstd::void_t<decltype(std::declval<T>().clone())>>
 template <typename T>
 constexpr bool is_clonable()
 {
-    return is_clonable_impl<typename std::decay<T>::type>::value;
+    return is_clonable_impl<std::decay_t<T>>::value;
 }
 
 
@@ -107,7 +150,7 @@ struct is_clonable_to_impl<
 template <typename T>
 constexpr bool is_clonable_to()
 {
-    return is_clonable_to_impl<typename std::decay<T>::type>::value;
+    return is_clonable_to_impl<std::decay_t<T>>::value;
 }
 
 
@@ -121,7 +164,7 @@ template <typename T>
 struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
-using have_ownership_s = have_ownership_impl<typename std::decay<T>::type>;
+using have_ownership_s = have_ownership_impl<std::decay_t<T>>;
 
 template <typename T>
 constexpr bool have_ownership()
@@ -251,9 +294,10 @@ inline typename std::remove_reference<OwningPointer>::type&& give(
  *       same as calling .get() on the smart pointer.
  */
 template <typename Pointer>
-inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer>*>::type
-lend(const Pointer& p)
+[[deprecated("no longer necessary, just pass the object without lend")]] inline
+    typename std::enable_if<detail::have_ownership_s<Pointer>::value,
+                            detail::pointee<Pointer>*>::type
+    lend(const Pointer& p)
 {
     return p.get();
 }
@@ -269,9 +313,10 @@ lend(const Pointer& p)
  *       returns `p`.
  */
 template <typename Pointer>
-inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
-                               detail::pointee<Pointer>*>::type
-lend(const Pointer& p)
+[[deprecated("no longer necessary, just pass the object without lend")]] inline
+    typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
+                            detail::pointee<Pointer>*>::type
+    lend(const Pointer& p)
 {
     return p;
 }
@@ -289,9 +334,9 @@ lend(const Pointer& p)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline typename std::decay<T>::type* as(U* obj)
+inline std::decay_t<T>* as(U* obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj)) {
+    if (auto p = dynamic_cast<std::decay_t<T>*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -315,9 +360,9 @@ inline typename std::decay<T>::type* as(U* obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline const typename std::decay<T>::type* as(const U* obj)
+inline const std::decay_t<T>* as(const U* obj)
 {
-    if (auto p = dynamic_cast<const typename std::decay<T>::type*>(obj)) {
+    if (auto p = dynamic_cast<const std::decay_t<T>*>(obj)) {
         return p;
     } else {
         throw NotSupported(__FILE__, __LINE__,
@@ -325,6 +370,43 @@ inline const typename std::decay<T>::type* as(const U* obj)
                                name_demangling::get_type_name(typeid(T)) + ">",
                            name_demangling::get_type_name(typeid(*obj)));
     }
+}
+
+
+/**
+ * Performs polymorphic type conversion on a ptr_param.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the object which should be converted
+ *
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
+ */
+template <typename T, typename U>
+inline std::decay_t<T>* as(ptr_param<U> obj)
+{
+    return as<T>(obj.get());
+}
+
+/**
+ * Performs polymorphic type conversion.
+ *
+ * This is the constant version of the function.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the object which should be converted
+ *
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
+ */
+template <typename T, typename U>
+inline const std::decay_t<T>* as(ptr_param<const U> obj)
+{
+    return as<T>(obj.get());
 }
 
 
@@ -341,12 +423,11 @@ inline const typename std::decay<T>::type* as(const U* obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-inline std::unique_ptr<typename std::decay<T>::type> as(
-    std::unique_ptr<U>&& obj)
+inline std::unique_ptr<std::decay_t<T>> as(std::unique_ptr<U>&& obj)
 {
-    if (auto p = dynamic_cast<typename std::decay<T>::type*>(obj.get())) {
+    if (auto p = dynamic_cast<std::decay_t<T>*>(obj.get())) {
         obj.release();
-        return std::unique_ptr<typename std::decay<T>::type>{p};
+        return std::unique_ptr<std::decay_t<T>>{p};
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            name_demangling::get_type_name(typeid(*obj)));
@@ -366,9 +447,9 @@ inline std::unique_ptr<typename std::decay<T>::type> as(
  *         NotSupported. This pointer shares ownership with the input pointer.
  */
 template <typename T, typename U>
-inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
+inline std::shared_ptr<std::decay_t<T>> as(std::shared_ptr<U> obj)
 {
-    auto ptr = std::dynamic_pointer_cast<typename std::decay<T>::type>(obj);
+    auto ptr = std::dynamic_pointer_cast<std::decay_t<T>>(obj);
     if (ptr) {
         return ptr;
     } else {
@@ -392,11 +473,9 @@ inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
  *         NotSupported. This pointer shares ownership with the input pointer.
  */
 template <typename T, typename U>
-inline std::shared_ptr<const typename std::decay<T>::type> as(
-    std::shared_ptr<const U> obj)
+inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
 {
-    auto ptr =
-        std::dynamic_pointer_cast<const typename std::decay<T>::type>(obj);
+    auto ptr = std::dynamic_pointer_cast<const std::decay_t<T>>(obj);
     if (ptr) {
         return ptr;
     } else {

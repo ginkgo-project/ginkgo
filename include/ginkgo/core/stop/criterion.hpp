@@ -114,13 +114,22 @@ public:
         return *this;                                \
     }                                                \
     mutable _type _name##_ {}
+#define GKO_UPDATER_REGISTER_PTR_PARAMETER(_type, _name) \
+    const Updater& _name(ptr_param<_type> value) const   \
+    {                                                    \
+        _name##_ = value.get();                          \
+        return *this;                                    \
+    }                                                    \
+    mutable _type* _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, implicit_sq_residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, solution);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
+                                           implicit_sq_residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, solution);
 
+#undef GKO_UPDATER_REGISTER_PTR_PARAMETER
 #undef GKO_UPDATER_REGISTER_PARAMETER
 
     private:

@@ -135,7 +135,7 @@ protected:
               // basis can not be std::move(basis). Otherwise, Program deletes
               // basis before applying conjugate transpose
               basis,
-              std::move((as<gko::Transposable>(lend(basis)))->conj_transpose()))
+              std::move((as<gko::Transposable>(basis))->conj_transpose()))
     {}
 
     /**

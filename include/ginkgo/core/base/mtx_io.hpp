@@ -312,20 +312,21 @@ struct mtx_io_traits<gko::matrix::Fft3> {
 /**
  * Writes a matrix into an output stream in matrix market format.
  *
- * @tparam MatrixType  a WritableToMatrixData object providing data to be
- *                     written.
+ * @tparam MatrixPtrType  a (smart or raw) pointer to a WritableToMatrixData
+ *                        object providing data to be written.
  * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
  * @param layout  the layout used in the output
  */
-template <typename MatrixType, typename StreamType>
+template <typename MatrixPtrType, typename StreamType>
 inline void write(
-    StreamType&& os, MatrixType* matrix,
-    layout_type layout =
-        detail::mtx_io_traits<std::remove_const_t<MatrixType>>::default_layout)
+    StreamType&& os, MatrixPtrType&& matrix,
+    layout_type layout = detail::mtx_io_traits<
+        std::remove_cv_t<detail::pointee<MatrixPtrType>>>::default_layout)
 {
+    using MatrixType = detail::pointee<MatrixPtrType>;
     matrix_data<typename MatrixType::value_type,
                 typename MatrixType::index_type>
         data{};
@@ -340,16 +341,17 @@ inline void write(
  * so files from a big endian processor can't be read from a little endian
  * processor and vice-versa.
  *
- * @tparam MatrixType  a WritableToMatrixData object providing data to be
- *                     written.
+ * @tparam MatrixPtrType  a (smart or raw) pointer to a WritableToMatrixData
+ *                        object providing data to be written.
  * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
  */
-template <typename MatrixType, typename StreamType>
-inline void write_binary(StreamType&& os, MatrixType* matrix)
+template <typename MatrixPtrType, typename StreamType>
+inline void write_binary(StreamType&& os, MatrixPtrType&& matrix)
 {
+    using MatrixType = detail::pointee<MatrixPtrType>;
     matrix_data<typename MatrixType::value_type,
                 typename MatrixType::index_type>
         data{};

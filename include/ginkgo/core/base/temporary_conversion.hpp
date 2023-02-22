@@ -234,14 +234,14 @@ public:
      *                               try out for converting ptr to type T.
      */
     template <typename... ConversionCandidates>
-    static temporary_conversion create(lin_op_type* ptr)
+    static temporary_conversion create(ptr_param<lin_op_type> ptr)
     {
         T* cast_ptr{};
-        if ((cast_ptr = dynamic_cast<T*>(ptr))) {
+        if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
             return conversion_helper<ConversionCandidates...>::template convert<
-                T>(ptr);
+                T>(ptr.get());
         }
     }
 

@@ -1087,12 +1087,16 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamDefault)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
+    std::ostringstream oss_const{};
 
-    write(oss, lend(lin_op));
+    write(oss, lin_op);
+    write(oss_const, std::unique_ptr<const DummyLinOp<value_type, index_type>>{
+                         std::move(lin_op)});
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
               "2 3\n1 3 2\n2 1 0\n2 2 5\n2 3 0\n");
+    ASSERT_EQ(oss_const.str(), oss.str());
 }
 
 
