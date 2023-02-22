@@ -210,14 +210,16 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         z->compute_conj_dot(r2, rho, reduction_tmp);
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, r, dense_x, nullptr, rho);
-        if (stop_criterion->update()
+        bool all_stopped =
+            stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r)
                 .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r, dense_x, nullptr, rho, &stop_status, all_stopped);
+        if (all_stopped) {
             break;
         }
 

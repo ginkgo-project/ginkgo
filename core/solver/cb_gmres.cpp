@@ -325,11 +325,12 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         while (true) {
             ++total_iter;
-            this->template log<log::Logger::iteration_complete>(
-                this, total_iter, residual.get(), dense_x, residual_norm.get());
             // In the beginning, only force a fraction of the total iterations
             if (forced_iterations < forced_limit &&
                 forced_iterations < total_iter / forced_iteration_fraction) {
+                this->template log<log::Logger::iteration_complete>(
+                    this, total_iter, residual.get(), dense_x,
+                    residual_norm.get(), nullptr, &stop_status, false);
                 ++forced_iterations;
             } else {
                 bool all_changed = stop_criterion->update()
@@ -339,6 +340,9 @@ void CbGmres<ValueType>::apply_dense_impl(
                                        .solution(dense_x)
                                        .check(RelativeStoppingId, true,
                                               &stop_status, &one_changed);
+                this->template log<log::Logger::iteration_complete>(
+                    this, total_iter, residual.get(), dense_x,
+                    residual_norm.get(), nullptr, &stop_status, all_changed);
                 if (one_changed || all_changed) {
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
