@@ -137,7 +137,7 @@ TEST_F(LowerTrs, CudaSingleRhsApplySyncfreeIsEquivalentToRef)
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
@@ -171,7 +171,7 @@ TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .with_num_rhs(3u)
             .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);

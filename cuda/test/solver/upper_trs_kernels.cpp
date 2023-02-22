@@ -137,7 +137,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
     auto d_upper_trs_factory =
         gko::solver::UpperTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
@@ -171,7 +171,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_upper_trs_factory =
         gko::solver::UpperTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_strategy(gko::solver::trisolve_strategy::syncfree())
             .with_num_rhs(3u)
             .on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);

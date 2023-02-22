@@ -66,7 +66,7 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
-              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              bool unit_diag, const solver::trisolve_strategy* strategy,
               const size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
@@ -87,7 +87,6 @@ template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
-           const solver::trisolve_algorithm algorithm,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {

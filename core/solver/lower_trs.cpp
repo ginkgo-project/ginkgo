@@ -135,8 +135,8 @@ void LowerTrs<ValueType, IndexType>::generate()
     if (this->get_system_matrix()) {
         this->get_executor()->run(lower_trs::make_generate(
             this->get_system_matrix().get(), this->solve_struct_,
-            this->get_parameters().unit_diagonal, parameters_.algorithm,
-            parameters_.num_rhs));
+            this->get_parameters().unit_diagonal,
+            gko::lend(parameters_.strategy), parameters_.num_rhs));
     }
 }
 
@@ -178,8 +178,8 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             }
             exec->run(lower_trs::make_solve(
                 lend(this->get_system_matrix()), lend(this->solve_struct_),
-                this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b, trans_x, dense_b, dense_x));
+                this->get_parameters().unit_diagonal, trans_b, trans_x, dense_b,
+                dense_x));
         },
         b, x);
 }
