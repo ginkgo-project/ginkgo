@@ -144,11 +144,6 @@ int main(int argc, char* argv[])
                                    .with_reduction_factor(reduction_factor)
                                    .on(exec));
 
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
@@ -161,6 +156,11 @@ int main(int argc, char* argv[])
 
     // Generate preconditioned solver for a specific target system
     auto ilu_gmres = ilu_gmres_factory->generate(A);
+
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    ilu_gmres->add_logger(logger);
 
     // Warmup run
     ilu_gmres->apply(b, x);
@@ -181,12 +181,8 @@ int main(int argc, char* argv[])
     std::cout << "Solution (x):\n";
     write(std::cout, x);
 
-    // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(res);
+    // Get residual
+    auto res = gko::as<vec>(logger->get_residual_norm());
 
     std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
               << "\n";

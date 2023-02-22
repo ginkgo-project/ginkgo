@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
@@ -85,6 +86,7 @@ void Convergence<ValueType>::on_iteration_complete(
     const bool stopped) const
 {
     if (stopped) {
+        // TODO need to throw if not solver or x
         array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
         this->convergence_status_ = true;
