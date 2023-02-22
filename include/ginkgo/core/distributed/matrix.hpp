@@ -53,8 +53,11 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType>
+class Diagonal;
 
-}
+
+}  // namespace matrix
 
 
 namespace detail {
@@ -72,8 +75,8 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<decltype(
-        std::declval<Builder>().template create<ValueType, IndexType>(
+    gko::xstd::void_t<
+        decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -268,6 +271,7 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+      public DiagonalExtractable<ValueType>,
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
@@ -282,6 +286,9 @@ public:
     using global_vector_type =
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
+    using part_type =
+        gko::experimental::distributed::Partition<LocalIndexType,
+                                                  GlobalIndexType>;
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
@@ -291,6 +298,9 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
+
+    std::unique_ptr<matrix::Diagonal<value_type>> extract_diagonal()
+        const override;
 
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
@@ -308,7 +318,8 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        const Partition<local_index_type, global_index_type>* partition,
+        bool add = false);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -321,7 +332,8 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        const Partition<local_index_type, global_index_type>* partition,
+        bool add = false);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -341,7 +353,8 @@ public:
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        const Partition<local_index_type, global_index_type>* col_partition,
+        bool add = false);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -355,7 +368,32 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        const Partition<local_index_type, global_index_type>* col_partition,
+        bool add = false);
+
+    /**
+     * Get read access to the row partition of the matrix.
+     *
+     * @return  Shared pointer to the stored row partition
+     */
+    std::shared_ptr<const gko::experimental::distributed::Partition<
+        local_index_type, global_index_type>>
+    get_row_partition() const
+    {
+        return row_partition_;
+    }
+
+    /**
+     * Get read access to the col partition of the matrix.
+     *
+     * @return  Shared pointer to the stored col partition
+     */
+    std::shared_ptr<const gko::experimental::distributed::Partition<
+        local_index_type, global_index_type>>
+    get_col_partition() const
+    {
+        return col_partition_;
+    }
 
     /**
      * Get read access to the stored local matrix.
@@ -363,6 +401,17 @@ public:
      * @return  Shared pointer to the stored local matrix
      */
     std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+
+    /**
+     * Get read access to the matrix data object. Only local rank data.
+     *
+     * @return  matrix_data object
+     */
+    const device_matrix_data<value_type, global_index_type>& get_matrix_data()
+        const
+    {
+        return matrix_data_;
+    }
 
     /**
      * Get read access to the stored non-local matrix.
@@ -407,6 +456,26 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other) noexcept(false);
+
+    /**
+     * Starts a non-blocking communication of the values of b that are shared
+     * with other processors.
+     *
+     * @param local_b  The full local vector to be communicated. The subset of
+     *                 shared values is automatically extracted.
+     * @return  MPI request for the non-blocking communication.
+     */
+    mpi::request communicate(const local_vector_type* local_b) const;
+
+    const local_vector_type* get_recv_buffer() const
+    {
+        return recv_buffer_.get();
+    }
+
+    const array<global_index_type> get_non_local_to_global() const
+    {
+        return non_local_to_global_;
+    }
 
 protected:
     /**
@@ -526,16 +595,6 @@ protected:
                     mpi::communicator comm, const LinOp* local_matrix_template,
                     const LinOp* non_local_matrix_template);
 
-    /**
-     * Starts a non-blocking communication of the values of b that are shared
-     * with other processors.
-     *
-     * @param local_b  The full local vector to be communicated. The subset of
-     *                 shared values is automatically extracted.
-     * @return  MPI request for the non-blocking communication.
-     */
-    mpi::request communicate(const local_vector_type* local_b) const;
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -553,6 +612,13 @@ private:
     gko::detail::DenseCache<value_type> host_recv_buffer_;
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
+    device_matrix_data<value_type, global_index_type> matrix_data_;
+    std::shared_ptr<gko::experimental::distributed::Partition<
+        local_index_type, global_index_type>>
+        row_partition_;
+    std::shared_ptr<gko::experimental::distributed::Partition<
+        local_index_type, global_index_type>>
+        col_partition_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };
