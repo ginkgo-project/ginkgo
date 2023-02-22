@@ -73,6 +73,38 @@ const char* location_nontrivial_mc64_example =
     "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_example.mtx";
 const char* location_nontrivial_mc64_result = 
     "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_result.mtx";
+const char* location_bddc_input_0 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/input_rank_0.mtx";
+const char* location_bddc_input_1 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/input_rank_1.mtx";
+const char* location_bddc_input_2 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/input_rank_2.mtx";
+const char* location_bddc_input_3 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/input_rank_3.mtx";
+const char* location_bddc_local_sys_0 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/local_system_rank_0.mtx";
+const char* location_bddc_local_sys_1 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/local_system_rank_1.mtx";
+const char* location_bddc_local_sys_2 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/local_system_rank_2.mtx";
+const char* location_bddc_local_sys_3 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/local_system_rank_3.mtx";
+const char* location_bddc_phi_0 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/phi_rank_0.mtx";
+const char* location_bddc_phi_1 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/phi_rank_1.mtx";
+const char* location_bddc_phi_2 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/phi_rank_2.mtx";
+const char* location_bddc_phi_3 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/phi_rank_3.mtx";
+const char* location_bddc_coarse_0 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_0.mtx";
+const char* location_bddc_coarse_1 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_1.mtx";
+const char* location_bddc_coarse_2 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_2.mtx";
+const char* location_bddc_coarse_3 =
+    "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_3.mtx";
 
 
 }  // namespace matrices

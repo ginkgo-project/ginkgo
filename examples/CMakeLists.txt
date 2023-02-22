@@ -53,7 +53,7 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-solver distributed-preconditioned-solver)
+    list(APPEND EXAMPLES_LIST distributed-solver distributed-preconditioned-solver bddc-laplace-problem)
 endif()
 
 find_package(Kokkos QUIET)
