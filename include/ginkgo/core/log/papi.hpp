@@ -180,6 +180,14 @@ public:
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
+    void on_iteration_complete(const LinOp* solver,
+                               const size_type& num_iterations,
+                               const LinOp* residual, const LinOp* x,
+                               const LinOp* residual_norm,
+                               const LinOp* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
+
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution = nullptr,

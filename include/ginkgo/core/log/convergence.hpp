@@ -80,6 +80,14 @@ public:
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
+    void on_iteration_complete(const LinOp* solver,
+                               const size_type& num_iterations,
+                               const LinOp* residual, const LinOp* x,
+                               const LinOp* residual_norm,
+                               const LinOp* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
+
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.

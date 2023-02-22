@@ -443,29 +443,23 @@ void Stream<ValueType>::on_criterion_check_completed(
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
-                                              const size_type& num_iterations,
-                                              const LinOp* residual,
-                                              const LinOp* solution,
-                                              const LinOp* residual_norm) const
-{
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
-}
-
-
-template <typename ValueType>
 void Stream<ValueType>::on_iteration_complete(
     const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
     const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
+    const LinOp* implicit_resnorm_sq, const array<stopping_status>* status,
+    bool stopped) const
 {
     *os_ << prefix_ << "iteration " << num_iterations
          << " completed with solver " << demangle_name(solver)
          << " with residual " << demangle_name(residual) << ", solution "
          << demangle_name(solution) << ", residual_norm "
          << demangle_name(residual_norm) << " and implicit_sq_residual_norm "
-         << demangle_name(implicit_sq_residual_norm) << std::endl;
+         << demangle_name(implicit_resnorm_sq);
+    if (status) {
+        *os_ << ". Stopped the iteration process " << std::boolalpha << stopped;
+    }
+    *os_ << std::endl;
+
     if (verbose_) {
         *os_ << demangle_name(residual)
              << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
@@ -478,12 +472,40 @@ void Stream<ValueType>::on_iteration_complete(
                  << as<gko::matrix::Dense<ValueType>>(residual_norm)
                  << std::endl;
         }
-        if (implicit_sq_residual_norm != nullptr) {
-            *os_ << demangle_name(implicit_sq_residual_norm)
-                 << as<gko::matrix::Dense<ValueType>>(implicit_sq_residual_norm)
+        if (implicit_resnorm_sq != nullptr) {
+            *os_ << demangle_name(implicit_resnorm_sq)
+                 << as<gko::matrix::Dense<ValueType>>(implicit_resnorm_sq)
                  << std::endl;
         }
+        if (status != nullptr) {
+            array<stopping_status> tmp(status->get_executor()->get_master(),
+                                       *status);
+            *os_ << tmp.get_const_data();
+        }
     }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
+                                              const size_type& num_iterations,
+                                              const LinOp* residual,
+                                              const LinOp* solution,
+                                              const LinOp* residual_norm) const
+{
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr, nullptr, false);
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm) const
+{
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr, nullptr, false);
 }
 
 
