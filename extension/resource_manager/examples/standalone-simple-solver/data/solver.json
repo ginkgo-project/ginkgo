@@ -1,0 +1,17 @@
+{
+    "name": "solver",
+    "base": "Cg",
+    "factory": {
+        "name": "CgFactory",
+        "criteria": [
+            {
+                "name": "20Iter",
+                "base": "Iteration",
+                "max_iters": 20,
+                "exec": "inherit"
+            }
+        ],
+        "exec": "inherit"
+    },
+    "generate": "given"
+}

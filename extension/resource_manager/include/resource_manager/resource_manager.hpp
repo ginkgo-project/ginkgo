@@ -1,0 +1,119 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2022, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+
+
+#include <map>
+
+
+#include "resource_manager/base/function_map.hpp"
+#include "resource_manager/base/generic_constructor.hpp"
+#include "resource_manager/base/helper.hpp"
+#include "resource_manager/base/macro_helper.hpp"
+#include "resource_manager/base/rapidjson_helper.hpp"
+#include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/template_helper.hpp"
+#include "resource_manager/base/type_default.hpp"
+#include "resource_manager/base/type_pack.hpp"
+#include "resource_manager/base/type_resolving.hpp"
+#include "resource_manager/base/type_string.hpp"
+#include "resource_manager/base/types.hpp"
+#include "resource_manager/executor/executor.hpp"
+#include "resource_manager/factorization/ic.hpp"
+#include "resource_manager/factorization/ilu.hpp"
+#include "resource_manager/factorization/par_ic.hpp"
+#include "resource_manager/factorization/par_ict.hpp"
+#include "resource_manager/factorization/par_ilu.hpp"
+#include "resource_manager/factorization/par_ilut.hpp"
+#include "resource_manager/log/convergence.hpp"
+#include "resource_manager/log/mask_type.hpp"
+#include "resource_manager/log/papi.hpp"
+#include "resource_manager/log/record.hpp"
+#include "resource_manager/log/stream.hpp"
+#include "resource_manager/matrix/coo.hpp"
+#include "resource_manager/matrix/csr.hpp"
+#include "resource_manager/matrix/dense.hpp"
+#include "resource_manager/matrix/diagonal.hpp"
+#include "resource_manager/matrix/ell.hpp"
+#include "resource_manager/matrix/fbcsr.hpp"
+#include "resource_manager/matrix/fft.hpp"
+#include "resource_manager/matrix/hybrid.hpp"
+#include "resource_manager/matrix/identity.hpp"
+#include "resource_manager/matrix/permutation.hpp"
+#include "resource_manager/matrix/row_gatherer.hpp"
+#include "resource_manager/matrix/sellp.hpp"
+#include "resource_manager/matrix/sparsity_csr.hpp"
+#include "resource_manager/multigrid/amgx_pgm.hpp"
+#include "resource_manager/multigrid/fixed_coarsening.hpp"
+#include "resource_manager/preconditioner/ic.hpp"
+#include "resource_manager/preconditioner/ilu.hpp"
+#include "resource_manager/preconditioner/isai.hpp"
+#include "resource_manager/preconditioner/jacobi.hpp"
+#include "resource_manager/resource_manager.hpp"
+#include "resource_manager/solver/bicg.hpp"
+#include "resource_manager/solver/bicgstab.hpp"
+#include "resource_manager/solver/cb_gmres.hpp"
+#include "resource_manager/solver/cg.hpp"
+#include "resource_manager/solver/cgs.hpp"
+#include "resource_manager/solver/fcg.hpp"
+#include "resource_manager/solver/gmres.hpp"
+#include "resource_manager/solver/idr.hpp"
+#include "resource_manager/solver/ir.hpp"
+#include "resource_manager/solver/lower_trs.hpp"
+#include "resource_manager/solver/multigrid.hpp"
+#include "resource_manager/solver/upper_trs.hpp"
+#include "resource_manager/stop/iteration.hpp"
+#include "resource_manager/stop/residual_norm.hpp"
+#include "resource_manager/stop/time.hpp"
+
+
+namespace gko {
+namespace extension {
+namespace resource_manager {
+
+
+IMPLEMENT_SELECTION(Executor, RM_Executor, ENUM_EXECUTER);
+IMPLEMENT_SELECTION(LinOp, RM_LinOp, ENUM_LINOP);
+IMPLEMENT_SELECTION(LinOpFactory, RM_LinOpFactory, ENUM_LINOPFACTORY);
+IMPLEMENT_SELECTION(CriterionFactory, RM_CriterionFactory,
+                    ENUM_CRITERIONFACTORY);
+IMPLEMENT_SELECTION(Logger, RM_Logger, ENUM_LOGGER);
+
+
+}  // namespace resource_manager
+}  // namespace extension
+}  // namespace gko
+
+
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_

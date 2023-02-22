@@ -72,6 +72,17 @@ function(ginkgo_install_library name)
     endif ()
 endfunction()
 
+function(ginkgo_install_header_only_library name project)
+    install(TARGETS "${name}"
+        EXPORT "${project}"
+        PUBLIC_HEADER DESTINATION include
+        )
+    get_target_property(TARGET_INCLUDE_DIR "${name}" INTERFACE_INCLUDE_DIRECTORIES)
+    install(DIRECTORY "${TARGET_INCLUDE_DIR}"
+        DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+        )
+endfunction()
+
 function(ginkgo_install)
     # pkg-config file
     install(FILES ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc

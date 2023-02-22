@@ -1,0 +1,52 @@
+[
+    {
+        "name": "executor",
+        "base": "ReferenceExecutor"
+    },
+    {
+        "name": "A",
+        "base": "Csr",
+        "exec": "executor",
+        "read": "data/A.mtx"
+    },
+    {
+        "name": "b",
+        "base": "Dense",
+        "ValueType": "double",
+        "exec": {
+            "base": "ReferenceExecutor"
+        },
+        "read": "data/b.mtx"
+    },
+    {
+        "name": "x",
+        "base": "Dense",
+        "ValueType": "double",
+        "exec": "executor",
+        "read": "data/x0.mtx"
+    },
+    {
+        "name": "conv",
+        "base": "Convergence",
+        "ValueType": "double",
+        "exec": "executor"
+    },
+    {
+        "name": "solver",
+        "base": "Cg",
+        "factory": {
+            "name": "CgFactory",
+            "exec": "executor",
+            "criteria": [
+                {
+                    "name": "20Iter",
+                    "base": "IterationFactory",
+                    "max_iters": 20,
+                    "exec": "executor",
+                    "add_loggers": "conv"
+                }
+            ]
+        },
+        "generate": "A"
+    }
+]
