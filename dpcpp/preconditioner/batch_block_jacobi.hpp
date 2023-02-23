@@ -100,7 +100,7 @@ public:
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
@@ -108,7 +108,7 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
@@ -116,15 +116,15 @@ public:
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
-    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z,
-               sycl::nd_item<3> item_ct1) const
+    __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
+                               ValueType* const z,
+                               sycl::nd_item<3> item_ct1) const
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // // Structure-aware SpMV
         // for (int bidx = 0; bidx < num_blocks_; bidx++) {
         //     const int row_st = block_ptrs_arr_[bidx];       // inclusive

@@ -83,7 +83,7 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
@@ -91,7 +91,7 @@ public:
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
@@ -99,16 +99,17 @@ public:
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id);
     }
 
 
-    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z,
-               sycl::nd_item<3> item_ct1) const
+    __dpct_inline__ void apply(const int num_rows,
+                               const ValueType* const __restrict__ r,
+                               ValueType* const __restrict__ z,
+                               sycl::nd_item<3> item_ct1) const
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // z = approx_inv * r (Spmv)
         // matvec_kernel(approx_inv_entry_, r, z);
     }
