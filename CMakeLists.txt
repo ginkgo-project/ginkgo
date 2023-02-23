@@ -32,6 +32,7 @@ option(GINKGO_BUILD_DPCPP
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
+option(GINKGO_BUILD_EXTENSION "Build Ginkgo's extension" OFF)
 option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be time-intensive" OFF)
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
@@ -316,6 +317,10 @@ endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
+endif()
+
+if(GINKGO_BUILD_EXTENSION)
+    add_subdirectory(extension)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
