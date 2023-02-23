@@ -300,7 +300,7 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const work, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
@@ -308,7 +308,7 @@ public:
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const work, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
@@ -316,16 +316,16 @@ public:
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const work, sycl::nd_item<3> item_ct1)
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // common_generate_for_all_system_matrix_types(batch_id, work);
     }
 
 
-    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z,
-               sycl::nd_item<3> item_ct1) const
+    __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
+                               ValueType* const z,
+                               sycl::nd_item<3> item_ct1) const
     {
-        GKO_NOT_IMPLEMENTED;
+        assert(false);
         // // z = precond * r
         // if (apply_type_ ==
         //     gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple) {

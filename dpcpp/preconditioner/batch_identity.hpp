@@ -71,24 +71,19 @@ public:
      * @param work  A 'work-vector', which is unneecessary here as no
      * preconditioner values are to be stored.
      */
-    void generate(size_type,
-                  const gko::batch_csr::BatchEntry<const ValueType>& mat,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
+    void generate(size_type batch_id,
+                  const gko::batch_ell::BatchEntry<const ValueType>&,
+                  ValueType* const, sycl::nd_item<3> item_ct1)
     {}
 
-    void generate(size_type,
-                  const gko::batch_ell::BatchEntry<const ValueType>& mat,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
+    void generate(size_type batch_id,
+                  const gko::batch_csr::BatchEntry<const ValueType>&,
+                  ValueType* const, sycl::nd_item<3> item_ct1)
     {}
 
-    void generate(size_type,
-                  const gko::batch_dense::BatchEntry<const ValueType>& mat,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
-    {}
-
-    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-               const gko::batch_dense::BatchEntry<ValueType>& z,
-               sycl::nd_item<3> item_ct1) const
+    void generate(size_type batch_id,
+                  const gko::batch_dense::BatchEntry<const ValueType>&,
+                  ValueType* const, sycl::nd_item<3> item_ct1)
     {}
 
     __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
