@@ -45,6 +45,21 @@ namespace gko {
 
 
 /**
+ * CompositeionBase provides the interface
+ */
+class CompositionBase {
+public:
+    /**
+     * Returns a list of operators of the composition.
+     *
+     * @return a list of operators
+     */
+    virtual const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept = 0;
+};
+
+
+/**
  * The Composition class can be used to compose linear operators `op1, op2, ...,
  * opn` and obtain the operator `op1 * op2 * ... * opn`.
  *
@@ -66,7 +81,8 @@ namespace gko {
 template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
-                    public Transposable {
+                    public Transposable,
+                    public CompositionBase {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 
@@ -80,7 +96,7 @@ public:
      * @return a list of operators
      */
     const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
-        noexcept
+        noexcept override
     {
         return operators_;
     }

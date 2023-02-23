@@ -416,6 +416,16 @@ int main()
         auto test = gko::multigrid::Pgm<>::build().on(exec);
     }
 
+    // core/preconditioner/ic_wrapper.hpp
+    {
+        auto test = gko::preconditioner::IcWrapper<>::build().on(exec);
+    }
+    
+    // core/preconditioner/ic.hpp
+    {
+        auto test = gko::preconditioner::Ic<>::build().on(exec);
+    }
+
     // core/preconditioner/ilu.hpp
     {
         auto test = gko::preconditioner::Ilu<>::build().on(exec);
