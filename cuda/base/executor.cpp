@@ -375,4 +375,19 @@ void end_nvtx(const char* name, profile_event_category) { nvtxRangePop(); }
 
 
 }  // namespace log
+
+
+namespace kernels {
+namespace cuda {
+
+
+void reset_device(int device_id)
+{
+    gko::detail::cuda_scoped_device_id_guard guard{device_id};
+    cudaDeviceReset();
+}
+
+
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko

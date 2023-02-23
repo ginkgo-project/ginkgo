@@ -361,4 +361,19 @@ void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(roctx);
 
 
 }  // namespace log
+
+
+namespace kernels {
+namespace hip {
+
+
+void reset_device(int device_id)
+{
+    gko::detail::hip_scoped_device_id_guard guard{device_id};
+    hipDeviceReset();
+}
+
+
+}  // namespace hip
+}  // namespace kernels
 }  // namespace gko

@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
+#include "hip/base/scoped_device_id.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -92,7 +93,19 @@ public:
 class HipExecutor : public ::testing::Test {
 protected:
     HipExecutor()
-        : omp(gko::OmpExecutor::create()),
+        :
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream([] {
+              gko::detail::hip_scoped_device_id_guard guard(0);
+              return gko::hip_stream{};
+          }()),
+          other_stream([] {
+              gko::detail::hip_scoped_device_id_guard guard(
+                  gko::HipExecutor::get_num_devices() - 1);
+              return gko::hip_stream{};
+          }()),
+#endif
+          omp(gko::OmpExecutor::create()),
           hip(nullptr),
           hip2(nullptr),
           hip3(nullptr)
@@ -101,11 +114,21 @@ protected:
     void SetUp()
     {
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+        hip = gko::HipExecutor::create(
+            0, omp, false, gko::default_hip_alloc_mode, stream.get());
+        hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
+                                        omp, false, gko::default_hip_alloc_mode,
+                                        other_stream.get());
+        hip3 = gko::HipExecutor::create(
+            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+#else
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
         hip3 = gko::HipExecutor::create(0, omp, false,
                                         gko::allocation_mode::unified_global);
+#endif
     }
 
     void TearDown()
@@ -116,6 +139,10 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::hip_stream stream;
+    gko::hip_stream other_stream;
+#endif
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::HipExecutor> hip;
     std::shared_ptr<gko::HipExecutor> hip2;

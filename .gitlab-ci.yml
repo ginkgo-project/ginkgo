@@ -444,6 +444,7 @@ build/amd/nompi/gcc/rocm45/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    NONDEFAULT_STREAM: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 

@@ -30,58 +30,22 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_TEST_UTILS_HIP_HPP_
-#define GKO_HIP_TEST_UTILS_HIP_HPP_
+#ifndef GKO_CUDA_BASE_DEVICE_HPP_
+#define GKO_CUDA_BASE_DEVICE_HPP_
 
 
-#include "core/test/utils.hpp"
-#include "hip/base/device.hpp"
+namespace gko {
+namespace kernels {
+namespace cuda {
 
 
-#include <ginkgo/core/base/executor.hpp>
+/** calls cudaDeviceReset on the given device. */
+void reset_device(int device_id);
 
 
-namespace {
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko
 
 
-class HipEnvironment : public ::testing::Environment {
-public:
-    void TearDown() override { gko::kernels::hip::reset_device(0); }
-};
-
-testing::Environment* hip_env =
-    testing::AddGlobalTestEnvironment(new HipEnvironment);
-
-
-class HipTestFixture : public ::testing::Test {
-protected:
-    HipTestFixture()
-        : ref(gko::ReferenceExecutor::create()),
-#ifdef GKO_TEST_NONDEFAULT_STREAM
-          exec(gko::HipExecutor::create(
-              0, ref, false, gko::default_hip_alloc_mode, stream.get()))
-#else
-          exec(gko::HipExecutor::create(0, ref))
-#endif
-    {}
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            exec->synchronize();
-        }
-    }
-
-#ifdef GKO_TEST_NONDEFAULT_STREAM
-    gko::hip_stream stream;
-#endif
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> exec;
-};
-
-
-}  // namespace
-
-
-#endif  // GKO_HIP_TEST_UTILS_HIP_HPP_
+#endif  // GKO_CUDA_BASE_DEVICE_HPP_

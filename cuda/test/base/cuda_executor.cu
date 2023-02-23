@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
+#include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -86,7 +87,19 @@ public:
 class CudaExecutor : public ::testing::Test {
 protected:
     CudaExecutor()
-        : omp(gko::OmpExecutor::create()),
+        :
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream([] {
+              gko::detail::cuda_scoped_device_id_guard guard(0);
+              return gko::cuda_stream{};
+          }()),
+          other_stream([] {
+              gko::detail::cuda_scoped_device_id_guard guard(
+                  gko::CudaExecutor::get_num_devices() - 1);
+              return gko::cuda_stream{};
+          }()),
+#endif
+          omp(gko::OmpExecutor::create()),
           cuda(nullptr),
           cuda2(nullptr),
           cuda3(nullptr)
@@ -98,15 +111,18 @@ protected:
 #ifdef GKO_TEST_NONDEFAULT_STREAM
         cuda = gko::CudaExecutor::create(
             0, omp, false, gko::default_cuda_alloc_mode, stream.get());
-#else
-        cuda = gko::CudaExecutor::create(0, omp);
-#endif
         cuda2 = gko::CudaExecutor::create(
             gko::CudaExecutor::get_num_devices() - 1, omp, false,
-            gko::default_cuda_alloc_mode, cuda->get_stream());
+            gko::default_cuda_alloc_mode, other_stream.get());
+        cuda3 = gko::CudaExecutor::create(
+            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+#else
+        cuda = gko::CudaExecutor::create(0, omp);
+        cuda2 = gko::CudaExecutor::create(
+            gko::CudaExecutor::get_num_devices() - 1, omp);
         cuda3 = gko::CudaExecutor::create(0, omp, false,
-                                          gko::allocation_mode::unified_global,
-                                          cuda->get_stream());
+                                          gko::allocation_mode::unified_global);
+#endif
     }
 
     void TearDown()
@@ -119,6 +135,7 @@ protected:
 
 #ifdef GKO_TEST_NONDEFAULT_STREAM
     gko::cuda_stream stream;
+    gko::cuda_stream other_stream;
 #endif
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::CudaExecutor> cuda;

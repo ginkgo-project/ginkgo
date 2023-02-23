@@ -16,100 +16,21 @@
 
 #include <cuda_runtime.h>
 
-#include <cxxabi.h>
-#include <dlfcn.h>
-#include <execinfo.h>
-#include <iostream>
 #include <stdexcept>
 #include <unordered_map>
+
+#include "backtrace.hpp"
 
 /**
  * @brief Print a backtrace and raise an error if stream is a default stream.
  */
-void check_stream_and_error(cudaStream_t stream)
+void check_cuda_stream_and_error(cudaStream_t stream)
 {
     if (stream == cudaStreamDefault || (stream == cudaStreamLegacy) ||
         (stream == cudaStreamPerThread)) {
-#ifdef __GNUC__
-        // If we're on the wrong stream, print the stack trace from the current
-        // frame. Adapted from from
-        // https://panthema.net/2008/0901-stacktrace-demangled/
-        constexpr int kMaxStackDepth = 64;
-        void* stack[kMaxStackDepth];
-        auto depth = backtrace(stack, kMaxStackDepth);
-        auto strings = backtrace_symbols(stack, depth);
-
-        if (strings == nullptr) {
-            std::cout << "No stack trace could be found!" << std::endl;
-        } else {
-            // If we were able to extract a trace, parse it, demangle symbols,
-            // and print a readable output.
-
-            // allocate string which will be filled with the demangled function
-            // name
-            size_t funcnamesize = 256;
-            char* funcname = (char*)malloc(funcnamesize);
-
-            // Start at frame 1 to skip print_trace itself.
-            for (int i = 1; i < depth; ++i) {
-                char* begin_name = nullptr;
-                char* begin_offset = nullptr;
-                char* end_offset = nullptr;
-
-                // find parentheses and +address offset surrounding the mangled
-                // name:
-                // ./module(function+0x15c) [0x8048a6d]
-                for (char* p = strings[i]; *p; ++p) {
-                    if (*p == '(') {
-                        begin_name = p;
-                    } else if (*p == '+') {
-                        begin_offset = p;
-                    } else if (*p == ')' && begin_offset) {
-                        end_offset = p;
-                        break;
-                    }
-                }
-
-                if (begin_name && begin_offset && end_offset &&
-                    begin_name < begin_offset) {
-                    *begin_name++ = '\0';
-                    *begin_offset++ = '\0';
-                    *end_offset = '\0';
-
-                    // mangled name is now in [begin_name, begin_offset) and
-                    // caller offset in [begin_offset, end_offset). now apply
-                    // __cxa_demangle():
-
-                    int status;
-                    char* ret = abi::__cxa_demangle(begin_name, funcname,
-                                                    &funcnamesize, &status);
-                    if (status == 0) {
-                        funcname =
-                            ret;  // use possibly realloc()-ed string
-                                  // (__cxa_demangle may realloc funcname)
-                        std::cout << "#" << i << " in " << strings[i] << " : "
-                                  << funcname << "+" << begin_offset
-                                  << std::endl;
-                    } else {
-                        // demangling failed. Output function name as a C
-                        // function with no arguments.
-                        std::cout << "#" << i << " in " << strings[i] << " : "
-                                  << begin_name << "()+" << begin_offset
-                                  << std::endl;
-                    }
-                } else {
-                    std::cout << "#" << i << " in " << strings[i] << std::endl;
-                }
-            }
-
-            free(funcname);
+        if (check_backtrace()) {
+            throw std::runtime_error("Found unexpected default stream!");
         }
-        free(strings);
-#else
-        std::cout << "Backtraces are only when built with a GNU compiler."
-                  << std::endl;
-#endif  // __GNUC__
-        throw std::runtime_error("Found unexpected default stream!");
     }
 }
 
@@ -119,10 +40,10 @@ void check_stream_and_error(cudaStream_t stream)
  *
  * This variable must be initialized before everything else.
  *
- * @see find_originals for a description of the priorities
+ * @see find_cuda_originals for a description of the priorities
  */
 __attribute__((init_priority(1001))) std::unordered_map<std::string, void*>
-    originals;
+    cuda_originals;
 
 /**
  * @brief Macro for generating functions to override existing CUDA functions.
@@ -141,17 +62,17 @@ __attribute__((init_priority(1001))) std::unordered_map<std::string, void*>
  * @param signature The function signature (must include names, not just types).
  * @parameter arguments The function arguments (names only, no types).
  */
-#define DEFINE_OVERLOAD(function, signature, arguments)         \
-    using function##_t = cudaError_t (*)(signature);            \
-                                                                \
-    cudaError_t function(signature)                             \
-    {                                                           \
-        check_stream_and_error(stream);                         \
-        return ((function##_t)originals[#function])(arguments); \
-    }                                                           \
-    __attribute__((constructor(1002))) void queue_##function()  \
-    {                                                           \
-        originals[#function] = nullptr;                         \
+#define DEFINE_OVERLOAD(function, signature, arguments)              \
+    using function##_t = cudaError_t (*)(signature);                 \
+                                                                     \
+    cudaError_t function(signature)                                  \
+    {                                                                \
+        check_cuda_stream_and_error(stream);                         \
+        return ((function##_t)cuda_originals[#function])(arguments); \
+    }                                                                \
+    __attribute__((constructor(1002))) void queue_##function()       \
+    {                                                                \
+        cuda_originals[#function] = nullptr;                         \
     }
 
 /**
@@ -286,14 +207,14 @@ DEFINE_OVERLOAD(cudaMallocFromPoolAsync,
  * overloaded functions.
  *
  * Note on priorities:
- * - `originals` must be initialized first, so it is 1001.
- * - The function names must be added to originals next in the macro, so those
- * are 1002.
+ * - `cuda_originals` must be initialized first, so it is 1001.
+ * - The function names must be added to cuda_originals next in the macro, so
+ * those are 1002.
  * - Finally, this function actually finds the original symbols so it is 1003.
  */
-__attribute__((constructor(1003))) void find_originals()
+__attribute__((constructor(1003))) void find_cuda_originals()
 {
-    for (auto it : originals) {
-        originals[it.first] = dlsym(RTLD_NEXT, it.first.data());
+    for (auto it : cuda_originals) {
+        cuda_originals[it.first] = dlsym(RTLD_NEXT, it.first.data());
     }
 }
