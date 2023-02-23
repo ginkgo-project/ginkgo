@@ -56,7 +56,6 @@ namespace cuda {
  * @ingroup jacobi
  */
 namespace jacobi {
-namespace {
 
 
 // a total of 32 warps (1024 threads)
@@ -69,7 +68,7 @@ constexpr int default_grid_size = 32 * 32 * 128;
 #include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
 
-}  // namespace
 }  // namespace jacobi
 }  // namespace cuda
 }  // namespace kernels
+}  // namespace gko
