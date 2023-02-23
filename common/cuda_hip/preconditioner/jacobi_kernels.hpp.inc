@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+namespace {
+
+
 __global__
 __launch_bounds__(default_num_warps* config::warp_size) void duplicate_array(
     const precision_reduction* __restrict__ source, size_type source_size,
