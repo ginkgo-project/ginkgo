@@ -165,14 +165,14 @@ void generate(
             workspace_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subwarp_size)]] {
-                generate<max_block_size, subwarp_size, warps_per_block>(
-                    num_rows, row_ptrs, col_idxs, values, block_data,
-                    storage_scheme, block_ptrs, num_blocks, item_ct1,
-                    workspace_acc_ct1.get_pointer().get());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                    generate<max_block_size, subwarp_size, warps_per_block>(
+                        num_rows, row_ptrs, col_idxs, values, block_data,
+                        storage_scheme, block_ptrs, num_blocks, item_ct1,
+                        workspace_acc_ct1.get_pointer().get());
+                });
     });
 }
 
@@ -349,17 +349,17 @@ void adaptive_generate(
             sycl::access_mode::read_write, sycl::access::target::local>
             workspace_acc_ct1(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subwarp_size)]] {
-                adaptive_generate<max_block_size, subwarp_size,
-                                  warps_per_block>(
-                    num_rows, row_ptrs, col_idxs, values, accuracy, block_data,
-                    storage_scheme, conditioning, block_precisions, block_ptrs,
-                    num_blocks, item_ct1,
-                    workspace_acc_ct1.get_pointer().get());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                                 adaptive_generate<max_block_size, subwarp_size,
+                                                   warps_per_block>(
+                                     num_rows, row_ptrs, col_idxs, values,
+                                     accuracy, block_data, storage_scheme,
+                                     conditioning, block_precisions, block_ptrs,
+                                     num_blocks, item_ct1,
+                                     workspace_acc_ct1.get_pointer().get());
+                             });
     });
 }
 

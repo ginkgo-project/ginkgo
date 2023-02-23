@@ -173,12 +173,13 @@ void find_missing_diagonal_elements(
     bool* changes_required)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(SubwarpSize)]] {
-            find_missing_diagonal_elements<IsSorted, SubwarpSize>(
-                num_rows, num_cols, col_idxs, row_ptrs, elements_to_add_per_row,
-                changes_required, item_ct1);
-        });
+        sycl_nd_range(grid, block),
+        [=](sycl::nd_item<3> item_ct1)
+            [[sycl::reqd_sub_group_size(SubwarpSize)]] {
+                find_missing_diagonal_elements<IsSorted, SubwarpSize>(
+                    num_rows, num_cols, col_idxs, row_ptrs,
+                    elements_to_add_per_row, changes_required, item_ct1);
+            });
 }
 
 
@@ -272,13 +273,14 @@ void add_missing_diagonal_elements(
     ValueType* new_values, IndexType* new_col_idxs,
     const IndexType* row_ptrs_addition)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(SubwarpSize)]] {
-            add_missing_diagonal_elements<SubwarpSize>(
-                num_rows, old_values, old_col_idxs, old_row_ptrs, new_values,
-                new_col_idxs, row_ptrs_addition, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(SubwarpSize)]] {
+                                add_missing_diagonal_elements<SubwarpSize>(
+                                    num_rows, old_values, old_col_idxs,
+                                    old_row_ptrs, new_values, new_col_idxs,
+                                    row_ptrs_addition, item_ct1);
+                            });
 }
 
 

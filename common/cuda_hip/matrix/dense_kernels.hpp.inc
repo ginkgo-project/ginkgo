@@ -35,10 +35,10 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void count_nonzero_blocks_per_row(
-        size_type num_block_rows, size_type num_block_cols, size_type stride,
-        int block_size, const ValueType* __restrict__ source,
-        IndexType* __restrict__ block_row_nnz)
+__launch_bounds__(default_block_size) void count_nonzero_blocks_per_row(
+    size_type num_block_rows, size_type num_block_cols, size_type stride,
+    int block_size, const ValueType* __restrict__ source,
+    IndexType* __restrict__ block_row_nnz)
 {
     const auto brow =
         thread::get_subwarp_id_flat<config::warp_size, IndexType>();

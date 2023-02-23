@@ -87,8 +87,8 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr __dpct_inline__ const ValueType& operator[](size_type pos) const
-        noexcept
+    constexpr __dpct_inline__ const ValueType& operator[](
+        size_type pos) const noexcept
     {
         return data_[pos];
     }

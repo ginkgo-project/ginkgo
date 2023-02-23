@@ -237,9 +237,9 @@ __global__ __launch_bounds__(default_reduce_block_size) void reduce_add_array(
  */
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_reduce_block_size) void reduce_add_array_with_initial_value(
-        size_type size, const ValueType* __restrict__ source,
-        ValueType* __restrict__ result)
+__launch_bounds__(default_reduce_block_size) void reduce_add_array_with_initial_value(
+    size_type size, const ValueType* __restrict__ source,
+    ValueType* __restrict__ result)
 {
     __shared__ uninitialized_array<ValueType, default_reduce_block_size>
         block_sum;

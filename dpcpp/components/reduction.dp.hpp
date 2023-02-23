@@ -225,13 +225,13 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            DeviceConfig::subgroup_size)]] {
-                reduce_add_array<DeviceConfig>(
-                    size, source, result, item_ct1,
-                    *block_sum_acc_ct1.get_pointer());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(DeviceConfig::subgroup_size)]] {
+                    reduce_add_array<DeviceConfig>(
+                        size, source, result, item_ct1,
+                        *block_sum_acc_ct1.get_pointer());
+                });
     });
 }
 

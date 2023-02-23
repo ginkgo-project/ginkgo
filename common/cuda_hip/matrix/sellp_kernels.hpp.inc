@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
