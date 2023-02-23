@@ -7,7 +7,7 @@ if(GINKGO_BUILD_CUDA)
     set(CMAKE_CUDA_RUNTIME_LIBRARY SHARED)
     add_library(identify_stream_usage_cuda SHARED identify_stream_usage.cpp)
     set_target_properties(identify_stream_usage_cuda PROPERTIES CUDA_RUNTIME_LIBRARY SHARED)
-    target_link_libraries(identify_stream_usage_cuda PUBLIC CUDA::cudart)
+    target_link_libraries(identify_stream_usage_cuda PUBLIC CUDA::cudart ${CMAKE_DL_LIBS})
     set_target_properties(
         identify_stream_usage_cuda
         PROPERTIES # set target compile options
@@ -34,7 +34,7 @@ if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
                     CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
                     NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS}
                     SHARED)
-    target_link_libraries(identify_stream_usage_hip PUBLIC hip::amdhip64)
+    target_link_libraries(identify_stream_usage_hip PUBLIC hip::amdhip64 ${CMAKE_DL_LIBS})
   
     hip_add_executable(test_stream_identification_hip
                        test_default_stream_identification.hip.cpp
