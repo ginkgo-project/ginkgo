@@ -424,49 +424,10 @@ protected:
      */
     void generate();
 
-    explicit Multigrid(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Multigrid>(exec)
-    {}
+    explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Multigrid>(factory->get_executor(),
-                                 transpose(system_matrix->get_size())),
-          EnableSolverBase<Multigrid>{std::move(system_matrix)},
-          EnableIterativeBase<Multigrid>{
-              stop::combine(factory->get_parameters().criteria)},
-          parameters_{factory->get_parameters()}
-    {
-        if (!parameters_.level_selector) {
-            if (parameters_.mg_level.size() == 1) {
-                level_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            } else if (parameters_.mg_level.size() > 1) {
-                level_selector_ = [](const size_type level, const LinOp*) {
-                    return level;
-                };
-            }
-        } else {
-            level_selector_ = parameters_.level_selector;
-        }
-        if (!parameters_.solver_selector) {
-            if (parameters_.coarsest_solver.size() >= 1) {
-                solver_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            }
-        } else {
-            solver_selector_ = parameters_.solver_selector;
-        }
-
-        this->validate();
-        this->set_default_initial_guess(parameters_.default_initial_guess);
-        if (this->get_system_matrix()->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
-    }
+                       std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * validate checks the given parameters are valid or not.
