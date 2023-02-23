@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 /**
  * Stores an array with uninitialized contents.
  *
@@ -70,8 +69,8 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES const ValueType& operator[](size_type pos) const
-        noexcept
+    constexpr GKO_ATTRIBUTES const ValueType& operator[](
+        size_type pos) const noexcept
     {
         return reinterpret_cast<const ValueType*>(data_)[pos];
     }

@@ -79,15 +79,12 @@ protected:
 template <typename ValueLocalGlobalIndexType>
 class MatrixBuilder : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -216,8 +213,8 @@ TYPED_TEST(MatrixBuilder, BuildWithLocal)
     this->template forall_matrix_types([this](auto with_matrix_type,
                                               auto expected_type_ptr,
                                               auto additional_test) {
-        using expected_type = typename std::remove_pointer<decltype(
-            expected_type_ptr.get())>::type;
+        using expected_type = typename std::remove_pointer<
+            decltype(expected_type_ptr.get())>::type;
 
         auto mat =
             dist_mat_type ::create(this->ref, this->comm, with_matrix_type);
@@ -239,14 +236,13 @@ TYPED_TEST(MatrixBuilder, BuildWithLocalAndNonLocal)
     this->template forall_matrix_types([this](auto with_local_matrix_type,
                                               auto expected_local_type_ptr,
                                               auto additional_local_test) {
-        using expected_local_type = typename std::remove_pointer<decltype(
-            expected_local_type_ptr.get())>::type;
+        using expected_local_type = typename std::remove_pointer<
+            decltype(expected_local_type_ptr.get())>::type;
         this->forall_matrix_types([&](auto with_non_local_matrix_type,
                                       auto expected_non_local_type_ptr,
                                       auto additional_non_local_test) {
-            using expected_non_local_type =
-                typename std::remove_pointer<decltype(
-                    expected_non_local_type_ptr.get())>::type;
+            using expected_non_local_type = typename std::remove_pointer<
+                decltype(expected_non_local_type_ptr.get())>::type;
 
             auto mat = dist_mat_type ::create(this->ref, this->comm,
                                               with_local_matrix_type,
@@ -289,8 +285,8 @@ TYPED_TEST(MatrixBuilder, BuildFromLinOpLocal)
     this->template forall_matrix_types([this](auto with_matrix_type,
                                               auto expected_type_ptr,
                                               auto additional_test) {
-        using expected_type = typename std::remove_pointer<decltype(
-            expected_type_ptr.get())>::type;
+        using expected_type = typename std::remove_pointer<
+            decltype(expected_type_ptr.get())>::type;
 
         auto mat =
             dist_mat_type ::create(this->ref, this->comm, expected_type_ptr);
@@ -312,14 +308,13 @@ TYPED_TEST(MatrixBuilder, BuildFromLinOpLocalAndNonLocal)
     this->template forall_matrix_types([this](auto with_local_matrix_type,
                                               auto expected_local_type_ptr,
                                               auto additional_local_test) {
-        using expected_local_type = typename std::remove_pointer<decltype(
-            expected_local_type_ptr.get())>::type;
+        using expected_local_type = typename std::remove_pointer<
+            decltype(expected_local_type_ptr.get())>::type;
         this->forall_matrix_types([&](auto with_non_local_matrix_type,
                                       auto expected_non_local_type_ptr,
                                       auto additional_non_local_test) {
-            using expected_non_local_type =
-                typename std::remove_pointer<decltype(
-                    expected_non_local_type_ptr.get())>::type;
+            using expected_non_local_type = typename std::remove_pointer<
+                decltype(expected_non_local_type_ptr.get())>::type;
 
             auto mat = dist_mat_type ::create(this->ref, this->comm,
                                               expected_local_type_ptr,

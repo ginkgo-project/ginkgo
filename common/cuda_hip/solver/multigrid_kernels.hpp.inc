@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 // grid_nrows is the number of rows handled in the whole grid at the same time.
 // Thus, the threads whose index is larger than grid_nrows * nrhs are not used.
 // Let the thread handle the same col (has same scalar) in whole loop.

@@ -195,10 +195,10 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
-        int64 rows, int64 cols, int64 col_blocks, KernelFunction fn,
-        ReductionOp op, FinalizeOp finalize, ValueType identity,
-        ValueType* result, int64 result_stride, KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
+    int64 rows, int64 cols, int64 col_blocks, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    int64 result_stride, KernelArgs... args)
 {
     const auto idx = thread::get_subwarp_id_flat<subwarp_size, int64>();
     const auto row = idx % rows;
@@ -227,10 +227,10 @@ __global__
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     constexpr auto warps_per_block = default_block_size / warp_size;
@@ -290,10 +290,10 @@ __global__
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     __shared__ uninitialized_array<ValueType, default_block_size> block_partial;
@@ -329,10 +329,10 @@ __global__
 
 template <typename ValueType, typename ReductionOp, typename FinalizeOp>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
-        int64 num_results, int64 num_blocks, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, const ValueType* input,
-        int64 result_stride, ValueType* result)
+__launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
+    int64 num_results, int64 num_blocks, ReductionOp op, FinalizeOp finalize,
+    ValueType identity, const ValueType* input, int64 result_stride,
+    ValueType* result)
 {
     const auto idx = thread::get_thread_id_flat<int64>();
     if (idx >= num_results) {

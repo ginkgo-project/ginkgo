@@ -61,8 +61,7 @@ std::shared_ptr<ExecType> init_executor(
 
 template <>
 inline std::shared_ptr<gko::ReferenceExecutor>
-    init_executor<gko::ReferenceExecutor>(
-        std::shared_ptr<gko::ReferenceExecutor>)
+init_executor<gko::ReferenceExecutor>(std::shared_ptr<gko::ReferenceExecutor>)
 {
     return gko::ReferenceExecutor::create();
 }
