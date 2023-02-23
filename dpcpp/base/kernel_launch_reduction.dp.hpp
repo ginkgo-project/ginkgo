@@ -76,8 +76,8 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
-        range, [=
-    ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range,
+        [=](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -125,8 +125,8 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
-        range, [=
-    ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range,
+        [=](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -317,8 +317,8 @@ void generic_kernel_row_reduction_2d(syn::value_list<int, ssg_size>,
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            range, [=
-        ](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
+            range,
+            [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
                 const auto idx =
                     thread::get_subwarp_id_flat<ssg_size, int64>(id);
                 const auto row = idx % rows;

@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
     IndexType num_rows, const IndexType* cols, const IndexType* row_ptrs,
@@ -74,11 +73,10 @@ __global__ __launch_bounds__(default_block_size) void pointer_doubling_kernel(
 
 template <int subwarp_size, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
-        IndexType num_rows, const IndexType* row_ptrs,
-        const IndexType* lower_ends, const IndexType* inv_postorder,
-        const IndexType* postorder_cols, const IndexType* postorder_parent,
-        IndexType* row_nnz)
+__launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
+    IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
+    const IndexType* inv_postorder, const IndexType* postorder_cols,
+    const IndexType* postorder_parent, IndexType* row_nnz)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
@@ -114,12 +112,11 @@ __global__
 
 template <int subwarp_size, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
-        IndexType num_rows, const IndexType* row_ptrs,
-        const IndexType* lower_ends, const IndexType* inv_postorder,
-        const IndexType* postorder_cols, const IndexType* postorder,
-        const IndexType* postorder_parent, const IndexType* out_row_ptrs,
-        IndexType* out_cols)
+__launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
+    IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
+    const IndexType* inv_postorder, const IndexType* postorder_cols,
+    const IndexType* postorder, const IndexType* postorder_parent,
+    const IndexType* out_row_ptrs, IndexType* out_cols)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
