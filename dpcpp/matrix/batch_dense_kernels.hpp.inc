@@ -29,52 +29,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-#ifndef GKO_DPCPP_MATRIX_BATCH_DENSE_KERNELS_HPP_
-#define GKO_DPCPP_MATRIX_BATCH_DENSE_KERNELS_HPP_
 
-
-#include "core/matrix/batch_dense_kernels.hpp"
-
-
-#include <algorithm>
-
-
-#include <CL/sycl.hpp>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
-
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
-
-
-#include "dpcpp/base/config.hpp"
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
-#include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-/**
- * @brief The BatchDense matrix format namespace.
- *
- * @ingroup batch_dense
- */
-namespace batch_dense {
 
 template <typename ValueType>
-__dpct_inline__ void matvec_kernel(
+__dpct_inline__ void single_matvec_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     sycl::nd_item<3>& item_ct1)
@@ -99,7 +57,7 @@ __dpct_inline__ void matvec_kernel(
 
 
 template <typename ValueType>
-inline void advanced_matvec_kernel(
+inline void single_advanced_matvec_kernel(
     const ValueType alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
@@ -336,12 +294,3 @@ inline void add_scaled_identity_kernel(const int nrows, const int ncols,
         }
     }
 }
-
-
-}  // namespace batch_dense
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif

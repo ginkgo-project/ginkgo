@@ -29,41 +29,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-#ifndef GKO_DPCPP_MATRIX_BATCH_ELL_KERNELS_HPP_
-#define GKO_DPCPP_MATRIX_BATCH_ELL_KERNELS_HPP_
 
-#include "core/matrix/batch_ell_kernels.hpp"
-
-
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-
-#include <CL/sycl.hpp>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
-
-#include "dpcpp/base/config.hpp"
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-/**
- * @brief The Compressed sparse row matrix format namespace.
- *
- * @ingroup batch_ell
- */
-namespace batch_ell {
 
 template <typename ValueType>
 inline void matvec_kernel(
@@ -88,6 +54,26 @@ inline void matvec_kernel(
 
 
 template <typename ValueType>
+inline void single_matvec_kernel(
+    const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const ValueType* const b, ValueType* const c, sycl::nd_item<3> item_ct1)
+{
+    for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
+         tidx += item_ct1.get_local_range().size()) {
+        auto temp = zero<ValueType>();
+        for (size_type idx = 0; idx < a.num_stored_elems_per_row; idx++) {
+            const auto col_idx = a.col_idxs[tidx + idx * a.stride];
+            if (col_idx < idx)
+                break;
+            else
+                temp += a.values[tidx + idx * a.stride] * b[col_idx];
+        }
+        c[tidx] = temp;
+    }
+}
+
+
+template <typename ValueType>
 inline void advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
@@ -106,6 +92,27 @@ inline void advanced_matvec_kernel(
                         b.values[col_idx * b.stride];
         }
         c.values[tidx * c.stride] = temp + beta * c.values[tidx * c.stride];
+    }
+}
+
+
+template <typename ValueType>
+inline void single_advanced_matvec_kernel(
+    const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const ValueType* const b, const ValueType beta, ValueType* const c,
+    sycl::nd_item<3> item_ct1)
+{
+    for (int tidx = item_ct1.get_local_linear_id(); tidx < a.num_rows;
+         tidx += item_ct1.get_local_range().size()) {
+        auto temp = zero<ValueType>();
+        for (size_type idx = 0; idx < a.num_stored_elems_per_row; idx++) {
+            const auto col_idx = a.col_idxs[tidx + idx * a.stride];
+            if (col_idx < idx)
+                break;
+            else
+                temp += alpha * a.values[tidx + idx * a.stride] * b[col_idx];
+        }
+        c[tidx] = temp + beta * c[tidx];
     }
 }
 
@@ -194,12 +201,3 @@ inline void add_scaled_identity_kernel(
         }
     }
 }
-
-
-}  // namespace batch_ell
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif
