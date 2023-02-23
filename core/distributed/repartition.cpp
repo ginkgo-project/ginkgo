@@ -416,11 +416,9 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
     array<ValueType>& local_to_data, array<ValueType>& non_local_to_data) const
 {
     // first apply same sorting as previously
-    auto from =
-        scatter_impl(append(local_from_data, non_local_from_data), sorting_idx);
+    auto from = append(local_from_data, non_local_from_data);
 
     auto exec = local_to_data.get_executor();
-    auto rank = from_comm_.rank();
 
     const auto new_local_nnz = recv_offsets.back();
     array<ValueType> recv_values(local_to_data.get_executor(), new_local_nnz);
