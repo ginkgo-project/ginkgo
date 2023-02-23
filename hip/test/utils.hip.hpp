@@ -35,10 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
-#include "hip/base/device.hpp"
 
 
 #include <ginkgo/core/base/executor.hpp>
+
+
+#include "hip/base/device.hpp"
 
 
 namespace {

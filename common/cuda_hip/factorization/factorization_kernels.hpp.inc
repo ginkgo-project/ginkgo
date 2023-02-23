@@ -86,12 +86,12 @@ struct find_helper<true> {
 // Each subwarp works on one row
 template <bool IsSorted, int SubwarpSize, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void find_missing_diagonal_elements(
-        IndexType num_rows, IndexType num_cols,
-        const IndexType* __restrict__ col_idxs,
-        const IndexType* __restrict__ row_ptrs,
-        IndexType* __restrict__ elements_to_add_per_row,
-        bool* __restrict__ changes_required)
+__launch_bounds__(default_block_size) void find_missing_diagonal_elements(
+    IndexType num_rows, IndexType num_cols,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs,
+    IndexType* __restrict__ elements_to_add_per_row,
+    bool* __restrict__ changes_required)
 {
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<SubwarpSize, IndexType>();
@@ -135,13 +135,12 @@ __global__
 // Each subwarp works on one row
 template <int SubwarpSize, typename ValueType, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void add_missing_diagonal_elements(
-        IndexType num_rows, const ValueType* __restrict__ old_values,
-        const IndexType* __restrict__ old_col_idxs,
-        const IndexType* __restrict__ old_row_ptrs,
-        ValueType* __restrict__ new_values,
-        IndexType* __restrict__ new_col_idxs,
-        const IndexType* __restrict__ row_ptrs_addition)
+__launch_bounds__(default_block_size) void add_missing_diagonal_elements(
+    IndexType num_rows, const ValueType* __restrict__ old_values,
+    const IndexType* __restrict__ old_col_idxs,
+    const IndexType* __restrict__ old_row_ptrs,
+    ValueType* __restrict__ new_values, IndexType* __restrict__ new_col_idxs,
+    const IndexType* __restrict__ row_ptrs_addition)
 {
     // Precaution in case not enough threads were created
     const auto total_subwarp_count =
