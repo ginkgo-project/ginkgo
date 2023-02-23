@@ -140,12 +140,21 @@ void handle_list(
     std::complex<double> relaxation_factor)
 {
     auto list_size = smoother_list.size();
+    auto gen_default_smoother = [&] {
+        auto exec = matrix->get_executor();
+        return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
+                                        .with_max_block_size(1u)
+                                        .on(exec),
+                                    iteration,
+                                    casting<ValueType>(relaxation_factor))
+                         ->generate(matrix));
+    };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
         GKO_ENSURE_IN_BOUNDS(temp_index, list_size);
         auto item = smoother_list.at(temp_index);
         if (item == nullptr) {
-            smoother.emplace_back(nullptr);
+            smoother.emplace_back(gen_default_smoother());
         } else {
             auto solver = item->generate(matrix);
             if (solver->apply_uses_initial_guess() == true) {
@@ -158,7 +167,7 @@ void handle_list(
             }
         }
     } else {
-        smoother.emplace_back(nullptr);
+        smoother.emplace_back(gen_default_smoother());
     }
 }
 
