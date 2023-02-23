@@ -50,9 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 namespace {
 
 
@@ -294,6 +291,3 @@ TEST_F(BatchCg, CanSolveCsrSystemWithoutScaling)
 
 
 }  // namespace
-
-
-#endif
