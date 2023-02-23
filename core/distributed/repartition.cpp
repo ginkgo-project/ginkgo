@@ -417,7 +417,6 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
 {
     // first apply same sorting as previously
     auto from = append(local_from_data, non_local_from_data);
-
     auto exec = local_to_data.get_executor();
 
     const auto new_local_nnz = recv_offsets.back();
