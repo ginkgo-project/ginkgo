@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -171,6 +172,9 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
     std::stringstream ss;
     ss << "apply(" << stringify_object(A) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
+    if (dynamic_cast<const solver::IterativeBase*>(A)) {
+        this->begin_hook_("iteration", profile_event_category::solver);
+    }
 }
 
 
@@ -179,6 +183,9 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
 {
     std::stringstream ss;
     ss << "apply(" << stringify_object(A) << ")";
+    if (dynamic_cast<const solver::IterativeBase*>(A)) {
+        this->end_hook_("iteration", profile_event_category::solver);
+    }
     this->end_hook_(ss.str().c_str(), profile_event_category::linop);
 }
 
@@ -192,6 +199,9 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
     std::stringstream ss;
     ss << "advanced_apply(" << stringify_object(A) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
+    if (dynamic_cast<const solver::IterativeBase*>(A)) {
+        this->begin_hook_("iteration", profile_event_category::solver);
+    }
 }
 
 
@@ -203,6 +213,9 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
 {
     std::stringstream ss;
     ss << "advanced_apply(" << stringify_object(A) << ")";
+    if (dynamic_cast<const solver::IterativeBase*>(A)) {
+        this->end_hook_("iteration", profile_event_category::solver);
+    }
     this->end_hook_(ss.str().c_str(), profile_event_category::linop);
 }
 
@@ -259,6 +272,29 @@ void ProfilerHook::on_criterion_check_completed(
     std::stringstream ss;
     ss << "check(" << stringify_object(criterion) << ")";
     this->end_hook_(ss.str().c_str(), profile_event_category::criterion);
+}
+
+
+void ProfilerHook::on_iteration_complete(const LinOp* solver,
+                                         const size_type& num_iterations,
+                                         const LinOp* residual,
+                                         const LinOp* solution,
+                                         const LinOp* residual_norm) const
+{
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr);
+}
+
+
+void ProfilerHook::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm) const
+{
+    if (dynamic_cast<const solver::IterativeBase*>(solver)) {
+        this->end_hook_("iteration", profile_event_category::solver);
+        this->begin_hook_("iteration", profile_event_category::solver);
+    }
 }
 
 
