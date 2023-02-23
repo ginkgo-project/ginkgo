@@ -58,6 +58,8 @@ enum class profile_event_category {
     linop,
     /** LinOpFactory events. */
     factory,
+    /** Solver events. */
+    solver,
     /** Stopping criterion events. */
     criterion,
     /** User-defined events. */
@@ -176,6 +178,18 @@ public:
         const uint8& stopping_id, const bool& set_finalized,
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
+
+    /* Internal solver events */
+    void on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution = nullptr,
+        const LinOp* residual_norm = nullptr) const override;
+
+    void on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution,
+        const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm) const override;
 
     bool needs_propagation() const override;
 

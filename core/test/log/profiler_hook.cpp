@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include "core/log/profiler_hook.hpp"
@@ -176,6 +177,46 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                          false);
 
     exec->remove_logger(logger);
+    ASSERT_EQ(output, expected);
+}
+
+
+TEST(ProfilerHook, LogsIteration)
+{
+    using Vec = gko::matrix::Dense<>;
+    std::vector<std::string> expected{"begin:apply(solver)",
+                                      "begin:iteration",
+                                      "end:iteration",
+                                      "begin:iteration",
+                                      "end:iteration",
+                                      "end:apply(solver)",
+                                      "begin:advanced_apply(solver)",
+                                      "begin:iteration",
+                                      "end:iteration",
+                                      "begin:iteration",
+                                      "end:iteration",
+                                      "end:advanced_apply(solver)"};
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    auto mtx = gko::share(Vec::create(exec));
+    auto alpha = gko::share(gko::initialize<Vec>({1.0}, exec));
+    auto solver =
+        gko::solver::Ir<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(0u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+    logger->set_object_name(solver, "solver");
+    logger->set_object_name(mtx, "mtx");
+    solver->add_logger(logger);
+
+    solver->apply(mtx, mtx);
+    solver->apply(alpha, mtx, alpha, mtx);
+
+    solver->remove_logger(logger);
     ASSERT_EQ(output, expected);
 }
 
