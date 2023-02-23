@@ -44,6 +44,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#ifdef GKO_COMPILING_CUDA
+
+#include "cuda/base/device.hpp"
+
+class CudaEnvironment : public ::testing::Environment {
+public:
+    void TearDown() override { gko::kernels::cuda::reset_device(0); }
+};
+
+testing::Environment* cuda_env =
+    testing::AddGlobalTestEnvironment(new CudaEnvironment);
+
+#endif
+
+
+#ifdef GKO_COMPILING_HIP
+
+#include "hip/base/device.hpp"
+
+class HipEnvironment : public ::testing::Environment {
+public:
+    void TearDown() override { gko::kernels::hip::reset_device(0); }
+};
+
+testing::Environment* hip_env =
+    testing::AddGlobalTestEnvironment(new HipEnvironment);
+
+#endif
+
+
 #if GINKGO_COMMON_SINGLE_MODE
 #define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
 #else

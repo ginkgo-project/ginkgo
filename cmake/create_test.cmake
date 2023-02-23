@@ -71,9 +71,15 @@ function(ginkgo_add_test test_name test_target_name)
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
-    if (GINKGO_TEST_NONDEFAULT_STREAM)
-        set_tests_properties(${REL_BINARY_DIR}/${test_name} PROPERTIES
-                             ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:identify_stream_usage>)
+    set(test_preload)
+    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
+        set(test_preload $<TARGET_FILE:identify_stream_usage_cuda>:${test_preload})
+    endif()
+    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+        set(test_preload $<TARGET_FILE:identify_stream_usage_hip>:${test_preload})
+    endif()
+    if(test_preload)
+        set_tests_properties(${REL_BINARY_DIR}/${test_name} PROPERTIES ENVIRONMENT LD_PRELOAD=${test_preload})
     endif()
 endfunction()
 

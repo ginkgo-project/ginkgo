@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "cuda/base/device.hpp"
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -43,14 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// Visual Studio does not define the constructor of std::mutex as constexpr,
-// causing it to not be initialized when creating this executor (which uses
-// the mutex)
-#if !defined(_MSC_VER)
-// prevent device reset after each test
-auto no_reset_exec =
-    gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(), true);
-#endif
+class CudaEnvironment : public ::testing::Environment {
+public:
+    void TearDown() override { gko::kernels::cuda::reset_device(0); }
+};
+
+testing::Environment* cuda_env =
+    testing::AddGlobalTestEnvironment(new CudaEnvironment);
 
 
 class CudaTestFixture : public ::testing::Test {
