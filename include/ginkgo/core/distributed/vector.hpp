@@ -475,12 +475,11 @@ public:
 
     /**
      * Creates a constant (immutable) distributed Vector from a constant local
-     * vector.The global size will be deduced from the local sizes, which will
+     * vector. The global size will be deduced from the local sizes, which will
      * incur a collective communication.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
-     * @param global_size  The global size of the vector
      * @param local_vector  The underlying local vector, of which a view is
      *                      created
      */
