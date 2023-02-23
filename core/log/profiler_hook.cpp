@@ -291,7 +291,8 @@ void ProfilerHook::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    if (dynamic_cast<const solver::IterativeBase*>(solver)) {
+    if (num_iterations > 0 &&
+        dynamic_cast<const solver::IterativeBase*>(solver)) {
         this->end_hook_("iteration", profile_event_category::solver);
         this->begin_hook_("iteration", profile_event_category::solver);
     }

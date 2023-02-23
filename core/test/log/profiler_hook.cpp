@@ -206,7 +206,7 @@ TEST(ProfilerHook, LogsIteration)
     auto solver =
         gko::solver::Ir<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(0u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec)
             ->generate(mtx);
     logger->set_object_name(solver, "solver");
