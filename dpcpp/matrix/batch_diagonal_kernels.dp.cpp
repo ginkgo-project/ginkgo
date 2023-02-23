@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_diagonal_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -57,6 +57,9 @@ namespace dpcpp {
  * @ingroup batch_diagonal
  */
 namespace batch_diagonal {
+
+
+#include "dpcpp/matrix/batch_diagonal_kernels.hpp.inc"
 
 
 template <typename ValueType>

@@ -50,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -63,6 +62,9 @@ namespace dpcpp {
  * @ingroup batch_ell
  */
 namespace batch_ell {
+
+
+#include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

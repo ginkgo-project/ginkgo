@@ -50,8 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/iterator_factory.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_csr_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -64,6 +64,9 @@ namespace dpcpp {
  * @ingroup batch_csr
  */
 namespace batch_csr {
+
+
+#include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -263,18 +266,18 @@ void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto m_b = batch::batch_entry(m_ub, group_id);
-                    const auto left_b = batch::batch_entry_ptr(
-                        left_values, 1, m_ub.num_rows, group_id);
-                    const auto right_b = batch::batch_entry_ptr(
-                        right_values, 1, ncols, group_id);
-                    batch_scale_kernel(left_b, right_b, m_b, item_ct1);
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto m_b = batch::batch_entry(m_ub, group_id);
+                const auto left_b = batch::batch_entry_ptr(
+                    left_values, 1, m_ub.num_rows, group_id);
+                const auto right_b =
+                    batch::batch_entry_ptr(right_values, 1, ncols, group_id);
+                batch_scale_kernel(left_b, right_b, m_b, item_ct1);
+            });
     });
 }
 
@@ -404,13 +407,13 @@ void check_diagonal_entries_exist(
                        sycl::access::target::local>
             tile_has_diags(sycl::range<1>(num_sg), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(sg_size)]] {
-                                 check_all_diagonal_kernel(
-                                     nmin, row_ptrs, col_idxs, d_result_data,
-                                     tile_has_diags.get_pointer(), item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(sg_size)]] {
+                check_all_diagonal_kernel(
+                    nmin, row_ptrs, col_idxs, d_result_data,
+                    tile_has_diags.get_pointer(), item_ct1);
+            });
     });
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }

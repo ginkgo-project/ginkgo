@@ -55,8 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_dense_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
@@ -69,6 +69,9 @@ namespace dpcpp {
  * @ingroup batch_dense
  */
 namespace batch_dense {
+
+
+#include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -102,7 +105,7 @@ void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto a_b = batch::batch_entry(a_ub, group_id);
                 const auto b_b = batch::batch_entry(b_ub, group_id);
                 const auto c_b = batch::batch_entry(c_ub, group_id);
-                matvec_kernel(a_b, b_b.values, c_b.values, item_ct1);
+                single_matvec_kernel(a_b, b_b.values, c_b.values, item_ct1);
             });
     });
 }
@@ -148,8 +151,9 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
                 const auto c_b = batch::batch_entry(c_ub, group_id);
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto beta_b = batch::batch_entry(beta_ub, group_id);
-                advanced_matvec_kernel(alpha_b.values[0], a_b, b_b.values,
-                                       beta_b.values[0], c_b.values, item_ct1);
+                single_advanced_matvec_kernel(alpha_b.values[0], a_b,
+                                              b_b.values, beta_b.values[0],
+                                              c_b.values, item_ct1);
             });
     });
 }
