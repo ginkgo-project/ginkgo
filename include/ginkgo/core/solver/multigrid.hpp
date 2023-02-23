@@ -396,7 +396,7 @@ public:
          * initial_guess_mode.
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
-            default_initial_guess, initial_guess_mode::provided);
+            default_initial_guess, initial_guess_mode::zero);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
