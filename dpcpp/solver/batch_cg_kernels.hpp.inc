@@ -30,18 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#define GKO_DPCPP_SOLVER_BATCH_CG_KERNELS_HPP_
-
-
-#include "dpcpp/base/config.hpp"
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/dpct.hpp"
-#include "dpcpp/matrix/batch_csr_kernels.hpp"
-#include "dpcpp/matrix/batch_dense_kernels.hpp"
-#include "dpcpp/matrix/batch_ell_kernels.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
-#include "dpcpp/matrix/batch_vector_kernels.hpp"
-
 
 namespace {
 
@@ -70,9 +58,9 @@ __dpct_inline__ void initialize(
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // r = b - A*x
-    advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_global_entry,
-                           x_shared_entry, static_cast<ValueType>(1.0),
-                           r_shared_entry, item_ct1);
+    single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                                  x_shared_entry, static_cast<ValueType>(1.0),
+                                  r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
 
@@ -142,6 +130,9 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 }
 
 
+}  // namespace
+
+
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
@@ -174,8 +165,8 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     ValueType* rho_old_sh = local_mem_sh;
     ValueType* rho_new_sh = local_mem_sh + 1;
     ValueType* alpha_sh = local_mem_sh + 2;
-    ValueType* norms_rhs_sh = local_mem_sh + 3;
-    ValueType* norms_res_sh = local_mem_sh + 4;
+    remove_complex<ValueType> norms_rhs_sh[1];  // = local_mem_sh + 3;
+    remove_complex<ValueType> norms_res_sh[1];  // = local_mem_sh + 4;
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
@@ -249,7 +240,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         }
 
         // Ap = A * p
-        matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
+        single_matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // alpha = rho_old / (p' * Ap)
@@ -288,5 +279,3 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 }
-
-}  // namespace

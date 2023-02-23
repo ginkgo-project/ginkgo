@@ -29,48 +29,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-#ifndef GKO_DPCPP_MATRIX_BATCH_CSR_KERNELS_HPP_
-#define GKO_DPCPP_MATRIX_BATCH_CSR_KERNELS_HPP_
 
-#include "core/matrix/batch_csr_kernels.hpp"
-
-
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-
-#include <CL/sycl.hpp>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
-#include "core/base/allocator.hpp"
-#include "core/base/iterator_factory.hpp"
-#include "dpcpp/base/config.hpp"
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-/**
- * @brief The Compressed sparse row matrix format namespace.
- *
- * @ingroup batch_csr
- */
-namespace batch_csr {
 
 template <typename ValueType>
-inline void matvec_kernel(const gko::batch_csr::BatchEntry<const ValueType>& a,
-                          const batch_dense::BatchEntry<const ValueType>& b,
-                          const batch_dense::BatchEntry<ValueType>& c,
-                          sycl::nd_item<3>& item_ct1)
+inline void matvec_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const gko::batch_dense::BatchEntry<ValueType>& c,
+    sycl::nd_item<3>& item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
 
@@ -96,6 +62,27 @@ inline void matvec_kernel(const gko::batch_csr::BatchEntry<const ValueType>& a,
         if (sg.get_local_id() == 0) {
             c.values[row * c.stride + rhs] = temp;
         }
+    }
+}
+
+
+template <typename ValueType>
+inline void single_matvec_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    sycl::nd_item<3>& item_ct1)
+{
+    const auto num_rows = a.num_rows;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    for (int tidx = item_ct1.get_local_id(2); tidx < num_rows;
+         tidx += item_ct1.get_local_range().get(2)) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
+        }
+        c[tidx] = temp;
     }
 }
 
@@ -131,6 +118,36 @@ inline void advanced_matvec_kernel(
         if (sg.get_local_id() == 0) {
             c.values[row * c.stride + rhs] =
                 temp + beta * c.values[row * c.stride + rhs];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void single_advanced_matvec_kernel(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c, sycl::nd_item<3>& item_ct1)
+{
+    auto sg = item_ct1.get_sub_group();
+
+    for (int row = sg.get_group_id(); row < a.num_rows;
+         row += sg.get_group_range().size()) {
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = sg.get_local_id() + row_start; i < row_end;
+             i += sg.get_local_range().size()) {
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
+            temp += alpha * val * b[col];
+        }
+
+        temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) {
+            c[row] = temp + beta * c[row];
         }
     }
 }
@@ -287,12 +304,3 @@ inline void add_scaled_identity_kernel(
         }
     }
 }
-
-
-}  // namespace batch_csr
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif

@@ -29,35 +29,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-#ifndef GKO_DPCPP_MATRIX_BATCH_DIAGONAL_KERNELS_HPP_
-#define GKO_DPCPP_MATRIX_BATCH_DIAGONAL_KERNELS_HPP_
-
-#include "core/matrix/batch_diagonal_kernels.hpp"
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
-
-
-#include "core/matrix/batch_struct.hpp"
-
-
-#include "dpcpp/base/config.hpp"
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/helper.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-/**
- * @brief The BatchDense matrix format namespace.
- * @ref BatchDense
- * @ingroup batch_diagonal
- */
-namespace batch_diagonal {
 
 
 template <typename ValueType>
@@ -99,12 +70,3 @@ inline void apply_in_place_kernel(const int num_rows, const size_type stride,
         a[row * stride + col] *= diag_vec[row];
     }
 }
-
-
-}  // namespace batch_diagonal
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif
