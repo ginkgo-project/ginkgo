@@ -70,9 +70,11 @@ class repartitioner : public EnableCreateMethod<
 
 public:
     template <typename ValueType>
-    std::tuple<array<int>, array<int>> gather(
-        const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
+    std::tuple<gko::array<int>, gko::array<int>, gko::array<LocalIndexType>,
+               std::vector<int>, std::vector<int>, std::vector<int>,
+               std::vector<int>>
+    gather(const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
+           Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
 
     /* updates an existing matrix without communicating the sparsity pattern **
      *
@@ -84,6 +86,11 @@ public:
                          const array<LocalIndexType>& non_local_indices,
                          const array<ValueType>& local_from_data,
                          const array<ValueType>& non_local_from_data,
+                         const array<int>& sorting_idx,
+                         const std::vector<int>& send_sizes,
+                         const std::vector<int>& send_offs,
+                         const std::vector<int>& recv_sizes,
+                         const std::vector<int>& recv_offs,
                          const array<LocalIndexType>& local_scatter_pattern,
                          const array<LocalIndexType>& non_local_scatter_pattern,
                          array<ValueType>& local_to_data,
