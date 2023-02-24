@@ -143,7 +143,7 @@ protected:
     const gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
 
-    std::unique_ptr<Mtx> mtx;
+    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_elm;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Vec> expected;
@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
-    std::unique_ptr<Mtx> dmtx;
+    //    std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx_elm;
     std::unique_ptr<Mtx> dmtx_blk;
     std::unique_ptr<Vec> dresult;

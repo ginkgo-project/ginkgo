@@ -76,10 +76,11 @@ protected:
           mtx_elm(Mtx::create(exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                               gko::matrix::bccoo::compression::element)),
           mtx_blk(Mtx::create(exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                              gko::matrix::bccoo::compression::block)),
-          mtx(Mtx::create(exec))
+                              gko::matrix::bccoo::compression::block))
+    //          , mtx(Mtx::create(exec))
     {
-        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
+        //        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}},
+        //        exec);
         mtx_elm =
             gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
                                  index_type{BCCOO_BLOCK_SIZE_TESTED},
@@ -100,7 +101,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx;
+    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_elm;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Mtx> uns_mtx;

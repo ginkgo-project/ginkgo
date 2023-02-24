@@ -88,20 +88,21 @@ protected:
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
     }
-
-    void set_up_apply_data(int num_vectors = 1)
-    {
-        mtx = gen_mtx<Mtx>(532, 231);
-        expected = gen_mtx(532, num_vectors);
-        y = gen_mtx(231, num_vectors);
-        alpha = gko::initialize<Vec>({2.0}, ref);
-        beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = gko::clone(dpcpp, mtx);
-        dresult = gko::clone(dpcpp, expected);
-        dy = gko::clone(dpcpp, y);
-        dalpha = gko::clone(dpcpp, alpha);
-        dbeta = gko::clone(dpcpp, beta);
-    }
+    /*
+        void set_up_apply_data(int num_vectors = 1)
+        {
+            mtx = gen_mtx<Mtx>(532, 231);
+            expected = gen_mtx(532, num_vectors);
+            y = gen_mtx(231, num_vectors);
+            alpha = gko::initialize<Vec>({2.0}, ref);
+            beta = gko::initialize<Vec>({-1.0}, ref);
+            dmtx = gko::clone(dpcpp, mtx);
+            dresult = gko::clone(dpcpp, expected);
+            dy = gko::clone(dpcpp, y);
+            dalpha = gko::clone(dpcpp, alpha);
+            dbeta = gko::clone(dpcpp, beta);
+        }
+    */
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
@@ -160,14 +161,14 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::unique_ptr<Mtx> mtx;
+    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
-    std::unique_ptr<Mtx> dmtx;
+    //    std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx_blk;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
