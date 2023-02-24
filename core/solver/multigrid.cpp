@@ -167,7 +167,7 @@ void handle_list(
             }
         }
     } else {
-        smoother.emplace_back(gen_default_smoother());
+        smoother.emplace_back(nullptr);
     }
 }
 
