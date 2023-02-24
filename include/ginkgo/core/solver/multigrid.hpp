@@ -264,9 +264,10 @@ public:
          * when size = 0, do not use pre_smoother
          * when size = 1, use the first factory
          * when size > 1, use the same selector as mg_level
-         * nullptr skips this pre_smoother at the level, which is different from
-         * Identity Factory. Identity Factory updates x = x + relaxation *
-         * residual.
+         *
+         * If this option is not set (i.e. size = 1 and pre_smoother[0] =
+         * nullptr) then the default smoother is used. The default smoother is
+         * one step of iterative refinement with a scalar Jacobi preconditioner.
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(pre_smoother, nullptr);
