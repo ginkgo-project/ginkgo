@@ -323,6 +323,9 @@ public:
 
         /**
          * Coarsest factory list.
+         *
+         * If not set, then GMRES preconditioned with a scalar Jacobi will be
+         * used as solver on the coarsest level.
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
