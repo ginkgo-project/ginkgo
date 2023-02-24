@@ -56,17 +56,16 @@ namespace {
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-__device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
-                            const size_type block_size,
-                            const size_type num_lines,
-                            const uint8* __restrict__ chunk_data,
-                            const IndexType* __restrict__ offsets_data,
-                            const uint8* __restrict__ types_data,
-                            const IndexType* __restrict__ cols_data,
-                            const IndexType* __restrict__ rows_data,
-                            const ValueType* __restrict__ b,
-                            const size_type b_stride, ValueType* __restrict__ c,
-                            const size_type c_stride, Closure scale)
+__device__ void spmv_kernel(
+    const size_type nnz, const size_type num_blks, const size_type block_size,
+    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    //                            const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, const ValueType* __restrict__ b,
+    const size_type b_stride, ValueType* __restrict__ c,
+    const size_type c_stride, Closure scale)
 {
     const auto column_id = blockIdx.y;
     const auto start_blk = blockIdx.x;
@@ -150,7 +149,8 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chk,
-    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    //    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
     const ValueType* __restrict__ b, const size_type b_stride,
     ValueType* __restrict__ c, const size_type c_stride)
@@ -164,7 +164,8 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const ValueType* __restrict__ alpha,
-    const uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    //    const uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    const uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, const ValueType* __restrict__ b,
     const size_type b_stride, ValueType* __restrict__ c,
@@ -193,15 +194,14 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
-__device__ void extract_kernel(const size_type nnz, const size_type num_blks,
-                               const size_type block_size,
-                               const size_type num_lines,
-                               const uint8* __restrict__ chunk_data,
-                               const IndexType* __restrict__ offsets_data,
-                               const uint8* __restrict__ types_data,
-                               const IndexType* __restrict__ cols_data,
-                               const IndexType* __restrict__ rows_data,
-                               ValueType* __restrict__ diag)
+__device__ void extract_kernel(
+    const size_type nnz, const size_type num_blks, const size_type block_size,
+    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    //                               const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, ValueType* __restrict__ diag)
 {
     const auto column_id = blockIdx.y;
     const auto start_blk = blockIdx.x;
@@ -237,7 +237,8 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chk,
-    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    //    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
     ValueType* __restrict__ diag)
 {
@@ -264,7 +265,8 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __device__ void absolute_inplace_kernel(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, uint8* __restrict__ chunk_data,
-    const IndexType* __restrict__ offsets_data,
+    //    const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
     const IndexType* __restrict__ rows_data, Closure comp_abs)
@@ -303,7 +305,8 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, uint8* __restrict__ chk,
-    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    //    const IndexType* __restrict__ off, const uint8* __restrict__ typ,
+    const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row)
 {
     absolute_inplace_kernel<config::warp_size, ValueType, IndexType>(
@@ -330,12 +333,14 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __device__ void absolute_kernel(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chunk_data_src,
-    const IndexType* __restrict__ offsets_data_src,
+    //    const IndexType* __restrict__ offsets_data_src,
+    const size_type* __restrict__ offsets_data_src,
     const uint8* __restrict__ types_data_src,
     const IndexType* __restrict__ cols_data_src,
     const IndexType* __restrict__ rows_data_src,
     uint8* __restrict__ chunk_data_res,
-    IndexType* __restrict__ offsets_data_res,
+    //    IndexType* __restrict__ offsets_data_res,
+    size_type* __restrict__ offsets_data_res,
     uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
     IndexType* __restrict__ rows_data_res, Closure comp_abs)
 {
@@ -396,10 +401,13 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chk_src,
-    const IndexType* __restrict__ off_src, const uint8* __restrict__ typ_src,
+    //    const IndexType* __restrict__ off_src, const uint8* __restrict__
+    //    typ_src,
+    const size_type* __restrict__ off_src, const uint8* __restrict__ typ_src,
     const IndexType* __restrict__ col_src,
     const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
-    IndexType* __restrict__ off_res, uint8* __restrict__ typ_res,
+    //    IndexType* __restrict__ off_res, uint8* __restrict__ typ_res,
+    size_type* __restrict__ off_res, uint8* __restrict__ typ_res,
     IndexType* __restrict__ col_res, IndexType* __restrict__ row_res)
 {
     absolute_kernel<config::warp_size, ValueType, IndexType>(
@@ -455,7 +463,8 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chunk_data,
-    const IndexType* __restrict__ offsets_data,
+    //    const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
     const IndexType* __restrict__ rows_data, size_type stride,
@@ -496,7 +505,8 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const uint8* __restrict__ chunk_data,
-    const IndexType* __restrict__ offsets_data,
+    //    const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
     const IndexType* __restrict__ rows_data, IndexType* __restrict__ rows_idxs,

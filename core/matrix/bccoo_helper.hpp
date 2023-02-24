@@ -158,10 +158,12 @@ inline void put_next_position_value(uint8* chunk_data, size_type& nblk,
 
 
 template <typename IndexType>
-inline void get_detect_newblock(const IndexType* rows_data,
-                                const IndexType* offsets_data, size_type nblk,
-                                size_type blk, size_type& shf, size_type& row,
-                                size_type& col)
+inline void get_detect_newblock(
+    const IndexType* rows_data,
+    //                                const IndexType* offsets_data, size_type
+    //                                nblk,
+    const size_type* offsets_data, size_type nblk, size_type blk,
+    size_type& shf, size_type& row, size_type& col)
 {
     if (nblk == 0) {
         row = rows_data[blk];
@@ -219,12 +221,12 @@ inline void cnt_detect_newblock(const size_type nblk, size_type& shf,
 
 
 template <typename IndexType>
-inline void get_detect_newblock_csr(const IndexType* rows_data,
-                                    const IndexType* offsets_data,
-                                    size_type nblk, size_type blk,
-                                    IndexType* row_ptrs, size_type pos,
-                                    size_type& shf, size_type& row,
-                                    size_type& col)
+inline void get_detect_newblock_csr(
+    const IndexType* rows_data,
+    //                                    const IndexType* offsets_data,
+    const size_type* offsets_data, size_type nblk, size_type blk,
+    IndexType* row_ptrs, size_type pos, size_type& shf, size_type& row,
+    size_type& col)
 {
     if (nblk == 0) {
         if (row != rows_data[blk]) {
@@ -333,8 +335,9 @@ inline void get_detect_endblock(const size_type block_size, size_type& nblk,
     }
 }
 
-template <typename IndexType>
-inline void put_detect_endblock(IndexType* offsets_data, const size_type shf,
+// template <typename IndexType>
+// inline void put_detect_endblock(IndexType* offsets_data, const size_type shf,
+inline void put_detect_endblock(size_type* offsets_data, const size_type shf,
                                 const size_type block_size, size_type& nblk,
                                 size_type& blk)
 {

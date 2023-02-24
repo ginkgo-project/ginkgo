@@ -100,7 +100,8 @@ protected:
 
         // std::cout << "ROWS AND OFFSETS" << std::endl;
         index_type row = {};
-        index_type offset = {};
+        //        index_type offset = {};
+        gko::size_type offset = {};
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
             //  std::cout << block_size << " - " << i
             // 	 << " - " << rows_data[i]
@@ -175,7 +176,8 @@ protected:
         index_type row = {};
         index_type col = {};
         gko::uint8 type = ((block_size >= 4) ? 3 : 2);
-        index_type offset = {};
+        //        index_type offset = {};
+        gko::size_type offset = {};
         // std::cout << m->get_num_blocks() << " - "
         //		<< m->get_num_stored_elements() << " - "
         //		<< m->get_num_bytes() << std::endl;
@@ -453,7 +455,8 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     const index_type num_bytes = 6 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
-    index_type offsets[] = {0, num_bytes};
+    //    index_type offsets[] = {0, num_bytes};
+    gko::size_type offsets[] = {0, num_bytes};
     index_type rows[] = {0};
 
     chunk[ind++] = 0x00;
@@ -474,7 +477,8 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
-        gko::array<index_type>::view(this->exec, 2, offsets),
+        //        gko::array<index_type>::view(this->exec, 2, offsets),
+        gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
 
     ASSERT_EQ(mtx_elm->get_num_stored_elements(), 4);
@@ -493,7 +497,8 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     const index_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
-    index_type offsets[] = {0, num_bytes};
+    //    index_type offsets[] = {0, num_bytes};
+    gko::size_type offsets[] = {0, num_bytes};
     gko::uint8 types[] = {3};
     index_type cols[] = {0};
     index_type rows[] = {0};
@@ -520,7 +525,8 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
-        gko::array<index_type>::view(this->exec, 2, offsets),
+        //        gko::array<index_type>::view(this->exec, 2, offsets),
+        gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<gko::uint8>::view(this->exec, 1, types),
         gko::array<index_type>::view(this->exec, 1, cols),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);

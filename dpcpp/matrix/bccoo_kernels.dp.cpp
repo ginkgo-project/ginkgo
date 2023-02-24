@@ -107,7 +107,8 @@ template <int subgroup_size = config::warp_size, typename ValueType,
 void spmv_kernel(const size_type nnz, const size_type num_blks,
                  const size_type block_size, const size_type num_lines,
                  const uint8* __restrict__ chunk_data,
-                 const IndexType* __restrict__ offsets_data,
+                 //                 const IndexType* __restrict__ offsets_data,
+                 const size_type* __restrict__ offsets_data,
                  const uint8* __restrict__ types_data,
                  const IndexType* __restrict__ cols_data,
                  const IndexType* __restrict__ rows_data,
@@ -240,7 +241,8 @@ template <typename ValueType, typename IndexType>
 void abstract_spmv(const size_type nnz, const size_type num_blks,
                    const size_type block_size, const size_type num_lines,
                    const uint8* __restrict__ chk,
-                   const IndexType* __restrict__ off,
+                   //                   const IndexType* __restrict__ off,
+                   const size_type* __restrict__ off,
                    const uint8* __restrict__ typ,
                    const IndexType* __restrict__ col,
                    const IndexType* __restrict__ row,
@@ -264,7 +266,8 @@ template <typename ValueType, typename IndexType>
 void abstract_spmv(
     const size_type nnz, const size_type num_blks, const size_type block_size,
     const size_type num_lines, const ValueType* __restrict__ alpha,
-    const uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    //    const uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    const uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, const ValueType* __restrict__ b,
     const size_type b_stride, ValueType* __restrict__ c,
@@ -286,7 +289,8 @@ template <int subgroup_size = config::warp_size, typename ValueType,
 void fill_in_coo(const size_type nnz, const size_type num_blks,
                  const size_type block_size, const size_type num_lines,
                  const uint8* __restrict__ chunk_data,
-                 const IndexType* __restrict__ offsets_data,
+                 //                 const IndexType* __restrict__ offsets_data,
+                 const size_type* __restrict__ offsets_data,
                  const uint8* __restrict__ types_data,
                  const IndexType* __restrict__ cols_data,
                  const IndexType* __restrict__ rows_data,
@@ -355,14 +359,15 @@ GKO_ENABLE_DEFAULT_HOST(convert_row_idxs_to_ptrs, convert_row_idxs_to_ptrs);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void fill_in_dense(const size_type nnz, const size_type num_blks,
-                   const size_type block_size, const size_type num_lines,
-                   const uint8* __restrict__ chunk_data,
-                   const IndexType* __restrict__ offsets_data,
-                   const uint8* __restrict__ types_data,
-                   const IndexType* __restrict__ cols_data,
-                   const IndexType* __restrict__ rows_data, size_type stride,
-                   ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
+void fill_in_dense(
+    const size_type nnz, const size_type num_blks, const size_type block_size,
+    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    //                   const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, size_type stride,
+    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
 {
     const auto column_id = item_ct1.get_group(1);
     const auto start_blk = item_ct1.get_group(2);
@@ -414,14 +419,15 @@ GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void extract_kernel(const size_type nnz, const size_type num_blks,
-                    const size_type block_size, const size_type num_lines,
-                    const uint8* __restrict__ chunk_data,
-                    const IndexType* __restrict__ offsets_data,
-                    const uint8* __restrict__ types_data,
-                    const IndexType* __restrict__ cols_data,
-                    const IndexType* __restrict__ rows_data,
-                    ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
+void extract_kernel(
+    const size_type nnz, const size_type num_blks, const size_type block_size,
+    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    //                    const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, ValueType* __restrict__ diag,
+    sycl::nd_item<3> item_ct1)
 {
     const auto column_id = item_ct1.get_group(1);
     const auto start_blk = item_ct1.get_group(2);
@@ -458,16 +464,16 @@ GKO_ENABLE_DEFAULT_HOST(extract_kernel, extract_kernel);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
-                             const size_type num_blks,
-                             const size_type block_size,
-                             const size_type num_lines,
-                             uint8* __restrict__ chunk_data,
-                             const IndexType* __restrict__ offsets_data,
-                             const uint8* __restrict__ types_data,
-                             const IndexType* __restrict__ cols_data,
-                             const IndexType* __restrict__ rows_data,
-                             Closure comp_abs, sycl::nd_item<3> item_ct1)
+void absolute_inplace_kernel(
+    const ValueType oldval, const size_type nnz, const size_type num_blks,
+    const size_type block_size, const size_type num_lines,
+    uint8* __restrict__ chunk_data,
+    //                             const IndexType* __restrict__ offsets_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, Closure comp_abs,
+    sycl::nd_item<3> item_ct1)
 {
     const auto column_id = item_ct1.get_group(1);
     const auto start_blk = item_ct1.get_group(2);
@@ -506,7 +512,8 @@ template <typename ValueType, typename IndexType>
 void abstract_absolute_inplace(
     const ValueType val, const size_type nnz, const size_type num_blks,
     const size_type block_size, const size_type num_lines,
-    uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    //    uint8* __restrict__ chk, const IndexType* __restrict__ off,
+    uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, sycl::nd_item<3> item_ct1)
 {
@@ -519,20 +526,21 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-void absolute_kernel(ValueType val, const size_type nnz,
-                     const size_type num_blks, const size_type block_size,
-                     const size_type num_lines,
-                     const uint8* __restrict__ chunk_data_src,
-                     const IndexType* __restrict__ offsets_data_src,
-                     const uint8* __restrict__ types_data_src,
-                     const IndexType* __restrict__ cols_data_src,
-                     const IndexType* __restrict__ rows_data_src,
-                     uint8* __restrict__ chunk_data_res,
-                     IndexType* __restrict__ offsets_data_res,
-                     uint8* __restrict__ types_data_res,
-                     IndexType* __restrict__ cols_data_res,
-                     IndexType* __restrict__ rows_data_res, Closure comp_abs,
-                     sycl::nd_item<3> item_ct1)
+void absolute_kernel(
+    ValueType val, const size_type nnz, const size_type num_blks,
+    const size_type block_size, const size_type num_lines,
+    const uint8* __restrict__ chunk_data_src,
+    //                     const IndexType* __restrict__ offsets_data_src,
+    const size_type* __restrict__ offsets_data_src,
+    const uint8* __restrict__ types_data_src,
+    const IndexType* __restrict__ cols_data_src,
+    const IndexType* __restrict__ rows_data_src,
+    uint8* __restrict__ chunk_data_res,
+    //                     IndexType* __restrict__ offsets_data_res,
+    size_type* __restrict__ offsets_data_res,
+    uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
+    IndexType* __restrict__ rows_data_res, Closure comp_abs,
+    sycl::nd_item<3> item_ct1)
 {
     const auto column_id = item_ct1.get_group(1);
     const auto start_blk = item_ct1.get_group(2);
@@ -610,10 +618,13 @@ template <typename ValueType, typename IndexType>
 void abstract_absolute(
     ValueType val, const size_type nnz, const size_type num_blks,
     const size_type block_size, const size_type num_lines,
-    const uint8* __restrict__ chk_src, const IndexType* __restrict__ off_src,
+    //    const uint8* __restrict__ chk_src, const IndexType* __restrict__
+    //    off_src,
+    const uint8* __restrict__ chk_src, const size_type* __restrict__ off_src,
     const uint8* __restrict__ typ_src, const IndexType* __restrict__ col_src,
     const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
-    IndexType* __restrict__ off_res, uint8* __restrict__ typ_res,
+    //    IndexType* __restrict__ off_res, uint8* __restrict__ typ_res,
+    size_type* __restrict__ off_res, uint8* __restrict__ typ_res,
     IndexType* __restrict__ col_res, IndexType* __restrict__ row_res,
     sycl::nd_item<3> item_ct1)
 {

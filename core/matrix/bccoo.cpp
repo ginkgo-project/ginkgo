@@ -449,15 +449,22 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     if (compress == matrix::bccoo::compression::element) {
         // Creation of some components of Bccoo
         array<IndexType> rows(exec_master, num_blocks);
-        array<IndexType> offsets(exec_master, num_blocks + 1);
+        //        array<IndexType> offsets(exec_master, num_blocks + 1);
+        array<size_type> offsets(exec_master, num_blocks + 1);
 
         // Computation of mem_size (idxs.shf)
+        //				printf("MEMSIZE FOR ELEMENT
+        // COMPRESSION(%ld,%ld)\n",
+        // sizeof(ValueType), sizeof(IndexType));
         IndexType* rows_data = rows.get_data();
-        IndexType* offsets_data = offsets.get_data();
+        //        IndexType* offsets_data = offsets.get_data();
+        size_type* offsets_data = offsets.get_data();
         compr_idxs idxs = {};
         offsets_data[0] = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
+                //								if(elem.row
+                //< idxs.row) printf("FOUND\n");
                 put_detect_newblock(rows_data, idxs.nblk, idxs.blk, idxs.row,
                                     elem.row - idxs.row, idxs.col);
                 size_type col_src_res = cnt_position_newrow_mat_data(
@@ -468,12 +475,15 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                                     idxs.nblk, idxs.blk);
             }
         }
+        //				printf("MEMSIZE = %ld\n", idxs.shf);
 
         // Creation of chunk
         array<uint8> chunk(exec_master, idxs.shf);
         uint8* chunk_data = chunk.get_data();
 
         // Computation of chunk
+        //				printf("READING TO ELEMENT
+        // COMPRESSION\n");
         idxs = {};
         offsets_data[0] = 0;
         for (const auto& elem : data.nonzeros) {
@@ -503,12 +513,14 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         array<IndexType> rows(exec_master, num_blocks);
         array<IndexType> cols(exec_master, num_blocks);
         array<uint8> types(exec_master, num_blocks);
-        array<IndexType> offsets(exec_master, num_blocks + 1);
+        //        array<IndexType> offsets(exec_master, num_blocks + 1);
+        array<size_type> offsets(exec_master, num_blocks + 1);
 
         IndexType* rows_data = rows.get_data();
         IndexType* cols_data = cols.get_data();
         uint8* types_data = types.get_data();
-        IndexType* offsets_data = offsets.get_data();
+        //        IndexType* offsets_data = offsets.get_data();
+        size_type* offsets_data = offsets.get_data();
 
         // Computation of mem_size (idxs.shf)
         compr_idxs idxs = {};
@@ -614,7 +626,8 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     const IndexType* rows_data = tmp->get_const_rows();
     const IndexType* cols_data = tmp->get_const_cols();
     const uint8* types_data = tmp->get_const_types();
-    const IndexType* offsets_data = tmp->get_const_offsets();
+    //    const IndexType* offsets_data = tmp->get_const_offsets();
+    const size_type* offsets_data = tmp->get_const_offsets();
     const uint8* chunk_data = tmp->get_const_chunk();
 
     const size_type num_stored_elements = tmp->get_num_stored_elements();

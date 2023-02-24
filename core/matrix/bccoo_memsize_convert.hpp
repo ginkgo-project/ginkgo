@@ -311,7 +311,9 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
             auto offsets_data_src = source->get_const_offsets();
             auto offsets_data_res = result->get_offsets();
             std::memcpy((offsets_data_res), (offsets_data_src),
-                        (source->get_num_blocks() + 1) * sizeof(IndexType));
+                        //                        (source->get_num_blocks() + 1)
+                        //                        * sizeof(IndexType));
+                        (source->get_num_blocks() + 1) * sizeof(size_type));
             auto chunk_data_src = source->get_const_chunk();
             auto chunk_data_res = result->get_chunk();
             std::memcpy((chunk_data_res), (chunk_data_src),
@@ -324,7 +326,9 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
             std::memcpy((result->get_types()), (source->get_const_types()),
                         source->get_num_blocks() * sizeof(uint8));
             std::memcpy((result->get_offsets()), (source->get_const_offsets()),
-                        (source->get_num_blocks() + 1) * sizeof(IndexType));
+                        //                        (source->get_num_blocks() + 1)
+                        //                        * sizeof(IndexType));
+                        (source->get_num_blocks() + 1) * sizeof(size_type));
             std::memcpy((result->get_chunk()), (source->get_const_chunk()),
                         source->get_num_bytes() * sizeof(uint8));
         }
