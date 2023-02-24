@@ -261,24 +261,28 @@ public:
         /**
          * Pre-smooth Factory list.
          * Its size must be 0, 1 or be the same as mg_level's.
-         * when size = 0, do not use pre_smoother
+         * when size = 0, use default smoother
          * when size = 1, use the first factory
          * when size > 1, use the same selector as mg_level
          *
-         * If this option is not set (i.e. size = 1 and pre_smoother[0] =
-         * nullptr) then the default smoother is used. The default smoother is
-         * one step of iterative refinement with a scalar Jacobi preconditioner.
+         * If this option is not set (i.e. size = 0) then the default smoother
+         * is used. The default smoother is one step of iterative refinement
+         * with a scalar Jacobi preconditioner.
+         *
+         * If any element in the vector is a `nullptr` then the smoother
+         * application at the corresponding level is skipped.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(pre_smoother, nullptr);
+        using smoother_list = std::vector<std::shared_ptr<const LinOpFactory>>;
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(pre_smoother,
+                                                   smoother_list{});
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * the factory parameter post_uses_pre is set to true.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(post_smoother, nullptr);
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(post_smoother,
+                                                   smoother_list{});
 
         /**
          * Mid-smooth Factory list. If it contains available elements, multigrid
@@ -287,8 +291,8 @@ public:
          * Pre-smooth Factory list. It is ignored if the factory parameter
          * mid_case is not mid.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(mid_smoother, nullptr);
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(mid_smoother,
+                                                   smoother_list{});
 
         /**
          * Whether post-smoothing-related calls use corresponding
