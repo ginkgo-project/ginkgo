@@ -154,7 +154,7 @@ void handle_list(
         GKO_ENSURE_IN_BOUNDS(temp_index, list_size);
         auto item = smoother_list.at(temp_index);
         if (item == nullptr) {
-            smoother.emplace_back(gen_default_smoother());
+            smoother.emplace_back(nullptr);
         } else {
             auto solver = item->generate(matrix);
             if (solver->apply_uses_initial_guess() == true) {
@@ -167,7 +167,7 @@ void handle_list(
             }
         }
     } else {
-        smoother.emplace_back(nullptr);
+        smoother.emplace_back(gen_default_smoother());
     }
 }
 
