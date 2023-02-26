@@ -576,7 +576,8 @@ void Multigrid::generate()
 
 void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(b, x,
+                                        this->get_default_initial_guess());
 }
 
 
@@ -607,8 +608,8 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
 void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
                            const LinOp* beta, LinOp* x) const
 {
-    this->apply_with_initial_guess(alpha, b, beta, x,
-                                   this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(alpha, b, beta, x,
+                                        this->get_default_initial_guess());
 }
 
 
