@@ -101,6 +101,8 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     // different matrix sizes
 
     auto exec = this->get_executor();
+
+    /* EITHER: (Have the conversion facility)
     std::shared_ptr<gko::matrix::BatchTridiagonal<ValueType>>
         system_matrix_tridiagonal;
 
@@ -114,6 +116,13 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
         as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
             ->convert_to(system_matrix_tridiagonal.get());
     }
+    */
+
+    // OR: Restrict the system matrix type
+
+    // That means the only matrix type allowed is batched tridiagonal matrix.
+    auto system_matrix_tridiagonal =
+        as<const matrix_type>(this->system_matrix_);
 
     const bool to_scale = std::dynamic_pointer_cast<const BDiag>(
                               this->parameters_.left_scaling_op) &&
