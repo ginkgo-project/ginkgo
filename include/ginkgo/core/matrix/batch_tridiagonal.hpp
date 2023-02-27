@@ -52,17 +52,25 @@ namespace gko {
 namespace matrix {
 
 
-template <typename ValueType>
-class BatchDiagonal;
-
-
 template <typename ValueType, typename IndexType>
 class BatchCsr;
 
+template <typename ValueType>
+class BatchDense;
+
 
 /**
- * BatchTridiagonal is a batch matrix format which stores the subdiagonal, main
- * diagobal and the superdiagonal of each matrix in the batch.
+ * BatchTridiagonal is a batch matrix format which stores the sub-diagonal (with
+ * an extra zero in the beginning), the main- diagonal and the super-diagonal
+ * (with an extra zero at the end) of each matrix in the batch.
+ *
+ * The memory required to the matrix values for each matrix is: 3 * the size of
+ * the matrix.
+ *
+ * The diagonals are stored in a strided fashion, i.e. the all three diagonals
+ * (first the sub-diagonal, then the main-diagonal and finally the
+ * super-diagonal) of the first matrix are stored first, then the diagonals of
+ * the second matrix and so on.
  *
  *
  * @tparam ValueType  precision of matrix elements
@@ -78,6 +86,7 @@ class BatchTridiagonal
       public EnableCreateMethod<BatchTridiagonal<ValueType>>,
       public ConvertibleTo<BatchTridiagonal<next_precision<ValueType>>>,
       public ConvertibleTo<BatchCsr<ValueType, int32>>,
+      public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, int32>,
       public BatchReadableFromMatrixData<ValueType, int64>,
       public BatchWritableToMatrixData<ValueType, int32>,
@@ -130,6 +139,10 @@ public:
     void convert_to(BatchCsr<ValueType, index_type>* result) const override;
 
     void move_to(BatchCsr<ValueType, index_type>* result) override;
+
+    void convert_to(BatchDense<ValueType>* result) const override;
+
+    void move_to(BatchDense<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
@@ -217,7 +230,8 @@ public:
     }
 
     /**
-     * Creates a constant (immutable) batch dense matrix from a constant array.
+     * Creates a constant (immutable) batch tridiagonal matrix from a constant
+     * array.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
@@ -283,6 +297,8 @@ protected:
         : EnableBatchLinOp<BatchTridiagonal>(exec, size),
           values_(exec, compute_batch_mem(size))
     {
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+
         num_elems_per_batch_cumul_ =
             compute_num_elems_per_batch_cumul(exec, this->get_size());
     }
@@ -310,6 +326,8 @@ protected:
                                      compute_num_elems_per_batch_cumul(
                                          exec->get_master(), this->get_size()))
     {
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+
         auto num_elems =
             num_elems_per_batch_cumul_
                 .get_const_data()[num_elems_per_batch_cumul_.get_num_elems() -
@@ -335,7 +353,8 @@ protected:
                         input->get_size().at(0))),
           values_(exec, compute_batch_mem(this->get_size()))
     {
-        // Check if it works when stride neq num_cols
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+
         num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
             exec->get_master(), this->get_size());
         size_type offset = 0;

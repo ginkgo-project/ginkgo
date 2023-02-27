@@ -36,421 +36,503 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/range.hpp>
+
+
 #include "core/test/utils.hpp"
-#include "core/test/utils/batch.hpp"
 
 
 namespace {
 
 
-template <typename ValueIndexType>
-class BatchCsr : public ::testing::Test {
+template <typename T>
+class BatchTridiagonal : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
-    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using value_type = T;
     using size_type = gko::size_type;
 
-    BatchCsr()
-        : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::BatchCsr<value_type, index_type>::create(
-              exec, 2, gko::dim<2>{2, 3}, 4))
+    /*
+    BatchTridiagonal matrix:
+
+    2  3  0  0
+    4  1  5  0
+    0  5  9  8
+    0  0  8  4
+
+    9  8  0  0  0
+    4  3  5  0  0
+    0  7  1  4  0
+    0  0  8  2  1
+    0  0  0  6  3
+
+    */
+
+    BatchTridiagonal() : exec(gko::ReferenceExecutor::create())
     {
+        mtx = gko::matrix::BatchTridiagonal<value_type>::create(
+            exec,
+            std::vector<gko::dim<2>>{gko::dim<2>{4, 4}, gko::dim<2>{5, 5}});
         value_type* v = mtx->get_values();
-        index_type* c = mtx->get_col_idxs();
-        index_type* r = mtx->get_row_ptrs();
-        /*
-         * 1  3  2
-         * 0  5  0
-         *
-         * 3  5  1
-         * 0  1  0
-         */
-        r[0] = 0;
-        r[1] = 3;
-        r[2] = 4;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
-        v[4] = 3.0;
-        v[5] = 5.0;
-        v[6] = 1.0;
-        v[7] = 1.0;
+        //clang-format off
+        v[0] = 0.0;
+        v[1] = 4.0;
+        v[2] = 5.0;
+        v[3] = 8.0;
+        v[4] = 2.0;
+        v[5] = 1.0;
+        v[6] = 9.0;
+        v[7] = 4.0;
+        v[8] = 3.0;
+        v[9] = 5.0;
+        v[10] = 8.0;
+        v[11] = 0.0;
+
+        v[12] = 0.0;
+        v[13] = 4.0;
+        v[14] = 7.0;
+        v[15] = 8.0;
+        v[16] = 6.0;
+        v[17] = 9.0;
+        v[18] = 3.0;
+        v[19] = 1.0;
+        v[20] = 2.0;
+        v[21] = 3.0;
+        v[22] = 8.0;
+        v[23] = 5.0;
+        v[24] = 4.0;
+        v[25] = 1.0;
+        v[26] = 0.0;
+        //clang-format on
     }
 
-    std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    static void assert_equal_to_original_mtx(
+        gko::matrix::BatchTridiagonal<value_type>* m)
     {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_ptrs();
         ASSERT_EQ(m->get_num_batch_entries(), 2);
-        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 8);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 3);
-        EXPECT_EQ(r[2], 4);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{3.0});
-        EXPECT_EQ(v[2], value_type{2.0});
-        EXPECT_EQ(v[3], value_type{5.0});
-        EXPECT_EQ(v[4], value_type{3.0});
-        EXPECT_EQ(v[5], value_type{5.0});
-        EXPECT_EQ(v[6], value_type{1.0});
-        EXPECT_EQ(v[7], value_type{1.0});
+        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+        ASSERT_EQ(m->get_size().at(1), gko::dim<2>(5, 5));
+
+        ASSERT_EQ(m->get_num_stored_elements(), (3 * 4) + (3 * 5));
+        ASSERT_EQ(m->get_num_stored_elements(0), 3 * 4);
+        ASSERT_EQ(m->get_num_stored_elements(1), 3 * 5);
+
+        ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
+        EXPECT_EQ(m->get_const_values(0)[1], value_type{4.0});
+        EXPECT_EQ(m->get_const_values(0)[2], value_type{5.0});
+        EXPECT_EQ(m->get_const_values(0)[3], value_type{8.0});
+        EXPECT_EQ(m->get_const_values(0)[4], value_type{2.0});
+        EXPECT_EQ(m->get_const_values(0)[5], value_type{1.0});
+        EXPECT_EQ(m->get_const_values(0)[6], value_type{9.0});
+        EXPECT_EQ(m->get_const_values(0)[7], value_type{4.0});
+        EXPECT_EQ(m->get_const_values(0)[8], value_type{3.0});
+        EXPECT_EQ(m->get_const_values(0)[9], value_type{5.0});
+        EXPECT_EQ(m->get_const_values(0)[10], value_type{8.0});
+        ASSERT_EQ(m->get_const_values(0)[11], value_type{0.0});
+
+        ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
+        EXPECT_EQ(m->get_const_values(1)[1], value_type{4.0});
+        EXPECT_EQ(m->get_const_values(1)[2], value_type{7.0});
+        EXPECT_EQ(m->get_const_values(1)[3], value_type{8.0});
+        EXPECT_EQ(m->get_const_values(1)[4], value_type{6.0});
+        EXPECT_EQ(m->get_const_values(1)[5], value_type{9.0});
+        EXPECT_EQ(m->get_const_values(1)[6], value_type{3.0});
+        EXPECT_EQ(m->get_const_values(1)[7], value_type{1.0});
+        EXPECT_EQ(m->get_const_values(1)[8], value_type{2.0});
+        EXPECT_EQ(m->get_const_values(1)[9], value_type{3.0});
+        EXPECT_EQ(m->get_const_values(1)[10], value_type{8.0});
+        EXPECT_EQ(m->get_const_values(1)[11], value_type{5.0});
+        EXPECT_EQ(m->get_const_values(1)[12], value_type{4.0});
+        EXPECT_EQ(m->get_const_values(1)[13], value_type{1.0});
+        ASSERT_EQ(m->get_const_values(1)[14], value_type{0.0});
     }
 
-    void assert_empty(const Mtx* m)
+    static void assert_empty(gko::matrix::BatchTridiagonal<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
-        ASSERT_EQ(m->get_const_values(), nullptr);
-        ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_NE(m->get_const_row_ptrs(), nullptr);
     }
 
-
-    template <typename ValueType>
-    void assert_equal_data_array(size_type num_elems, const ValueType* data1,
-                                 const ValueType* data2)
-    {
-        for (size_type i = 0; i < num_elems; ++i) {
-            EXPECT_EQ(data1[i], data2[i]);
-        }
-    }
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<gko::matrix::BatchTridiagonal<value_type>> mtx;
 };
 
-using valuetypes =
-    ::testing::Types<std::tuple<float, int>, std::tuple<double, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<std::complex<double>, gko::int32>>;
-TYPED_TEST_SUITE(BatchCsr, valuetypes);
+TYPED_TEST_SUITE(BatchTridiagonal, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchCsr, KnowsItsSize)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    ASSERT_EQ(this->mtx->get_size().at(0), gko::dim<2>(2, 3));
-//    ASSERT_EQ(this->mtx->get_size().at(1), gko::dim<2>(2, 3));
-//    ASSERT_EQ(this->mtx->get_num_stored_elements(), 8);
-//}
+TYPED_TEST(BatchTridiagonal, CanBeEmpty)
+{
+    auto empty = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+    this->assert_empty(empty.get());
+}
 
 
-TYPED_TEST(BatchCsr, ContainsCorrectData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    this->assert_equal_to_original_mtx(this->mtx.get());
-//}
+TYPED_TEST(BatchTridiagonal, ReturnsNullValuesArrayWhenEmpty)
+{
+    auto empty = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+    ASSERT_EQ(empty->get_const_values(), nullptr);
+}
 
 
-TYPED_TEST(BatchCsr, CanBeEmpty)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto mtx = Mtx::create(this->exec);
-//
-//    this->assert_empty(mtx.get());
-//}
+TYPED_TEST(BatchTridiagonal, CanBeConstructedWithSize)
+{
+    using size_type = gko::size_type;
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{3, 3}, gko::dim<2>{4, 4}});
+
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(4, 4));
+    ASSERT_EQ(m->get_num_stored_elements(), 21);
+    ASSERT_EQ(m->get_num_stored_elements(0), 9);
+    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+}
 
 
-TYPED_TEST(BatchCsr, CanBeDuplicatedFromOneCsrMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    value_type values[] = {1.0, 2.0, 3.0, 4.0};
-//    index_type col_idxs[] = {0, 1, 1, 0};
-//    index_type row_ptrs[] = {0, 2, 3, 4};
-//    value_type batch_values[] = {1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
-//                                 3.0, 4.0, 1.0, 2.0, 3.0, 4.0};
-//
-//    auto csr_mat = gko::matrix::Csr<value_type, index_type>::create(
-//        this->exec, gko::dim<2>{3, 2},
-//        gko::array<value_type>::view(this->exec, 4, values),
-//        gko::array<index_type>::view(this->exec, 4, col_idxs),
-//        gko::array<index_type>::view(this->exec, 4, row_ptrs));
-//
-//    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-//        this->exec, 3, csr_mat.get());
-//
-//    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(3, gko::dim<2>{3, 2}));
-//    this->assert_equal_data_array(12, batch_values, mtx->get_values());
-//    this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
-//    this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
-//}
+TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingData)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    value_type data[] = {
+
+       0.0, -1.0, //sub-diagonal
+       1.0, 3.0, //main-diagonal
+       2.0, 0.0, //super-diagonal
+
+       0.0, 3.0, 6.0, //sub-diagonal
+       4.0, 5.0, -3.0, //main-diagonal
+      -1.0, 1.0, 0.0 //super-diagonal
+
+      };
+    // clang-format on
 
 
-TYPED_TEST(BatchCsr, CanBeDuplicatedFromBatchMatrices)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    value_type values[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
-//    index_type col_idxs[] = {0, 1, 1, 0};
-//    index_type row_ptrs[] = {0, 2, 3, 4};
-//    value_type bvalues[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0,
-//                            1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0,
-//                            1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
-//
-//    auto batch_mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-//        this->exec, 2, gko::dim<2>{3, 2},
-//        gko::array<value_type>::view(this->exec, 8, values),
-//        gko::array<index_type>::view(this->exec, 4, col_idxs),
-//        gko::array<index_type>::view(this->exec, 4, row_ptrs));
-//
-//    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-//        this->exec, 3, batch_mtx.get());
-//
-//    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(6, gko::dim<2>{3, 2}));
-//    this->assert_equal_data_array(24, bvalues, mtx->get_values());
-//    this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
-//    this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
-//}
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
+        gko::array<value_type>::view(this->exec, 15, data));
+
+    ASSERT_EQ(m->get_const_values(), data);
+
+    ASSERT_EQ(m->get_const_values()[0], value_type{0.0});
+    ASSERT_EQ(m->get_const_values()[1], value_type{-1.0});
+    ASSERT_EQ(m->get_const_values()[2], value_type{1.0});
+    ASSERT_EQ(m->get_const_values()[3], value_type{3.0});
+    ASSERT_EQ(m->get_const_values()[4], value_type{2.0});
+    ASSERT_EQ(m->get_const_values()[5], value_type{0.0});
+
+    ASSERT_EQ(m->get_const_values()[6], value_type{0.0});
+    ASSERT_EQ(m->get_const_values()[7], value_type{3.0});
+    ASSERT_EQ(m->get_const_values()[8], value_type{6.0});
+    ASSERT_EQ(m->get_const_values()[9], value_type{4.0});
+    ASSERT_EQ(m->get_const_values()[10], value_type{5.0});
+    ASSERT_EQ(m->get_const_values()[11], value_type{-3.0});
+    ASSERT_EQ(m->get_const_values()[12], value_type{-1.0});
+    ASSERT_EQ(m->get_const_values()[13], value_type{1.0});
+    ASSERT_EQ(m->get_const_values()[14], value_type{0.0});
+}
 
 
-TYPED_TEST(BatchCsr, CanBeCreatedFromExistingData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    value_type values[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
-//    index_type col_idxs[] = {0, 1, 1, 0};
-//    index_type row_ptrs[] = {0, 2, 3, 4};
-//
-//    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-//        this->exec, gko::batch_dim<>(2, gko::dim<2>{3, 2}),
-//        gko::array<value_type>::view(this->exec, 8, values),
-//        gko::array<index_type>::view(this->exec, 4, col_idxs),
-//        gko::array<index_type>::view(this->exec, 4, row_ptrs));
-//
-//    ASSERT_EQ(mtx->get_const_values(), values);
-//    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
-//    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-//}
+TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    value_type data[] = {
+
+       0.0, -1.0, //sub-diagonal
+       1.0, 3.0, //main-diagonal
+       2.0, 0.0, //super-diagonal
+
+       0.0, 3.0, 6.0, //sub-diagonal
+       4.0, 5.0, -3.0, //main-diagonal
+      -1.0, 1.0, 0.0 //super-diagonal
+
+    };
+    // clang-format on
 
 
-TYPED_TEST(BatchCsr, CanBeCreatedFromExistingConstData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    const value_type values[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
-//    const index_type col_idxs[] = {0, 1, 1, 0};
-//    index_type row_ptrs[] = {0, 2, 3, 4};
-//
-//    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create_const(
-//        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}},
-//        gko::array<value_type>::const_view(this->exec, 8, values),
-//        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
-//        gko::array<index_type>::const_view(this->exec, 4, row_ptrs));
-//
-//    ASSERT_EQ(mtx->get_const_values(), values);
-//    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
-//    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-//}
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create_const(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
+        gko::array<value_type>::const_view(this->exec, 15, data));
+
+    ASSERT_EQ(m->get_const_values(), data);
+
+    ASSERT_EQ(m->get_const_values()[0], value_type{0.0});
+    ASSERT_EQ(m->get_const_values()[1], value_type{-1.0});
+    ASSERT_EQ(m->get_const_values()[2], value_type{1.0});
+    ASSERT_EQ(m->get_const_values()[3], value_type{3.0});
+    ASSERT_EQ(m->get_const_values()[4], value_type{2.0});
+    ASSERT_EQ(m->get_const_values()[5], value_type{0.0});
+
+    ASSERT_EQ(m->get_const_values()[6], value_type{0.0});
+    ASSERT_EQ(m->get_const_values()[7], value_type{3.0});
+    ASSERT_EQ(m->get_const_values()[8], value_type{6.0});
+    ASSERT_EQ(m->get_const_values()[9], value_type{4.0});
+    ASSERT_EQ(m->get_const_values()[10], value_type{5.0});
+    ASSERT_EQ(m->get_const_values()[11], value_type{-3.0});
+    ASSERT_EQ(m->get_const_values()[12], value_type{-1.0});
+    ASSERT_EQ(m->get_const_values()[13], value_type{1.0});
+    ASSERT_EQ(m->get_const_values()[14], value_type{0.0});
+}
 
 
-TYPED_TEST(BatchCsr, CanBeCopied)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto copy = Mtx::create(this->exec);
-//
-//    copy->copy_from(this->mtx.get());
-//
-//    this->assert_equal_to_original_mtx(this->mtx.get());
-//    this->mtx->get_values()[1] = 5.0;
-//    this->assert_equal_to_original_mtx(copy.get());
-//}
+TYPED_TEST(BatchTridiagonal,
+           CanBeConstructedFromBatchTridiagonalMatricesByDuplication)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    value_type data[] = {
+
+       0.0, 1.0, 5.0, //sub-diagonal
+       1.0, 7.0, -7.0, //main-diagonal
+      -1.0, 3.0, 0.0, //super-diagonal
+
+       0.0, 3.0, 6.0, //sub-diagonal
+       4.0, 5.0, -3.0, //main-diagonal
+      -1.0, 1.0, 0.0 //super-diagonal
+
+    };
+    // clang-format on
+
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
+        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
+        gko::array<value_type>::view(this->exec, 18, data));
+
+    auto bat_m_created_by_dupl =
+        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec, 2,
+                                                         m.get());
+
+    // clang-format off
+    value_type data_new[] = {
+
+       0.0, 1.0, 5.0, //sub-diagonal
+       1.0, 7.0, -7.0, //main-diagonal
+      -1.0, 3.0, 0.0, //super-diagonal
+
+       0.0, 3.0, 6.0, //sub-diagonal
+       4.0, 5.0, -3.0, //main-diagonal
+      -1.0, 1.0, 0.0, //super-diagonal
+
+       0.0, 1.0, 5.0, //sub-diagonal
+       1.0, 7.0, -7.0, //main-diagonal
+      -1.0, 3.0, 0.0, //super-diagonal
+
+       0.0, 3.0, 6.0, //sub-diagonal
+       4.0, 5.0, -3.0, //main-diagonal
+      -1.0, 1.0, 0.0 //super-diagonal
+    
+    };
+    // clang-format on
+
+    auto m_new = gko::matrix::BatchTridiagonal<TypeParam>::create(
+        this->exec, gko::batch_dim<2>(4, gko::dim<2>{3, 3}),
+        gko::array<value_type>::view(this->exec, 36, data_new));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(bat_m_created_by_dupl.get(), m_new.get(), 1e-14);
+}
 
 
-TYPED_TEST(BatchCsr, CanBeMoved)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto copy = Mtx::create(this->exec);
-//
-//    copy->copy_from(std::move(this->mtx));
-//
-//    this->assert_equal_to_original_mtx(copy.get());
-//    ASSERT_EQ(this->mtx.get(), nullptr);
-//}
+TYPED_TEST(BatchTridiagonal, KnowsItsSizeAndValues)
+{
+    this->assert_equal_to_original_mtx(this->mtx.get());
+}
 
 
-TYPED_TEST(BatchCsr, CanBeCloned)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto clone = this->mtx->clone();
-//
-//    this->assert_equal_to_original_mtx(this->mtx.get());
-//    this->mtx->get_values()[1] = 5.0;
-//    this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
-//}
+TYPED_TEST(BatchTridiagonal, CanBeCopied)
+{
+    auto mtx_copy =
+        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-TYPED_TEST(BatchCsr, CanBeCleared)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    this->mtx->clear();
-//
-//    this->assert_empty(this->mtx.get());
-//}
+TYPED_TEST(BatchTridiagonal, CanBeMoved)
+{
+    auto mtx_copy =
+        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(std::move(this->mtx));
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-TYPED_TEST(BatchCsr, CanBeReadFromMatrixData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto m = Mtx::create(this->exec);
-//
-//    m->read({{{2, 3},
-//              {{0, 0, 1.0},
-//               {0, 1, 3.0},
-//               {0, 2, 2.0},
-//               {1, 0, 0.0},
-//               {1, 1, 5.0},
-//               {1, 2, 0.0}}},
-//             {{2, 3},
-//              {{0, 0, 3.0},
-//               {0, 1, 5.0},
-//               {0, 2, 1.0},
-//               {1, 0, 0.0},
-//               {1, 1, 1.0},
-//               {1, 2, 0.0}}}});
-//
-//    this->assert_equal_to_original_mtx(m.get());
-//}
+TYPED_TEST(BatchTridiagonal, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
-TYPED_TEST(BatchCsr, CanBeReadFromMatrixAssemblyData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    auto m = Mtx::create(this->exec);
-//    gko::matrix_assembly_data<value_type, index_type> data1(gko::dim<2>{2,
-//    3}); gko::matrix_assembly_data<value_type, index_type>
-//    data2(gko::dim<2>{2, 3}); data1.set_value(0, 0, 1.0); data1.set_value(0,
-//    1, 3.0); data1.set_value(0, 2, 2.0); data1.set_value(1, 0, 0.0);
-//    data1.set_value(1, 1, 5.0);
-//    data1.set_value(1, 2, 0.0);
-//    data2.set_value(0, 0, 3.0);
-//    data2.set_value(0, 1, 5.0);
-//    data2.set_value(0, 2, 1.0);
-//    data2.set_value(1, 0, 0.0);
-//    data2.set_value(1, 1, 1.0);
-//    data2.set_value(1, 2, 0.0);
-//    auto data = std::vector<gko::matrix_assembly_data<value_type,
-//    index_type>>{
-//        data1, data2};
-//
-//    m->read(data);
-//
-//    this->assert_equal_to_original_mtx(m.get());
-//}
+TYPED_TEST(BatchTridiagonal, CanBeCleared)
+{
+    this->mtx->clear();
+    this->assert_empty(this->mtx.get());
+}
 
 
-TYPED_TEST(BatchCsr, GeneratesCorrectMatrixData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    using tpl = typename gko::matrix_data<value_type,
-//    index_type>::nonzero_type; std::vector<gko::matrix_data<value_type,
-//    index_type>> data;
-//
-//    this->mtx->write(data);
-//
-//    ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
-//    ASSERT_EQ(data[0].nonzeros.size(), 4);
-//    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{1.0}));
-//    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{3.0}));
-//    EXPECT_EQ(data[0].nonzeros[2], tpl(0, 2, value_type{2.0}));
-//    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 1, value_type{5.0}));
-//    ASSERT_EQ(data[1].size, gko::dim<2>(2, 3));
-//    ASSERT_EQ(data[1].nonzeros.size(), 4);
-//    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{3.0}));
-//    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{5.0}));
-//    EXPECT_EQ(data[1].nonzeros[2], tpl(0, 2, value_type{1.0}));
-//    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 1, value_type{1.0}));
-//}
+TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  0
+        3  6  1
+        0  0  9
+
+        second matrix:
+        4  3
+        3  7
+
+    */
+
+    // clang-format off
+    m->read({gko::matrix_data<TypeParam>{{3, 3},
+                                         {{0, 0, 2.0},
+                                          {0, 1, 4.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 6.0},
+                                          {1, 2, 1.0},
+                                          {2, 2, 9.0}}},
+             gko::matrix_data<TypeParam>{{2, 2},
+                                         {{0, 0, 4.0},
+                                          {0, 1, 3.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 7.0}}}});
+    // clang-format on
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
+    ASSERT_EQ(m->get_num_stored_elements(), 15);
+    ASSERT_EQ(m->get_num_stored_elements(0), 9);
+    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+
+    ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(0)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_values(0)[2], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(0)[3], value_type{2.0});
+    EXPECT_EQ(m->get_const_values(0)[4], value_type{6.0});
+    EXPECT_EQ(m->get_const_values(0)[5], value_type{9.0});
+    EXPECT_EQ(m->get_const_values(0)[6], value_type{4.0});
+    EXPECT_EQ(m->get_const_values(0)[7], value_type{1.0});
+    ASSERT_EQ(m->get_const_values(0)[8], value_type{0.0});
+
+    ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(1)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_values(1)[2], value_type{4.0});
+    EXPECT_EQ(m->get_const_values(1)[3], value_type{7.0});
+    EXPECT_EQ(m->get_const_values(1)[4], value_type{3.0});
+    ASSERT_EQ(m->get_const_values(1)[5], value_type{0.0});
+}
 
 
-TYPED_TEST(BatchCsr, NonZeroMatrixReadWriteIsReversible)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal): change the code imported from
-// matrix/batch_csr if needed
-//    using value_type = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    using tpl = typename gko::matrix_data<value_type,
-//    index_type>::nonzero_type; using MtxType = typename TestFixture::Mtx;
-//    using real_type = typename gko::remove_complex<value_type>;
-//    const size_t batch_size = 7;
-//    const int num_rows = 63;
-//    const int num_cols = 31;
-//    const int min_nnz_row = 8;
-//    auto mtx = gko::test::generate_uniform_batch_random_matrix<MtxType>(
-//        batch_size, num_rows, num_cols,
-//        std::uniform_int_distribution<>(min_nnz_row, num_cols),
-//        std::uniform_real_distribution<real_type>(1.0, 2.0),
-//        std::ranlux48(42), false, this->exec);
-//    std::vector<gko::matrix_data<value_type, index_type>> data;
-//    auto test_mtx = MtxType::create(this->exec);
-//
-//    mtx->write(data);
-//    test_mtx->read(data);
-//
-//    GKO_ASSERT_BATCH_MTX_NEAR(mtx, test_mtx, 0.0);
-//}
+TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixAssemblyData)
+{
+    /*
+
+        first matrix:
+        2  4  0
+        3  6  1
+        0  0  9
+
+        second matrix:
+        4  3
+        3  7
+
+    */
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{3, 3});
+    data1.set_value(0, 0, 2.0);
+    data1.set_value(0, 1, 4.0);
+    data1.set_value(1, 0, 3.0);
+    data1.set_value(1, 1, 6.0);
+    data1.set_value(1, 2, 1.0);
+    data1.set_value(2, 2, 9.0);
+    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 2});
+    data2.set_value(0, 0, 4.0);
+    data2.set_value(0, 1, 3.0);
+    data2.set_value(1, 0, 3.0);
+    data2.set_value(1, 1, 7.0);
+    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
+
+    m->read(data);
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
+    ASSERT_EQ(m->get_num_stored_elements(), 15);
+    ASSERT_EQ(m->get_num_stored_elements(0), 9);
+    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+
+    ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(0)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_values(0)[2], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(0)[3], value_type{2.0});
+    EXPECT_EQ(m->get_const_values(0)[4], value_type{6.0});
+    EXPECT_EQ(m->get_const_values(0)[5], value_type{9.0});
+    EXPECT_EQ(m->get_const_values(0)[6], value_type{4.0});
+    EXPECT_EQ(m->get_const_values(0)[7], value_type{1.0});
+    ASSERT_EQ(m->get_const_values(0)[8], value_type{0.0});
+
+    ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_values(1)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_values(1)[2], value_type{4.0});
+    EXPECT_EQ(m->get_const_values(1)[3], value_type{7.0});
+    EXPECT_EQ(m->get_const_values(1)[4], value_type{3.0});
+    ASSERT_EQ(m->get_const_values(1)[5], value_type{0.0});
+}
+
+
+TYPED_TEST(BatchTridiagonal, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
+    std::vector<gko::matrix_data<TypeParam>> data;
+
+    this->mtx->write(data);
+
+    ASSERT_EQ(data[0].size, gko::dim<2>(4, 4));
+
+    ASSERT_EQ(data[0].nonzeros.size(), 10);
+    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{2.0}));
+    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data[0].nonzeros[2], tpl(1, 0, value_type{4.0}));
+    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 1, value_type{1.0}));
+    EXPECT_EQ(data[0].nonzeros[4], tpl(1, 2, value_type{5.0}));
+    EXPECT_EQ(data[0].nonzeros[5], tpl(2, 1, value_type{5.0}));
+    EXPECT_EQ(data[0].nonzeros[6], tpl(2, 2, value_type{9.0}));
+    EXPECT_EQ(data[0].nonzeros[7], tpl(2, 3, value_type{8.0}));
+    EXPECT_EQ(data[0].nonzeros[8], tpl(3, 2, value_type{8.0}));
+    EXPECT_EQ(data[0].nonzeros[9], tpl(3, 3, value_type{4.0}));
+    ASSERT_EQ(data[1].size, gko::dim<2>(5, 5));
+    ASSERT_EQ(data[1].nonzeros.size(), 13);
+    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{9.0}));
+    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{8.0}));
+    EXPECT_EQ(data[1].nonzeros[2], tpl(1, 0, value_type{4.0}));
+    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 1, value_type{3.0}));
+    EXPECT_EQ(data[1].nonzeros[4], tpl(1, 2, value_type{5.0}));
+    EXPECT_EQ(data[1].nonzeros[5], tpl(2, 1, value_type{7.0}));
+    EXPECT_EQ(data[1].nonzeros[6], tpl(2, 2, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[7], tpl(2, 3, value_type{4.0}));
+    EXPECT_EQ(data[1].nonzeros[8], tpl(3, 2, value_type{8.0}));
+    EXPECT_EQ(data[1].nonzeros[9], tpl(3, 3, value_type{2.0}));
+    EXPECT_EQ(data[1].nonzeros[10], tpl(3, 4, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[11], tpl(4, 3, value_type{6.0}));
+    EXPECT_EQ(data[1].nonzeros[12], tpl(4, 4, value_type{3.0}));
+}
 
 
 }  // namespace
