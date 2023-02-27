@@ -42,8 +42,7 @@ __dpct_inline__ void initialize(
     ValueType* const r_shared_entry, const PrecType& prec_shared,
     ValueType* const z_shared_entry, ValueType& rho_old_shared_entry,
     ValueType* const p_shared_entry,
-    typename gko::remove_complex<ValueType>& rhs_norms_sh,
-    sycl::nd_item<3> item_ct1)
+    gko::remove_complex<ValueType>& rhs_norms_sh, sycl::nd_item<3> item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
@@ -67,7 +66,6 @@ __dpct_inline__ void initialize(
     // z = precond * r
     prec_shared.apply(num_rows, r_shared_entry, z_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
-
     if (sg_id == 0) {
         // Compute norms of rhs
         compute_norm2_sg_kernel(num_rows, b_global_entry, rhs_norms_sh,
@@ -77,7 +75,6 @@ __dpct_inline__ void initialize(
         compute_dot_product_sg_kernel(num_rows, r_shared_entry, z_shared_entry,
                                       rho_old_shared_entry, item_ct1);
     }
-
     // p = z
     for (int iz = tid; iz < num_rows; iz += group_size) {
         p_shared_entry[iz] = z_shared_entry[iz];
@@ -135,17 +132,23 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
-                  const int max_iter, const gko::remove_complex<ValueType> tol,
-                  LogType logger, PrecType prec_shared, const BatchMatrixType a,
-                  const ValueType* const __restrict__ b,
-                  ValueType* const __restrict__ x,
-                  ValueType* const local_mem_sh, sycl::nd_item<3> item_ct1,
-                  ValueType* const __restrict__ workspace = nullptr)
+void apply_kernel(
+    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, LogType logger,
+    PrecType prec_shared, const BatchMatrixType A_global_entry,
+    const ValueType* const __restrict__ b_global_entry,
+    ValueType* const __restrict__ x_global_entry, const size_type nrows,
+    const size_type nnz,
+    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                   sycl::access::target::local>
+        local_mem_sh,
+    sycl::accessor<gko::remove_complex<ValueType>, 1,
+                   sycl::access_mode::read_write, sycl::access::target::local>
+        all_norms_sh,
+    sycl::nd_item<3> item_ct1,
+    ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const auto nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
 
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -155,18 +158,11 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     const auto group = item_ct1.get_group();
     const auto ibatch = group.get_group_linear_id();
 
-    /*
-       __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
-       __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
-       __shared__ uninitialized_array<ValueType, 1> alpha_sh;
-       __shared__ real_type norms_rhs_sh[1];
-       __shared__ real_type norms_res_sh[1];
-     */
-    ValueType* rho_old_sh = local_mem_sh;
-    ValueType* rho_new_sh = local_mem_sh + 1;
-    ValueType* alpha_sh = local_mem_sh + 2;
-    remove_complex<ValueType> norms_rhs_sh[1];  // = local_mem_sh + 3;
-    remove_complex<ValueType> norms_res_sh[1];  // = local_mem_sh + 4;
+    ValueType* rho_old_sh = &local_mem_sh[0];
+    ValueType* rho_new_sh = &local_mem_sh[1];
+    ValueType* alpha_sh = &local_mem_sh[2];
+    remove_complex<ValueType>* norms_rhs_sh = &all_norms_sh[0];
+    remove_complex<ValueType>* norms_res_sh = &all_norms_sh[1];
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
@@ -179,7 +175,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     ValueType* prec_work_sh;
     if (sconf.n_shared >= 1) {
         // r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        r_sh = local_mem_sh + 5;
+        r_sh = &local_mem_sh[3];
     } else {
         r_sh = workspace + gmem_offset;
     }
@@ -206,15 +202,8 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     if (sconf.n_shared == 4 && sconf.prec_shared) {
         x_sh = workspace + gmem_offset;
     } else {
-        x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
     }
-
-    const auto A_global_entry = gko::batch::batch_entry(a, ibatch);
-    const ValueType* const b_global_entry =
-        gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
-    ValueType* const x_global_entry =
-        gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
-
     // generate preconditioner
     prec_shared.generate(ibatch, A_global_entry, prec_work_sh, item_ct1);
 
@@ -234,7 +223,6 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     int iter = 0;
     for (; iter < max_iter; iter++) {
         norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
-        //            __syncthreads();
         if (stop.check_converged(norms_res_sh)) {
             break;
         }

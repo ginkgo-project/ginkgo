@@ -90,8 +90,8 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        auto subgroup_size =
-            device.get_info<sycl::info::device::sub_group_sizes>()[-1];
+        //        auto subgroup_size =
+        //            device.get_info<sycl::info::device::sub_group_sizes>()[-1];
         const dim3 block(group_size);
         const dim3 grid(num_batches);
 
@@ -101,7 +101,7 @@ public:
             slm_size -
             5 * sizeof(ValueType);  // reserve 5 for intermediate rho-s
         const int shared_gap =
-            a.num_rows;  // TODO: check if it is neccessary to align
+            nrows;                  // TODO: check if it is neccessary to align
         const size_type prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
@@ -124,22 +124,38 @@ public:
            workspace_size * num_batch_entries / sizeof(ValueType));
                     */
         ValueType* const workspace_data = workspace.get_data();
+        auto b_values = b.values;
+        auto x_values = x.values;
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
+        const int local_accessor_size =
+            (slm_size - 2 * sizeof(real_type)) / sizeof(ValueType);
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
-                slm_storage(sycl::range<1>(shmem_per_blk), cgh);
-            ValueType* slm_ptr = slm_storage.get_pointer();
+                slm_values(sycl::range<1>(local_accessor_size), cgh);
+            sycl::accessor<real_type, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_no_cmplx(sycl::range<1>(2), cgh);
 
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    apply_kernel<StopType>(sconf, max_iters, res_tol, logger,
-                                           prec, a, b.values, x.values, slm_ptr,
-                                           item_ct1, workspace_data);
+                    auto batch_id = group.get_group_linear_id();
+                    const auto a_global_entry =
+                        gko::batch::batch_entry(a, batch_id);
+                    const ValueType* const b_global_entry =
+                        gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                    batch_id);
+                    ValueType* const x_global_entry =
+                        gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                    batch_id);
+
+                    apply_kernel<StopType>(
+                        sconf, max_iters, res_tol, logger, prec, a_global_entry,
+                        b_global_entry, x_global_entry, nrows, a.num_nnz,
+                        slm_values, slm_no_cmplx, item_ct1, workspace_data);
                 });
         });
     }
