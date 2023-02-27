@@ -37,7 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
 
 
 namespace gko {
@@ -83,7 +85,26 @@ template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_storage) GKO_NOT_IMPLEMENTED;
+    IndexType* const blocks_cumulative_storage)
+{
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_blocks);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             auto gid = item_ct1.get_global_linear_id();
+                             const auto bsize =
+                                 block_pointers[gid + 1] - block_pointers[gid];
+                             blocks_cumulative_storage[gid] = bsize * bsize;
+                         });
+    });
+    components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
+}
 
 template void compute_cumulative_block_storage<int>(
     std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
