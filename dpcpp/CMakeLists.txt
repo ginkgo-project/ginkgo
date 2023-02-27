@@ -13,7 +13,8 @@ target_sources(ginkgo_dpcpp
     #
     #
     ${GINKGO_DPCPP_FLAGS}
-    "${GKO_DPCPP_JACOBI_BLOCK_SIZES}")
+    "${GKO_DPCPP_JACOBI_BLOCK_SIZES}"
+    solver/batch_tridiagonal_solver_kernels.dp.cpp)
     ${GKO_UNIFIED_COMMON_SOURCES}
     a
     a

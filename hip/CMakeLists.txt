@@ -60,6 +60,7 @@ set(GINKGO_HIP_SOURCES
     solver/batch_idr_kernels.hip.cpp
     solver/batch_lower_trs_kernels.hip.cpp
     solver/batch_upper_trs_kernels.hip.cpp
+    solver/batch_tridiagonal_solver_kernels.hip.cpp
     solver/batch_richardson_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
