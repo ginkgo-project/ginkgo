@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/dpct.hpp"
 
 
 namespace gko {
@@ -44,6 +45,7 @@ namespace kernels {
 namespace dpcpp {
 namespace batch_ilu {
 
+#include "dpcpp/preconditioner/batch_ilu.hpp.inc"
 
 template <typename ValueType, typename IndexType>
 void compute_ilu0_factorization(

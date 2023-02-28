@@ -33,13 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
+
+#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
 
 
 namespace gko {
@@ -47,18 +52,108 @@ namespace kernels {
 namespace dpcpp {
 namespace batch_jacobi {
 
+#include "dpcpp/preconditioner/batch_block_jacobi.hpp.inc"
+#include "dpcpp/preconditioner/batch_jacobi.hpp.inc"
+#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp.inc"
+
+namespace {
+
+template <typename BatchMatrixType, typename IndexType, typename ValueType>
+void batch_jacobi_apply_helper(
+    std::shared_ptr<const DefaultExecutor>& exec,
+    const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
+    const uint32 max_block_size,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
+        storage_scheme,
+    const int* const cumulative_block_storage,
+    const ValueType* const blocks_array, const IndexType* const block_ptrs,
+    const IndexType* const row_part_of_which_block_info,
+    const matrix::BatchDense<ValueType>* const r,
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto nbatch = sys_mat_batch.num_batch;
+    const auto nrows = sys_mat_batch.num_rows;
+
+    const auto r_ub = get_batch_struct(r);
+    const auto z_ub = get_batch_struct(z);
+
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(nbatch * group_size);
+
+    const auto r_values = r->get_const_values();
+    auto z_values = z->get_values();
+
+    if (max_block_size == 1u) {
+        const auto shared_size =
+            BatchScalarJacobi<ValueType>::dynamic_work_size(
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+            sizeof(ValueType);
+        auto prec_scalar_jacobi = BatchScalarJacobi<ValueType>();
+
+        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_storage(sycl::range<1>(shared_size), cgh);
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                    auto batch_id = item_ct1.get_group_linear_id();
+                    batch_scalar_jacobi_apply(prec_scalar_jacobi, sys_mat_batch,
+                                              batch_id, nrows, r_values,
+                                              z_values, slm_storage, item_ct1);
+                });
+        });
+
+    } else {
+        const auto shared_size =
+            BatchBlockJacobi<ValueType>::dynamic_work_size(
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+            sizeof(ValueType);
+        auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
+            max_block_size, num_blocks, storage_scheme,
+            cumulative_block_storage, blocks_array, block_ptrs,
+            row_part_of_which_block_info);
+
+        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_storage(sycl::range<1>(shared_size), cgh);
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                    auto batch_id = item_ct1.get_group_linear_id();
+                    batch_block_jacobi_apply(prec_block_jacobi, batch_id, nrows,
+                                             r_values, z_values, slm_storage,
+                                             item_ct1);
+                });
+        });
+    }
+}
+
+}  // namespace
+
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
         storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto a_ub = get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(exec, a_ub, num_blocks, max_block_size,
+                              storage_scheme, cumulative_block_storage,
+                              blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
@@ -68,13 +163,20 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
         storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_part_of_which_block_info,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto a_ub = get_batch_struct(sys_mat);
+    batch_jacobi_apply_helper(exec, a_ub, num_blocks, max_block_size,
+                              storage_scheme, cumulative_block_storage,
+                              blocks_array, block_ptrs,
+                              row_part_of_which_block_info, r, z);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -115,7 +217,26 @@ template <typename IndexType>
 void find_row_is_part_of_which_block(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
-    IndexType* const row_part_of_which_block_info) GKO_NOT_IMPLEMENTED;
+    IndexType* const row_part_of_which_block_info)
+{
+    constexpr int subgroup_size = config::warp_size;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_blocks * subgroup_size);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                 find_row_is_part_of_which_block_kernel(
+                                     num_blocks, block_pointers,
+                                     row_part_of_which_block_info, item_ct1);
+                             });
+    });
+}
 
 // instantiate for index type int32
 template void find_row_is_part_of_which_block<int>(
@@ -133,7 +254,33 @@ void extract_common_blocks_pattern(
     const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const row_part_of_which_block_info,
-    IndexType* const blocks_pattern) GKO_NOT_IMPLEMENTED;
+    IndexType* const blocks_pattern)
+{
+    const auto nrows = first_sys_csr->get_size()[0];
+    constexpr int subgroup_size = config::warp_size;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(nrows * subgroup_size);
+
+    const auto row_ptrs = first_sys_csr->get_const_row_ptrs();
+    const auto col_idxs = first_sys_csr->get_const_col_idxs();
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                 extract_common_block_pattern_kernel(
+                                     static_cast<int>(nrows), row_ptrs,
+                                     col_idxs, num_blocks, storage_scheme,
+                                     cumulative_block_storage, block_pointers,
+                                     row_part_of_which_block_info,
+                                     blocks_pattern, item_ct1);
+                             });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
@@ -143,13 +290,38 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const uint32 max_block_size, const size_type num_blocks,
+    const uint32 user_given_max_block_size, const size_type num_blocks,
     const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
         storage_scheme,
     const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern,
-    ValueType* const blocks) GKO_NOT_IMPLEMENTED;
+    const IndexType* const blocks_pattern, ValueType* const blocks)
+{
+    constexpr int subgroup_size = config::warp_size;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const auto nbatch = sys_csr->get_num_batch_entries();
+    const auto nrows = sys_csr->get_size().at(0)[0];
+    const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+    const auto sys_csr_values = sys_csr->get_const_values();
+
+    dim3 block(group_size);
+    dim3 grid(num_blocks * nbatch * subgroup_size);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                 compute_block_jacobi_kernel(
+                                     nbatch, static_cast<int>(nnz),
+                                     sys_csr_values, num_blocks, storage_scheme,
+                                     cumulative_block_storage, block_pointers,
+                                     blocks_pattern, blocks, item_ct1);
+                             });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
@@ -164,8 +336,29 @@ void transpose_block_jacobi(
         storage_scheme,
     const IndexType* const cumulative_block_storage,
     const IndexType* const row_part_of_which_block_info,
-    ValueType* const out_blocks_array,
-    const bool to_conjugate) GKO_NOT_IMPLEMENTED;
+    ValueType* const out_blocks_array, const bool to_conjugate)
+{
+    constexpr int subgroup_size = config::warp_size;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    dim3 block(group_size);
+    dim3 grid(nrows * nbatch * subgroup_size);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                 transpose_block_jacobi_kernel(
+                                     nbatch, static_cast<int>(nrows),
+                                     num_blocks, block_pointers, blocks_array,
+                                     storage_scheme, cumulative_block_storage,
+                                     row_part_of_which_block_info,
+                                     out_blocks_array, to_conjugate, item_ct1);
+                             });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_TRANSPOSE_KERNEL);
