@@ -37,12 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/dpct.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 namespace batch_isai {
+
+#include "dpcpp/preconditioner/batch_isai.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
