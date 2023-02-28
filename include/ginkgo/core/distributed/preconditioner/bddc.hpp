@@ -124,17 +124,31 @@ public:
             schur_complement_solver_factory, nullptr);
 
         /**
+         * Inner solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            inner_solver_factory, nullptr);
+
+        /**
+         * Coarse solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            coarse_solver_factory, nullptr);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(static_condensation, true);
+
+        /**
          * A list of all interfaces in the global matrix. An interface can
          * have one (corner) or multiple (edges / faces) entries.
          */
         std::vector<std::vector<index_type>> GKO_FACTORY_PARAMETER_VECTOR(
-            interface_dofs, {});
+            interface_dofs, 0);
 
         /**
          * A list of lists containing all ranks sharing each interface dof.
          */
         std::vector<std::vector<index_type>> GKO_FACTORY_PARAMETER_VECTOR(
-            interface_dof_ranks, {});
+            interface_dof_ranks, 0);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -176,6 +190,8 @@ protected:
      */
     void generate();
 
+    void generate_interfaces();
+
     void generate_constraints();
 
     void schur_complement_solve();
@@ -200,9 +216,11 @@ private:
     std::shared_ptr<const global_matrix_type> global_system_matrix_;
     std::shared_ptr<global_matrix_type> global_coarse_matrix_;
     std::shared_ptr<matrix_type> local_system_matrix_;
+    std::shared_ptr<matrix_type> inner_system_matrix_;
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> schur_complement_solver_;
     std::shared_ptr<const LinOp> coarse_solver_;
+    std::shared_ptr<const LinOp> inner_solver_;
     std::shared_ptr<matrix_type> constraints_;
     std::shared_ptr<vec_type> local_coarse_matrix_;
     std::shared_ptr<diag_type> weights_;
@@ -217,6 +235,8 @@ private:
     std::vector<index_type> local_to_local_;
     std::vector<index_type> coarse_local_to_local_;
     std::vector<index_type> local_idxs_;
+    std::vector<index_type> inner_idxs_;
+    std::vector<index_type> local_to_inner_;
     std::vector<index_type> interfaces_;
     std::shared_ptr<vec_type> local_residual_;
     std::shared_ptr<vec_type> local_residual_large_;
@@ -225,7 +245,10 @@ private:
     std::shared_ptr<vec_type> local_coarse_residual_;
     std::shared_ptr<vec_type> local_coarse_solution_;
     std::shared_ptr<vec_type> local_intermediate_;
+    std::shared_ptr<vec_type> inner_residual_;
+    std::shared_ptr<vec_type> inner_solution_;
     std::shared_ptr<vec_type> one_op_;
+    std::shared_ptr<vec_type> neg_one_op_;
     mutable std::vector<comm_index_type> send_sizes_;
     mutable std::vector<comm_index_type> send_offsets_;
     mutable std::vector<comm_index_type> recv_sizes_;
@@ -241,6 +264,8 @@ private:
     mutable std::vector<value_type> coarse_recv_buffer_;
     std::shared_ptr<global_vec_type> coarse_residual_;
     std::shared_ptr<global_vec_type> coarse_solution_;
+    std::vector<std::vector<index_type>> interface_dofs_;
+    std::vector<std::vector<index_type>> interface_dof_ranks_;
 };
 
 
