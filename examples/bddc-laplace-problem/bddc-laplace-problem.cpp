@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::vector<std::vector<GlobalIndexType>> interface_dofs{};
+    /*std::vector<std::vector<GlobalIndexType>> interface_dofs{};
     std::vector<std::vector<GlobalIndexType>> interface_dof_ranks{};
 
     // Corners
@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
                 interface_dof_ranks.emplace_back(ranks);
             }
         }
-    }
+    }*/
 
     // Take timings.
     comm.synchronize();
@@ -436,22 +436,36 @@ int main(int argc, char* argv[])
     auto gmres_factory = gko::share(
         gmres::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(1e-10)
+                    .on(exec))
+            .on(exec));
+    auto cg_factory = gko::share(
+        cg::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(1e-6)
                     .on(exec))
             .on(exec));
     auto Ainv = cg::build()
                     .with_preconditioner(
                         bddc::build()
-                            .with_interface_dofs(interface_dofs)
-                            .with_interface_dof_ranks(interface_dof_ranks)
+                            //.with_interface_dofs(interface_dofs)
+                            //.with_interface_dof_ranks(interface_dof_ranks)
                             .with_local_solver_factory(gmres_factory)
                             .with_schur_complement_solver_factory(gmres_factory)
+                            .with_inner_solver_factory(cg_factory)
                             .on(exec))
                     .with_criteria(tol_stop, iter_stop)
                     .on(exec)
                     ->generate(A);
+    /*auto Ainv = bddc::build()
+        .with_local_solver_factory(gmres_factory)
+        .with_schur_complement_solver_factory(gmres_factory)
+        .with_inner_solver_factory(cg_factory)
+        .on(exec)->generate(A);*/
     Ainv->add_logger(logger);
 
     // Take timings.
