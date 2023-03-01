@@ -95,10 +95,9 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
 
-    // if (!this->system_matrix_->get_size().stores_equal_sizes()) {
-    //     GKO_NOT_IMPLEMENTED;
-    // } //TODO: Think whether the implementation of the solver supports
-    // different matrix sizes
+    if (!this->system_matrix_->get_size().stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }  // TODO: Provision for solving non-uniform tridiagonal batch
 
     auto exec = this->get_executor();
 

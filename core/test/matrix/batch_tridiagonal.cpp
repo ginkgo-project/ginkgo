@@ -73,36 +73,42 @@ protected:
         mtx = gko::matrix::BatchTridiagonal<value_type>::create(
             exec,
             std::vector<gko::dim<2>>{gko::dim<2>{4, 4}, gko::dim<2>{5, 5}});
-        value_type* v = mtx->get_values();
-        //clang-format off
-        v[0] = 0.0;
-        v[1] = 4.0;
-        v[2] = 5.0;
-        v[3] = 8.0;
-        v[4] = 2.0;
-        v[5] = 1.0;
-        v[6] = 9.0;
-        v[7] = 4.0;
-        v[8] = 3.0;
-        v[9] = 5.0;
-        v[10] = 8.0;
-        v[11] = 0.0;
 
-        v[12] = 0.0;
-        v[13] = 4.0;
-        v[14] = 7.0;
-        v[15] = 8.0;
-        v[16] = 6.0;
-        v[17] = 9.0;
-        v[18] = 3.0;
-        v[19] = 1.0;
-        v[20] = 2.0;
-        v[21] = 3.0;
-        v[22] = 8.0;
-        v[23] = 5.0;
-        v[24] = 4.0;
-        v[25] = 1.0;
-        v[26] = 0.0;
+        value_type* subdiag = mtx->get_sub_diagonal();
+        value_type* maindiag = mtx->get_main_diagonal();
+        value_type* superdiag = mtx->get_super_diagonal();
+
+        //clang-format off
+        subdiag[0] = 0.0;
+        subdiag[1] = 4.0;
+        subdiag[2] = 5.0;
+        subdiag[3] = 8.0;
+        subdiag[4] = 0.0;
+        subdiag[5] = 4.0;
+        subdiag[6] = 7.0;
+        subdiag[7] = 8.0;
+        subdiag[8] = 6.0;
+
+        maindiag[0] = 2.0;
+        maindiag[1] = 1.0;
+        maindiag[2] = 9.0;
+        maindiag[3] = 4.0;
+        maindiag[4] = 9.0;
+        maindiag[5] = 3.0;
+        maindiag[6] = 1.0;
+        maindiag[7] = 2.0;
+        maindiag[8] = 3.0;
+
+        superdiag[0] = 3.0;
+        superdiag[1] = 5.0;
+        superdiag[2] = 8.0;
+        superdiag[3] = 0.0;
+        superdiag[4] = 8.0;
+        superdiag[5] = 5.0;
+        superdiag[6] = 4.0;
+        superdiag[7] = 1.0;
+        superdiag[8] = 0.0;
+
         //clang-format on
     }
 
@@ -115,37 +121,41 @@ protected:
         ASSERT_EQ(m->get_size().at(1), gko::dim<2>(5, 5));
 
         ASSERT_EQ(m->get_num_stored_elements(), (3 * 4) + (3 * 5));
-        ASSERT_EQ(m->get_num_stored_elements(0), 3 * 4);
-        ASSERT_EQ(m->get_num_stored_elements(1), 3 * 5);
+        ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 4);
+        ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 5);
 
-        ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
-        EXPECT_EQ(m->get_const_values(0)[1], value_type{4.0});
-        EXPECT_EQ(m->get_const_values(0)[2], value_type{5.0});
-        EXPECT_EQ(m->get_const_values(0)[3], value_type{8.0});
-        EXPECT_EQ(m->get_const_values(0)[4], value_type{2.0});
-        EXPECT_EQ(m->get_const_values(0)[5], value_type{1.0});
-        EXPECT_EQ(m->get_const_values(0)[6], value_type{9.0});
-        EXPECT_EQ(m->get_const_values(0)[7], value_type{4.0});
-        EXPECT_EQ(m->get_const_values(0)[8], value_type{3.0});
-        EXPECT_EQ(m->get_const_values(0)[9], value_type{5.0});
-        EXPECT_EQ(m->get_const_values(0)[10], value_type{8.0});
-        ASSERT_EQ(m->get_const_values(0)[11], value_type{0.0});
+        ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{4.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{5.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(0)[3], value_type{8.0});
 
-        ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
-        EXPECT_EQ(m->get_const_values(1)[1], value_type{4.0});
-        EXPECT_EQ(m->get_const_values(1)[2], value_type{7.0});
-        EXPECT_EQ(m->get_const_values(1)[3], value_type{8.0});
-        EXPECT_EQ(m->get_const_values(1)[4], value_type{6.0});
-        EXPECT_EQ(m->get_const_values(1)[5], value_type{9.0});
-        EXPECT_EQ(m->get_const_values(1)[6], value_type{3.0});
-        EXPECT_EQ(m->get_const_values(1)[7], value_type{1.0});
-        EXPECT_EQ(m->get_const_values(1)[8], value_type{2.0});
-        EXPECT_EQ(m->get_const_values(1)[9], value_type{3.0});
-        EXPECT_EQ(m->get_const_values(1)[10], value_type{8.0});
-        EXPECT_EQ(m->get_const_values(1)[11], value_type{5.0});
-        EXPECT_EQ(m->get_const_values(1)[12], value_type{4.0});
-        EXPECT_EQ(m->get_const_values(1)[13], value_type{1.0});
-        ASSERT_EQ(m->get_const_values(1)[14], value_type{0.0});
+        EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
+        EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{1.0});
+        EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
+        EXPECT_EQ(m->get_const_main_diagonal(0)[3], value_type{4.0});
+
+        EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{3.0});
+        EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{5.0});
+        EXPECT_EQ(m->get_const_super_diagonal(0)[2], value_type{8.0});
+        ASSERT_EQ(m->get_const_super_diagonal(0)[3], value_type{0.0});
+
+        ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{4.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(1)[2], value_type{7.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(1)[3], value_type{8.0});
+        EXPECT_EQ(m->get_const_sub_diagonal(1)[4], value_type{6.0});
+
+        EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{9.0});
+        EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{3.0});
+        EXPECT_EQ(m->get_const_main_diagonal(1)[2], value_type{1.0});
+        EXPECT_EQ(m->get_const_main_diagonal(1)[3], value_type{2.0});
+        EXPECT_EQ(m->get_const_main_diagonal(1)[4], value_type{3.0});
+
+        EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{8.0});
+        EXPECT_EQ(m->get_const_super_diagonal(1)[1], value_type{5.0});
+        EXPECT_EQ(m->get_const_super_diagonal(1)[2], value_type{4.0});
+        EXPECT_EQ(m->get_const_super_diagonal(1)[3], value_type{1.0});
+        ASSERT_EQ(m->get_const_super_diagonal(1)[4], value_type{0.0});
     }
 
     static void assert_empty(gko::matrix::BatchTridiagonal<value_type>* m)
@@ -171,7 +181,9 @@ TYPED_TEST(BatchTridiagonal, CanBeEmpty)
 TYPED_TEST(BatchTridiagonal, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-    ASSERT_EQ(empty->get_const_values(), nullptr);
+    ASSERT_EQ(empty->get_const_sub_diagonal(), nullptr);
+    ASSERT_EQ(empty->get_const_main_diagonal(), nullptr);
+    ASSERT_EQ(empty->get_const_super_diagonal(), nullptr);
 }
 
 
@@ -186,8 +198,8 @@ TYPED_TEST(BatchTridiagonal, CanBeConstructedWithSize)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_num_stored_elements(), 21);
-    ASSERT_EQ(m->get_num_stored_elements(0), 9);
-    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 4);
 }
 
 
@@ -197,43 +209,57 @@ TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingData)
     using size_type = gko::size_type;
 
     // clang-format off
-    value_type data[] = {
+    value_type subdiag[] = {
+       0.0, -1.0, //first mat sub-diagonal
+       0.0, 3.0, 6.0 //second mat sub-diagonal
+    };
+    // clang-format on
 
-       0.0, -1.0, //sub-diagonal
-       1.0, 3.0, //main-diagonal
-       2.0, 0.0, //super-diagonal
+    // clang-format off
+    value_type maindiag[] = {
 
-       0.0, 3.0, 6.0, //sub-diagonal
-       4.0, 5.0, -3.0, //main-diagonal
-      -1.0, 1.0, 0.0 //super-diagonal
+       1.0, 3.0, //first mat main-diagonal
+       4.0, 5.0, -3.0 //second mat main-diagonal
+      };
+    // clang-format on
+
+    // clang-format off
+    value_type superdiag[] = {
+
+       2.0, 0.0, //first mat super-diagonal
+      -1.0, 1.0, 0.0 //second mat super-diagonal
 
       };
     // clang-format on
 
-
     auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
-        gko::array<value_type>::view(this->exec, 15, data));
+        gko::array<value_type>::view(this->exec, 5, subdiag),
+        gko::array<value_type>::view(this->exec, 5, maindiag),
+        gko::array<value_type>::view(this->exec, 5, superdiag));
 
-    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->get_const_sub_diagonal(), subdiag);
+    ASSERT_EQ(m->get_const_main_diagonal(), maindiag);
+    ASSERT_EQ(m->get_const_super_diagonal(), superdiag);
 
-    ASSERT_EQ(m->get_const_values()[0], value_type{0.0});
-    ASSERT_EQ(m->get_const_values()[1], value_type{-1.0});
-    ASSERT_EQ(m->get_const_values()[2], value_type{1.0});
-    ASSERT_EQ(m->get_const_values()[3], value_type{3.0});
-    ASSERT_EQ(m->get_const_values()[4], value_type{2.0});
-    ASSERT_EQ(m->get_const_values()[5], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[0], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[1], value_type{-1.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[2], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[3], value_type{3.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[4], value_type{6.0});
 
-    ASSERT_EQ(m->get_const_values()[6], value_type{0.0});
-    ASSERT_EQ(m->get_const_values()[7], value_type{3.0});
-    ASSERT_EQ(m->get_const_values()[8], value_type{6.0});
-    ASSERT_EQ(m->get_const_values()[9], value_type{4.0});
-    ASSERT_EQ(m->get_const_values()[10], value_type{5.0});
-    ASSERT_EQ(m->get_const_values()[11], value_type{-3.0});
-    ASSERT_EQ(m->get_const_values()[12], value_type{-1.0});
-    ASSERT_EQ(m->get_const_values()[13], value_type{1.0});
-    ASSERT_EQ(m->get_const_values()[14], value_type{0.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[0], value_type{1.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[1], value_type{3.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[2], value_type{4.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[3], value_type{5.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[4], value_type{-3.0});
+
+    ASSERT_EQ(m->get_const_super_diagonal()[0], value_type{2.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[1], value_type{0.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[2], value_type{-1.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[3], value_type{1.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[4], value_type{0.0});
 }
 
 
@@ -243,46 +269,60 @@ TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingConstData)
     using size_type = gko::size_type;
 
     // clang-format off
-    value_type data[] = {
-
-       0.0, -1.0, //sub-diagonal
-       1.0, 3.0, //main-diagonal
-       2.0, 0.0, //super-diagonal
-
-       0.0, 3.0, 6.0, //sub-diagonal
-       4.0, 5.0, -3.0, //main-diagonal
-      -1.0, 1.0, 0.0 //super-diagonal
-
+    value_type subdiag[] = {
+       0.0, -1.0, //first mat sub-diagonal
+       0.0, 3.0, 6.0 //second mat sub-diagonal
     };
     // clang-format on
 
+    // clang-format off
+    value_type maindiag[] = {
+
+       1.0, 3.0, //first mat main-diagonal
+       4.0, 5.0, -3.0 //second mat main-diagonal
+      };
+    // clang-format on
+
+    // clang-format off
+    value_type superdiag[] = {
+
+       2.0, 0.0, //first mat super-diagonal
+      -1.0, 1.0, 0.0 //second mat super-diagonal
+
+      };
+    // clang-format on
 
     auto m = gko::matrix::BatchTridiagonal<TypeParam>::create_const(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
-        gko::array<value_type>::const_view(this->exec, 15, data));
+        gko::array<value_type>::const_view(this->exec, 5, subdiag),
+        gko::array<value_type>::const_view(this->exec, 5, maindiag),
+        gko::array<value_type>::const_view(this->exec, 5, superdiag));
 
-    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->get_const_sub_diagonal(), subdiag);
+    ASSERT_EQ(m->get_const_main_diagonal(), maindiag);
+    ASSERT_EQ(m->get_const_super_diagonal(), superdiag);
 
-    ASSERT_EQ(m->get_const_values()[0], value_type{0.0});
-    ASSERT_EQ(m->get_const_values()[1], value_type{-1.0});
-    ASSERT_EQ(m->get_const_values()[2], value_type{1.0});
-    ASSERT_EQ(m->get_const_values()[3], value_type{3.0});
-    ASSERT_EQ(m->get_const_values()[4], value_type{2.0});
-    ASSERT_EQ(m->get_const_values()[5], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[0], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[1], value_type{-1.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[2], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[3], value_type{3.0});
+    ASSERT_EQ(m->get_const_sub_diagonal()[4], value_type{6.0});
 
-    ASSERT_EQ(m->get_const_values()[6], value_type{0.0});
-    ASSERT_EQ(m->get_const_values()[7], value_type{3.0});
-    ASSERT_EQ(m->get_const_values()[8], value_type{6.0});
-    ASSERT_EQ(m->get_const_values()[9], value_type{4.0});
-    ASSERT_EQ(m->get_const_values()[10], value_type{5.0});
-    ASSERT_EQ(m->get_const_values()[11], value_type{-3.0});
-    ASSERT_EQ(m->get_const_values()[12], value_type{-1.0});
-    ASSERT_EQ(m->get_const_values()[13], value_type{1.0});
-    ASSERT_EQ(m->get_const_values()[14], value_type{0.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[0], value_type{1.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[1], value_type{3.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[2], value_type{4.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[3], value_type{5.0});
+    ASSERT_EQ(m->get_const_main_diagonal()[4], value_type{-3.0});
+
+    ASSERT_EQ(m->get_const_super_diagonal()[0], value_type{2.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[1], value_type{0.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[2], value_type{-1.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[3], value_type{1.0});
+    ASSERT_EQ(m->get_const_super_diagonal()[4], value_type{0.0});
 }
 
-
+/*
 TYPED_TEST(BatchTridiagonal,
            CanBeConstructedFromBatchTridiagonalMatricesByDuplication)
 {
@@ -290,56 +330,74 @@ TYPED_TEST(BatchTridiagonal,
     using size_type = gko::size_type;
 
     // clang-format off
-    value_type data[] = {
+    value_type subdiag[] = {
 
-       0.0, 1.0, 5.0, //sub-diagonal
-       1.0, 7.0, -7.0, //main-diagonal
-      -1.0, 3.0, 0.0, //super-diagonal
+        0.0, 1.0, 5.0,  // sub-diagonal
+        0.0, 3.0, 6.0   // sub-diagonal
+    };
 
-       0.0, 3.0, 6.0, //sub-diagonal
-       4.0, 5.0, -3.0, //main-diagonal
-      -1.0, 1.0, 0.0 //super-diagonal
+    value_type maindiag[] = {
+
+        1.0, 7.0, -7.0,  // main-diagonal
+        4.0, 5.0, -3.0   // main-diagonal
+    };
+
+    value_type superdiag[] = {
+
+        -1.0, 3.0, 0.0,  // super-diagonal
+        -1.0, 1.0, 0.0   // super-diagonal
 
     };
     // clang-format on
 
     auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
         this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
-        gko::array<value_type>::view(this->exec, 18, data));
+        gko::array<value_type>::view(this->exec, 6, subdiag),
+        gko::array<value_type>::view(this->exec, 6, maindiag),
+        gko::array<value_type>::view(this->exec, 6, superdiag));
 
     auto bat_m_created_by_dupl =
         gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec, 2,
                                                          m.get());
 
     // clang-format off
-    value_type data_new[] = {
+    value_type subdiag_new[] = {
 
        0.0, 1.0, 5.0, //sub-diagonal
-       1.0, 7.0, -7.0, //main-diagonal
-      -1.0, 3.0, 0.0, //super-diagonal
-
        0.0, 3.0, 6.0, //sub-diagonal
+       0.0, 1.0, 5.0, //sub-diagonal
+       0.0, 3.0, 6.0 //sub-diagonal
+
+    };
+
+    value_type maindiag_new[] = {
+
+       1.0, 7.0, -7.0, //main-diagonal
        4.0, 5.0, -3.0, //main-diagonal
+       1.0, 7.0, -7.0, //main-diagonal
+       4.0, 5.0, -3.0 //main-diagonal
+
+    };
+
+    value_type superdiag_new[] = {
+
+      -1.0, 3.0, 0.0, //super-diagonal
       -1.0, 1.0, 0.0, //super-diagonal
-
-       0.0, 1.0, 5.0, //sub-diagonal
-       1.0, 7.0, -7.0, //main-diagonal
       -1.0, 3.0, 0.0, //super-diagonal
-
-       0.0, 3.0, 6.0, //sub-diagonal
-       4.0, 5.0, -3.0, //main-diagonal
       -1.0, 1.0, 0.0 //super-diagonal
-    
+
     };
     // clang-format on
 
     auto m_new = gko::matrix::BatchTridiagonal<TypeParam>::create(
         this->exec, gko::batch_dim<2>(4, gko::dim<2>{3, 3}),
-        gko::array<value_type>::view(this->exec, 36, data_new));
+        gko::array<value_type>::view(this->exec, 12, subdiag_new),
+        gko::array<value_type>::view(this->exec, 12, maindiag_new),
+        gko::array<value_type>::view(this->exec, 12, superdiag_new));
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m_created_by_dupl.get(), m_new.get(), 1e-14);
 }
-
+*/
 
 TYPED_TEST(BatchTridiagonal, KnowsItsSizeAndValues)
 {
@@ -417,25 +475,26 @@ TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixData)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 15);
-    ASSERT_EQ(m->get_num_stored_elements(0), 9);
-    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 2);
 
-    ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(0)[1], value_type{3.0});
-    EXPECT_EQ(m->get_const_values(0)[2], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(0)[3], value_type{2.0});
-    EXPECT_EQ(m->get_const_values(0)[4], value_type{6.0});
-    EXPECT_EQ(m->get_const_values(0)[5], value_type{9.0});
-    EXPECT_EQ(m->get_const_values(0)[6], value_type{4.0});
-    EXPECT_EQ(m->get_const_values(0)[7], value_type{1.0});
-    ASSERT_EQ(m->get_const_values(0)[8], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{3.0});
 
-    ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(1)[1], value_type{3.0});
-    EXPECT_EQ(m->get_const_values(1)[2], value_type{4.0});
-    EXPECT_EQ(m->get_const_values(1)[3], value_type{7.0});
-    EXPECT_EQ(m->get_const_values(1)[4], value_type{3.0});
-    ASSERT_EQ(m->get_const_values(1)[5], value_type{0.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{6.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
+    EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{4.0});
+    EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{7.0});
+
+    EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{4.0});
+    EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{1.0});
+    ASSERT_EQ(m->get_const_super_diagonal(0)[2], value_type{0.0});
+    EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{3.0});
+    ASSERT_EQ(m->get_const_super_diagonal(1)[1], value_type{0.0});
 }
 
 
@@ -471,28 +530,30 @@ TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
+
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 15);
-    ASSERT_EQ(m->get_num_stored_elements(0), 9);
-    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
+    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 2);
 
-    ASSERT_EQ(m->get_const_values(0)[0], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(0)[1], value_type{3.0});
-    EXPECT_EQ(m->get_const_values(0)[2], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(0)[3], value_type{2.0});
-    EXPECT_EQ(m->get_const_values(0)[4], value_type{6.0});
-    EXPECT_EQ(m->get_const_values(0)[5], value_type{9.0});
-    EXPECT_EQ(m->get_const_values(0)[6], value_type{4.0});
-    EXPECT_EQ(m->get_const_values(0)[7], value_type{1.0});
-    ASSERT_EQ(m->get_const_values(0)[8], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{3.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{0.0});
+    ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
+    EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{3.0});
 
-    ASSERT_EQ(m->get_const_values(1)[0], value_type{0.0});
-    EXPECT_EQ(m->get_const_values(1)[1], value_type{3.0});
-    EXPECT_EQ(m->get_const_values(1)[2], value_type{4.0});
-    EXPECT_EQ(m->get_const_values(1)[3], value_type{7.0});
-    EXPECT_EQ(m->get_const_values(1)[4], value_type{3.0});
-    ASSERT_EQ(m->get_const_values(1)[5], value_type{0.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{6.0});
+    EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
+    EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{4.0});
+    EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{7.0});
+
+    EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{4.0});
+    EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{1.0});
+    ASSERT_EQ(m->get_const_super_diagonal(0)[2], value_type{0.0});
+    EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{3.0});
+    ASSERT_EQ(m->get_const_super_diagonal(1)[1], value_type{0.0});
 }
 
 

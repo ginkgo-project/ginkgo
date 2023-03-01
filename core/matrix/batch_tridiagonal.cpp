@@ -64,8 +64,11 @@ template <typename ValueType>
 void BatchTridiagonal<ValueType>::convert_to(
     BatchTridiagonal<next_precision<ValueType>>* result) const
 {
-    result->values_ = this->values_;
-    result->num_elems_per_batch_cumul_ = this->num_elems_per_batch_cumul_;
+    result->sub_diagonal_ = this->sub_diagonal_;
+    result->main_diagonal_ = this->main_diagonal_;
+    result->super_diagonal_ = this->super_diagonal_;
+    result->num_elems_per_diagonal_of_the_batch_cumul_ =
+        this->num_elems_per_diagonal_of_the_batch_cumul_;
     result->set_size(this->get_size());
 }
 
@@ -119,8 +122,14 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 
         size_type ind = 0;
 
-        for (size_type i = 0; i < 3 * size; i++) {
-            tmp->get_values(batch_entry_idx)[i] =
+        for (size_type i = 0; i < size; i++) {
+            tmp->get_sub_diagonal(batch_entry_idx)[i] =
+                zero<typename MatrixType::value_type>();
+
+            tmp->get_main_diagonal(batch_entry_idx)[i] =
+                zero<typename MatrixType::value_type>();
+
+            tmp->get_super_diagonal(batch_entry_idx)[i] =
                 zero<typename MatrixType::value_type>();
         }
 
@@ -133,18 +142,19 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 
             if (row == col)  // main diagonal
             {
-                pos = size + row;
+                tmp->get_main_diagonal(batch_entry_idx)[row] = val;
+
             } else if (row + 1 == col)  // super-diagonal
             {
-                pos = 2 * size + row;
+                tmp->get_super_diagonal(batch_entry_idx)[row] = val;
+
             } else if (row == col + 1)  // sub-diagonal
             {
-                pos = row;
+                tmp->get_sub_diagonal(batch_entry_idx)[row] = val;
+
             } else {
                 throw std::runtime_error("Matrix is not tridiagonal!");
             }
-
-            tmp->get_values(batch_entry_idx)[pos] = val;
 
             ++ind;
         }
@@ -196,20 +206,20 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
         for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
             for (size_type col = 0; col < data[batch_entry_idx].size[1];
                  ++col) {
-                auto pos = 0;
-
+                auto val = zero<typename MatrixType::value_type>();
                 if (row == col)  // main diagonal
                 {
-                    pos = size + row;
+                    val = tmp->get_const_main_diagonal(batch_entry_idx)[row];
+
                 } else if (col == row + 1)  // super-diagonal
                 {
-                    pos = 2 * size + row;
+                    val = tmp->get_const_super_diagonal(batch_entry_idx)[row];
+
                 } else if (row == col + 1)  // sub-diagonal
                 {
-                    pos = row;
+                    val = tmp->get_const_sub_diagonal(batch_entry_idx)[row];
                 }
 
-                const auto val = tmp->get_const_values(batch_entry_idx)[pos];
                 if (val != zero<typename MatrixType::value_type>()) {
                     data[batch_entry_idx].nonzeros.emplace_back(row, col, val);
                 }

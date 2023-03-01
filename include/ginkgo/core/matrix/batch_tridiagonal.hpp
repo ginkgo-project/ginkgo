@@ -64,13 +64,10 @@ class BatchDense;
  * an extra zero in the beginning), the main- diagonal and the super-diagonal
  * (with an extra zero at the end) of each matrix in the batch.
  *
- * The memory required to the matrix values for each matrix is: 3 * the size of
- * the matrix.
  *
- * The diagonals are stored in a strided fashion, i.e. the all three diagonals
- * (first the sub-diagonal, then the main-diagonal and finally the
- * super-diagonal) of the first matrix are stored first, then the diagonals of
- * the second matrix and so on.
+ * The diagonals are stored in a strided fashion, i.e. first all elements of the
+ * sub-diagonal of the first matrix, then all the elements of the sub-diagonal
+ * of the second matrix and so on.
  *
  *
  * @tparam ValueType  precision of matrix elements
@@ -157,50 +154,152 @@ public:
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
-     * Returns a pointer to the array of values of the matrix.
+     * Returns a pointer to the array of sub-diagonals of the batched matrix.
      *
-     * @return the pointer to the array of values
+     * @return the pointer to the array of sub-diagonals
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_sub_diagonal() noexcept { return sub_diagonal_.get_data(); }
 
     /**
-     * Returns a pointer to the array of values of the matrix.
+     * Returns a pointer to the array of sub-diagonals of the batched matrix.
      *
-     * @return the pointer to the array of values
+     * @return the pointer to the array of sub-diagonals
      */
-    value_type* get_values(size_type batch) noexcept
+    value_type* get_sub_diagonal(size_type batch) noexcept
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
-        return values_.get_data() +
-               num_elems_per_batch_cumul_.get_const_data()[batch];
+        return sub_diagonal_.get_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
+    }
+
+
+    /**
+     * Returns a pointer to the array of main diagonals of the batched matrix.
+     *
+     * @return the pointer to the array of main diagonals
+     */
+    value_type* get_main_diagonal() noexcept
+    {
+        return main_diagonal_.get_data();
     }
 
     /**
-     * @copydoc get_values()
+     * Returns a pointer to the array of main diagonals of the batched matrix.
+     *
+     * @return the pointer to the array of main diagonals
+     */
+    value_type* get_main_diagonal(size_type batch) noexcept
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return main_diagonal_.get_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
+    }
+
+    /**
+     * Returns a pointer to the array of super-diagonals of the batched matrix.
+     *
+     * @return the pointer to the array of super-diagonals
+     */
+    value_type* get_super_diagonal() noexcept
+    {
+        return super_diagonal_.get_data();
+    }
+
+    /**
+     * Returns a pointer to the array of super-diagonals of the batched matrix.
+     *
+     * @return the pointer to the array of super-diagonal
+     */
+    value_type* get_super_diagonal(size_type batch) noexcept
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return super_diagonal_.get_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
+    }
+
+    /**
+     * @copydoc get_sub_diagonal()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
+    const value_type* get_const_sub_diagonal() const noexcept
     {
-        return values_.get_const_data();
+        return sub_diagonal_.get_const_data();
     }
 
     /**
-     * @copydoc get_values(size_type)
+     * @copydoc get_sub_diagonal(size_type)
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values(size_type batch) const noexcept
+    const value_type* get_const_sub_diagonal(size_type batch) const noexcept
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
-        return values_.get_const_data() +
-               num_elems_per_batch_cumul_.get_const_data()[batch];
+        return sub_diagonal_.get_const_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
     }
 
+    /**
+     * @copydoc get_main_diagonal()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_main_diagonal() const noexcept
+    {
+        return main_diagonal_.get_const_data();
+    }
+
+    /**
+     * @copydoc get_main_diagonal(size_type)
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_main_diagonal(size_type batch) const noexcept
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return main_diagonal_.get_const_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
+    }
+
+    /**
+     * @copydoc get_super_diagonal()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_super_diagonal() const noexcept
+    {
+        return super_diagonal_.get_const_data();
+    }
+
+    /**
+     * @copydoc get_super_diagonal(size_type)
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_super_diagonal(size_type batch) const noexcept
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return super_diagonal_.get_const_data() +
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
+    }
 
     /**
      * Returns the number of elements explicitly stored in the batch matrix,
@@ -211,22 +310,40 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return sub_diagonal_.get_num_elems() + main_diagonal_.get_num_elems() +
+               super_diagonal_.get_num_elems();
     }
 
     /**
-     * Returns the number of elements explicitly stored at a specific batch
-     * index.
+     * Returns the number of elements stored per diagonal in the batch matrix
+     * cumulatively across all batches
      *
-     * @param batch  the batch index to be queried
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements stored per diagonal in the batch matrix
+     * cumulatively across all batches
+     *
      */
-    size_type get_num_stored_elements(size_type batch) const noexcept
+    size_type get_num_stored_elements_per_diagonal() const noexcept
+    {
+        return main_diagonal_.get_num_elems();
+    }
+
+    /**
+     * Returns the number of elements stored per diagonal for a particular batch
+     * entry
+     *
+     * @return the number of elements stored per diagonal for a particular batch
+     * entry
+     *
+     */
+    size_type get_num_stored_elements_per_diagonal(
+        const size_type batch) const noexcept
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
-        return num_elems_per_batch_cumul_.get_const_data()[batch + 1] -
-               num_elems_per_batch_cumul_.get_const_data()[batch];
+        return num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch + 1] -
+               num_elems_per_diagonal_of_the_batch_cumul_
+                   .get_const_data()[batch];
     }
 
     /**
@@ -235,43 +352,49 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
+     * @param subdiagonal the sub-diagonal array
+     * @param maindiagonal the main-diagonal array
+     * @param superdiagonal the super-diagonal array
      * @returns A smart pointer to the constant matrix wrapping the input array
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
     static std::unique_ptr<const BatchTridiagonal> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        gko::detail::const_array_view<ValueType>&& values)
+        gko::detail::const_array_view<ValueType>&& subdiagonal,
+        gko::detail::const_array_view<ValueType>&& maindiagonal,
+        gko::detail::const_array_view<ValueType>&& superdiagonal)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
         return std::unique_ptr<const BatchTridiagonal>(new BatchTridiagonal{
-            exec, sizes, gko::detail::array_const_cast(std::move(values))});
+            exec, sizes, gko::detail::array_const_cast(std::move(subdiagonal)),
+            gko::detail::array_const_cast(std::move(maindiagonal)),
+            gko::detail::array_const_cast(std::move(superdiagonal))});
     }
 
 private:
     /**
-     * Compute the memory required for the values array from the sizes and the
-     * strides.
+     * Compute the memory required for the diagonal(sub/main/super) array from
+     * the sizes.
      */
-    inline size_type compute_batch_mem(const batch_dim<2>& sizes)
+    inline size_type compute_batch_mem_per_diag(const batch_dim<2>& sizes)
     {
         if (sizes.stores_equal_sizes()) {
-            return 3 * (sizes.at(0)[0]) * sizes.get_num_batch_entries();
+            return sizes.at(0)[0] * sizes.get_num_batch_entries();
         }
         size_type mem_req = 0;
         for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
-            mem_req += (sizes.at(i)[0]) * 3;
+            mem_req += sizes.at(i)[0];
         }
         return mem_req;
     }
 
     /**
-     * Compute the number of elements stored in each batch and store it in a
-     * prefixed sum fashion
+     * Compute the number of elements stored per diagonal for each batch entry
+     * and store it in a prefixed sum fashion
      */
-    inline array<size_type> compute_num_elems_per_batch_cumul(
+    inline array<size_type> compute_num_elems_per_diagonal_of_the_batch_cumul(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes)
     {
         auto num_elems = array<size_type>(exec->get_master(),
@@ -279,7 +402,7 @@ private:
         num_elems.get_data()[0] = 0;
         for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
             num_elems.get_data()[i + 1] =
-                num_elems.get_data()[i] + (sizes.at(i))[0] * 3;
+                num_elems.get_data()[i] + (sizes.at(i))[0];
         }
         num_elems.set_executor(exec);
         return num_elems;
@@ -295,12 +418,15 @@ protected:
     BatchTridiagonal(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size = batch_dim<2>{})
         : EnableBatchLinOp<BatchTridiagonal>(exec, size),
-          values_(exec, compute_batch_mem(size))
+          sub_diagonal_(exec, compute_batch_mem_per_diag(size)),
+          main_diagonal_(exec, compute_batch_mem_per_diag(size)),
+          super_diagonal_(exec, compute_batch_mem_per_diag(size))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
 
-        num_elems_per_batch_cumul_ =
-            compute_num_elems_per_batch_cumul(exec, this->get_size());
+        num_elems_per_diagonal_of_the_batch_cumul_ =
+            compute_num_elems_per_diagonal_of_the_batch_cumul(exec,
+                                                              this->get_size());
     }
 
     /**
@@ -311,29 +437,41 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  sizes of the batch matrices in a batch_dim object
-     * @param values  array of matrix values
+     * @param subdiagonal the sub-diagonal array
+     * @param maindiagonal the main-diagonal array
+     * @param superdiagonal the super-diagonal array
      *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
+     * @note If one of `subdiagonal`, `maindiagonal` or `superdiagonal` is not
+     * an rvalue, not an array of ValueType or is on the wrong executor, an
+     * internal copy of that array will be created, and the original array data
+     * will not be used in the matrix.
+     *
      */
     template <typename ValuesArray>
     BatchTridiagonal(std::shared_ptr<const Executor> exec,
-                     const batch_dim<2>& size, ValuesArray&& values)
+                     const batch_dim<2>& size, ValuesArray&& subdiagonal,
+                     ValuesArray&& maindiagonal, ValuesArray&& superdiagonal)
         : EnableBatchLinOp<BatchTridiagonal>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          num_elems_per_batch_cumul_(exec->get_master(),
-                                     compute_num_elems_per_batch_cumul(
-                                         exec->get_master(), this->get_size()))
+          sub_diagonal_{exec, std::forward<ValuesArray>(subdiagonal)},
+          main_diagonal_{exec, std::forward<ValuesArray>(maindiagonal)},
+          super_diagonal_{exec, std::forward<ValuesArray>(superdiagonal)},
+          num_elems_per_diagonal_of_the_batch_cumul_(
+              exec->get_master(),
+              compute_num_elems_per_diagonal_of_the_batch_cumul(
+                  exec->get_master(), this->get_size()))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
 
         auto num_elems =
-            num_elems_per_batch_cumul_
-                .get_const_data()[num_elems_per_batch_cumul_.get_num_elems() -
-                                  1] -
+            num_elems_per_diagonal_of_the_batch_cumul_.get_const_data()
+                [num_elems_per_diagonal_of_the_batch_cumul_.get_num_elems() -
+                 1] -
             1;
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(num_elems, main_diagonal_.get_num_elems());
+        GKO_ASSERT(sub_diagonal_.get_num_elems() ==
+                   main_diagonal_.get_num_elems());
+        GKO_ASSERT(super_diagonal_.get_num_elems() ==
+                   main_diagonal_.get_num_elems());
     }
 
 
@@ -351,17 +489,30 @@ protected:
               exec, gko::batch_dim<2>(
                         input->get_num_batch_entries() * num_duplications,
                         input->get_size().at(0))),
-          values_(exec, compute_batch_mem(this->get_size()))
+          sub_diagonal_(exec, compute_batch_mem_per_diag(this->get_size())),
+          main_diagonal_(exec, compute_batch_mem_per_diag(this->get_size())),
+          super_diagonal_(exec, compute_batch_mem_per_diag(this->get_size()))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
 
-        num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
-            exec->get_master(), this->get_size());
+        num_elems_per_diagonal_of_the_batch_cumul_ =
+            compute_num_elems_per_diagonal_of_the_batch_cumul(
+                exec->get_master(), this->get_size());
         size_type offset = 0;
         for (size_type i = 0; i < num_duplications; ++i) {
-            exec->copy_from(
-                input->get_executor().get(), input->get_num_stored_elements(),
-                input->get_const_values(), this->get_values() + offset);
+            exec->copy_from(input->get_executor().get(),
+                            input->get_num_stored_elements(),
+                            input->get_const_sub_diagonal(),
+                            this->get_sub_diagonal() + offset);
+            exec->copy_from(input->get_executor().get(),
+                            input->get_num_stored_elements(),
+                            input->get_const_main_diagonal(),
+                            this->get_main_diagonal() + offset);
+            exec->copy_from(input->get_executor().get(),
+                            input->get_num_stored_elements(),
+                            input->get_const_super_diagonal(),
+                            this->get_super_diagonal() + offset);
+
             offset += input->get_num_stored_elements();
         }
     }
@@ -384,8 +535,10 @@ protected:
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
 private:
-    array<size_type> num_elems_per_batch_cumul_;
-    array<value_type> values_;
+    array<size_type> num_elems_per_diagonal_of_the_batch_cumul_;
+    array<value_type> sub_diagonal_;
+    array<value_type> main_diagonal_;
+    array<value_type> super_diagonal_;
 
     void add_scaled_identity_impl(const BatchLinOp* a,
                                   const BatchLinOp* b) override;
