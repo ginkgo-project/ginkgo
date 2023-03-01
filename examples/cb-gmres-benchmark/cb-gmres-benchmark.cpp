@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <cinttypes>
+#include <climits>  // For CHAR_BIT
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -44,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -51,6 +53,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_meta.h>
 #include <nlohmann/json.hpp>
+
+
+template <typename T>
+struct float_information {
+    static constexpr std::size_t bits = sizeof(T) * CHAR_BIT;
+    static std::string get_descr()
+    {
+        return std::string("float") + std::to_string(bits);
+    }
+};
+
+template <>
+struct float_information<gko::half> {
+    static constexpr std::size_t bits = 2 * CHAR_BIT;
+    static std::string get_descr()
+    {
+        return std::string("float") + std::to_string(bits);
+    }
+};
+
+template <typename T>
+struct reduce_float {
+    using type = T;
+};
+
+template <>
+struct reduce_float<double> {
+    using type = float;
+};
+
+template <>
+struct reduce_float<float> {
+    using type = gko::half;
+};
+
+template <typename T, int Count>
+struct reduce_float_by {
+    using type = typename reduce_float_by<typename reduce_float<T>::type,
+                                          Count - 1>::type;
+};
+
+template <typename T>
+struct reduce_float_by<T, 0> {
+    using type = T;
+};
+
+template <typename T, int Count>
+using reduce_float_by_t = typename reduce_float_by<T, Count>::type;
 
 
 struct user_launch_parameter {
@@ -76,6 +126,7 @@ template <typename T>
 struct solver_result {
     unsigned iters;
     double time_s;
+    double bit_rate;
     T init_res_norm;
     T res_norm;
     const std::vector<T>* residual_norm_history;
@@ -242,6 +293,7 @@ public:
             // No need to copy it in the first iteration
             if (i != 0) {
                 x_->copy_from(init_x_.get());
+                convergence_history_logger_.reset();
             }
             // Make sure all previous executor operations have finished before
             // starting the time
@@ -256,6 +308,7 @@ public:
 
         result.iters = convergence_history_logger_->get_num_iterations();
         result.time_s = duration / static_cast<double>(repeats);
+        result.bit_rate = solver->get_average_bit_rate();
         result.res_norm = this->compute_residual_norm();
         result.residual_norm_history =
             &convergence_history_logger_->get_residual_norm_history();
@@ -330,11 +383,11 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     // executor where Ginkgo will perform the computation
     auto exec = exec_map.at(launch_param.exec_string)();  // throws if not valid
 
-    constexpr char delim = ';';
-    constexpr char res_norm_history_delim = '&';
-    constexpr char kv_delim = ':';
-    const std::string data_begin = "{\n";
-    const std::string data_end = "}\n";
+    // constexpr char delim = ';';
+    // constexpr char res_norm_history_delim = '&';
+    // constexpr char kv_delim = ':';
+    // const std::string data_begin = "{\n";
+    // const std::string data_end = "}\n";
     const std::string file_name_info_separator = "__";
 
     auto mtx =
@@ -344,7 +397,6 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     auto rhs = vec::create(exec, gko::dim<2>{mtx_size[0], 1});
     auto init_x = vec::create(exec, gko::dim<2>{mtx_size[1], 1});
 
-    double rhs_norm{};
 
     {  // Prepare values and delete all temporaries afterwards
         auto res_host =
@@ -360,11 +412,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             res_host->at(i, 0) /= tmp_norm;
         }
         // Write out the actual RHS b
-        A->apply(res_host, b);
-        auto b_host_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-        b->compute_norm2(b_host_norm);
-
-        rhs_norm = b_host_norm->at(0, 0);
+        mtx->apply(res_host, rhs);
 
         // As an initial guess, use the right-hand side
         auto init_x_host = clone(exec->get_master(), init_x);
@@ -376,6 +424,11 @@ void run_benchmarks(const user_launch_parameter& launch_param)
 
     Benchmark b_object(exec, mtx, std::move(init_x), std::move(rhs));
 
+    std::string matrix_name = launch_param.matrix_path.substr(
+        launch_param.matrix_path.find_last_of('/') + 1);
+    if (matrix_name.substr(matrix_name.size() - 4) == ".mtx") {
+        matrix_name = matrix_name.substr(0, matrix_name.size() - 4);
+    }
     using precond_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     // Default_settings
     solver_settings default_ss{};
@@ -383,91 +436,56 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     default_ss.stop_rel_res = launch_param.stop_rel_res_norm;
     default_ss.krylov_dim = launch_param.krylov_dim;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
+    default_ss.precond = nullptr;
+    default_ss.init_compressor = nullptr;
+
+    nlohmann::json global_settings = {
+        {"matrix", matrix_name},
+        {"size", {{"rows", mtx_size[0]}, {"cols", mtx_size[1]}}},
+        {"rhs_norm", b_object.get_rhs_norm()},
+        {"stopping_iters", default_ss.stop_iter},
+        {"stopping_res_norm", default_ss.stop_rel_res},
+        {"stopping_res_norm_baseline", "rhs_norm"},
+        {"krylov_dim", default_ss.krylov_dim},
+        {"arithmetic_type", float_information<ValueType>::get_descr()},
+        {"precond",
+         {{"name", "unknown"}, {"settings", nlohmann::json::object()}}},
+    };
+
     if (launch_param.jacobi_bs <= 0) {
         default_ss.precond = nullptr;
+        global_settings["precond"]["name"] = "none";
     } else {
         default_ss.precond = precond_type::build()
                                  .with_max_block_size(launch_param.jacobi_bs)
                                  .with_skip_sorting(true)
                                  .on(exec)
                                  ->generate(mtx);
+        global_settings["precond"]["name"] = "block-jacobi";
+        global_settings["precond"]["settings"]["block_size"] =
+            std::dynamic_pointer_cast<const precond_type>(default_ss.precond)
+                ->get_parameters()
+                .max_block_size;
     }
-    default_ss.init_compressor = nullptr;
 
-    const auto tt_str = [](int reduction) {
-        const std::array<char, 4> types{'d', 'f', 'h', '?'};
-        const int base = std::is_same<ValueType, double>::value      ? 0
-                         : std::is_same<ValueType, float>::value     ? 1
-                         : std::is_same<ValueType, gko::half>::value ? 2
-                                                                     : 3;
-        if (base == 3) {
-            return types[base];
-        }
-        const int idx = base + reduction;
-        return types[idx < types.size() - 1 ? idx : types.size() - 2];
-    };
-    const std::string str_pre = std::string{"CbGmres<"} + tt_str(0) + ",";
-    const std::string str_post{">"};
-    const auto get_name = [&str_pre, &str_post, &tt_str](int reduction) {
-        return str_pre + tt_str(reduction) + str_post;
-    };
 
-    std::cout << data_begin;
-    // Make sure the output is in scientific notation for easier comparison
-    std::cout << std::scientific << std::setprecision(4);
-    std::cout << "Matrix" << kv_delim
-              << launch_param.matrix_path.substr(
-                     launch_param.matrix_path.find_last_of('/') + 1)
-              << delim << " size" << kv_delim << mtx_size[0] << " x "
-              << mtx_size[1] << delim;
-    std::cout << " rhs_norm" << kv_delim << rhs_norm << delim;
-    std::cout << " Stopping criteria (iters)" << kv_delim
-              << default_ss.stop_iter << delim << " res_norm" << kv_delim
-              << default_ss.stop_rel_res << delim;
-    std::cout << " Jacobi BS" << kv_delim
-              << (default_ss.precond == nullptr
-                      ? 0
-                      : dynamic_cast<const precond_type*>(
-                            default_ss.precond.get())
-                            ->get_storage_scheme()
-                            .block_offset)
-              << " Krylov dim" << kv_delim << default_ss.krylov_dim << '\n';
-    const std::array<int, 7> widths{28, 11, 12, 11, 17, 16, 15};
-    // Print the header
-    // clang-format off
-    {
-        int i = 0;
-        std::cout << std::setw(widths[i++]) << "Name" << delim
-                  << std::setw(widths[i++]) << "Comp. info" << delim
-                  << std::setw(widths[i++]) << "Time [s]" << delim
-                  << std::setw(widths[i++]) << "Iterations" << delim
-                  << std::setw(widths[i++]) << "res norm before" << delim
-                  << std::setw(widths[i++]) << "res norm after" << delim
-                  << std::setw(widths[i++]) << "rel res norm" << delim
-                  << " residual norm history (delim: " << res_norm_history_delim
-                  << ")" << '\n';
-    }
-    // clang-format on
-    const auto print_result = [&widths](
-                                  const std::string& bench_name,
-                                  const std::string& comp_info,
-                                  const solver_result<RealValueType>& result) {
-        int i = 0;
-        std::cout << std::setw(widths[i++]) << bench_name << delim
-                  << std::setw(widths[i++]) << comp_info << delim
-                  << std::setw(widths[i++]) << result.time_s << delim
-                  << std::setw(widths[i++]) << result.iters << delim
-                  << std::setw(widths[i++]) << result.init_res_norm << delim
-                  << std::setw(widths[i++]) << result.res_norm << delim
-                  << std::setw(widths[i++])
-                  << result.res_norm / result.init_res_norm << delim;
-        for (std::size_t i = 0; i < result.residual_norm_history->size(); ++i) {
-            if (i != 0) {
-                std::cout << res_norm_history_delim;
-            }
-            std::cout << result.residual_norm_history->at(i);
-        }
-        std::cout << '\n' << std::flush;
+    const auto get_result_json =
+        [rhs_norm = b_object.get_rhs_norm()](
+            const std::string& bench_name,
+            const solver_result<RealValueType>& result) -> nlohmann::json {
+        nlohmann::json json_result = {
+            {"name", bench_name},
+            {"settings", nlohmann::json::object()},
+            {"bit_rate", result.bit_rate},
+            {"time_s", result.time_s},
+            {"iterations", result.iters},
+            {"init_res_norm", result.init_res_norm},
+            {"final_res_norm", result.res_norm},
+            {"rel_res_norm", result.res_norm / rhs_norm},
+            {"res_norm_history", *result.residual_norm_history},
+        };
+        //  TODO Add the actual bit_rate and settings information
+        return json_result;
     };
 
     // Parse File name
@@ -482,26 +500,30 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     const auto file_name = full_file_name.substr(0, end_file_name);
     const std::string file_extension = full_file_name.substr(end_file_name);
 
+    nlohmann::json results;
     // if the file is named `ieee`, do the IEEE benchmark
     if (full_file_name == "ieee") {
         auto cur_settings = default_ss;
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::keep;
-        print_result(get_name(0), std::to_string(sizeof(ValueType) * 8),
-                     b_object.benchmark_solver(cur_settings));
+        using f_info = float_information<reduce_float_by_t<ValueType, 0>>;
+        results.push_back(get_result_json(
+            f_info::get_descr(), b_object.benchmark_solver(cur_settings)));
 
-        if (get_name(0) != get_name(1)) {
+        if (!std::is_same<ValueType, reduce_float_by_t<ValueType, 1>>::value) {
             cur_settings.storage_prec =
                 gko::solver::cb_gmres::storage_precision::reduce1;
-            print_result(get_name(1), std::to_string(sizeof(ValueType) * 8 / 2),
-                         b_object.benchmark_solver(cur_settings));
+            using f_info = float_information<reduce_float_by_t<ValueType, 1>>;
+            results.push_back(get_result_json(
+                f_info::get_descr(), b_object.benchmark_solver(cur_settings)));
         }
 
-        if (get_name(1) != get_name(2)) {
+        if (!std::is_same<ValueType, reduce_float_by_t<ValueType, 2>>::value) {
             cur_settings.storage_prec =
                 gko::solver::cb_gmres::storage_precision::reduce2;
-            print_result(get_name(2), std::to_string(sizeof(ValueType) * 8 / 4),
-                         b_object.benchmark_solver(cur_settings));
+            using f_info = float_information<reduce_float_by_t<ValueType, 2>>;
+            results.push_back(get_result_json(
+                f_info::get_descr(), b_object.benchmark_solver(cur_settings)));
         }
     } else if (file_extension != ".json") {
         std::cerr << launch_param.compression_json_file
@@ -518,23 +540,28 @@ void run_benchmarks(const user_launch_parameter& launch_param)
         auto cur_settings = default_ss;
         cur_settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_pressio;
-        cur_settings.init_compressor = [lp_config =
-                                            config_file](void* p_compressor) {
+        std::ifstream pressio_input_file(config_file);
+        nlohmann::json settings_json;
+        pressio_input_file >> settings_json;
+        cur_settings.init_compressor = [settings_json](void* p_compressor) {
             auto& pc_ = *static_cast<pressio_compressor*>(p_compressor);
-            std::ifstream pressio_input_file(lp_config);
-            nlohmann::json j;
-            pressio_input_file >> j;
-            pressio_options options_from_file(static_cast<pressio_options>(j));
+            pressio_options options_from_file(
+                static_cast<pressio_options>(settings_json));
             pressio library;
             pc_ = library.get_compressor("pressio");
             // pc_->set_options({});
-            pc_->set_name("pressio");
+            // pc_->set_name("pressio");
             pc_->set_options(options_from_file);
+            // std::cout << pc_->get_options() << '\n';
         };
-        print_result(compression_name, comp_info,
-                     b_object.benchmark_solver(cur_settings));
+        auto current_result = get_result_json(
+            compression_name, b_object.benchmark_solver(cur_settings));
+        current_result["settings"] = settings_json;
+        results.push_back(current_result);
     }
-    std::cout << data_end;
+    nlohmann::json global_output = {{"settings", global_settings},
+                                    {"results", results}};
+    std::cout << global_output.dump();
 }
 
 

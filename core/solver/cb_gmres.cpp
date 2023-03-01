@@ -211,18 +211,18 @@ struct compression_helper {
                        std::function<void(void*)> init_compressor)
         : use_compr_{use_compr},
           num_rows_{num_rows},
+          uncompressed_size_{},
+          compressed_size_{},
           pc_{},
           in_temp_{},
           out_temp_{},
-          p_data_vec_(use_compr_ ? 1 : 0),
-          metrics_plugins_{"time",     "size",     "error_stat",
-                           "clipping", "data_gap", "write_debug_inputs"}
+          p_data_vec_(use_compr_ ? 1 : 0)
     {
         using namespace std::string_literals;
         if (use_compr_) {
             libpressio_register_all();
             init_compressor(&pc_);
-            // std::cerr << pc_->get_options() << std::endl;
+            pc_->set_options({{"pressio:metric", "size"}});
             const auto pressio_type = std::is_same<ValueType, float>::value
                                           ? pressio_float_dtype
                                           : pressio_double_dtype;
@@ -230,9 +230,7 @@ struct compression_helper {
                 p_data_vec_[i] = pressio_data::empty(pressio_byte_dtype, {});
             }
             in_temp_ = pressio_data::owning(pressio_type, {num_rows});
-            //{static_cast<uint64>(ceildiv(num_rows_, 44ul)), 44l});
             out_temp_ = pressio_data::owning(pressio_type, {num_rows});
-            //{static_cast<uint64>(ceildiv(num_rows_, 44ul)), 44l});
         }
     }
 
@@ -258,6 +256,14 @@ struct compression_helper {
         if (pc_->decompress(&p_data_vec_[0], &out_temp_)) {
             std::cerr << pc_->error_msg() << '\n';
         }
+        uncompressed_size_ += pc_->get_metrics_results()
+                                  .get("size:uncompressed_size")
+                                  .template get<std::uint64_t>()
+                                  .value_or(0);
+        compressed_size_ += pc_->get_metrics_results()
+                                .get("size:compressed_size")
+                                .template get<std::uint64_t>()
+                                .value_or(0);
         exec->copy_from(host_exec, num_rows_,
                         reinterpret_cast<const ValueType*>(out_temp_.data()),
                         raw_krylov_base);
@@ -272,27 +278,26 @@ struct compression_helper {
 
     void set_use_compressor(bool use_compr) { use_compr_ = false; }
 
+    double get_average_bit_rate() const
+    {
+        return use_compr_ ? (CHAR_BIT * static_cast<double>(compressed_size_) /
+                             static_cast<double>(uncompressed_size_ /
+                                                 sizeof(ValueType)))
+                          : static_cast<double>(CHAR_BIT * sizeof(StorageType));
+    }
+
 
 private:
     std::string compressor_;
     bool use_compr_;
     size_type num_rows_;
+    size_type compressed_size_;
+    size_type uncompressed_size_;
     pressio_compressor pc_;
     pressio_data in_temp_;
     pressio_data out_temp_;
     std::vector<pressio_data> p_data_vec_;
-    std::vector<std::string> metrics_plugins_;
 };
-
-// ADDED
-template <class T>
-char print_type()
-{
-    return std::is_same<T, double>::value      ? 'd'
-           : std::is_same<T, float>::value     ? 'f'
-           : std::is_same<T, gko::half>::value ? 'h'
-                                               : '?';
-}
 
 
 template <typename Range>
@@ -326,10 +331,6 @@ void CbGmres<ValueType>::apply_dense_impl(
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
         const bool use_pressio = check_for_sz(value);
-
-        // ADDED
-        // std::cout << "CbGMRES run: " << print_type<ValueType>() << ", " <<
-        // print_type<storage_type>() << ' ' << use_pressio << ";\n";
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
@@ -639,7 +640,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         // Solve x
         // x = x + get_preconditioner() * krylov_bases * y
         comp_helper.print_metrics();  // ADDED
-    };                                // End of apply_lambda
+        this->average_bit_rate_ = comp_helper.get_average_bit_rate();
+    };  // End of apply_lambda
 
     // Look which precision to use as the storage type
     helper<ValueType>::call(apply_templated, this->get_storage_precision());

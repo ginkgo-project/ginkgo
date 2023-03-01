@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_
 
 
+#include <climits>  // For CHAR_BIT
 #include <functional>
 #include <memory>
 #include <vector>
@@ -128,6 +129,13 @@ public:
         return parameters_.storage_precision;
     }
 
+    /**
+     * Returns the average bit rate per stored value
+     *
+     * @return the average bit rate per stored value
+     */
+    double get_average_bit_rate() const { return average_bit_rate_; }
+
     class Factory;
 
     struct parameters_type
@@ -167,7 +175,7 @@ protected:
                     LinOp* x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<CbGmres>(std::move(exec))
+        : EnableLinOp<CbGmres>(std::move(exec)), average_bit_rate_{}
     {}
 
     explicit CbGmres(const Factory* factory,
@@ -176,8 +184,12 @@ protected:
                                transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          average_bit_rate_{}
     {}
+
+private:
+    mutable double average_bit_rate_;
 };
 
 
