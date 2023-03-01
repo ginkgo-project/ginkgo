@@ -40,8 +40,8 @@ namespace batch_tridiagonal_solver {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+           matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

@@ -107,8 +107,8 @@ void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+           matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
 
 

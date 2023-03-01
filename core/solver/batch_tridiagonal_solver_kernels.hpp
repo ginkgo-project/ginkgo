@@ -45,24 +45,22 @@ namespace gko {
 namespace kernels {
 namespace batch_tridiagonal_solver {
 
-
 /**
- * Calculates the amount of in-solver storage needed by batch-lower-trs.
+ * Calculates the amount of in-solver storage needed by batch-tridiagonal
+ * solver.
  *
  */
 template <typename ValueType>
-inline int local_memory_requirement(const int num_rows,
-                                    const int num_rhs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    return 0;
-//}
+inline int local_memory_requirement(const int num_rows, const int num_rhs)
+{
+    return 0;
+}
 
-#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)         \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,              \
-               const matrix::BatchTridiagonal<_type>* const tridiag_mat, \
-               const matrix::BatchDense<_type>* const b,                 \
+
+#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)   \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,        \
+               matrix::BatchTridiagonal<_type>* const tridiag_mat, \
+               matrix::BatchDense<_type>* const b,                 \
                matrix::BatchDense<_type>* const x)
 
 
