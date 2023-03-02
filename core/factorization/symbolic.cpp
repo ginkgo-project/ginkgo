@@ -66,12 +66,12 @@ GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
     const matrix::Csr<ValueType, IndexType>* mtx,
-    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
+    std::unique_ptr<elimination_forest<IndexType>>& forest)
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = mtx->get_executor();
     const auto host_exec = exec->get_master();
-    std::unique_ptr<elimination_forest<IndexType>> forest;
     exec->run(make_compute_elim_forest(mtx, forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
@@ -89,14 +89,15 @@ void symbolic_cholesky(
     const auto scalar =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-    lt_factor->apply(scalar, id, scalar, factors);
+    lt_factor->apply(scalar.get(), id.get(), scalar.get(), factors.get());
 }
 
 
-#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType) \
-    void symbolic_cholesky(                                 \
-        const matrix::Csr<ValueType, IndexType>* mtx,       \
-        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)          \
+    void symbolic_cholesky(                                          \
+        const matrix::Csr<ValueType, IndexType>* mtx,                \
+        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors, \
+        std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
 

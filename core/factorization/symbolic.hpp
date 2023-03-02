@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/factorization/elimination_forest.hpp"
+
+
 namespace gko {
 namespace factorization {
 
@@ -44,16 +47,11 @@ namespace factorization {
  * @param factors  the output factors stored in a combined pattern
  */
 template <typename ValueType, typename IndexType>
-void symbolic_cholesky(
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
+void symbolic_cholesky(const matrix::Csr<ValueType, IndexType>*,
+                       std::unique_ptr<matrix::Csr<ValueType, IndexType>>&,
+                       std::unique_ptr<elimination_forest<IndexType>>&);
 
-/**
- * Computes the symbolic LU factorization of the given matrix.
- *
- * @param mtx  the input matrix
- * @param factors  the output factors stored in a combined pattern
- */
+/** Computes the symbolic LU factorization of the given matrix. */
 template <typename ValueType, typename IndexType>
 void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
                  std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);

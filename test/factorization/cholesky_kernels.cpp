@@ -70,6 +70,8 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using elimination_forest =
+        gko::factorization::elimination_forest<index_type>;
 
     CholeskySymbolic() : tmp{ref}, dtmp{exec}
     {
@@ -121,6 +123,16 @@ protected:
                               gko::read<matrix_type>(ani1_amd_stream, ref));
     }
 
+    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs)
+    {
+        GKO_ASSERT_ARRAY_EQ(lhs.parents, rhs.parents);
+        GKO_ASSERT_ARRAY_EQ(lhs.children, rhs.children);
+        GKO_ASSERT_ARRAY_EQ(lhs.child_ptrs, rhs.child_ptrs);
+        GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
+        GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
+        GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
+    }
+
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
         matrices;
     gko::array<index_type> tmp;
@@ -149,23 +161,22 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
         SCOPED_TRACE(pair.first);
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            forest;
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            dforest;
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
         gko::factorization::compute_elim_forest(mtx.get(), forest);
         gko::factorization::compute_elim_forest(dmtx.get(), dforest);
         gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
         gko::array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
 
         gko::kernels::reference::cholesky::symbolic_count(
-            this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
+            this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
         gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_count(
-            this->exec, dmtx.get(), dforest, drow_nnz.get_data(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, drow_nnz.get_data(), this->dtmp);
 
         GKO_ASSERT_ARRAY_EQ(drow_nnz, row_nnz);
     }
@@ -177,17 +188,17 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
         SCOPED_TRACE(pair.first);
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto num_rows = mtx->get_size()[0];
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            forest;
+        std::unique_ptr<elimination_forest> forest;
         gko::factorization::compute_elim_forest(mtx.get(), forest);
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::symbolic_count(
-            this->ref, mtx.get(), forest, row_ptrs.get_data(), this->tmp);
+            this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
         gko::kernels::reference::components::prefix_sum(
             this->ref, row_ptrs.get_data(), num_rows + 1);
         const auto nnz =
@@ -200,17 +211,16 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
             gko::array<value_type>{this->exec, nnz},
             gko::array<index_type>{this->exec, nnz}, row_ptrs);
         // need to call the device kernels to initialize dtmp
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            dforest;
+        std::unique_ptr<elimination_forest> dforest;
         gko::factorization::compute_elim_forest(dmtx.get(), dforest);
         gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
         gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_count(
-            this->exec, dmtx.get(), dforest, dtmp_ptrs.get_data(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, dtmp_ptrs.get_data(), this->dtmp);
 
         gko::kernels::reference::cholesky::symbolic_factorize(
-            this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
+            this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
         gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_factorize(
-            this->exec, dmtx.get(), dforest, dl_factor.get(), this->dtmp);
+            this->exec, dmtx.get(), *dforest, dl_factor.get(), this->dtmp);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dl_factor, l_factor);
     }
@@ -219,14 +229,21 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
 
 TYPED_TEST(CholeskySymbolic, SymbolicFactorize)
 {
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
         SCOPED_TRACE(pair.first);
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
-        auto factors = gko::factorization::symbolic_cholesky(mtx.get());
-        auto dfactors = gko::factorization::symbolic_cholesky(mtx.get());
+        std::unique_ptr<matrix_type> factors;
+        std::unique_ptr<matrix_type> dfactors;
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
+        gko::factorization::symbolic_cholesky(mtx.get(), factors, forest);
+        gko::factorization::symbolic_cholesky(mtx.get(), dfactors, dforest);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dfactors, factors);
+        this->assert_equal_forests(*forest, *dforest);
     }
 }
 
@@ -242,6 +259,8 @@ protected:
         gko::experimental::factorization::Cholesky<value_type, index_type>;
     using matrix_type = typename factory_type::matrix_type;
     using sparsity_pattern_type = typename factory_type::sparsity_pattern_type;
+    using elimination_forest =
+        gko::factorization::elimination_forest<index_type>;
 
     Cholesky()
         : storage_offsets{ref},
@@ -295,14 +314,18 @@ protected:
         mtx_chol_sparsity->copy_from(mtx_chol.get());
         dmtx_chol_sparsity = sparsity_pattern_type::create(exec);
         dmtx_chol_sparsity->copy_from(mtx_chol_sparsity.get());
+        gko::factorization::compute_elim_forest(mtx_chol.get(), forest);
+        gko::factorization::compute_elim_forest(dmtx_chol.get(), dforest);
     }
 
     gko::size_type num_rows;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> mtx_chol;
+    std::unique_ptr<elimination_forest> forest;
     std::shared_ptr<sparsity_pattern_type> mtx_chol_sparsity;
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<matrix_type> dmtx_chol;
+    std::unique_ptr<elimination_forest> dforest;
     std::shared_ptr<sparsity_pattern_type> dmtx_chol_sparsity;
     gko::array<index_type> storage_offsets;
     gko::array<index_type> dstorage_offsets;
@@ -404,12 +427,12 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
         this->ref, this->storage_offsets.get_const_data(),
         this->row_descs.get_const_data(), this->storage.get_const_data(),
         diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-        this->mtx_chol.get(), tmp);
+        *this->forest, this->mtx_chol.get(), tmp);
     gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
         this->exec, this->dstorage_offsets.get_const_data(),
         this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
         ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-        this->dmtx_chol.get(), dtmp);
+        *this->dforest, this->dmtx_chol.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol, r<value_type>::value);
 }
@@ -442,12 +465,12 @@ TYPED_TEST(Cholesky, KernelFactorizeAmdIsEquivalentToRef)
         this->ref, this->storage_offsets.get_const_data(),
         this->row_descs.get_const_data(), this->storage.get_const_data(),
         diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-        this->mtx_chol.get(), tmp);
+        *this->forest, this->mtx_chol.get(), tmp);
     gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
         this->exec, this->dstorage_offsets.get_const_data(),
         this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
         ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-        this->dmtx_chol.get(), dtmp);
+        *this->dforest, this->dmtx_chol.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol, r<value_type>::value);
 }

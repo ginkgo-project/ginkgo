@@ -161,6 +161,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void forest_from_factor(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    gko::factorization::elimination_forest<IndexType>& forest)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
+
+
+template <typename ValueType, typename IndexType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType>* mtx,
                 const IndexType* factor_lookup_offsets,
@@ -196,6 +207,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
+               const factorization::elimination_forest<IndexType>& forest,
                matrix::Csr<ValueType, IndexType>* factors,
                array<int>& tmp_storage)
 {
