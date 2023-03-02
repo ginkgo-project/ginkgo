@@ -957,11 +957,23 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = 0; i < block_size_local; i++) {
                 if (true) {
                     ValueType val;
-                    ValueType* vals_blk = reinterpret_cast<ValueType*>(
-                        chunk_data + blk_idxs.shf_val);
-                    val = vals_blk[i];
+                    val = get_value_chunk<ValueType>(chunk_data,
+                                                     blk_idxs.shf_val);
                     val = abs(val);
-                    vals_blk[i] = val;
+                    set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val,
+                                               val);
+                    blk_idxs.shf_val += sizeof(ValueType);
+                    /*
+                                        get_block_position_value_put<IndexType,
+                       ValueType>( chunk_data, blk_idxs, idxs.row, idxs.col,
+                       val,
+                                            [](ValueType val) { return abs(val);
+                       }); ValueType* vals_blk = reinterpret_cast<ValueType*>(
+                                            chunk_data + blk_idxs.shf_val);
+                                        val = vals_blk[i];
+                                        val = abs(val);
+                                        vals_blk[i] = val;
+                    */
                 }
             }
         }
