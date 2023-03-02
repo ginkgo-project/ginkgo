@@ -67,6 +67,8 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using elimination_forest =
+        gko::factorization::elimination_forest<index_type>;
 
     Cholesky()
         : ref(gko::ReferenceExecutor::create()),
@@ -109,6 +111,7 @@ protected:
                                        l_factor_ref->get_num_stored_elements());
         combined = matrix_type::create(ref, combined_ref->get_size(),
                                        combined_ref->get_num_stored_elements());
+        gko::factorization::compute_elim_forest(l_factor_ref.get(), forest);
         if (init_sparsity) {
             ref->copy(num_rows + 1, l_factor_ref->get_const_row_ptrs(),
                       l_factor->get_row_ptrs());
@@ -147,6 +150,7 @@ protected:
     gko::array<gko::int32> storage;
     gko::array<gko::int64> row_descs;
     std::shared_ptr<matrix_type> mtx;
+    std::unique_ptr<elimination_forest> forest;
     std::shared_ptr<matrix_type> l_factor;
     std::shared_ptr<matrix_type> l_factor_ref;
     std::shared_ptr<matrix_type> combined;
@@ -160,6 +164,7 @@ TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
 TYPED_TEST(Cholesky, KernelSymbolicCountExample)
 {
     using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
@@ -173,12 +178,12 @@ TYPED_TEST(Cholesky, KernelSymbolicCountExample)
          {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
          {0, 1, 0, 1, 1, 0, 0, 1, 0, 1}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     gko::array<index_type> row_nnz{this->ref, 10};
 
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
+        this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, I<index_type>({1, 1, 2, 1, 2, 1, 3, 5, 4, 6}));
 }
@@ -187,6 +192,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountExample)
 TYPED_TEST(Cholesky, KernelSymbolicFactorizeExample)
 {
     using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
@@ -200,16 +206,16 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeExample)
          {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
          {0, 1, 0, 1, 1, 0, 0, 1, 0, 1}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 26);
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, mtx.get(), forest, l_factor->get_row_ptrs(), this->tmp);
+        this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
     gko::kernels::reference::components::prefix_sum(
         this->ref, l_factor->get_row_ptrs(), 11);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
-        this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
+        this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_factor,
                                l({{1., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
@@ -228,6 +234,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeExample)
 TYPED_TEST(Cholesky, KernelSymbolicCountSeparable)
 {
     using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
@@ -241,12 +248,12 @@ TYPED_TEST(Cholesky, KernelSymbolicCountSeparable)
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     gko::array<index_type> row_nnz{this->ref, 10};
 
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
+        this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, I<index_type>({1, 1, 3, 1, 2, 2, 1, 2, 1, 6}));
 }
@@ -256,6 +263,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeSeparable)
 {
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
          {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
@@ -268,16 +276,16 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeSeparable)
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 26);
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, mtx.get(), forest, l_factor->get_row_ptrs(), this->tmp);
+        this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
     gko::kernels::reference::components::prefix_sum(
         this->ref, l_factor->get_row_ptrs(), 11);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
-        this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
+        this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_factor,
                                l({{1., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
@@ -297,6 +305,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountMissingDiagonal)
 {
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
          {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
@@ -309,11 +318,11 @@ TYPED_TEST(Cholesky, KernelSymbolicCountMissingDiagonal)
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 0, 0, 1, 0, 1, 0}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     gko::array<index_type> row_nnz{this->ref, 10};
 
-    gko::kernels::reference::cholesky::cholesky_symbolic_count(
+    gko::kernels::reference::cholesky::symbolic_count(
         this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, I<index_type>({1, 1, 3, 2, 2, 2, 2, 2, 1, 4}));
@@ -324,6 +333,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
 {
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     auto mtx = gko::initialize<typename TestFixture::matrix_type>(
         {{1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
          {0, 1, 1, 0, 0, 0, 0, 0, 0, 0},
@@ -336,15 +346,15 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
          {0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
          {0, 0, 0, 0, 0, 0, 1, 0, 1, 0}},
         this->ref);
-    std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
+    std::unique_ptr<elimination_forest> forest;
     gko::factorization::compute_elim_forest(mtx.get(), forest);
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 20);
-    gko::kernels::reference::cholesky::cholesky_symbolic_count(
+    gko::kernels::reference::cholesky::symbolic_count(
         this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
     gko::kernels::reference::components::prefix_sum(
         this->ref, l_factor->get_row_ptrs(), 11);
 
-    gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
+    gko::kernels::reference::cholesky::symbolic_factorize(
         this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_factor,
@@ -364,13 +374,15 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1)
 {
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_mtx,
                 gko::matrices::location_ani1_chol_mtx);
-    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::compute_elim_forest(this->mtx.get(), forest);
     gko::array<index_type> row_nnz{this->ref, this->mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, this->mtx.get(), forest, row_nnz.get_data(), this->tmp);
+        this->ref, this->mtx.get(), *forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(
         row_nnz, I<index_type>({1, 2, 3, 3, 2, 2,  7,  7,  7,  8, 8, 7,
@@ -381,18 +393,20 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1)
 
 TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1)
 {
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_mtx,
                 gko::matrices::location_ani1_chol_mtx);
-    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::compute_elim_forest(this->mtx.get(), forest);
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, this->mtx.get(), forest, this->l_factor->get_row_ptrs(),
+        this->ref, this->mtx.get(), *forest, this->l_factor->get_row_ptrs(),
         this->tmp);
     gko::kernels::reference::components::prefix_sum(
         this->ref, this->l_factor->get_row_ptrs(),
         this->mtx->get_size()[0] + 1);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
-        this->ref, this->mtx.get(), forest, this->l_factor.get(), this->tmp);
+        this->ref, this->mtx.get(), *forest, this->l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->l_factor, this->l_factor_ref);
 }
@@ -400,11 +414,15 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1)
 
 TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
 {
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_mtx,
                 gko::matrices::location_ani1_chol_mtx);
 
-    auto combined_factor =
-        gko::factorization::symbolic_cholesky(this->mtx.get());
+    std::unique_ptr<matrix_type> combined_factor;
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::symbolic_cholesky(this->mtx.get(), combined_factor,
+                                          forest);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, this->combined_ref);
 }
@@ -413,13 +431,15 @@ TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 {
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_amd_mtx,
                 gko::matrices::location_ani1_amd_chol_mtx);
-    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::compute_elim_forest(this->mtx.get(), forest);
     gko::array<index_type> row_nnz{this->ref, this->mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, this->mtx.get(), forest, row_nnz.get_data(), this->tmp);
+        this->ref, this->mtx.get(), *forest, row_nnz.get_data(), this->tmp);
 
     GKO_ASSERT_ARRAY_EQ(
         row_nnz, I<index_type>({1, 1,  2, 3, 5,  4, 1, 2,  3,  4, 1,  2,
@@ -430,18 +450,20 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 
 TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1Amd)
 {
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_amd_mtx,
                 gko::matrices::location_ani1_amd_chol_mtx);
-    auto forest = gko::factorization::compute_elim_forest(this->mtx.get());
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::compute_elim_forest(this->mtx.get(), forest);
     gko::kernels::reference::cholesky::symbolic_count(
-        this->ref, this->mtx.get(), forest, this->l_factor->get_row_ptrs(),
+        this->ref, this->mtx.get(), *forest, this->l_factor->get_row_ptrs(),
         this->tmp);
     gko::kernels::reference::components::prefix_sum(
         this->ref, this->l_factor->get_row_ptrs(),
         this->mtx->get_size()[0] + 1);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
-        this->ref, this->mtx.get(), forest, this->l_factor.get(), this->tmp);
+        this->ref, this->mtx.get(), *forest, this->l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->l_factor, this->l_factor_ref);
 }
@@ -449,11 +471,15 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1Amd)
 
 TYPED_TEST(Cholesky, SymbolicFactorizeAni1Amd)
 {
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     this->setup(gko::matrices::location_ani1_amd_mtx,
                 gko::matrices::location_ani1_amd_chol_mtx);
 
-    auto combined_factor =
-        gko::factorization::symbolic_cholesky(this->mtx.get());
+    std::unique_ptr<matrix_type> combined_factor;
+    std::unique_ptr<elimination_forest> forest;
+    gko::factorization::symbolic_cholesky(this->mtx.get(), combined_factor,
+                                          forest);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, this->combined_ref);
 }
@@ -553,8 +579,8 @@ TYPED_TEST(Cholesky, KernelFactorizeWorks)
     gko::kernels::reference::cholesky::factorize(
         this->ref, this->storage_offsets.get_const_data(),
         this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get(),
-        tmp);
+        diag_idxs.get_data(), transpose_idxs.get_data(), *this->forest,
+        this->combined.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
                         r<value_type>::value);
@@ -603,8 +629,8 @@ TYPED_TEST(Cholesky, KernelFactorizeAmdWorks)
     gko::kernels::reference::cholesky::factorize(
         this->ref, this->storage_offsets.get_const_data(),
         this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->combined.get(),
-        tmp);
+        diag_idxs.get_data(), transpose_idxs.get_data(), *this->forest,
+        this->combined.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
                         r<value_type>::value);
