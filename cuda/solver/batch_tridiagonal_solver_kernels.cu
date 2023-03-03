@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/exception.cuh"
+#include "cuda/base/math.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/load_store.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/matrix/batch_struct.hpp"
@@ -70,8 +72,8 @@ __device__ void broadcast(Group& subwarp_grp, const int target_lane,
 
 template <typename ValueType, typename Group>
 __device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
-                        const int tile_size, ValueType& my_a, ValueType& my_b,
-                        ValueType& my_c, ValueType& my_d)
+                        ValueType& my_a, ValueType& my_b, ValueType& my_c,
+                        ValueType& my_d)
 {
     const int lane = subwarp_grp.thread_rank();
     const int curr_grp_idx = lane / curr_group_size;
@@ -96,7 +98,7 @@ __device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
     // eliminate a of the right group
     if (!is_left_grp) {
         const ValueType mult = my_a / piv_b;
-        my_a = -1 * piv_a * mult;
+        my_a = -one<ValueType>() * piv_a * mult;
         my_d -= piv_d * mult;
         my_f -= piv_c * mult;
     }
@@ -113,7 +115,7 @@ __device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
         const ValueType mult = my_c / piv_b;
         my_a -= piv_a * mult;
         my_d -= piv_d * mult;
-        my_c = -1 * piv_c * mult;
+        my_c = -one<ValueType>() * piv_c * mult;
     }
 
     // eliminate fill-in of the right group except for its first row
@@ -127,13 +129,78 @@ __device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
 
 template <typename ValueType, typename Group>
 __device__ void WM_phase(const int num_WM_steps, Group& subwarp_grp,
-                         const int tile_size, ValueType& my_a, ValueType& my_b,
-                         ValueType& my_c, ValueType& my_d, int& curr_group_size)
+                         ValueType& my_a, ValueType& my_b, ValueType& my_c,
+                         ValueType& my_d, int& curr_group_size)
 {
     for (int i = 0; i < num_WM_steps; i++) {
-        WM_step(curr_group_size, tile_size, my_a, my_b, my_c, my_d);
+        WM_step(subwarp_grp, curr_group_size, my_a, my_b, my_c, my_d);
         curr_group_size *= 2;
         subwarp_grp.sync();
+    }
+}
+
+
+template <typename ValueType, typename Group>
+__device__ void Forward_full_GE_phase(
+    Group& subwarp_grp, const int my_row_idx, const int tile_size,
+    const int curr_group_size, ValueType& c_last_row_of_group,
+    ValueType& d_last_row_of_group, ValueType& my_a, ValueType& my_b,
+    ValueType& my_c, ValueType& my_d, ValueType* c_batch_entry,
+    ValueType* d_batch_entry)
+{
+    const int num_groups_in_tile = tile_size / curr_group_size;
+    const int lane = subwarp_grp.thread_rank();
+    const int grp_idx = lane / curr_group_size;
+
+    for (int i = 0; i < num_groups_in_tile; i++) {
+        // Forward full GE of group having grp_idx = i
+        ValueType my_f = zero<ValueType>();
+        const int first_lane_of_group = grp_idx * curr_group_size;
+        const int last_lane_of_group =
+            first_lane_of_group + curr_group_size - 1;
+
+        // eliminate a (i.e bottom spike) of the group
+        if (grp_idx == i) {
+            if (lane == first_lane_of_group) {
+                my_f = my_b;
+            }
+
+            const ValueType mult = my_a;
+            my_f -= c_last_row_of_group * mult;
+            my_d -= d_last_row_of_group * mult;
+
+            if (lane == first_lane_of_group) {
+                my_b = my_f;
+            }
+        }
+
+        subwarp_grp.sync();
+        ValueType piv_f, piv_c, piv_d;
+        piv_f = subwarp_grp.shfl(my_f, first_lane_of_group);
+        piv_c = subwarp_grp.shfl(my_c, first_lane_of_group);
+        piv_d = subwarp_grp.shfl(my_d, first_lane_of_group);
+
+        if (grp_idx == i) {
+            // eliminate the fill-in of the group (except for the first lane of
+            // the group)
+            if (lane != first_lane_of_group) {
+                const ValueType mult = my_f / piv_f;
+                my_c -= piv_c * mult;
+                my_d -= piv_d * mult;
+            }
+
+            // divide the row by b and now b is basically 1
+            my_c /= my_b;
+            my_d /= my_b;
+
+            // coalesced accesses while writing data
+            c_batch_entry[my_row_idx] = my_c;
+            d_batch_entry[my_row_idx] = my_d;
+        }
+
+        subwarp_grp.sync();
+        c_last_row_of_group = subwarp_grp.shfl(my_c, last_lane_of_group);
+        d_last_row_of_group = subwarp_grp.shfl(my_d, last_lane_of_group);
     }
 }
 
@@ -162,6 +229,9 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
         assert(pow(2, num_WM_steps) <= tile_size);
 
+        ValueType c_last_row_of_group = zero<ValueType>();
+        ValueType d_last_row_of_group = zero<ValueType>();
+
         for (int tile_id = 0; tile_id < num_tiles; tile_id++) {
             const int row_idx_st_tile = tile_id * tile_size;  // inclusive
             const int row_idx_end_tile =
@@ -184,19 +254,31 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
                 // coalesced accesses while reading data
             }
 
-            // TODO: last tile - if non-similar ???
+            if (tile_id < num_tiles - 1 || is_last_tile_similar) {
+                // Phase-1 of the alogithm- WM phase
+                int curr_group_size = 1;
+                WM_phase(num_WM_steps, subwarpgrp, my_a, my_b, my_c, my_d,
+                         curr_group_size);
+                // In each WM step, the adjacent groups are merged
+                // independently.
 
-            // Phase-1 of the alogithm- WM phase
-            int curr_group_size = 1;
-            WM_phase(num_WM_steps, subwarpgrp, tile_size, my_a, my_b, my_c,
-                     my_d, curr_group_size);
-            // In each WM step, the adjacent groups are merged independently.
-
-            // Phase-2 of the algorithm - Full Gaussean elimination of the
-            // groups Now perform full Gaussean elimination on each group of the
-            // transformed system to eliminate the bottom spikes
-            // Forward_full_GE_phase();
+                // Phase-2 of the algorithm - Full Gaussean elimination of the
+                // groups.
+                // Now perform full Gaussean elimination on each group of the
+                // transformed system to eliminate the bottom spikes
+                Forward_full_GE_phase(
+                    subwarpgrp, my_row_idx, tile_size, curr_group_size,
+                    c_last_row_of_group, d_last_row_of_group, my_a, my_b, my_c,
+                    my_d, c + batch_idx * nrows, d + batch_idx * nrows);
+            } else {
+                Forward_full_GE_phase(
+                    subwarpgrp, my_row_idx, row_idx_end_tile - row_idx_st_tile,
+                    1, c_last_row_of_group, d_last_row_of_group, my_a, my_b,
+                    my_c, my_d, c + batch_idx * nrows, d + batch_idx * nrows);
+            }
         }
+
+        // Now backward substitution
     }
 }
 
@@ -225,9 +307,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const int num_WM_steps = 2;
 
     WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
-        num_WM_steps, nbatch, nrows, tridiag_mat->get_sub_diagonal(),
-        tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
-        rhs->get_values(), x->get_values());
+        num_WM_steps, nbatch, nrows,
+        as_cuda_type(tridiag_mat->get_sub_diagonal()),
+        as_cuda_type(tridiag_mat->get_main_diagonal()),
+        as_cuda_type(tridiag_mat->get_super_diagonal()),
+        as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
