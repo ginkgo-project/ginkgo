@@ -443,6 +443,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
+//		printf("SIZE = %ld , nnz = %ld\n", data.nonzeros.size(), nnz);
 
     // Definition of executors
     auto exec = this->get_executor();
@@ -460,6 +461,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         exec->run(bccoo::make_get_default_block_size(&block_size));
     }
     size_type num_blocks = ceildiv(nnz, block_size);
+//		printf("num_blocks = %ld , block_size = %ld\n", num_blocks, block_size);
     /*
         if (compress == matrix::bccoo::compression::element) {
           printf ("ELEMENT_COMPRESSION with block_size = %ld\n", block_size);
@@ -479,6 +481,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         size_type* offsets_data = offsets.get_data();
         compr_idxs idxs = {};
         offsets_data[0] = 0;
+				size_type num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
                 put_detect_newblock(rows_data, idxs.nblk, idxs.blk, idxs.row,
@@ -490,7 +493,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 put_detect_endblock(offsets_data, idxs.shf, block_size,
                                     idxs.nblk, idxs.blk);
             }
+						else { num++; }
         }
+//				if (num > 0) printf ("ZERO VALUES = %ld\n", num);
 
         // Creation of chunk
         array<uint8> chunk(exec_master, idxs.shf);
@@ -538,6 +543,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Computation of mem_size (idxs.shf)
         compr_idxs idxs = {};
         compr_blk_idxs blk_idxs = {};
+				size_type num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
                 proc_block_indices(elem.row, elem.column, idxs, blk_idxs);
@@ -549,13 +555,16 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                     idxs.nblk = 0;
                 }
             }
+						else { num++; }
         }
+//				if (num > 0) printf ("ZERO VALUES = %ld\n", num);
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
             cnt_block_indices<ValueType>(block_size, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
         }
+//				printf ("shf = %ld , num_blks = \n", idxs.shf, idxs.blk);
 
         // Creation of chunk
         array<uint8> chunk(exec_master, idxs.shf);
@@ -579,6 +588,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 vals_blk.get_data()[idxs.nblk] = elem.value;
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
+										if ((elem.row - blk_idxs.row_frs) >= 256) 
+												printf("HHHOOORRROOORRR (%ld)\n", blk_idxs.row_frs);
                     type_blk =
                         write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
                                              vals_blk, chunk_data);
