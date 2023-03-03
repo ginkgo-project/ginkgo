@@ -43,73 +43,37 @@ namespace batch_tridiagonal_solver {
 
 namespace {
 
-// #include "reference/solver/batch_tridiagonal_solver_kernels.hpp.inc"
+#include "reference/solver/batch_tridiagonal_solver_kernels.hpp.inc"
+
 }  // namespace
-
-template <typename BatchMatrixType, typename ValueType>
-void call_apply_kernel(
-    const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b_b,
-    const gko::batch_dense::UniformBatch<ValueType>& x_b) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    const size_type nbatch = a.num_batch;
-//    const auto nrows = a.num_rows;
-//    const auto nrhs = b_b.num_rhs;
-//    GKO_ASSERT(nrhs == 1);
-//
-//    const int local_size_bytes =
-//        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<ValueType>(
-//            nrows, nrhs);
-//
-//    std::vector<unsigned char> local_space(local_size_bytes);
-//
-//    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-//        batch_entry_lower_trsv_impl<BatchMatrixType, ValueType>(
-//            a, b_b, x_b, ibatch, local_space.data());
-//    }
-//}
-
-
-template <typename ValueType>
-void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
-                             const matrix::BatchDense<ValueType>* const b,
-                             matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    namespace device = gko::kernels::host;
-//    const auto b_b = device::get_batch_struct(b);
-//    const auto x_b = device::get_batch_struct(x);
-//
-//    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(sys_mat))
-//    {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//
-//    } else if (auto amat =
-//                   dynamic_cast<const matrix::BatchEll<ValueType>*>(sys_mat))
-//                   {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//
-//    } else if (auto amat = dynamic_cast<const matrix::BatchDense<ValueType>*>(
-//                   sys_mat)) {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//    } else {
-//        GKO_NOT_SUPPORTED(sys_mat);
-//    }
-//}
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* const rhs,
+           matrix::BatchDense<ValueType>* const x)
+{
+    const auto nbatch = tridiag_mat->get_num_batch_entries();
+    const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
+    const auto nrhs = rhs->get_size().at(0)[1];
+    assert(nrhs == 1);
+
+    namespace device = gko::kernels::host;
+    const auto rhs_batch = device::get_batch_struct(rhs);
+    const auto x_batch = device::get_batch_struct(x);
+
+    const int local_size_bytes =
+        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
+            ValueType>(nrows, nrhs);
+
+    std::vector<unsigned char> local_space(local_size_bytes);
+
+    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        batch_entry_tridiagonal_thomas_solve_impl(
+            ibatch, tridiag_mat, rhs_batch, x_batch, local_space.data());
+    }
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
