@@ -143,21 +143,21 @@ __device__ void WM_phase(const int num_WM_steps, Group& subwarp_grp,
 template <typename ValueType, typename Group>
 __device__ void Forward_full_GE_phase(
     Group& subwarp_grp, const int my_row_idx, const int tile_size,
-    const int curr_group_size, ValueType& c_last_row_of_group,
+    const int final_group_size, ValueType& c_last_row_of_group,
     ValueType& d_last_row_of_group, ValueType& my_a, ValueType& my_b,
     ValueType& my_c, ValueType& my_d, ValueType* c_batch_entry,
     ValueType* d_batch_entry)
 {
-    const int num_groups_in_tile = tile_size / curr_group_size;
+    const int num_groups_in_tile = tile_size / final_group_size;
     const int lane = subwarp_grp.thread_rank();
-    const int grp_idx = lane / curr_group_size;
+    const int grp_idx = lane / final_group_size;
 
     for (int i = 0; i < num_groups_in_tile; i++) {
         // Forward full GE of group having grp_idx = i
         ValueType my_f = zero<ValueType>();
-        const int first_lane_of_group = grp_idx * curr_group_size;
+        const int first_lane_of_group = grp_idx * final_group_size;
         const int last_lane_of_group =
-            first_lane_of_group + curr_group_size - 1;
+            first_lane_of_group + final_group_size - 1;
 
         // eliminate a (i.e bottom spike) of the group
         if (grp_idx == i) {
@@ -204,6 +204,40 @@ __device__ void Forward_full_GE_phase(
     }
 }
 
+
+template <typename ValueType, typename Group>
+__device__ void backward_substitution(Group& subwarp_grp, const int my_row_idx,
+                                      const int tile_size,
+                                      const int final_group_size,
+                                      ValueType& x_first_higher_group,
+                                      const ValueType* const c_batch_entry,
+                                      const ValueType* d_batch_entry,
+                                      ValueType* const x_batch_entry)
+{
+    const int lane = subwarp_grp.thread_rank();
+    const int grp_idx = lane / final_group_size;
+    const int num_grps = tile_size / final_group_size;
+
+    ValueType my_c = c_batch_entry[my_row_idx];
+    ValueType my_d = d_batch_entry[my_row_idx];
+    // coalseced accesses while reading
+    ValueType my_x;
+
+    for (int i = num_grps - 1; i >= 0; i--) {
+        if (grp_idx == i) {
+            my_x = my_d - x_first_higher_group * my_c;
+        }
+
+        subwarp_grp.sync();
+        const int target_lane = i * final_group_size;
+        x_first_higher_group = subwarp_grp.shfl(my_x, target_lane);
+    }
+
+    x_batch_entry[my_row_idx] = my_x;
+    // coalseced accessed while writing
+}
+
+
 template <int subwarp_size, typename ValueType>
 __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
                                          const size_type nbatch,
@@ -227,10 +261,12 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
         const auto tile_size = subwarp_size;
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
-        assert(pow(2, num_WM_steps) <= tile_size);
+        const int final_group_size = pow(2, num_WM_steps);
+        assert(final_group_size <= tile_size);
 
         ValueType c_last_row_of_group = zero<ValueType>();
         ValueType d_last_row_of_group = zero<ValueType>();
+
 
         for (int tile_id = 0; tile_id < num_tiles; tile_id++) {
             const int row_idx_st_tile = tile_id * tile_size;  // inclusive
@@ -239,10 +275,7 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
                     ? nrows
                     : (tile_id + 1) * tile_size;  // exclusive
 
-            ValueType my_a;
-            ValueType my_b;
-            ValueType my_c;
-            ValueType my_d;
+            ValueType my_a, my_b, my_c, my_d;
 
             const int my_row_idx = row_idx_st_tile + id_within_warp;
 
@@ -266,8 +299,10 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
                 // groups.
                 // Now perform full Gaussean elimination on each group of the
                 // transformed system to eliminate the bottom spikes
+                assert(curr_group_size == final_group_size);
+
                 Forward_full_GE_phase(
-                    subwarpgrp, my_row_idx, tile_size, curr_group_size,
+                    subwarpgrp, my_row_idx, tile_size, final_group_size,
                     c_last_row_of_group, d_last_row_of_group, my_a, my_b, my_c,
                     my_d, c + batch_idx * nrows, d + batch_idx * nrows);
             } else {
@@ -279,6 +314,29 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
         }
 
         // Now backward substitution
+        ValueType x_first_higher_group = zero<ValueType>();
+
+        for (int tile_id = num_tiles - 1; tile_id >= 0; tile_id--) {
+            const int lane = subwarpgrp.thread_rank();
+            const int row_idx_st_tile = tile_id * tile_size;  // inclusive
+            const int row_idx_end_tile =
+                tile_id == num_tiles - 1
+                    ? nrows
+                    : (tile_id + 1) * tile_size;  // exclusive
+            const int my_row_idx = row_idx_st_tile + lane;
+
+            if (tile_id == num_tiles - 1 && !is_last_tile_similar) {
+                backward_substitution(
+                    subwarpgrp, my_row_idx, row_idx_end_tile - row_idx_st_tile,
+                    1, x_first_higher_group, c + batch_idx * nrows,
+                    d + batch_idx * nrows, x + batch_idx * nrows);
+            } else {
+                backward_substitution(
+                    subwarpgrp, my_row_idx, tile_size, final_group_size,
+                    x_first_higher_group, c + batch_idx * nrows,
+                    d + batch_idx * nrows, x + batch_idx * nrows);
+            }
+        }
     }
 }
 
