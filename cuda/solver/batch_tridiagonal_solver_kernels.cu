@@ -192,10 +192,6 @@ __device__ void Forward_full_GE_phase(
             // divide the row by b and now b is basically 1
             my_c /= my_b;
             my_d /= my_b;
-
-            // coalesced accesses while writing data
-            c_batch_entry[my_row_idx] = my_c;
-            d_batch_entry[my_row_idx] = my_d;
         }
 
         subwarp_grp.sync();
@@ -203,6 +199,12 @@ __device__ void Forward_full_GE_phase(
             subwarp_grp.shfl(my_c, last_lane_of_ith_group);
         d_last_row_of_prev_group =
             subwarp_grp.shfl(my_d, last_lane_of_ith_group);
+    }
+
+    if (my_row_idx < nrows) {
+        // coalesced accesses while writing data
+        c_batch_entry[my_row_idx] = my_c;
+        d_batch_entry[my_row_idx] = my_d;
     }
 }
 
