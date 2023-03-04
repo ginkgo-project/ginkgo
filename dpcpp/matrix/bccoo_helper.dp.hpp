@@ -106,7 +106,7 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     row = blk_idxs_src.row_frs;
     col = blk_idxs_src.col_frs;
     if (blk_idxs_src.mul_row) {
-        if (blk_idxs.row_16bits) {
+        if (blk_idxs_src.row_16bits) {
             auto row_dif = get_value_chunk<uint16>(chunk_data_src,
                                                    blk_idxs_src.shf_row + pos);
             set_value_chunk<uint16>(chunk_data_res, blk_idxs_res.shf_row + pos,
