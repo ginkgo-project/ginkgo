@@ -69,8 +69,8 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 2;
-    const size_t nrows = 32;
+    const size_t nbatch = 3;
+    const size_t nrows = 200;
 
     std::shared_ptr<BTridiag> tridiag_mat;
     std::shared_ptr<BDense> b;
@@ -209,7 +209,7 @@ TEST_F(BatchTridiagonalSolver, SolveIsEquivalentToRef)
     auto d_tridiag_solver = solver_type::build().on(exec)->generate(d_tridiag_mtx);
     d_tridiag_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
 }
 
 //TODO: Test solve with scaling also

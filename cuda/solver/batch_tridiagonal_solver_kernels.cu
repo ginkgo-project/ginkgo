@@ -49,7 +49,7 @@ namespace batch_tridiagonal_solver {
 
 namespace {
 
-constexpr int default_subwarp_size = config::warp_size;
+constexpr int default_subwarp_size = 32;
 constexpr int default_block_size =
     128;  // found out by experimentally that 128 works the best
 
@@ -142,11 +142,11 @@ __device__ void WM_phase(const int num_WM_steps, Group& subwarp_grp,
 
 template <typename ValueType, typename Group>
 __device__ void Forward_full_GE_phase(
-    Group& subwarp_grp, const int my_row_idx, const int tile_size,
-    const int final_group_size, ValueType& c_last_row_of_group,
-    ValueType& d_last_row_of_group, ValueType& my_a, ValueType& my_b,
-    ValueType& my_c, ValueType& my_d, ValueType* c_batch_entry,
-    ValueType* d_batch_entry)
+    Group& subwarp_grp, const int nrows, const int my_row_idx,
+    const int tile_size, const int final_group_size,
+    ValueType& c_last_row_of_prev_group, ValueType& d_last_row_of_prev_group,
+    ValueType& my_a, ValueType& my_b, ValueType& my_c, ValueType& my_d,
+    ValueType* c_batch_entry, ValueType* d_batch_entry)
 {
     const int num_groups_in_tile = tile_size / final_group_size;
     const int lane = subwarp_grp.thread_rank();
@@ -155,35 +155,35 @@ __device__ void Forward_full_GE_phase(
     for (int i = 0; i < num_groups_in_tile; i++) {
         // Forward full GE of group having grp_idx = i
         ValueType my_f = zero<ValueType>();
-        const int first_lane_of_group = grp_idx * final_group_size;
-        const int last_lane_of_group =
-            first_lane_of_group + final_group_size - 1;
+        const int first_lane_of_ith_group = i * final_group_size;
+        const int last_lane_of_ith_group =
+            first_lane_of_ith_group + final_group_size - 1;
 
         // eliminate a (i.e bottom spike) of the group
         if (grp_idx == i) {
-            if (lane == first_lane_of_group) {
+            if (lane == first_lane_of_ith_group) {
                 my_f = my_b;
             }
 
             const ValueType mult = my_a;
-            my_f -= c_last_row_of_group * mult;
-            my_d -= d_last_row_of_group * mult;
+            my_f -= c_last_row_of_prev_group * mult;
+            my_d -= d_last_row_of_prev_group * mult;
 
-            if (lane == first_lane_of_group) {
+            if (lane == first_lane_of_ith_group) {
                 my_b = my_f;
             }
         }
 
         subwarp_grp.sync();
         ValueType piv_f, piv_c, piv_d;
-        piv_f = subwarp_grp.shfl(my_f, first_lane_of_group);
-        piv_c = subwarp_grp.shfl(my_c, first_lane_of_group);
-        piv_d = subwarp_grp.shfl(my_d, first_lane_of_group);
+        piv_f = subwarp_grp.shfl(my_f, first_lane_of_ith_group);
+        piv_c = subwarp_grp.shfl(my_c, first_lane_of_ith_group);
+        piv_d = subwarp_grp.shfl(my_d, first_lane_of_ith_group);
 
         if (grp_idx == i) {
             // eliminate the fill-in of the group (except for the first lane of
             // the group)
-            if (lane != first_lane_of_group) {
+            if (lane != first_lane_of_ith_group) {
                 const ValueType mult = my_f / piv_f;
                 my_c -= piv_c * mult;
                 my_d -= piv_d * mult;
@@ -199,15 +199,17 @@ __device__ void Forward_full_GE_phase(
         }
 
         subwarp_grp.sync();
-        c_last_row_of_group = subwarp_grp.shfl(my_c, last_lane_of_group);
-        d_last_row_of_group = subwarp_grp.shfl(my_d, last_lane_of_group);
+        c_last_row_of_prev_group =
+            subwarp_grp.shfl(my_c, last_lane_of_ith_group);
+        d_last_row_of_prev_group =
+            subwarp_grp.shfl(my_d, last_lane_of_ith_group);
     }
 }
 
 
 template <typename ValueType, typename Group>
-__device__ void backward_substitution(Group& subwarp_grp, const int my_row_idx,
-                                      const int tile_size,
+__device__ void backward_substitution(Group& subwarp_grp, const int nrows,
+                                      const int my_row_idx, const int tile_size,
                                       const int final_group_size,
                                       ValueType& x_first_higher_group,
                                       const ValueType* const c_batch_entry,
@@ -218,10 +220,12 @@ __device__ void backward_substitution(Group& subwarp_grp, const int my_row_idx,
     const int grp_idx = lane / final_group_size;
     const int num_grps = tile_size / final_group_size;
 
-    ValueType my_c = c_batch_entry[my_row_idx];
-    ValueType my_d = d_batch_entry[my_row_idx];
-    // coalseced accesses while reading
-    ValueType my_x;
+    ValueType my_c, my_d, my_x;
+    if (my_row_idx < nrows) {
+        my_c = c_batch_entry[my_row_idx];
+        my_d = d_batch_entry[my_row_idx];
+        // coalseced accesses while reading
+    }
 
     for (int i = num_grps - 1; i >= 0; i--) {
         if (grp_idx == i) {
@@ -233,8 +237,10 @@ __device__ void backward_substitution(Group& subwarp_grp, const int my_row_idx,
         x_first_higher_group = subwarp_grp.shfl(my_x, target_lane);
     }
 
-    x_batch_entry[my_row_idx] = my_x;
-    // coalseced accessed while writing
+    if (my_row_idx < nrows) {
+        x_batch_entry[my_row_idx] = my_x;
+        // coalseced accessed while writing
+    }
 }
 
 
@@ -264,8 +270,8 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
         const int final_group_size = pow(2, num_WM_steps);
         assert(final_group_size <= tile_size);
 
-        ValueType c_last_row_of_group = zero<ValueType>();
-        ValueType d_last_row_of_group = zero<ValueType>();
+        ValueType c_last_row_of_prev_group = zero<ValueType>();
+        ValueType d_last_row_of_prev_group = zero<ValueType>();
 
 
         for (int tile_id = 0; tile_id < num_tiles; tile_id++) {
@@ -302,14 +308,17 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
                 assert(curr_group_size == final_group_size);
 
                 Forward_full_GE_phase(
-                    subwarpgrp, my_row_idx, tile_size, final_group_size,
-                    c_last_row_of_group, d_last_row_of_group, my_a, my_b, my_c,
-                    my_d, c + batch_idx * nrows, d + batch_idx * nrows);
+                    subwarpgrp, nrows, my_row_idx, tile_size, final_group_size,
+                    c_last_row_of_prev_group, d_last_row_of_prev_group, my_a,
+                    my_b, my_c, my_d, c + batch_idx * nrows,
+                    d + batch_idx * nrows);
             } else {
-                Forward_full_GE_phase(
-                    subwarpgrp, my_row_idx, row_idx_end_tile - row_idx_st_tile,
-                    1, c_last_row_of_group, d_last_row_of_group, my_a, my_b,
-                    my_c, my_d, c + batch_idx * nrows, d + batch_idx * nrows);
+                Forward_full_GE_phase(subwarpgrp, nrows, my_row_idx,
+                                      row_idx_end_tile - row_idx_st_tile, 1,
+                                      c_last_row_of_prev_group,
+                                      d_last_row_of_prev_group, my_a, my_b,
+                                      my_c, my_d, c + batch_idx * nrows,
+                                      d + batch_idx * nrows);
             }
         }
 
@@ -327,12 +336,13 @@ __global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
 
             if (tile_id == num_tiles - 1 && !is_last_tile_similar) {
                 backward_substitution(
-                    subwarpgrp, my_row_idx, row_idx_end_tile - row_idx_st_tile,
-                    1, x_first_higher_group, c + batch_idx * nrows,
-                    d + batch_idx * nrows, x + batch_idx * nrows);
+                    subwarpgrp, nrows, my_row_idx,
+                    row_idx_end_tile - row_idx_st_tile, 1, x_first_higher_group,
+                    c + batch_idx * nrows, d + batch_idx * nrows,
+                    x + batch_idx * nrows);
             } else {
                 backward_substitution(
-                    subwarpgrp, my_row_idx, tile_size, final_group_size,
+                    subwarpgrp, nrows, my_row_idx, tile_size, final_group_size,
                     x_first_higher_group, c + batch_idx * nrows,
                     d + batch_idx * nrows, x + batch_idx * nrows);
             }
@@ -362,7 +372,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarpsize, default_block_size));
 
-    const int num_WM_steps = 2;
+    const int num_WM_steps = 3;
 
     WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
         num_WM_steps, nbatch, nrows,
