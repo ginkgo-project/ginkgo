@@ -98,6 +98,7 @@ protected:
 
         */
 
+        //TODO: Add a utility function whoch generates random batched tridiagonal matrix
         auto mtx = gko::matrix::BatchTridiagonal<value_type>::create(
             ref,
             gko::batch_dim<2>(nbatch, gko::dim<2>{nrows,nrows}));

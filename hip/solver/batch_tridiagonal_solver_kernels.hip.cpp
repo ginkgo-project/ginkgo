@@ -47,75 +47,45 @@ namespace batch_tridiagonal_solver {
 
 namespace {
 
-constexpr int default_block_size = 256;
+constexpr int default_subwarp_size = 32;
+constexpr int default_block_size = 128;
+
+#include "common/cuda_hip/solver/batch_tridiagonal_solver_kernels.hpp.inc"
 
 }  // namespace
-
-template <typename BatchMatrixType, typename ValueType>
-void call_apply_kernel(
-    const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b_b,
-    const gko::batch_dense::UniformBatch<ValueType>& x_b) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    const auto nbatch = a.num_batch;
-//    assert(b_b.num_rhs == 1);
-//    const int shared_size =
-//        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<ValueType>(
-//            a.num_rows, b_b.num_rhs);
-//
-//    hipLaunchKernelGGL(apply_kernel, nbatch, default_block_size, shared_size,
-//    0,
-//                       a, b_b.values, x_b.values);
-//
-//    GKO_HIP_LAST_IF_ERROR_THROW;
-//}
-
-
-template <typename ValueType>
-void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
-                             const matrix::BatchDense<ValueType>* const b,
-                             matrix::BatchDense<ValueType>* const x)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    namespace device = gko::kernels::hip;
-//    const auto b_b = device::get_batch_struct(b);
-//    const auto x_b = device::get_batch_struct(x);
-//
-//    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(sys_mat))
-//    {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//
-//    } else if (auto amat =
-//                   dynamic_cast<const matrix::BatchEll<ValueType>*>(sys_mat))
-//                   {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//
-//    } else if (auto amat = dynamic_cast<const matrix::BatchDense<ValueType>*>(
-//                   sys_mat)) {
-//        auto m_b = device::get_batch_struct(amat);
-//        call_apply_kernel(m_b, b_b, x_b);
-//    } else {
-//        GKO_NOT_SUPPORTED(sys_mat);
-//    }
-//}
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_tridiagonal_solver): change the code imported from
-// solver/batch_lower_trs if needed
-//    dispatch_on_matrix_type(sys_mat, b, x);
-//}
+           matrix::BatchDense<ValueType>* const x)
+{
+    const auto nbatch = tridiag_mat->get_num_batch_entries();
+    const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
+    const auto nrhs = rhs->get_size().at(0)[1];
+    assert(nrhs == 1);
+
+    const int shared_size =
+        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
+            ValueType>(nrows, nrhs);
+
+    const auto subwarpsize = default_subwarp_size;
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * subwarpsize, default_block_size));
+
+    const int num_WM_steps = 3;
+
+    hipLaunchKernelGGL(WM_pGE_kernel_approach_1<subwarpsize>, grid, block,
+                       shared_size, 0, num_WM_steps, nbatch, nrows,
+                       as_hip_type(tridiag_mat->get_sub_diagonal()),
+                       as_hip_type(tridiag_mat->get_main_diagonal()),
+                       as_hip_type(tridiag_mat->get_super_diagonal()),
+                       as_hip_type(rhs->get_values()),
+                       as_hip_type(x->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
