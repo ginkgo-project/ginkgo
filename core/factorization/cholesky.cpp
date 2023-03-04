@@ -55,6 +55,7 @@ namespace {
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
 GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
+GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
@@ -108,6 +109,10 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
                         factors->get_row_ptrs());
         // update srow to be safe
         factors->set_strategy(factors->get_strategy());
+        forest =
+            std::make_unique<gko::factorization::elimination_forest<IndexType>>(
+                exec, num_rows);
+        exec->run(make_forest_from_factor(factors.get(), *forest));
     }
     // setup lookup structure on factors
     array<IndexType> storage_offsets{exec, num_rows + 1};

@@ -123,14 +123,17 @@ protected:
                               gko::read<matrix_type>(ani1_amd_stream, ref));
     }
 
-    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs)
+    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
+                              bool check_postorder = false)
     {
         GKO_ASSERT_ARRAY_EQ(lhs.parents, rhs.parents);
         GKO_ASSERT_ARRAY_EQ(lhs.children, rhs.children);
         GKO_ASSERT_ARRAY_EQ(lhs.child_ptrs, rhs.child_ptrs);
-        GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
-        GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
-        GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
+        if (check_postorder) {
+            GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
+            GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
+            GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
+        }
     }
 
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
@@ -243,7 +246,30 @@ TYPED_TEST(CholeskySymbolic, SymbolicFactorize)
         gko::factorization::symbolic_cholesky(mtx.get(), dfactors, dforest);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dfactors, factors);
-        this->assert_equal_forests(*forest, *dforest);
+        this->assert_equal_forests(*forest, *dforest, true);
+    }
+}
+
+
+TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        std::unique_ptr<matrix_type> factors;
+        std::unique_ptr<elimination_forest> forest;
+        gko::factorization::symbolic_cholesky(mtx.get(), factors, forest);
+        const auto dfactors = gko::clone(this->exec, factors);
+        elimination_forest dforest{this->exec,
+                                   static_cast<index_type>(mtx->get_size()[0])};
+
+        gko::kernels::EXEC_NAMESPACE::cholesky::forest_from_factor(
+            this->exec, dfactors.get(), dforest);
+
+        this->assert_equal_forests(*forest, dforest);
     }
 }
 
