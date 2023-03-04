@@ -58,7 +58,6 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using BTridiag = gko::matrix::BatchTridiagonal<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
-    using Dense = typename BDense::unbatch_type;
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
 
@@ -97,7 +96,7 @@ protected:
 
         9  8  0  0  0         4        44
         4  3  5  0  0         1        29
-        0  7  1  4  0     *   2   =    19
+        0  7  1  4  0     *   2   =    33
         0  0  8  2  1         6        30
         0  0  0  6  3         2        42
 
@@ -152,7 +151,8 @@ protected:
     void set_up_data()
     {
         this->b = gko::batch_initialize<BDense>(
-            {{4.0, 12.0, 13.0, 10.0, 1.0}, {4.0, 16.0, 6.0, 38.0, 2.0}}, exec);
+            {{19.0, 18.0, 58.0, 22.0, 19.0}, {44.0, 29.0, 33.0, 30.0, 42.0}},
+            exec);
 
         this->expected_sol = gko::batch_initialize<BDense>(
             {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, exec);
@@ -163,24 +163,28 @@ protected:
         left_scale = gko::share(BDiag::create(
             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows))));
 
-        // left_scale->at(0, 0) = 2.0;
-        // left_scale->at(0, 1) = 3.0;
-        // left_scale->at(0, 2) = -1.0;
-        // left_scale->at(0, 3) = -4.0;
-        // left_scale->at(1, 0) = 1.0;
-        // left_scale->at(1, 1) = -2.0;
-        // left_scale->at(1, 2) = -4.0;
-        // left_scale->at(1, 3) = 3.0;
+        left_scale->at(0, 0) = 2.0;
+        left_scale->at(0, 1) = 3.0;
+        left_scale->at(0, 2) = -1.0;
+        left_scale->at(0, 3) = -4.0;
+        left_scale->at(0, 4) = 9.0;
+        left_scale->at(1, 0) = 1.0;
+        left_scale->at(1, 1) = -2.0;
+        left_scale->at(1, 2) = -4.0;
+        left_scale->at(1, 3) = 3.0;
+        left_scale->at(1, 4) = 6.0;
         right_scale = gko::share(BDiag::create(
             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows))));
-        // right_scale->at(0, 0) = 1.0;
-        // right_scale->at(0, 1) = 1.5;
-        // right_scale->at(0, 2) = -2.0;
-        // right_scale->at(0, 3) = 4.0;
-        // right_scale->at(1, 0) = 0.5;
-        // right_scale->at(1, 1) = -3.0;
-        // right_scale->at(1, 2) = -2.0;
-        // right_scale->at(1, 3) = 2.0;
+        right_scale->at(0, 0) = 1.0;
+        right_scale->at(0, 1) = 1.5;
+        right_scale->at(0, 2) = -2.0;
+        right_scale->at(0, 3) = 4.0;
+        right_scale->at(0, 4) = 2.0;
+        right_scale->at(1, 0) = 0.5;
+        right_scale->at(1, 1) = -3.0;
+        right_scale->at(1, 2) = -2.0;
+        right_scale->at(1, 3) = 2.0;
+        right_scale->at(1, 4) = 5.0;
     }
 };
 
@@ -196,7 +200,7 @@ TYPED_TEST(BatchTridiagonalSolver, SolveIsCorrect)
     GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
 }
 
-
+// TODO: Implement scaling for batch tridiagonal matrix format
 // TYPED_TEST(BatchTridiagonalSolver, SolveWithScalingIsCorrect)
 // {
 //    using solver_type = typename TestFixture::solver_type;

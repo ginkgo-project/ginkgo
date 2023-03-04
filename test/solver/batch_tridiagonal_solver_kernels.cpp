@@ -70,7 +70,7 @@ protected:
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 2;
-    const index_type nrows = 5;
+    const size_t nrows = 32;
 
     std::shared_ptr<BTridiag> tridiag_mat;
     std::shared_ptr<BDense> b;
@@ -80,52 +80,23 @@ protected:
     std::shared_ptr<BDiag> right_scale;
 
     std::unique_ptr<BTridiag> get_batch_tridiagonal_matrix()
-    {   
-        /*
+    {       
+         /*
         BatchTridiagonal matrix:
 
-        2  3  0  0  0
-        4  1  5  0  0
-        0  5  9  8  0
-        0  0  8  4  2
-        0  0  0  6  1
+        2  3  0  0  0         2       19
+        4  1  5  0  0         5       18
+        0  5  9  8  0     *   1    =  58
+        0  0  8  4  2         3       22
+        0  0  0  6  1         1       19
 
-        9  8  0  0  0
-        4  3  5  0  0
-        0  7  1  4  0
-        0  0  8  2  1
-        0  0  0  6  3
+        9  8  0  0  0         4        44
+        4  3  5  0  0         1        29
+        0  7  1  4  0     *   2   =    33
+        0  0  8  2  1         6        30
+        0  0  0  6  3         2        42
 
         */
-
-       /*
-          x:2
-            5
-            1
-            3
-            1
-
-        sol: 19
-             18
-             58
-             22
-             19
-        
-        x: 4
-           1
-           2
-           6
-           2
-        
-        sol: 44
-             29
-             19
-             30
-             42
-
-
-       
-       */
 
         auto mtx = gko::matrix::BatchTridiagonal<value_type>::create(
             ref,
@@ -135,20 +106,21 @@ protected:
         value_type* maindiag = mtx->get_main_diagonal();
         value_type* superdiag = mtx->get_super_diagonal();
 
-        // for(int batch_idx = 0; batch_idx < nbatch; batch_idx++)
-        // {
-        //     for(int row_idx = 0; row_idx < nrows; row_idx++)
-        //     {   
-        //         value_type sub_val = row_idx == 0 ? 0 : rand();
-        //         value_type main_val = rand();
-        //         value_type super_val = row_idx == nrows -1 ? 0 : rand();
+        for(int batch_idx = 0; batch_idx < nbatch; batch_idx++)
+        {
+            for(int row_idx = 0; row_idx < nrows; row_idx++)
+            {   
+                value_type sub_val = row_idx == 0 ? 0 : rand();
+                value_type main_val = rand();
+                value_type super_val = row_idx == nrows -1 ? 0 : rand();
 
-        //         subdiag[batch_idx * nrows + row_idx] = sub_val;
-        //         maindiag[batch_idx * nrows + row_idx] = main_val;
-        //         superdiag[batch_idx * nrows + row_idx] = super_val;
-        //     }
-        // }
+                subdiag[batch_idx * nrows + row_idx] = sub_val;
+                maindiag[batch_idx * nrows + row_idx] = main_val;
+                superdiag[batch_idx * nrows + row_idx] = super_val;
+            }
+        }
 
+        /*
         //clang-format off
         subdiag[0] = 0.0;
         subdiag[1] = 4.0;
@@ -182,7 +154,7 @@ protected:
         superdiag[7] = 4.0;
         superdiag[8] = 1.0;
         superdiag[9] = 0.0;
-
+        */
         //clang-format on
        
         return mtx;
@@ -190,23 +162,23 @@ protected:
 
     void set_up_data()
     {
-        // b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
-        //     nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
-        //     std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
-        //     ref));
+        b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
+            nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
+            ref));
         
-        // x = gko::share(BDense::create(
-        //     ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
-
+        x = gko::share(BDense::create(
+            ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
+        /*
         this->b = gko::batch_initialize<BDense>(
-            {{4.0, 12.0, 13.0, 10.0, 1.0}, {4.0, 16.0, 6.0, 38.0, 2.0}}, exec);
+            {{19.0, 18.0, 58.0, 22.0, 19.0}, {44.0, 29.0, 33.0, 30.0, 42.0}}, ref);
 
         this->expected_sol = gko::batch_initialize<BDense>(
-            {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0 , 2.0}}, exec);
+            {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, ref);
 
         this->x = BDense::create(
-            exec, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1)));
-
+            ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1)));
+        */
         // left_scale =
         //     gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
         //         nbatch, nrows, nrows,
@@ -224,18 +196,23 @@ protected:
     }
 };
 
-TEST_F(BatchTridiagonalSolver, SolveIsCorrect)
+TEST_F(BatchTridiagonalSolver, SolveIsEquivalentToRef)
 {   
     using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
     auto d_tridiag_mtx = gko::share(gko::clone(exec, tridiag_mat.get()));
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
 
+    auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
+    tridiag_solver->apply(b.get(), x.get());
+
     auto d_tridiag_solver = solver_type::build().on(exec)->generate(d_tridiag_mtx);
     d_tridiag_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->x, this->expected_sol, this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, this->eps);
 }
+
+//TODO: Test solve with scaling also
 
 
 #endif
