@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "hip/base/exception.hip.hpp"
 #include "hip/base/math.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
@@ -58,7 +59,7 @@ constexpr int default_block_size = 128;
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const rhs,
            matrix::BatchDense<ValueType>* const x)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
