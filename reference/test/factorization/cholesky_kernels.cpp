@@ -136,6 +136,19 @@ protected:
             row_descs.get_data(), storage.get_data());
     }
 
+    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
+                              bool check_postorder = false)
+    {
+        GKO_ASSERT_ARRAY_EQ(lhs.parents, rhs.parents);
+        GKO_ASSERT_ARRAY_EQ(lhs.children, rhs.children);
+        GKO_ASSERT_ARRAY_EQ(lhs.child_ptrs, rhs.child_ptrs);
+        if (check_postorder) {
+            GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
+            GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
+            GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
+        }
+    }
+
     void forall_matrices(std::function<void()> fn)
     {
         {
@@ -454,6 +467,27 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
         row_nnz, I<index_type>({1, 1,  2, 3, 5,  4, 1, 2,  3,  4, 1,  2,
                                 2, 2,  5, 1, 4,  4, 4, 1,  2,  3, 4,  3,
                                 8, 10, 4, 8, 10, 7, 7, 13, 21, 6, 11, 14}));
+}
+
+
+TYPED_TEST(Cholesky, KernelForestFromFactor)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    this->forall_matrices([this] {
+        std::unique_ptr<matrix_type> combined_factor;
+        std::unique_ptr<elimination_forest> forest_ref;
+        gko::factorization::symbolic_cholesky(this->mtx.get(), combined_factor,
+                                              forest_ref);
+        elimination_forest forest{this->ref,
+                                  static_cast<index_type>(this->num_rows)};
+
+        gko::kernels::reference::cholesky::forest_from_factor(
+            this->ref, combined_factor.get(), forest);
+
+        this->assert_equal_forests(forest, *forest_ref);
+    });
 }
 
 

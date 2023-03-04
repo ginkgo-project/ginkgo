@@ -38,11 +38,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <numeric>
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -139,7 +142,34 @@ void forest_from_factor(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* factors,
     gko::factorization::elimination_forest<IndexType>& forest)
-{}
+{
+    const auto row_ptrs = factors->get_const_row_ptrs();
+    const auto col_idxs = factors->get_const_col_idxs();
+    const auto num_rows = static_cast<IndexType>(factors->get_size()[0]);
+    const auto parents = forest.parents.get_data();
+    const auto children = forest.children.get_data();
+    const auto child_ptrs = forest.child_ptrs.get_data();
+    // filled with sentinel for unattached nodes
+    std::fill_n(parents, num_rows, num_rows);
+    for (IndexType row = 0; row < num_rows; row++) {
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        for (auto nz = row_begin; nz < row_end; nz++) {
+            const auto col = col_idxs[nz];
+            // use the lower triangle, min row from column
+            if (col < row) {
+                parents[col] = std::min(parents[col], row);
+            }
+        }
+    }
+    // group by parent
+    vector<IndexType> parents_copy(parents, parents + num_rows, {exec});
+    std::iota(children, children + num_rows, 0);
+    const auto it = detail::make_zip_iterator(parents_copy.begin(), children);
+    std::stable_sort(it, it + num_rows);
+    components::convert_idxs_to_ptrs(exec, parents_copy.data(), num_rows,
+                                     num_rows + 1, child_ptrs);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
