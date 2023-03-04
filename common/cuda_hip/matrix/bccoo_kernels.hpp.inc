@@ -93,8 +93,14 @@ __device__ void spmv_kernel(
         size_type last_row =
             idxs.row +
             ((blk_idxs.mul_row)
-                 ? get_value_chunk<uint8>(
-                       chunk_data, blk_idxs.shf_row + block_size_local - 1)
+                 ? ((blk_idxs.row_16bits)
+                        ? get_value_chunk<uint16>(
+                              chunk_data,
+                              blk_idxs.shf_row +
+                                  (block_size_local - 1) * sizeof(uint16))
+                        : get_value_chunk<uint8>(
+                              chunk_data,
+                              blk_idxs.shf_row + block_size_local - 1))
                  : 0);
         for (size_type pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
@@ -112,9 +118,15 @@ __device__ void spmv_kernel(
                 (blk_idxs.mul_row)
                     ? ((pos + jump_in_blk < block_size_local)
                            ? blk_idxs.row_frs +
-                                 get_value_chunk<uint8>(
-                                     chunk_data,
-                                     blk_idxs.shf_row + pos + jump_in_blk)
+                                 ((blk_idxs.row_16bits)
+                                      ? get_value_chunk<uint16>(
+                                            chunk_data,
+                                            blk_idxs.shf_row +
+                                                (pos + jump_in_blk) *
+                                                    sizeof(uint16))
+                                      : get_value_chunk<uint8>(
+                                            chunk_data, blk_idxs.shf_row + pos +
+                                                            jump_in_blk))
                            : last_row)
                     : blk_idxs.row_frs;
             // segmented scan

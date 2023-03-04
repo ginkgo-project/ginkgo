@@ -44,7 +44,11 @@ inline GKO_ATTRIBUTES void get_block_position_value(
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
     if (blk_idxs.mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+        if (blk_idxs.row_16bits) {
+            row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
+        } else {
+            row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+        }
     }
     if (blk_idxs.col_8bits) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
@@ -68,7 +72,11 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
     if (blk_idxs.mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+        if (blk_idxs.row_16bits) {
+            row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
+        } else {
+            row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+        }
     }
     if (blk_idxs.col_8bits) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
@@ -98,11 +106,19 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     row = blk_idxs_src.row_frs;
     col = blk_idxs_src.col_frs;
     if (blk_idxs_src.mul_row) {
-        auto row_dif =
-            get_value_chunk<uint8>(chunk_data_src, blk_idxs_src.shf_row + pos);
-        set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_row + pos,
-                               row_dif);
-        row += row_dif;
+        if (blk_idxs.row_16bits) {
+            auto row_dif = get_value_chunk<uint16>(chunk_data_src,
+                                                   blk_idxs_src.shf_row + pos);
+            set_value_chunk<uint16>(chunk_data_res, blk_idxs_res.shf_row + pos,
+                                    row_dif);
+            row += row_dif;
+        } else {
+            auto row_dif = get_value_chunk<uint8>(chunk_data_src,
+                                                  blk_idxs_src.shf_row + pos);
+            set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_row + pos,
+                                   row_dif);
+            row += row_dif;
+        }
     }
     if (blk_idxs_src.col_8bits) {
         auto col_dif =

@@ -369,10 +369,17 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
                                const compr_idxs idxs, compr_blk_idxs& blk_idxs)
 {
     if (idxs.nblk == 0) {
+        blk_idxs = {};
         blk_idxs.row_frs = row;
         blk_idxs.col_frs = col;
     }
-    blk_idxs.mul_row = blk_idxs.mul_row || (row != blk_idxs.row_frs);
+    //    blk_idxs.mul_row = blk_idxs.mul_row || (row != blk_idxs.row_frs);
+    if (row != blk_idxs.row_frs) {
+        blk_idxs.mul_row = true;
+        if (row > (blk_idxs.row_frs + blk_idxs.row_dif)) {
+            blk_idxs.row_dif = row - blk_idxs.row_frs;
+        }
+    }
     if (col < blk_idxs.col_frs) {
         blk_idxs.col_dif += (blk_idxs.col_frs - col);
         blk_idxs.col_frs = col;
@@ -386,7 +393,11 @@ template <typename ValueType>
 inline void cnt_block_indices(const size_type block_size,
                               const compr_blk_idxs blk_idxs, compr_idxs& idxs)
 {
-    if (blk_idxs.mul_row) idxs.shf += block_size;
+    //    if (blk_idxs.mul_row) idxs.shf += block_size;
+    if (blk_idxs.row_dif > 0) {
+        idxs.shf +=
+            ((blk_idxs.row_dif > 0xFF) ? sizeof(uint16) : 1) * block_size;
+    }
     if (blk_idxs.col_dif <= 0xFF) {
         idxs.shf += block_size;
     } else if (blk_idxs.col_dif <= 0xFFFF) {
@@ -406,8 +417,13 @@ inline void get_block_position_value(const uint8* chunk_data,
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
     if (blk_idxs.mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
-        blk_idxs.shf_row++;
+        if (blk_idxs.row_16bits) {
+            row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row += sizeof(uint16);
+        } else {
+            row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row++;
+        }
     }
     if (blk_idxs.col_8bits) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
@@ -423,7 +439,7 @@ inline void get_block_position_value(const uint8* chunk_data,
     blk_idxs.shf_val += sizeof(ValueType);
 }
 
-
+/*
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data, bool mul_row,
                                          bool col_8bits, bool col_16bits,
@@ -454,7 +470,7 @@ inline void get_block_position_value_put(uint8* chunk_data, bool mul_row,
     set_value_chunk<ValueType>(chunk_data, shf_val, val);
     shf_val += sizeof(ValueType);
 }
-
+*/
 
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data,
@@ -465,8 +481,13 @@ inline void get_block_position_value_put(uint8* chunk_data,
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
     if (blk_idxs.mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
-        blk_idxs.shf_row++;
+        if (blk_idxs.row_16bits) {
+            row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row += sizeof(uint16);
+        } else {
+            row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row++;
+        }
     }
     if (blk_idxs.col_8bits) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
@@ -495,10 +516,19 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
 
     // Counting bytes to write block on result
     if (blk_idxs.mul_row) {
-        for (size_type j = 0; j < idxs.nblk; j++) {
-            uint8 row_dif = rows_blk.get_data()[j] - blk_idxs.row_frs;
-            set_value_chunk<uint8>(chunk_data, idxs.shf, row_dif);
-            idxs.shf++;
+        if (blk_idxs.row_dif > 0xFF) {
+            for (size_type j = 0; j < idxs.nblk; j++) {
+                uint16 row_dif = rows_blk.get_data()[j] - blk_idxs.row_frs;
+                set_value_chunk<uint16>(chunk_data, idxs.shf, row_dif);
+                idxs.shf += sizeof(uint16);
+            }
+            type_blk |= cst_rows_16bits;
+        } else {
+            for (size_type j = 0; j < idxs.nblk; j++) {
+                uint8 row_dif = rows_blk.get_data()[j] - blk_idxs.row_frs;
+                set_value_chunk<uint8>(chunk_data, idxs.shf, row_dif);
+                idxs.shf++;
+            }
         }
         type_blk |= cst_rows_multiple;
     }
@@ -544,15 +574,27 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
     ValueType_src val_src;
     ValueType_res val_res;
     if (blk_idxs_src.mul_row) {
-        const uint8* rows_blk_src =
-            reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
-        uint8* rows_blk_res =
-            reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
-        for (size_type j = 0; j < block_size_local_src; j++) {
-            rows_blk_res[j] = rows_blk_src[j];
+        if (blk_idxs_src.row_16bits) {
+            const uint16* rows_blk_src =
+                reinterpret_cast<const uint16*>(chunk_data_src + idxs_src.shf);
+            uint16* rows_blk_res =
+                reinterpret_cast<uint16*>(chunk_data_res + idxs_res.shf);
+            for (size_type j = 0; j < block_size_local_src; j++) {
+                rows_blk_res[j] = rows_blk_src[j];
+            }
+            idxs_src.shf += block_size_local_src * sizeof(uint16);
+            idxs_res.shf += block_size_local_res * sizeof(uint16);
+        } else {
+            const uint8* rows_blk_src =
+                reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
+            uint8* rows_blk_res =
+                reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+            for (size_type j = 0; j < block_size_local_src; j++) {
+                rows_blk_res[j] = rows_blk_src[j];
+            }
+            idxs_src.shf += block_size_local_src;
+            idxs_res.shf += block_size_local_res;
         }
-        idxs_src.shf += block_size_local_src;
-        idxs_res.shf += block_size_local_res;
     }
     if (blk_idxs_src.col_8bits) {
         const uint8* cols_blk_src =

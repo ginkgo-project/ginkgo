@@ -165,26 +165,30 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
         size_type last_row =
             idxs.row +
             ((blk_idxs.mul_row)
-                 ? get_value_chunk<uint8>(
-                       chunk_data, blk_idxs.shf_row + block_size_local - 1)
+                 ? ((blk_idxs.row_16bits)
+                        ? get_value_chunk<uint16>(
+                              chunk_data,
+                              blk_idxs.shf_row +
+                                  (block_size_local - 1) * sizeof(uint16))
+                        : get_value_chunk<uint8>(
+                              chunk_data,
+                              blk_idxs.shf_row + block_size_local - 1))
                  : 0);
         /*
-                                        if (item_ct1.get_global_linear_id() ==
-           0) { sycl::ext::oneapi::experimental::printf("(Y)(%d)\n",
-           block_size_local);
-                                        }
+           if (item_ct1.get_global_linear_id() == 0) {
+                sycl::ext::oneapi::experimental::printf("(Y)(%d)\n",
+                     block_size_local);
+           }
         */
         for (size_type pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             /*
-                                                            if
+             if
                (item_ct1.get_global_linear_id() == 0) {
-                                                                            sycl::ext::oneapi::experimental::printf("(Z)(%d)\n",
-               pos);
+                 sycl::ext::oneapi::experimental::printf("(Z)(%d)\n", pos);
                                                             }
             */
-            //						if
-            //(item_ct1.get_global_id(2) < block_size_local)
+            // if (item_ct1.get_global_id(2) < block_size_local)
             {
                 idxs.row = blk_idxs.row_frs;
                 new_value = (pos < block_size_local);
@@ -201,9 +205,16 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                     (blk_idxs.mul_row)
                         ? ((pos + jump_in_blk < block_size_local)
                                ? blk_idxs.row_frs +
-                                     get_value_chunk<uint8>(
-                                         chunk_data,
-                                         blk_idxs.shf_row + pos + jump_in_blk)
+                                     ((blk_idxs.row_16bits)
+                                          ? get_value_chunk<uint16>(
+                                                chunk_data,
+                                                blk_idxs.shf_row +
+                                                    (pos + jump_in_blk) *
+                                                        sizeof(uint16))
+                                          : get_value_chunk<uint8>(
+                                                chunk_data, blk_idxs.shf_row +
+                                                                pos +
+                                                                jump_in_blk))
                                : last_row)
                         : blk_idxs.row_frs;
                 // segmented scan (Fail if some threads are not active in
@@ -564,7 +575,7 @@ void absolute_kernel(
                             sycl::ext::oneapi::experimental::printf("%ld  %ld -
     %d - %ld  %ld - %d - %d\n", column_id, start_blk, jump_blk, num_blks,
     start_in_blk, jump_in_blk, block_size);
-    //			sycl::ext::oneapi::experimental::printf("%f\n",
+    //      sycl::ext::oneapi::experimental::printf("%f\n",
     scale(1.0));
                     }
     */
