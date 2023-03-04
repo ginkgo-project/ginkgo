@@ -271,18 +271,13 @@ protected:
           drow_descs{exec}
     {}
 
-    void initialize_data(const char* mtx_filename)
+    void initialize_data(const char* mtx_filename,
+                         const char* mtx_chol_filename)
     {
         std::ifstream s_mtx{mtx_filename};
         mtx = gko::read<matrix_type>(s_mtx, ref);
         dmtx = gko::clone(exec, mtx);
         num_rows = mtx->get_size()[0];
-    }
-
-    void initialize_data(const char* mtx_filename,
-                         const char* mtx_chol_filename)
-    {
-        initialize_data(mtx_filename);
         std::ifstream s_mtx_chol{mtx_chol_filename};
         auto mtx_chol_data = gko::read_raw<value_type, index_type>(s_mtx_chol);
         auto nnz = mtx_chol_data.nonzeros.size();
@@ -318,6 +313,34 @@ protected:
         gko::factorization::compute_elim_forest(dmtx_chol.get(), dforest);
     }
 
+    void forall_matrices(std::function<void()> fn)
+    {
+        {
+            SCOPED_TRACE("ani1");
+            this->initialize_data(gko::matrices::location_ani1_mtx,
+                                  gko::matrices::location_ani1_chol_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani1_amd");
+            this->initialize_data(gko::matrices::location_ani1_amd_mtx,
+                                  gko::matrices::location_ani1_amd_chol_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani4");
+            this->initialize_data(gko::matrices::location_ani4_mtx,
+                                  gko::matrices::location_ani4_chol_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani4_amd");
+            this->initialize_data(gko::matrices::location_ani4_amd_mtx,
+                                  gko::matrices::location_ani4_amd_chol_mtx);
+            fn();
+        }
+    }
+
     gko::size_type num_rows;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> mtx_chol;
@@ -342,61 +365,32 @@ TYPED_TEST(Cholesky, KernelInitializeIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_chol_mtx);
-    const auto nnz = this->mtx_chol->get_num_stored_elements();
-    std::fill_n(this->mtx_chol->get_values(), nnz, gko::zero<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
-        this->exec, this->dmtx_chol->get_values(), nnz,
-        gko::zero<value_type>());
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<index_type> transpose_idxs{this->ref, nnz};
-    gko::array<index_type> dtranspose_idxs{this->exec, nnz};
+    this->forall_matrices([this] {
+        const auto nnz = this->mtx_chol->get_num_stored_elements();
+        std::fill_n(this->mtx_chol->get_values(), nnz, gko::zero<value_type>());
+        gko::kernels::EXEC_NAMESPACE::components::fill_array(
+            this->exec, this->dmtx_chol->get_values(), nnz,
+            gko::zero<value_type>());
+        gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+        gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
+        gko::array<index_type> transpose_idxs{this->ref, nnz};
+        gko::array<index_type> dtranspose_idxs{this->exec, nnz};
 
-    gko::kernels::reference::cholesky::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->mtx_chol.get());
-    gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-        this->dmtx_chol.get());
+        gko::kernels::reference::cholesky::initialize(
+            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_data(), transpose_idxs.get_data(),
+            this->mtx_chol.get());
+        gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
+            this->exec, this->dmtx.get(),
+            this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
+            this->dmtx_chol.get());
 
-    GKO_ASSERT_MTX_NEAR(this->dmtx_chol, this->dmtx_chol, 0.0);
-    GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
-}
-
-
-TYPED_TEST(Cholesky, KernelInitializeAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_chol_mtx);
-    const auto nnz = this->mtx_chol->get_num_stored_elements();
-    std::fill_n(this->mtx_chol->get_values(), nnz, gko::zero<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
-        this->exec, this->dmtx_chol->get_values(), nnz,
-        gko::zero<value_type>());
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<index_type> transpose_idxs{this->ref, nnz};
-    gko::array<index_type> dtranspose_idxs{this->exec, nnz};
-
-    gko::kernels::reference::cholesky::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->mtx_chol.get());
-    gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-        this->dmtx_chol.get());
-
-    GKO_ASSERT_MTX_NEAR(this->dmtx_chol, this->dmtx_chol, 0.0);
-    GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
+        GKO_ASSERT_MTX_NEAR(this->dmtx_chol, this->dmtx_chol, 0.0);
+        GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
+    });
 }
 
 
@@ -404,75 +398,40 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_chol_mtx);
-    const auto nnz = this->mtx_chol->get_num_stored_elements();
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<index_type> transpose_idxs{this->ref, nnz};
-    gko::array<index_type> dtranspose_idxs{this->exec, nnz};
-    gko::array<int> tmp{this->ref};
-    gko::array<int> dtmp{this->exec};
-    gko::kernels::reference::cholesky::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->mtx_chol.get());
-    gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-        this->dmtx_chol.get());
+    this->forall_matrices([this] {
+        const auto nnz = this->mtx_chol->get_num_stored_elements();
+        gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+        gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
+        gko::array<index_type> transpose_idxs{this->ref, nnz};
+        gko::array<index_type> dtranspose_idxs{this->exec, nnz};
+        gko::array<int> tmp{this->ref};
+        gko::array<int> dtmp{this->exec};
+        gko::kernels::reference::cholesky::initialize(
+            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_data(), transpose_idxs.get_data(),
+            this->mtx_chol.get());
+        gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
+            this->exec, this->dmtx.get(),
+            this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
+            this->dmtx_chol.get());
 
-    gko::kernels::reference::cholesky::factorize(
-        this->ref, this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-        *this->forest, this->mtx_chol.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
-        this->exec, this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-        *this->dforest, this->dmtx_chol.get(), dtmp);
+        gko::kernels::reference::cholesky::factorize(
+            this->ref, this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
+            *this->forest, this->mtx_chol.get(), tmp);
+        gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
+            this->exec, this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
+            *this->dforest, this->dmtx_chol.get(), dtmp);
 
-    GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol, r<value_type>::value);
-}
-
-
-TYPED_TEST(Cholesky, KernelFactorizeAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_chol_mtx);
-    const auto nnz = this->mtx_chol->get_num_stored_elements();
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<index_type> transpose_idxs{this->ref, nnz};
-    gko::array<index_type> dtranspose_idxs{this->exec, nnz};
-    gko::array<int> tmp{this->ref};
-    gko::array<int> dtmp{this->exec};
-    gko::kernels::reference::cholesky::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), this->mtx_chol.get());
-    gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-        this->dmtx_chol.get());
-
-    gko::kernels::reference::cholesky::factorize(
-        this->ref, this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-        *this->forest, this->mtx_chol.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
-        this->exec, this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-        *this->dforest, this->dmtx_chol.get(), dtmp);
-
-    GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol, r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
+                            r<value_type>::value);
+    });
 }
 
 
@@ -480,47 +439,24 @@ TYPED_TEST(Cholesky, GenerateWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .on(this->exec);
+    this->forall_matrices([this] {
+        auto factory =
+            gko::experimental::factorization::Cholesky<value_type,
+                                                       index_type>::build()
+                .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Cholesky<value_type,
+                                                       index_type>::build()
+                .on(this->exec);
 
-    auto factors = factory->generate(this->mtx);
-    auto dfactors = dfactory->generate(this->dmtx);
+        auto factors = factory->generate(this->mtx);
+        auto dfactors = dfactory->generate(this->dmtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(factors->get_combined(),
-                               dfactors->get_combined());
-    GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(Cholesky, GenerateWithUnknownSparsityAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .on(this->exec);
-
-    auto factors = factory->generate(this->mtx);
-    auto dfactors = dfactory->generate(this->dmtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(factors->get_combined(),
-                               dfactors->get_combined());
-    GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
-                        r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(factors->get_combined(),
+                                   dfactors->get_combined());
+        GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
+                            r<value_type>::value);
+    });
 }
 
 
@@ -528,53 +464,26 @@ TYPED_TEST(Cholesky, GenerateWithKnownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_chol_mtx);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(this->mtx_chol_sparsity)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(this->dmtx_chol_sparsity)
-            .on(this->exec);
+    this->forall_matrices([this] {
+        auto factory =
+            gko::experimental::factorization::Cholesky<value_type,
+                                                       index_type>::build()
+                .with_symbolic_factorization(this->mtx_chol_sparsity)
+                .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Cholesky<value_type,
+                                                       index_type>::build()
+                .with_symbolic_factorization(this->dmtx_chol_sparsity)
+                .on(this->exec);
 
-    auto factors = factory->generate(this->mtx);
-    auto dfactors = dfactory->generate(this->dmtx);
+        auto factors = factory->generate(this->mtx);
+        auto dfactors = dfactory->generate(this->dmtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_chol_sparsity,
-                               dfactors->get_combined());
-    GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(Cholesky, GenerateWithKnownSparsityAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_chol_mtx);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(this->mtx_chol_sparsity)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(this->dmtx_chol_sparsity)
-            .on(this->exec);
-
-    auto factors = factory->generate(this->mtx);
-    auto dfactors = dfactory->generate(this->dmtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_chol_sparsity,
-                               dfactors->get_combined());
-    GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
-                        r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_chol_sparsity,
+                                   dfactors->get_combined());
+        GKO_ASSERT_MTX_NEAR(factors->get_combined(), dfactors->get_combined(),
+                            r<value_type>::value);
+    });
 }
 
 
