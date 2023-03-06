@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+// #define OLD_BLOCK 1
+
 
 /**
  * The device function of BCCOO spmv
@@ -90,6 +92,7 @@ __device__ void spmv_kernel(
         idxs.row = rows_data[blk];
         init_block_indices(rows_data, cols_data, block_size_local, idxs,
                            types_data[blk], blk_idxs);
+#ifdef OLD_BLOCK
         size_type last_row =
             idxs.row +
             ((blk_idxs.mul_row)
@@ -153,6 +156,64 @@ __device__ void spmv_kernel(
             }
             temp_val = zero<ValueType>();
         }
+#else
+        if (blk_idxs.mul_row) {
+            if (blk_idxs.row_16bits) {
+                if (blk_idxs.col_8bits) {
+                    loop_block_multi_row<subwarp_size, uint16, uint8,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                } else if (blk_idxs.col_16bits) {
+                    loop_block_multi_row<subwarp_size, uint16, uint16,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                } else {
+                    loop_block_multi_row<subwarp_size, uint16, uint32,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                }
+            } else {
+                if (blk_idxs.col_8bits) {
+                    loop_block_multi_row<subwarp_size, uint8, uint8, ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                } else if (blk_idxs.col_16bits) {
+                    loop_block_multi_row<subwarp_size, uint8, uint16,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                } else {
+                    loop_block_multi_row<subwarp_size, uint8, uint32,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale);
+                }
+            }
+        } else {
+            if (blk_idxs.col_8bits) {
+                loop_block_single_row<subwarp_size, uint8, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale);
+            } else if (blk_idxs.col_16bits) {
+                loop_block_single_row<subwarp_size, uint16, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale);
+            } else {
+                loop_block_single_row<subwarp_size, uint32, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale);
+            }
+        }
+#endif
     }
 }
 
