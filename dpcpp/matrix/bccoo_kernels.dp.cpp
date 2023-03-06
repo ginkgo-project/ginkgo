@@ -84,6 +84,9 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 namespace {
 
 
+// #define OLD_BLOCK 1
+
+
 /**
  * The device function of BCCOO spmv
  *
@@ -149,9 +152,9 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
         const auto tile_block = group::tiled_partition<subgroup_size>(
             group::this_thread_block(item_ct1));
         /*
-                                        if (item_ct1.get_global_linear_id() ==
+        if (item_ct1.get_global_linear_id() ==
            0) { sycl::ext::oneapi::experimental::printf("(X)(%d)\n", blk);
-                                        }
+        }
         */
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
@@ -162,6 +165,7 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
         idxs.row = rows_data[blk];
         init_block_indices(rows_data, cols_data, block_size_local, idxs,
                            types_data[blk], blk_idxs);
+#ifdef OLD_BLOCK
         size_type last_row =
             idxs.row +
             ((blk_idxs.mul_row)
@@ -244,6 +248,68 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
             }
             temp_val = zero<ValueType>();
         }
+#else
+        if (blk_idxs.mul_row) {
+            if (blk_idxs.row_16bits) {
+                if (blk_idxs.col_8bits) {
+                    loop_block_multi_row<subgroup_size, uint16, uint8,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                } else if (blk_idxs.col_16bits) {
+                    loop_block_multi_row<subgroup_size, uint16, uint16,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                } else {
+                    loop_block_multi_row<subgroup_size, uint16, uint32,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                }
+            } else {
+                if (blk_idxs.col_8bits) {
+                    loop_block_multi_row<subgroup_size, uint8, uint8,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                } else if (blk_idxs.col_16bits) {
+                    loop_block_multi_row<subgroup_size, uint8, uint16,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                } else {
+                    loop_block_multi_row<subgroup_size, uint8, uint32,
+                                         ValueType>(
+                        chunk_data, block_size_local, b, b_stride, column_id, c,
+                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                        scale, item_ct1);
+                }
+            }
+        } else {
+            if (blk_idxs.col_8bits) {
+                loop_block_single_row<subgroup_size, uint8, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
+                    item_ct1);
+            } else if (blk_idxs.col_16bits) {
+                loop_block_single_row<subgroup_size, uint16, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
+                    item_ct1);
+            } else {
+                loop_block_single_row<subgroup_size, uint32, ValueType>(
+                    chunk_data, block_size_local, b, b_stride, column_id, c,
+                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
+                    item_ct1);
+            }
+        }
+#endif
     }
 }
 

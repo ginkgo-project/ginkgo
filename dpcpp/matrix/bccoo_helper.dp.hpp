@@ -30,10 +30,134 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "dpcpp/components/segment_scan.dp.hpp"
+
+
 namespace gko {
 
+namespace kernels {
+/**
+ * @brief DPCPP namespace.
+ *
+ * @ingroup dpcpp
+ */
+namespace dpcpp {
+/**
+ * @brief The Bccoordinate matrix format namespace.
+ *
+ * @ingroup bccoo
+ */
+namespace bccoo {
 
 // Routines for block compression objects
+
+
+template <int subgroup_size = config::warp_size, typename IndexType,
+          typename ValueType, typename Closure>
+inline GKO_ATTRIBUTES void loop_block_single_row(
+    const uint8* __restrict__ chunk_data, size_type block_size_local,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    const size_type column_id, ValueType* __restrict__ c,
+    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
+    const size_type start_in_blk, const size_type jump_in_blk, Closure scale,
+    sycl::nd_item<3> item_ct1)
+{
+    ValueType temp_val = zero<ValueType>();
+    ValueType val;
+    const auto tile_block = group::tiled_partition<subgroup_size>(
+        group::this_thread_block(item_ct1));
+
+
+    for (size_type pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        if (pos < block_size_local) {
+            idxs.col =
+                blk_idxs.col_frs +
+                get_value_chunk<IndexType>(
+                    chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
+            val = get_value_chunk<ValueType>(
+                chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+            temp_val += val * b[idxs.col * b_stride + column_id];
+        }
+    }
+    bool is_first_in_segment =
+        segment_scan<subgroup_size>(tile_block, blk_idxs.row_frs, &temp_val);
+    if (is_first_in_segment) {
+        atomic_add(&(c[blk_idxs.row_frs * c_stride + column_id]),
+                   scale(temp_val));
+    }
+}
+
+
+template <int subgroup_size = config::warp_size, typename IndexType1,
+          typename IndexType2, typename ValueType, typename Closure>
+inline GKO_ATTRIBUTES void loop_block_multi_row(
+    const uint8* __restrict__ chunk_data, size_type block_size_local,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    const size_type column_id, ValueType* __restrict__ c,
+    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
+    const size_type start_in_blk, const size_type jump_in_blk, Closure scale,
+    sycl::nd_item<3> item_ct1)
+{
+    auto next_row = blk_idxs.row_frs;
+    auto last_row = blk_idxs.row_frs;
+    ValueType temp_val = zero<ValueType>();
+    ValueType val;
+    bool new_value = false;
+    const auto tile_block = group::tiled_partition<subgroup_size>(
+        group::this_thread_block(item_ct1));
+
+    last_row = blk_idxs.row_frs +
+               get_value_chunk<IndexType1>(
+                   chunk_data, blk_idxs.shf_row +
+                                   (block_size_local - 1) * sizeof(IndexType1));
+    for (size_type pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        if (pos < block_size_local) {
+            idxs.row =
+                blk_idxs.row_frs +
+                get_value_chunk<IndexType1>(
+                    chunk_data, blk_idxs.shf_row + pos * sizeof(IndexType1));
+            idxs.col =
+                blk_idxs.col_frs +
+                get_value_chunk<IndexType2>(
+                    chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType2));
+            val = get_value_chunk<ValueType>(
+                chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+            temp_val += val * b[idxs.col * b_stride + column_id];
+            new_value = true;
+            next_row =
+                blk_idxs.row_frs +
+                get_value_chunk<IndexType1>(
+                    chunk_data, blk_idxs.shf_row +
+                                    (pos + jump_in_blk) * sizeof(IndexType1));
+        } else {
+            temp_val = zero<ValueType>();
+            new_value = false;
+            next_row = last_row;
+        }
+        // segmented scan
+        if (tile_block.any(idxs.row != next_row)) {
+            bool is_first_in_segment =
+                segment_scan<subgroup_size>(tile_block, idxs.row, &temp_val);
+            if (is_first_in_segment) {
+                atomic_add(&(c[idxs.row * c_stride + column_id]),
+                           scale(temp_val));
+            }
+            temp_val = zero<ValueType>();
+            new_value = false;
+        }
+    }
+    // segmented scan
+    if (tile_block.any(new_value)) {
+        bool is_first_in_segment =
+            segment_scan<subgroup_size>(tile_block, idxs.row, &temp_val);
+        if (is_first_in_segment) {
+            atomic_add(&(c[idxs.row * c_stride + column_id]), scale(temp_val));
+        }
+        temp_val = zero<ValueType>();
+    }
+}
 
 
 template <typename IndexType, typename ValueType>
@@ -150,4 +274,7 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
 }
 
 
+}  // namespace bccoo
+}  // namespace dpcpp
+}  // namespace kernels
 }  // namespace gko
