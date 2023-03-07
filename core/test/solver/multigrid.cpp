@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
-#include <iostream>
 #include <vector>
 
 
@@ -43,9 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -364,7 +362,8 @@ TYPED_TEST(Multigrid, DefaultBehavior)
                       .on(this->exec)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto gmres = dynamic_cast<const gko::solver::Gmres<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -389,7 +388,7 @@ TYPED_TEST(Multigrid, DefaultBehavior)
     ASSERT_NE(post_jac, nullptr);
     ASSERT_NE(mid_ir, nullptr);
     ASSERT_NE(mid_jac, nullptr);
-    ASSERT_NE(gmres, nullptr);
+    ASSERT_NE(direct, nullptr);
 }
 
 
@@ -613,7 +612,8 @@ TYPED_TEST(Multigrid, TwoMgLevel)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto gmres = dynamic_cast<const gko::solver::Gmres<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -626,8 +626,8 @@ TYPED_TEST(Multigrid, TwoMgLevel)
     ASSERT_EQ(this->get_value(mid_smoother.at(1)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(1)), 5);
-    // coarset_solver is gmres by default
-    ASSERT_NE(gmres, nullptr);
+    // coarset_solver is direct LU by default
+    ASSERT_NE(direct, nullptr);
 }
 
 
@@ -655,7 +655,8 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto gmres = dynamic_cast<const gko::solver::Gmres<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -668,7 +669,7 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
     ASSERT_EQ(this->get_value(mid_smoother.at(1)), 5);
     ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
-    ASSERT_NE(gmres, nullptr);
+    ASSERT_NE(direct, nullptr);
 }
 
 
