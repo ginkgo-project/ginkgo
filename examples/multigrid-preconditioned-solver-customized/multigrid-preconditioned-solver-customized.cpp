@@ -51,8 +51,7 @@ int main(int argc, char* argv[])
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
-    using ilu = gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType>,
-                                         gko::solver::UpperTrs<ValueType>>;
+    using ic = gko::preconditioner::Ic<gko::solver::LowerTrs<ValueType>>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
     // Print version information
@@ -127,23 +126,30 @@ int main(int argc, char* argv[])
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
-    // Create smoother factory (IR with ILU)
-    auto inner_solver_gen = gko::share(
-        ilu::build()
+    // Now we customize some settings of the multigrid preconditioner.
+    // First we choose a smoother. Since the input matrix is spd, we use
+    // iterative refinement with two iterations and an Ic solver.
+    auto ic_gen = gko::share(
+        ic::build()
             .with_factorization_factory(
-                gko::factorization::Ilu<ValueType, int>::build().on(exec))
+                gko::factorization::Ic<ValueType, int>::build().on(exec))
             .on(exec));
-    auto smoother_gen = gko::share(gko::solver::build_smoother(
-        inner_solver_gen, 1u, static_cast<ValueType>(0.9)));
-    // Create MultigridLevel factory
+    auto smoother_gen = gko::share(
+        gko::solver::build_smoother(ic_gen, 2u, static_cast<ValueType>(0.9)));
+    // Use Pgm as the MultigridLevel factory.
     auto mg_level_gen =
         gko::share(pgm::build().with_deterministic(true).on(exec));
-    // Create CoarsestSolver factory
+    // Next we select a CG solver for the coarsest level. Again, since the input
+    // matrix is known to be spd, and the Pgm restriction preserves this
+    // characteristic, we can safely choose the CG. We reuse the Ic factory here
+    // to generate an Ic preconditioner. It is important to solve until machine
+    // precision here to get a good convergence rate.
     auto coarsest_gen = gko::share(cg::build()
-                                       .with_preconditioner(inner_solver_gen)
+                                       .with_preconditioner(ic_gen)
                                        .with_criteria(iter_stop, exact_tol_stop)
                                        .on(exec));
-    // Create multigrid factory
+    // Here we put the customized options together and create the multigrid
+    // factory.
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     multigrid_gen =
         mg::build()

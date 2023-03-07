@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(multigrid-preconditioned-solver)
+project(mixed-multigrid-preconditioned-solver)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
