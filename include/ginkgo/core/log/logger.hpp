@@ -427,9 +427,10 @@ protected:
      * Register the `iteration_complete` event which logs every completed
      * iterations.
      *
+     * @param solver  the solver executing the iteration
      * @param it  the current iteration count
      * @param r  the residual (optional)
-     * @param x  the solution vector (optional)
+     * @param x  the solution vector
      * @param tau  the residual norm (optional)
      * @param implicit_tau_sq  the residual norm (optional)
      * @param status  the stopping status of the right hand sides (optional)
