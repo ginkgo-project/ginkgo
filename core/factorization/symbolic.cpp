@@ -89,7 +89,7 @@ void symbolic_cholesky(
     const auto scalar =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-    lt_factor->apply(scalar.get(), id.get(), scalar.get(), factors.get());
+    lt_factor->apply(scalar, id, scalar, factors);
 }
 
 
