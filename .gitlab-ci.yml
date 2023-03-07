@@ -303,7 +303,7 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:4"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
@@ -336,7 +336,7 @@ test/cuda110/nompi/clang/cuda/release/static:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
@@ -370,7 +370,7 @@ test/cuda110/nompi/intel/cuda/debug/static:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
