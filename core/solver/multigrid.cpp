@@ -43,8 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -566,22 +568,13 @@ void Multigrid::generate()
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
-            // default coarse grid solver, GMRES with Jacobi preconditioner
+            // default coarse grid solver, direct LU
+            // TODO: maybe remove fixed index type
             auto gen_default_solver = [&] {
-                using absolute_value_type = remove_complex<value_type>;
-                return solver::Gmres<value_type>::build()
-                    .with_criteria(stop::Iteration::build()
-                                       .with_max_iters(matrix->get_size()[0])
-                                       .on(exec),
-                                   stop::ResidualNorm<value_type>::build()
-                                       .with_reduction_factor(
-                                           std::numeric_limits<
-                                               absolute_value_type>::epsilon() *
-                                           absolute_value_type{10})
-                                       .on(exec))
-                    .with_preconditioner(
-                        preconditioner::Jacobi<value_type>::build()
-                            .with_max_block_size(1u)
+                return experimental::solver::Direct<value_type, int32>::build()
+                    .with_factorization(
+                        experimental::factorization::Lu<value_type,
+                                                        int32>::build()
                             .on(exec))
                     .on(exec)
                     ->generate(matrix);
