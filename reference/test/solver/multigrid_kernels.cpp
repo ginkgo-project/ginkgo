@@ -43,13 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
-#include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/solver/multigrid_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -258,7 +256,6 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using rmc_value_type = gko::remove_complex<value_type>;
     using Csr = gko::matrix::Csr<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid;
@@ -407,6 +404,8 @@ protected:
                 .with_pre_smoother(nullptr, this->lo_factory, this->lo_factory)
                 .with_mid_smoother(nullptr, nullptr, this->lo_factory)
                 .with_post_smoother(this->lo_factory, nullptr, this->lo_factory)
+                .with_coarsest_solver(
+                    gko::matrix::IdentityFactory<value_type>::create(exec))
                 .with_post_uses_pre(false)
                 .with_mid_case(mid_case)
                 .with_criteria(
