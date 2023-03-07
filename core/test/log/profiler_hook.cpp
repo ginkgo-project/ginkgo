@@ -413,7 +413,7 @@ TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
     entries.push_back({"long", 120'000'000'000, 60'000'000'000, 1});
     entries.push_back({"eternal", 86'400'000'000'000, 86'400'000'000'000, 1});
     const auto expected = R"(Test header
-Overhead estimate 1.0 s
+Overhead estimate 1.0 s 
 |   name   | total  | total (self) | count |   avg    | avg (self) |
 |----------|-------:|-------------:|------:|---------:|-----------:|
 | eternal  | 1.0 d  |       1.0 d  |     1 |   1.0 d  |     1.0 d  |
