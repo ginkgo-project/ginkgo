@@ -76,7 +76,8 @@ TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes, TypenameNameGenerator);
 TYPED_TEST(Convergence, CanGetEmptyData)
 {
     auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask);
+        gko::log::Logger::criterion_events_mask |
+        gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
@@ -91,7 +92,8 @@ TYPED_TEST(Convergence, CanLogData)
     using Dense = gko::matrix::Dense<TypeParam>;
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask);
+        gko::log::Logger::criterion_events_mask |
+        gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
         nullptr, 100, this->residual.get(), this->solution.get(),
@@ -113,7 +115,8 @@ TYPED_TEST(Convergence, CanLogData)
 TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
 {
     auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask);
+        gko::log::Logger::criterion_events_mask |
+        gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
         nullptr, 100, this->residual.get(), this->solution.get(),
@@ -131,7 +134,8 @@ TYPED_TEST(Convergence, CanComputeResidualNorm)
 {
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask);
+        gko::log::Logger::criterion_events_mask |
+        gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
         nullptr, 100, this->residual.get(), nullptr, nullptr, nullptr,
