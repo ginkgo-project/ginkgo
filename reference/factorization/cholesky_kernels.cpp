@@ -35,10 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <memory>
+#include <numeric>
 
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <numeric>
 
 
 #include "core/base/allocator.hpp"
