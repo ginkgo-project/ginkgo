@@ -90,24 +90,28 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        //        auto subgroup_size =
-        //            device.get_info<sycl::info::device::sub_group_sizes>()[-1];
+        constexpr int subgroup_size = config::warp_size;
+        GKO_ASSERT(nrows >= 2 * subgroup_size);
+
         const dim3 block(group_size);
         const dim3 grid(num_batches);
 
         const auto slm_size =
             device.get_info<sycl::info::device::local_mem_size>();
+
         const auto shmem_per_blk =
-            slm_size -
-            5 * sizeof(ValueType);  // reserve 5 for intermediate rho-s
+            slm_size - 3 * sizeof(ValueType) -
+            2 * sizeof(
+                    real_type);  // reserve 5 for intermediate rho-s and norms
         const int shared_gap =
-            nrows;                  // TODO: check if it is neccessary to align
+            nrows;               // TODO: check if it is neccessary to align
         const size_type prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
         const auto sconf =
             gko::kernels::batch_cg::compute_shared_storage<PrecType, ValueType>(
-                shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
+                0, shared_gap, a.num_nnz,
+                b.num_rhs);  // TODO: Make it works with shared_pc
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(ValueType) +
             (sconf.prec_shared ? prec_size : 0);
@@ -140,23 +144,26 @@ public:
                 slm_no_cmplx(sycl::range<1>(2), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                    auto group = item_ct1.get_group();
-                    auto batch_id = group.get_group_linear_id();
-                    const auto a_global_entry =
-                        gko::batch::batch_entry(a, batch_id);
-                    const ValueType* const b_global_entry =
-                        gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                    batch_id);
-                    ValueType* const x_global_entry =
-                        gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                    batch_id);
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(subgroup_size)]] {
+                        auto group = item_ct1.get_group();
+                        auto batch_id = group.get_group_linear_id();
+                        const auto a_global_entry =
+                            gko::batch::batch_entry(a, batch_id);
+                        const ValueType* const b_global_entry =
+                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                        batch_id);
+                        ValueType* const x_global_entry =
+                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                        batch_id);
 
-                    apply_kernel<StopType>(
-                        sconf, max_iters, res_tol, logger, prec, a_global_entry,
-                        b_global_entry, x_global_entry, nrows, a.num_nnz,
-                        slm_values, slm_no_cmplx, item_ct1, workspace_data);
-                });
+                        apply_kernel<StopType>(
+                            sconf, max_iters, res_tol, logger, prec,
+                            a_global_entry, b_global_entry, x_global_entry,
+                            nrows, a.num_nnz, slm_values, slm_no_cmplx,
+                            item_ct1, workspace_data);
+                    });
         });
     }
 

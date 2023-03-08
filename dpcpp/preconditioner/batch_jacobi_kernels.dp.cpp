@@ -40,11 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
+#include "dpcpp/preconditioner/jacobi_common.hpp.in"
 
 
 namespace gko {
@@ -52,9 +54,16 @@ namespace kernels {
 namespace dpcpp {
 namespace batch_jacobi {
 
+namespace {
+
 #include "dpcpp/preconditioner/batch_block_jacobi.hpp.inc"
 #include "dpcpp/preconditioner/batch_jacobi.hpp.inc"
 #include "dpcpp/preconditioner/batch_scalar_jacobi.hpp.inc"
+
+using batch_jacobi_dpcpp_compiled_max_block_sizes =
+    gko::kernels::dpcpp::jacobi::compiled_kernels;
+
+}  // namespace
 
 namespace {
 
@@ -286,17 +295,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void compute_block_jacobi(
-    std::shared_ptr<const DefaultExecutor> exec,
+namespace {
+
+template <int compiled_max_block_size, typename ValueType, typename IndexType>
+void compute_block_jacobi_helper(
+    syn::value_list<int, compiled_max_block_size>,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
-    const uint32 user_given_max_block_size, const size_type num_blocks,
+    const size_type num_blocks,
     const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
         storage_scheme,
     const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern, ValueType* const blocks)
+    const IndexType* const blocks_pattern, ValueType* const blocks,
+    std::shared_ptr<const DefaultExecutor> exec)
 {
+    //    constexpr int subwarp_size =
+    //        gko::kernels::dpcpp::jacobi::get_larger_power(compiled_max_block_size);
+
     constexpr int subgroup_size = config::warp_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
@@ -321,6 +336,32 @@ void compute_block_jacobi(
                                      blocks_pattern, blocks, item_ct1);
                              });
     });
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
+                                    compute_block_jacobi_helper);
+
+}  // anonymous namespace
+
+template <typename ValueType, typename IndexType>
+void compute_block_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
+    const uint32 user_given_max_block_size, const size_type num_blocks,
+    const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
+        storage_scheme,
+    const IndexType* const cumulative_block_storage,
+    const IndexType* const block_pointers,
+    const IndexType* const blocks_pattern, ValueType* const blocks)
+{
+    select_compute_block_jacobi_helper(
+        batch_jacobi_dpcpp_compiled_max_block_sizes(),
+        [&](int compiled_block_size) {
+            return user_given_max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), sys_csr, num_blocks,
+        storage_scheme, cumulative_block_storage, block_pointers,
+        blocks_pattern, blocks, exec);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
