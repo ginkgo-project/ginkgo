@@ -308,6 +308,8 @@ void Record::on_iteration_complete(const LinOp* solver,
     this->on_iteration_complete(solver, num_iterations, residual, solution,
                                 residual_norm, nullptr, nullptr, false);
 }
+
+
 void Record::on_iteration_complete(const LinOp* solver,
                                    const size_type& num_iterations,
                                    const LinOp* residual, const LinOp* x,
