@@ -47,7 +47,7 @@ namespace jacobi {
  * kernels should be compiled.
  */
 // clang-format off
-//#cmakedefine GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE @GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE@
+//#cmakedefine GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE @GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE@ //TODO
 // clang-format on
 // make things easier for IDEs
 #ifndef GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE
