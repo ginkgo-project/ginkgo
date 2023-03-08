@@ -95,15 +95,8 @@ protected:
     HipExecutor()
         :
 #ifdef GKO_TEST_NONDEFAULT_STREAM
-          stream([] {
-              gko::detail::hip_scoped_device_id_guard guard(0);
-              return gko::hip_stream{};
-          }()),
-          other_stream([] {
-              gko::detail::hip_scoped_device_id_guard guard(
-                  gko::HipExecutor::get_num_devices() - 1);
-              return gko::hip_stream{};
-          }()),
+          stream(0),
+          other_stream(gko::HipExecutor::get_num_devices() - 1),
 #endif
           omp(gko::OmpExecutor::create()),
           hip(nullptr),

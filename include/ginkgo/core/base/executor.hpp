@@ -1723,7 +1723,7 @@ private:
 class cuda_stream {
 public:
     /** Creates a new custom CUDA stream. */
-    cuda_stream();
+    cuda_stream(int device_id = 0);
 
     /** Destroys the custom CUDA stream, if it wasn't moved-from already. */
     ~cuda_stream();
@@ -1736,7 +1736,7 @@ public:
     cuda_stream& operator=(const cuda_stream&) = delete;
 
     /** Move-assigns from an existing stream, which will be emptied. */
-    cuda_stream& operator=(cuda_stream&&);
+    cuda_stream& operator=(cuda_stream&&) = delete;
 
     /**
      * Returns the native CUDA stream handle.
@@ -1746,6 +1746,8 @@ public:
 
 private:
     CUstream_st* stream_;
+
+    int device_id_;
 };
 
 
@@ -1964,7 +1966,7 @@ private:
 class hip_stream {
 public:
     /** Creates a new custom HIP stream. */
-    hip_stream();
+    hip_stream(int device_id = 0);
 
     /** Destroys the custom HIP stream, if it wasn't moved-from already. */
     ~hip_stream();
@@ -1977,7 +1979,7 @@ public:
     hip_stream& operator=(const hip_stream&) = delete;
 
     /** Move-assigns from an existing stream, which will be emptied. */
-    hip_stream& operator=(hip_stream&&);
+    hip_stream& operator=(hip_stream&&) = delete;
 
     /**
      * Returns the native HIP stream handle.
@@ -1987,6 +1989,8 @@ public:
 
 private:
     GKO_HIP_STREAM_STRUCT* stream_;
+
+    int device_id_;
 };
 
 

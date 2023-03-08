@@ -89,15 +89,8 @@ protected:
     CudaExecutor()
         :
 #ifdef GKO_TEST_NONDEFAULT_STREAM
-          stream([] {
-              gko::detail::cuda_scoped_device_id_guard guard(0);
-              return gko::cuda_stream{};
-          }()),
-          other_stream([] {
-              gko::detail::cuda_scoped_device_id_guard guard(
-                  gko::CudaExecutor::get_num_devices() - 1);
-              return gko::cuda_stream{};
-          }()),
+          stream(0),
+          other_stream(gko::CudaExecutor::get_num_devices() - 1),
 #endif
           omp(gko::OmpExecutor::create()),
           cuda(nullptr),
