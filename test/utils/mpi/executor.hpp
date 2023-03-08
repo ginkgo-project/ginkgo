@@ -121,7 +121,14 @@ public:
     using index_type = int;
 
     CommonMpiTestFixture()
-        : ref{gko::ReferenceExecutor::create()}, comm(MPI_COMM_WORLD)
+        : comm(MPI_COMM_WORLD),
+#if defined(GKO_TEST_NONDEFAULT_STREAM) && \
+    (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
+
+          stream(gko::experimental::mpi::map_rank_to_device_id(
+              comm.get(), gko::EXEC_TYPE::get_num_devices())),
+#endif
+          ref{gko::ReferenceExecutor::create()}
     {
 #if defined(GKO_TEST_NONDEFAULT_STREAM) && \
     (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
@@ -138,6 +145,8 @@ public:
         }
     }
 
+    gko::experimental::mpi::communicator comm;
+
 #ifdef GKO_TEST_NONDEFAULT_STREAM
 #ifdef GKO_COMPILING_CUDA
     gko::cuda_stream stream;
@@ -146,10 +155,9 @@ public:
     gko::hip_stream stream;
 #endif
 #endif
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    gko::experimental::mpi::communicator comm;
 };
 
 

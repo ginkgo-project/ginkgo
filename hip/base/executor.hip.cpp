@@ -309,8 +309,9 @@ void HipExecutor::init_handles()
 }
 
 
-hip_stream::hip_stream() : stream_{}
+hip_stream::hip_stream(int device_id) : stream_{}, device_id_(device_id)
 {
+    detail::hip_scoped_device_id_guard g(device_id_);
     GKO_ASSERT_NO_HIP_ERRORS(hipStreamCreate(&stream_));
 }
 
@@ -318,21 +319,16 @@ hip_stream::hip_stream() : stream_{}
 hip_stream::~hip_stream()
 {
     if (stream_) {
+        detail::hip_scoped_device_id_guard g(device_id_);
         hipStreamDestroy(stream_);
     }
 }
 
 
 hip_stream::hip_stream(hip_stream&& other)
-    : stream_{std::exchange(other.stream_, nullptr)}
+    : stream_{std::exchange(other.stream_, nullptr)},
+      device_id_{std::exchange(other.device_id_, -1)}
 {}
-
-
-hip_stream& hip_stream::operator=(hip_stream&& other)
-{
-    stream_ = std::exchange(other.stream_, nullptr);
-    return *this;
-}
 
 
 GKO_HIP_STREAM_STRUCT* hip_stream::get() const { return stream_; }
