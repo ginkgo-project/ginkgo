@@ -79,7 +79,18 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
     const int num_WM_steps = 3;
 
+    auto tridiag_mat_cl = gko::clone(exec, tridiag_mat);
+    auto rhs_cl = gko::clone(exec, rhs);
+    auto x_cl = gko::clone(exec, x);
+
     WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
+        num_WM_steps, nbatch, nrows,
+        as_cuda_type(tridiag_mat_cl->get_sub_diagonal()),
+        as_cuda_type(tridiag_mat_cl->get_main_diagonal()),
+        as_cuda_type(tridiag_mat_cl->get_super_diagonal()),
+        as_cuda_type(rhs_cl->get_values()), as_cuda_type(x_cl->get_values()));
+
+    WM_pGE_kernel_approach_2<subwarpsize><<<grid, block, shared_size>>>(
         num_WM_steps, nbatch, nrows,
         as_cuda_type(tridiag_mat->get_sub_diagonal()),
         as_cuda_type(tridiag_mat->get_main_diagonal()),

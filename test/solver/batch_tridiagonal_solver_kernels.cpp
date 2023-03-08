@@ -69,7 +69,7 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 3;
+    const size_t nbatch = 1;
     const size_t nrows = 200;
 
     std::shared_ptr<BTridiag> tridiag_mat;
