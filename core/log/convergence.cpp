@@ -86,7 +86,6 @@ void Convergence<ValueType>::on_iteration_complete(
     const bool stopped) const
 {
     if (stopped) {
-        // TODO need to throw if not solver or x
         array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
         this->convergence_status_ = true;
