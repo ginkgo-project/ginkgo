@@ -66,6 +66,7 @@ __dpct_inline__ void initialize(
     // z = precond * r
     prec_shared.apply(num_rows, r_shared_entry, z_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
+
     if (sg_id == 0) {
         // Compute norms of rhs
         compute_norm2_sg_kernel(num_rows, b_global_entry, rhs_norms_sh,
@@ -75,11 +76,12 @@ __dpct_inline__ void initialize(
         compute_dot_product_sg_kernel(num_rows, r_shared_entry, z_shared_entry,
                                       rho_old_shared_entry, item_ct1);
     }
+    item_ct1.barrier(sycl::access::fence_space::local_space);
     // p = z
     for (int iz = tid; iz < num_rows; iz += group_size) {
         p_shared_entry[iz] = z_shared_entry[iz];
     }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    //    item_ct1.barrier(sycl::access::fence_space::local_space);
 }
 
 
@@ -155,8 +157,7 @@ void apply_kernel(
     const int sg_size = sg.get_local_range().size();
     const int num_sg = sg.get_group_range().size();
 
-    const auto group = item_ct1.get_group();
-    const auto ibatch = group.get_group_linear_id();
+    const auto ibatch = item_ct1.get_group_linear_id();
 
     ValueType* rho_old_sh = &local_mem_sh[0];
     ValueType* rho_new_sh = &local_mem_sh[1];
@@ -216,6 +217,7 @@ void apply_kernel(
     initialize(nrows, A_global_entry, b_global_entry, x_global_entry, x_sh,
                r_sh, prec_shared, z_sh, rho_old_sh[0], p_sh, norms_rhs_sh[0],
                item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
@@ -223,6 +225,7 @@ void apply_kernel(
     int iter = 0;
     for (; iter < max_iter; iter++) {
         norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         if (stop.check_converged(norms_res_sh)) {
             break;
         }
