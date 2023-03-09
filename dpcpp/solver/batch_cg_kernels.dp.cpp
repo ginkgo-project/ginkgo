@@ -96,22 +96,22 @@ public:
         const dim3 block(group_size);
         const dim3 grid(num_batches);
 
-        const size_type slm_size =
+        size_type slm_size =
             device.get_info<sycl::info::device::local_mem_size>();
-        const auto matrix_storage = a.get_entry_storage();
+        const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - 3 * sizeof(ValueType) - 2 * sizeof(real_type) -
-            matrix_storage;  // reserve 5 for intermediate rho-s and norms
+            slm_size - matrix_size - 3 * sizeof(ValueType) -
+            2 * sizeof(real_type);  // reserve 5 for intermediate rho-s, norms,
+                                    // and alp
         if (shmem_per_blk < 0) shmem_per_blk = 0;
-        const int shared_gap = ((nrows - 1) / 8 + 1) *
-                               8;  // TODO: check if it is neccessary to align
+        const int shared_gap =
+            nrows;  // TODO: check if it is neccessary to align
         const size_type prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
         const auto sconf =
             gko::kernels::batch_cg::compute_shared_storage<PrecType, ValueType>(
-                shmem_per_blk, shared_gap, a.num_nnz,
-                b.num_rhs);  // TODO: Make it works with shared_pc
+                shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(ValueType) +
             (sconf.prec_shared ? prec_size : 0);
@@ -119,21 +119,12 @@ public:
             exec_, sconf.gmem_stride_bytes * num_batches / sizeof(ValueType));
         assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
 
-        /*
-                const int workspace_size =
-                    gko::kernels::batch_cg::local_memory_requirement<ValueType>(nrows,
-                                                                                nrhs) +
-                    PrecType::dynamic_work_size(nrows, a.num_nnz) *
-           sizeof(ValueType); auto workspace = gko::Array<ValueType>( exec_,
-           workspace_size * num_batch_entries / sizeof(ValueType));
-                    */
         ValueType* const workspace_data = workspace.get_data();
         auto b_values = b.values;
         auto x_values = x.values;
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
         const int local_accessor_size = shared_size + 3 * sizeof(ValueType);
-        //(slm_size - 2 * sizeof(real_type)) / sizeof(ValueType);
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
@@ -141,7 +132,7 @@ public:
                 slm_values(sycl::range<1>(local_accessor_size), cgh);
             sycl::accessor<real_type, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
-                slm_no_cmplx(sycl::range<1>(2), cgh);
+                slm_reals(sycl::range<1>(2), cgh);
 
             cgh.parallel_for(
                 sycl_nd_range(grid, block),
@@ -161,7 +152,9 @@ public:
                         apply_kernel<StopType>(
                             sconf, max_iters, res_tol, logger, prec,
                             a_global_entry, b_global_entry, x_global_entry,
-                            nrows, a.num_nnz, slm_values, slm_no_cmplx,
+                            nrows, a.num_nnz,
+                            static_cast<ValueType*>(slm_values.get_pointer()),
+                            static_cast<real_type*>(slm_reals.get_pointer()),
                             item_ct1, workspace_data);
                     });
         });
