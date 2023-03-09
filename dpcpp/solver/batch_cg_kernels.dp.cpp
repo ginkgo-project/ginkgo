@@ -98,11 +98,13 @@ public:
 
         size_type slm_size =
             device.get_info<sycl::info::device::local_mem_size>();
-        const auto matrix_size = a.get_entry_storage();
+        // const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - matrix_size - 3 * sizeof(ValueType) -
-            2 * sizeof(real_type);  // reserve 5 for intermediate rho-s, norms,
-                                    // and alp
+            slm_size - 3 * sizeof(ValueType) -
+            2 * sizeof(
+                    real_type); /* reserve 5 for intermediate rho-s, norms, and
+                                 * alpha don't need to subtract the matrix_size
+                                 */
         if (shmem_per_blk < 0) shmem_per_blk = 0;
         const int shared_gap =
             nrows;  // TODO: check if it is neccessary to align
