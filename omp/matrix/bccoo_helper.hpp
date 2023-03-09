@@ -1,4 +1,3 @@
-
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
@@ -69,6 +68,7 @@ inline void loop_block_single_row(const uint8* chunk_data,
 {
     auto num_cols = b->get_size()[1];
     auto row = blk_idxs.row_frs;
+    bool new_elm = false;
     ValueType val;
 
     for (size_type i = 0; i < block_size_local; i++) {
@@ -80,10 +80,13 @@ inline void loop_block_single_row(const uint8* chunk_data,
         for (size_type j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
+        new_elm = true;
     }
-    for (size_type j = 0; j < num_cols; j++) {
-        atomic_add(c->at(row, j), sumV[j]);
-        //        sumV[j] = zero<ValueType>();
+    if (new_elm) {
+        for (size_type j = 0; j < num_cols; j++) {
+            atomic_add(c->at(row, j), sumV[j]);
+            sumV[j] = zero<ValueType>();
+        }
     }
 }
 
@@ -98,6 +101,7 @@ inline void loop_block_single_row(const uint8* chunk_data,
 {
     auto num_cols = b->get_size()[1];
     auto row = blk_idxs.row_frs;
+    bool new_elm = false;
     ValueType val;
 
     for (size_type i = 0; i < block_size_local; i++) {
@@ -108,13 +112,16 @@ inline void loop_block_single_row(const uint8* chunk_data,
         blk_idxs.shf_val += sizeof(ValueType);
         for (size_type j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
-            //            sumV[j] += alpha_val * val * b->at(idxs.col, j);
+            // sumV[j] += alpha_val * val * b->at(idxs.col, j);
         }
+        new_elm = true;
     }
-    for (size_type j = 0; j < num_cols; j++) {
-        atomic_add(c->at(row, j), alpha_val * sumV[j]);
-        //        atomic_add(c->at(row, j), sumV[j]);
-        //        sumV[j] = zero<ValueType>();
+    if (new_elm) {
+        for (size_type j = 0; j < num_cols; j++) {
+            atomic_add(c->at(row, j), alpha_val * sumV[j]);
+            // atomic_add(c->at(row, j), sumV[j]);
+            sumV[j] = zero<ValueType>();
+        }
     }
 }
 
@@ -193,15 +200,14 @@ inline void loop_block_multi_row(const uint8* chunk_data,
             // have to be accumulated to c
             for (size_type j = 0; j < num_cols; j++) {
                 atomic_add(c->at(row_old, j), alpha_val * sumV[j]);
-                //        				atomic_add(c->at(row_old,
-                //        j), sumV[j]);
+                // atomic_add(c->at(row_old, j), sumV[j]);
                 sumV[j] = zero<ValueType>();
             }
             new_elm = false;
         }
         for (size_type j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
-            //            sumV[j] += alpha_val * val * b->at(idxs.col, j);
+            // sumV[j] += alpha_val * val * b->at(idxs.col, j);
         }
         new_elm = true;
         row_old = idxs.row;
@@ -211,7 +217,7 @@ inline void loop_block_multi_row(const uint8* chunk_data,
         // the computed values have to be accumulated to c
         for (size_type j = 0; j < num_cols; j++) {
             atomic_add(c->at(row_old, j), alpha_val * sumV[j]);
-            //            atomic_add(c->at(row_old, j), sumV[j]);
+            // atomic_add(c->at(row_old, j), sumV[j]);
             sumV[j] = zero<ValueType>();
         }
     }
@@ -223,4 +229,4 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_BCCOO_HELPER_HPP_
+#endif  // GKO_OMP_MATRIX_BCCOO_HELPER_HPP_

@@ -1245,6 +1245,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 
 
 }  // namespace bccoo
-}  // namespace bccoo
 }  // namespace omp
 }  // namespace kernels
+}  // namespace gko

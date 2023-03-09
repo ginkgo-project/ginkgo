@@ -63,6 +63,7 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
     sycl::nd_item<3> item_ct1)
 {
     ValueType temp_val = zero<ValueType>();
+    bool new_value = false;
     ValueType val;
     const auto tile_block = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
@@ -70,21 +71,23 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
 
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        if (pos < block_size_local) {
-            idxs.col =
-                blk_idxs.col_frs +
-                get_value_chunk<IndexType>(
-                    chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
-            val = get_value_chunk<ValueType>(
-                chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
-            temp_val += val * b[idxs.col * b_stride + column_id];
-        }
+        //        if (pos < block_size_local) {
+        idxs.col = blk_idxs.col_frs +
+                   get_value_chunk<IndexType>(
+                       chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
+        val = get_value_chunk<ValueType>(
+            chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+        temp_val += val * b[idxs.col * b_stride + column_id];
+        //        }
+        new_value = true;
     }
-    bool is_first_in_segment =
-        segment_scan<subgroup_size>(tile_block, blk_idxs.row_frs, &temp_val);
-    if (is_first_in_segment) {
-        atomic_add(&(c[blk_idxs.row_frs * c_stride + column_id]),
-                   scale(temp_val));
+    if (new_value) {
+        bool is_first_in_segment = segment_scan<subgroup_size>(
+            tile_block, blk_idxs.row_frs, &temp_val);
+        if (is_first_in_segment) {
+            atomic_add(&(c[blk_idxs.row_frs * c_stride + column_id]),
+                       scale(temp_val));
+        }
     }
 }
 
@@ -111,31 +114,40 @@ inline GKO_ATTRIBUTES void loop_block_multi_row(
                get_value_chunk<IndexType1>(
                    chunk_data, blk_idxs.shf_row +
                                    (block_size_local - 1) * sizeof(IndexType1));
+    next_row =
+        blk_idxs.row_frs +
+        get_value_chunk<IndexType1>(
+            chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexType1));
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        if (pos < block_size_local) {
-            idxs.row =
-                blk_idxs.row_frs +
-                get_value_chunk<IndexType1>(
-                    chunk_data, blk_idxs.shf_row + pos * sizeof(IndexType1));
-            idxs.col =
-                blk_idxs.col_frs +
-                get_value_chunk<IndexType2>(
-                    chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType2));
-            val = get_value_chunk<ValueType>(
-                chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
-            temp_val += val * b[idxs.col * b_stride + column_id];
-            new_value = true;
-            next_row =
-                blk_idxs.row_frs +
-                get_value_chunk<IndexType1>(
-                    chunk_data, blk_idxs.shf_row +
-                                    (pos + jump_in_blk) * sizeof(IndexType1));
-        } else {
-            temp_val = zero<ValueType>();
-            new_value = false;
-            next_row = last_row;
-        }
+        //        if (pos < block_size_local) {
+        idxs.row = next_row;
+        /*
+                    idxs.row =
+                        blk_idxs.row_frs +
+                          get_value_chunk<IndexType1>(
+                            chunk_data, blk_idxs.shf_row + pos *
+           sizeof(IndexType1));
+        */
+        idxs.col = blk_idxs.col_frs +
+                   get_value_chunk<IndexType2>(
+                       chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType2));
+        val = get_value_chunk<ValueType>(
+            chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+        temp_val += val * b[idxs.col * b_stride + column_id];
+        new_value = true;
+        next_row = ((pos + jump_in_blk) >= block_size_local)
+                       ? last_row
+                       : blk_idxs.row_frs +
+                             get_value_chunk<IndexType1>(
+                                 chunk_data,
+                                 blk_idxs.shf_row +
+                                     (pos + jump_in_blk) * sizeof(IndexType1));
+        //        } else {
+        //            temp_val = zero<ValueType>();
+        //            new_value = false;
+        //            next_row = last_row;
+        //        }
         // segmented scan
         if (tile_block.any(idxs.row != next_row)) {
             bool is_first_in_segment =
