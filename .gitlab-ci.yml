@@ -99,6 +99,7 @@ build/cuda92/nompi/gcc/all/release/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     RUN_EXAMPLES: "ON"
+    BUILD_EXTENSION: "ON"
     CUDA_ARCH: 61
 
 # cuda 10.0 and friends
