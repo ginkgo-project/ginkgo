@@ -581,10 +581,25 @@ public:
         return status_run_.managed_timer.timer;
     }
 
-    double compute_average_time() const
+    /**
+     * Compute the time from the given statistical method
+     *
+     * @param method  the statistical method. If the timer does not have the
+     *                same iteration as the IterationControl, it can only use
+     *                average from the IterationControl.
+     *
+     * @return the statistical time
+     */
+    double compute_time(const std::string& method = "average") const
     {
-        return status_run_.managed_timer.get_total_time() /
-               get_num_repetitions();
+        if (status_run_.managed_timer.timer->get_num_repetitions() ==
+            this->get_num_repetitions()) {
+            return status_run_.managed_timer.compute_time(method);
+        } else {
+            assert(method == "average");
+            return status_run_.managed_timer.get_total_time() /
+                   this->get_num_repetitions();
+        }
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
@@ -610,6 +625,11 @@ private:
         void clear() { timer->clear(); }
 
         double get_total_time() const { return timer->get_total_time(); }
+
+        double compute_time(const std::string& method = "average") const
+        {
+            return timer->compute_time(method);
+        }
     };
 
     /**
