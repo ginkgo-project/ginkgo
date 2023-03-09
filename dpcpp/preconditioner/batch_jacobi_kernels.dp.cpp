@@ -110,11 +110,9 @@ void batch_jacobi_apply_helper(
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto batch_id = item_ct1.get_group_linear_id();
-                    batch_scalar_jacobi_apply(
-                        prec_scalar_jacobi, sys_mat_batch, batch_id, nrows,
-                        r_values, z_values,
-                        static_cast<ValueType*>(slm_storage.get_pointer()),
-                        item_ct1);
+                    batch_scalar_jacobi_apply(prec_scalar_jacobi, sys_mat_batch,
+                                              batch_id, nrows, r_values,
+                                              z_values, slm_storage, item_ct1);
                 });
         });
 
@@ -135,10 +133,9 @@ void batch_jacobi_apply_helper(
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto batch_id = item_ct1.get_group_linear_id();
-                    batch_block_jacobi_apply(
-                        prec_block_jacobi, batch_id, nrows, r_values, z_values,
-                        static_cast<ValueType*>(slm_storage.get_pointer()),
-                        item_ct1);
+                    batch_block_jacobi_apply(prec_block_jacobi, batch_id, nrows,
+                                             r_values, z_values, slm_storage,
+                                             item_ct1);
                 });
         });
     }
