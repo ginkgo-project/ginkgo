@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 // Add the C++ iostream header to output information to the console.
+#include <iomanip>
 #include <iostream>
 // Add the STL map header for the executor selection
 #include <map>
@@ -191,17 +192,20 @@ struct overlapping_mtx
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        local_mtx->apply(b, x);
+        auto copy_b = b->clone();
+        make_consistent(comm_info, as<vec>(copy_b.get()));
+
+        local_mtx->apply(copy_b, x);
         // exchange data
         make_consistent(comm_info, as<vec>(x));
     }
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        auto copy = x->clone();
+        auto copy_x = x->clone();
         apply_impl(b, x);
         as<vec>(x)->scale(alpha);
-        as<vec>(x)->add_scaled(beta, copy);
+        as<vec>(x)->add_scaled(beta, copy_x);
     }
 
     std::shared_ptr<::mtx> local_mtx;
@@ -217,7 +221,8 @@ struct overlapping_schwarz
                         std::shared_ptr<overlapping_mtx> local_mtx = nullptr,
                         comm_info_t comm_info = {MPI_COMM_NULL})
         : experimental::distributed::DistributedBase(comm),
-          experimental::EnableDistributedLinOp<overlapping_schwarz>{exec},
+          experimental::EnableDistributedLinOp<overlapping_schwarz>{
+              exec, local_mtx->get_size()},
           comm_info(comm_info)
     {
         local_solver =
@@ -234,6 +239,9 @@ struct overlapping_schwarz
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
+        auto copy_b = b->clone();
+        make_consistent(comm_info, as<vec>(copy_b.get()));
+
         local_solver->apply(b, x);
         // exchange data
         make_consistent(comm_info, as<vec>(x));
@@ -241,13 +249,54 @@ struct overlapping_schwarz
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        GKO_NOT_IMPLEMENTED;
+        auto copy_x = x->clone();
+        apply_impl(b, x);
+        as<vec>(x)->scale(alpha);
+        as<vec>(x)->add_scaled(beta, copy_x);
     }
 
     std::shared_ptr<::solver> local_solver;
     comm_info_t comm_info;
 };
 
+
+auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
+        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal)
+{
+    auto exec = A->get_executor();
+    auto r = b->clone();
+    auto z = x->clone();
+    auto one = initialize<vec>({1.0}, exec);
+    auto neg_one = initialize<vec>({-1.0}, exec);
+
+    auto B = std::make_shared<overlapping_schwarz>(exec, A->get_communicator(),
+                                                   A, A->comm_info);
+
+    auto res_norm = vec::create(exec->get_master(), dim<2>{1, 1});
+
+    A->apply(neg_one, x, one, r);
+    z->fill(0.0);
+
+    for (int i = 0; i < num_iters; ++i) {
+        // z = z + B ( r - A * x)
+        auto residual = r->clone();
+        A->apply(neg_one, z, one, residual);
+
+        residual->compute_norm2(res_norm);
+
+        std::cout << i << ": " << res_norm->at(0) << std::endl;
+
+        if (res_norm->at(0) <= res_goal) {
+            break;
+        }
+
+        B->apply(one, residual, one, z);
+    }
+
+    x->add_scaled(one, z);
+
+    return res_norm;
+}
 
 }  // namespace gko
 
@@ -586,32 +635,16 @@ int main(int argc, char* argv[])
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
-    auto Ainv =
-        solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
-                    .on(exec))
-            .on(exec)
-            ->generate(ovlp_A);
-    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
-    Ainv->add_logger(logger);
 
     // Take timings.
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
-    Ainv->apply(ovlp_b, ovlp_x);
+    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4);
 
     // Take timings.
     comm.synchronize();
     ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
-
-    // Compute the residual, this is done in the same way as in the
-    // non-distributed case.
-    auto res_norm = logger->get_residual_norm();
 
     // Take timings.
     comm.synchronize();
@@ -624,7 +657,7 @@ int main(int argc, char* argv[])
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
                   << "\nFinal Res norm: ";
-        gko::write(std::cout, gko::as<vec>(res_norm));
+        gko::write(std::cout, res_norm.get());
         std::cout << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
