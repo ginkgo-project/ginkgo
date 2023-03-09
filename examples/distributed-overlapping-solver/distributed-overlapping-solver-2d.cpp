@@ -42,31 +42,218 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Add the string manipulation header to handle strings.
 #include <string>
 
+// @sect3{Type Definitiions}
+// Define the needed types. In a parallel program we need to differentiate
+// beweeen global and local indices, thus we have two index types.
+using LocalIndexType = gko::int32;
+// The underlying value type.
+using ValueType = double;
+// As vector type we use the following, which implements a subset of @ref
+// gko::matrix::Dense.
+using vec = gko::matrix::Dense<ValueType>;
+using dist_vec = gko::experimental::distributed::Vector<ValueType>;
+// As matrix type we simply use the following type, which can read
+// distributed data and be applied to a distributed vector.
+using mtx = gko::matrix::Csr<ValueType, LocalIndexType>;
+// We can use here the same solver type as you would use in a
+// non-distributed program. Please note that not all solvers support
+// distributed systems at the moment.
+using solver = gko::solver::Cg<ValueType>;
 
-constexpr std::array<std::array<double, 3>, 3> A_loc{
+
+constexpr std::array<std::array<ValueType, 3>, 3> A_loc{
     {{1.0, -0.5, -0.5}, {-0.5, 0.5, 0.0}, {-0.5, 0.0, 0.5}}};
+
+namespace gko {
+
+struct comm_info_t {
+    experimental::mpi::communicator comm;
+
+    std::vector<int> send_sizes;
+    std::vector<int> send_offsets;
+    std::vector<int> recv_sizes;
+    std::vector<int> recv_offsets;
+
+    gko::array<LocalIndexType> send_idxs;
+    gko::array<LocalIndexType> recv_idxs;
+};
+
+
+void make_consistent(comm_info_t comm_info, vec* local)
+{
+    auto exec = local->get_executor();
+    auto send_buffer =
+        vec::create(exec, dim<2>(comm_info.send_offsets.back(), 1));
+    auto recv_buffer =
+        vec::create(exec, dim<2>(comm_info.recv_offsets.back(), 1));
+    local->row_gather(&comm_info.send_idxs, send_buffer.get());
+
+    comm_info.comm.all_to_all_v(
+        exec, send_buffer->get_values(), comm_info.send_sizes.data(),
+        comm_info.send_offsets.data(), recv_buffer->get_values(),
+        comm_info.recv_sizes.data(), comm_info.recv_offsets.data());
+
+    // inverse row_gather
+    for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
+        local->at(comm_info.recv_idxs.get_data()[i]) = recv_buffer->at(i);
+    }
+}
+
+
+struct overlapping_vec : public vec {
+    overlapping_vec(std::shared_ptr<const Executor> exec,
+                    experimental::mpi::communicator comm,
+                    std::shared_ptr<vec> local_vec = nullptr,
+                    array<LocalIndexType> ovlp_idxs = {})
+        : vec{*local_vec},
+          local_flag(local_vec->get_executor(), local_vec->get_size()[0]),
+          num_ovlp(ovlp_idxs.get_num_elems()),
+          comm(comm)
+    {
+        local_flag.fill(true);
+        for (int i = 0; i < ovlp_idxs.get_num_elems(); ++i) {
+            local_flag.get_data()[ovlp_idxs.get_data()[i]] = false;
+        }
+    }
+
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    auto extract_local() const
+    {
+        auto exec = this->get_executor();
+        auto no_ovlp_local = vec::create(exec, this->get_size()[0] - num_ovlp);
+
+        // copy-if, but in stupid
+        int i = 0;
+        for (int j = 0; j < this->get_size()[0]; ++j) {
+            if (local_flag.get_const_data()[j]) {
+                no_ovlp_local->at(i) = this->at(j);
+                i++;
+            }
+        }
+
+        return no_ovlp_local;
+    }
+
+    void compute_dot_impl(const LinOp* b, LinOp* result) const override
+    {
+        auto ovlp_b = dynamic_cast<const overlapping_vec*>(b);
+        auto no_ovlp_b = ovlp_b->extract_local();
+        auto no_ovlp_local = this->extract_local();
+
+        auto dist_b = dist_vec::create(
+            no_ovlp_b->get_executor(),
+            as<const experimental::distributed::DistributedBase>(b)
+                ->get_communicator(),
+            no_ovlp_b.get());
+        auto dist_local = dist_vec::create(no_ovlp_local->get_executor(), comm,
+                                           no_ovlp_local.get());
+
+        dist_local->compute_dot(dist_b.get(), result);
+    }
+
+    void compute_norm2_impl(LinOp* result) const override
+    {
+        auto no_ovlp_local = extract_local();
+
+        dist_vec::create(no_ovlp_local->get_executor(), comm,
+                         no_ovlp_local.get())
+            ->compute_norm2(result);
+    }
+
+    array<int> local_flag;
+    size_type num_ovlp;
+    experimental::mpi::communicator comm;
+};
+
+
+struct overlapping_mtx
+    : public experimental::distributed::DistributedBase,
+      public experimental::EnableDistributedLinOp<overlapping_mtx> {
+    overlapping_mtx(std::shared_ptr<const Executor> exec,
+                    experimental::mpi::communicator comm,
+                    std::shared_ptr<mtx> local_mtx = nullptr,
+                    comm_info_t comm_info = {MPI_COMM_NULL})
+        : experimental::distributed::DistributedBase(comm),
+          experimental::EnableDistributedLinOp<overlapping_mtx>{
+              exec, local_mtx->get_size()},
+          local_mtx(local_mtx),
+          comm_info(comm_info)
+    {}
+
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        local_mtx->apply(b, x);
+        // exchange data
+        make_consistent(comm_info, as<vec>(x));
+    }
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {
+        auto copy = x->clone();
+        apply_impl(b, x);
+        as<vec>(x)->scale(alpha);
+        as<vec>(x)->add_scaled(beta, copy);
+    }
+
+    std::shared_ptr<::mtx> local_mtx;
+    comm_info_t comm_info;
+};
+
+
+struct overlapping_schwarz
+    : public experimental::distributed::DistributedBase,
+      public experimental::EnableDistributedLinOp<overlapping_schwarz> {
+    overlapping_schwarz(std::shared_ptr<const Executor> exec,
+                        experimental::mpi::communicator comm,
+                        std::shared_ptr<overlapping_mtx> local_mtx = nullptr,
+                        comm_info_t comm_info = {MPI_COMM_NULL})
+        : experimental::distributed::DistributedBase(comm),
+          experimental::EnableDistributedLinOp<overlapping_schwarz>{exec},
+          comm_info(comm_info)
+    {
+        local_solver =
+            ::solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_baseline(gko::stop::mode::absolute)
+                        .with_reduction_factor(1e-4)
+                        .on(exec))
+                .on(exec)
+                ->generate(local_mtx->local_mtx);
+    }
+
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        local_solver->apply(b, x);
+        // exchange data
+        make_consistent(comm_info, as<vec>(x));
+    }
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    std::shared_ptr<::solver> local_solver;
+    comm_info_t comm_info;
+};
+
+
+}  // namespace gko
 
 
 int main(int argc, char* argv[])
 {
-    // @sect3{Type Definitiions}
-    // Define the needed types. In a parallel program we need to differentiate
-    // beweeen global and local indices, thus we have two index types.
-    using LocalIndexType = gko::int32;
-    // The underlying value type.
-    using ValueType = double;
-    // As vector type we use the following, which implements a subset of @ref
-    // gko::matrix::Dense.
-    using vec = gko::matrix::Dense<ValueType>;
-    using dist_vec = gko::experimental::distributed::Vector<ValueType>;
-    // As matrix type we simply use the following type, which can read
-    // distributed data and be applied to a distributed vector.
-    using mtx = gko::matrix::Csr<ValueType, LocalIndexType>;
-    // We can use here the same solver type as you would use in a
-    // non-distributed program. Please note that not all solvers support
-    // distributed systems at the moment.
-    using solver = gko::solver::Cg<ValueType>;
-
     // @sect3{Initialization and User Input Handling}
     // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
@@ -317,54 +504,43 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
-    // @sect3{Solve the Distributed System}
-    // Generate the solver, this is the same as in the non-distributed case.
-    auto Ainv =
-        solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
-                    .on(exec))
-            .on(exec)
-            ->generate(A);
-
-    // Take timings.
-    comm.synchronize();
-    ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
-
     auto one = gko::initialize<vec>({1}, exec);
     auto exact_solution = dist_vec ::create(
         exec, comm, vec::create(exec, gko::dim<2>{num_vertices_y, 1}).get());
     exact_solution->fill(1.0);
 
-    std::vector<int> send_sizes(comm.size());
-    std::vector<int> send_offsets(send_sizes.size() + 1);
-    std::vector<int> recv_sizes(comm.size());
-    std::vector<int> recv_offsets(recv_sizes.size() + 1);
+    gko::comm_info_t comm_info{comm};
+
+    comm_info.send_sizes = std::vector<int>(comm.size());
+    comm_info.send_offsets = std::vector<int>(comm_info.send_sizes.size() + 1);
+    comm_info.recv_sizes = std::vector<int>(comm.size());
+    comm_info.recv_offsets = std::vector<int>(comm_info.recv_sizes.size() + 1);
     if (comm.rank() > 0) {
-        send_sizes[comm.rank() - 1] = num_vertices_y;
-        recv_sizes[comm.rank() - 1] = num_vertices_y;
+        comm_info.send_sizes[comm.rank() - 1] = num_vertices_y;
+        comm_info.recv_sizes[comm.rank() - 1] = num_vertices_y;
     }
     if (comm.rank() < comm.size() - 1) {
-        send_sizes[comm.rank() + 1] = num_vertices_y;
-        recv_sizes[comm.rank() + 1] = num_vertices_y;
+        comm_info.send_sizes[comm.rank() + 1] = num_vertices_y;
+        comm_info.recv_sizes[comm.rank() + 1] = num_vertices_y;
     }
-    std::partial_sum(send_sizes.begin(), send_sizes.end(),
-                     send_offsets.begin() + 1);
-    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
-                     recv_offsets.begin() + 1);
+    std::partial_sum(comm_info.send_sizes.begin(), comm_info.send_sizes.end(),
+                     comm_info.send_offsets.begin() + 1);
+    std::partial_sum(comm_info.recv_sizes.begin(), comm_info.recv_sizes.end(),
+                     comm_info.recv_offsets.begin() + 1);
 
     auto send_buffer = vec::create(
-        exec, gko::dim<2>{static_cast<gko::size_type>(send_offsets.back()), 1});
+        exec,
+        gko::dim<2>{static_cast<gko::size_type>(comm_info.send_offsets.back()),
+                    1});
     auto recv_buffer = vec::create(
-        exec, gko::dim<2>{static_cast<gko::size_type>(recv_offsets.back()), 1});
+        exec,
+        gko::dim<2>{static_cast<gko::size_type>(comm_info.recv_offsets.back()),
+                    1});
 
-    gko::array<LocalIndexType> send_idxs(exec->get_master(),
-                                         send_offsets.back());
-    gko::array<LocalIndexType> recv_idxs(exec->get_master(),
-                                         recv_offsets.back());
+    comm_info.send_idxs = gko::array<LocalIndexType>(
+        exec->get_master(), comm_info.send_offsets.back());
+    comm_info.recv_idxs = gko::array<LocalIndexType>(
+        exec->get_master(), comm_info.recv_offsets.back());
     {
         // TODO: should remove physical boundary idxs
         auto fixed_x_map = [&](const auto x, auto&& map) {
@@ -384,76 +560,50 @@ int main(int argc, char* argv[])
         };
         if (comm.rank() > 0) {
             setup_idxs(fixed_x_map(2 * overlap - 1, ltr_map), {0, 1},
-                       send_idxs.get_data());
-            setup_idxs(fixed_x_map(0, utr_map), {2, 0}, recv_idxs.get_data());
+                       comm_info.send_idxs.get_data());
+            setup_idxs(fixed_x_map(0, utr_map), {2, 0},
+                       comm_info.recv_idxs.get_data());
         }
         if (comm.rank() < comm.size() - 1) {
             auto offset = num_boundary_intersections > 0 ? 0 : num_vertices_y;
 
             setup_idxs(fixed_x_map(num_elements_x - 2 * overlap, utr_map),
-                       {2, 0}, send_idxs.get_data() + offset);
+                       {2, 0}, comm_info.send_idxs.get_data() + offset);
             setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map), {0, 1},
-                       recv_idxs.get_data() + offset);
+                       comm_info.recv_idxs.get_data() + offset);
         }
-        send_idxs.set_executor(exec);
-        recv_idxs.set_executor(exec);
+        comm_info.send_idxs.set_executor(exec);
+        comm_info.recv_idxs.set_executor(exec);
     }
 
-    auto local_error = vec::create(exec->get_master(), gko::dim<2>{1, 1});
-    for (gko::size_type it = 0; it < num_iters; ++it) {
-        // exchange boundary data
-        // maybe also need to exchange whole overlap?
-        // could also store overlap dofs in separate vector
-        // would need 3 vectors:
-        // 1. locally owned
-        // 2. remote dofs
-        // 3. remote dofs
-        x->row_gather(&send_idxs, send_buffer.get());
-        comm.all_to_all_v(exec, send_buffer->get_values(), send_sizes.data(),
-                          send_offsets.data(), recv_buffer->get_values(),
-                          recv_sizes.data(), recv_offsets.data());
-        for (gko::size_type i = 0; i < recv_idxs.get_num_elems(); ++i) {
-            b->at(recv_idxs.get_data()[i]) = recv_buffer->get_values()[i];
-            x->at(recv_idxs.get_data()[i]) =
-                recv_buffer->get_values()[i];  // set dir cond
-        }
+    auto ovlp_A =
+        std::make_shared<gko::overlapping_mtx>(exec, comm, A, comm_info);
 
-        // inner solve
-        Ainv->apply(gko::lend(b), gko::lend(x));
-        // depending on partition of unity, might need to combine overlapping
-        // dofs
+    auto ovlp_x = std::make_shared<gko::overlapping_vec>(
+        exec, comm, std::move(x), comm_info.recv_idxs);
+    auto ovlp_b = std::make_shared<gko::overlapping_vec>(
+        exec, comm, std::move(b), comm_info.recv_idxs);
 
-        // compute error
-        // need to restrict to owned dofs
-        double t = 0.0;
-        auto x_view =
-            vec::create(exec, gko::dim<2>{num_vertices_x, num_vertices_y},
-                        gko::make_array_view(exec, x->get_num_stored_elements(),
-                                             x->get_values()),
-                        1);
-        for (int iy = 0; iy < num_vertices_y; ++iy) {
-            auto interior_row_x = dist_vec ::create(
-                exec, comm,
-                x_view
-                    ->create_submatrix(
-                        {rank == 0 ? 0 : overlap,
-                         rank == comm.size() - 1 ? num_vertices_x
-                                                 : num_vertices_x - overlap},
-                        {static_cast<gko::size_type>(iy)})
-                    .get());
-            auto error = gko::clone(exact_solution);
-            error->sub_scaled(one.get(), interior_row_x.get());
-            error->compute_dot(error.get(), local_error.get());
-            t += local_error->at(0) * dx;
-        }
-        if (rank == 0) {
-            std::cout << it << ": " << std::sqrt(t) << std::endl;
-        }
-    }
+    // @sect3{Solve the Distributed System}
+    // Generate the solver, this is the same as in the non-distributed case.
+    auto Ainv =
+        solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(1e-4)
+                    .on(exec))
+            .on(exec)
+            ->generate(ovlp_A);
+    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
+    Ainv->add_logger(logger);
 
-    // Apply the distributed solver, this is the same as in the non-distributed
-    // case.
-    Ainv->apply(gko::lend(b), gko::lend(x));
+    // Take timings.
+    comm.synchronize();
+    ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
+
+    Ainv->apply(ovlp_b, ovlp_x);
 
     // Take timings.
     comm.synchronize();
@@ -461,12 +611,7 @@ int main(int argc, char* argv[])
 
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
-    x_host->copy_from(x.get());
-    auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(gko::lend(minus_one), gko::lend(x_host), gko::lend(one),
-                  gko::lend(b_host));
-    auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(gko::lend(res_norm));
+    auto res_norm = logger->get_residual_norm();
 
     // Take timings.
     comm.synchronize();
@@ -478,8 +623,9 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
-                  << "\nFinal Res norm: " << *res_norm->get_values()
-                  << "\nInit time: " << t_init_end - t_init
+                  << "\nFinal Res norm: ";
+        gko::write(std::cout, gko::as<vec>(res_norm));
+        std::cout << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
                   << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
