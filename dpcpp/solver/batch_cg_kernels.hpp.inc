@@ -134,21 +134,17 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-void apply_kernel(
-    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
-    const gko::remove_complex<ValueType> tol, LogType logger,
-    PrecType prec_shared, const BatchMatrixType A_global_entry,
-    const ValueType* const __restrict__ b_global_entry,
-    ValueType* const __restrict__ x_global_entry, const size_type nrows,
-    const size_type nnz,
-    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                   sycl::access::target::local>
-        local_mem_sh,
-    sycl::accessor<gko::remove_complex<ValueType>, 1,
-                   sycl::access_mode::read_write, sycl::access::target::local>
-        all_norms_sh,
-    sycl::nd_item<3> item_ct1,
-    ValueType* const __restrict__ workspace = nullptr)
+void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
+                  const int max_iter, const gko::remove_complex<ValueType> tol,
+                  LogType logger, PrecType prec_shared,
+                  const BatchMatrixType A_global_entry,
+                  const ValueType* const __restrict__ b_global_entry,
+                  ValueType* const __restrict__ x_global_entry,
+                  const size_type nrows, const size_type nnz,
+                  ValueType* slm_values,
+                  gko::remove_complex<ValueType>* slm_reals,
+                  sycl::nd_item<3> item_ct1,
+                  ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
@@ -159,15 +155,14 @@ void apply_kernel(
 
     const auto ibatch = item_ct1.get_group_linear_id();
 
-    ValueType* rho_old_sh = &local_mem_sh[0];
-    ValueType* rho_new_sh = &local_mem_sh[1];
-    ValueType* alpha_sh = &local_mem_sh[2];
-    remove_complex<ValueType>* norms_rhs_sh = &all_norms_sh[0];
-    remove_complex<ValueType>* norms_res_sh = &all_norms_sh[1];
+    ValueType* rho_old_sh = &slm_values[0];
+    ValueType* rho_new_sh = &slm_values[1];
+    ValueType* alpha_sh = &slm_values[2];
+    remove_complex<ValueType>* norms_rhs_sh = &slm_reals[0];
+    remove_complex<ValueType>* norms_res_sh = &slm_reals[1];
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
-    //        extern __shared__ char local_mem_sh[];
     ValueType* r_sh;
     ValueType* z_sh;
     ValueType* p_sh;
@@ -175,8 +170,7 @@ void apply_kernel(
     ValueType* x_sh;
     ValueType* prec_work_sh;
     if (sconf.n_shared >= 1) {
-        // r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        r_sh = &local_mem_sh[3];
+        r_sh = &slm_values[3];
     } else {
         r_sh = workspace + gmem_offset;
     }
