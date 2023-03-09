@@ -87,13 +87,31 @@ public:
     std::int64_t get_num_repetitions() const { return duration_sec_.size(); }
 
     /**
-     * Compute the average time of repetitions in seconds
+     * Compute the time from the given statistical method
      *
-     * @return the average time in seconds
+     * @param method  the statistical method
+     *
+     * @return the statistical time
      */
-    double compute_average_time() const
+    double compute_time(const std::string& method = "average") const
     {
-        return this->get_total_time() / this->get_num_repetitions();
+        if (method == "average") {
+            return this->get_total_time() / this->get_num_repetitions();
+        }
+        auto copy = duration_sec_;
+        std::sort(copy.begin(), copy.end());
+        if (method == "best") {
+            return copy.front();
+        } else if (method == "worst") {
+            return copy.back();
+        } else if (method == "median") {
+            auto mid = copy.size() / 2;
+            if (copy.size() % 2) {
+                return (copy.at(mid) + copy.at(mid - 1)) / 2;
+            } else {
+                return copy.at(mid);
+            }
+        }
     }
 
     /**

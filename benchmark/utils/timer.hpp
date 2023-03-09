@@ -51,6 +51,10 @@ DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
 
+DEFINE_string(timer_output, "average",
+              "The statistical method for output of timer. Available options: "
+              "average, median, best, worst");
+
 
 /**
  * Get the timer. If the executor does not support gpu timer, still return the

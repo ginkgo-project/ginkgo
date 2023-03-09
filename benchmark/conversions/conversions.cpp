@@ -87,7 +87,7 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
             matrix_to->copy_from(matrix_from);
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          ic.compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_output), allocator);
         add_or_set_member(conversion_case[conversion_name], "repetitions",
                           ic.get_num_repetitions(), allocator);
 

@@ -116,8 +116,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             for (auto _ : ic_tuning.run()) {
                 system_matrix->apply(b, x_clone);
             }
-            tuning_case["time"].PushBack(ic_tuning.compute_average_time(),
-                                         allocator);
+            tuning_case["time"].PushBack(
+                ic_tuning.compute_time(FLAGS_timer_output), allocator);
             tuning_case["values"].PushBack(val, allocator);
         }
         // We put back the flag to false to use the default (non-tuned) values
@@ -131,7 +131,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             system_matrix->apply(b, x_clone);
         }
         add_or_set_member(spmv_case[format_name], "time",
-                          ic.compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_output), allocator);
         add_or_set_member(spmv_case[format_name], "repetitions",
                           ic.get_num_repetitions(), allocator);
 
