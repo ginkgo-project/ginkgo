@@ -56,11 +56,9 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     {
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-            gko::as<typename LocalGenerator::Vec>(
-                local_generator.generate_rhs(
-                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
-                    config))
-                .get());
+            local_generator.generate_rhs(
+                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                config));
     }
 
     std::unique_ptr<Vec> generate_initial_guess(
@@ -69,11 +67,9 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     {
         return Vec::create(
             exec, comm, gko::dim<2>{rhs->get_size()[0], FLAGS_nrhs},
-            gko::as<typename LocalGenerator::Vec>(
-                local_generator.generate_initial_guess(
-                    exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
-                    rhs->get_local_vector()))
-                .get());
+            local_generator.generate_initial_guess(
+                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                rhs->get_local_vector()));
     }
 };
 
