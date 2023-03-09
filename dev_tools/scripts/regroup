@@ -4,7 +4,7 @@ IncludeCategories:
     Priority: 3
   - Regex: '^<(omp|cu|hip|thrust|CL/|cooperative|oneapi|mpi|nvToolsExt).*'
     Priority: 2
-  - Regex: '^<ginkgo.*'
+  - Regex: '^<(ginkgo|property_tree).*'
     Priority: 5
   - Regex: '^".*'
     Priority: 6
