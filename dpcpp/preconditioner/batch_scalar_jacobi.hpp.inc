@@ -165,11 +165,7 @@ template <typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void batch_scalar_jacobi_apply(
     BatchScalarJacobi<ValueType> prec, const BatchMatrixType sys_mat_batch,
     const size_type batch_id, const int nrows, const ValueType* const b_values,
-    ValueType* const x_values,
-    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                   sycl::access::target::local>
-        sh_mem,
-    sycl::nd_item<3> item_ct1)
+    ValueType* const x_values, ValueType* sh_mem, sycl::nd_item<3> item_ct1)
 {
     const auto sys_mat_batch_entry =
         batch::batch_entry(sys_mat_batch, batch_id);
