@@ -5,13 +5,22 @@ CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
 convert_header () {
     local regex="^(#include )(<|\")(.*)(\"|>)$"
     local jacobi_regex="^(cuda|hip|dpcpp)\/preconditioner\/jacobi_common(\.hip)?\.hpp"
-    if [[ $@ =~ ${regex} ]]; then
+    local parent_folder="$2"
+    if [[ $1 =~ ${regex} ]]; then
         header_file="${BASH_REMATCH[3]}"
         if [ -f "${header_file}" ]; then
             if [[ "${header_file}" =~ ^ginkgo ]]; then
                 echo "#include <${header_file}>"
             else
                 echo "#include \"${header_file}\""
+            fi
+        elif [[ "${parent_folder}" != "" ]]; then
+            if [ -f "${parent_folder}/include/${header_file}" ]; then
+                echo "#include <${header_file}>"
+            elif [ -f "${parent_folder}/${header_file}" ]; then
+                echo "#include \"${header_file}\""
+            else
+                echo "#include <${header_file}>"
             fi
         elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
@@ -21,14 +30,14 @@ convert_header () {
             echo "#include <${header_file}>"
         fi
     else
-        echo "$@"
+        echo "$1"
     fi
 }
 
 get_header_def () {
     local regex="\.(hpp|cuh)"
     if [[ $@ =~ $regex ]]; then
-        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~/|\.~_~g")
+        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~extension/[^/]*/include/~PUBLIC_EXT_~g;s~/|\.~_~g")
 	# Used to get rid of \r in Windows
         def=$(echo "GKO_${def^^}_")
         echo "$def"
@@ -211,6 +220,10 @@ DURING_FORCE_TOP="false"
 
 get_include_regex "$1" MAIN_PART_MATCH
 HEADER_DEF=$(get_header_def "$1")
+PARENT_FOLDER=""
+if [[ "$1" =~ extension\/([^\/]*)\/ ]]; then
+    PARENT_FOLDER="extension/${BASH_REMATCH[1]}"
+fi
 
 IFNDEF=""
 DEFINE=""
@@ -242,7 +255,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
             DURING_FORCE_TOP="false"
         fi
         if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header "${line}")"
+            line="$(convert_header "${line}" "${PARENT_FOLDER}")"
         fi
         echo "$line" >> "${FORCE_TOP}"
     elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
@@ -250,7 +263,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
         :
     else
         if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header "${line}")"
+            line="$(convert_header "${line}" "${PARENT_FOLDER}")"
         fi
         if [ -z "${line}" ]; then
             KEEP_LINES=$((KEEP_LINES+1))
