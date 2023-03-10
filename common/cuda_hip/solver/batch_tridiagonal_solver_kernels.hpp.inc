@@ -341,6 +341,24 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
 
 namespace WM_pGE_approach2 {
 
+// template < typename T>
+// struct get_type_2
+// {
+
+// };
+
+// template<>
+// struct get_type_2<double>
+// {
+//     using type = double2;
+// };
+
+// template<>
+// struct get_type_2<float>
+// {
+//     using type = float2;
+// };
+
 
 template <typename ValueType, typename Group>
 __device__ __forceinline__ void WM_step(Group& subwarp_grp,

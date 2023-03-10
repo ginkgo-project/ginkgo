@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/exception.cuh"
 #include "cuda/base/math.hpp"
 #include "cuda/components/cooperative_groups.cuh"
@@ -83,19 +84,42 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     auto rhs_cl = gko::clone(exec, rhs);
     auto x_cl = gko::clone(exec, x);
 
-    WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
-        num_WM_steps, nbatch, nrows,
-        as_cuda_type(tridiag_mat_cl->get_sub_diagonal()),
-        as_cuda_type(tridiag_mat_cl->get_main_diagonal()),
-        as_cuda_type(tridiag_mat_cl->get_super_diagonal()),
-        as_cuda_type(rhs_cl->get_values()), as_cuda_type(x_cl->get_values()));
+    // WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
+    //     num_WM_steps, nbatch, nrows,
+    //     as_cuda_type(tridiag_mat_cl->get_sub_diagonal()),
+    //     as_cuda_type(tridiag_mat_cl->get_main_diagonal()),
+    //     as_cuda_type(tridiag_mat_cl->get_super_diagonal()),
+    //     as_cuda_type(rhs_cl->get_values()),
+    //     as_cuda_type(x_cl->get_values()));
 
-    WM_pGE_kernel_approach_2<subwarpsize><<<grid, block, shared_size>>>(
-        num_WM_steps, nbatch, nrows,
-        as_cuda_type(tridiag_mat->get_sub_diagonal()),
-        as_cuda_type(tridiag_mat->get_main_diagonal()),
-        as_cuda_type(tridiag_mat->get_super_diagonal()),
-        as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+    // WM_pGE_kernel_approach_2<subwarpsize><<<grid, block, shared_size>>>(
+    //     num_WM_steps, nbatch, nrows,
+    //     as_cuda_type(tridiag_mat->get_sub_diagonal()),
+    //     as_cuda_type(tridiag_mat->get_main_diagonal()),
+    //     as_cuda_type(tridiag_mat->get_super_diagonal()),
+    //     as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+
+    // GKO_CUDA_LAST_IF_ERROR_THROW;
+
+    x->copy_from(rhs);
+
+    auto handle = exec->get_cusparse_handle();
+    if (!cusparse::is_supported<ValueType, int>::value) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    size_type bufferSizeInBytes = 0;
+    cusparse::gtsv2StridedBatched_buffer_size(
+        handle, nrows, tridiag_mat->get_sub_diagonal(),
+        tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
+        x->get_values(), nbatch, nrows, bufferSizeInBytes);
+
+    gko::array<char> buffer(exec, bufferSizeInBytes);
+
+    cusparse::gtsv2StridedBatch(
+        handle, nrows, tridiag_mat->get_sub_diagonal(),
+        tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
+        x->get_values(), nbatch, nrows, buffer.get_data());
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
