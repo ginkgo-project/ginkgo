@@ -56,14 +56,9 @@ using namespace gko::kernels::cuda;
 using cooperative_groups::this_thread_block;
 
 
-class Searching : public ::testing::Test {
+class Searching : public CudaTestFixture {
 protected:
-    Searching()
-        : ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref)),
-          result(ref, 1),
-          dresult(cuda),
-          sizes(14203)
+    Searching() : result(ref, 1), dresult(exec), sizes(14203)
     {
         std::iota(sizes.begin(), sizes.end(), 0);
     }
@@ -73,16 +68,14 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-        kernel<<<num_blocks, config::warp_size>>>(dresult.get_data(), offset,
-                                                  size);
+        kernel<<<num_blocks, config::warp_size, 0, exec->get_stream()>>>(
+            dresult.get_data(), offset, size);
         result = dresult;
         auto success = *result.get_const_data();
 
         ASSERT_TRUE(success);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> cuda;
     gko::array<bool> result;
     gko::array<bool> dresult;
     std::vector<int> sizes;

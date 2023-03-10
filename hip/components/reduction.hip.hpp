@@ -84,18 +84,20 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 
         block_results.resize_and_reset(grid_dim);
 
-        hipLaunchKernelGGL(
-            reduce_add_array, grid_dim, default_reduce_block_size, 0, 0, size,
-            as_hip_type(source), as_hip_type(block_results.get_data()));
+
+        reduce_add_array<<<grid_dim, default_reduce_block_size, 0,
+                           exec->get_stream()>>>(
+            size, as_device_type(source),
+            as_device_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
     }
 
     auto d_result = array<ValueType>(exec, 1);
 
-    hipLaunchKernelGGL(reduce_add_array, 1, default_reduce_block_size, 0, 0,
-                       grid_dim, as_hip_type(block_results_val),
-                       as_hip_type(d_result.get_data()));
+    reduce_add_array<<<1, default_reduce_block_size, 0, exec->get_stream()>>>(
+        grid_dim, as_device_type(block_results_val),
+        as_device_type(d_result.get_data()));
     auto answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;
 }

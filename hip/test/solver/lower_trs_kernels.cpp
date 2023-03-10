@@ -51,26 +51,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class LowerTrs : public ::testing::Test {
+class LowerTrs : public HipTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
 
     LowerTrs() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -94,11 +80,11 @@ protected:
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx);
-        d_csr_mtx = CsrMtx::create(hip);
-        d_x = gko::clone(hip, x);
+        d_csr_mtx = CsrMtx::create(exec);
+        d_x = gko::clone(exec, x);
         d_csr_mtx->copy_from(csr_mtx);
         b2 = Mtx::create(ref);
-        d_b2 = gko::clone(hip, b);
+        d_b2 = gko::clone(exec, b);
         b2->copy_from(b);
     }
 
@@ -111,8 +97,6 @@ protected:
     std::shared_ptr<Mtx> d_b2;
     std::shared_ptr<Mtx> d_x;
     std::shared_ptr<CsrMtx> d_csr_mtx;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
     std::default_random_engine rand_engine;
 };
 
@@ -121,7 +105,7 @@ TEST_F(LowerTrs, HipLowerTrsFlagCheckIsCorrect)
 {
     bool trans_flag = false;
     bool expected_flag = true;
-    gko::kernels::hip::lower_trs::should_perform_transpose(hip, trans_flag);
+    gko::kernels::hip::lower_trs::should_perform_transpose(exec, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
@@ -131,7 +115,7 @@ TEST_F(LowerTrs, HipSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(hip);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(exec);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
@@ -148,7 +132,7 @@ TEST_F(LowerTrs, HipMultipleRhsApplyIsEquivalentToRef)
     auto lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
-        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(hip);
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(exec);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 

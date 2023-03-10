@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "cuda/base/thrust.cuh"
 #include "cuda/components/atomic.cuh"
 
 

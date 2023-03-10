@@ -66,6 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_block_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
@@ -243,53 +244,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Fbcsr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
-{
-    constexpr auto warps_per_block = default_block_size / config::warp_size;
-    const auto num_blocks =
-        ceildiv(source->get_num_block_rows(), warps_per_block);
-    if (num_blocks > 0) {
-        kernel::fill_in_dense<<<num_blocks, default_block_size>>>(
-            source->get_const_row_ptrs(), source->get_const_col_idxs(),
-            as_cuda_type(source->get_const_values()),
-            as_cuda_type(result->get_values()), result->get_stride(),
-            source->get_num_block_rows(), source->get_block_size());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(const std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType>* const source,
-                    matrix::Csr<ValueType, IndexType>* const result)
-{
-    constexpr auto warps_per_block = default_block_size / config::warp_size;
-    const auto num_blocks =
-        ceildiv(source->get_num_block_rows(), warps_per_block);
-    if (num_blocks > 0) {
-        kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
-            source->get_const_row_ptrs(), source->get_const_col_idxs(),
-            as_cuda_type(source->get_const_values()), result->get_row_ptrs(),
-            result->get_col_idxs(), as_cuda_type(result->get_values()),
-            source->get_num_block_rows(), source->get_block_size());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
-
-
 namespace {
 
 
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
+                           std::shared_ptr<const DefaultExecutor> exec,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
     constexpr int subwarp_size = config::warp_size;
@@ -299,7 +259,8 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
     const auto grid_dim = ceildiv(numthreads, block_size);
     if (grid_dim > 0) {
         kernel::transpose_blocks<mat_blk_sz, subwarp_size>
-            <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
+            <<<grid_dim, block_size, 0, exec->get_stream()>>>(
+                nbnz, mat->get_values());
     }
 }
 
@@ -338,7 +299,7 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
         select_transpose_blocks(
             fixedblock::compiled_kernels(),
             [bs](int compiled_block_size) { return bs == compiled_block_size; },
-            syn::value_list<int>(), syn::type_list<>(), trans);
+            syn::value_list<int>(), syn::type_list<>(), exec, trans);
     } else {
         fallback_transpose(exec, orig, trans);
     }
@@ -357,58 +318,15 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
     if (grid_size > 0 && is_complex<ValueType>()) {
-        kernel::conjugate<<<grid_size, default_block_size>>>(
-            trans->get_num_stored_elements(),
-            as_cuda_type(trans->get_values()));
+        kernel::
+            conjugate<<<grid_size, default_block_size, 0, exec->get_stream()>>>(
+                trans->get_num_stored_elements(),
+                as_device_type(trans->get_values()));
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const to_check,
-    bool* const is_sorted)
-{
-    *is_sorted = true;
-    auto gpu_array = array<bool>(exec, 1);
-    // need to initialize the GPU value to true
-    exec->copy_from(exec->get_master(), 1, is_sorted, gpu_array.get_data());
-    auto block_size = default_block_size;
-    const auto num_brows =
-        static_cast<IndexType>(to_check->get_num_block_rows());
-    const auto num_blocks = ceildiv(num_brows, block_size);
-    if (num_blocks > 0) {
-        kernel::check_unsorted<<<num_blocks, block_size>>>(
-            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-            num_brows, gpu_array.get_data());
-    }
-    *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(const std::shared_ptr<const CudaExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace fbcsr

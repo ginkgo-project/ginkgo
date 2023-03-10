@@ -98,11 +98,10 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::threshold_filter_nnz<subwarp_size>),
-            num_blocks, default_block_size, 0, 0, old_row_ptrs,
-            as_hip_type(old_vals), num_rows, as_hip_type(threshold),
-            new_row_ptrs, lower);
+        kernel::threshold_filter_nnz<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, as_device_type(old_vals), num_rows,
+                as_device_type(threshold), new_row_ptrs, lower);
     }
 
     // build row pointers
@@ -127,12 +126,11 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
         new_row_idxs = m_out_coo->get_row_idxs();
     }
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::threshold_filter<subwarp_size>), num_blocks,
-            default_block_size, 0, 0, old_row_ptrs, old_col_idxs,
-            as_hip_type(old_vals), num_rows, as_hip_type(threshold),
-            new_row_ptrs, new_row_idxs, new_col_idxs, as_hip_type(new_vals),
-            lower);
+        kernel::threshold_filter<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, old_col_idxs, as_device_type(old_vals), num_rows,
+                as_device_type(threshold), new_row_ptrs, new_row_idxs,
+                new_col_idxs, as_device_type(new_vals), lower);
     }
 }
 

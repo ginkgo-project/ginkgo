@@ -46,25 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class MatricesNear : public ::testing::Test {
-protected:
-    void SetUp()
-    {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
-};
+class MatricesNear : public HipTestFixture {};
 
 
 TEST_F(MatricesNear, CanPassHipMatrix)
@@ -73,7 +55,7 @@ TEST_F(MatricesNear, CanPassHipMatrix)
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     auto csr_ref = gko::matrix::Csr<>::create(ref);
     csr_ref->copy_from(mtx);
-    auto csr_mtx = gko::matrix::Csr<>::create(hip);
+    auto csr_mtx = gko::matrix::Csr<>::create(exec);
     csr_mtx->move_from(csr_ref);
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);

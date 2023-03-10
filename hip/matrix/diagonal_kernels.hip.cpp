@@ -63,32 +63,6 @@ constexpr int default_block_size = 512;
 #include "common/cuda_hip/matrix/diagonal_kernels.hpp.inc"
 
 
-template <typename ValueType, typename IndexType>
-void apply_to_csr(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Diagonal<ValueType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
-{
-    const auto num_rows = b->get_size()[0];
-    const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
-
-    const auto grid_dim =
-        ceildiv(num_rows * config::warp_size, default_block_size);
-    if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::apply_to_csr, grid_dim, default_block_size,
-                           0, 0, num_rows, as_hip_type(diag_values),
-                           as_hip_type(csr_row_ptrs), as_hip_type(csr_values),
-                           inverse);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
-
-
 }  // namespace diagonal
 }  // namespace hip
 }  // namespace kernels

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/tuple.h>
 
 
+#include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
 
 

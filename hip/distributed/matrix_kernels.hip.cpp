@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "hip/base/thrust.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 
 

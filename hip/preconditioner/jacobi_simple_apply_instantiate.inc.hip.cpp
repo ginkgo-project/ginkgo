@@ -74,7 +74,8 @@ namespace jacobi {
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
+void apply(syn::value_list<int, max_block_size>,
+           std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            const precision_reduction* block_precisions,
            const IndexType* block_pointers, const ValueType* blocks,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -90,20 +91,18 @@ void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
 
     if (grid_size > 0) {
         if (block_precisions) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(
-                    kernel::adaptive_apply<max_block_size, subwarp_size,
-                                           warps_per_block>),
-                grid_size, block_size, 0, 0, as_hip_type(blocks),
-                storage_scheme, block_precisions, block_pointers, num_blocks,
-                as_hip_type(b), b_stride, as_hip_type(x), x_stride);
+            kernel::adaptive_apply<max_block_size, subwarp_size,
+                                   warps_per_block>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    as_device_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_device_type(b), b_stride,
+                    as_device_type(x), x_stride);
         } else {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::apply<max_block_size, subwarp_size,
-                                              warps_per_block>),
-                grid_size, block_size, 0, 0, as_hip_type(blocks),
-                storage_scheme, block_pointers, num_blocks, as_hip_type(b),
-                b_stride, as_hip_type(x), x_stride);
+            kernel::apply<max_block_size, subwarp_size, warps_per_block>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    as_device_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_device_type(b), b_stride, as_device_type(x),
+                    x_stride);
         }
     }
 }
@@ -112,7 +111,8 @@ void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
 #define DECLARE_JACOBI_SIMPLE_APPLY_INSTANTIATION(ValueType, IndexType)       \
     void apply<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE, ValueType, \
                IndexType>(                                                    \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>, size_type,               \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                          \
+        std::shared_ptr<const DefaultExecutor> exec, size_type,               \
         const precision_reduction*, const IndexType*, const ValueType*,       \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,   \
         const ValueType*, size_type, ValueType*, size_type)

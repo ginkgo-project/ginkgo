@@ -66,6 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
@@ -140,43 +141,47 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
             auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
-                    <<<grid, block, 0, 0>>>(
+                    <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_cuda_type(a->get_const_values()),
+                        as_device_type(a->get_const_values()),
                         a->get_const_col_idxs(),
-                        as_cuda_type(a->get_const_row_ptrs()),
-                        as_cuda_type(a->get_const_srow()), as_cuda_type(b_vals),
-                        b->get_stride(), as_cuda_type(c_vals), c->get_stride(),
-                        as_cuda_type(row_out.get_data()),
-                        as_cuda_type(val_out.get_data()));
+                        as_device_type(a->get_const_row_ptrs()),
+                        as_device_type(a->get_const_srow()),
+                        as_device_type(b_vals), b->get_stride(),
+                        as_device_type(c_vals), c->get_stride(),
+                        as_device_type(row_out.get_data()),
+                        as_device_type(val_out.get_data()));
             }
-            kernel::abstract_reduce<<<1, spmv_block_size>>>(
-                grid_num, as_cuda_type(val_out.get_data()),
-                as_cuda_type(row_out.get_data()), as_cuda_type(c_vals),
-                c->get_stride());
+            kernel::
+                abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
+                    grid_num, as_device_type(val_out.get_data()),
+                    as_device_type(row_out.get_data()), as_device_type(c_vals),
+                    c->get_stride());
 
         } else if (alpha != nullptr && beta != nullptr) {
             const auto b_vals = b->get_const_values() + column_id;
             auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
-                    <<<grid, block, 0, 0>>>(
+                    <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_cuda_type(alpha->get_const_values()),
-                        as_cuda_type(a->get_const_values()),
+                        as_device_type(alpha->get_const_values()),
+                        as_device_type(a->get_const_values()),
                         a->get_const_col_idxs(),
-                        as_cuda_type(a->get_const_row_ptrs()),
-                        as_cuda_type(a->get_const_srow()), as_cuda_type(b_vals),
-                        b->get_stride(), as_cuda_type(beta->get_const_values()),
-                        as_cuda_type(c_vals), c->get_stride(),
-                        as_cuda_type(row_out.get_data()),
-                        as_cuda_type(val_out.get_data()));
+                        as_device_type(a->get_const_row_ptrs()),
+                        as_device_type(a->get_const_srow()),
+                        as_device_type(b_vals), b->get_stride(),
+                        as_device_type(beta->get_const_values()),
+                        as_device_type(c_vals), c->get_stride(),
+                        as_device_type(row_out.get_data()),
+                        as_device_type(val_out.get_data()));
             }
-            kernel::abstract_reduce<<<1, spmv_block_size>>>(
-                grid_num, as_cuda_type(val_out.get_data()),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(alpha->get_const_values()), as_cuda_type(c_vals),
-                c->get_stride());
+            kernel::
+                abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
+                    grid_num, as_device_type(val_out.get_data()),
+                    as_device_type(row_out.get_data()),
+                    as_device_type(alpha->get_const_values()),
+                    as_device_type(c_vals), c->get_stride());
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -245,24 +250,24 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, 0>>>(
-                    a->get_size()[0], as_cuda_type(a->get_const_values()),
+                <<<grid, block, 0, exec->get_stream()>>>(
+                    a->get_size()[0], as_device_type(a->get_const_values()),
                     a->get_const_col_idxs(),
-                    as_cuda_type(a->get_const_row_ptrs()),
-                    as_cuda_type(b->get_const_values()), b->get_stride(),
-                    as_cuda_type(c->get_values()), c->get_stride());
+                    as_device_type(a->get_const_row_ptrs()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, 0>>>(
-                    a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-                    as_cuda_type(a->get_const_values()),
+                <<<grid, block, 0, exec->get_stream()>>>(
+                    a->get_size()[0], as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
                     a->get_const_col_idxs(),
-                    as_cuda_type(a->get_const_row_ptrs()),
-                    as_cuda_type(b->get_const_values()), b->get_stride(),
-                    as_cuda_type(beta->get_const_values()),
-                    as_cuda_type(c->get_values()), c->get_stride());
+                    as_device_type(a->get_const_row_ptrs()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(beta->get_const_values()),
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -291,26 +296,28 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         if (alpha) {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
-                kernel::abstract_spmv<<<csr_grid, csr_block>>>(
+                kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                        exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
-                    as_cuda_type(alpha->get_const_values()),
-                    as_cuda_type(a->get_const_values()),
+                    as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
                     a->get_const_col_idxs(),
-                    as_cuda_type(a->get_const_row_ptrs()),
-                    as_cuda_type(a->get_const_srow()),
-                    as_cuda_type(b->get_const_values()), b->get_stride(),
-                    as_cuda_type(c->get_values()), c->get_stride());
+                    as_device_type(a->get_const_row_ptrs()),
+                    as_device_type(a->get_const_srow()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
-                kernel::abstract_spmv<<<csr_grid, csr_block>>>(
+                kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                        exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
-                    as_cuda_type(a->get_const_values()),
+                    as_device_type(a->get_const_values()),
                     a->get_const_col_idxs(),
-                    as_cuda_type(a->get_const_row_ptrs()),
-                    as_cuda_type(a->get_const_srow()),
-                    as_cuda_type(b->get_const_values()), b->get_stride(),
-                    as_cuda_type(c->get_values()), c->get_stride());
+                    as_device_type(a->get_const_row_ptrs()),
+                    as_device_type(a->get_const_srow()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
             }
         }
     }
@@ -680,8 +687,9 @@ void spgeam(syn::value_list<int, subwarp_size>,
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(m, subwarps_per_block);
     if (num_blocks > 0) {
-        kernel::spgeam_nnz<subwarp_size><<<num_blocks, default_block_size>>>(
-            a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+        kernel::spgeam_nnz<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
     }
 
     // build row pointers
@@ -695,10 +703,12 @@ void spgeam(syn::value_list<int, subwarp_size>,
     auto c_col_idxs = c->get_col_idxs();
     auto c_vals = c->get_values();
     if (num_blocks > 0) {
-        kernel::spgeam<subwarp_size><<<num_blocks, default_block_size>>>(
-            as_cuda_type(alpha), a_row_ptrs, a_col_idxs, as_cuda_type(a_vals),
-            as_cuda_type(beta), b_row_ptrs, b_col_idxs, as_cuda_type(b_vals), m,
-            c_row_ptrs, c_col_idxs, as_cuda_type(c_vals));
+        kernel::spgeam<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                as_device_type(alpha), a_row_ptrs, a_col_idxs,
+                as_device_type(a_vals), as_device_type(beta), b_row_ptrs,
+                b_col_idxs, as_device_type(b_vals), m, c_row_ptrs, c_col_idxs,
+                as_device_type(c_vals));
     }
 }
 
@@ -898,9 +908,10 @@ void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
 
     auto grid_dim = ceildiv(num_rows, default_block_size);
     if (grid_dim > 0) {
-        kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
-            num_rows, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
-            as_cuda_type(vals), stride, as_cuda_type(result->get_values()));
+        kernel::fill_in_dense<<<grid_dim, default_block_size, 0,
+                                exec->get_stream()>>>(
+            num_rows, as_device_type(row_ptrs), as_device_type(col_idxs),
+            as_device_type(vals), stride, as_device_type(result->get_values()));
     }
 }
 
@@ -1009,9 +1020,9 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         fallback_transpose(exec, orig, trans);
     }
     if (grid_size > 0 && is_complex<ValueType>()) {
-        kernel::conjugate<<<grid_size, block_size, 0, 0>>>(
+        kernel::conjugate<<<grid_size, block_size, 0, exec->get_stream()>>>(
             trans->get_num_stored_elements(),
-            as_cuda_type(trans->get_values()));
+            as_device_type(trans->get_values()));
     }
 }
 
@@ -1028,7 +1039,8 @@ void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size>>>(
+        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size, 0,
+                                      exec->get_stream()>>>(
             num_rows, perm, orig->get_const_row_ptrs(),
             permuted->get_row_ptrs());
     }
@@ -1037,12 +1049,12 @@ void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         kernel::inv_symm_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size>>>(
+            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, perm, orig->get_const_row_ptrs(),
                 orig->get_const_col_idxs(),
-                as_cuda_type(orig->get_const_values()),
+                as_device_type(orig->get_const_values()),
                 permuted->get_row_ptrs(), permuted->get_col_idxs(),
-                as_cuda_type(permuted->get_values()));
+                as_device_type(permuted->get_values()));
     }
 }
 
@@ -1059,7 +1071,8 @@ void row_permute(std::shared_ptr<const CudaExecutor> exec,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        kernel::row_ptr_permute<<<count_num_blocks, default_block_size>>>(
+        kernel::row_ptr_permute<<<count_num_blocks, default_block_size, 0,
+                                  exec->get_stream()>>>(
             num_rows, perm, orig->get_const_row_ptrs(),
             row_permuted->get_row_ptrs());
     }
@@ -1068,12 +1081,12 @@ void row_permute(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         kernel::row_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size>>>(
+            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, perm, orig->get_const_row_ptrs(),
                 orig->get_const_col_idxs(),
-                as_cuda_type(orig->get_const_values()),
+                as_device_type(orig->get_const_values()),
                 row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-                as_cuda_type(row_permuted->get_values()));
+                as_device_type(row_permuted->get_values()));
     }
 }
 
@@ -1090,7 +1103,8 @@ void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size>>>(
+        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size, 0,
+                                      exec->get_stream()>>>(
             num_rows, perm, orig->get_const_row_ptrs(),
             row_permuted->get_row_ptrs());
     }
@@ -1099,12 +1113,12 @@ void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         kernel::inv_row_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size>>>(
+            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, perm, orig->get_const_row_ptrs(),
                 orig->get_const_col_idxs(),
-                as_cuda_type(orig->get_const_values()),
+                as_device_type(orig->get_const_values()),
                 row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-                as_cuda_type(row_permuted->get_values()));
+                as_device_type(row_permuted->get_values()));
     }
 }
 
@@ -1123,9 +1137,10 @@ void calculate_nonzeros_per_row_in_span(
     auto col_idxs = source->get_const_col_idxs();
     auto grid_dim = ceildiv(row_span.length(), default_block_size);
     if (grid_dim > 0) {
-        kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size>>>(
-            row_span, col_span, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
-            as_cuda_type(row_nnz->get_data()));
+        kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size, 0,
+                                                exec->get_stream()>>>(
+            row_span, col_span, as_device_type(row_ptrs),
+            as_device_type(col_idxs), as_device_type(row_nnz->get_data()));
     }
 }
 
@@ -1146,15 +1161,15 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
     if (grid_dim > 0) {
-        kernel::
-            compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size>>>(
-                num_rows, num_cols, row_offset, col_offset,
-                as_cuda_type(source->get_const_row_ptrs()),
-                as_cuda_type(source->get_const_col_idxs()),
-                as_cuda_type(source->get_const_values()),
-                as_cuda_type(result->get_const_row_ptrs()),
-                as_cuda_type(result->get_col_idxs()),
-                as_cuda_type(result->get_values()));
+        kernel::compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size,
+                                                  0, exec->get_stream()>>>(
+            num_rows, num_cols, row_offset, col_offset,
+            as_device_type(source->get_const_row_ptrs()),
+            as_device_type(source->get_const_col_idxs()),
+            as_device_type(source->get_const_values()),
+            as_device_type(result->get_const_row_ptrs()),
+            as_device_type(result->get_col_idxs()),
+            as_device_type(result->get_values()));
     }
 }
 
@@ -1253,9 +1268,10 @@ void is_sorted_by_column_index(
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, block_size);
     if (num_blocks > 0) {
-        kernel::check_unsorted<<<num_blocks, block_size>>>(
-            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-            num_rows, gpu_array.get_data());
+        kernel::
+            check_unsorted<<<num_blocks, block_size, 0, exec->get_stream()>>>(
+                to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+                num_rows, gpu_array.get_data());
     }
     cpu_array = gpu_array;
 }
@@ -1280,10 +1296,11 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
     auto diag_values = diag->get_values();
 
     if (num_blocks > 0) {
-        kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
-            diag_size, nnz, as_cuda_type(orig_values),
-            as_cuda_type(orig_row_ptrs), as_cuda_type(orig_col_idxs),
-            as_cuda_type(diag_values));
+        kernel::extract_diagonal<<<num_blocks, default_block_size, 0,
+                                   exec->get_stream()>>>(
+            diag_size, nnz, as_device_type(orig_values),
+            as_device_type(orig_row_ptrs), as_device_type(orig_col_idxs),
+            as_device_type(diag_values));
     }
 }
 
@@ -1300,7 +1317,8 @@ void check_diagonal_entries_exist(
         const size_type num_blocks =
             num_warps / (default_block_size / config::warp_size);
         array<bool> has_diags(exec, {true});
-        kernel::check_diagonal_entries<<<num_blocks, default_block_size>>>(
+        kernel::check_diagonal_entries<<<num_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(
             static_cast<IndexType>(
                 std::min(mtx->get_size()[0], mtx->get_size()[1])),
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
@@ -1327,11 +1345,12 @@ void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
     }
     const auto nthreads = nrows * config::warp_size;
     const auto nblocks = ceildiv(nthreads, default_block_size);
-    kernel::add_scaled_identity<<<nblocks, default_block_size>>>(
-        as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(beta->get_const_values()), static_cast<IndexType>(nrows),
+    kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
+                                  exec->get_stream()>>>(
+        as_device_type(alpha->get_const_values()),
+        as_device_type(beta->get_const_values()), static_cast<IndexType>(nrows),
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        as_cuda_type(mtx->get_values()));
+        as_device_type(mtx->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

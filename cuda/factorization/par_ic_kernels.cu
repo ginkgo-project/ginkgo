@@ -60,48 +60,6 @@ constexpr int default_block_size = 512;
 #include "common/cuda_hip/factorization/par_ic_kernels.hpp.inc"
 
 
-template <typename ValueType, typename IndexType>
-void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType>* l)
-{
-    auto num_rows = l->get_size()[0];
-    auto num_blocks = ceildiv(num_rows, default_block_size);
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_vals = l->get_values();
-    if (num_rows > 0) {
-        kernel::ic_init<<<num_blocks, default_block_size>>>(
-            l_row_ptrs, as_cuda_type(l_vals), num_rows);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    size_type iterations,
-                    const matrix::Coo<ValueType, IndexType>* a_lower,
-                    matrix::Csr<ValueType, IndexType>* l)
-{
-    auto nnz = l->get_num_stored_elements();
-    auto num_blocks = ceildiv(nnz, default_block_size);
-    for (size_type i = 0; i < iterations; ++i) {
-        if (num_blocks > 0) {
-            kernel::ic_sweep<<<num_blocks, default_block_size>>>(
-                a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
-                as_cuda_type(a_lower->get_const_values()),
-                l->get_const_row_ptrs(), l->get_const_col_idxs(),
-                as_cuda_type(l->get_values()),
-                static_cast<IndexType>(l->get_num_stored_elements()));
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL);
-
-
 }  // namespace par_ic_factorization
 }  // namespace cuda
 }  // namespace kernels

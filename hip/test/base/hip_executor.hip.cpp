@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
+#include "hip/base/scoped_device_id.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -92,7 +93,12 @@ public:
 class HipExecutor : public ::testing::Test {
 protected:
     HipExecutor()
-        : omp(gko::OmpExecutor::create()),
+        :
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream(0),
+          other_stream(gko::HipExecutor::get_num_devices() - 1),
+#endif
+          omp(gko::OmpExecutor::create()),
           hip(nullptr),
           hip2(nullptr),
           hip3(nullptr)
@@ -101,11 +107,21 @@ protected:
     void SetUp()
     {
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+        hip = gko::HipExecutor::create(
+            0, omp, false, gko::default_hip_alloc_mode, stream.get());
+        hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
+                                        omp, false, gko::default_hip_alloc_mode,
+                                        other_stream.get());
+        hip3 = gko::HipExecutor::create(
+            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+#else
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
         hip3 = gko::HipExecutor::create(0, omp, false,
                                         gko::allocation_mode::unified_global);
+#endif
     }
 
     void TearDown()
@@ -116,6 +132,10 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::hip_stream stream;
+    gko::hip_stream other_stream;
+#endif
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::HipExecutor> hip;
     std::shared_ptr<gko::HipExecutor> hip2;
@@ -186,7 +206,7 @@ TEST_F(HipExecutor, CopiesDataToHip)
 
     hip->copy_from(omp, 2, orig, copy);
 
-    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy);
+    check_data<<<1, 1, 0, hip->get_stream()>>>(copy);
     ASSERT_NO_THROW(hip->synchronize());
     hip->free(copy);
 }
@@ -214,10 +234,10 @@ TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 
     hip3->copy_from(omp, 2, orig, copy);
 
-    check_data<<<1, 1>>>(copy);
+    check_data<<<1, 1, 0, hip3->get_stream()>>>(copy);
     ASSERT_NO_THROW(hip3->synchronize());
     copy[0] = 4;
-    check_data2<<<1, 1>>>(copy);
+    check_data2<<<1, 1, 0, hip3->get_stream()>>>(copy);
     hip3->free(copy);
 }
 
@@ -235,7 +255,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
 {
     int copy[2];
     auto orig = hip->alloc<int>(2);
-    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
+    init_data<<<1, 1, 0, hip->get_stream()>>>(orig);
 
     omp->copy_from(hip, 2, orig, copy);
 
@@ -277,7 +297,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     int copy[2];
     auto orig = hip->alloc<int>(2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
+    init_data<<<1, 1, 0, hip->get_stream()>>>(orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
     hip2->copy_from(hip, 2, orig, copy_hip2);
@@ -285,7 +305,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy_hip2);
+    check_data<<<1, 1, 0, hip2->get_stream()>>>(copy_hip2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());

@@ -43,26 +43,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "hip/base/scoped_device_id.hip.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
 
 
-class ScopedDeviceIdGuard : public ::testing::Test {
-protected:
-    ScopedDeviceIdGuard()
-        : ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, ref))
-    {}
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> hip;
-};
+class ScopedDeviceIdGuard : public HipTestFixture {};
 
 
 TEST_F(ScopedDeviceIdGuard, SetsId)
 {
-    auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
+    auto new_device_id = std::max(exec->get_num_devices() - 1, 0);
 
     gko::detail::hip_scoped_device_id_guard g{new_device_id};
 
@@ -74,10 +66,10 @@ TEST_F(ScopedDeviceIdGuard, SetsId)
 
 TEST_F(ScopedDeviceIdGuard, ResetsId)
 {
-    auto old_device_id = hip->get_device_id();
+    auto old_device_id = exec->get_device_id();
 
     {
-        auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
+        auto new_device_id = std::max(exec->get_num_devices() - 1, 0);
         gko::detail::hip_scoped_device_id_guard g{new_device_id};
     }
 

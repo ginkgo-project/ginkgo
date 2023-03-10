@@ -40,17 +40,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "cuda/base/device.hpp"
+
+
 namespace {
 
 
-// Visual Studio does not define the constructor of std::mutex as constexpr,
-// causing it to not be initialized when creating this executor (which uses
-// the mutex)
-#if !defined(_MSC_VER)
-// prevent device reset after each test
-auto no_reset_exec =
-    gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(), true);
+class CudaEnvironment : public ::testing::Environment {
+public:
+    void TearDown() override { gko::kernels::cuda::reset_device(0); }
+};
+
+testing::Environment* cuda_env =
+    testing::AddGlobalTestEnvironment(new CudaEnvironment);
+
+
+class CudaTestFixture : public ::testing::Test {
+protected:
+    CudaTestFixture()
+        : ref(gko::ReferenceExecutor::create()),
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          exec(gko::CudaExecutor::create(
+              0, ref, false, gko::default_cuda_alloc_mode, stream.get()))
+#else
+          exec(gko::CudaExecutor::create(0, ref))
 #endif
+    {}
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            // ensure that previous calls finished and didn't throw an error
+            exec->synchronize();
+        }
+    }
+
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::cuda_stream stream;
+#endif
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CudaExecutor> exec;
+};
 
 
 }  // namespace

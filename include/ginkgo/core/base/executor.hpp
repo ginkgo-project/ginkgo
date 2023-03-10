@@ -159,9 +159,18 @@ struct cublasContext;
 
 struct cusparseContext;
 
+struct CUstream_st;
+
 struct hipblasContext;
 
 struct hipsparseContext;
+
+#if GINKGO_HIP_PLATFORM_HCC
+struct ihipStream_t;
+#define GKO_HIP_STREAM_STRUCT ihipStream_t
+#else
+#define GKO_HIP_STREAM_STRUCT CUstream_st
+#endif
 
 
 namespace gko {
@@ -1525,7 +1534,8 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_cuda_alloc_mode);
+        allocation_mode alloc_mode = default_cuda_alloc_mode,
+        CUstream_st* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1631,6 +1641,14 @@ public:
      */
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
+    /**
+     * Returns the CUDA stream used by this executor. Can be nullptr for the
+     * default stream.
+     *
+     * @return  the stream used to execute kernels and memory operations.
+     */
+    CUstream_st* get_stream() const { return stream_; }
+
 protected:
     void set_gpu_property();
 
@@ -1638,10 +1656,12 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
-                 allocation_mode alloc_mode = default_cuda_alloc_mode)
+                 allocation_mode alloc_mode = default_cuda_alloc_mode,
+                 CUstream_st* stream = nullptr)
         : EnableDeviceReset{device_reset},
           master_(master),
-          alloc_mode_{alloc_mode}
+          alloc_mode_{alloc_mode},
+          stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1689,8 +1709,45 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+    CUstream_st* stream_;
 
     allocation_mode alloc_mode_;
+};
+
+
+/**
+ * An RAII wrapper for a custom CUDA stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class cuda_stream {
+public:
+    /** Creates a new custom CUDA stream. */
+    cuda_stream(int device_id = 0);
+
+    /** Destroys the custom CUDA stream, if it wasn't moved-from already. */
+    ~cuda_stream();
+
+    cuda_stream(const cuda_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    cuda_stream(cuda_stream&&);
+
+    cuda_stream& operator=(const cuda_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    cuda_stream& operator=(cuda_stream&&) = delete;
+
+    /**
+     * Returns the native CUDA stream handle.
+     * In a moved-from cuda_stream, this will return nullptr.
+     */
+    CUstream_st* get() const;
+
+private:
+    CUstream_st* stream_;
+
+    int device_id_;
 };
 
 
@@ -1727,7 +1784,8 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_hip_alloc_mode);
+        allocation_mode alloc_mode = default_hip_alloc_mode,
+        GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1833,6 +1891,8 @@ public:
         return this->get_exec_info().closest_pu_ids;
     }
 
+    GKO_HIP_STREAM_STRUCT* get_stream() const { return stream_; }
+
 protected:
     void set_gpu_property();
 
@@ -1840,10 +1900,12 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                allocation_mode alloc_mode = default_hip_alloc_mode)
+                allocation_mode alloc_mode = default_hip_alloc_mode,
+                GKO_HIP_STREAM_STRUCT* stream = nullptr)
         : EnableDeviceReset{device_reset},
           master_(master),
-          alloc_mode_(alloc_mode)
+          alloc_mode_(alloc_mode),
+          stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1892,6 +1954,43 @@ private:
     handle_manager<hipsparseContext> hipsparse_handle_;
 
     allocation_mode alloc_mode_;
+    GKO_HIP_STREAM_STRUCT* stream_;
+};
+
+
+/**
+ * An RAII wrapper for a custom HIP stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class hip_stream {
+public:
+    /** Creates a new custom HIP stream. */
+    hip_stream(int device_id = 0);
+
+    /** Destroys the custom HIP stream, if it wasn't moved-from already. */
+    ~hip_stream();
+
+    hip_stream(const hip_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    hip_stream(hip_stream&&);
+
+    hip_stream& operator=(const hip_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    hip_stream& operator=(hip_stream&&) = delete;
+
+    /**
+     * Returns the native HIP stream handle.
+     * In a moved-from hip_stream, this will return nullptr.
+     */
+    GKO_HIP_STREAM_STRUCT* get() const;
+
+private:
+    GKO_HIP_STREAM_STRUCT* stream_;
+
+    int device_id_;
 };
 
 

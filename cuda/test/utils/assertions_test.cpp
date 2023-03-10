@@ -46,25 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class MatricesNear : public ::testing::Test {
-protected:
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
-};
+class MatricesNear : public CudaTestFixture {};
 
 
 TEST_F(MatricesNear, CanPassCudaMatrix)
@@ -73,8 +55,8 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     auto csr_ref = gko::matrix::Csr<>::create(ref);
     csr_ref->copy_from(mtx);
-    auto csr_mtx = gko::matrix::Csr<>::create(cuda);
-    csr_mtx->copy_from(csr_ref);
+    auto csr_mtx = gko::matrix::Csr<>::create(exec);
+    csr_mtx->move_from(csr_ref);
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);

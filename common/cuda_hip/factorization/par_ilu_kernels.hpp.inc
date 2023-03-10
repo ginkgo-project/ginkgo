@@ -80,3 +80,34 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
+                         size_type iterations,
+                         const matrix::Coo<ValueType, IndexType>* system_matrix,
+                         matrix::Csr<ValueType, IndexType>* l_factor,
+                         matrix::Csr<ValueType, IndexType>* u_factor)
+{
+    iterations = (iterations == 0) ? 10 : iterations;
+    const auto num_elements = system_matrix->get_num_stored_elements();
+    const auto block_size = default_block_size;
+    const auto grid_dim = static_cast<uint32>(
+        ceildiv(num_elements, static_cast<size_type>(block_size)));
+    if (grid_dim > 0) {
+        for (size_type i = 0; i < iterations; ++i) {
+            kernel::compute_l_u_factors<<<grid_dim, block_size, 0,
+                                          exec->get_stream()>>>(
+                num_elements, system_matrix->get_const_row_idxs(),
+                system_matrix->get_const_col_idxs(),
+                as_device_type(system_matrix->get_const_values()),
+                l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
+                as_device_type(l_factor->get_values()),
+                u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
+                as_device_type(u_factor->get_values()));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);

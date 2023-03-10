@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
+#include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -86,7 +87,12 @@ public:
 class CudaExecutor : public ::testing::Test {
 protected:
     CudaExecutor()
-        : omp(gko::OmpExecutor::create()),
+        :
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream(0),
+          other_stream(gko::CudaExecutor::get_num_devices() - 1),
+#endif
+          omp(gko::OmpExecutor::create()),
           cuda(nullptr),
           cuda2(nullptr),
           cuda3(nullptr)
@@ -95,11 +101,21 @@ protected:
     void SetUp()
     {
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+        cuda = gko::CudaExecutor::create(
+            0, omp, false, gko::default_cuda_alloc_mode, stream.get());
+        cuda2 = gko::CudaExecutor::create(
+            gko::CudaExecutor::get_num_devices() - 1, omp, false,
+            gko::default_cuda_alloc_mode, other_stream.get());
+        cuda3 = gko::CudaExecutor::create(
+            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+#else
         cuda = gko::CudaExecutor::create(0, omp);
         cuda2 = gko::CudaExecutor::create(
             gko::CudaExecutor::get_num_devices() - 1, omp);
         cuda3 = gko::CudaExecutor::create(0, omp, false,
                                           gko::allocation_mode::unified_global);
+#endif
     }
 
     void TearDown()
@@ -110,6 +126,10 @@ protected:
         }
     }
 
+#ifdef GKO_TEST_NONDEFAULT_STREAM
+    gko::cuda_stream stream;
+    gko::cuda_stream other_stream;
+#endif
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<gko::CudaExecutor> cuda2;
@@ -177,7 +197,7 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
 
     cuda->copy_from(omp, 2, orig, copy);
 
-    check_data<<<1, 1>>>(copy);
+    check_data<<<1, 1, 0, cuda->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
     cuda->free(copy);
 }
@@ -198,10 +218,10 @@ TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
 
     cuda3->copy_from(omp, 2, orig, copy);
 
-    check_data<<<1, 1>>>(copy);
+    check_data<<<1, 1, 0, cuda3->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda3->synchronize());
     copy[0] = 4;
-    check_data2<<<1, 1>>>(copy);
+    check_data2<<<1, 1, 0, cuda3->get_stream()>>>(copy);
     cuda3->free(copy);
 }
 
@@ -216,7 +236,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
 {
     int copy[2];
     auto orig = cuda->alloc<int>(2);
-    init_data<<<1, 1>>>(orig);
+    init_data<<<1, 1, 0, cuda->get_stream()>>>(orig);
 
     omp->copy_from(cuda, 2, orig, copy);
 
@@ -258,7 +278,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     int copy[2];
     auto orig = cuda->alloc<int>(2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    init_data<<<1, 1>>>(orig);
+    init_data<<<1, 1, 0, cuda->get_stream()>>>(orig);
 
     auto copy_cuda2 = cuda2->alloc<int>(2);
     cuda2->copy_from(cuda, 2, orig, copy_cuda2);
@@ -266,7 +286,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
-    check_data<<<1, 1>>>(copy_cuda2);
+    check_data<<<1, 1, 0, cuda2->get_stream()>>>(copy_cuda2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());

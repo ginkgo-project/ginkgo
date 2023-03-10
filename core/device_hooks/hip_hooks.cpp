@@ -54,10 +54,10 @@ version version_info::get_hip_version() noexcept
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, GKO_HIP_STREAM_STRUCT* stream)
 {
     return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
+        device_id, std::move(master), device_reset, alloc_mode, stream));
 }
 
 
@@ -152,6 +152,18 @@ void HipExecutor::init_handles() {}
 scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
                                                int device_id)
     GKO_NOT_COMPILED(hip);
+
+
+hip_stream::hip_stream(int device_id) GKO_NOT_COMPILED(hip);
+
+
+hip_stream::~hip_stream() {}
+
+
+hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
+
+
+GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);
 
 
 namespace log {
