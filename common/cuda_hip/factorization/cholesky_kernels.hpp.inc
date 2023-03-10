@@ -269,11 +269,11 @@ void build_children_from_parents(
     const auto children = forest.children.get_data();
     const auto child_ptrs = forest.child_ptrs.get_data();
     exec->copy(num_rows, parents, col_idxs);
-    thrust::sequence(thrust::device, children, children + num_rows,
+    thrust::sequence(thrust_policy(exec), children, children + num_rows,
                      IndexType{});
     // group by parent
-    thrust::stable_sort_by_key(thrust::device, col_idxs, col_idxs + num_rows,
-                               children);
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
+                               col_idxs + num_rows, children);
     // create child pointers for groups of children
     components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
                                      num_rows + 1,  // rows plus sentinel
@@ -290,7 +290,7 @@ void forest_from_factor(
     const auto num_rows = factors->get_size()[0];
     const auto it = thrust::make_counting_iterator(IndexType{});
     thrust::transform(
-        thrust::device, it, it + num_rows, forest.parents.get_data(),
+        thrust_policy(exec), it, it + num_rows, forest.parents.get_data(),
         [row_ptrs = factors->get_const_row_ptrs(),
          col_idxs = factors->get_const_col_idxs(),
          num_rows] __device__(IndexType l_col) {
