@@ -133,7 +133,8 @@ struct overlapping_vec : public vec {
     auto extract_local() const
     {
         auto exec = this->get_executor();
-        auto no_ovlp_local = vec::create(exec, this->get_size()[0] - num_ovlp);
+        auto no_ovlp_local =
+            vec::create(exec, dim<2>{this->get_size()[0] - num_ovlp, 1});
 
         // copy-if, but in stupid
         int i = 0;
@@ -239,6 +240,7 @@ struct overlapping_schwarz
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
+        as<vec>(x)->fill(0.0);
         local_solver->apply(b, x);
         // exchange data
         make_consistent(comm_info, as<vec>(x));
@@ -256,45 +258,6 @@ struct overlapping_schwarz
     comm_info_t comm_info;
 };
 
-
-auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
-        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal)
-{
-    auto exec = A->get_executor();
-    auto comm = A->get_communicator();
-    auto r = b->clone();
-    auto z = x->clone();
-    auto one = initialize<vec>({1.0}, exec);
-    auto neg_one = initialize<vec>({-1.0}, exec);
-
-    auto B = std::make_shared<overlapping_schwarz>(exec, A->get_communicator(),
-                                                   A, A->comm_info);
-
-    auto res_norm = vec::create(exec->get_master(), dim<2>{1, 1});
-
-    for (int i = 0; i < num_iters; ++i) {
-        // z = z + B ( r - A * x)
-        auto residual = b->clone();
-        A->apply(neg_one, x, one, residual);
-
-        residual->compute_norm2(res_norm);
-
-        if (A->get_communicator().rank() == 0) {
-            std::cout << i << ": " << res_norm->at(0) << std::endl;
-        }
-
-        if (res_norm->at(0) <= res_goal) {
-            break;
-        }
-
-        // need to have zero values on dirichlet DOFs
-        z->fill(0.0);
-        B->apply(residual, z);
-        x->add_scaled(one, z);
-    }
-
-    return res_norm;
-}
 
 }  // namespace gko
 
@@ -642,6 +605,7 @@ int main(int argc, char* argv[])
         exec, comm, std::move(x), comm_info.recv_idxs);
     auto ovlp_b = std::make_shared<gko::overlapping_vec>(
         exec, comm, std::move(b), comm_info.recv_idxs);
+    auto ovlp_x_copy = ovlp_x->clone();
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
@@ -650,7 +614,26 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
-    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4);
+    auto Ainv =
+        gko::solver::Ir<ValueType>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(1e-4)
+                    .on(exec))
+            .with_generated_solver(std::make_shared<gko::overlapping_schwarz>(
+                exec, comm, ovlp_A, comm_info))
+            .with_relaxation_factor(1.0)
+            .on(exec)
+            ->generate(ovlp_A);
+    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
+    Ainv->add_logger(logger);
+
+    Ainv->apply(ovlp_b, ovlp_x_copy);
+
+    auto res_norm = gko::as<vec>(logger->get_residual_norm());
 
     // Take timings.
     comm.synchronize();
@@ -666,8 +649,9 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
+                  << "\nNum iters: " << logger->get_num_iterations()
                   << "\nFinal Res norm: ";
-        gko::write(std::cout, res_norm.get());
+        gko::write(std::cout, res_norm);
         std::cout << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
