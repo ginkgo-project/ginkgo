@@ -23,6 +23,7 @@ set(EXAMPLES_LIST
     batched-tridiagonal-solver
     batched-solver
     batched-solver-from-files
+    batched-tridiagonal-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
