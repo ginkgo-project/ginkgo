@@ -195,10 +195,7 @@ struct overlapping_mtx
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        auto copy_b = b->clone();
-        //        make_consistent(comm_info, as<vec>(copy_b.get()));
-
-        local_mtx->apply(copy_b, x);
+        local_mtx->apply(b, x);
         // exchange data
         make_consistent(comm_info, as<vec>(x));
     }
@@ -242,9 +239,6 @@ struct overlapping_schwarz
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        auto copy_b = b->clone();
-        //        make_consistent(comm_info, as<vec>(copy_b.get()));
-
         local_solver->apply(b, x);
         // exchange data
         make_consistent(comm_info, as<vec>(x));
@@ -264,16 +258,12 @@ struct overlapping_schwarz
 
 
 auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
-        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal,
-        std::shared_ptr<mtx> global_A, std::shared_ptr<vec> global_b,
-        std::shared_ptr<vec> global_x)
+        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal)
 {
     auto exec = A->get_executor();
     auto comm = A->get_communicator();
     auto r = b->clone();
-    auto global_r = global_b->clone();
     auto z = x->clone();
-    auto global_z = global_x->clone();
     auto one = initialize<vec>({1.0}, exec);
     auto neg_one = initialize<vec>({-1.0}, exec);
 
@@ -283,48 +273,25 @@ auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
     auto res_norm = vec::create(exec->get_master(), dim<2>{1, 1});
 
     for (int i = 0; i < num_iters; ++i) {
-        global_A->apply(global_r, global_z);
-        A->apply(r, z);
-        r->copy_from(z);
-        global_r->copy_from(global_z);
+        // z = z + B ( r - A * x)
+        auto residual = b->clone();
+        A->apply(neg_one, x, one, residual);
 
-        //        r->copy_from(exact_solution);
-        //        r->add_scaled(neg_one, x);
-        //        r->compute_norm2(res_norm);
-        //
-        //        if (A->get_communicator().rank() == 0) {
-        //            std::cout << i << ": " << res_norm->at(0) << std::endl;
-        //        }
-        //
-        //        if (res_norm->at(0) <= res_goal) {
-        //            break;
-        //        }
-        //
-        //        B->apply(b, x);
+        residual->compute_norm2(res_norm);
+
+        if (A->get_communicator().rank() == 0) {
+            std::cout << i << ": " << res_norm->at(0) << std::endl;
+        }
+
+        if (res_norm->at(0) <= res_goal) {
+            break;
+        }
+
+        // need to have zero values on dirichlet DOFs
+        z->fill(0.0);
+        B->apply(residual, z);
+        x->add_scaled(one, z);
     }
-
-    //    A->apply(neg_one, x, one, r);
-    //    z->fill(0.0);
-    //
-    //    for (int i = 0; i < num_iters; ++i) {
-    //        // z = z + B ( r - A * x)
-    //        auto residual = r->clone();
-    //        A->apply(neg_one, z, one, residual);
-    //
-    //        residual->compute_norm2(res_norm);
-    //
-    //        if(A->get_communicator().rank() == 0) {
-    //            std::cout << i << ": " << res_norm->at(0) << std::endl;
-    //        }
-    //
-    //        if (res_norm->at(0) <= res_goal) {
-    //            break;
-    //        }
-    //
-    //        B->apply(one, residual, one, z);
-    //    }
-    //
-    //    x->add_scaled(one, z);
 
     return res_norm;
 }
@@ -471,21 +438,8 @@ int main(int argc, char* argv[])
     gko::matrix_assembly_data<ValueType, LocalIndexType> b_data{
         gko::dim<2>{num_rows, 1}};
 
-    auto assemble = [](auto ney, auto nex, auto nvy, auto nvx, auto& data) {
-        auto utr_map = [&](const auto y, const auto x) {
-            std::array<gko::size_type, 3> map{
-                (y + 1) * nvx + x, (y + 1) * nvx + x + 1, y * nvx + x};
-            return [=](const auto i) {
-                return static_cast<LocalIndexType>(map[i]);
-            };
-        };
-        auto ltr_map = [&](const auto y, const auto x) {
-            std::array<gko::size_type, 3> map{
-                y * nvx + x + 1, (y + 1) * nvx + x + 1, y * nvx + x};
-            return [=](const auto i) {
-                return static_cast<LocalIndexType>(map[i]);
-            };
-        };
+    auto assemble = [utr_map, ltr_map](auto ney, auto nex, auto nvy, auto nvx,
+                                       auto& data) {
         auto process_element = [](auto&& map, auto& data) {
             for (int jy = 0; jy < A_loc.size(); ++jy) {
                 for (int jx = 0; jx < A_loc.size(); ++jx) {
@@ -583,16 +537,6 @@ int main(int argc, char* argv[])
                  rank == comm.size() - 1, b_data);
     gko::matrix_assembly_data<ValueType, LocalIndexType> x_data = b_data;
 
-    gko::matrix_assembly_data<ValueType, LocalIndexType> global_A_data{
-        gko::dim<2>{global_rows, global_rows}};
-    gko::matrix_assembly_data<ValueType, LocalIndexType> global_b_data{
-        gko::dim<2>{global_rows, 1}};
-    assemble(num_elements_y, global_num_elements_x, num_vertices_y,
-             global_num_elements_x + 1, global_A_data);  // vertical boundaries
-    assemble_rhs(num_vertices_y, global_num_vertices_x, true, true,
-                 global_b_data);
-    auto global_x_data = global_b_data;
-
     // Take timings.
     comm.synchronize();
     ValueType t_init_end = gko::experimental::mpi::get_walltime();
@@ -614,16 +558,6 @@ int main(int argc, char* argv[])
     A->copy_from(A_host.get());
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
-
-    auto global_A = gko::share(mtx::create(exec));
-    auto global_x = gko::share(vec::create(exec));
-    auto global_b = gko::share(vec::create(exec));
-
-    global_A->read(global_A_data);
-    global_x->read(global_x_data);
-    global_b->read(global_b_data);
-
-    gko::write(std::ofstream{"A.mtx"}, A.get());
 
     // Take timings.
     comm.synchronize();
@@ -716,8 +650,7 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
-    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4, global_A,
-                            global_x, global_b);
+    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4);
 
     // Take timings.
     comm.synchronize();
