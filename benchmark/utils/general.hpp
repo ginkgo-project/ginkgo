@@ -615,10 +615,10 @@ private:
                 timer->tic();
             }
         }
-        void toc()
+        void toc(unsigned int num = 1)
         {
             if (manage_timings) {
-                timer->toc();
+                timer->toc(num);
             }
         }
 
@@ -684,7 +684,8 @@ private:
             {
                 cur_info->cur_it++;
                 if (cur_info->cur_it >= next_timing && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                     next_timing = static_cast<IndexType>(std::ceil(
                         next_timing * FLAGS_repetition_growth_factor));
@@ -715,15 +716,18 @@ private:
                 if (!is_finished && stopped) {
                     stopped = false;
                     cur_info->managed_timer.tic();
+                    start_timing = cur_info->cur_it;
                 } else if (is_finished && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                 }
                 return !is_finished;
             }
 
             status* cur_info;
-            IndexType next_timing = 1;  //!< next iteration to stop timing
+            IndexType next_timing = 1;   //!< next iteration to stop timing
+            IndexType start_timing = 0;  //!< iteration for starting timing
             bool stopped = true;
         };
 
