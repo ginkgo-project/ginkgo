@@ -56,6 +56,9 @@ using dist_vec = gko::experimental::distributed::Vector<ValueType>;
 // As matrix type we simply use the following type, which can read
 // distributed data and be applied to a distributed vector.
 using mtx = gko::matrix::Csr<ValueType, LocalIndexType>;
+using dist_mtx =
+    gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                           LocalIndexType>;
 // We can use here the same solver type as you would use in a
 // non-distributed program. Please note that not all solvers support
 // distributed systems at the moment.
@@ -193,7 +196,7 @@ struct overlapping_mtx
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
         auto copy_b = b->clone();
-        make_consistent(comm_info, as<vec>(copy_b.get()));
+        //        make_consistent(comm_info, as<vec>(copy_b.get()));
 
         local_mtx->apply(copy_b, x);
         // exchange data
@@ -240,7 +243,7 @@ struct overlapping_schwarz
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
         auto copy_b = b->clone();
-        make_consistent(comm_info, as<vec>(copy_b.get()));
+        //        make_consistent(comm_info, as<vec>(copy_b.get()));
 
         local_solver->apply(b, x);
         // exchange data
@@ -261,11 +264,16 @@ struct overlapping_schwarz
 
 
 auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
-        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal)
+        std::shared_ptr<overlapping_vec> x, int num_iters, double res_goal,
+        std::shared_ptr<mtx> global_A, std::shared_ptr<vec> global_b,
+        std::shared_ptr<vec> global_x)
 {
     auto exec = A->get_executor();
+    auto comm = A->get_communicator();
     auto r = b->clone();
+    auto global_r = global_b->clone();
     auto z = x->clone();
+    auto global_z = global_x->clone();
     auto one = initialize<vec>({1.0}, exec);
     auto neg_one = initialize<vec>({-1.0}, exec);
 
@@ -274,26 +282,49 @@ auto ir(std::shared_ptr<overlapping_mtx> A, std::shared_ptr<overlapping_vec> b,
 
     auto res_norm = vec::create(exec->get_master(), dim<2>{1, 1});
 
-    A->apply(neg_one, x, one, r);
-    z->fill(0.0);
-
     for (int i = 0; i < num_iters; ++i) {
-        // z = z + B ( r - A * x)
-        auto residual = r->clone();
-        A->apply(neg_one, z, one, residual);
+        global_A->apply(global_r, global_z);
+        A->apply(r, z);
+        r->copy_from(z);
+        global_r->copy_from(global_z);
 
-        residual->compute_norm2(res_norm);
-
-        std::cout << i << ": " << res_norm->at(0) << std::endl;
-
-        if (res_norm->at(0) <= res_goal) {
-            break;
-        }
-
-        B->apply(one, residual, one, z);
+        //        r->copy_from(exact_solution);
+        //        r->add_scaled(neg_one, x);
+        //        r->compute_norm2(res_norm);
+        //
+        //        if (A->get_communicator().rank() == 0) {
+        //            std::cout << i << ": " << res_norm->at(0) << std::endl;
+        //        }
+        //
+        //        if (res_norm->at(0) <= res_goal) {
+        //            break;
+        //        }
+        //
+        //        B->apply(b, x);
     }
 
-    x->add_scaled(one, z);
+    //    A->apply(neg_one, x, one, r);
+    //    z->fill(0.0);
+    //
+    //    for (int i = 0; i < num_iters; ++i) {
+    //        // z = z + B ( r - A * x)
+    //        auto residual = r->clone();
+    //        A->apply(neg_one, z, one, residual);
+    //
+    //        residual->compute_norm2(res_norm);
+    //
+    //        if(A->get_communicator().rank() == 0) {
+    //            std::cout << i << ": " << res_norm->at(0) << std::endl;
+    //        }
+    //
+    //        if (res_norm->at(0) <= res_goal) {
+    //            break;
+    //        }
+    //
+    //        B->apply(one, residual, one, z);
+    //    }
+    //
+    //    x->add_scaled(one, z);
 
     return res_norm;
 }
@@ -400,6 +431,9 @@ int main(int argc, char* argv[])
     const auto num_vertices_y = num_elements_y + 1;
     const auto num_vertices_x = num_elements_x + 1;
     const auto num_rows = num_vertices_y * num_vertices_x;
+    const auto global_num_elements_x = num_elements_y * comm.size();
+    const auto global_num_vertices_x = global_num_elements_x + 1;
+    const auto global_rows = global_num_vertices_x * num_vertices_y;
 
     /* divide each quadratic element in to two triangles
      * 0        1
@@ -427,38 +461,6 @@ int main(int argc, char* argv[])
             [=](const auto i) { return static_cast<LocalIndexType>(map[i]); };
     };
 
-    auto process_element = [](auto&& map, auto& data) {
-        for (int jy = 0; jy < A_loc.size(); ++jy) {
-            for (int jx = 0; jx < A_loc.size(); ++jx) {
-                data.add_value(map(jy), map(jx), A_loc[jy][jx]);
-            }
-        }
-    };
-
-    auto process_boundary = [&](const std::vector<int>& local_bdry_idxs,
-                                auto&& map, auto& data) {
-        for (int i : local_bdry_idxs) {
-            auto global_idx = map(i);
-            auto global_idx_x = global_idx % num_vertices_x;
-            auto global_idx_y = global_idx / num_vertices_x;
-
-            if (global_idx_x != 0) {
-                data.set_value(map(i), global_idx - 1, 0.0);
-            }
-            if (global_idx_x != num_vertices_x - 1) {
-                data.set_value(map(i), global_idx + 1, 0.0);
-            }
-            if (global_idx_y != 0) {
-                data.set_value(map(i), global_idx - num_vertices_x, 0.0);
-            }
-            if (global_idx_y != num_vertices_y - 1) {
-                data.set_value(map(i), global_idx + num_vertices_x, 0.0);
-            }
-
-            data.set_value(map(i), map(i), 1.0);
-        }
-    };
-
     // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
     // with a sine value. The distributed matrix supports only constructing an
     // empty matrix of zero size and filling in the values with
@@ -468,62 +470,128 @@ int main(int argc, char* argv[])
         gko::dim<2>{num_rows, num_rows}};
     gko::matrix_assembly_data<ValueType, LocalIndexType> b_data{
         gko::dim<2>{num_rows, 1}};
-    for (int iy = 0; iy < num_elements_y; iy++) {
-        for (int ix = 0; ix < num_elements_x; ix++) {
-            // handle upper triangle
-            process_element(utr_map(iy, ix), A_data);
 
-            // handle lower triangle
-            process_element(ltr_map(iy, ix), A_data);
+    auto assemble = [](auto ney, auto nex, auto nvy, auto nvx, auto& data) {
+        auto utr_map = [&](const auto y, const auto x) {
+            std::array<gko::size_type, 3> map{
+                (y + 1) * nvx + x, (y + 1) * nvx + x + 1, y * nvx + x};
+            return [=](const auto i) {
+                return static_cast<LocalIndexType>(map[i]);
+            };
+        };
+        auto ltr_map = [&](const auto y, const auto x) {
+            std::array<gko::size_type, 3> map{
+                y * nvx + x + 1, (y + 1) * nvx + x + 1, y * nvx + x};
+            return [=](const auto i) {
+                return static_cast<LocalIndexType>(map[i]);
+            };
+        };
+        auto process_element = [](auto&& map, auto& data) {
+            for (int jy = 0; jy < A_loc.size(); ++jy) {
+                for (int jx = 0; jx < A_loc.size(); ++jx) {
+                    data.add_value(map(jy), map(jx), A_loc[jy][jx]);
+                }
+            }
+        };
+
+        auto process_boundary = [&](const std::vector<int>& local_bdry_idxs,
+                                    auto&& map, auto& data) {
+            for (int i : local_bdry_idxs) {
+                auto global_idx = map(i);
+                auto global_idx_x = global_idx % nvx;
+                auto global_idx_y = global_idx / nvx;
+
+                if (global_idx_x != 0) {
+                    data.set_value(map(i), global_idx - 1, 0.0);
+                }
+                if (global_idx_x != nvx - 1) {
+                    data.set_value(map(i), global_idx + 1, 0.0);
+                }
+                if (global_idx_y != 0) {
+                    data.set_value(map(i), global_idx - nvx, 0.0);
+                }
+                if (global_idx_y != nvy - 1) {
+                    data.set_value(map(i), global_idx + nvx, 0.0);
+                }
+
+                data.set_value(map(i), map(i), 1.0);
+            }
+        };
+        for (int iy = 0; iy < ney; iy++) {
+            for (int ix = 0; ix < nex; ix++) {
+                // handle upper triangle
+                process_element(utr_map(iy, ix), data);
+
+                // handle lower triangle
+                process_element(ltr_map(iy, ix), data);
+            }
         }
-    }
-    for (int iy = 0; iy < num_elements_y; iy++) {
-        for (int ix = 0; ix < num_elements_x; ix++) {
-            // handle boundary
-            if (ix == 0) {
-                process_boundary({0, 2}, utr_map(iy, ix), A_data);
-            }
-            if (ix == num_elements_x - 1) {
-                process_boundary({0, 1}, ltr_map(iy, ix), A_data);
-            }
-            if (iy == 0) {
-                process_boundary({0, 2}, ltr_map(iy, ix), A_data);
-            }
-            if (iy == num_elements_y - 1) {
-                process_boundary({0, 1}, utr_map(iy, ix), A_data);
+        for (int iy = 0; iy < ney; iy++) {
+            for (int ix = 0; ix < nex; ix++) {
+                // handle boundary
+                if (ix == 0) {
+                    process_boundary({0, 2}, utr_map(iy, ix), data);
+                }
+                if (ix == nex - 1) {
+                    process_boundary({0, 1}, ltr_map(iy, ix), data);
+                }
+                if (iy == 0) {
+                    process_boundary({0, 2}, ltr_map(iy, ix), data);
+                }
+                if (iy == ney - 1) {
+                    process_boundary({0, 1}, utr_map(iy, ix), data);
+                }
             }
         }
-    }
+    };
+    assemble(num_elements_y, num_elements_x, num_vertices_y, num_vertices_x,
+             A_data);
+
     // u(0) = u(1) = 1
     // values in the interior will be overwritten during the communication
     // also set initial guess to dirichlet condition
-    auto f_one = [&](const auto iy, const auto ix) { return 1.0; };
-    auto f_linear = [&](const auto iy, const auto ix) {
-        return 0.5 * (ix / num_elements_x + iy / num_vertices_y);
+    auto assemble_rhs = [](auto nvy, auto nvx, bool left_brdy, bool right_brdy,
+                           auto& data) {
+        auto f_one = [&](const auto iy, const auto ix) { return 1.0; };
+        auto f_linear = [&](const auto iy, const auto ix) {
+            return 0.5 * (ix / (nvx - 1) + iy / (nvy - 1));
+        };
+        // vertical boundaries
+        for (int i = 0; i < nvy; i++) {
+            if (left_brdy) {
+                auto idx = i * nvx;
+                data.set_value(idx, 0, f_one(i, 0));
+            }
+            if (right_brdy) {
+                auto idx = (i + 1) * nvx - 1;
+                data.set_value(idx, 0, f_one(i, nvx - 1));
+            }
+        }
+        // horizontal boundaries
+        for (int i = 0; i < nvx; i++) {
+            {
+                auto idx = i;
+                data.set_value(idx, 0, f_one(0, i));
+            }
+            {
+                auto idx = i + (nvy - 1) * nvx;
+                data.set_value(idx, 0, f_one(nvy - 1, i));
+            }
+        }
     };
-    // vertical boundaries
-    for (int i = 0; i < num_vertices_y; i++) {
-        if (rank == 0) {
-            auto idx = i * num_vertices_x;
-            b_data.set_value(idx, 0, f_one(i, 0));
-        }
-        if (rank == comm.size() - 1) {
-            auto idx = (i + 1) * num_vertices_x - 1;
-            b_data.set_value(idx, 0, f_one(i, num_vertices_x - 1));
-        }
-    }
-    // horizontal boundaries
-    for (int i = 0; i < num_vertices_x; i++) {
-        {
-            auto idx = i;
-            b_data.set_value(idx, 0, f_one(0, i));
-        }
-        {
-            auto idx = i + (num_vertices_y - 1) * num_vertices_x;
-            b_data.set_value(idx, 0, f_one(num_vertices_y - 1, i));
-        }
-    }
+    assemble_rhs(num_vertices_y, num_vertices_x, rank == 0,
+                 rank == comm.size() - 1, b_data);
     gko::matrix_assembly_data<ValueType, LocalIndexType> x_data = b_data;
+
+    gko::matrix_assembly_data<ValueType, LocalIndexType> global_A_data{
+        gko::dim<2>{global_rows, global_rows}};
+    gko::matrix_assembly_data<ValueType, LocalIndexType> global_b_data{
+        gko::dim<2>{global_rows, 1}};
+    assemble(num_elements_y, global_num_elements_x, num_vertices_y,
+             global_num_elements_x + 1, global_A_data);  // vertical boundaries
+    assemble_rhs(num_vertices_y, global_num_vertices_x, true, true,
+                 global_b_data);
+    auto global_x_data = global_b_data;
 
     // Take timings.
     comm.synchronize();
@@ -546,6 +614,14 @@ int main(int argc, char* argv[])
     A->copy_from(A_host.get());
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
+
+    auto global_A = gko::share(mtx::create(exec));
+    auto global_x = gko::share(vec::create(exec));
+    auto global_b = gko::share(vec::create(exec));
+
+    global_A->read(global_A_data);
+    global_x->read(global_x_data);
+    global_b->read(global_b_data);
 
     gko::write(std::ofstream{"A.mtx"}, A.get());
 
@@ -640,7 +716,8 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
-    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4);
+    auto res_norm = gko::ir(ovlp_A, ovlp_b, ovlp_x, num_iters, 1e-4, global_A,
+                            global_x, global_b);
 
     // Take timings.
     comm.synchronize();
