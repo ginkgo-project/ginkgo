@@ -63,13 +63,18 @@ public:
 
     /**
      * Finish the timer
+     *
+     * @param num  the number of operation for the timing range
      */
-    void toc()
+    void toc(unsigned int num = 1)
     {
         assert(tic_called_ == true);
-        auto sec = this->toc_impl();
+        assert(num > 0);
+        auto sec = this->toc_impl() / num;
         tic_called_ = false;
-        this->add_record(sec);
+        for (unsigned int i = 0; i < num; i++) {
+            this->add_record(sec);
+        }
     }
 
     /**
