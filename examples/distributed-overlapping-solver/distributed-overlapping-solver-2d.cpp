@@ -605,7 +605,6 @@ int main(int argc, char* argv[])
         exec, comm, std::move(x), comm_info.recv_idxs);
     auto ovlp_b = std::make_shared<gko::overlapping_vec>(
         exec, comm, std::move(b), comm_info.recv_idxs);
-    auto ovlp_x_copy = ovlp_x->clone();
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
@@ -615,7 +614,7 @@ int main(int argc, char* argv[])
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
     auto Ainv =
-        gko::solver::Ir<ValueType>::build()
+        gko::solver::Gmres<ValueType>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
                     exec),
@@ -623,15 +622,15 @@ int main(int argc, char* argv[])
                     .with_baseline(gko::stop::mode::absolute)
                     .with_reduction_factor(1e-4)
                     .on(exec))
-            .with_generated_solver(std::make_shared<gko::overlapping_schwarz>(
-                exec, comm, ovlp_A, comm_info))
-            .with_relaxation_factor(1.0)
+            .with_generated_preconditioner(
+                std::make_shared<gko::overlapping_schwarz>(exec, comm, ovlp_A,
+                                                           comm_info))
             .on(exec)
             ->generate(ovlp_A);
     auto logger = gko::share(gko::log::Convergence<ValueType>::create());
     Ainv->add_logger(logger);
 
-    Ainv->apply(ovlp_b, ovlp_x_copy);
+    Ainv->apply(ovlp_b, ovlp_x);
 
     auto res_norm = gko::as<vec>(logger->get_residual_norm());
 
