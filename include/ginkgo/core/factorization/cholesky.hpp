@@ -47,7 +47,7 @@ namespace factorization {
 
 
 /**
- * Computes an Cholesky factorization of a symmetric, positive-definite sparse
+ * Computes a Cholesky factorization of a symmetric, positive-definite sparse
  * matrix. This LinOpFactory returns a Factorization storing the L and L^H
  * factors for the provided system matrix in matrix::Csr format. If no symbolic
  * factorization is provided, it will be computed first.
