@@ -145,7 +145,7 @@ protected:
 #ifdef GKO_COMPILING_OMP
 using Types = gko::test::ValueIndexTypes;
 #elif defined(GKO_COMPILING_CUDA)
-// CUDA don't support long indices for sorting, and the triangular solvers
+// CUDA doesn't support long indices for sorting, and the triangular solvers
 // seem broken
 using Types = ::testing::Types<std::tuple<float, gko::int32>,
                                std::tuple<double, gko::int32>,

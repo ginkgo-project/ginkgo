@@ -281,47 +281,6 @@ void build_children_from_parents(
 }
 
 
-template <typename IndexType>
-__global__ void compute_subtree_sizes_kernel(
-    const IndexType* __restrict__ parents,
-    const IndexType* __restrict__ child_ptrs,
-    const IndexType* __restrict__ children, IndexType* __restrict__ postorder,
-    size_type num_rows)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    __shared__ int ready[default_block_size];
-    ready[tidx] = 0;
-    __syncthreads();
-    if (tidx >= num_rows) {
-        return;
-    }
-
-    const auto child_begin = child_ptrs[num_rows];
-    const auto child_end = child_ptrs[num_rows + 1];
-    for (auto i = child_begin; i < child_end; i++) {
-    }
-}
-
-
-template <typename IndexType>
-void compute_postorder(
-    std::shared_ptr<const DefaultExecutor> exec,
-    gko::factorization::elimination_forest<IndexType>& forest)
-{
-    const auto num_rows = forest.parents.get_num_elems();
-    if (num_rows > 0) {
-        const auto num_blocks = ceildiv(num_rows, default_block_size);
-        array<IndexType> subtree_sizes{exec, num_rows};
-        components::fill_array(exec, subtree_sizes.get_data(), num_rows,
-                               IndexType{});
-        compute_subtree_sizes_kernel<<<num_blocks, default_block_size>>>(
-            forest.parents.get_const_data(), forest.child_ptrs.get_const_data(),
-            forest.children.get_const_data(), forest.postorder.get_data(),
-            num_rows);
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 void forest_from_factor(
     std::shared_ptr<const DefaultExecutor> exec,
