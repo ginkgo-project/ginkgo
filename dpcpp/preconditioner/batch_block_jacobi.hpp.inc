@@ -164,10 +164,7 @@ template <typename ValueType>
 __dpct_inline__ void batch_block_jacobi_apply(
     BatchBlockJacobi<ValueType> prec, const size_type batch_id, const int nrows,
     const ValueType* const b_values, ValueType* const x_values,
-    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                   sycl::access::target::local>
-        sh_mem,
-    sycl::nd_item<3> item_ct1)
+    ValueType* sh_mem, sycl::nd_item<3> item_ct1)
 {
     ValueType* work = &sh_mem[0];
 
