@@ -64,6 +64,10 @@ std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::transpose() const
             as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
         .with_right_scaling_op(share(
             as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
+        .with_num_WM_steps(parameters_.num_WM_steps)
+        .with_WM_pGE_subwarp_size(parameters_.WM_pGE_subwarp_size)
+        .with_batch_tridiagonal_solution_approach(
+            parameters_.batch_tridiagonal_solution_approach)
         .on(this->get_executor())
         ->generate(share(
             as<BatchTransposable>(this->get_system_matrix())->transpose()));
@@ -81,6 +85,10 @@ std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::conj_transpose()
         .with_right_scaling_op(
             share(as<BatchTransposable>(this->get_right_scaling_op())
                       ->conj_transpose()))
+        .with_num_WM_steps(parameters_.num_WM_steps)
+        .with_WM_pGE_subwarp_size(parameters_.WM_pGE_subwarp_size)
+        .with_batch_tridiagonal_solution_approach(
+            parameters_.batch_tridiagonal_solution_approach)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
                              ->conj_transpose()));
@@ -143,7 +151,9 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     auto system_mat_tridiag_copy =
         gko::clone(exec, system_matrix_tridiagonal.get());
     exec->run(batch_tridiagonal_solver::make_apply(
-        system_mat_tridiag_copy.get(), b_copy_ptr, dense_x));
+        system_mat_tridiag_copy.get(), b_copy_ptr, dense_x,
+        parameters_.num_WM_steps, parameters_.WM_pGE_subwarp_size,
+        parameters_.batch_tridiagonal_solution_approach));
 
     if (to_scale) {
         as<const BDiag>(this->parameters_.right_scaling_op)

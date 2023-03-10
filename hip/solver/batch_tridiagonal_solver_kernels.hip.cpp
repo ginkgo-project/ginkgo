@@ -60,33 +60,10 @@ template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            matrix::BatchDense<ValueType>* const rhs,
-           matrix::BatchDense<ValueType>* const x)
-{
-    const auto nbatch = tridiag_mat->get_num_batch_entries();
-    const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
-    const auto nrhs = rhs->get_size().at(0)[1];
-    assert(nrhs == 1);
-
-    const int shared_size =
-        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
-            ValueType>(nrows, nrhs);
-
-    const auto subwarpsize = default_subwarp_size;
-    dim3 block(default_block_size);
-    dim3 grid(ceildiv(nbatch * subwarpsize, default_block_size));
-
-    const int num_WM_steps = 3;
-
-    hipLaunchKernelGGL(WM_pGE_kernel_approach_1<subwarpsize>, grid, block,
-                       shared_size, 0, num_WM_steps, nbatch, nrows,
-                       as_hip_type(tridiag_mat->get_sub_diagonal()),
-                       as_hip_type(tridiag_mat->get_main_diagonal()),
-                       as_hip_type(tridiag_mat->get_super_diagonal()),
-                       as_hip_type(rhs->get_values()),
-                       as_hip_type(x->get_values()));
-
-    GKO_HIP_LAST_IF_ERROR_THROW;
-}
+           matrix::BatchDense<ValueType>* const x, const int num_WM_steps,
+           const int WM_pGE_subwarp_size,
+           const enum gko::solver::batch_tridiag_solve_approach approach)
+    GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

@@ -47,6 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
+enum class batch_tridiag_solve_approach {
+    WM_pGE_app1,
+    WM_pGE_app2,
+    vendor_provided
+};
 
 /**
  * Solves a batch of tridiagonal linear systems.
@@ -116,6 +121,18 @@ public:
          */
         std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
             right_scaling_op, nullptr);
+
+        /**
+         * Number of WM steps in the WM-pGE algorithm
+         *
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(num_WM_steps, 1);
+
+        batch_tridiag_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
+            batch_tridiagonal_solution_approach,
+            batch_tridiag_solve_approach::WM_pGE_app1);
+
+        int GKO_FACTORY_PARAMETER_SCALAR(WM_pGE_subwarp_size, 4);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchTridiagonalSolver, parameters,
                                     Factory);

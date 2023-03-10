@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/batch_tridiagonal.hpp>
+#include <ginkgo/core/solver/batch_tridiagonal_solver.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -57,11 +58,13 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }
 
 
-#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)   \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,        \
-               matrix::BatchTridiagonal<_type>* const tridiag_mat, \
-               matrix::BatchDense<_type>* const b,                 \
-               matrix::BatchDense<_type>* const x)
+#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)           \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,                \
+               matrix::BatchTridiagonal<_type>* const tridiag_mat,         \
+               matrix::BatchDense<_type>* const b,                         \
+               matrix::BatchDense<_type>* const x, const int num_WM_steps, \
+               const int WM_pGE_subwarp_size,                              \
+               const enum gko::solver::batch_tridiag_solve_approach approach)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

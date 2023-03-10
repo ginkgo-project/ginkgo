@@ -52,7 +52,8 @@ template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            matrix::BatchDense<ValueType>* const rhs,
-           matrix::BatchDense<ValueType>* const x)
+           matrix::BatchDense<ValueType>* const x, const int, const int,
+           const enum gko::solver::batch_tridiag_solve_approach)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);

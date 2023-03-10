@@ -63,7 +63,9 @@ template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            matrix::BatchDense<ValueType>* const rhs,
-           matrix::BatchDense<ValueType>* const x)
+           matrix::BatchDense<ValueType>* const x, const int number_WM_steps,
+           const int WM_pGE_subwarp_size,
+           const enum gko::solver::batch_tridiag_solve_approach approach)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
@@ -74,52 +76,48 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
+    // TODO: Use WM_PGE_subwarp_size
     const auto subwarpsize = default_subwarp_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarpsize, default_block_size));
 
-    const int num_WM_steps = 3;
+    if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1) {
+        WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
+            number_WM_steps, nbatch, nrows,
+            as_cuda_type(tridiag_mat->get_sub_diagonal()),
+            as_cuda_type(tridiag_mat->get_main_diagonal()),
+            as_cuda_type(tridiag_mat->get_super_diagonal()),
+            as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+    } else if (approach ==
+               gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
+        WM_pGE_kernel_approach_2<subwarpsize><<<grid, block, shared_size>>>(
+            number_WM_steps, nbatch, nrows,
+            as_cuda_type(tridiag_mat->get_sub_diagonal()),
+            as_cuda_type(tridiag_mat->get_main_diagonal()),
+            as_cuda_type(tridiag_mat->get_super_diagonal()),
+            as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+    } else if (approach ==
+               gko::solver::batch_tridiag_solve_approach::vendor_provided) {
+        x->copy_from(rhs);
 
-    auto tridiag_mat_cl = gko::clone(exec, tridiag_mat);
-    auto rhs_cl = gko::clone(exec, rhs);
-    auto x_cl = gko::clone(exec, x);
+        auto handle = exec->get_cusparse_handle();
+        if (!cusparse::is_supported<ValueType, int>::value) {
+            GKO_NOT_IMPLEMENTED;
+        }
 
-    // WM_pGE_kernel_approach_1<subwarpsize><<<grid, block, shared_size>>>(
-    //     num_WM_steps, nbatch, nrows,
-    //     as_cuda_type(tridiag_mat_cl->get_sub_diagonal()),
-    //     as_cuda_type(tridiag_mat_cl->get_main_diagonal()),
-    //     as_cuda_type(tridiag_mat_cl->get_super_diagonal()),
-    //     as_cuda_type(rhs_cl->get_values()),
-    //     as_cuda_type(x_cl->get_values()));
+        size_type bufferSizeInBytes = 0;
+        cusparse::gtsv2StridedBatched_buffer_size(
+            handle, nrows, tridiag_mat->get_sub_diagonal(),
+            tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
+            x->get_values(), nbatch, nrows, bufferSizeInBytes);
 
-    // WM_pGE_kernel_approach_2<subwarpsize><<<grid, block, shared_size>>>(
-    //     num_WM_steps, nbatch, nrows,
-    //     as_cuda_type(tridiag_mat->get_sub_diagonal()),
-    //     as_cuda_type(tridiag_mat->get_main_diagonal()),
-    //     as_cuda_type(tridiag_mat->get_super_diagonal()),
-    //     as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+        gko::array<char> buffer(exec, bufferSizeInBytes);
 
-    // GKO_CUDA_LAST_IF_ERROR_THROW;
-
-    x->copy_from(rhs);
-
-    auto handle = exec->get_cusparse_handle();
-    if (!cusparse::is_supported<ValueType, int>::value) {
-        GKO_NOT_IMPLEMENTED;
+        cusparse::gtsv2StridedBatch(
+            handle, nrows, tridiag_mat->get_sub_diagonal(),
+            tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
+            x->get_values(), nbatch, nrows, buffer.get_data());
     }
-
-    size_type bufferSizeInBytes = 0;
-    cusparse::gtsv2StridedBatched_buffer_size(
-        handle, nrows, tridiag_mat->get_sub_diagonal(),
-        tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
-        x->get_values(), nbatch, nrows, bufferSizeInBytes);
-
-    gko::array<char> buffer(exec, bufferSizeInBytes);
-
-    cusparse::gtsv2StridedBatch(
-        handle, nrows, tridiag_mat->get_sub_diagonal(),
-        tridiag_mat->get_main_diagonal(), tridiag_mat->get_super_diagonal(),
-        x->get_values(), nbatch, nrows, buffer.get_data());
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
