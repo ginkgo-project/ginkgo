@@ -56,10 +56,14 @@ const char* location_ani1_nonsymm_lu_mtx =
 const char* location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
 const char* location_ani4_lu_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/ani4_lu.mtx";
+const char* location_ani4_chol_mtx =
+    "@Ginkgo_BINARY_DIR@/matrices/test/ani4_chol.mtx";
 const char* location_ani4_amd_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/ani4_amd.mtx";
 const char* location_ani4_amd_lu_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/ani4_amd_lu.mtx";
+const char* location_ani4_amd_chol_mtx =
+    "@Ginkgo_BINARY_DIR@/matrices/test/ani4_amd_chol.mtx";
 const char* location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
 const char* location_1138_bus_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";

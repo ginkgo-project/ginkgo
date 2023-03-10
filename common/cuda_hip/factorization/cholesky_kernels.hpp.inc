@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/factorization/elimination_forest.hpp"
+namespace kernel {
+
+
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
     IndexType num_rows, const IndexType* cols, const IndexType* row_ptrs,
@@ -58,22 +62,8 @@ __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
 }
 
 
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void pointer_doubling_kernel(
-    IndexType num_rows, const IndexType* parents, IndexType* doubled_parents)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-    const auto parent = parents[row];
-    doubled_parents[row] = parent < num_rows ? parents[parent] : num_rows;
-}
-
-
 template <int subwarp_size, typename IndexType>
-__global__
-__launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
+__global__ __launch_bounds__(default_block_size) void symbolic_count(
     IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
     const IndexType* inv_postorder, const IndexType* postorder_cols,
     const IndexType* postorder_parent, IndexType* row_nnz)
@@ -101,9 +91,8 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
             node = postorder_parent[node];
         }
     }
-    count =
-        reduce(subwarp, count, [](IndexType a, IndexType b) { return a + b; }) +
-        1;  // lower entries plus diagonal
+    // lower entries plus diagonal
+    count = reduce(subwarp, count, thrust::plus<IndexType>{}) + 1;
     if (lane == 0) {
         row_nnz[row] = count;
     }
@@ -111,8 +100,7 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
 
 
 template <int subwarp_size, typename IndexType>
-__global__
-__launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
+__global__ __launch_bounds__(default_block_size) void symbolic_factorize(
     IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
     const IndexType* inv_postorder, const IndexType* postorder_cols,
     const IndexType* postorder, const IndexType* postorder_parent,
@@ -159,7 +147,84 @@ __launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_factorize(
+__global__ __launch_bounds__(default_block_size) void factorize(
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
+    const IndexType* __restrict__ elim_tree_child_ptrs,
+    const IndexType* __restrict__ elim_tree_children,
+    const IndexType* __restrict__ storage_offsets,
+    const int32* __restrict__ storage, const int64* __restrict__ row_descs,
+    const IndexType* __restrict__ diag_idxs,
+    const IndexType* __restrict__ transpose_idxs, ValueType* __restrict__ vals,
+    syncfree_storage dep_storage, size_type num_rows)
+{
+    using scheduler_t =
+        syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
+    __shared__ typename scheduler_t::shared_storage sh_dep_storage;
+    scheduler_t scheduler(dep_storage, sh_dep_storage);
+    const auto row = scheduler.get_work_id();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    const auto row_begin = row_ptrs[row];
+    const auto row_diag = diag_idxs[row];
+    const auto row_end = row_ptrs[row + 1];
+    const auto child_begin = elim_tree_child_ptrs[row];
+    const auto child_end = elim_tree_child_ptrs[row + 1];
+    gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+        row_ptrs, cols,      storage_offsets,
+        storage,  row_descs, static_cast<size_type>(row)};
+    for (auto child = child_begin; child < child_end; child++) {
+        const auto dep = elim_tree_children[child];
+        scheduler.wait(dep);
+        // TODO evaluate parallel waiting with __all_sync
+    }
+    // for each lower triangular entry: eliminate with corresponding row
+    for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
+        const auto dep = cols[lower_nz];
+        auto val = vals[lower_nz];
+        const auto diag_idx = diag_idxs[dep];
+        const auto dep_end = row_ptrs[dep + 1];
+        const auto diag = vals[diag_idx];
+        const auto scale = val / diag;
+        if (lane == 0) {
+            vals[lower_nz] = scale;
+        }
+        // subtract all entries past the diagonal
+        for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
+             upper_nz += config::warp_size) {
+            const auto upper_col = cols[upper_nz];
+            if (upper_col < row) {
+                const auto upper_val = vals[upper_nz];
+                const auto output_pos =
+                    lookup.lookup_unsafe(upper_col) + row_begin;
+                vals[output_pos] -= scale * upper_val;
+            }
+        }
+    }
+    ValueType sum{};
+    for (auto lower_nz = row_begin + lane; lower_nz < row_diag;
+         lower_nz += config::warp_size) {
+        sum += squared_norm(vals[lower_nz]);
+        // copy the lower triangular entries to the transpose
+        vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
+    }
+    sum = reduce(warp, sum, thrust::plus<ValueType>{});
+    if (lane == 0) {
+        // store computed diagonal
+        vals[row_diag] = sqrt(vals[row_diag] - sum);
+    }
+    scheduler.mark_ready();
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
@@ -181,7 +246,7 @@ void cholesky_symbolic_factorize(
     const auto out_cols = l_factor->get_col_idxs();
     const auto num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    cholesky_symbolic_factorize_kernel<config::warp_size>
+    kernel::symbolic_factorize<config::warp_size>
         <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
             num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
             postorder, postorder_parent, out_row_ptrs, out_cols);
@@ -189,3 +254,122 @@ void cholesky_symbolic_factorize(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
+
+
+template <typename IndexType>
+void build_children_from_parents(
+    std::shared_ptr<const DefaultExecutor> exec,
+    gko::factorization::elimination_forest<IndexType>& forest)
+{
+    const auto num_rows = forest.parents.get_num_elems();
+    // build COO representation of the tree
+    array<IndexType> col_idx_array{exec, num_rows};
+    const auto col_idxs = col_idx_array.get_data();
+    const auto parents = forest.parents.get_const_data();
+    const auto children = forest.children.get_data();
+    const auto child_ptrs = forest.child_ptrs.get_data();
+    exec->copy(num_rows, parents, col_idxs);
+    thrust::sequence(thrust_policy(exec), children, children + num_rows,
+                     IndexType{});
+    // group by parent
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
+                               col_idxs + num_rows, children);
+    // create child pointers for groups of children
+    components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
+                                     num_rows + 1,  // rows plus sentinel
+                                     child_ptrs);
+}
+
+
+template <typename ValueType, typename IndexType>
+void forest_from_factor(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    gko::factorization::elimination_forest<IndexType>& forest)
+{
+    const auto num_rows = factors->get_size()[0];
+    const auto it = thrust::make_counting_iterator(IndexType{});
+    thrust::transform(
+        thrust_policy(exec), it, it + num_rows, forest.parents.get_data(),
+        [row_ptrs = factors->get_const_row_ptrs(),
+         col_idxs = factors->get_const_col_idxs(),
+         num_rows] __device__(IndexType l_col) {
+            const auto llt_row_begin = row_ptrs[l_col];
+            const auto llt_row_end = row_ptrs[l_col + 1];
+            for (auto nz = llt_row_begin; nz < llt_row_end; nz++) {
+                const auto l_row = col_idxs[nz];
+                // parent[j] = min(i | i > j and l_ij =/= 0)
+                // we read from L^T stored above the diagonal in factors
+                // assuming a sorted order of the columns
+                if (l_row > l_col) {
+                    return l_row;
+                }
+            }
+            // sentinel pseudo-root
+            return static_cast<IndexType>(num_rows);
+        });
+    build_children_from_parents(exec, forest);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
+
+
+template <typename ValueType, typename IndexType>
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::Csr<ValueType, IndexType>* mtx,
+                const IndexType* factor_lookup_offsets,
+                const int64* factor_lookup_descs,
+                const int32* factor_lookup_storage, IndexType* diag_idxs,
+                IndexType* transpose_idxs,
+                matrix::Csr<ValueType, IndexType>* factors)
+{
+    lu_factorization::initialize(exec, mtx, factor_lookup_offsets,
+                                 factor_lookup_descs, factor_lookup_storage,
+                                 diag_idxs, factors);
+    // convert to COO
+    const auto nnz = factors->get_num_stored_elements();
+    array<IndexType> row_idx_array{exec, nnz};
+    array<IndexType> col_idx_array{exec, nnz};
+    const auto row_idxs = row_idx_array.get_data();
+    const auto col_idxs = col_idx_array.get_data();
+    exec->copy(nnz, factors->get_const_col_idxs(), col_idxs);
+    components::convert_ptrs_to_idxs(exec, factors->get_const_row_ptrs(),
+                                     factors->get_size()[0], row_idxs);
+    components::fill_seq_array(exec, transpose_idxs, nnz);
+    // compute nonzero permutation for sparse transpose
+    // to profit from cub/rocPRIM's fast radix sort, we do it in two steps
+    thrust::stable_sort_by_key(thrust_policy(exec), row_idxs, row_idxs + nnz,
+                               transpose_idxs);
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs, col_idxs + nnz,
+                               transpose_idxs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
+
+
+template <typename ValueType, typename IndexType>
+void factorize(std::shared_ptr<const DefaultExecutor> exec,
+               const IndexType* lookup_offsets, const int64* lookup_descs,
+               const int32* lookup_storage, const IndexType* diag_idxs,
+               const IndexType* transpose_idxs,
+               const factorization::elimination_forest<IndexType>& forest,
+               matrix::Csr<ValueType, IndexType>* factors,
+               array<int>& tmp_storage)
+{
+    const auto num_rows = factors->get_size()[0];
+    if (num_rows > 0) {
+        syncfree_storage storage(exec, tmp_storage, num_rows);
+        const auto num_blocks =
+            ceildiv(num_rows, default_block_size / config::warp_size);
+        kernel::factorize<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            forest.child_ptrs.get_const_data(),
+            forest.children.get_const_data(), lookup_offsets, lookup_storage,
+            lookup_descs, diag_idxs, transpose_idxs,
+            as_device_type(factors->get_values()), storage, num_rows);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);

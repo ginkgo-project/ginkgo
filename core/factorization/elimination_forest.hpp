@@ -49,7 +49,14 @@ namespace factorization {
 template <typename IndexType>
 struct elimination_forest {
     elimination_forest(std::shared_ptr<const Executor> host_exec,
-                       IndexType size);
+                       IndexType size)
+        : parents{host_exec, static_cast<size_type>(size)},
+          child_ptrs{host_exec, static_cast<size_type>(size + 2)},
+          children{host_exec, static_cast<size_type>(size)},
+          postorder{host_exec, static_cast<size_type>(size)},
+          inv_postorder{host_exec, static_cast<size_type>(size)},
+          postorder_parents{host_exec, static_cast<size_type>(size)}
+    {}
 
     void set_executor(std::shared_ptr<const Executor> exec);
 

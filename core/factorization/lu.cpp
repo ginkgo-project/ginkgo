@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -96,7 +97,9 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         if (parameters_.symmetric_sparsity) {
-            exec->run(make_symbolic_cholesky(mtx.get(), factors));
+            std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
+                forest;
+            exec->run(make_symbolic_cholesky(mtx.get(), factors, forest));
         } else {
             exec->run(make_symbolic_lu(mtx.get(), factors));
         }

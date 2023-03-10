@@ -51,10 +51,8 @@ namespace factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(cholesky_symbolic_count,
-                       cholesky::cholesky_symbolic_count);
-GKO_REGISTER_OPERATION(cholesky_symbolic,
-                       cholesky::cholesky_symbolic_factorize);
+GKO_REGISTER_OPERATION(symbolic_count, cholesky::symbolic_count);
+GKO_REGISTER_OPERATION(symbolic, cholesky::symbolic_factorize);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
 GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
@@ -68,25 +66,24 @@ GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
     const matrix::Csr<ValueType, IndexType>* mtx,
-    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
+    std::unique_ptr<elimination_forest<IndexType>>& forest)
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = mtx->get_executor();
     const auto host_exec = exec->get_master();
-    std::unique_ptr<elimination_forest<IndexType>> forest;
     exec->run(make_compute_elim_forest(mtx, forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
-    exec->run(
-        make_cholesky_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
+    exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
     const auto factor_nnz = static_cast<size_type>(
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
-    exec->run(make_cholesky_symbolic(mtx, *forest, factors.get(), tmp));
+    exec->run(make_symbolic(mtx, *forest, factors.get(), tmp));
     factors->sort_by_column_index();
     auto lt_factor = as<matrix_type>(factors->transpose());
     const auto scalar =
@@ -96,10 +93,11 @@ void symbolic_cholesky(
 }
 
 
-#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType) \
-    void symbolic_cholesky(                                 \
-        const matrix::Csr<ValueType, IndexType>* mtx,       \
-        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)          \
+    void symbolic_cholesky(                                          \
+        const matrix::Csr<ValueType, IndexType>* mtx,                \
+        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors, \
+        std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
 

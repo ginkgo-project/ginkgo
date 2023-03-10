@@ -58,11 +58,10 @@ namespace cholesky {
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_count(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz, array<IndexType>& tmp_storage)
+void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* mtx,
+                    const factorization::elimination_forest<IndexType>& forest,
+                    IndexType* row_nnz, array<IndexType>& tmp_storage)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto mtx_nnz = mtx->get_num_stored_elements();
@@ -127,7 +126,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void cholesky_symbolic_factorize(
+void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
@@ -173,6 +172,40 @@ void cholesky_symbolic_factorize(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
+
+
+template <typename ValueType, typename IndexType>
+void forest_from_factor(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* factors,
+                        gko::factorization::elimination_forest<IndexType>&
+                            forest) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
+
+
+template <typename ValueType, typename IndexType>
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::Csr<ValueType, IndexType>* mtx,
+                const IndexType* factor_lookup_offsets,
+                const int64* factor_lookup_descs,
+                const int32* factor_lookup_storage, IndexType* diag_idxs,
+                IndexType* transpose_idxs,
+                matrix::Csr<ValueType, IndexType>* factors) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
+
+
+template <typename ValueType, typename IndexType>
+void factorize(std::shared_ptr<const DefaultExecutor> exec,
+               const IndexType* lookup_offsets, const int64* lookup_descs,
+               const int32* lookup_storage, const IndexType* diag_idxs,
+               const IndexType* transpose_idxs,
+               const factorization::elimination_forest<IndexType>& forest,
+               matrix::Csr<ValueType, IndexType>* factors,
+               array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
 
 }  // namespace cholesky
