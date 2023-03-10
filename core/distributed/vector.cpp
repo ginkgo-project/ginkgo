@@ -129,17 +129,12 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     dim<2> global_size, std::unique_ptr<const local_vector_type> local_vector)
 {
-    auto non_const_local_vector = local_vector_type::create(
-        local_vector->get_executor(), local_vector->get_size(),
-        detail::array_const_cast(
-            make_const_array_view(local_vector->get_executor(),
-                                  local_vector->get_num_stored_elements(),
-                                  local_vector->get_const_values())),
-        local_vector->get_stride());
+    auto non_const_local_vector =
+        const_cast<local_vector_type*>(local_vector.release());
 
-    return std::unique_ptr<const Vector<ValueType>>(
-        new Vector<ValueType>(std::move(exec), std::move(comm), global_size,
-                              std::move(non_const_local_vector)));
+    return std::unique_ptr<const Vector<ValueType>>(new Vector<ValueType>(
+        std::move(exec), std::move(comm), global_size,
+        std::unique_ptr<local_vector_type>{non_const_local_vector}));
 }
 
 
