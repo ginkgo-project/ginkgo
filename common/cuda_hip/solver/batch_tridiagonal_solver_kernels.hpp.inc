@@ -32,11 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType, typename Group>
-__device__ void broadcast(Group& subwarp_grp, const int target_lane,
-                          const ValueType& my_a, const ValueType& my_b,
-                          const ValueType& my_c, const ValueType& my_d,
-                          ValueType& piv_a, ValueType& piv_b, ValueType& piv_c,
-                          ValueType& piv_d)
+__device__ __forceinline__ void broadcast(
+    Group& subwarp_grp, const int target_lane, const ValueType& my_a,
+    const ValueType& my_b, const ValueType& my_c, const ValueType& my_d,
+    ValueType& piv_a, ValueType& piv_b, ValueType& piv_c, ValueType& piv_d)
 {
     piv_a = subwarp_grp.shfl(my_a, target_lane);
     piv_b = subwarp_grp.shfl(my_b, target_lane);
@@ -47,9 +46,10 @@ __device__ void broadcast(Group& subwarp_grp, const int target_lane,
 namespace WM_pGE_approach1 {
 
 template <typename ValueType, typename Group>
-__device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
-                        ValueType& my_a, ValueType& my_b, ValueType& my_c,
-                        ValueType& my_d)
+__device__ __forceinline__ void WM_step(Group& subwarp_grp,
+                                        const int curr_group_size,
+                                        ValueType& my_a, ValueType& my_b,
+                                        ValueType& my_c, ValueType& my_d)
 {
     const int lane = subwarp_grp.thread_rank();
     const int curr_grp_idx = lane / curr_group_size;
@@ -104,9 +104,10 @@ __device__ void WM_step(Group& subwarp_grp, const int curr_group_size,
 }
 
 template <typename ValueType, typename Group>
-__device__ void WM_phase(const int num_WM_steps, Group& subwarp_grp,
-                         ValueType& my_a, ValueType& my_b, ValueType& my_c,
-                         ValueType& my_d, int& curr_group_size)
+__device__ __forceinline__ void WM_phase(const int num_WM_steps,
+                                         Group& subwarp_grp, ValueType& my_a,
+                                         ValueType& my_b, ValueType& my_c,
+                                         ValueType& my_d, int& curr_group_size)
 {
     for (int i = 0; i < num_WM_steps; i++) {
         WM_step(subwarp_grp, curr_group_size, my_a, my_b, my_c, my_d);
@@ -117,12 +118,13 @@ __device__ void WM_phase(const int num_WM_steps, Group& subwarp_grp,
 
 
 template <typename ValueType, typename Group>
-__device__ void Forward_full_GE_phase(
+__device__ __forceinline__ void Forward_full_GE_phase(
     Group& subwarp_grp, const int nrows, const int my_row_idx,
     const int tile_size, const int final_group_size,
     ValueType& c_last_row_of_prev_group, ValueType& d_last_row_of_prev_group,
     ValueType& my_a, ValueType& my_b, ValueType& my_c, ValueType& my_d,
-    ValueType* c_batch_entry, ValueType* d_batch_entry)
+    ValueType* __restrict__ c_batch_entry,
+    ValueType* __restrict__ d_batch_entry)
 {
     const int num_groups_in_tile = tile_size / final_group_size;
     const int lane = subwarp_grp.thread_rank();
@@ -188,13 +190,13 @@ __device__ void Forward_full_GE_phase(
 
 
 template <typename ValueType, typename Group>
-__device__ void backward_substitution(Group& subwarp_grp, const int nrows,
-                                      const int my_row_idx, const int tile_size,
-                                      const int final_group_size,
-                                      ValueType& x_first_higher_group,
-                                      const ValueType* const c_batch_entry,
-                                      const ValueType* d_batch_entry,
-                                      ValueType* const x_batch_entry)
+__device__ __forceinline__ void backward_substitution(
+    Group& subwarp_grp, const int nrows, const int my_row_idx,
+    const int tile_size, const int final_group_size,
+    ValueType& x_first_higher_group,
+    const ValueType* const __restrict__ c_batch_entry,
+    const ValueType* __restrict__ d_batch_entry,
+    ValueType* const __restrict__ x_batch_entry)
 {
     const int lane = subwarp_grp.thread_rank();
     const int grp_idx = lane / final_group_size;
@@ -231,11 +233,11 @@ __device__ void backward_substitution(Group& subwarp_grp, const int nrows,
 }  // namespace WM_pGE_approach1
 
 template <int subwarp_size, typename ValueType>
-__global__ void WM_pGE_kernel_approach_1(const int num_WM_steps,
-                                         const size_type nbatch,
-                                         const int nrows, ValueType* const a,
-                                         ValueType* const b, ValueType* const c,
-                                         ValueType* const d, ValueType* const x)
+__global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
+    const int num_WM_steps, const size_type nbatch, const int nrows,
+    ValueType* const __restrict__ a, ValueType* const __restrict__ b,
+    ValueType* const __restrict__ c, ValueType* const __restrict__ d,
+    ValueType* const __restrict__ x)
 {
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -457,13 +459,14 @@ __device__ __forceinline__ void WM_phase(const int num_WM_steps,
 
 
 template <typename ValueType, typename Group>
-__device__ void Forward_full_GE_phase(
+__device__ __forceinline__ void Forward_full_GE_phase(
     Group& subwarp_grp, const int nrows, const int my_row_idx_1,
     const int tile_size, const int final_group_size,
     ValueType& c_last_row_of_prev_group, ValueType& d_last_row_of_prev_group,
     ValueType& my_a_1, ValueType& my_b_1, ValueType& my_c_1, ValueType& my_d_1,
     ValueType& my_a_2, ValueType& my_b_2, ValueType& my_c_2, ValueType& my_d_2,
-    ValueType* c_batch_entry, ValueType* d_batch_entry)
+    ValueType* __restrict__ c_batch_entry,
+    ValueType* __restrict__ d_batch_entry)
 {
     const int num_groups_in_tile = tile_size / final_group_size;
     const int lane = subwarp_grp.thread_rank();
@@ -593,11 +596,13 @@ __device__ void Forward_full_GE_phase(
 
 
 template <typename ValueType, typename Group>
-__device__ void backward_substitution(
+__device__ __forceinline__ void backward_substitution(
     Group& subwarp_grp, const int nrows, const int my_row_idx_1,
     const int tile_size, const int final_group_size,
-    ValueType& x_first_higher_group, const ValueType* const c_batch_entry,
-    const ValueType* d_batch_entry, ValueType* const x_batch_entry)
+    ValueType& x_first_higher_group,
+    const ValueType* const __restrict__ c_batch_entry,
+    const ValueType* __restrict__ d_batch_entry,
+    ValueType* const __restrict__ x_batch_entry)
 {
     ValueType my_c_1, my_d_1, my_x_1, my_c_2, my_d_2, my_x_2;
     // TODO: Vector reads to enable coalseced accesses while reading
@@ -668,11 +673,11 @@ __device__ void backward_substitution(
 }  // namespace WM_pGE_approach2
 
 template <int subwarp_size, typename ValueType>
-__global__ void WM_pGE_kernel_approach_2(const int num_WM_steps,
-                                         const size_type nbatch,
-                                         const int nrows, ValueType* const a,
-                                         ValueType* const b, ValueType* const c,
-                                         ValueType* const d, ValueType* const x)
+__global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
+    const int num_WM_steps, const size_type nbatch, const int nrows,
+    ValueType* const __restrict__ a, ValueType* const __restrict__ b,
+    ValueType* const __restrict__ c, ValueType* const __restrict__ d,
+    ValueType* const __restrict__ x)
 {
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
