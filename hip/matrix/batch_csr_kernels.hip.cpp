@@ -217,10 +217,13 @@ void batch_scale(std::shared_ptr<const HipExecutor> exec,
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const auto m_ub = get_batch_struct(mat);
+    const size_t shared_size =
+        right_scale->get_size().at(0)[0] * sizeof(ValueType) +
+        left_scale->get_size().at(0)[1] * sizeof(ValueType);
 
     const int num_blocks = mat->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_scale, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0,
+                       dim3(default_block_size), shared_size, 0,
                        as_hip_type(left_scale->get_const_values()),
                        as_hip_type(right_scale->get_const_values()), m_ub,
                        mat->get_size().at()[1]);
