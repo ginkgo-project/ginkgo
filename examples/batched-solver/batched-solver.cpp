@@ -55,7 +55,8 @@ using vec_type = gko::matrix::BatchDense<value_type>;
 using scale_type = gko::matrix::BatchDiagonal<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
-using solver_type = gko::solver::BatchBicgstab<value_type>;
+// using solver_type = gko::solver::BatchBicgstab<value_type>;
+using solver_type = gko::solver::BatchGmres<value_type>;
 
 
 // @sect3{'Application' structures and functions}
@@ -203,7 +204,9 @@ int main(int argc, char* argv[])
     // }
     auto scale_array = gko::array<value_type>(exec, num_rows * num_systems);
     scale_array.fill(gko::one<value_type>());
-    auto scale_mat =
+    auto l_scale_mat =
+        gko::share(scale_type::create(exec, batch_mat_size, scale_array));
+    auto r_scale_mat =
         gko::share(scale_type::create(exec, batch_mat_size, scale_array));
 
     // @sect3{Create the batch solver factory}
@@ -214,19 +217,20 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
             .on(exec);
 
     auto scaled_solver_gen =
         solver_type::build()
             .with_default_max_iterations(500)
+            .with_restart(50)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
-            .with_left_scaling_op(scale_mat)
-            .with_right_scaling_op(scale_mat)
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
+            .with_left_scaling_op(l_scale_mat)
+            .with_right_scaling_op(r_scale_mat)
             .on(exec);
 
     // @sect3{Batch logger}
@@ -237,24 +241,54 @@ int main(int argc, char* argv[])
 
     // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
-    std::chrono::steady_clock::time_point gt1 =
-        std::chrono::steady_clock::now();
     auto solver = solver_gen->generate(A);
-    std::chrono::steady_clock::time_point gt2 =
-        std::chrono::steady_clock::now();
 
-    std::chrono::steady_clock::time_point s_gt1 =
-        std::chrono::steady_clock::now();
     auto scaled_solver = scaled_solver_gen->generate(A);
-    std::chrono::steady_clock::time_point s_gt2 =
-        std::chrono::steady_clock::now();
+
+    double g1_time = 0.0;
+    double g2_time = 0.0;
+    int num_reps = 2;
+    for (int grep = 0; grep < num_reps; ++grep) {
+        std::chrono::steady_clock::time_point gt1 =
+            std::chrono::steady_clock::now();
+        auto solver1 = solver_gen->generate(A);
+        std::chrono::steady_clock::time_point gt2 =
+            std::chrono::steady_clock::now();
+
+        std::chrono::steady_clock::time_point s_gt1 =
+            std::chrono::steady_clock::now();
+        auto scaled_solver1 = scaled_solver_gen->generate(A);
+        std::chrono::steady_clock::time_point s_gt2 =
+            std::chrono::steady_clock::now();
+        auto g1time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(gt2 -
+                                                                      gt1);
+        auto g2time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(s_gt2 -
+                                                                      s_gt1);
+        g1_time += g1time_span.count();
+        g2_time += g2time_span.count();
+    }
     // add the logger to the solver
     scaled_solver->add_logger(logger);
 
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    // Solve the batch system
-    scaled_solver->apply(lend(b), lend(x));
-    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    double a_time = 0.0;
+    auto x_copy = gko::clone(x);
+    for (int rep = 0; rep < num_reps; ++rep) {
+        auto x_clone = gko::clone(x);
+        std::chrono::steady_clock::time_point t1 =
+            std::chrono::steady_clock::now();
+        // Solve the batch system
+        scaled_solver->apply(lend(b), lend(x_clone));
+        std::chrono::steady_clock::time_point t2 =
+            std::chrono::steady_clock::now();
+
+        auto time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        a_time += time_span.count();
+        x_copy->copy_from(x_clone.get());
+    }
+    x->copy_from(x_copy.get());
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
     scaled_solver->remove_logger(logger.get());
@@ -296,18 +330,11 @@ int main(int argc, char* argv[])
                       << " relative residual." << std::endl;
         }
     }
-    auto gen_time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>(gt2 - gt1);
-    auto scal_gen_time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>(s_gt2 -
-                                                                  s_gt1);
-    auto time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 
-    std::cout << "Generate time: " << gen_time_span.count() << " seconds \n"
-              << "Scaled solver generate time: " << scal_gen_time_span.count()
+    std::cout << "Generate time: " << g1_time / num_reps << " seconds \n"
+              << "Scaled solver generate time: " << g2_time / num_reps
               << " seconds \n"
-              << "Entire solve took " << time_span.count() << " seconds."
+              << "Entire solve took " << a_time / num_reps << " seconds."
               << std::endl;
 
     // Ginkgo objects are cleaned up automatically; but the "application" still
