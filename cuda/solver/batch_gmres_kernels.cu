@@ -168,13 +168,16 @@ public:
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(value_type);
+        const size_t subspace_size =
+            a.num_rows * (restart + 1) * sizeof(value_type);
         const auto sconf =
             gko::kernels::batch_gmres::compute_shared_storage<PrecType,
                                                               value_type>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs, restart);
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(value_type) +
-            (sconf.prec_shared ? prec_size : 0);
+            (sconf.prec_shared ? prec_size : 0) +
+            (sconf.subspace_shared ? subspace_size : 0);
         auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
