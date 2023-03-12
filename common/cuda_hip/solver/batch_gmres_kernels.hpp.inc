@@ -302,12 +302,11 @@ __global__ void apply_kernel(
         }
 
         ValueType* cs_sh;
-        if (sconf.n_shared == 5) {
-            cs_sh = workspace + gmem_offset;
-        } else {
+        if (sconf.n_shared == 4) {
             cs_sh = helper_sh + sconf.padded_vec_len;
+        } else {
+            cs_sh = workspace + gmem_offset;
         }
-
         ValueType* const sn_sh = cs_sh + restart;
         ValueType* const y_sh = sn_sh + restart;
         ValueType* const s_sh = y_sh + restart;
@@ -331,9 +330,20 @@ __global__ void apply_kernel(
         // are stored contiguously in memory one after the other.
         // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
         //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
-        ValueType* const V_sh = H_sh + restart * (restart + 1);
+        ValueType* V_sh;  // = H_sh + restart * (restart + 1);
+        if (sconf.n_shared == 5 && sconf.subspace_shared) {
+            V_sh = helper_sh + sconf.padded_vec_len;
+        } else {
+            V_sh = H_sh + restart * (restart + 1);
+        }
 
-        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1);
+        ValueType* prec_work_sh;
+        if (sconf.n_shared == 5 && sconf.subspace_shared) {
+            prec_work_sh = H_sh + restart * (restart + 1);
+        } else {
+            prec_work_sh = V_sh + nrows * (restart + 1);
+        }
+
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
