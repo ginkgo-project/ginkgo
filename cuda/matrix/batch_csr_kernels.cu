@@ -212,16 +212,14 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const auto m_ub = get_batch_struct(mat);
-    const int num_cols = left_scale->get_size().at(0)[1];
-    const int num_rows = right_scale->get_size().at(0)[1];
-    const size_t shared_size =
-        num_rows * sizeof(ValueType) + num_cols * sizeof(ValueType);
+    const int num_cols = mat->get_size().at(0)[1];
+    const int num_rows = mat->get_size().at(0)[0];
+    const size_t shared_size = num_cols * sizeof(ValueType);
     const int block_size = ((num_rows - 1) / 32 + 1) * 32;
     const int num_blocks = mat->get_num_batch_entries();
     uniform_batch_scale<<<num_blocks, block_size, shared_size>>>(
         as_cuda_type(left_scale->get_const_values()),
-        as_cuda_type(right_scale->get_const_values()), m_ub,
-        mat->get_size().at()[1]);
+        as_cuda_type(right_scale->get_const_values()), m_ub, num_cols);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
