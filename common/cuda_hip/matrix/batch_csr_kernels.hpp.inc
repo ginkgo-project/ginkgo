@@ -357,10 +357,7 @@ __global__ void uniform_batch_scale(
         extern __shared__ char local_mem_sh[];
         ValueType* right_scale_sh;
         right_scale_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        ValueType* left_scale_sh;
-        left_scale_sh = right_scale_sh + num_cols;
 
-        assert(a.num_rows == num_cols);
         const auto a_b = gko::batch::batch_entry(a, batch_id);
         const auto left_b =
             gko::batch::batch_entry_ptr(left, 1, a.num_rows, batch_id);
@@ -369,12 +366,11 @@ __global__ void uniform_batch_scale(
         int lidx = threadIdx.x;
         while (lidx < num_cols) {
             right_scale_sh[lidx] = right_b[lidx];
-            left_scale_sh[lidx] = left_b[lidx];
             lidx += blockDim.x;
         }
         __syncthreads();
-        batch_scale(a.num_rows, left_scale_sh, right_scale_sh, a_b.row_ptrs,
-                    a_b.col_idxs, a_b.values);
+        batch_scale(a.num_rows, left_b, right_scale_sh, a_b.col_idxs,
+                    a_b.row_ptrs, a_b.values);
     }
 }
 
