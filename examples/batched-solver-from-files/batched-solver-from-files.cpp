@@ -57,6 +57,7 @@ using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
 using scal_type = gko::matrix::BatchDiagonal<value_type>;
 // using mtx_type = gko::matrix::BatchEll<value_type, index_type>;
 using solver_type = gko::solver::BatchBicgstab<value_type>;
+// using solver_type = gko::solver::BatchGmres<value_type>;
 
 
 int main(int argc, char* argv[])
@@ -175,16 +176,14 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchIlu<value_type,
-            //     index_type>::build()
-            //         .with_skip_sorting(true)
-            //         .with_ilu_type(
-            //             gko::preconditioner::batch_ilu_type::exact_ilu)
-            //         //
-            //         .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
-            //         .with_parilu_num_sweeps(10)
-            //         .on(exec))
+            .with_preconditioner(
+                gko::preconditioner::BatchIlu<value_type, index_type>::build()
+                    .with_skip_sorting(true)
+                    .with_ilu_type(
+                        gko::preconditioner::batch_ilu_type::exact_ilu)
+                    // .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+                    // .with_parilu_num_sweeps(10)
+                    .on(exec))
             // .with_preconditioner(
             //     gko::preconditioner::BatchJacobi<value_type,
             //                                      index_type>::build()
@@ -219,6 +218,18 @@ int main(int argc, char* argv[])
     auto scaled_solver_gen =
         solver_type::build()
             .with_default_max_iterations(500)
+            // .with_restart(30)
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchIlu<value_type,
+            //     index_type>::build()
+            //         .with_skip_sorting(true)
+            //         .with_ilu_type(
+            //             gko::preconditioner::batch_ilu_type::exact_ilu)
+            //         //
+            //         //
+            //         .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+            //         // .with_parilu_num_sweeps(10)
+            //         .on(exec))
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_left_scaling_op(scale_mat_l)
