@@ -116,6 +116,9 @@ void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const b,
                                          BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
+    int nrows = this->system_matrix_->get_size().at(0)[0];
+    int min_restart = std::min(parameters_.restart, nrows);
+    parameters_.restart = min_restart;
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
         opts{this->max_iterations_, static_cast<real_type>(this->residual_tol_),
              parameters_.restart, parameters_.tolerance_type};
