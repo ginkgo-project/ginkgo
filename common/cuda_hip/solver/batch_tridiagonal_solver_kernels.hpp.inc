@@ -619,24 +619,48 @@ __device__ __forceinline__ void backward_substitution(
     const int tile_size, const int final_group_size,
     ValueType& x_first_higher_group,
     const ValueType* const __restrict__ c_batch_entry,
-    const ValueType* __restrict__ d_batch_entry,
+    const ValueType* const __restrict__ d_batch_entry,
     ValueType* const __restrict__ x_batch_entry)
 {
     ValueType my_c_1, my_d_1, my_x_1, my_c_2, my_d_2, my_x_2;
     // TODO: Vector reads to enable coalseced accesses while reading
-    if (my_row_idx_1 < nrows) {
-        my_c_1 = c_batch_entry[my_row_idx_1];
-        my_d_1 = d_batch_entry[my_row_idx_1];
+    // if (my_row_idx_1 < nrows) {
+    //     my_c_1 = c_batch_entry[my_row_idx_1];
+    //     my_d_1 = d_batch_entry[my_row_idx_1];
 
-        // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
-        //        threadIdx.x, my_row_idx_1, my_c_1, my_d_1);
-    }
-    if (my_row_idx_1 + 1 < nrows) {
-        my_c_2 = c_batch_entry[my_row_idx_1 + 1];
-        my_d_2 = d_batch_entry[my_row_idx_1 + 1];
+    //     // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d:
+    //     %g",
+    //     //        threadIdx.x, my_row_idx_1, my_c_1, my_d_1);
+    // }
+    // if (my_row_idx_1 + 1 < nrows) {
+    //     my_c_2 = c_batch_entry[my_row_idx_1 + 1];
+    //     my_d_2 = d_batch_entry[my_row_idx_1 + 1];
 
-        // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
-        //        threadIdx.x, my_row_idx_1 + 1, my_c_2, my_d_2);
+    //     // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d:
+    //     %g",
+    //     //        threadIdx.x, my_row_idx_1 + 1, my_c_2, my_d_2);
+    // }
+    using Valuetype2 = WM_pGE_approach2::ValueType2<ValueType>;
+    if (nrows % 2 == 0) {
+        if (my_row_idx_1 + 1 < nrows) {
+            Valuetype2 my_c_1_2 = reinterpret_cast<const Valuetype2*>(
+                c_batch_entry)[my_row_idx_1 / 2];
+            my_c_1 = my_c_1_2.x;
+            my_c_2 = my_c_1_2.y;
+            Valuetype2 my_d_1_2 = reinterpret_cast<const Valuetype2*>(
+                d_batch_entry)[my_row_idx_1 / 2];
+            my_d_1 = my_d_1_2.x;
+            my_d_2 = my_d_1_2.y;
+        }
+    } else {
+        if (my_row_idx_1 < nrows) {
+            my_c_1 = c_batch_entry[my_row_idx_1];
+            my_d_1 = d_batch_entry[my_row_idx_1];
+        }
+        if (my_row_idx_1 + 1 < nrows) {
+            my_c_2 = c_batch_entry[my_row_idx_1 + 1];
+            my_d_2 = d_batch_entry[my_row_idx_1 + 1];
+        }
     }
 
     const int num_grps = tile_size / final_group_size;
@@ -742,19 +766,43 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
 
             const int my_row_idx_1 = row_idx_st_tile + 2 * id_within_warp;
 
-            // TODO: Change this to vector reads to enable coalesced accesses
-            // while reading data
-            if (my_row_idx_1 < row_idx_end_tile) {
-                my_a_1 = a[batch_idx * nrows + my_row_idx_1];
-                my_b_1 = b[batch_idx * nrows + my_row_idx_1];
-                my_c_1 = c[batch_idx * nrows + my_row_idx_1];
-                my_d_1 = d[batch_idx * nrows + my_row_idx_1];
-            }
-            if (my_row_idx_1 + 1 < row_idx_end_tile) {
-                my_a_2 = a[batch_idx * nrows + my_row_idx_1 + 1];
-                my_b_2 = b[batch_idx * nrows + my_row_idx_1 + 1];
-                my_c_2 = c[batch_idx * nrows + my_row_idx_1 + 1];
-                my_d_2 = d[batch_idx * nrows + my_row_idx_1 + 1];
+            // vector reads to enable coalesced accesses while reading data
+            if (nrows % 2 == 0) {
+                if (my_row_idx_1 + 1 < row_idx_end_tile) {
+                    Valuetype2 my_a_1_2 = reinterpret_cast<Valuetype2*>(
+                        a + batch_idx * nrows)[my_row_idx_1 / 2];
+                    // Misaligned?? //Valuetype2 my_a_1_2 =
+                    // *(reinterpret_cast<Valuetype2*>(a +  (batch_idx * nrows +
+                    // my_row_idx_1)/2));
+                    my_a_1 = my_a_1_2.x;
+                    my_a_2 = my_a_1_2.y;
+                    Valuetype2 my_b_1_2 = reinterpret_cast<Valuetype2*>(
+                        b + batch_idx * nrows)[my_row_idx_1 / 2];
+                    my_b_1 = my_b_1_2.x;
+                    my_b_2 = my_b_1_2.y;
+                    Valuetype2 my_c_1_2 = reinterpret_cast<Valuetype2*>(
+                        c + batch_idx * nrows)[my_row_idx_1 / 2];
+                    my_c_1 = my_c_1_2.x;
+                    my_c_2 = my_c_1_2.y;
+                    Valuetype2 my_d_1_2 = reinterpret_cast<Valuetype2*>(
+                        d + batch_idx * nrows)[my_row_idx_1 / 2];
+                    my_d_1 = my_d_1_2.x;
+                    my_d_2 = my_d_1_2.y;
+                }
+
+            } else {
+                if (my_row_idx_1 < row_idx_end_tile) {
+                    my_a_1 = a[batch_idx * nrows + my_row_idx_1];
+                    my_b_1 = b[batch_idx * nrows + my_row_idx_1];
+                    my_c_1 = c[batch_idx * nrows + my_row_idx_1];
+                    my_d_1 = d[batch_idx * nrows + my_row_idx_1];
+                }
+                if (my_row_idx_1 + 1 < row_idx_end_tile) {
+                    my_a_2 = a[batch_idx * nrows + my_row_idx_1 + 1];
+                    my_b_2 = b[batch_idx * nrows + my_row_idx_1 + 1];
+                    my_c_2 = c[batch_idx * nrows + my_row_idx_1 + 1];
+                    my_d_2 = d[batch_idx * nrows + my_row_idx_1 + 1];
+                }
             }
 
             if (tile_id < num_tiles - 1 || is_last_tile_similar) {
