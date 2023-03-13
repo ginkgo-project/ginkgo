@@ -196,7 +196,7 @@ __device__ __forceinline__ void backward_substitution(
     const int tile_size, const int final_group_size,
     ValueType& x_first_higher_group,
     const ValueType* const __restrict__ c_batch_entry,
-    const ValueType* __restrict__ d_batch_entry,
+    const ValueType* const __restrict__ d_batch_entry,
     ValueType* const __restrict__ x_batch_entry)
 {
     const int lane = subwarp_grp.thread_rank();
@@ -359,6 +359,24 @@ struct get_corres_vector_type<2, float> {
 template <typename ValueType>
 using ValueType2 = typename get_corres_vector_type<2, ValueType>::type;
 
+template <typename ValueType>
+__device__ __forceinline__ ValueType2<ValueType> make_value_type_2(
+    const ValueType x, const ValueType y);
+
+template <>
+__device__ __forceinline__ ValueType2<float> make_value_type_2(const float x,
+                                                               const float y)
+{
+    return make_float2(x, y);
+}
+
+template <>
+__device__ __forceinline__ ValueType2<double> make_value_type_2(const double x,
+                                                                const double y)
+{
+    return make_double2(x, y);
+}
+
 template <typename ValueType, typename Group>
 __device__ __forceinline__ void WM_step(Group& subwarp_grp,
                                         const int curr_group_size,
@@ -485,6 +503,8 @@ __device__ __forceinline__ void Forward_full_GE_phase(
     ValueType* __restrict__ c_batch_entry,
     ValueType* __restrict__ d_batch_entry)
 {
+    using ValueType2 = ValueType2<ValueType>;
+
     const int num_groups_in_tile = tile_size / final_group_size;
     const int lane = subwarp_grp.thread_rank();
 
@@ -594,21 +614,25 @@ __device__ __forceinline__ void Forward_full_GE_phase(
         }
     }
 
-    // TODO: Vector writes to enable coalesced accesses while writing data
-    if (my_row_idx_1 < nrows) {
-        c_batch_entry[my_row_idx_1] = my_c_1;
-        d_batch_entry[my_row_idx_1] = my_d_1;
-
-        // printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1,
-        //        my_c_1, my_d_1);
-    }
-    if (my_row_idx_1 + 1 < nrows) {
-        c_batch_entry[my_row_idx_1 + 1] = my_c_2;
-        d_batch_entry[my_row_idx_1 + 1] = my_d_2;
-
-        // printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1 +
-        // 1,
-        //        my_c_2, my_d_2);
+    // Vector writes to enable coalesced accesses while writing data
+    if (nrows % 2 == 0) {
+        if (my_row_idx_1 + 1 < nrows) {
+            const ValueType2 my_c_1_2 = make_value_type_2<>(my_c_1, my_c_2);
+            const ValueType2 my_d_1_2 = make_value_type_2<>(my_d_1, my_d_2);
+            reinterpret_cast<ValueType2*>(c_batch_entry)[my_row_idx_1 / 2] =
+                my_c_1_2;
+            reinterpret_cast<ValueType2*>(d_batch_entry)[my_row_idx_1 / 2] =
+                my_d_1_2;
+        }
+    } else {
+        if (my_row_idx_1 < nrows) {
+            c_batch_entry[my_row_idx_1] = my_c_1;
+            d_batch_entry[my_row_idx_1] = my_d_1;
+        }
+        if (my_row_idx_1 + 1 < nrows) {
+            c_batch_entry[my_row_idx_1 + 1] = my_c_2;
+            d_batch_entry[my_row_idx_1 + 1] = my_d_2;
+        }
     }
 }
 
@@ -622,32 +646,16 @@ __device__ __forceinline__ void backward_substitution(
     const ValueType* const __restrict__ d_batch_entry,
     ValueType* const __restrict__ x_batch_entry)
 {
+    using ValueType2 = ValueType2<ValueType>;
     ValueType my_c_1, my_d_1, my_x_1, my_c_2, my_d_2, my_x_2;
-    // TODO: Vector reads to enable coalseced accesses while reading
-    // if (my_row_idx_1 < nrows) {
-    //     my_c_1 = c_batch_entry[my_row_idx_1];
-    //     my_d_1 = d_batch_entry[my_row_idx_1];
-
-    //     // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d:
-    //     %g",
-    //     //        threadIdx.x, my_row_idx_1, my_c_1, my_d_1);
-    // }
-    // if (my_row_idx_1 + 1 < nrows) {
-    //     my_c_2 = c_batch_entry[my_row_idx_1 + 1];
-    //     my_d_2 = d_batch_entry[my_row_idx_1 + 1];
-
-    //     // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d:
-    //     %g",
-    //     //        threadIdx.x, my_row_idx_1 + 1, my_c_2, my_d_2);
-    // }
-    using Valuetype2 = WM_pGE_approach2::ValueType2<ValueType>;
+    // Vector reads to enable coalseced accesses while reading
     if (nrows % 2 == 0) {
         if (my_row_idx_1 + 1 < nrows) {
-            Valuetype2 my_c_1_2 = reinterpret_cast<const Valuetype2*>(
+            ValueType2 my_c_1_2 = reinterpret_cast<const ValueType2*>(
                 c_batch_entry)[my_row_idx_1 / 2];
             my_c_1 = my_c_1_2.x;
             my_c_2 = my_c_1_2.y;
-            Valuetype2 my_d_1_2 = reinterpret_cast<const Valuetype2*>(
+            ValueType2 my_d_1_2 = reinterpret_cast<const ValueType2*>(
                 d_batch_entry)[my_row_idx_1 / 2];
             my_d_1 = my_d_1_2.x;
             my_d_2 = my_d_1_2.y;
@@ -700,15 +708,20 @@ __device__ __forceinline__ void backward_substitution(
         }
     }
 
-    // TODO: Vector writes to enable coalseced accessed while writing
-    if (my_row_idx_1 < nrows) {
-        x_batch_entry[my_row_idx_1] = my_x_1;
-        // printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1, my_x_1);
-    }
-    if (my_row_idx_1 + 1 < nrows) {
-        x_batch_entry[my_row_idx_1 + 1] = my_x_2;
-        //  printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1 + 1,
-        //  my_x_2);
+    // Vector writes to enable coalseced accessed while writing
+    if (nrows % 2 == 0) {
+        if (my_row_idx_1 + 1 < nrows) {
+            const ValueType2 my_x_1_2 = make_value_type_2<>(my_x_1, my_x_2);
+            reinterpret_cast<ValueType2*>(x_batch_entry)[my_row_idx_1 / 2] =
+                my_x_1_2;
+        }
+    } else {
+        if (my_row_idx_1 < nrows) {
+            x_batch_entry[my_row_idx_1] = my_x_1;
+        }
+        if (my_row_idx_1 + 1 < nrows) {
+            x_batch_entry[my_row_idx_1 + 1] = my_x_2;
+        }
     }
 }
 
