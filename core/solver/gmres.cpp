@@ -259,8 +259,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 .solution(dense_x)
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual, dense_x, residual_norm, nullptr,
-            &stop_status, all_stopped);
+            this, dense_b, dense_x, total_iter, residual, residual_norm,
+            nullptr, &stop_status, all_stopped);
         if (all_stopped) {
             break;
         }

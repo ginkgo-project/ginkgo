@@ -329,7 +329,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             if (forced_iterations < forced_limit &&
                 forced_iterations < total_iter / forced_iteration_fraction) {
                 this->template log<log::Logger::iteration_complete>(
-                    this, total_iter, residual.get(), dense_x,
+                    this, dense_b, dense_x, total_iter, residual.get(),
                     residual_norm.get(), nullptr, &stop_status, false);
                 ++forced_iterations;
             } else {
@@ -341,7 +341,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                                        .check(RelativeStoppingId, true,
                                               &stop_status, &one_changed);
                 this->template log<log::Logger::iteration_complete>(
-                    this, total_iter, residual.get(), dense_x,
+                    this, dense_b, dense_x, total_iter, residual.get(),
                     residual_norm.get(), nullptr, &stop_status, all_changed);
                 if (one_changed || all_changed) {
                     host_stop_status = stop_status;
