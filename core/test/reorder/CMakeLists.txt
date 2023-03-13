@@ -1,3 +1,4 @@
+ginkgo_create_test(amd)
 if(GINKGO_HAVE_METIS)
     ginkgo_create_test(nested_dissection)
 endif()
