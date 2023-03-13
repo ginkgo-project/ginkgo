@@ -378,7 +378,6 @@ private:
  * @ingroup solver
  * @ingroup LinOp
  */
-template <typename MatrixType = LinOp>
 class SolverBase {
 public:
     SolverBase(std::shared_ptr<const Executor> exec)
@@ -392,7 +391,7 @@ public:
      *
      * @return the system matrix operator used by the solver
      */
-    std::shared_ptr<const MatrixType> get_system_matrix() const
+    std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
@@ -422,7 +421,7 @@ public:
     virtual std::vector<int> get_workspace_vectors() const { return {}; }
 
 protected:
-    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    void set_system_matrix_base(std::shared_ptr<const LinOp> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
@@ -511,7 +510,7 @@ protected:
 private:
     mutable detail::workspace workspace_;
 
-    std::shared_ptr<const MatrixType> system_matrix_;
+    std::shared_ptr<const LinOp> system_matrix_;
 };
 
 
@@ -525,7 +524,7 @@ private:
  * @ingroup LinOp
  */
 template <typename DerivedType, typename MatrixType = LinOp>
-class EnableSolverBase : public SolverBase<MatrixType> {
+class EnableSolverBase : public SolverBase {
 public:
     /**
      * Creates a shallow copy of the provided system matrix, clones it onto
@@ -552,10 +551,10 @@ public:
         return *this;
     }
 
-    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
+    EnableSolverBase() : SolverBase{self()->get_executor()} {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
-        : SolverBase<MatrixType>{self()->get_executor()}
+        : SolverBase{self()->get_executor()}
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -564,7 +563,7 @@ public:
      * Creates a shallow copy of the provided system matrix.
      */
     EnableSolverBase(const EnableSolverBase& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
+        : SolverBase{other.self()->get_executor()}
     {
         *this = other;
     }
@@ -574,7 +573,7 @@ public:
      * system matrix.
      */
     EnableSolverBase(EnableSolverBase&& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
+        : SolverBase{other.self()->get_executor()}
     {
         *this = std::move(other);
     }
@@ -609,6 +608,18 @@ public:
     {
         using traits = workspace_traits<DerivedType>;
         return traits::vectors(*self());
+    }
+
+    /**
+     * Returns the system matrix, with its concrete type, used by the solver.
+     *
+     * @return the system matrix operator, with its concrete type, used by the
+     *         solver
+     */
+    std::shared_ptr<const MatrixType> get_system_matrix() const
+    {
+        return std::dynamic_pointer_cast<const MatrixType>(
+            SolverBase::get_system_matrix());
     }
 
 protected:
