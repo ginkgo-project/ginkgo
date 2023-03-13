@@ -428,9 +428,10 @@ protected:
      * iterations.
      *
      * @param solver  the solver executing the iteration
+     * @param b  the right-hand-side vector
+     * @param x  the solution vector
      * @param it  the current iteration count
      * @param r  the residual (optional)
-     * @param x  the solution vector
      * @param tau  the residual norm (optional)
      * @param implicit_tau_sq  the residual norm (optional)
      * @param status  the stopping status of the right hand sides (optional)
@@ -438,9 +439,9 @@ protected:
      *                 status is not provided)
      */
     GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
+                              const LinOp* b, const LinOp* x,
                               const size_type& it, const LinOp* r,
-                              const LinOp* x, const LinOp* tau,
-                              const LinOp* implicit_tau_sq,
+                              const LinOp* tau, const LinOp* implicit_tau_sq,
                               const array<stopping_status>* status,
                               bool stopped)
 protected:
@@ -464,8 +465,8 @@ protected:
                           const LinOp* r, const LinOp* x = nullptr,
                           const LinOp* tau = nullptr) const
     {
-        this->on_iteration_complete(solver, it, r, x, tau, nullptr, nullptr,
-                                    false);
+        this->on_iteration_complete(solver, nullptr, x, it, r, tau, nullptr,
+                                    nullptr, false);
     }
 
     /**
@@ -485,8 +486,8 @@ protected:
                           const LinOp* r, const LinOp* x, const LinOp* tau,
                           const LinOp* implicit_tau_sq) const
     {
-        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq,
-                                    nullptr, false);
+        this->on_iteration_complete(solver, nullptr, x, it, r, tau,
+                                    implicit_tau_sq, nullptr, false);
     }
 
 
