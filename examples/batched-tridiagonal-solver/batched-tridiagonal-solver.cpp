@@ -63,7 +63,10 @@ int main(int argc, char* argv[])
     std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " [executor] [problem_name] [num_duplications] "
+                     "[num_WM_steps] [subwarp_size] [tridiag approach]"
+                  << std::endl;
         std::exit(-1);
     }
 
@@ -102,13 +105,8 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // @sect3{Read batch from files}
-    // Name of the problem, which is also the directory under which all
-    //  matrices are stored.
-    const std::string problem_descr_str =
-        argc >= 3 ? argv[2] : "gallery_lesp_100";
-
-    // Number of linear systems to read from files.
-    const size_type num_systems = 1;
+    // Name of the problem
+    const std::string problem_name = argc >= 3 ? argv[2] : "gallery_lesp_100";
 
     // Number of times to duplicate whatever systems are read from files.
     const size_type num_duplications = argc >= 4 ? std::atoi(argv[3]) : 1;
@@ -130,38 +128,50 @@ int main(int argc, char* argv[])
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
 
-    auto data = std::vector<gko::matrix_data<value_type>>(1);
 
-    const std::string mat_str = "A.mtx";
-    const std::string fbase =
-        "/home/hp/Desktop/TriDiag_Suite/" + problem_descr_str + "/";
+    const std::string mat_str = problem_name + ".mtx";
+    const std::string fbase = "/home/hp/Desktop/Tridiagonal_test_matrices/";
     std::string fname = fbase + mat_str;
     std::cout << "\n\nfile to be read: " << fname << std::endl;
     std::ifstream mtx_fd(fname);
+
+    auto data = std::vector<gko::matrix_data<value_type>>(1);
     data[0] = gko::read_raw<value_type>(mtx_fd);
 
     auto single_batch = mtx_type::create(exec);
     single_batch->read(data);
 
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
     // We can duplicate the batch a few times if we wish.
     std::shared_ptr<mtx_type> A =
         mtx_type::create(exec, num_duplications, single_batch.get());
 
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
-
     // Create RHS
     const auto nrows = A->get_size().at(0)[0];
-    std::cout << "Nrows is: " << nrows << std::endl;
-    const size_type num_total_systems = num_systems * num_duplications;
+    /*
+    std::cout << "num_rows is: " << nrows << std::endl;
 
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
+    auto A_host = gko::clone(exec->get_master(), A.get());
+    for (int i = 0; i < nrows; i++) {
+        std::cout << "\nsub_diag[" << i
+                  << "]: " << A_host->get_const_sub_diagonal()[i];
+    }
+    for (int i = 0; i < nrows; i++) {
+        std::cout << "\nmain_diag[" << i
+                  << "]: " << A_host->get_const_main_diagonal()[i];
+    }
+    for (int i = 0; i < nrows; i++) {
+        std::cout << "\nsuper_diag[" << i
+                  << "]: " << A_host->get_const_super_diagonal()[i];
+    }
+    */
+
+    const size_type num_total_systems = num_duplications;
+
+    // std::cout << "\n\nNum total systems: " << num_total_systems << std::endl;
 
     auto host_b = vec_type::create(
         exec->get_master(),
         gko::batch_dim<2>(num_total_systems, gko::dim<2>(nrows, 1)));
-
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
 
     for (size_type isys = 0; isys < num_total_systems; isys++) {
         for (int irow = 0; irow < nrows; irow++) {
@@ -169,17 +179,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
-
     auto b = vec_type::create(exec);
     b->copy_from(host_b.get());
 
     auto x = vec_type::create(exec, b->get_size());
 
-    std::cout << " line: " << __LINE__ << "successful" << std::endl;
-
     // @sect3{Create the batch solver factory}
-    const real_type reduction_factor{1e-08};
     // Create a batched solver factory with relevant parameters.
     auto solver_gen = batch_tridiag_solver::build()
                           .with_batch_tridiagonal_solution_approach(approach)
@@ -213,6 +218,13 @@ int main(int argc, char* argv[])
         num_rounds;
     std::cout << "Entire solve took " << 1000 * time_span.count()
               << " milliseconds." << std::endl;
+
+    // auto vec_b = b->unbatch(); TODO: //seg fault???
+    // gko::write(std::ofstream(std::string("b.mtx")), vec_b[0].get());
+
+    auto host_x = gko::clone(exec->get_master(), x.get());
+    auto vec_x = host_x->unbatch();
+    gko::write(std::cout, vec_x[0].get());
 
     return 0;
 }
