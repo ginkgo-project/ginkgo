@@ -69,7 +69,7 @@ namespace {
 
 template <typename BatchMatrixType, typename IndexType, typename ValueType>
 void batch_jacobi_apply_helper(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
     const uint32 max_block_size,
     const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
@@ -118,31 +118,34 @@ void batch_jacobi_apply_helper(
                 });
         });
     } else {
-        const auto shared_size =
-            BatchBlockJacobi<ValueType>::dynamic_work_size(
-                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
-            sizeof(ValueType);
-        auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
-            max_block_size, num_blocks, storage_scheme,
-            cumulative_block_storage, blocks_array, block_ptrs,
-            row_part_of_which_block_info);
+        GKO_NOT_IMPLEMENTED;
+        /*
+          const auto shared_size =
+              BatchBlockJacobi<ValueType>::dynamic_work_size(
+                  sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+              sizeof(ValueType);
+          auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
+              max_block_size, num_blocks, storage_scheme,
+              cumulative_block_storage, blocks_array, block_ptrs,
+              row_part_of_which_block_info);
 
-        (exec->get_queue())->submit([&](sycl::handler& cgh) {
-            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_storage(sycl::range<1>(shared_size), cgh);
-            cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1)
-                    [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                        auto batch_id = item_ct1.get_group_linear_id();
-                        batch_block_jacobi_apply(
-                            prec_block_jacobi, batch_id, nrows, r_values,
-                            z_values,
-                            static_cast<ValueType*>(slm_storage.get_pointer()),
-                            item_ct1);
-                    });
-        });
+          (exec->get_queue())->submit([&](sycl::handler& cgh) {
+              sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                             sycl::access::target::local>
+                  slm_storage(sycl::range<1>(shared_size), cgh);
+              cgh.parallel_for(
+                  sycl_nd_range(grid, block),
+                  [=](sycl::nd_item<3> item_ct1)
+                      [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                          auto batch_id = item_ct1.get_group_linear_id();
+                          batch_block_jacobi_apply(
+                              prec_block_jacobi, batch_id, nrows, r_values,
+                              z_values,
+                              static_cast<ValueType*>(slm_storage.get_pointer()),
+                              item_ct1);
+                      });
+          });
+          */
     }
 }
 
@@ -150,7 +153,7 @@ void batch_jacobi_apply_helper(
 
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
@@ -174,7 +177,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_jacobi_apply(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
     const gko::preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
@@ -199,7 +202,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename IndexType>
 void compute_cumulative_block_storage(
-    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    std::shared_ptr<const DpcppExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
     IndexType* const blocks_cumulative_storage)
 {
@@ -221,17 +224,18 @@ void compute_cumulative_block_storage(
                                  blocks_cumulative_storage[gid] = bsize * bsize;
                              });
     });
+    exec->get_queue()->wait();
     components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
 }
 
 template void compute_cumulative_block_storage<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    std::shared_ptr<const DpcppExecutor>, const size_type, const int32* const,
     int32* const);
 
 
 template <typename IndexType>
 void find_row_is_part_of_which_block(
-    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
+    std::shared_ptr<const DpcppExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
     IndexType* const row_part_of_which_block_info)
 {
@@ -256,13 +260,13 @@ void find_row_is_part_of_which_block(
 
 // instantiate for index type int32
 template void find_row_is_part_of_which_block<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
+    std::shared_ptr<const DpcppExecutor>, const size_type, const int32* const,
     int32* const);
 
 
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const first_sys_csr,
     const size_type num_blocks,
     const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
@@ -314,10 +318,11 @@ void compute_block_jacobi_helper(
     const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks,
-    std::shared_ptr<const DefaultExecutor> exec)
+    std::shared_ptr<const DpcppExecutor> exec)
 {
     //    constexpr int subwarp_size =
     //        gko::kernels::dpcpp::jacobi::get_larger_power(compiled_max_block_size);
+    // TODO: Find the way to allow smaller block_sizes (<16)
 
     constexpr int subgroup_size = config::warp_size;
     auto device = exec->get_queue()->get_device();
@@ -352,7 +357,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
 
 template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const sys_csr,
     const uint32 user_given_max_block_size, const size_type num_blocks,
     const preconditioner::batched_jacobi_blocks_storage_scheme<IndexType>&
@@ -376,7 +381,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void transpose_block_jacobi(
-    std::shared_ptr<const DefaultExecutor> exec, const size_type nbatch,
+    std::shared_ptr<const DpcppExecutor> exec, const size_type nbatch,
     const size_type nrows, const size_type num_blocks,
     const uint32 max_block_size, const IndexType* const block_pointers,
     const ValueType* const blocks_array,
