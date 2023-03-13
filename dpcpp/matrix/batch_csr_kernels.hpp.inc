@@ -75,8 +75,8 @@ inline void single_matvec_kernel(
     const auto num_rows = a.num_rows;
     const auto val = a.values;
     const auto col = a.col_idxs;
-    for (int tidx = item_ct1.get_local_id(2); tidx < num_rows;
-         tidx += item_ct1.get_local_range().get(2)) {
+    for (int tidx = item_ct1.get_local_linear_id(); tidx < num_rows;
+         tidx += item_ct1.get_local_range().size()) {
         auto temp = zero<ValueType>();
         for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
             const auto col_idx = col[nnz];
