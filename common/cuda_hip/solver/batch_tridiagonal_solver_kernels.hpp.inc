@@ -184,7 +184,8 @@ __device__ __forceinline__ void Forward_full_GE_phase(
         c_batch_entry[my_row_idx] = my_c;
         d_batch_entry[my_row_idx] = my_d;
 
-        printf("\n my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx, my_c, my_d);
+        // printf("\n my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx, my_c,
+        // my_d);
     }
 }
 
@@ -208,8 +209,9 @@ __device__ __forceinline__ void backward_substitution(
         my_d = d_batch_entry[my_row_idx];
         // coalseced accesses while reading
 
-        printf("\n READ: my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx, my_c,
-               my_d);
+        // printf("\n READ: my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx,
+        // my_c,
+        //        my_d);
     }
 
     for (int i = num_grps - 1; i >= 0; i--) {
@@ -226,7 +228,7 @@ __device__ __forceinline__ void backward_substitution(
         x_batch_entry[my_row_idx] = my_x;
         // coalseced accessed while writing
 
-        printf("\n my_row_idx: %d, my_x: %g", my_row_idx, my_x);
+        // printf("\n my_row_idx: %d, my_x: %g", my_row_idx, my_x);
     }
 }
 
@@ -600,15 +602,16 @@ __device__ __forceinline__ void Forward_full_GE_phase(
         c_batch_entry[my_row_idx_1] = my_c_1;
         d_batch_entry[my_row_idx_1] = my_d_1;
 
-        printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1,
-               my_c_1, my_d_1);
+        // printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1,
+        //        my_c_1, my_d_1);
     }
     if (my_row_idx_1 + 1 < nrows) {
         c_batch_entry[my_row_idx_1 + 1] = my_c_2;
         d_batch_entry[my_row_idx_1 + 1] = my_d_2;
 
-        printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1 + 1,
-               my_c_2, my_d_2);
+        // printf("\n App-2 my_row_idx: %d, my_c: %g, my_d: %g", my_row_idx_1 +
+        // 1,
+        //        my_c_2, my_d_2);
     }
 }
 
@@ -628,15 +631,15 @@ __device__ __forceinline__ void backward_substitution(
         my_c_1 = c_batch_entry[my_row_idx_1];
         my_d_1 = d_batch_entry[my_row_idx_1];
 
-        printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
-               threadIdx.x, my_row_idx_1, my_c_1, my_d_1);
+        // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
+        //        threadIdx.x, my_row_idx_1, my_c_1, my_d_1);
     }
     if (my_row_idx_1 + 1 < nrows) {
         my_c_2 = c_batch_entry[my_row_idx_1 + 1];
         my_d_2 = d_batch_entry[my_row_idx_1 + 1];
 
-        printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
-               threadIdx.x, my_row_idx_1 + 1, my_c_2, my_d_2);
+        // printf("\n READ: tid: %d, App-2 my_row_idx: %d, my_c: %g, my_d: %g",
+        //        threadIdx.x, my_row_idx_1 + 1, my_c_2, my_d_2);
     }
 
     const int num_grps = tile_size / final_group_size;
@@ -679,11 +682,12 @@ __device__ __forceinline__ void backward_substitution(
     // TODO: Vector writes to enable coalseced accessed while writing
     if (my_row_idx_1 < nrows) {
         x_batch_entry[my_row_idx_1] = my_x_1;
-        printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1, my_x_1);
+        // printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1, my_x_1);
     }
     if (my_row_idx_1 + 1 < nrows) {
         x_batch_entry[my_row_idx_1 + 1] = my_x_2;
-        printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1 + 1, my_x_2);
+        //  printf("\n App-2 my_row_idx: %d, my_x: %g", my_row_idx_1 + 1,
+        //  my_x_2);
     }
 }
 
@@ -716,10 +720,11 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
         const int final_group_size = pow(2, num_WM_steps);
         assert(final_group_size <= tile_size);
 
-        if (threadIdx.x == 0 && blockIdx.x == 0) {
-            printf("\n subwarp size: %d, tile size: %d, final group size: %d",
-                   subwarp_size, tile_size, final_group_size);
-        }
+        // if (threadIdx.x == 0 && blockIdx.x == 0) {
+        //     printf("\n subwarp size: %d, tile size: %d, final group size:
+        //     %d",
+        //            subwarp_size, tile_size, final_group_size);
+        // }
 
         ValueType c_last_row_of_prev_group = zero<ValueType>();
         ValueType d_last_row_of_prev_group = zero<ValueType>();
