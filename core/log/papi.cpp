@@ -274,10 +274,10 @@ void Papi<ValueType>::on_criterion_check_completed(
 
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* x, const LinOp* residual_norm,
-    const LinOp* implicit_resnorm_sq, const array<stopping_status>* status,
-    bool stopped) const
+    const LinOp* solver, const LinOp* b, const LinOp* x,
+    const size_type& num_iterations, const LinOp* residual, const LinOp* x,
+    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const array<stopping_status>* status, bool stopped) const
 {
     iteration_complete.get_counter(solver) = num_iterations;
 }
@@ -290,8 +290,9 @@ void Papi<ValueType>::on_iteration_complete(const LinOp* solver,
                                             const LinOp* solution,
                                             const LinOp* residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr, nullptr, false);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm, nullptr, nullptr,
+                                false);
 }
 
 
@@ -301,8 +302,9 @@ void Papi<ValueType>::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr, nullptr, false);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm, nullptr, nullptr,
+                                false);
 }
 
 

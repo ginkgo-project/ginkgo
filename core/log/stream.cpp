@@ -444,13 +444,14 @@ void Stream<ValueType>::on_criterion_check_completed(
 
 template <typename ValueType>
 void Stream<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_resnorm_sq, const array<stopping_status>* status,
-    bool stopped) const
+    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const array<stopping_status>* status, bool stopped) const
 {
     *os_ << prefix_ << "iteration " << num_iterations
          << " completed with solver " << demangle_name(solver)
+         << " and right-hand-side " << demangle_name(right_hand_side)
          << " with residual " << demangle_name(residual) << ", solution "
          << demangle_name(solution) << ", residual_norm "
          << demangle_name(residual_norm) << " and implicit_sq_residual_norm "
@@ -463,10 +464,8 @@ void Stream<ValueType>::on_iteration_complete(
     if (verbose_) {
         *os_ << demangle_name(residual)
              << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
-        if (solution != nullptr) {
-            *os_ << demangle_name(solution)
-                 << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
-        }
+        *os_ << demangle_name(solution)
+             << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
         if (residual_norm != nullptr) {
             *os_ << demangle_name(residual_norm)
                  << as<gko::matrix::Dense<ValueType>>(residual_norm)
@@ -482,6 +481,8 @@ void Stream<ValueType>::on_iteration_complete(
                                        *status);
             *os_ << tmp.get_const_data();
         }
+        *os_ << demangle_name(right_hand_side)
+             << as<gko::matrix::Dense<ValueType>>(right_hand_side) << std::endl;
     }
 }
 
@@ -493,8 +494,9 @@ void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
                                               const LinOp* solution,
                                               const LinOp* residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr, nullptr, false);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm, nullptr, nullptr,
+                                false);
 }
 
 
@@ -504,8 +506,9 @@ void Stream<ValueType>::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr, nullptr, false);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm,
+                                implicit_sq_residual_norm, nullptr, false);
 }
 
 

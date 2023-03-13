@@ -542,12 +542,12 @@ struct DummyLogger : gko::log::Logger {
     DummyLogger() : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& it, const gko::LinOp* r,
-                               const gko::LinOp* x ,
-                               const gko::LinOp* tau,
+    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
+                               const gko::LinOp* x, const gko::size_type& it,
+                               const gko::LinOp* r, const gko::LinOp* tau,
                                const gko::LinOp* implicit_tau,
-                               const gko::array<gko::stopping_status>* status, bool all_stopped) const override
+                               const gko::array<gko::stopping_status>* status,
+                               bool all_stopped) const override
     {
         iteration_complete = it;
     }
