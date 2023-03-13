@@ -53,6 +53,7 @@ target_sources(ginkgo
     multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    reorder/nested_dissection.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
     solver/bicg.cpp
@@ -113,6 +114,10 @@ endif()
 
 if(GINKGO_HAVE_VTUNE)
     target_link_libraries(ginkgo PUBLIC VTune::ITT)
+endif()
+
+if(GINKGO_HAVE_METIS)
+    target_link_libraries(ginkgo PUBLIC METIS::METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)
