@@ -322,7 +322,7 @@ TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingConstData)
     ASSERT_EQ(m->get_const_super_diagonal()[4], value_type{0.0});
 }
 
-/*
+
 TYPED_TEST(BatchTridiagonal,
            CanBeConstructedFromBatchTridiagonalMatricesByDuplication)
 {
@@ -359,7 +359,6 @@ TYPED_TEST(BatchTridiagonal,
     auto bat_m_created_by_dupl =
         gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec, 2,
                                                          m.get());
-
     // clang-format off
     value_type subdiag_new[] = {
 
@@ -397,7 +396,7 @@ TYPED_TEST(BatchTridiagonal,
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m_created_by_dupl.get(), m_new.get(), 1e-14);
 }
-*/
+
 
 TYPED_TEST(BatchTridiagonal, KnowsItsSizeAndValues)
 {

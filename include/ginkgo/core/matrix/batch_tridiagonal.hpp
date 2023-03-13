@@ -482,6 +482,7 @@ protected:
      * @param num_duplications  The number of times to duplicate
      * @param input  The matrix to be duplicated.
      */
+    // NOTE: Currently, this only works for a uniform batch
     BatchTridiagonal(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
                      const BatchTridiagonal<value_type>* input)
@@ -501,19 +502,19 @@ protected:
         size_type offset = 0;
         for (size_type i = 0; i < num_duplications; ++i) {
             exec->copy_from(input->get_executor().get(),
-                            input->get_num_stored_elements(),
+                            input->get_num_stored_elements_per_diagonal(),
                             input->get_const_sub_diagonal(),
                             this->get_sub_diagonal() + offset);
             exec->copy_from(input->get_executor().get(),
-                            input->get_num_stored_elements(),
+                            input->get_num_stored_elements_per_diagonal(),
                             input->get_const_main_diagonal(),
                             this->get_main_diagonal() + offset);
             exec->copy_from(input->get_executor().get(),
-                            input->get_num_stored_elements(),
+                            input->get_num_stored_elements_per_diagonal(),
                             input->get_const_super_diagonal(),
                             this->get_super_diagonal() + offset);
 
-            offset += input->get_num_stored_elements();
+            offset += input->get_num_stored_elements_per_diagonal();
         }
     }
 
