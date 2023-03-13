@@ -427,6 +427,26 @@ private:
 
 
 /**
+ * MetisError is thrown when METIS routine throws an error code.
+ */
+class MetisError : public Error {
+public:
+    /**
+     * Initializes a METIS error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the METIS routine that failed
+     * @param error  The resulting METIS error name
+     */
+    MetisError(const std::string& file, int line, const std::string& func,
+               const std::string& error)
+        : Error(file, line, func + ": " + error)
+    {}
+};
+
+
+/**
  * DimensionMismatch is thrown if an operation is being applied to LinOps of
  * incompatible size.
  */
