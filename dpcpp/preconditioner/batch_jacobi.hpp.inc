@@ -261,7 +261,6 @@ __dpct_inline__ void compute_block_jacobi_kernel(
                 val_to_write;  // non-coalesced accesses due to pivoting
         }
     }
-    sg.barrier();
 }
 
 
