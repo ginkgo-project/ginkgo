@@ -36,21 +36,24 @@ __dpct_inline__ void find_row_is_part_of_which_block_kernel(
     int* const __restrict__ row_part_of_which_block_info,
     sycl::nd_item<3> item_ct1)
 {
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_size = sg.get_local_range().size();
-    const int sg_tid = sg.get_local_id();
-    const int sg_global_id =
-        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
+    /*
+      const auto sg = item_ct1.get_sub_group();
+      const int sg_size = sg.get_local_range().size();
+      const int sg_tid = sg.get_local_id();
+      const int sg_global_id =
+          item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
 
-    auto block_start = block_pointers[sg_global_id];
-    auto block_end = block_pointers[sg_global_id + 1];
-    auto block_size = block_end - block_start;
+      auto block_start = block_pointers[sg_global_id];
+      auto block_end = block_pointers[sg_global_id + 1];
+      auto block_size = block_end - block_start;
 
-    if (sg_tid < block_size) {
-        for (int i = block_start; i < block_end; i += sg_size) {
-            row_part_of_which_block_info[i + sg_tid] = sg_global_id;
-        }
-    }
+      for (int i = block_start + sg_tid; i < block_end; i += sg_size) {
+        row_part_of_which_block_info[i + sg_tid] = sg_global_id;
+      }
+      */
+    const auto gid = item_ct1.get_global_linear_id();
+    for (int i = block_pointers[gid]; i < block_pointers[i + 1]; i++)
+        row_part_of_which_block_info[i] = i;
 }
 
 
@@ -65,11 +68,10 @@ __dpct_inline__ void extract_common_block_pattern_kernel(
     int* const blocks_pattern, sycl::nd_item<3> item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
-    const int sg_size = sg.get_local_range().size();
+    const int sg_size = sg.get_max_local_range().size();
     const int sg_tid = sg.get_local_id();
-    const int sg_global_id =
-        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
-    const int num_sg_total = item_ct1.get_group_range().size() * num_blocks;
+    const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
+    const int num_sg_total = item_ct1.get_global_range().size() / sg_size;
 
     // one warp per row of the matrix
     for (int row_idx = sg_global_id; row_idx < nrows; row_idx += num_sg_total) {
@@ -189,9 +191,10 @@ __dpct_inline__ void compute_block_jacobi_kernel(
     const auto sg = item_ct1.get_sub_group();
     constexpr int sg_size = config::warp_size;
     const int sg_tid = sg.get_local_id();
-    const int sg_global_id =
-        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
-    const int num_sg_total = item_ct1.get_group_range().size() * num_blocks;
+    const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
+    //        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
+    // const int num_sg_total = item_ct1.get_group_range().size() / sg_size;
+    //    const int num_sg_total = item_ct1.get_global_range().size() / sg_size;
 
     // one subwarp per small diagonal block
     const auto batch_idx = sg_global_id / num_blocks;
@@ -277,9 +280,10 @@ __dpct_inline__ void transpose_block_jacobi_kernel(
     const auto sg = item_ct1.get_sub_group();
     const int sg_size = sg.get_local_range().size();
     const int sg_tid = sg.get_local_id();
-    const int sg_global_id =
-        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
-    const int num_sg_total = item_ct1.get_group_range().size() * num_blocks;
+    const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
+    //        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
+    // const int num_sg_total = item_ct1.get_group_range().size() / sg_size;
+    //    const int num_sg_total = item_ct1.get_global_range().size() / sg_size;
 
     // one subwarp per row of the small diagonal block
     const auto batch_idx = sg_global_id / nrows;

@@ -39,7 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 class BatchBlockJacobi final {
 private:
-    inline void common_generate_for_all_system_matrix_types(size_type batch_id)
+    __dpct_inline__ void common_generate_for_all_system_matrix_types(
+        size_type batch_id)
     {
         blocks_arr_entry_ =
             blocks_arr_batch_ +
@@ -81,7 +82,7 @@ public:
      */
     static constexpr int dynamic_work_size(const int num_rows, int)
     {
-        return 0;
+        return 1;
     }
 
     void generate(size_type batch_id,
@@ -89,6 +90,7 @@ public:
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     void generate(size_type batch_id,
@@ -96,6 +98,7 @@ public:
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     void generate(size_type batch_id,
@@ -103,6 +106,7 @@ public:
                   ValueType* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
@@ -170,7 +174,6 @@ __dpct_inline__ void batch_block_jacobi_apply(
 
     prec.generate(batch_id, batch_csr::BatchEntry<const ValueType>(), work,
                   item_ct1);
-    item_ct1.barrier(sycl::access::fence_space::local_space);
     prec.apply(nrows, b_values + batch_id * nrows, x_values + batch_id * nrows,
                item_ct1);
 }
