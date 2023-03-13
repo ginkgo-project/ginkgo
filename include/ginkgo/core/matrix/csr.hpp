@@ -169,6 +169,8 @@ public:
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Ell<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Ell<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Fbcsr<ValueType, IndexType>>::convert_to;

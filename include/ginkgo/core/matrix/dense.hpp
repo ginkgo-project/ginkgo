@@ -168,6 +168,10 @@ public:
     using ConvertibleTo<Coo<ValueType, int32>>::move_to;
     using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
     using ConvertibleTo<Coo<ValueType, int64>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, int32>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, int64>>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;

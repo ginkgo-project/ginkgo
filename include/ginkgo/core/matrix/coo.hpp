@@ -105,6 +105,8 @@ public:
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;

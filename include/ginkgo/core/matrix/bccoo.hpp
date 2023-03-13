@@ -151,6 +151,15 @@ class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
 public:
     using EnableLinOp<Bccoo>::convert_to;
     using EnableLinOp<Bccoo>::move_to;
+    using ConvertibleTo<
+        Bccoo<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Bccoo<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
