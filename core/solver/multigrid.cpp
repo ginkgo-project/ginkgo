@@ -702,7 +702,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                     .check(RelativeStoppingId, true, &stop_status,
                            &one_changed);
             this->template log<log::Logger::iteration_complete>(
-                this, iter, nullptr, x, nullptr, nullptr, &stop_status,
+                this, b, x, iter, nullptr, nullptr, nullptr, &stop_status,
                 all_stopped);
             if (all_stopped) {
                 break;

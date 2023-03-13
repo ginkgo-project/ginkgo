@@ -232,7 +232,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                    .check(relative_stopping_id, true,
                                           &stop_status, &one_changed);
             this->template log<log::Logger::iteration_complete>(
-                this, iter, residual_ptr, dense_x, nullptr, nullptr,
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
                 &stop_status, all_stopped);
             if (all_stopped) {
                 break;
@@ -248,7 +248,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                           &stop_status, &one_changed);
             if (all_stopped) {
                 this->template log<log::Logger::iteration_complete>(
-                    this, iter, nullptr, dense_x, nullptr, nullptr,
+                    this, dense_b, dense_x, iter, nullptr, nullptr, nullptr,
                     &stop_status, all_stopped);
                 break;
             }
@@ -264,7 +264,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                               .check(relative_stopping_id, true, &stop_status,
                                      &one_changed);
             this->template log<log::Logger::iteration_complete>(
-                this, iter, residual_ptr, dense_x, nullptr, nullptr,
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
                 &stop_status, all_stopped);
             if (all_stopped) {
                 break;

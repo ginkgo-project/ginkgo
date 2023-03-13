@@ -218,7 +218,8 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed);
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r, dense_x, nullptr, rho, &stop_status, all_stopped);
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
         if (all_stopped) {
             break;
         }

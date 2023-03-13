@@ -214,8 +214,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed);
         this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual, dense_x, nullptr, nullptr, &stop_status,
-            all_stopped);
+            this, dense_b, dense_x, total_iter, residual, nullptr, nullptr,
+            &stop_status, all_stopped);
         if (all_stopped) {
             break;
         }
