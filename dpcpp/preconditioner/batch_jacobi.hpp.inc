@@ -53,7 +53,7 @@ __dpct_inline__ void find_row_is_part_of_which_block_kernel(
       */
     const auto gid = item_ct1.get_global_linear_id();
     for (int i = block_pointers[gid]; i < block_pointers[i + 1]; i++)
-        row_part_of_which_block_info[i] = i;
+        row_part_of_which_block_info[i] = gid;
 }
 
 
