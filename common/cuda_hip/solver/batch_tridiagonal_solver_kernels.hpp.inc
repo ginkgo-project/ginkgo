@@ -694,7 +694,8 @@ __device__ __forceinline__ void backward_substitution(
 
 }  // namespace WM_pGE_approach2
 
-template <int subwarp_size, typename ValueType>
+
+template <typename ValueType, int subwarp_size>
 __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
     const int num_WM_steps, const size_type nbatch, const int nrows,
     ValueType* const __restrict__ a, ValueType* const __restrict__ b,

@@ -70,7 +70,7 @@ constexpr int default_block_size =
 namespace {
 
 template <int compiled_WM_pGE_subwarp_size, typename ValueType>
-void WM_pGE_helper(
+void WM_pGE_app1_helper(
     syn::value_list<int, compiled_WM_pGE_subwarp_size>,
     const int number_WM_steps, const size_type nbatch, const int nrows,
     const int nrhs, matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
@@ -86,29 +86,68 @@ void WM_pGE_helper(
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
-    if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1) {
-        WM_pGE_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
-            number_WM_steps, nbatch, nrows,
-            as_cuda_type(tridiag_mat->get_sub_diagonal()),
-            as_cuda_type(tridiag_mat->get_main_diagonal()),
-            as_cuda_type(tridiag_mat->get_super_diagonal()),
-            as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
-    } else if (approach ==
-               gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
-        WM_pGE_kernel_approach_2<subwarp_size><<<grid, block, shared_size>>>(
-            number_WM_steps, nbatch, nrows,
-            as_cuda_type(tridiag_mat->get_sub_diagonal()),
-            as_cuda_type(tridiag_mat->get_main_diagonal()),
-            as_cuda_type(tridiag_mat->get_super_diagonal()),
-            as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    WM_pGE_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
+        number_WM_steps, nbatch, nrows,
+        as_cuda_type(tridiag_mat->get_sub_diagonal()),
+        as_cuda_type(tridiag_mat->get_main_diagonal()),
+        as_cuda_type(tridiag_mat->get_super_diagonal()),
+        as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_helper, WM_pGE_helper);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_app1_helper,
+                                    WM_pGE_app1_helper);
+
+template <int compiled_WM_pGE_subwarp_size, typename ValueType>
+void WM_pGE_app2_helper(
+    syn::value_list<int, compiled_WM_pGE_subwarp_size>,
+    const int number_WM_steps, const size_type nbatch, const int nrows,
+    const int nrhs, matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+    matrix::BatchDense<ValueType>* const rhs,
+    matrix::BatchDense<ValueType>* const x,
+    const enum gko::solver::batch_tridiag_solve_approach approach)
+{
+    constexpr auto subwarp_size = compiled_WM_pGE_subwarp_size;
+    dim3 block(default_block_size);
+    dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
+
+    const int shared_size =
+        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
+            ValueType>(nrows, nrhs);
+
+    using CuValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
+
+    WM_pGE_kernel_approach_2<CuValueType, subwarp_size>
+        <<<grid, block, shared_size>>>(
+            number_WM_steps, nbatch, nrows,
+            as_cuda_type(tridiag_mat->get_sub_diagonal()),
+            as_cuda_type(tridiag_mat->get_main_diagonal()),
+            as_cuda_type(tridiag_mat->get_super_diagonal()),
+            as_cuda_type(rhs->get_values()), as_cuda_type(x->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
+}
+
+template <int compiled_WM_pGE_subwarp_size, typename T>
+void WM_pGE_app2_helper(
+    syn::value_list<int, compiled_WM_pGE_subwarp_size>,
+    const int number_WM_steps, const size_type nbatch, const int nrows,
+    const int nrhs,
+    matrix::BatchTridiagonal<std::complex<T>>* const tridiag_mat,
+    matrix::BatchDense<std::complex<T>>* const rhs,
+    matrix::BatchDense<std::complex<T>>* const x,
+    const enum gko::solver::batch_tridiag_solve_approach approach)
+{
+    throw std::runtime_error(
+        "WM_pGE approach 2 does not yet work with complex data types");
+}
+
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_app2_helper,
+                                    WM_pGE_app2_helper);
+
 
 }  // anonymous namespace
 
@@ -126,9 +165,19 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
     assert(nrhs == 1);
 
-    if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1 ||
-        approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
-        select_WM_pGE_helper(
+    if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1) {
+        select_WM_pGE_app1_helper(
+            batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
+            [&](int compiled_WM_pGE_subwarp_size) {
+                return user_given_WM_pGE_subwarp_size ==
+                       compiled_WM_pGE_subwarp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
+            nrows, nrhs, tridiag_mat, rhs, x, approach);
+
+    } else if (approach ==
+               gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
+        select_WM_pGE_app2_helper(
             batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
             [&](int compiled_WM_pGE_subwarp_size) {
                 return user_given_WM_pGE_subwarp_size ==

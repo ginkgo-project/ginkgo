@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 
     for (size_type isys = 0; isys < num_total_systems; isys++) {
         for (int irow = 0; irow < nrows; irow++) {
-            host_b->at(isys, irow, 0) = rand();
+            host_b->at(isys, irow, 0) = static_cast<value_type>(rand());
         }
     }
 
