@@ -343,24 +343,21 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
 
 namespace WM_pGE_approach2 {
 
-// template < typename T>
-// struct get_type_2
-// {
+template <int x, typename T>
+struct get_corres_vector_type {};
 
-// };
+template <>
+struct get_corres_vector_type<2, double> {
+    using type = double2;
+};
 
-// template<>
-// struct get_type_2<double>
-// {
-//     using type = double2;
-// };
+template <>
+struct get_corres_vector_type<2, float> {
+    using type = float2;
+};
 
-// template<>
-// struct get_type_2<float>
-// {
-//     using type = float2;
-// };
-
+template <typename ValueType>
+using ValueType2 = typename get_corres_vector_type<2, ValueType>::type;
 
 template <typename ValueType, typename Group>
 __device__ __forceinline__ void WM_step(Group& subwarp_grp,
@@ -702,6 +699,8 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
     ValueType* const __restrict__ c, ValueType* const __restrict__ d,
     ValueType* const __restrict__ x)
 {
+    using Valuetype2 = WM_pGE_approach2::ValueType2<ValueType>;
+
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int subgrpwarp_id_in_grid =
