@@ -52,7 +52,7 @@ __dpct_inline__ void find_row_is_part_of_which_block_kernel(
       }
       */
     const auto gid = item_ct1.get_global_linear_id();
-    for (int i = block_pointers[gid]; i < block_pointers[i + 1]; i++)
+    for (int i = block_pointers[gid]; i < block_pointers[gid + 1]; i++)
         row_part_of_which_block_info[i] = gid;
 }
 
@@ -278,7 +278,7 @@ __dpct_inline__ void transpose_block_jacobi_kernel(
     sycl::nd_item<3> item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
-    const int sg_size = sg.get_local_range().size();
+    const int sg_size = sg.get_max_local_range().size();
     const int sg_tid = sg.get_local_id();
     const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
     //        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
