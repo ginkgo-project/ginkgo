@@ -172,9 +172,11 @@ template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
-    void on_iteration_complete(const gko::LinOp*, const gko::size_type&,
-                               const gko::LinOp* residual,
+    void on_iteration_complete(const gko::LinOp*,
+                               const gko::LinOp* right_hand_side,
                                const gko::LinOp* solution,
+                               const gko::size_type&,
+                               const gko::LinOp* residual,
                                const gko::LinOp* residual_norm,
                                const gko::LinOp* implicit_sq_residual_norm,
                                const gko::array<gko::stopping_status>* status,
@@ -253,10 +255,11 @@ private:
 
 // Logs the number of iteration executed
 struct IterationLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp*,
+    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*,
                                const gko::size_type& num_iterations,
                                const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*,
                                const gko::array<gko::stopping_status>*,
                                bool) const override
     {

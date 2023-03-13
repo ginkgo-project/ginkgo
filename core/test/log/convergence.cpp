@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -65,6 +66,13 @@ public:
         gko::initialize<AbsoluteDense>({5}, exec);
     std::unique_ptr<AbsoluteDense> implicit_sq_resnorm =
         gko::initialize<AbsoluteDense>({6}, exec);
+    std::unique_ptr<gko::LinOp> system =
+        gko::solver::Ir<T>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec)
+            ->generate(gko::initialize<Dense>(I<I<T>>{{1, 2}, {0, 3}}, exec));
+    std::unique_ptr<Dense> rhs = gko::initialize<Dense>({15, 25}, exec);
     std::unique_ptr<Dense> solution = gko::initialize<Dense>({-2, 7}, exec);
 
     gko::array<gko::stopping_status> status = {exec, 1};
@@ -96,9 +104,9 @@ TYPED_TEST(Convergence, CanLogData)
         gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
-        nullptr, 100, this->residual.get(), this->solution.get(),
-        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
-        &this->status, true);
+        this->system.get(), this->rhs.get(), this->solution.get(), 100,
+        this->residual.get(), this->residual_norm.get(),
+        this->implicit_sq_resnorm.get(), &this->status, true);
 
     ASSERT_EQ(logger->has_converged(), true);
     ASSERT_EQ(logger->get_num_iterations(), 100);
@@ -119,9 +127,9 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
         gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
-        nullptr, 100, this->residual.get(), this->solution.get(),
-        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
-        &this->status, false);
+        this->system.get(), this->rhs.get(), this->solution.get(), 100,
+        this->residual.get(), this->residual_norm.get(),
+        this->implicit_sq_resnorm.get(), &this->status, false);
 
     ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
@@ -130,7 +138,7 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
 }
 
 
-TYPED_TEST(Convergence, CanComputeResidualNorm)
+TYPED_TEST(Convergence, CanComputeResidualNormFromResidual)
 {
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto logger = gko::log::Convergence<TypeParam>::create(
@@ -138,8 +146,24 @@ TYPED_TEST(Convergence, CanComputeResidualNorm)
         gko::log::Logger::iteration_complete_mask);
 
     logger->template on<gko::log::Logger::iteration_complete>(
-        nullptr, 100, this->residual.get(), nullptr, nullptr, nullptr,
-        &this->status, true);
+        this->system.get(), this->rhs.get(), this->solution.get(), 100,
+        this->residual.get(), nullptr, nullptr, &this->status, true);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
+                        this->residual_norm, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Convergence, CanComputeResidualNormFromSolution)
+{
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        gko::log::Logger::criterion_events_mask |
+        gko::log::Logger::iteration_complete_mask);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), this->rhs.get(), this->solution.get(), 100, nullptr,
+        nullptr, nullptr, &this->status, true);
 
     GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
                         this->residual_norm, r<TypeParam>::value);

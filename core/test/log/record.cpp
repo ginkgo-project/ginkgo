@@ -573,6 +573,7 @@ TEST(Record, CatchesIterations)
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
+    auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
     auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
@@ -583,9 +584,9 @@ TEST(Record, CatchesIterations)
     stop_status.get_data()->converge(RelativeStoppingId);
 
     logger->on<gko::log::Logger::iteration_complete>(
-        solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get(), implicit_sq_residual_norm.get(), &stop_status,
-        true);
+        solver.get(), right_hand_side.get(), solution.get(), num_iters,
+        residual.get(), residual_norm.get(), implicit_sq_residual_norm.get(),
+        &stop_status, true);
 
     stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
@@ -593,6 +594,8 @@ TEST(Record, CatchesIterations)
     ASSERT_NE(data->solver.get(), nullptr);
     ASSERT_EQ(data->num_iterations, num_iters);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->right_hand_side.get()),
+                        right_hand_side, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
                         residual_norm, 0);

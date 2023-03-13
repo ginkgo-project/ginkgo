@@ -80,9 +80,9 @@ public:
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
-    void on_iteration_complete(const LinOp* solver,
-                               const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* x,
+    void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                               const LinOp* x, const size_type& num_iterations,
+                               const LinOp* residual,
                                const LinOp* residual_norm,
                                const LinOp* implicit_resnorm_sq,
                                const array<stopping_status>* status,

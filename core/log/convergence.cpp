@@ -58,9 +58,9 @@ void Convergence<ValueType>::on_criterion_check_completed(
     const array<stopping_status>* status, const bool& one_changed,
     const bool& stopped) const
 {
-    this->on_iteration_complete(nullptr, num_iterations, residual, nullptr,
-                                residual_norm, implicit_sq_resnorm, status,
-                                stopped);
+    this->on_iteration_complete(nullptr, nullptr, solution, num_iterations,
+                                residual, residual_norm, implicit_sq_resnorm,
+                                status, stopped);
 }
 
 
@@ -80,10 +80,10 @@ void Convergence<ValueType>::on_criterion_check_completed(
 
 template <typename ValueType>
 void Convergence<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* x, const LinOp* residual_norm,
-    const LinOp* implicit_resnorm_sq, const array<stopping_status>* status,
-    const bool stopped) const
+    const LinOp* solver, const LinOp* b, const LinOp* x,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const array<stopping_status>* status, const bool stopped) const
 {
     if (stopped) {
         array<stopping_status> tmp(status->get_executor()->get_master(),
@@ -114,6 +114,24 @@ void Convergence<ValueType>::on_iteration_complete(
                                            dim<2>{1, residual->get_size()[1]});
                     dense_r->compute_norm2(this->residual_norm_);
                 });
+        } else if (dynamic_cast<const solver::SolverBase*>(solver) &&
+                   b != nullptr && x != nullptr) {
+            auto system_mtx = dynamic_cast<const solver::SolverBase*>(solver)
+                                  ->get_system_matrix();
+            using Vector = matrix::Dense<ValueType>;
+            using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            detail::vector_dispatch<ValueType>(b, [&](const auto* dense_b) {
+                detail::vector_dispatch<ValueType>(x, [&](const auto* dense_x) {
+                    auto exec = system_mtx->get_executor();
+                    auto residual = dense_b->clone();
+                    this->residual_norm_ = NormVector::create(
+                        exec, dim<2>{1, residual->get_size()[1]});
+                    system_mtx->apply(initialize<Vector>({-1.0}, exec), dense_x,
+                                      initialize<Vector>({1.0}, exec),
+                                      residual);
+                    residual->compute_norm2(this->residual_norm_);
+                });
+            });
         }
     }
 }

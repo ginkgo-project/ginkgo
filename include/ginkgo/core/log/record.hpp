@@ -58,17 +58,19 @@ namespace log {
  */
 struct iteration_complete_data {
     std::unique_ptr<const LinOp> solver;
+    std::unique_ptr<const LinOp> right_hand_side;
+    std::unique_ptr<const LinOp> solution;
     const size_type num_iterations;
     std::unique_ptr<const LinOp> residual;
-    std::unique_ptr<const LinOp> solution;
     std::unique_ptr<const LinOp> residual_norm;
     std::unique_ptr<const LinOp> implicit_sq_residual_norm;
     array<stopping_status> status;
     bool all_stopped;
 
-    iteration_complete_data(const LinOp* solver, const size_type num_iterations,
+    iteration_complete_data(const LinOp* solver, const LinOp* right_hand_side,
+                            const LinOp* solution,
+                            const size_type num_iterations,
                             const LinOp* residual = nullptr,
-                            const LinOp* solution = nullptr,
                             const LinOp* residual_norm = nullptr,
                             const LinOp* implicit_sq_residual_norm = nullptr,
                             const gko::array<stopping_status>* status = nullptr,
@@ -76,11 +78,10 @@ struct iteration_complete_data {
         : num_iterations{num_iterations}, all_stopped(all_stopped)
     {
         this->solver = solver->clone();
+        this->right_hand_side = right_hand_side->clone();
+        this->solution = solution->clone();
         if (residual != nullptr) {
             this->residual = residual->clone();
-        }
-        if (solution != nullptr) {
-            this->solution = solution->clone();
         }
         if (residual_norm != nullptr) {
             this->residual_norm = residual_norm->clone();
@@ -393,13 +394,11 @@ public:
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
-    void on_iteration_complete(const LinOp* solver,
-                               const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* x,
-                               const LinOp* residual_norm,
-                               const LinOp* implicit_resnorm_sq,
-                               const array<stopping_status>* status,
-                               bool stopped) const override;
+    void on_iteration_complete(
+        const LinOp* solver, const LinOp* right_hand_side, const LinOp* x,
+        const size_type& num_iterations, const LinOp* residual,
+        const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+        const array<stopping_status>* status, bool stopped) const override;
 
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
