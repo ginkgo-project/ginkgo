@@ -408,7 +408,7 @@ public:
          * @note TODO: porting - we hardcode the subgroup size is 32
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(exec->get_num_warps(), 32, false, "intel")
+            : load_balance(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
         /**
@@ -596,7 +596,7 @@ public:
          * @note TODO: porting - we hardcode the subgroup size is 32
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_warps(), 32, false, "intel")
+            : automatical(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
         /**

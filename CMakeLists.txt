@@ -283,6 +283,7 @@ endif()
 
 if(GINKGO_BUILD_DPCPP)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()

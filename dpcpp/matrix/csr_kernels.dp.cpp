@@ -82,7 +82,7 @@ namespace csr {
 constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 
 
 /**
@@ -1107,7 +1107,8 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
                     const matrix::Dense<ValueType>* alpha = nullptr,
                     const matrix::Dense<ValueType>* beta = nullptr)
 {
-    const auto num_subgroup = exec->get_num_warps() * classical_overweight;
+    const auto num_subgroup =
+        exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
