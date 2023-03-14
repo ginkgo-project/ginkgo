@@ -133,7 +133,7 @@ class queue;
 
 }  // namespace _V1
 }  // namespace sycl
-#else  // __LIBSYCL_MAJOR_VERSION < 6
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
 inline namespace cl {
 namespace sycl {
 
@@ -2093,9 +2093,9 @@ public:
     }
 
     /**
-     * Get the number of warps of this executor.
+     * Get the number of subgroups of this executor.
      */
-    int get_num_warps() const noexcept
+    int get_num_subgroups() const noexcept
     {
         return this->get_exec_info().num_computing_units *
                this->get_exec_info().num_pu_per_cu;
