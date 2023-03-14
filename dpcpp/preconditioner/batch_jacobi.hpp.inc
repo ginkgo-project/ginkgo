@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 __dpct_inline__ void find_row_is_part_of_which_block_kernel(
     const size_type num_blocks, const int* const __restrict__ block_pointers,
     int* const __restrict__ row_part_of_which_block_info,
