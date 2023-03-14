@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-
 class BatchCsr : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;

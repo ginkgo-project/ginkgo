@@ -50,8 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-
-
 class BatchDense : public CommonTestFixture {
 protected:
     using vtype = double;
@@ -427,5 +425,3 @@ TEST_F(BatchDense, AddScaledIdentityNonSquareIsEquivalentToReference)
 
     GKO_ASSERT_BATCH_MTX_NEAR(rmtx, dmtx, 1e-15)
 }
-
-

@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
-
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>

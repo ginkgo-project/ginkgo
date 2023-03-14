@@ -51,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-
-
 class BatchEll : public CommonTestFixture {
 protected:
     using value_type = float;
@@ -204,5 +202,3 @@ TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
 
     GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<value_type>::value);
 }
-
-

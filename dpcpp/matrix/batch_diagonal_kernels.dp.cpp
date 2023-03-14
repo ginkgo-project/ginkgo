@@ -39,8 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-
-
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
