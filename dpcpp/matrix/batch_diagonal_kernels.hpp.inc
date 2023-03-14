@@ -32,11 +32,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType>
-inline void apply_kernel(const int nrows, const int ncols,
-                         const ValueType* const diag, const int nrhs,
-                         const size_type b_stride, const ValueType* const b,
-                         const size_type x_stride, ValueType* const x,
-                         sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void apply_kernel(const int nrows, const int ncols,
+                                  const ValueType* const diag, const int nrhs,
+                                  const size_type b_stride,
+                                  const ValueType* const b,
+                                  const size_type x_stride, ValueType* const x,
+                                  sycl::nd_item<3>& item_ct1)
 {
     const int local_id = item_ct1.get_local_linear_id();
     const int local_range = item_ct1.get_local_range().size();
@@ -57,11 +58,12 @@ inline void apply_kernel(const int nrows, const int ncols,
 
 
 template <typename ValueType>
-inline void apply_in_place_kernel(const int num_rows, const size_type stride,
-                                  const int num_rhs,
-                                  const ValueType* const diag_vec,
-                                  ValueType* const a,
-                                  sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void apply_in_place_kernel(const int num_rows,
+                                           const size_type stride,
+                                           const int num_rhs,
+                                           const ValueType* const diag_vec,
+                                           ValueType* const a,
+                                           sycl::nd_item<3>& item_ct1)
 {
     for (int iz = item_ct1.get_local_linear_id(); iz < num_rows * num_rhs;
          iz += item_ct1.get_local_range().size()) {

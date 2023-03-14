@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType>
-inline void matvec_kernel(
+__dpct_inline__ void matvec_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const gko::batch_dense::BatchEntry<ValueType>& c, sycl::nd_item<3> item_ct1)
@@ -54,7 +54,7 @@ inline void matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_matvec_kernel(
+__dpct_inline__ void single_matvec_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const ValueType* const b, ValueType* const c, sycl::nd_item<3> item_ct1)
 {
@@ -74,7 +74,7 @@ inline void single_matvec_kernel(
 
 
 template <typename ValueType>
-inline void advanced_matvec_kernel(
+__dpct_inline__ void advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c,
@@ -97,7 +97,7 @@ inline void advanced_matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_advanced_matvec_kernel(
+__dpct_inline__ void single_advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const ValueType* const b, const ValueType beta, ValueType* const c,
     sycl::nd_item<3> item_ct1)
@@ -118,7 +118,7 @@ inline void single_advanced_matvec_kernel(
 
 
 template <typename IndexType>
-inline void check_diagonal_entries_kernel(
+__dpct_inline__ void check_diagonal_entries_kernel(
     const IndexType num_min_rows_cols, const size_type row_stride,
     const size_type max_nnz_per_row,
     const IndexType* const __restrict__ col_idxs,
@@ -171,7 +171,7 @@ inline void check_diagonal_entries_kernel(
 
 
 template <typename ValueType>
-inline void add_scaled_identity_kernel(
+__dpct_inline__ void add_scaled_identity_kernel(
     const int nrows, const size_type row_stride, const int max_nnz_per_row,
     const int* const col_idxs, ValueType* const __restrict__ values,
     const ValueType& alpha, const ValueType& beta, sycl::nd_item<3> item_ct1)

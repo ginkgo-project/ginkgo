@@ -57,7 +57,7 @@ __dpct_inline__ void single_matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_advanced_matvec_kernel(
+__dpct_inline__ void single_advanced_matvec_kernel(
     const ValueType alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
@@ -83,7 +83,7 @@ inline void single_advanced_matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_scale_kernel(
+__dpct_inline__ void single_scale_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& alpha,
     const gko::batch_dense::BatchEntry<ValueType>& x,
     sycl::nd_item<3>& item_ct1)
@@ -106,10 +106,11 @@ inline void single_scale_kernel(
 
 
 template <typename ValueType>
-inline void single_add_scaled_kernel(const int num_rows, const ValueType alpha,
-                                     const ValueType* const x,
-                                     ValueType* const y,
-                                     sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void single_add_scaled_kernel(const int num_rows,
+                                              const ValueType alpha,
+                                              const ValueType* const x,
+                                              ValueType* const y,
+                                              sycl::nd_item<3>& item_ct1)
 {
     for (int li = item_ct1.get_local_id(2); li < num_rows;
          li += item_ct1.get_local_range(2)) {
@@ -118,7 +119,7 @@ inline void single_add_scaled_kernel(const int num_rows, const ValueType alpha,
 }
 
 template <typename ValueType>
-inline void add_scaled_kernel(
+__dpct_inline__ void add_scaled_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& x,
     const gko::batch_dense::BatchEntry<ValueType>& y,
@@ -142,7 +143,7 @@ inline void add_scaled_kernel(
 
 
 template <typename ValueType>
-inline void add_scaled_advanced_kernel(
+__dpct_inline__ void add_scaled_advanced_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& x,
     const gko::batch_dense::BatchEntry<const ValueType>& beta,
@@ -169,7 +170,7 @@ inline void add_scaled_advanced_kernel(
 
 
 template <typename ValueType>
-inline void compute_dot_product_kernel(
+__dpct_inline__ void compute_dot_product_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& x,
     const gko::batch_dense::BatchEntry<const ValueType>& y,
     const gko::batch_dense::BatchEntry<ValueType>& result,
@@ -198,7 +199,7 @@ inline void compute_dot_product_kernel(
 
 
 template <typename ValueType>
-inline void compute_norm2_kernel(
+__dpct_inline__ void compute_norm2_kernel(
     const gko::batch_dense::BatchEntry<const ValueType>& x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result,
     sycl::nd_item<3>& item_ct1)
@@ -223,11 +224,12 @@ inline void compute_norm2_kernel(
 
 
 template <typename Op, typename ValueType>
-inline void transpose_kernel(const int src_nrows, const int src_ncols,
-                             const size_type src_stride,
-                             const ValueType* const src,
-                             const size_type dest_stride, ValueType* const dest,
-                             Op op, sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void transpose_kernel(const int src_nrows, const int src_ncols,
+                                      const size_type src_stride,
+                                      const ValueType* const src,
+                                      const size_type dest_stride,
+                                      ValueType* const dest, Op op,
+                                      sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -243,9 +245,10 @@ inline void transpose_kernel(const int src_nrows, const int src_ncols,
 
 
 template <typename ValueType>
-inline void copy_kernel(const gko::batch_dense::BatchEntry<const ValueType>& in,
-                        const gko::batch_dense::BatchEntry<ValueType>& out,
-                        sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void copy_kernel(
+    const gko::batch_dense::BatchEntry<const ValueType>& in,
+    const gko::batch_dense::BatchEntry<ValueType>& out,
+    sycl::nd_item<3>& item_ct1)
 {
     for (int iz = item_ct1.get_local_linear_id(); iz < in.num_rows * in.num_rhs;
          iz += item_ct1.get_local_range().size()) {
@@ -257,11 +260,13 @@ inline void copy_kernel(const gko::batch_dense::BatchEntry<const ValueType>& in,
 
 
 template <typename ValueType>
-inline void batch_scale_kernel(const int num_rows, const size_type stride,
-                               const int num_rhs,
-                               const ValueType* const left_scale_vec,
-                               const ValueType* const right_scale_vec,
-                               ValueType* const a, sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void batch_scale_kernel(const int num_rows,
+                                        const size_type stride,
+                                        const int num_rhs,
+                                        const ValueType* const left_scale_vec,
+                                        const ValueType* const right_scale_vec,
+                                        ValueType* const a,
+                                        sycl::nd_item<3>& item_ct1)
 {
     for (int iz = item_ct1.get_local_linear_id(); iz < num_rows * num_rhs;
          iz += item_ct1.get_local_range().size()) {
@@ -273,12 +278,10 @@ inline void batch_scale_kernel(const int num_rows, const size_type stride,
 
 
 template <typename ValueType>
-inline void add_scaled_identity_kernel(const int nrows, const int ncols,
-                                       const size_type stride,
-                                       ValueType* const __restrict__ values,
-                                       const ValueType alpha,
-                                       const ValueType beta,
-                                       sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void add_scaled_identity_kernel(
+    const int nrows, const int ncols, const size_type stride,
+    ValueType* const __restrict__ values, const ValueType alpha,
+    const ValueType beta, sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
