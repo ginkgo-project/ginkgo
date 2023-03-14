@@ -207,6 +207,7 @@ int main(int argc, char* argv[])
         solver->apply(lend(b), lend(x));
     }
 
+    exec->synchronize();
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < num_rounds; i++) {
