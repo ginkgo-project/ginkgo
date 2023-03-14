@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType>
-inline void matvec_kernel(
+__dpct_inline__ void matvec_kernel(
     const gko::batch_csr::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const gko::batch_dense::BatchEntry<ValueType>& c,
@@ -67,7 +67,7 @@ inline void matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_matvec_kernel(
+__dpct_inline__ void single_matvec_kernel(
     const gko::batch_csr::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     sycl::nd_item<3>& item_ct1)
@@ -88,7 +88,7 @@ inline void single_matvec_kernel(
 
 
 template <typename ValueType>
-inline void advanced_matvec_kernel(
+__dpct_inline__ void advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c,
@@ -124,7 +124,7 @@ inline void advanced_matvec_kernel(
 
 
 template <typename ValueType>
-inline void single_advanced_matvec_kernel(
+__dpct_inline__ void single_advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ c, sycl::nd_item<3>& item_ct1)
@@ -154,7 +154,7 @@ inline void single_advanced_matvec_kernel(
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_batch_csr_to_csc(
+__dpct_inline__ void convert_batch_csr_to_csc(
     size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
     const ValueType* batch_csr_vals, IndexType* row_idxs, IndexType* col_ptrs,
     ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
@@ -181,7 +181,7 @@ void batch_scale_kernel(  // TODO: consider to find a new kernel name
 
 
 template <typename ValueType>
-inline void pre_diag_scale_kernel(
+__dpct_inline__ void pre_diag_scale_kernel(
     const int num_rows, ValueType* const __restrict__ a_values,
     const int* const __restrict__ col_idxs,
     const int* const __restrict__ row_ptrs, const int num_rhs,
@@ -211,7 +211,7 @@ inline void pre_diag_scale_kernel(
 
 
 template <typename ValueType>
-inline void convert_to_batch_dense_kernel(
+__dpct_inline__ void convert_to_batch_dense_kernel(
     const int num_rows, const int num_cols, const int* const row_ptrs,
     const int* const col_idxs, const ValueType* const values,
     const size_type dense_stride, ValueType* const dense,
@@ -234,12 +234,10 @@ inline void convert_to_batch_dense_kernel(
 }
 
 
-inline void check_all_diagonal_kernel(const int min_rows_cols,
-                                      const int* const __restrict__ row_ptrs,
-                                      const int* const __restrict__ col_idxs,
-                                      bool* const __restrict__ all_diags,
-                                      int* tile_has_diags,
-                                      sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void check_all_diagonal_kernel(
+    const int min_rows_cols, const int* const __restrict__ row_ptrs,
+    const int* const __restrict__ col_idxs, bool* const __restrict__ all_diags,
+    int* tile_has_diags, sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
     const int sg_id = sg.get_group_id();
@@ -284,7 +282,7 @@ inline void check_all_diagonal_kernel(const int min_rows_cols,
 
 
 template <typename ValueType>
-inline void add_scaled_identity_kernel(
+__dpct_inline__ void add_scaled_identity_kernel(
     const int num_rows, const int* const row_ptrs, const int* const col_idxs,
     ValueType* const __restrict__ values, const ValueType& alpha,
     const ValueType& beta, sycl::nd_item<3>& item_ct1)
