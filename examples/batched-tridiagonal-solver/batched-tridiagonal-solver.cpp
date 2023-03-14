@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [executor] [problem_name] [num_duplications] "
+                  << " [executor] [dir_path] [problem_name] [num_duplications] "
                      "[num_WM_steps] [subwarp_size] [tridiag approach]"
                   << std::endl;
         std::exit(-1);
@@ -104,22 +104,25 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
+    const std::string dir_name =
+        argc >= 3 ? argv[2] : "/home/hp/Desktop/Tridiagonal_test_matrices/";
+
     // @sect3{Read batch from files}
     // Name of the problem
-    const std::string problem_name = argc >= 3 ? argv[2] : "gallery_lesp_100";
+    const std::string problem_name = argc >= 4 ? argv[3] : "gallery_lesp_100";
 
     // Number of times to duplicate whatever systems are read from files.
-    const size_type num_duplications = argc >= 4 ? std::atoi(argv[3]) : 1;
+    const size_type num_duplications = argc >= 5 ? std::atoi(argv[4]) : 1;
 
     // Number of WM steps
-    const int number_WM_steps = argc >= 5 ? std::atoi(argv[4]) : 2;
+    const int number_WM_steps = argc >= 6 ? std::atoi(argv[5]) : 2;
 
     // WM_pGE subwarp size
-    const int subwarp_size = argc >= 6 ? std::atoi(argv[5]) : 16;
+    const int subwarp_size = argc >= 7 ? std::atoi(argv[6]) : 16;
 
     // Approach
     enum gko::solver::batch_tridiag_solve_approach approach;
-    const std::string approach_str = argc >= 7 ? argv[6] : "WM_pGE_app1";
+    const std::string approach_str = argc >= 8 ? argv[7] : "WM_pGE_app1";
     if (approach_str == std::string("WM_pGE_app1")) {
         approach = gko::solver::batch_tridiag_solve_approach::WM_pGE_app1;
     } else if (approach_str == std::string("WM_pGE_app2")) {
@@ -130,7 +133,7 @@ int main(int argc, char* argv[])
 
 
     const std::string mat_str = problem_name + ".mtx";
-    const std::string fbase = "/home/hp/Desktop/Tridiagonal_test_matrices/";
+    const std::string fbase = dir_name;
     std::string fname = fbase + mat_str;
     std::cout << "\n\nfile to be read: " << fname << std::endl;
     std::ifstream mtx_fd(fname);
@@ -211,6 +214,7 @@ int main(int argc, char* argv[])
         solver->apply(lend(b), lend(x));
     }
 
+    exec->synchronize();
     auto stop = std::chrono::high_resolution_clock::now();
 
     auto duration =
