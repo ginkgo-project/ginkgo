@@ -148,6 +148,29 @@ void WM_pGE_app2_helper(
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_app2_helper,
                                     WM_pGE_app2_helper);
 
+template <typename ValueType>
+void perform_workspace_copies(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+    const matrix::BatchDense<ValueType>* const rhs, const int workspace_size,
+    ValueType* const workspace_ptr, ValueType*& tridiag_mat_superdiags,
+    ValueType*& rhs_vals)
+{
+    assert(workspace_size >=
+           tridiag_mat->get_num_stored_elements_per_diagonal() +
+               rhs->get_num_stored_elements());
+
+    tridiag_mat_superdiags = workspace_ptr;
+
+    exec->copy(tridiag_mat->get_num_stored_elements_per_diagonal(),
+               tridiag_mat->get_const_super_diagonal(), tridiag_mat_superdiags);
+
+    rhs_vals =
+        workspace_ptr + tridiag_mat->get_num_stored_elements_per_diagonal();
+
+    exec->copy(rhs->get_num_stored_elements(), rhs->get_const_values(),
+               rhs_vals);
+}
 
 }  // anonymous namespace
 
@@ -166,27 +189,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
     assert(nrhs == 1);
 
-    assert(workspace_size >=
-           tridiag_mat->get_num_stored_elements_per_diagonal() +
-               rhs->get_num_stored_elements());
-
-    const ValueType* const tridiag_mat_subdiags =
-        tridiag_mat->get_const_sub_diagonal();
-    const ValueType* const tridiag_mat_maindiags =
-        tridiag_mat->get_const_main_diagonal();
-
-    ValueType* const tridiag_mat_superdiags = workspace_ptr;
-
-    exec->copy(tridiag_mat->get_num_stored_elements_per_diagonal(),
-               tridiag_mat->get_const_super_diagonal(), tridiag_mat_superdiags);
-
-    ValueType* const rhs_vals =
-        workspace_ptr + tridiag_mat->get_num_stored_elements_per_diagonal();
-
-    exec->copy(rhs->get_num_stored_elements(), rhs->get_const_values(),
-               rhs_vals);
-
     if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1) {
+        ValueType* tridiag_mat_superdiags;
+        ValueType* rhs_vals;
+
+        perform_workspace_copies(exec, tridiag_mat, rhs, workspace_size,
+                                 workspace_ptr, tridiag_mat_superdiags,
+                                 rhs_vals);
+
         select_WM_pGE_app1_helper(
             batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
             [&](int compiled_WM_pGE_subwarp_size) {
@@ -194,11 +204,19 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                        compiled_WM_pGE_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
-            nrows, nrhs, tridiag_mat_subdiags, tridiag_mat_maindiags,
-            tridiag_mat_superdiags, rhs_vals, x->get_values(), approach);
+            nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
+            rhs_vals, x->get_values(), approach);
 
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
+        ValueType* tridiag_mat_superdiags;
+        ValueType* rhs_vals;
+
+        perform_workspace_copies(exec, tridiag_mat, rhs, workspace_size,
+                                 workspace_ptr, tridiag_mat_superdiags,
+                                 rhs_vals);
+
         select_WM_pGE_app2_helper(
             batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
             [&](int compiled_WM_pGE_subwarp_size) {
@@ -206,8 +224,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                        compiled_WM_pGE_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
-            nrows, nrhs, tridiag_mat_subdiags, tridiag_mat_maindiags,
-            tridiag_mat_superdiags, rhs_vals, x->get_values(), approach);
+            nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
+            rhs_vals, x->get_values(), approach);
 
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::vendor_provided) {
