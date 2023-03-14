@@ -58,12 +58,13 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }
 
 
-#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)           \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                \
-               matrix::BatchTridiagonal<_type>* const tridiag_mat,         \
-               matrix::BatchDense<_type>* const b,                         \
-               matrix::BatchDense<_type>* const x, const int num_WM_steps, \
-               const int WM_pGE_subwarp_size,                              \
+#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(_type)             \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,                  \
+               const matrix::BatchTridiagonal<_type>* const tridiag_mat,     \
+               const matrix::BatchDense<_type>* const b,                     \
+               matrix::BatchDense<_type>* const x, const int workspace_size, \
+               _type* const workspace_ptr, const int num_WM_steps,           \
+               const int WM_pGE_subwarp_size,                                \
                const enum gko::solver::batch_tridiag_solve_approach approach)
 
 

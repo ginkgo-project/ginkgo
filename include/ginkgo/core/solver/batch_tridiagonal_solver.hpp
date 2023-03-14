@@ -154,7 +154,10 @@ protected:
               factory->get_executor(),
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+          system_matrix_{std::move(system_matrix)},
+          workspace_(factory->get_executor(),
+                     2 * system_matrix->get_num_batch_entries() *
+                         system_matrix->get_size().at(0)[0])
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
@@ -202,6 +205,7 @@ private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
+    mutable gko::array<ValueType> workspace_{};
 };
 
 

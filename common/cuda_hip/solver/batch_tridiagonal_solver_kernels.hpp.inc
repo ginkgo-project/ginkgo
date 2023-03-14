@@ -237,9 +237,9 @@ __device__ __forceinline__ void backward_substitution(
 template <int subwarp_size, typename ValueType>
 __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
     const int num_WM_steps, const size_type nbatch, const int nrows,
-    ValueType* const __restrict__ a, ValueType* const __restrict__ b,
-    ValueType* const __restrict__ c, ValueType* const __restrict__ d,
-    ValueType* const __restrict__ x)
+    const ValueType* const __restrict__ a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -732,9 +732,9 @@ __device__ __forceinline__ void backward_substitution(
 template <typename ValueType, int subwarp_size>
 __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
     const int num_WM_steps, const size_type nbatch, const int nrows,
-    ValueType* const __restrict__ a, ValueType* const __restrict__ b,
-    ValueType* const __restrict__ c, ValueType* const __restrict__ d,
-    ValueType* const __restrict__ x)
+    const ValueType* const __restrict__ a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     using Valuetype2 = WM_pGE_approach2::ValueType2<ValueType>;
 
@@ -782,14 +782,14 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
             // vector reads to enable coalesced accesses while reading data
             if (nrows % 2 == 0) {
                 if (my_row_idx_1 + 1 < row_idx_end_tile) {
-                    Valuetype2 my_a_1_2 = reinterpret_cast<Valuetype2*>(
+                    Valuetype2 my_a_1_2 = reinterpret_cast<const Valuetype2*>(
                         a + batch_idx * nrows)[my_row_idx_1 / 2];
                     // Misaligned?? //Valuetype2 my_a_1_2 =
                     // *(reinterpret_cast<Valuetype2*>(a +  (batch_idx * nrows +
                     // my_row_idx_1)/2));
                     my_a_1 = my_a_1_2.x;
                     my_a_2 = my_a_1_2.y;
-                    Valuetype2 my_b_1_2 = reinterpret_cast<Valuetype2*>(
+                    Valuetype2 my_b_1_2 = reinterpret_cast<const Valuetype2*>(
                         b + batch_idx * nrows)[my_row_idx_1 / 2];
                     my_b_1 = my_b_1_2.x;
                     my_b_2 = my_b_1_2.y;

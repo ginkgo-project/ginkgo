@@ -58,9 +58,10 @@ constexpr int default_block_size = 128;
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           matrix::BatchDense<ValueType>* const rhs,
-           matrix::BatchDense<ValueType>* const x, const int num_WM_steps,
+           const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+           const matrix::BatchDense<ValueType>* const rhs,
+           matrix::BatchDense<ValueType>* const x, const int workspace_size,
+           ValueType* const workspace_ptr, const int num_WM_steps,
            const int WM_pGE_subwarp_size,
            const enum gko::solver::batch_tridiag_solve_approach approach)
     GKO_NOT_IMPLEMENTED;

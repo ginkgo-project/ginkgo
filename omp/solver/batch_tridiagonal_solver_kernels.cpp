@@ -52,30 +52,32 @@ namespace {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
-           matrix::BatchDense<ValueType>* const rhs,
-           matrix::BatchDense<ValueType>* const x, const int, const int,
+           const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+           const matrix::BatchDense<ValueType>* const rhs,
+           matrix::BatchDense<ValueType>* const x, const int workspace_size,
+           ValueType* const workspace_ptr, const int, const int,
            const enum gko::solver::batch_tridiag_solve_approach)
 {
-    const auto nbatch = tridiag_mat->get_num_batch_entries();
-    const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
-    const auto nrhs = rhs->get_size().at(0)[1];
-    assert(nrhs == 1);
+    GKO_NOT_IMPLEMENTED;
+    //     const auto nbatch = tridiag_mat->get_num_batch_entries();
+    //     const auto nrows =
+    //     static_cast<int>(tridiag_mat->get_size().at(0)[0]); const auto nrhs =
+    //     rhs->get_size().at(0)[1]; assert(nrhs == 1);
 
-    namespace device = gko::kernels::host;
-    const auto rhs_batch = device::get_batch_struct(rhs);
-    const auto x_batch = device::get_batch_struct(x);
+    //     namespace device = gko::kernels::host;
+    //     const auto rhs_batch = device::get_batch_struct(rhs);
+    //     const auto x_batch = device::get_batch_struct(x);
 
-    const int local_size_bytes =
-        gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
-            ValueType>(nrows, nrhs);
+    //     const int local_size_bytes =
+    //         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
+    //             ValueType>(nrows, nrhs);
 
-#pragma omp parallel for
-    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        std::vector<unsigned char> local_space(local_size_bytes);
-        batch_entry_tridiagonal_thomas_solve_impl(
-            ibatch, tridiag_mat, rhs_batch, x_batch, local_space.data());
-    }
+    // #pragma omp parallel for
+    //     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+    //         std::vector<unsigned char> local_space(local_size_bytes);
+    //         batch_entry_tridiagonal_thomas_solve_impl(
+    //             ibatch, tridiag_mat, rhs_batch, x_batch, local_space.data());
+    //     }
 }
 
 
