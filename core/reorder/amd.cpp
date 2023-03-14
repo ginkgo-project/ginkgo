@@ -33,9 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/amd.hpp>
 
 
+#include <map>
+#include <set>
+#include <vector>
+
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+
+
+#include "core/base/allocator.hpp"
+#include "core/components/addressable_pq.hpp"
 
 
 namespace gko {
@@ -44,15 +53,97 @@ namespace {
 
 
 template <typename IndexType>
-void amd_reorder(std::shared_ptr<const Executor> host_exec, size_type num_rows,
+void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
                  const IndexType* row_ptrs, const IndexType* col_idxs,
                  IndexType* permutation)
-{}
+{
+    vector<IndexType> degrees(num_rows, {host_exec});
+    std::vector<std::set<IndexType>> variable_neighbors(num_rows);
+    std::vector<std::set<IndexType>> element_neighbors(num_rows);
+
+    // compute initial degrees (assuming symmetric matrix)
+    {
+        IndexType output_idx{};
+        for (IndexType row = 0; row < num_rows; row++) {
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            IndexType degree{};
+            for (auto nz = begin; nz < end; nz++) {
+                const auto col = col_idxs[nz];
+                if (col != row) {
+                    variable_neighbors[row].insert(col);
+                    degree++;
+                }
+            }
+            degrees[row] = degree;
+        }
+    }
+
+    // initialize min queue
+    std::vector<IndexType> queue(num_rows);
+    std::iota(queue.begin(), queue.end(), 0);
+    std::sort(queue.begin(), queue.end(), [&](IndexType i, IndexType j) {
+        return degrees[i] < degrees[j];
+    });
+    for (auto i : queue) {
+        std::cout << i << ':' << degrees[i] << '\n';
+    }
+    // pop minimum until we chose every variable as pivot
+    for (IndexType i = 0; i < num_rows; i++) {
+        auto pivot = queue.front();
+        permutation[i] = pivot;
+        std::cout << "picking " << pivot << " with degree " << degrees[pivot]
+                  << '\n';
+        queue.erase(queue.begin());
+        auto& cur_var_neighbors = variable_neighbors[pivot];
+        const auto& cur_el_neighbors = element_neighbors[pivot];
+        // update L_p
+        for (auto element : cur_el_neighbors) {
+            const auto& el_neighbors = variable_neighbors[element];
+            cur_var_neighbors.insert(el_neighbors.begin(), el_neighbors.end());
+        }
+        cur_var_neighbors.erase(pivot);
+        for (auto variable : cur_var_neighbors) {
+            // A_i = A_i \setminus L_p \setminus p
+            for (auto other_variable : cur_var_neighbors) {
+                variable_neighbors[variable].erase(other_variable);
+            }
+            variable_neighbors[variable].erase(pivot);
+            // E_i = E_i \setminus E_p \cup {p}
+            element_neighbors[variable].insert(pivot);
+            for (auto element : cur_el_neighbors) {
+                element_neighbors[variable].erase(element);
+            }
+            // d_i = |A_i \setminus i| + |\bigcup_{e \in E_i} L_e \setminus i|
+            auto set1 = variable_neighbors[variable];
+            set1.erase(variable);
+            std::set<IndexType> set2;
+            for (auto element : cur_el_neighbors) {
+                set2.insert(variable_neighbors[element].begin(),
+                            variable_neighbors[element].end());
+            }
+            set2.erase(variable);
+            // update d_i in queue
+            degrees[variable] = set1.size() + set2.size();
+            std::sort(queue.begin(), queue.end(),
+                      [&](IndexType i, IndexType j) {
+                          return degrees[i] < degrees[j];
+                      });
+        }
+    }
+}
 
 GKO_REGISTER_HOST_OPERATION(amd_reorder, amd_reorder);
 
 
 }  // namespace
+
+
+template <typename IndexType>
+Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
+                    const parameters_type& params)
+    : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec))
+{}
 
 
 template <typename IndexType>
@@ -79,8 +170,8 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
     std::unique_ptr<LinOp> converted;
     const IndexType* row_ptrs{};
     const IndexType* col_idxs{};
-    if (auto convertible =
-            dynamic_cast<ConvertibleTo<complex_mtx>*>(system_matrix.get())) {
+    if (auto convertible = dynamic_cast<const ConvertibleTo<complex_mtx>*>(
+            system_matrix.get())) {
         auto conv_csr = complex_mtx::create(host_exec);
         convertible->convert_to(conv_csr);
         row_ptrs = conv_csr->get_const_row_ptrs();
@@ -95,13 +186,17 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
     }
 
     array<IndexType> permutation{host_exec, num_rows};
-    exec->run(make_amd_reorder(host_exec, num_rows, row_ptrs, col_idxs,
-                               permutation.get_data()));
+    exec->run(make_amd_reorder(host_exec, static_cast<IndexType>(num_rows),
+                               row_ptrs, col_idxs, permutation.get_data()));
     permutation.set_executor(exec);
 
     return permutation_type::create(exec, dim<2>{num_rows, num_rows},
                                     std::move(permutation));
 }
+
+
+#define GKO_DECLARE_AMD(IndexType) class Amd<IndexType>
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMD);
 
 
 }  // namespace reorder
