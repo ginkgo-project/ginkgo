@@ -47,6 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 
 
+#include "core/base/allocator.hpp"
+#include "core/components/addressable_pq.hpp"
+
+
 namespace gko {
 namespace experimental {
 namespace reorder {
@@ -100,6 +104,13 @@ Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
                     const parameters_type& params)
     : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec)),
       parameters_{params}
+{}
+
+
+template <typename IndexType>
+Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
+                    const parameters_type& params)
+    : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec))
 {}
 
 
