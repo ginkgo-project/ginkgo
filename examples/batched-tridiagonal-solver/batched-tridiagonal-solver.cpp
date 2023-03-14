@@ -196,8 +196,8 @@ int main(int argc, char* argv[])
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
 
-    const int num_rounds = 200;
-    const int leave_first = 5;
+    const int num_rounds = 10;
+    const int leave_first = 2;
 
     for (int i = 0; i < leave_first; i++) {
         // Solve the batch system

@@ -153,8 +153,6 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     }
 
     // Note that system and rhs are changed during the solve.
-    // auto system_mat_tridiag_copy =
-    //     gko::clone(exec, system_matrix_tridiagonal.get());
     exec->run(batch_tridiagonal_solver::make_apply(
         system_matrix_tridiagonal.get(), b_scaled_ptr, dense_x,
         this->workspace_.get_num_elems(), this->workspace_.get_data(),

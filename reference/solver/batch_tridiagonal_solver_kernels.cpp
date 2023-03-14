@@ -61,8 +61,13 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = rhs->get_size().at(0)[1];
     assert(nrhs == 1);
 
-    // auto rhs_clone = gko::clone(exec, rhs).get(); // Why is this not
-    // working??
+    // auto rhs_clone = gko::share(gko::clone(exec, rhs)).get(); //WHY IS THIS
+    // NOT WORKING?
+
+    // auto rhs_copy = matrix::BatchDense<ValueType>::create(exec);
+    // rhs_copy->copy_from(rhs);
+    // auto rhs_clone = rhs_copy.get(); //compilation errors
+
     auto rhs_clone = const_cast<matrix::BatchDense<ValueType>*>(rhs);
 
     namespace device = gko::kernels::host;
