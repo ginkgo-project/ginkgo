@@ -64,7 +64,7 @@ public:
     /**
      * Finish the timer
      *
-     * @param num  the number of operation for the timing range
+     * @param num  the number of repetitions for the timing range
      */
     void toc(unsigned int num = 1)
     {
@@ -105,9 +105,9 @@ public:
         }
         auto copy = duration_sec_;
         std::sort(copy.begin(), copy.end());
-        if (method == "best") {
+        if (method == "min") {
             return copy.front();
-        } else if (method == "worst") {
+        } else if (method == "max") {
             return copy.back();
         } else if (method == "median") {
             auto mid = copy.size() / 2;

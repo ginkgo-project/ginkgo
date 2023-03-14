@@ -51,9 +51,11 @@ DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
 
-DEFINE_string(timer_output, "average",
-              "The statistical method for output of timer. Available options: "
-              "average, median, best, worst");
+DEFINE_string(
+    timer_method, "average",
+    "The statistical method for output of timer. Available options: "
+    "average, median, min, max. Note. If repetition_growth_factor > 1, the "
+    "overhead operations may be different among repetitions");
 
 
 /**

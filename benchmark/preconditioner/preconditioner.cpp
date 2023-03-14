@@ -178,7 +178,7 @@ void run_preconditioner(const char* precond_name,
             }
 
             add_or_set_member(this_precond_data["generate"], "time",
-                              ic_gen.compute_time(FLAGS_timer_output),
+                              ic_gen.compute_time(FLAGS_timer_method),
                               allocator);
             add_or_set_member(this_precond_data["generate"], "repetitions",
                               ic_gen.get_num_repetitions(), allocator);
@@ -188,7 +188,7 @@ void run_preconditioner(const char* precond_name,
             }
 
             add_or_set_member(this_precond_data["apply"], "time",
-                              ic_apply.compute_time(FLAGS_timer_output),
+                              ic_apply.compute_time(FLAGS_timer_method),
                               allocator);
             add_or_set_member(this_precond_data["apply"], "repetitions",
                               ic_apply.get_num_repetitions(), allocator);

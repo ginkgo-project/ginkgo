@@ -115,9 +115,10 @@ DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
               "If 'repetitions = auto' is used, the maximal number of"
               " repetitions for a single benchmark.");
 
-DEFINE_double(repetition_growth_factor, 1.5,
-              "If 'repetitions = auto' is used, the factor with which the"
-              " repetitions between two timings increase.");
+DEFINE_double(
+    repetition_growth_factor, 1.5,
+    "The factor with which the repetitions between two timings increase. If it "
+    "is lower than or equal to 1, the timing region is always 1 repetition.");
 
 
 /**
@@ -689,6 +690,11 @@ private:
                     stopped = true;
                     next_timing = static_cast<IndexType>(std::ceil(
                         next_timing * FLAGS_repetition_growth_factor));
+                    // If repetition_growth_factor <= 1, next_timing will be
+                    // next iteration.
+                    if (next_timing <= cur_info->cur_it) {
+                        next_timing = cur_info->cur_it + 1;
+                    }
                 }
                 return *this;
             }
