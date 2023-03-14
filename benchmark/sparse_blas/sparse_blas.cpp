@@ -104,7 +104,7 @@ void apply_sparse_blas(const char* operation_name,
         for (auto _ : ic.run()) {
             op->run();
         }
-        const auto runtime = ic.compute_time(FLAGS_timer_output);
+        const auto runtime = ic.compute_time(FLAGS_timer_method);
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
         const auto repetitions = ic.get_num_repetitions();
