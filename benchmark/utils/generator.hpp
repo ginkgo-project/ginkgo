@@ -279,8 +279,9 @@ struct DistributedDefaultSystemGenerator {
         auto global_rows = local->get_size()[0];
         comm.all_reduce(gko::ReferenceExecutor::create(), &global_rows, 1,
                         MPI_SUM);
-        return Vec::create(
-            exec, comm, gko::dim<2>{global_rows, local->get_size()[1]}, local);
+        return Vec::create(exec, comm,
+                           gko::dim<2>{global_rows, local->get_size()[1]},
+                           std::move(local));
     }
 
     gko::experimental::mpi::communicator comm;

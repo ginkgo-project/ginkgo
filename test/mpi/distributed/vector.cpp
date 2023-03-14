@@ -313,13 +313,12 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
     using dense_type = typename TestFixture::dense_type;
     auto local_vec = dense_type::create(this->exec);
     local_vec->read(this->md_localized[this->comm.rank()]);
-    auto clone_local_vec = gko::clone(local_vec);
 
     auto vec = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{6, 2},
-                                     local_vec);
+                                     gko::clone(local_vec));
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), clone_local_vec, 0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), local_vec, 0);
 }
 
 
@@ -329,14 +328,47 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
     using dense_type = typename TestFixture::dense_type;
     auto local_vec = dense_type::create(this->exec);
     local_vec->read(this->md_localized[this->comm.rank()]);
-    auto clone_local_vec = gko::clone(local_vec);
 
-    auto vec = dist_vec_type::create(this->exec, this->comm, local_vec);
+    auto vec =
+        dist_vec_type::create(this->exec, this->comm, gko::clone(local_vec));
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), clone_local_vec, 0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), local_vec, 0);
 }
 
+
+TYPED_TEST(VectorCreation, CanConstCreateFromLocalVectorAndSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->exec);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+
+    auto vec = dist_vec_type::create_const(
+        this->exec, this->comm, gko::dim<2>{6, 2}, gko::clone(local_vec));
+
+    ASSERT_TRUE(std::is_const<
+                typename std::remove_reference<decltype(*vec)>::type>::value);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), local_vec, 0);
+}
+
+
+TYPED_TEST(VectorCreation, CanConstCreateFromLocalVectorWithoutSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->exec);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+
+    auto vec = dist_vec_type::create_const(this->exec, this->comm,
+                                           gko::clone(local_vec));
+
+    ASSERT_TRUE(std::is_const<
+                typename std::remove_reference<decltype(*vec)>::type>::value);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), local_vec, 0);
+}
 
 template <typename ValueType>
 class VectorCreationHelpers : public CommonMpiTestFixture {

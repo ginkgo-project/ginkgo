@@ -458,6 +458,35 @@ public:
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size,
+        std::unique_ptr<const local_vector_type> local_vector);
+
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector. The global size will be deduced from the local sizes, which will
+     * incur a collective communication.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        std::unique_ptr<const local_vector_type> local_vector);
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
@@ -488,8 +517,10 @@ protected:
      * Creates a distributed vector from local vectors with a specified size.
      *
      * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. This means, access to local_vector
-     *        will be invalid after this call.
+     *        distributed vector. You could either move in a std::unique_ptr
+     *        directly, copy a local vector with gko::clone, or create a
+     *        unique non-owining view of a given local vector with
+     *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
@@ -498,7 +529,7 @@ protected:
      *                      into this
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, ptr_param<local_vector_type> local_vector);
+           dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
 
     /**
      * Creates a distributed vector from local vectors. The global size will
@@ -506,16 +537,18 @@ protected:
      * communication.
      *
      * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. This means, access to local_vector
-     *        will be invalid after this call.
+     *        distributed vector. You could either move in a std::unique_ptr
+     *        directly, copy a local vector with gko::clone, or create a
+     *        unique non-owining view of a given local vector with
+     *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
      * @param local_vector  The underlying local vector, the data will be moved
-     *                      into this
+     *                      into this.
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           ptr_param<local_vector_type> local_vector);
+           std::unique_ptr<local_vector_type> local_vector);
 
     void resize(dim<2> global_size, dim<2> local_size);
 
