@@ -32,8 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 inline void batch_entry_tridiagonal_thomas_solve_impl(
-    const size_t ibatch,
-    gko::matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
+    const size_t ibatch, const ValueType* const tridiag_mat_subdiags,
+    ValueType* const tridiag_mat_maindiags,
+    const ValueType* const tridiag_mat_superdiags,
     const gko::batch_dense::UniformBatch<ValueType>& rhs,
     const gko::batch_dense::UniformBatch<ValueType>& x,
     unsigned char* const local_space = nullptr)
@@ -47,15 +48,16 @@ inline void batch_entry_tridiagonal_thomas_solve_impl(
     const gko::batch_dense::BatchEntry<ValueType> x_entry =
         gko::batch::batch_entry(x, ibatch);
 
-    auto a_entry = tridiag_mat->get_sub_diagonal() + ibatch * nrows;
-    auto b_entry = tridiag_mat->get_main_diagonal() + ibatch * nrows;
-    auto c_entry = tridiag_mat->get_super_diagonal() + ibatch * nrows;
+    const auto a_entry = tridiag_mat_subdiags + ibatch * nrows;
+    auto b_entry = tridiag_mat_maindiags + ibatch * nrows;
+    const auto c_entry = tridiag_mat_superdiags + ibatch * nrows;
 
     // Thomas algorithm - simplified gaussean elimination
 
     // Forward elimination phase
     for (int row_idx = 1; row_idx < nrows; row_idx++) {
         const auto mult = a_entry[row_idx] / b_entry[row_idx - 1];
+
         b_entry[row_idx] -= mult * c_entry[row_idx - 1];
 
         for (int rhs_idx = 0; rhs_idx < nrhs; rhs_idx++) {

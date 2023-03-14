@@ -154,17 +154,23 @@ protected:
               factory->get_executor(),
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)},
-          workspace_(factory->get_executor(),
-                     2 * system_matrix->get_num_batch_entries() *
-                         system_matrix->get_size().at(0)[0])
+          system_matrix_{std::move(system_matrix)}
     {
+        auto exec = factory->get_executor();
+
+        // const auto workspace_size =  2 *
+        // system_matrix->get_num_batch_entries() *
+        // system_matrix->get_size().at(0)[0];
+        const auto workspace_size = 600;
+        std::cout << "\n\nline:" << __LINE__ << " file: " << __FILE__
+                  << "the workplace size: " << workspace_size << std::endl;
+
+        this->workspace_ = gko::array<value_type>(exec, workspace_size);
+
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
         left_scaling_ = parameters_.left_scaling_op;
         right_scaling_ = parameters_.right_scaling_op;
-
-        auto exec = factory->get_executor();
 
         using BIdentity = matrix::BatchIdentity<value_type>;
         using BDiag = matrix::BatchDiagonal<value_type>;

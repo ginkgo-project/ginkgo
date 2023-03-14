@@ -69,8 +69,8 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 1;
-    const size_t nrows = 200;
+    const size_t nbatch = 3;
+    const size_t nrows = 80;
 
     std::shared_ptr<BTridiag> tridiag_mat;
     std::shared_ptr<BDense> b;
@@ -204,15 +204,15 @@ TEST_F(BatchTridiagonalSolver, SolveIsEquivalentToRef)
     auto d_b = gko::share(gko::clone(exec, b.get()));
     auto d_x = gko::share(gko::clone(exec, x.get()));
 
-    auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
-    tridiag_solver->apply(b.get(), x.get());
-
     auto d_tridiag_solver = solver_type::build()
     .with_num_WM_steps(2)
-    .with_batch_tridiagonal_solution_approach(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1)
+    .with_batch_tridiagonal_solution_approach(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2)
     .with_WM_pGE_subwarp_size(16)
     .on(exec)->generate(d_tridiag_mtx);
     d_tridiag_solver->apply(d_b.get(), d_x.get());
+
+    auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
+    tridiag_solver->apply(b.get(), x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
 }

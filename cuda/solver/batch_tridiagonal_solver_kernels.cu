@@ -174,11 +174,15 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         tridiag_mat->get_const_sub_diagonal();
     const ValueType* const tridiag_mat_maindiags =
         tridiag_mat->get_const_main_diagonal();
+
     ValueType* const tridiag_mat_superdiags = workspace_ptr;
+
     exec->copy(tridiag_mat->get_num_stored_elements_per_diagonal(),
                tridiag_mat->get_const_super_diagonal(), tridiag_mat_superdiags);
+
     ValueType* const rhs_vals =
         workspace_ptr + tridiag_mat->get_num_stored_elements_per_diagonal();
+
     exec->copy(rhs->get_num_stored_elements(), rhs->get_const_values(),
                rhs_vals);
 
