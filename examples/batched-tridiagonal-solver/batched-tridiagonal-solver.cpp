@@ -196,35 +196,43 @@ int main(int argc, char* argv[])
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
 
-    const int num_rounds = 1;
-    const int leave_first = 0;
+    const int num_rounds = 200;
+    const int leave_first = 5;
 
     for (int i = 0; i < leave_first; i++) {
         // Solve the batch system
         solver->apply(lend(b), lend(x));
     }
 
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < num_rounds; i++) {
         // Solve the batch system
         solver->apply(lend(b), lend(x));
     }
 
-    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    auto stop = std::chrono::high_resolution_clock::now();
 
-    auto time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1) /
-        num_rounds;
-    std::cout << "Entire solve took " << 1000 * time_span.count()
-              << " milliseconds." << std::endl;
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+    double total_time_millisec =
+        (double)(std::chrono::duration_cast<std::chrono::microseconds>(stop -
+                                                                       start))
+            .count() /
+        (double)1000;
+
+    double av_time_millisec = total_time_millisec / num_rounds;
+
+    std::cout << "the solve took " << av_time_millisec << " milliseconds."
+              << std::endl;
 
     // auto vec_b = b->unbatch(); TODO: //seg fault???
     // gko::write(std::ofstream(std::string("b.mtx")), vec_b[0].get());
 
-    auto host_x = gko::clone(exec->get_master(), x.get());
-    auto vec_x = host_x->unbatch();
-    gko::write(std::cout, vec_x[0].get());
+    // auto host_x = gko::clone(exec->get_master(), x.get());
+    // auto vec_x = host_x->unbatch();
+    // gko::write(std::cout, vec_x[0].get());
 
     return 0;
 }
