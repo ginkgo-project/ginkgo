@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"
+#include "cuda/base/kernel_config.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -154,6 +155,7 @@ public:
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
