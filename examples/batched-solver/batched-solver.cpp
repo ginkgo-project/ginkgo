@@ -52,11 +52,9 @@ using real_type = gko::remove_complex<value_type>;
 using index_type = int;
 using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
-using scale_type = gko::matrix::BatchDiagonal<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
-// using solver_type = gko::solver::BatchBicgstab<value_type>;
-using solver_type = gko::solver::BatchGmres<value_type>;
+using solver_type = gko::solver::BatchBicgstab<value_type>;
 
 
 // @sect3{'Application' structures and functions}
@@ -145,7 +143,7 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
-    const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
+    const int num_rows = 35;  // per system
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
@@ -172,9 +170,6 @@ int main(int argc, char* argv[])
     auto A = gko::share(mtx_type::create_const(
         exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
         std::move(rowptrs_view)));
-    std::cout << "Mat size: " << A->get_size().at(0) << std::endl;
-    std::cout << "Num entries: " << A->get_size().get_num_batch_entries()
-              << std::endl;
     // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
@@ -196,19 +191,6 @@ int main(int argc, char* argv[])
     }
     x->copy_from(host_x.get());
 
-
-    // auto h_scale_array =
-    //     gko::array<value_type>(exec->get_master(), num_rows * num_systems);
-    // for (int i = 0; i < num_rows * num_systems; i++) {
-    //     h_scale_array->get_values()[i] = gko::one<value_type>();
-    // }
-    auto scale_array = gko::array<value_type>(exec, num_rows * num_systems);
-    scale_array.fill(gko::one<value_type>());
-    auto l_scale_mat =
-        gko::share(scale_type::create(exec, batch_mat_size, scale_array));
-    auto r_scale_mat =
-        gko::share(scale_type::create(exec, batch_mat_size, scale_array));
-
     // @sect3{Create the batch solver factory}
     const real_type reduction_factor{1e-6};
     // Create a batched solver factory with relevant parameters.
@@ -217,20 +199,8 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
-            .on(exec);
-
-    auto scaled_solver_gen =
-        solver_type::build()
-            .with_default_max_iterations(500)
-            .with_restart(50)
-            .with_default_residual_tol(reduction_factor)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
-            .with_left_scaling_op(l_scale_mat)
-            .with_right_scaling_op(r_scale_mat)
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
             .on(exec);
 
     // @sect3{Batch logger}
@@ -242,56 +212,13 @@ int main(int argc, char* argv[])
     // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
-
-    auto scaled_solver = scaled_solver_gen->generate(A);
-
-    double g1_time = 0.0;
-    double g2_time = 0.0;
-    int num_reps = 2;
-    for (int grep = 0; grep < num_reps; ++grep) {
-        std::chrono::steady_clock::time_point gt1 =
-            std::chrono::steady_clock::now();
-        auto solver1 = solver_gen->generate(A);
-        std::chrono::steady_clock::time_point gt2 =
-            std::chrono::steady_clock::now();
-
-        std::chrono::steady_clock::time_point s_gt1 =
-            std::chrono::steady_clock::now();
-        auto scaled_solver1 = scaled_solver_gen->generate(A);
-        std::chrono::steady_clock::time_point s_gt2 =
-            std::chrono::steady_clock::now();
-        auto g1time_span =
-            std::chrono::duration_cast<std::chrono::duration<double>>(gt2 -
-                                                                      gt1);
-        auto g2time_span =
-            std::chrono::duration_cast<std::chrono::duration<double>>(s_gt2 -
-                                                                      s_gt1);
-        g1_time += g1time_span.count();
-        g2_time += g2time_span.count();
-    }
     // add the logger to the solver
-    scaled_solver->add_logger(logger);
-
-    double a_time = 0.0;
-    auto x_copy = gko::clone(x);
-    for (int rep = 0; rep < num_reps; ++rep) {
-        auto x_clone = gko::clone(x);
-        std::chrono::steady_clock::time_point t1 =
-            std::chrono::steady_clock::now();
-        // Solve the batch system
-        scaled_solver->apply(lend(b), lend(x_clone));
-        std::chrono::steady_clock::time_point t2 =
-            std::chrono::steady_clock::now();
-
-        auto time_span =
-            std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-        a_time += time_span.count();
-        x_copy->copy_from(x_clone.get());
-    }
-    x->copy_from(x_copy.get());
+    solver->add_logger(logger);
+    // Solve the batch system
+    solver->apply(lend(b), lend(x));
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
-    scaled_solver->remove_logger(logger.get());
+    solver->remove_logger(logger.get());
 
     // @sect3{Check result}
     // Compute norm of RHS on the device and automatically copy to host
@@ -316,13 +243,13 @@ int main(int argc, char* argv[])
     auto unb_res = res_norm->unbatch();
     auto unb_bnorm = b_norm->unbatch();
     for (size_type i = 0; i < num_systems; ++i) {
-        // std::cout << " System no. " << i
-        //           << ": residual norm = " << unb_res[i]->at(0, 0)
-        //           << ", internal residual norm = "
-        //           << logger->get_residual_norm()->at(i, 0, 0)
-        //           << ", iterations = "
-        //           << logger->get_num_iterations().get_const_data()[i]
-        //           << std::endl;
+        std::cout << " System no. " << i
+                  << ": residual norm = " << unb_res[i]->at(0, 0)
+                  << ", internal residual norm = "
+                  << logger->get_residual_norm()->at(i, 0, 0)
+                  << ", iterations = "
+                  << logger->get_num_iterations().get_const_data()[i]
+                  << std::endl;
         const real_type relresnorm =
             unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
         if (!(relresnorm <= reduction_factor)) {
@@ -330,12 +257,6 @@ int main(int argc, char* argv[])
                       << " relative residual." << std::endl;
         }
     }
-
-    std::cout << "Generate time: " << g1_time / num_reps << " seconds \n"
-              << "Scaled solver generate time: " << g2_time / num_reps
-              << " seconds \n"
-              << "Entire solve took " << a_time / num_reps << " seconds."
-              << std::endl;
 
     // Ginkgo objects are cleaned up automatically; but the "application" still
     //  needs to clean up its data in this case.
