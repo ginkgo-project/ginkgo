@@ -85,14 +85,11 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
     std::sort(queue.begin(), queue.end(), [&](IndexType i, IndexType j) {
         return degrees[i] < degrees[j];
     });
-    for (auto i : queue) {
-        std::cout << i << ':' << degrees[i] << '\n';
-    }
     // pop minimum until we chose every variable as pivot
     for (IndexType i = 0; i < num_rows; i++) {
         auto pivot = queue.front();
         permutation[i] = pivot;
-        std::cout << "picking " << pivot << " with degree " << degrees[pivot]
+        std::cerr << "picking " << pivot << " with degree " << degrees[pivot]
                   << '\n';
         queue.erase(queue.begin());
         auto& cur_var_neighbors = variable_neighbors[pivot];
@@ -110,10 +107,10 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
             }
             variable_neighbors[variable].erase(pivot);
             // E_i = E_i \setminus E_p \cup {p}
-            element_neighbors[variable].insert(pivot);
             for (auto element : cur_el_neighbors) {
                 element_neighbors[variable].erase(element);
             }
+            element_neighbors[variable].insert(pivot);
             // d_i = |A_i \setminus i| + |\bigcup_{e \in E_i} L_e \setminus i|
             auto set1 = variable_neighbors[variable];
             set1.erase(variable);
