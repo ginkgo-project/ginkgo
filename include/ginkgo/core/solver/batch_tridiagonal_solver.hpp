@@ -100,6 +100,16 @@ public:
         return right_scaling_;
     }
 
+    double get_time_in_millisec_to_be_subtracted() const
+    {
+        return millisec_to_be_subtracted;
+    }
+
+    void set_time_in_millisec_to_be_subtracted(const double time)
+    {
+        millisec_to_be_subtracted = time;
+    }
+
     std::unique_ptr<BatchLinOp> transpose() const override;
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
@@ -206,8 +216,6 @@ private:
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
     mutable gko::array<ValueType> workspace_{};
-
-public:
     mutable double millisec_to_be_subtracted;
 };
 

@@ -258,7 +258,14 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
         const int final_group_size = pow(2, num_WM_steps);
-        assert(final_group_size <= tile_size);
+        // assert(final_group_size <= tile_size);
+        if (final_group_size > tile_size) {
+            printf(
+                "\n Number of WM steps ans subwarp size should satisfy the "
+                "equation: pow(2, WM_steps) <=  tile_size, where tile_size = "
+                "subwarp_size");
+            assert(false);
+        }
 
         ValueType c_last_row_of_prev_group = zero<ValueType>();
         ValueType d_last_row_of_prev_group = zero<ValueType>();
@@ -755,7 +762,14 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
         const int final_group_size = pow(2, num_WM_steps);
-        assert(final_group_size <= tile_size);
+        if (final_group_size > tile_size) {
+            printf(
+                "\n Number of WM steps ans subwarp size should satisfy the "
+                "equation: pow(2, WM_steps) <= tile_size, where tile_size = 2 "
+                "* subwarp_size");
+            assert(false);
+        }
+        // assert(final_group_size <= tile_size);
 
         // if (threadIdx.x == 0 && blockIdx.x == 0) {
         //     printf("\n subwarp size: %d, tile size: %d, final group size:

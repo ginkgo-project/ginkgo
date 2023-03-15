@@ -256,10 +256,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         auto duration =
             std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         millisec_subtract +=
-            (double)(std::chrono::duration_cast<std::chrono::microseconds>(
-                         stop - start))
-                .count() /
-            (double)1000;
+            static_cast<double>(
+                std::chrono::duration_cast<std::chrono::microseconds>(stop -
+                                                                      start)
+                    .count()) /
+            static_cast<double>(1000);
 
         cusparse::gtsv2StridedBatch(
             handle, nrows, tridiag_mat->get_const_sub_diagonal(),
