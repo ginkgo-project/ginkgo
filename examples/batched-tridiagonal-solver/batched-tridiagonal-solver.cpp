@@ -63,10 +63,11 @@ int main(int argc, char* argv[])
     std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0]
-                  << " [executor] [dir_path] [problem_name] [num_duplications] "
-                     "[num_WM_steps] [subwarp_size] [tridiag approach]"
-                  << std::endl;
+        std::cerr
+            << "Usage: " << argv[0]
+            << " [executor] [dir_path] [problem_name] [num_duplications] "
+               "[num_WM_steps] [subwarp_size] [tridiag approach] [file_timings]"
+            << std::endl;
         std::exit(-1);
     }
 
@@ -131,6 +132,7 @@ int main(int argc, char* argv[])
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
 
+    const std::string log_file = argc >= 9 ? argv[8] : "timings_file.txt";
 
     const std::string mat_str = problem_name + ".mtx";
     const std::string fbase = dir_name;
@@ -230,20 +232,25 @@ int main(int argc, char* argv[])
 
     if (approach ==
         gko::solver::batch_tridiag_solve_approach::vendor_provided) {
-        std::cout << "\n\nThe total time before subtraction: "
-                  << total_time_millisec << " millisec " << std::endl;
+        // std::cout << "\n\nThe total time before subtraction: "
+        //           << total_time_millisec << " millisec " << std::endl;
 
         total_time_millisec -= solver->get_time_in_millisec_to_be_subtracted();
-        std::cout << "\n\nThe total time subtracted: "
-                  << solver->get_time_in_millisec_to_be_subtracted()
-                  << " and now finally time is: " << total_time_millisec
-                  << " millisec " << std::endl;
+        // std::cout << "\n\nThe total time subtracted: "
+        //           << solver->get_time_in_millisec_to_be_subtracted()
+        //           << " and now finally time is: " << total_time_millisec
+        //           << " millisec " << std::endl;
     }
 
     double av_time_millisec = total_time_millisec / num_rounds;
 
     std::cout << "the solve took " << av_time_millisec << " milliseconds."
               << std::endl;
+
+    std::ofstream timings_file;
+    timings_file.open(log_file, std::ofstream::app);
+    timings_file << num_total_systems << "  " << av_time_millisec << " \n";
+    timings_file.close();
 
     // auto vec_b = b->unbatch(); TODO: //seg fault???
     // gko::write(std::ofstream(std::string("b.mtx")), vec_b[0].get());
