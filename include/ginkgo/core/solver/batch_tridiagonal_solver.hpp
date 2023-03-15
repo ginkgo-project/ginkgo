@@ -206,6 +206,9 @@ private:
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
     mutable gko::array<ValueType> workspace_{};
+
+public:
+    mutable double millisec_to_be_subtracted;
 };
 
 

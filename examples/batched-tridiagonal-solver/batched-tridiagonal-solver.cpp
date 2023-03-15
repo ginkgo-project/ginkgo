@@ -208,6 +208,7 @@ int main(int argc, char* argv[])
     }
 
     exec->synchronize();
+    solver->millisec_to_be_subtracted = 0;
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < num_rounds; i++) {
@@ -226,6 +227,18 @@ int main(int argc, char* argv[])
                                                                        start))
             .count() /
         (double)1000;
+
+    if (approach ==
+        gko::solver::batch_tridiag_solve_approach::vendor_provided) {
+        std::cout << "\n\nThe total time before subtraction: "
+                  << total_time_millisec << " millisec " << std::endl;
+
+        total_time_millisec -= solver->millisec_to_be_subtracted;
+        std::cout << "\n\nThe total time subtracted: "
+                  << solver->millisec_to_be_subtracted
+                  << " and now finally time is: " << total_time_millisec
+                  << " millisec " << std::endl;
+    }
 
     double av_time_millisec = total_time_millisec / num_rounds;
 

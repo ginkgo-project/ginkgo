@@ -45,8 +45,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
            ValueType* const workspace_ptr, const int num_WM_steps,
            const int WM_pGE_subwarp_size,
-           const enum gko::solver::batch_tridiag_solve_approach approach)
-    GKO_NOT_IMPLEMENTED;
+           const enum gko::solver::batch_tridiag_solve_approach approach,
+           double&) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL);

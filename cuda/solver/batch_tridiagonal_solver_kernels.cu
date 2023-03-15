@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_tridiagonal_solver_kernels.hpp"
 
+#include <chrono>
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
 #include "core/matrix/batch_struct.hpp"
@@ -182,7 +183,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
            ValueType* const workspace_ptr, const int number_WM_steps,
            const int user_given_WM_pGE_subwarp_size,
-           const enum gko::solver::batch_tridiag_solve_approach approach)
+           const enum gko::solver::batch_tridiag_solve_approach approach,
+           double& millisec_subtract)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
@@ -232,6 +234,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                gko::solver::batch_tridiag_solve_approach::vendor_provided) {
         x->copy_from(rhs);
 
+        exec->synchronize();
+        auto start = std::chrono::high_resolution_clock::now();
+
         auto handle = exec->get_cusparse_handle();
         if (!cusparse::is_supported<ValueType, int>::value) {
             GKO_NOT_IMPLEMENTED;
@@ -245,6 +250,16 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             nrows, bufferSizeInBytes);
 
         gko::array<char> buffer(exec, bufferSizeInBytes);
+
+        exec->synchronize();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        millisec_subtract +=
+            (double)(std::chrono::duration_cast<std::chrono::microseconds>(
+                         stop - start))
+                .count() /
+            (double)1000;
 
         cusparse::gtsv2StridedBatch(
             handle, nrows, tridiag_mat->get_const_sub_diagonal(),

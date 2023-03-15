@@ -54,7 +54,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::BatchDense<ValueType>* const rhs,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
            ValueType* const workspace_ptr, const int, const int,
-           const enum gko::solver::batch_tridiag_solve_approach)
+           const enum gko::solver::batch_tridiag_solve_approach, double&)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
