@@ -53,7 +53,6 @@ target_sources(ginkgo
     multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
-    reorder/nested_dissection.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
     solver/bicg.cpp
@@ -77,6 +76,10 @@ target_sources(ginkgo
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
+endif()
+
+if(GINKGO_HAVE_METIS)
+    target_sources(ginkgo PRIVATE reorder/nested_dissection.cpp)
 endif()
 
 if(GINKGO_BUILD_MPI)
