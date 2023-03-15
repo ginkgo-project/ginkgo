@@ -251,12 +251,16 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     using namespace oneapi::mkl;
     if (b->get_stride() != 0 && c->get_stride() != 0) {
-        oneapi::mkl::blas::row_major::gemm(
-            *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-            c->get_size()[0], c->get_size()[1], a->get_size()[1],
-            one<ValueType>(), a->get_const_values(), a->get_stride(),
-            b->get_const_values(), b->get_stride(), zero<ValueType>(),
-            c->get_values(), c->get_stride());
+        if (a->get_size()[1] > 0) {
+            oneapi::mkl::blas::row_major::gemm(
+                *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+                c->get_size()[0], c->get_size()[1], a->get_size()[1],
+                one<ValueType>(), a->get_const_values(), a->get_stride(),
+                b->get_const_values(), b->get_stride(), zero<ValueType>(),
+                c->get_values(), c->get_stride());
+        } else {
+            dense::fill(exec, c, zero<ValueType>());
+        }
     }
 }
 
@@ -271,13 +275,18 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     using namespace oneapi::mkl;
     if (b->get_stride() != 0 && c->get_stride() != 0) {
-        oneapi::mkl::blas::row_major::gemm(
-            *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-            c->get_size()[0], c->get_size()[1], a->get_size()[1],
-            exec->copy_val_to_host(alpha->get_const_values()),
-            a->get_const_values(), a->get_stride(), b->get_const_values(),
-            b->get_stride(), exec->copy_val_to_host(beta->get_const_values()),
-            c->get_values(), c->get_stride());
+        if (a->get_size()[1] > 0) {
+            oneapi::mkl::blas::row_major::gemm(
+                *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+                c->get_size()[0], c->get_size()[1], a->get_size()[1],
+                exec->copy_val_to_host(alpha->get_const_values()),
+                a->get_const_values(), a->get_stride(), b->get_const_values(),
+                b->get_stride(),
+                exec->copy_val_to_host(beta->get_const_values()),
+                c->get_values(), c->get_stride());
+        } else {
+            dense::scale(exec, beta, c);
+        }
     }
 }
 

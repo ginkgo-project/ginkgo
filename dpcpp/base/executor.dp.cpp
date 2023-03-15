@@ -109,7 +109,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
     try {
         queue_->wait_and_throw();
         sycl::free(ptr, queue_->get_context());
-    } catch (cl::sycl::exception& err) {
+    } catch (sycl::exception& err) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable Dpcpp error on device "
@@ -231,7 +231,7 @@ void delete_queue(sycl::queue* queue)
 }
 
 
-::cl::sycl::property_list get_property_list(dpcpp_queue_property property)
+sycl::property_list get_property_list(dpcpp_queue_property property)
 {
     if (property == dpcpp_queue_property::in_order) {
         return {sycl::property::queue::in_order{}};
@@ -257,11 +257,11 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     if (!device.is_host()) {
         try {
             auto subgroup_sizes =
-                device.get_info<cl::sycl::info::device::sub_group_sizes>();
+                device.get_info<sycl::info::device::sub_group_sizes>();
             for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
-        } catch (cl::sycl::exception& err) {
+        } catch (sycl::exception& err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
@@ -274,8 +274,15 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     }
     this->get_exec_info().max_workgroup_size = static_cast<int>(
         device.get_info<sycl::info::device::max_work_group_size>());
+// They change the max_work_item_size with template parameter Dimension after
+// major version 6 and adding the default = 3 is not in the same release.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+    auto max_workitem_sizes =
+        device.get_info<sycl::info::device::max_work_item_sizes<3>>();
+#else
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
+#endif
     // Get the max dimension of a sycl::id object
     auto max_work_item_dimensions =
         device.get_info<sycl::info::device::max_work_item_dimensions>();
@@ -283,6 +290,22 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
     }
+
+    // Get the hardware threads per eu
+    if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+        this->get_exec_info().num_pu_per_cu = device.get_info<
+            sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+#else
+        this->get_exec_info().num_pu_per_cu = device.get_info<
+            sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
+#endif
+    } else {
+        // To make the usage still valid.
+        // TODO: check the value for other vendor gpu or cpu.
+        this->get_exec_info().num_pu_per_cu = 1;
+    }
+
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.

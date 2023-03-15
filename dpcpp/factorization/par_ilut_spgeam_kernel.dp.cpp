@@ -75,7 +75,7 @@ constexpr int default_block_size = 256;
 
 
 // subwarp sizes for add_candidates kernels
-using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 16, 32>;
 
 
 namespace kernel {
