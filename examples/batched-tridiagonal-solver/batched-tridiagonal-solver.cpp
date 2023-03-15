@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
 
-    const std::string log_file = argc >= 9 ? argv[8] : "timings_file.txt";
+    const char* log_file = argc >= 9 ? argv[8] : "timings_file.txt";
 
     const std::string mat_str = problem_name + ".mtx";
     const std::string fbase = dir_name;
