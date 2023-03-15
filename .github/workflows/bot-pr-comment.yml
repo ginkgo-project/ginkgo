@@ -30,7 +30,7 @@ jobs:
       run: cp --preserve .github/check-format.sh /tmp && /tmp/check-format.sh
     - name: Upload code formatting patch
       if: failure()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: patch
           path: format.patch
@@ -80,7 +80,7 @@ jobs:
       run: cp --preserve .github/format-rebase.sh /tmp && /tmp/format-rebase.sh
     - name: Upload code formatting diffs
       if: success()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: patch
           path: diff.patch
