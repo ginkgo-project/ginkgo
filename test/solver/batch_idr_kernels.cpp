@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if (!defined GKO_COMPILING_DPCPP) && (!defined GKO_COMPILING_HIP)
+#if (!defined GKO_COMPILING_HIP)
 
 
 namespace {
