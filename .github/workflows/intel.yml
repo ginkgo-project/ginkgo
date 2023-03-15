@@ -1,0 +1,50 @@
+name: Intel-build
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  intel:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {build_type: "Release", name: "intel/release/shared", "mixed": "ON"}
+    name: ${{ matrix.config.name }}
+    runs-on: [gpu_intel]
+
+    steps:
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v3
+
+    - name: configure
+      run: |
+        spack load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
+        spack find --loaded
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DCMAKE_CXX_COMPILER=dpcpp -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_DPCPP_SINGLE_MODE=ON
+        make -j8
+        SYCL_DEVICE_FILTER=level_zero ctest -j10 --output-on-failure
+
+    - name: install
+      run: |
+        spack load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
+        cd build
+        SYCL_DEVICE_FILTER=level_zero make install
+        export GINKGO_PATH="$(pwd)/install_ginkgo/lib"
+        export LIBRARY_PATH=${GINKGO_PATH}:$LIBRARY_PATH
+        export LD_LIBRARY_PATH=${GINKGO_PATH}:$LD_LIBRARY_PATH
+        SYCL_DEVICE_FILTER=level_zero make test_install
