@@ -316,37 +316,13 @@ __global__
 }
 
 
-/**
- * Scales one uniform CSR matrix two dense
- * vectors for row and column scaling respectively.
- *
- * One warp is assigned to each row.
- */
-// template <typename ValueType>
-//__device__ __forceinline__ void batch_scale(
-//    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
-//    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
-//    const gko::batch_csr::BatchEntry<ValueType>& a)
-//{
-//    constexpr auto warp_size = config::warp_size;
-//    const auto tile =
-//        group::tiled_partition<warp_size>(group::this_thread_block());
-//    const int tile_rank = threadIdx.x / warp_size;
-//    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
-//
-//    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
-//        const ValueType rowscale = left_scale.values[i_row];
-//        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
-//             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
-//            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
-//        }
-//    }
-//}
-
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void batch_scale(
-    const ValueType* const left_scale, const ValueType* const right_scale,
-    const gko::batch_csr::BatchEntry<ValueType>& a)
+    const int num_rows, const ValueType* const __restrict__ left_scale,
+    const ValueType* const __restrict__ right_scale,
+    const IndexType* const __restrict__ col_idxs,
+    const IndexType* const __restrict__ row_ptrs,
+    ValueType* const __restrict__ values)
 {
     constexpr auto warp_size = config::warp_size;
     const auto tile =
@@ -354,11 +330,11 @@ __device__ __forceinline__ void batch_scale(
     const int tile_rank = threadIdx.x / warp_size;
     const int num_tiles = (blockDim.x - 1) / warp_size + 1;
 
-    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
+    for (int i_row = tile_rank; i_row < num_rows; i_row += num_tiles) {
         const ValueType rowscale = left_scale[i_row];
-        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
-             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
-            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
+        for (int iz = row_ptrs[i_row] + tile.thread_rank();
+             iz < row_ptrs[i_row + 1]; iz += warp_size) {
+            values[iz] *= rowscale * right_scale[col_idxs[iz]];
         }
     }
 }
@@ -378,12 +354,23 @@ __global__ void uniform_batch_scale(
 {
     for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
          batch_id += gridDim.x) {
+        extern __shared__ char local_mem_sh[];
+        ValueType* right_scale_sh;
+        right_scale_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+
         const auto a_b = gko::batch::batch_entry(a, batch_id);
         const auto left_b =
             gko::batch::batch_entry_ptr(left, 1, a.num_rows, batch_id);
         const auto right_b =
             gko::batch::batch_entry_ptr(right, 1, num_cols, batch_id);
-        batch_scale(left_b, right_b, a_b);
+        int lidx = threadIdx.x;
+        while (lidx < num_cols) {
+            right_scale_sh[lidx] = right_b[lidx];
+            lidx += blockDim.x;
+        }
+        __syncthreads();
+        batch_scale(a.num_rows, left_b, right_scale_sh, a_b.col_idxs,
+                    a_b.row_ptrs, a_b.values);
     }
 }
 

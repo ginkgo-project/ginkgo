@@ -97,8 +97,17 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
 
 
 struct StorageConfig {
+    // rot storage
+    bool rot_shared;
+
     // preconditioner storage
     bool prec_shared;
+
+    // subspace storage
+    bool subspace_shared;
+
+    // hess storage
+    bool hess_shared;
 
     // total number of shared vectors
     int n_shared;
@@ -120,13 +129,25 @@ template <int align_bytes, typename value_type>
 void set_gmem_stride_bytes(StorageConfig& sconf, const int nrows,
                            const int nrhs, const int restart,
                            const int multi_vector_size_bytes,
-                           const int prec_storage_bytes)
+                           const int rot_storage_bytes,
+                           const int prec_storage_bytes,
+                           const int subspace_storage_bytes,
+                           const int hess_storage_bytes)
 {
     int gmem_stride =
         local_memory_requirement<value_type>(nrows, nrhs, restart) -
         sconf.n_shared * multi_vector_size_bytes;
+    if (!sconf.rot_shared) {
+        gmem_stride += rot_storage_bytes;
+    }
     if (!sconf.prec_shared) {
         gmem_stride += prec_storage_bytes;
+    }
+    if (!sconf.subspace_shared) {
+        gmem_stride += subspace_storage_bytes;
+    }
+    if (!sconf.hess_shared) {
+        gmem_stride += hess_storage_bytes;
     }
     // align global memory chunks
     sconf.gmem_stride_bytes =
@@ -180,11 +201,15 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int num_priority_vecs = 3;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
+    const int subspace_storage = num_rows * (restart + 1) * sizeof(ValueType);
+    const int hess_storage = restart * (restart + 1) * sizeof(ValueType);
+    const int rot_storage = (3 * restart + (restart + 1)) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
-    StorageConfig sconf{false, 0, 5, 0, num_rows};
+    StorageConfig sconf{false, false, false, false, 0, 5, 0, num_rows};
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes, ValueType>(
-            sconf, num_rows, num_rhs, restart, vec_size, prec_storage);
+            sconf, num_rows, num_rhs, restart, vec_size, rot_storage,
+            prec_storage, subspace_storage, hess_storage);
         return sconf;
     }
     const int initial_vecs_available = rem_shared / vec_size;
@@ -197,7 +222,8 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     //  if all the spmv vectors were not.
     if (priority_available < num_priority_vecs) {
         set_gmem_stride_bytes<align_bytes, ValueType>(
-            sconf, num_rows, num_rhs, restart, vec_size, prec_storage);
+            sconf, num_rows, num_rhs, restart, vec_size, rot_storage,
+            prec_storage, subspace_storage, hess_storage);
         return sconf;
     }
     rem_shared -= priority_available * vec_size;
@@ -211,8 +237,21 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     sconf.n_shared = min(sconf.n_shared, 5);
     sconf.n_global -= shared_other_vecs;
     sconf.n_global = max(sconf.n_global, 0);
+    if (rem_shared >= rot_storage) {
+        sconf.rot_shared = true;
+        rem_shared -= rot_storage;
+    }
+    if (rem_shared >= subspace_storage) {
+        sconf.subspace_shared = true;
+        rem_shared -= subspace_storage;
+    }
+    if (rem_shared >= hess_storage) {
+        sconf.hess_shared = true;
+        rem_shared -= hess_storage;
+    }
     set_gmem_stride_bytes<align_bytes, ValueType>(
-        sconf, num_rows, num_rhs, restart, vec_size, prec_storage);
+        sconf, num_rows, num_rhs, restart, vec_size, rot_storage, prec_storage,
+        subspace_storage, hess_storage);
     return sconf;
 }
 

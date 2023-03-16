@@ -114,7 +114,7 @@ __device__ __forceinline__ void update_v_naught_and_s(
 
 template <typename BatchMatrixType_entry, typename ValueType, typename PrecType>
 __device__ __forceinline__ void arnoldi(
-    group::thread_block_tile<config::warp_size>& warp_grp, const int restart,
+    group::thread_block_tile<config::warp_size>& warp_grp,
     const BatchMatrixType_entry& a_gl_entry, const int inner_iter,
     ValueType* const V_shared_entry, ValueType* const H_shared_entry,
     const size_type h_stride, ValueType* const w_shared_entry,
@@ -212,12 +212,13 @@ __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void update_x(
-    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
-    const int m, const int restart, const ValueType* const H_shared_entry,
-    const size_type h_stride, const ValueType* const s_shared_entry,
-    const ValueType* const V_shared_entry, ValueType* const x_shared_entry,
-    ValueType* const y_shared_entry)
+__device__ __forceinline__ void update_x(const int num_rows, const int m,
+                                         const ValueType* const H_shared_entry,
+                                         const size_type h_stride,
+                                         const ValueType* const s_shared_entry,
+                                         const ValueType* const V_shared_entry,
+                                         ValueType* const x_shared_entry,
+                                         ValueType* const y_shared_entry)
 {
     // triangular solve
     if (threadIdx.x == 0) {
@@ -268,6 +269,12 @@ __global__ void apply_kernel(
         extern __shared__ char local_mem_sh[];
         const int gmem_offset =
             ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
+        ValueType* prec_work_sh;
+        if (sconf.prec_shared) {
+            prec_work_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        } else {
+            prec_work_sh = workspace + gmem_offset;
+        }
 
         ValueType* r_sh;
         ValueType* z_sh;
@@ -275,10 +282,12 @@ __global__ void apply_kernel(
         ValueType* x_sh;
         ValueType* helper_sh;
 
-        if (sconf.n_shared >= 1) {
-            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        } else {
+        if (sconf.n_shared >= 1 && sconf.prec_shared) {
+            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        } else if (sconf.n_shared == 0 && sconf.prec_shared) {
             r_sh = workspace + gmem_offset;
+        } else {
+            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
         }
         if (sconf.n_shared == 1) {
             z_sh = workspace + gmem_offset;
@@ -302,25 +311,20 @@ __global__ void apply_kernel(
         }
 
         ValueType* cs_sh;
-        if (sconf.n_shared == 5) {
-            cs_sh = workspace + gmem_offset;
-        } else {
+        ValueType* sn_sh;  // = cs_sh + restart;
+        ValueType* y_sh;   // = sn_sh + restart;
+        ValueType* s_sh;   // = y_sh + restart;
+        if (sconf.n_shared == 5 && sconf.rot_shared) {
             cs_sh = helper_sh + sconf.padded_vec_len;
+            sn_sh = cs_sh + restart;
+            y_sh = sn_sh + restart;
+            s_sh = y_sh + restart;
+        } else {
+            cs_sh = workspace + gmem_offset;
+            sn_sh = cs_sh + restart;
+            y_sh = sn_sh + restart;
+            s_sh = y_sh + restart;
         }
-
-        ValueType* const sn_sh = cs_sh + restart;
-        ValueType* const y_sh = sn_sh + restart;
-        ValueType* const s_sh = y_sh + restart;
-
-        // Hessenberg matrix
-        // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
-        //     H_sh, static_cast<size_type>(nrhs * restart), restart + 1,
-        //     nrhs * restart};
-        // storage:row-major ,  entry (i,j) for different RHSs are placed after
-        // the other in a row - when drawn on paper, (and the same is true for
-        // actual storage as the storage order is row-major) to get entry (i,j)
-        // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
-        ValueType* const H_sh = s_sh + (restart + 1);
 
         // Krylov subspace basis vectors
         // storage:row-major order , subspace basis vectors corr. to each rhs
@@ -331,9 +335,28 @@ __global__ void apply_kernel(
         // are stored contiguously in memory one after the other.
         // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
         //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
-        ValueType* const V_sh = H_sh + restart * (restart + 1);
+        ValueType* V_sh;
+        if (sconf.n_shared == 5 && sconf.subspace_shared) {
+            V_sh = s_sh + (restart + 1);
+        } else {
+            V_sh = workspace + gmem_offset;
+        }
 
-        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1);
+        // Hessenberg matrix
+        // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
+        //     H_sh, static_cast<size_type>(nrhs * restart), restart + 1,
+        //     nrhs * restart};
+        // storage:row-major ,  entry (i,j) for different RHSs are placed after
+        // the other in a row - when drawn on paper, (and the same is true for
+        // actual storage as the storage order is row-major) to get entry (i,j)
+        // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
+        ValueType* H_sh;
+        if (sconf.n_shared == 5 && sconf.hess_shared) {
+            H_sh = V_sh + nrows * (restart + 1);
+        } else {
+            H_sh = workspace + gmem_offset;
+        }
+
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
@@ -394,8 +417,8 @@ __global__ void apply_kernel(
                 // end
                 // Hessenburg(i+1, i) = norm(w)
                 // KrylovBasis_i+1 = w / Hessenburg(i+1,i)
-                arnoldi(warp_grp, restart, a_gl_entry, inner_iter, V_sh, H_sh,
-                        h_stride, w_sh, helper_sh, prec_shared);
+                arnoldi(warp_grp, a_gl_entry, inner_iter, V_sh, H_sh, h_stride,
+                        w_sh, helper_sh, prec_shared);
                 __syncthreads();
 
                 for (int k = 0; k < inner_iter; k++) {
@@ -435,8 +458,8 @@ __global__ void apply_kernel(
 
                 if (stop.check_converged(norms_res_sh) ||
                     total_iter >= max_iter) {
-                    update_x(warp_grp, nrows, inner_iter, restart, H_sh,
-                             h_stride, s_sh, V_sh, x_sh, y_sh);
+                    update_x(nrows, inner_iter, H_sh, h_stride, s_sh, V_sh,
+                             x_sh, y_sh);
                     inner_loop_break_flag = true;
                     break;
                 }
@@ -448,8 +471,8 @@ __global__ void apply_kernel(
 
             // y = Hessenburg(0:restart - 1,0:restart - 1) \ s(0:restart-1)
             // x = x + KrylovBasis(:,0 : restart - 1) * y
-            update_x(warp_grp, nrows, restart - 1, restart, H_sh, h_stride,
-                     s_sh, V_sh, x_sh, y_sh);
+            update_x(nrows, restart - 1, H_sh, h_stride, s_sh, V_sh, x_sh,
+                     y_sh);
             __syncthreads();
 
             // r = b

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"
+#include "cuda/base/kernel_config.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -154,12 +155,12 @@ public:
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
-        const auto matrix_storage = a.get_entry_storage();
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                          BatchMatrixType, value_type>(
-                exec_, matrix_storage);
+                                          BatchMatrixType, value_type>(exec_,
+                                                                       0);
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
@@ -169,13 +170,21 @@ public:
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(value_type);
+        const size_t subspace_size =
+            a.num_rows * (restart + 1) * sizeof(value_type);
+        const size_t hess_size = restart * (restart + 1) * sizeof(value_type);
+        const size_t rot_size =
+            (3 * restart + (restart + 1)) * sizeof(value_type);
         const auto sconf =
             gko::kernels::batch_gmres::compute_shared_storage<PrecType,
                                                               value_type>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs, restart);
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(value_type) +
-            (sconf.prec_shared ? prec_size : 0);
+            (sconf.rot_shared ? rot_size : 0) +
+            (sconf.prec_shared ? prec_size : 0) +
+            (sconf.subspace_shared ? subspace_size : 0) +
+            (sconf.hess_shared ? hess_size : 0);
         auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
