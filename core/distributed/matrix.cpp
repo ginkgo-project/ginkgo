@@ -179,6 +179,30 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, recv_gather_idxs,
         recv_sizes_array, non_local_to_global_));
+    if (dynamic_cast<const ::gko::DpcppExecutor*>(exec.get())) {
+        auto master = exec->get_master();
+        device_matrix_data host_data(master, data);
+        master->run(matrix::make_build_local_nonlocal(
+            data, make_temporary_clone(master, row_partition).get(),
+            make_temporary_clone(master, col_partition).get(),
+            make_temporary_clone(master, local_part),
+            make_temporary_clone(master, local_row_idxs),
+            make_temporary_clone(master, local_col_idxs),
+            make_temporary_clone(master, local_values),
+            make_temporary_clone(master, non_local_row_idxs),
+            make_temporary_clone(master, non_local_col_idxs),
+            make_temporary_clone(master, non_local_values),
+            make_temporary_clone(master, recv_gather_idxs),
+            make_temporary_clone(master, recv_sizes_array),
+            make_temporary_clone(master, non_local_to_global_)));
+    } else {
+        exec->run(matrix::make_build_local_nonlocal(
+            data, make_temporary_clone(exec, row_partition).get(),
+            make_temporary_clone(exec, col_partition).get(), local_part,
+            local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
+            non_local_col_idxs, non_local_values, recv_gather_idxs,
+            recv_sizes_array, non_local_to_global_));
+    }
 
     // read the local matrix data
     const auto num_local_rows =

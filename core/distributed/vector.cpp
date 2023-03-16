@@ -197,8 +197,16 @@ void Vector<ValueType>::read_distributed_impl(
 
     auto rank = this->get_communicator().rank();
     local_.fill(zero<ValueType>());
-    exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank, &local_));
+    if (dynamic_cast<const ::gko::DpcppExecutor*>(exec.get())) {
+        auto master = exec->get_master();
+        device_matrix_data host_data(master, data);
+        master->run(vector::make_build_local(
+            host_data, make_temporary_clone(master, partition).get(), rank,
+            make_temporary_clone(master, &local_).get()));
+    } else {
+        exec->run(vector::make_build_local(
+            data, make_temporary_clone(exec, partition).get(), rank, &local_));
+    }
 }
 
 
@@ -560,8 +568,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row,
-                                      size_type col) const noexcept
+ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
+    noexcept
 {
     return local_.at(row, col);
 }

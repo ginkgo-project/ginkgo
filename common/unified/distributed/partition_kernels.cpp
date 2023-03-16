@@ -49,6 +49,11 @@ using experimental::distributed::comm_index_type;
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
                   const array<comm_index_type>& mapping, size_type& num_ranges)
 {
+    // TODO: fix the reduction on zero size (at least for dpcpp)
+    if (mapping.get_num_elems() == 0) {
+        num_ranges = 0;
+        return;
+    }
     array<size_type> result{exec, 1};
     run_kernel_reduction(
         exec,
