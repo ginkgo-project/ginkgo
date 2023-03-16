@@ -92,6 +92,13 @@ struct comm_info_t {
 };
 
 
+/**
+ * Currently this class is explicitly for overlapping methods. But it should be
+ * possible to use it also for non-overlapping methods. It is only defined by
+ * the fact that there is no global partition or other information. Everything
+ * is handled purely locally, also wrt to commmunication (ie only local indices
+ * are used in the communication).
+ */
 struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
     overlapping_vec(std::shared_ptr<const Executor> exec,
                     experimental::mpi::communicator comm = {MPI_COMM_NULL},

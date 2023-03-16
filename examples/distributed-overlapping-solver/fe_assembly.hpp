@@ -205,10 +205,9 @@ std::vector<shared_idx_t> setup_shared_idxs(gko::size_type num_elements_y,
     if (share_right_bdry) {
         auto offset = share_left_bdry * (num_elements_y + 1);
 
-
         setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map),
                    fixed_x_map(overlap_size, ltr_map), this_rank + 1, {0, 1},
-                   shared_idxs.data());
+                   shared_idxs.data() + offset);
     }
     return shared_idxs;
 }
