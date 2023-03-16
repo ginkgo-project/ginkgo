@@ -76,6 +76,7 @@ class communicator;
 
 namespace log {
 
+enum mpi_mode : uint8 { blocking = 1 << 0, non_blocking = 1 << 1 };
 
 namespace detail {
 
@@ -131,6 +132,7 @@ class Logger {
 public:
     /** @internal std::bitset allows to store any number of bits */
     using mask_type = gko::uint64;
+    using mpi_mode_mask_type = std::underlying_type_t<mpi_mode>;
 
     /**
      * Maximum amount of events (bits) with the current implementation
@@ -141,6 +143,8 @@ public:
      * Bitset Mask which activates all events
      */
     static constexpr mask_type all_events_mask = ~mask_type{0};
+    static constexpr mpi_mode_mask_type all_mpi_modes_mask =
+        ~mpi_mode_mask_type{0};
 
     /**
      * Helper macro to define functions and masks for each event.
@@ -165,7 +169,8 @@ public:
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
-    virtual void on_##_event_name(__VA_ARGS__) const {}              \
+    virtual void on_##_event_name(__VA_ARGS__) const                 \
+    {}                                                               \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
@@ -526,11 +531,6 @@ public:
     // This is used to delay the call to void_rank, if no logger is used
     static constexpr int unspecified_mpi_rank = -1;
 
-    static constexpr mask_type mpi_blocking_communication_mask{mask_type{1}
-                                                               << 24};
-    static constexpr mask_type mpi_non_blocking_communication_mask{mask_type{1}
-                                                                   << 25};
-
     // Adds custom macro to introduce two ids per event, for blocking and
     // non-blocking communications.
     // The event id passed into the macro has to be odd. The non-block id is
@@ -538,65 +538,68 @@ public:
     // There is only one corresponding `on_xxx` function which takes a bool
     // as its first parameter to distinguish between blocking and non-blocking
     // events.
-#define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)              \
-protected:                                                                \
-    virtual void on_##_event_name(bool is_blocking, __VA_ARGS__) const {} \
-                                                                          \
-public:                                                                   \
-    template <size_type Event, typename... Params>                        \
-    std::enable_if_t<(Event == _id - 1 || Event == _id) &&                \
-                     (_id < event_count_max)>                             \
-    on(Params&&... params) const                                          \
-    {                                                                     \
-        if (enabled_events_ & (mask_type{1} << Event)) {                  \
-            this->on_##_event_name(Event == blocking_##_event_name,       \
-                                   std::forward<Params>(params)...);      \
-        }                                                                 \
-    }                                                                     \
-    static constexpr size_type non_blocking_##_event_name{_id - 1};       \
-    static constexpr mask_type non_blocking_##_event_name##_mask{         \
-        mask_type{1} << (_id - 1)};                                       \
-    static constexpr size_type blocking_##_event_name{_id};               \
-    static constexpr mask_type blocking_##_event_name##_mask{mask_type{1} \
-                                                             << _id};     \
-    static constexpr mask_type _event_name##_mask { mask_type{3} << (_id - 1) }
+#define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)               \
+protected:                                                                 \
+    virtual void on_##_event_name(__VA_ARGS__) const                       \
+    {}                                                                     \
+                                                                           \
+public:                                                                    \
+    template <size_type Event, typename... Params>                         \
+    std::enable_if_t<Event == _id && (_id < event_count_max)> on(          \
+        mpi_mode mode, Params&&... params) const                           \
+    {                                                                      \
+        if (enabled_events_ & (mask_type{1} << Event) &&                   \
+            enabled_mpi_modes_ & static_cast<uint8>(mode)) {               \
+            this->on_##_event_name(mode, std::forward<Params>(params)...); \
+        }                                                                  \
+    }                                                                      \
+    static constexpr size_type _event_name{_id};                           \
+    static constexpr mask_type _event_name##_mask                          \
+    {                                                                      \
+        mask_type{1} << _id                                                \
+    }
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(27, mpi_point_to_point_communication_started,
-                                  const char* name, const void* comm,
-                                  const uintptr& loc, int size,
-                                  const void* type, int source_rank,
+    GKO_LOGGER_REGISTER_MPI_EVENT(24, mpi_point_to_point_communication_started,
+                                  mpi_mode mode, const char* name,
+                                  const void* comm, const uintptr& loc,
+                                  int size, const void* type, int source_rank,
+                                  int destination_rank, int tag,
+                                  const void* req);
+
+    GKO_LOGGER_REGISTER_MPI_EVENT(25,
+                                  mpi_point_to_point_communication_completed,
+                                  mpi_mode mode, const char* name,
+                                  const void* comm, const uintptr& loc,
+                                  int size, const void* type, int source_rank,
                                   int destination_rank, int tag,
                                   const void* req);
 
     GKO_LOGGER_REGISTER_MPI_EVENT(
-        29, mpi_point_to_point_communication_completed, const char* name,
-        const void* comm, const uintptr& loc, int size, const void* type,
-        int source_rank, int destination_rank, int tag, const void* req);
-
-    GKO_LOGGER_REGISTER_MPI_EVENT(
-        31, mpi_collective_communication_started, const char* name,
-        const void* comm, const uintptr& send_loc, int send_size,
-        const int* send_sizes, const int* send_displacements,
+        26, mpi_collective_communication_started, mpi_mode mode,
+        const char* name, const void* comm, const uintptr& send_loc,
+        int send_size, const int* send_sizes, const int* send_displacements,
         const void* send_type, const uintptr& recv_loc, int recv_size,
         const int* recv_sizes, const int* recv_displacements,
         const void* recv_type, int root_rank, const void* req);
 
     GKO_LOGGER_REGISTER_MPI_EVENT(
-        33, mpi_collective_communication_completed, const char* name,
-        const void* comm, const uintptr& send_loc, int send_size,
-        const int* send_sizes, const int* send_displacements,
+        27, mpi_collective_communication_completed, mpi_mode mode,
+        const char* name, const void* comm, const uintptr& send_loc,
+        int send_size, const int* send_sizes, const int* send_displacements,
         const void* send_type, const uintptr& recv_loc, int recv_size,
         const int* recv_sizes, const int* recv_displacements,
         const void* recv_type, int root_rank, const void* req);
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(35, mpi_reduction_started, const char* name,
-                                  const void* comm, const uintptr& send_buffer,
+    GKO_LOGGER_REGISTER_MPI_EVENT(28, mpi_reduction_started, mpi_mode mode,
+                                  const char* name, const void* comm,
+                                  const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
                                   const void* type, const void* operation,
                                   int root_rank, const void* req);
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(37, mpi_reduction_completed, const char* name,
-                                  const void* comm, const uintptr& send_buffer,
+    GKO_LOGGER_REGISTER_MPI_EVENT(29, mpi_reduction_completed, mpi_mode mode,
+                                  const char* name, const void* comm,
+                                  const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
                                   const void* type, const void* operation,
                                   int root_rank, const void* req);
@@ -664,9 +667,6 @@ public:                                                                   \
     static constexpr mask_type mpi_events_mask =
         mpi_point_to_point_events_mask | mpi_collective_events_mask;
 
-
-#endif
-
     /**
      * Returns true if this logger, when attached to an Executor, needs to be
      * forwarded all events from objects on this executor.
@@ -692,7 +692,8 @@ protected:
      */
     [[deprecated("use single-parameter constructor")]] explicit Logger(
         std::shared_ptr<const gko::Executor> exec,
-        const mask_type& enabled_events = all_events_mask)
+        const mask_type& enabled_events = all_events_mask,
+        const mpi_mode_mask_type enabled_mpi_modes = all_mpi_modes_mask)
         : Logger{enabled_events}
     {}
 
@@ -710,12 +711,15 @@ protected:
      *                           logs every event except linop's apply started
      *                           event.
      */
-    explicit Logger(const mask_type& enabled_events = all_events_mask)
-        : enabled_events_{enabled_events}
+    explicit Logger(
+        const mask_type& enabled_events = all_events_mask,
+        const mpi_mode_mask_type enabled_mpi_modes = all_mpi_modes_mask)
+        : enabled_events_{enabled_events}, enabled_mpi_modes_{enabled_mpi_modes}
     {}
 
 private:
     mask_type enabled_events_;
+    mpi_mode_mask_type enabled_mpi_modes_;
 };
 
 

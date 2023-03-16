@@ -239,7 +239,7 @@ struct criterion_data {
 
 
 struct mpi_point_to_point_data {
-    bool is_blocking;
+    mpi_mode mode;
     std::string operation_name;
     MPI_Comm comm;
     uintptr loc;
@@ -253,7 +253,7 @@ struct mpi_point_to_point_data {
 
 
 struct mpi_collective_data {
-    bool is_blocking;
+    mpi_mode mode;
     std::string operation_name;
     MPI_Comm comm;
     uintptr send_loc;
@@ -464,17 +464,17 @@ public:
 
 
     void on_mpi_point_to_point_communication_started(
-        bool is_blocking, const char* name, const void* comm,
-        const uintptr& loc, int size, const void* type, int source_rank,
-        int destination_rank, int tag, const void* req) const override;
+        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
+        int size, const void* type, int source_rank, int destination_rank,
+        int tag, const void* req) const override;
 
     void on_mpi_point_to_point_communication_completed(
-        bool is_blocking, const char* name, const void* comm,
-        const uintptr& loc, int size, const void* type, int source_rank,
-        int destination_rank, int tag, const void* req) const override;
+        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
+        int size, const void* type, int source_rank, int destination_rank,
+        int tag, const void* req) const override;
 
     void on_mpi_collective_communication_started(
-        bool is_blocking, const char* name, const void* comm,
+        mpi_mode mode, const char* name, const void* comm,
         const uintptr& send_loc, int send_size, const int* send_sizes,
         const int* send_displacements, const void* send_type,
         const uintptr& recv_loc, int recv_size, const int* recv_sizes,
@@ -482,21 +482,21 @@ public:
         const void* req) const override;
 
     void on_mpi_collective_communication_completed(
-        bool is_blocking, const char* name, const void* comm,
+        mpi_mode mode, const char* name, const void* comm,
         const uintptr& send_loc, int send_size, const int* send_sizes,
         const int* send_displacements, const void* send_type,
         const uintptr& recv_loc, int recv_size, const int* recv_sizes,
         const int* recv_displacements, const void* recv_type, int root_rank,
         const void* req) const override;
 
-    void on_mpi_reduction_started(bool is_blocking, const char* name,
+    void on_mpi_reduction_started(mpi_mode mode, const char* name,
                                   const void* comm, const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
                                   const void* type, const void* operation,
                                   int root_rank,
                                   const void* req) const override;
 
-    void on_mpi_reduction_completed(bool is_blocking, const char* name,
+    void on_mpi_reduction_completed(mpi_mode mode, const char* name,
                                     const void* comm,
                                     const uintptr& send_buffer,
                                     const uintptr& recv_buffer, int size,

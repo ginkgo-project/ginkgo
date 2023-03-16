@@ -315,11 +315,12 @@ void Record::on_iteration_complete(const LinOp* solver,
 
 
 void Record::on_mpi_point_to_point_communication_started(
-    bool is_blocking, const char* name, const void* comm, const uintptr& loc,
+    mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
     const int size, const void* type, int source_rank, int destination_rank,
     int tag, const void* req) const
 {
-    mpi::communicator comm_wrapper(*reinterpret_cast<const MPI_Comm*>(comm));
+    experimental::mpi::communicator comm_wrapper(
+        *reinterpret_cast<const MPI_Comm*>(comm));
     source_rank = source_rank == Logger::unspecified_mpi_rank
                       ? comm_wrapper.rank()
                       : source_rank;
@@ -330,20 +331,20 @@ void Record::on_mpi_point_to_point_communication_started(
     append_deque(
         data_.mpi_point_to_point_communication_started,
         std::unique_ptr<mpi_point_to_point_data>(new mpi_point_to_point_data{
-            is_blocking, std::string(name),
-            *reinterpret_cast<const MPI_Comm*>(comm), loc, size,
-            *reinterpret_cast<const MPI_Datatype*>(type), source_rank,
-            destination_rank, tag,
+            mode, std::string(name), *reinterpret_cast<const MPI_Comm*>(comm),
+            loc, size, *reinterpret_cast<const MPI_Datatype*>(type),
+            source_rank, destination_rank, tag,
             *reinterpret_cast<const MPI_Request*>(req)}));
 }
 
 
 void Record::on_mpi_point_to_point_communication_completed(
-    bool is_blocking, const char* name, const void* comm, const uintptr& loc,
+    mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
     const int size, const void* type, int source_rank, int destination_rank,
     const int tag, const void* req) const
 {
-    mpi::communicator comm_wrapper(*reinterpret_cast<const MPI_Comm*>(comm));
+    experimental::mpi::communicator comm_wrapper(
+        *reinterpret_cast<const MPI_Comm*>(comm));
     source_rank = source_rank == Logger::unspecified_mpi_rank
                       ? comm_wrapper.rank()
                       : source_rank;
@@ -354,10 +355,9 @@ void Record::on_mpi_point_to_point_communication_completed(
     append_deque(
         data_.mpi_point_to_point_communication_completed,
         std::unique_ptr<mpi_point_to_point_data>(new mpi_point_to_point_data{
-            is_blocking, std::string(name),
-            *reinterpret_cast<const MPI_Comm*>(comm), loc, size,
-            *reinterpret_cast<const MPI_Datatype*>(type), source_rank,
-            destination_rank, tag,
+            mode, std::string(name), *reinterpret_cast<const MPI_Comm*>(comm),
+            loc, size, *reinterpret_cast<const MPI_Datatype*>(type),
+            source_rank, destination_rank, tag,
             *reinterpret_cast<const MPI_Request*>(req)}));
 }
 
@@ -372,22 +372,21 @@ std::vector<int> copy_mpi_data(int size, const int* data)
 
 
 void Record::on_mpi_collective_communication_started(
-    bool is_blocking, const char* name, const void* comm,
-    const uintptr& send_loc, int send_size, const int* send_sizes,
-    const int* send_displacements, const void* send_type,
-    const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-    const int* recv_displacements, const void* recv_type, int root_rank,
-    const void* req) const
+    mpi_mode mode, const char* name, const void* comm, const uintptr& send_loc,
+    int send_size, const int* send_sizes, const int* send_displacements,
+    const void* send_type, const uintptr& recv_loc, int recv_size,
+    const int* recv_sizes, const int* recv_displacements, const void* recv_type,
+    int root_rank, const void* req) const
 {
-    auto comm_size =
-        mpi::communicator(*reinterpret_cast<const MPI_Comm*>(comm)).size();
+    auto comm_size = experimental::mpi::communicator(
+                         *reinterpret_cast<const MPI_Comm*>(comm))
+                         .size();
 
     append_deque(
         data_.mpi_collective_communication_started,
         std::make_unique<mpi_collective_data>(mpi_collective_data{
-            is_blocking, std::string(name),
-            *reinterpret_cast<const MPI_Comm*>(comm), send_loc, send_size,
-            copy_mpi_data(comm_size, send_sizes),
+            mode, std::string(name), *reinterpret_cast<const MPI_Comm*>(comm),
+            send_loc, send_size, copy_mpi_data(comm_size, send_sizes),
             copy_mpi_data(comm_size + 1, send_displacements),
             *reinterpret_cast<const MPI_Datatype*>(send_type), recv_loc,
             recv_size, copy_mpi_data(comm_size, recv_sizes),
@@ -398,22 +397,21 @@ void Record::on_mpi_collective_communication_started(
 
 
 void Record::on_mpi_collective_communication_completed(
-    bool is_blocking, const char* name, const void* comm,
-    const uintptr& send_loc, int send_size, const int* send_sizes,
-    const int* send_displacements, const void* send_type,
-    const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-    const int* recv_displacements, const void* recv_type, int root_rank,
-    const void* req) const
+    mpi_mode mode, const char* name, const void* comm, const uintptr& send_loc,
+    int send_size, const int* send_sizes, const int* send_displacements,
+    const void* send_type, const uintptr& recv_loc, int recv_size,
+    const int* recv_sizes, const int* recv_displacements, const void* recv_type,
+    int root_rank, const void* req) const
 {
-    auto comm_size =
-        mpi::communicator(*reinterpret_cast<const MPI_Comm*>(comm)).size();
+    auto comm_size = experimental::mpi::communicator(
+                         *reinterpret_cast<const MPI_Comm*>(comm))
+                         .size();
 
     append_deque(
         data_.mpi_collective_communication_started,
         std::make_unique<mpi_collective_data>(mpi_collective_data{
-            is_blocking, std::string(name),
-            *reinterpret_cast<const MPI_Comm*>(comm), send_loc, send_size,
-            copy_mpi_data(comm_size, send_sizes),
+            mode, std::string(name), *reinterpret_cast<const MPI_Comm*>(comm),
+            send_loc, send_size, copy_mpi_data(comm_size, send_sizes),
             copy_mpi_data(comm_size + 1, send_displacements),
             *reinterpret_cast<const MPI_Datatype*>(send_type), recv_loc,
             recv_size, copy_mpi_data(comm_size, recv_sizes),
@@ -423,7 +421,7 @@ void Record::on_mpi_collective_communication_completed(
 }
 
 
-void Record::on_mpi_reduction_started(bool is_blocking, const char* name,
+void Record::on_mpi_reduction_started(mpi_mode mode, const char* name,
                                       const void* comm,
                                       const uintptr& send_buffer,
                                       const uintptr& recv_buffer, int size,
@@ -432,7 +430,7 @@ void Record::on_mpi_reduction_started(bool is_blocking, const char* name,
 {
     append_deque(data_.mpi_collective_communication_started,
                  std::make_unique<mpi_collective_data>(mpi_collective_data{
-                     is_blocking,
+                     mode,
                      std::string(name),
                      *reinterpret_cast<const MPI_Comm*>(comm),
                      send_buffer,
@@ -451,7 +449,7 @@ void Record::on_mpi_reduction_started(bool is_blocking, const char* name,
 }
 
 
-void Record::on_mpi_reduction_completed(bool is_blocking, const char* name,
+void Record::on_mpi_reduction_completed(mpi_mode mode, const char* name,
                                         const void* comm,
                                         const uintptr& send_buffer,
                                         const uintptr& recv_buffer, int size,
@@ -460,7 +458,7 @@ void Record::on_mpi_reduction_completed(bool is_blocking, const char* name,
 {
     append_deque(data_.mpi_collective_communication_started,
                  std::make_unique<mpi_collective_data>(mpi_collective_data{
-                     is_blocking,
+                     mode,
                      std::string(name),
                      *reinterpret_cast<const MPI_Comm*>(comm),
                      send_buffer,

@@ -299,6 +299,83 @@ void ProfilerHook::on_iteration_complete(
 }
 
 
+std::string build_mpi_name(mpi_mode mode, const char* name)
+{
+    switch (mode) {
+    case mpi_mode::blocking:
+        return std::string("blocking_") + name;
+    case mpi_mode::non_blocking:
+        return std::string("non_blocking_") + name;
+    }
+}
+
+
+void ProfilerHook::on_mpi_point_to_point_communication_started(
+    mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
+    int size, const void* type, int source_rank, int destination_rank, int tag,
+    const void* req) const
+{
+    this->begin_hook_(build_mpi_name(mode, name).c_str(),
+                      profile_event_category::mpi);
+}
+
+
+void ProfilerHook::on_mpi_point_to_point_communication_completed(
+    mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
+    int size, const void* type, int source_rank, int destination_rank, int tag,
+    const void* req) const
+{
+    this->end_hook_(build_mpi_name(mode, name).c_str(),
+                    profile_event_category::mpi);
+}
+
+
+void ProfilerHook::on_mpi_collective_communication_started(
+    mpi_mode mode, const char* name, const void* comm, const uintptr& send_loc,
+    int send_size, const int* send_sizes, const int* send_displacements,
+    const void* send_type, const uintptr& recv_loc, int recv_size,
+    const int* recv_sizes, const int* recv_displacements, const void* recv_type,
+    int root_rank, const void* req) const
+{
+    this->begin_hook_(build_mpi_name(mode, name).c_str(),
+                      profile_event_category::mpi);
+}
+
+
+void ProfilerHook::on_mpi_collective_communication_completed(
+    mpi_mode mode, const char* name, const void* comm, const uintptr& send_loc,
+    int send_size, const int* send_sizes, const int* send_displacements,
+    const void* send_type, const uintptr& recv_loc, int recv_size,
+    const int* recv_sizes, const int* recv_displacements, const void* recv_type,
+    int root_rank, const void* req) const
+{
+    this->end_hook_(build_mpi_name(mode, name).c_str(),
+                    profile_event_category::mpi);
+}
+
+
+void ProfilerHook::on_mpi_reduction_started(
+    mpi_mode mode, const char* name, const void* comm,
+    const uintptr& send_buffer, const uintptr& recv_buffer, int size,
+    const void* type, const void* operation, int root_rank,
+    const void* req) const
+{
+    this->begin_hook_(build_mpi_name(mode, name).c_str(),
+                      profile_event_category::mpi);
+}
+
+
+void ProfilerHook::on_mpi_reduction_completed(
+    mpi_mode mode, const char* name, const void* comm,
+    const uintptr& send_buffer, const uintptr& recv_buffer, int size,
+    const void* type, const void* operation, int root_rank,
+    const void* req) const
+{
+    this->end_hook_(build_mpi_name(mode, name).c_str(),
+                    profile_event_category::mpi);
+}
+
+
 bool ProfilerHook::needs_propagation() const { return true; }
 
 

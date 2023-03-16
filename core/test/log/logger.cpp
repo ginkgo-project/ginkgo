@@ -231,33 +231,36 @@ struct DummyMpiLogger : gko::log::Logger {
     mutable int non_blocking_count = 0;
 
     explicit DummyMpiLogger(
-        const mask_type& enabled_events = Logger::mpi_events_mask)
-        : Logger(enabled_events)
+        Logger::mpi_mode_mask_type mask = Logger::all_mpi_modes_mask)
+        : Logger(Logger::mpi_events_mask, mask)
     {}
 
     void on_mpi_point_to_point_communication_started(
-        bool is_blocking, const char* name, const void* comm,
+        gko::log::mpi_mode mode, const char* name, const void* comm,
         const gko::uintptr& loc, int size, const void* type, int source_rank,
         int destination_rank, int tag, const void* req) const override
     {
-        increase_count(is_blocking);
+        increase_count(mode);
     }
 
     void on_mpi_point_to_point_communication_completed(
-        bool is_blocking, const char* name, const void* comm,
+        gko::log::mpi_mode mode, const char* name, const void* comm,
         const gko::uintptr& loc, int size, const void* type, int source_rank,
         int destination_rank, int tag, const void* req) const override
     {
-        increase_count(is_blocking);
+        increase_count(mode);
     }
 
 protected:
-    void increase_count(bool is_blocking) const
+    void increase_count(gko::log::mpi_mode mode) const
     {
-        if (is_blocking) {
+        switch (mode) {
+        case gko::log::mpi_mode::blocking:
             blocking_count++;
-        } else {
+            break;
+        case gko::log::mpi_mode::non_blocking:
             non_blocking_count++;
+            break;
         }
     }
 };
@@ -268,8 +271,9 @@ TEST(DummyMpiLogger, CanLogBlockingMpiEvents)
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>();
 
-    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
 
     ASSERT_EQ(l->blocking_count, 1);
 }
@@ -280,9 +284,9 @@ TEST(DummyMpiLogger, CanLogNonBlockingMpiEvents)
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>();
 
-    l->template on<
-        Logger::non_blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
 
     ASSERT_EQ(l->non_blocking_count, 1);
 }
@@ -291,15 +295,14 @@ TEST(DummyMpiLogger, CanLogNonBlockingMpiEvents)
 TEST(DummyMpiLogger, CanExclusivlyLogBlockingMpiEvents)
 {
     using Logger = gko::log::Logger;
-    auto l = std::make_shared<DummyMpiLogger>(
-        gko::log::detail::disable_non_blocking_mpi_events(
-            Logger::mpi_events_mask));
+    auto l = std::make_shared<DummyMpiLogger>(gko::log::mpi_mode::blocking);
 
-    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
-    l->template on<
-        Logger::non_blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
 
     ASSERT_EQ(l->blocking_count, 1);
     ASSERT_EQ(l->non_blocking_count, 0);
@@ -309,14 +312,14 @@ TEST(DummyMpiLogger, CanExclusivlyLogBlockingMpiEvents)
 TEST(DummyMpiLogger, CanExclusivlyLogNonBlockingMpiEvents)
 {
     using Logger = gko::log::Logger;
-    auto l = std::make_shared<DummyMpiLogger>(
-        gko::log::detail::disable_blocking_mpi_events(Logger::mpi_events_mask));
+    auto l = std::make_shared<DummyMpiLogger>(gko::log::mpi_mode::non_blocking);
 
-    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
-    l->template on<
-        Logger::non_blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
 
     ASSERT_EQ(l->blocking_count, 0);
     ASSERT_EQ(l->non_blocking_count, 1);
@@ -326,15 +329,14 @@ TEST(DummyMpiLogger, CanExclusivlyLogNonBlockingMpiEvents)
 TEST(DummyMpiLogger, CanLogBlockingAndNonBlockingMpiEventsSimultaneously)
 {
     using Logger = gko::log::Logger;
-    auto l = std::make_shared<DummyMpiLogger>(
-        Logger::blocking_mpi_point_to_point_communication_started_mask |
-        Logger::non_blocking_mpi_point_to_point_communication_completed_mask);
+    auto l = std::make_shared<DummyMpiLogger>();
 
-    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
-    l->template on<
-        Logger::non_blocking_mpi_point_to_point_communication_completed>(
-        "", nullptr, 0, 0, nullptr, 0, 0, 0, nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
+    l->template on<Logger::mpi_point_to_point_communication_started>(
+        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
+        nullptr);
 
     ASSERT_EQ(l->blocking_count, 1);
     ASSERT_EQ(l->non_blocking_count, 1);
