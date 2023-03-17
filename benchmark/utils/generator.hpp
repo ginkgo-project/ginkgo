@@ -189,6 +189,11 @@ struct DistributedDefaultSystemGenerator {
         rapidjson::Value* spmv_case = nullptr,
         rapidjson::MemoryPoolAllocator<>* allocator = nullptr) const
     {
+        if (dynamic_cast<const gko::DpcppExecutor*>(exec.get())) {
+            auto a = generate_matrix_with_format(
+                exec->get_master(), format_name, data, spmv_case, allocator);
+            return a->clone(exec);
+        }
         auto part = gko::experimental::distributed::
             Partition<itype, global_itype>::build_from_global_size_uniform(
                 exec, comm.size(), static_cast<global_itype>(data.size[0]));
