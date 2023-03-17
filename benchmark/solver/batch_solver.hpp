@@ -478,17 +478,19 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
 
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto gen_logger = create_operations_logger(
+                FLAGS_nested_names, solver_json["generate"]["components"],
+                allocator, 1);
             exec->add_logger(gen_logger);
             auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
                               ->generate(mat_clone);
             exec->remove_logger(gko::lend(gen_logger));
-            gen_logger->write_data(solver_json["generate"]["components"],
-                                   allocator, 1);
+            // gen_logger->write_data(solver_json["generate"]["components"],
+            //                        allocator, 1);
 
-            auto apply_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto apply_logger = create_operations_logger(
+                FLAGS_nested_names, solver_json["apply"]["components"],
+                allocator, 1);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b_clone), lend(x_clone));
@@ -528,8 +530,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             }
             exec->synchronize();
 
-            apply_logger->write_data(solver_json["apply"]["components"],
-                                     allocator, 1);
+            // apply_logger->write_data(solver_json["apply"]["components"],
+            //                          allocator, 1);
 
             // slow run, gets the recurrent and true residuals of each
             // iteration

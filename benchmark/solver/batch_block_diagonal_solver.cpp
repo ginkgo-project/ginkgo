@@ -455,8 +455,9 @@ void solve_system(const std::string& solver_name,
             // slow run, get the time of each functions
             auto x_clone = clone(x);
 
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto gen_logger = create_operations_logger(
+                FLAGS_nested_names, solver_json["generate"]["components"],
+                allocator, 1);
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
@@ -464,8 +465,8 @@ void solve_system(const std::string& solver_name,
                               ->generate(system_matrix);
 
             exec->remove_logger(gko::lend(gen_logger));
-            gen_logger->write_data(solver_json["generate"]["components"],
-                                   allocator, 1);
+            // gen_logger->write_data(solver_json["generate"]["components"],
+            //                        allocator, 1);
 
             if (auto prec =
                     dynamic_cast<const gko::Preconditionable*>(lend(solver))) {
@@ -477,15 +478,16 @@ void solve_system(const std::string& solver_name,
                     solver_json["preconditioner"], allocator);
             }
 
-            auto apply_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto apply_logger = create_operations_logger(
+                FLAGS_nested_names, solver_json["apply"]["components"],
+                allocator, 1);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b), lend(x_clone));
 
             exec->remove_logger(gko::lend(apply_logger));
-            apply_logger->write_data(solver_json["apply"]["components"],
-                                     allocator, 1);
+            // apply_logger->write_data(solver_json["apply"]["components"],
+            //                          allocator, 1);
 
             // slow run, gets the recurrent and true residuals of each iteration
             if (b->get_size()[1] == 1) {
