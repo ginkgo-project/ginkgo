@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
-#include <iostream>
 #include <vector>
 
 
@@ -42,8 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -77,6 +77,8 @@ class DummyLinOpWithFactory
           DummyLinOpWithFactory<ValueType, uses_initial_guess>>,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
+    using Mtx = gko::matrix::Dense<ValueType>;
+
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
@@ -105,8 +107,11 @@ public:
         this->set_multigrid_level(
             std::make_shared<DummyLinOp>(this->get_executor(),
                                          gko::dim<2>{n_, n_ - 1}),
-            std::make_shared<DummyLinOp>(this->get_executor(),
-                                         gko::dim<2>{n_ - 1, n_ - 1}),
+            gko::share(gko::test::generate_random_dense_matrix<ValueType>(
+                n_ - 1, n_ - 1,
+                std::uniform_real_distribution<gko::remove_complex<ValueType>>(
+                    0, 1),
+                std::default_random_engine{}, factory->get_executor())),
             std::make_shared<DummyLinOp>(this->get_executor(),
                                          gko::dim<2>{n_ - 1, n_}));
     }
@@ -164,6 +169,8 @@ protected:
                     gko::solver::multigrid::mid_smooth_type::standalone)
                 .with_mg_level(rp_factory)
                 .with_min_coarse_rows(2u)
+                .with_default_initial_guess(
+                    gko::solver::initial_guess_mode::provided)
                 .on(exec);
         solver = multigrid_factory->generate(mtx);
     }
@@ -347,7 +354,6 @@ TYPED_TEST(Multigrid, DefaultBehavior)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto solver = Solver::build()
                       .with_max_levels(1u)
                       .with_mg_level(this->rp_factory)
@@ -356,44 +362,51 @@ TYPED_TEST(Multigrid, DefaultBehavior)
                       .on(this->exec)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
+    auto pre_ir = dynamic_cast<const gko::solver::Ir<value_type>*>(
+        pre_smoother.at(0).get());
+    auto pre_jac = dynamic_cast<const gko::preconditioner::Jacobi<value_type>*>(
+        pre_ir->get_solver().get());
+    auto post_ir = dynamic_cast<const gko::solver::Ir<value_type>*>(
+        post_smoother.at(0).get());
+    auto post_jac =
+        dynamic_cast<const gko::preconditioner::Jacobi<value_type>*>(
+            post_ir->get_solver().get());
+    auto mid_ir = dynamic_cast<const gko::solver::Ir<value_type>*>(
+        mid_smoother.at(0).get());
+    auto mid_jac = dynamic_cast<const gko::preconditioner::Jacobi<value_type>*>(
+        mid_ir->get_solver().get());
 
-    ASSERT_EQ(pre_smoother.at(0), nullptr);
-    // the default mid behavior, which uses standalone with the nullptr.
-    ASSERT_EQ(mid_smoother.at(0), nullptr);
-    ASSERT_EQ(post_smoother.at(0), nullptr);
-    ASSERT_NE(identity, nullptr);
+    ASSERT_NE(pre_ir, nullptr);
+    ASSERT_NE(pre_jac, nullptr);
+    ASSERT_NE(post_ir, nullptr);
+    ASSERT_NE(post_jac, nullptr);
+    ASSERT_NE(mid_ir, nullptr);
+    ASSERT_NE(mid_jac, nullptr);
+    ASSERT_NE(direct, nullptr);
 }
 
 
-TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
+TYPED_TEST(Multigrid, DefaultBehaviorGivenNullptrs)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto solver =
-        Solver::build()
-            .with_max_levels(1u)
-            .with_min_coarse_rows(2u)
-            .with_mg_level(this->rp_factory)
-            .with_pre_smoother(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .with_mid_smoother(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .with_post_smoother(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .with_coarsest_solver(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .with_criteria(this->criterion)
-            .on(this->exec)
-            ->generate(this->mtx);
-    auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
-        coarsest_solver.get());
+    auto solver = Solver::build()
+                      .with_max_levels(1u)
+                      .with_min_coarse_rows(2u)
+                      .with_mg_level(this->rp_factory)
+                      .with_pre_smoother(nullptr)
+                      .with_mid_smoother(nullptr)
+                      .with_post_smoother(nullptr)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
@@ -401,7 +414,6 @@ TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
     ASSERT_EQ(pre_smoother.at(0), nullptr);
     ASSERT_EQ(mid_smoother.at(0), nullptr);
     ASSERT_EQ(post_smoother.at(0), nullptr);
-    ASSERT_NE(identity, nullptr);
 }
 
 
@@ -600,7 +612,8 @@ TYPED_TEST(Multigrid, TwoMgLevel)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -613,8 +626,8 @@ TYPED_TEST(Multigrid, TwoMgLevel)
     ASSERT_EQ(this->get_value(mid_smoother.at(1)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(1)), 5);
-    // coarset_solver is identity by default
-    ASSERT_NE(identity, nullptr);
+    // coarset_solver is direct LU by default
+    ASSERT_NE(direct, nullptr);
 }
 
 
@@ -642,7 +655,8 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
+    auto direct = dynamic_cast<
+        const gko::experimental::solver::Direct<value_type, gko::int32>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -655,7 +669,7 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
     ASSERT_EQ(this->get_value(mid_smoother.at(1)), 5);
     ASSERT_EQ(this->get_value(post_smoother.at(0)), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(1)), 2);
-    ASSERT_NE(identity, nullptr);
+    ASSERT_NE(direct, nullptr);
 }
 
 
@@ -782,10 +796,10 @@ TYPED_TEST(Multigrid, CustomSelectorWithMix)
     ASSERT_EQ(pre_smoother.size(), 2);
     ASSERT_EQ(this->get_value(pre_smoother.at(0)), 5);
     ASSERT_EQ(this->get_value(pre_smoother.at(1)), 5);
-    // mid_smoother uses the nullptr by default
+    // mid_smoother uses Jacobi by default
     ASSERT_EQ(mid_smoother.size(), 2);
-    ASSERT_EQ(mid_smoother.at(0), nullptr);
-    ASSERT_EQ(mid_smoother.at(1), nullptr);
+    ASSERT_NE(mid_smoother.at(0), nullptr);
+    ASSERT_NE(mid_smoother.at(1), nullptr);
     // post_smoother uses the same index as mg_level
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_EQ(this->get_value(post_smoother.at(0)), 5);

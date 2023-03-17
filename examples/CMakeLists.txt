@@ -24,7 +24,9 @@ set(EXAMPLES_LIST
     minimal-cuda-solver
     mixed-spmv
     mixed-multigrid-solver
+    mixed-multigrid-preconditioned-solver
     multigrid-preconditioned-solver
+    multigrid-preconditioned-solver-customized
     par-ilu-convergence
     performance-debugging
     preconditioner-export

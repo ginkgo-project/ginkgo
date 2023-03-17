@@ -43,9 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/direct.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/base/dispatch_helper.hpp"
@@ -137,6 +142,15 @@ void handle_list(
     std::complex<double> relaxation_factor)
 {
     auto list_size = smoother_list.size();
+    auto gen_default_smoother = [&] {
+        auto exec = matrix->get_executor();
+        return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
+                                        .with_max_block_size(1u)
+                                        .on(exec),
+                                    iteration,
+                                    casting<ValueType>(relaxation_factor))
+                         ->generate(matrix));
+    };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
         GKO_ENSURE_IN_BOUNDS(temp_index, list_size);
@@ -155,7 +169,7 @@ void handle_list(
             }
         }
     } else {
-        smoother.emplace_back(nullptr);
+        smoother.emplace_back(gen_default_smoother());
     }
 }
 
@@ -554,17 +568,26 @@ void Multigrid::generate()
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
+            // default coarse grid solver, direct LU
+            // TODO: maybe remove fixed index type
+            auto gen_default_solver = [&] {
+                return experimental::solver::Direct<value_type, int32>::build()
+                    .with_factorization(
+                        experimental::factorization::Lu<value_type,
+                                                        int32>::build()
+                            .on(exec))
+                    .on(exec)
+                    ->generate(matrix);
+            };
             if (parameters_.coarsest_solver.size() == 0) {
-                coarsest_solver_ = matrix::Identity<value_type>::create(
-                    exec, matrix->get_size()[0]);
+                coarsest_solver_ = gen_default_solver();
             } else {
                 auto temp_index = solver_selector_(level, matrix.get());
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
-                    coarsest_solver_ = matrix::Identity<value_type>::create(
-                        exec, matrix->get_size()[0]);
+                    coarsest_solver_ = gen_default_solver();
                 } else {
                     coarsest_solver_ = solver->generate(matrix);
                 }
@@ -755,6 +778,52 @@ void Multigrid::create_state() const
         cache_.state = std::make_unique<multigrid::detail::MultigridState>();
     }
 }
+
+
+Multigrid::Multigrid(const Multigrid::Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Multigrid>(factory->get_executor(),
+                             transpose(system_matrix->get_size())),
+      EnableSolverBase<Multigrid>{std::move(system_matrix)},
+      EnableIterativeBase<Multigrid>{
+          stop::combine(factory->get_parameters().criteria)},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.level_selector) {
+        if (parameters_.mg_level.size() == 1) {
+            level_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        } else if (parameters_.mg_level.size() > 1) {
+            level_selector_ = [](const size_type level, const LinOp*) {
+                return level;
+            };
+        }
+    } else {
+        level_selector_ = parameters_.level_selector;
+    }
+    if (!parameters_.solver_selector) {
+        if (parameters_.coarsest_solver.size() >= 1) {
+            solver_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        }
+    } else {
+        solver_selector_ = parameters_.solver_selector;
+    }
+
+    this->validate();
+    this->set_default_initial_guess(parameters_.default_initial_guess);
+    if (this->get_system_matrix()->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate();
+    }
+}
+
+
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Multigrid>(exec)
+{}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }
