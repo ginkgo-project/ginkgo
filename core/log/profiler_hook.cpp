@@ -303,9 +303,9 @@ std::string build_mpi_name(mpi_mode mode, const char* name)
 {
     switch (mode) {
     case mpi_mode::blocking:
-        return std::string("blocking_") + name;
+        return std::string("mpi::blocking::") + name;
     case mpi_mode::non_blocking:
-        return std::string("non_blocking_") + name;
+        return std::string("mpi::non_blocking::") + name;
     }
 }
 
