@@ -78,6 +78,8 @@ constexpr Logger::mask_type Logger::iteration_complete_mask;
 
 constexpr Logger::mpi_mode_mask_type Logger::all_mpi_modes_mask;
 
+constexpr int Logger::unspecified_mpi_rank;
+
 constexpr Logger::mask_type
     Logger::mpi_point_to_point_communication_started_mask;
 constexpr Logger::mask_type
