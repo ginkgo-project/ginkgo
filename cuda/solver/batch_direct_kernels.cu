@@ -103,7 +103,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(matrices), nrhs, b_stride, as_cuda_type(b_t->get_values()),
         as_cuda_type(vectors));
 
-    auto handle = cublas::init();
+    auto handle = exec->get_cublas_handle();
     cublas::batch_getrf(handle, n, matrices, lda, pivot_array, info_array,
                         nbatch);
 #ifndef NDEBUG
@@ -119,7 +119,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         std::cerr << "Cublas batch trsm got an illegal param in position "
                   << trsm_info << std::endl;
     }
-    cublas::destroy(handle);
 
     exec->free(matrices);
     exec->free(vectors);

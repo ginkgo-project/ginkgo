@@ -377,7 +377,7 @@ protected:
     {
         parameters_.block_pointers.set_executor(this->get_executor());
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
-        this->generate_precond(gko::lend(system_matrix));
+        this->generate_precond(system_matrix.get());
     }
 
     /**

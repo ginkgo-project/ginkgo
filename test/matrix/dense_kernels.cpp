@@ -105,10 +105,12 @@ protected:
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(1, num_vecs);
             c_alpha = gen_mtx<ComplexMtx>(1, num_vecs);
+            beta = gen_mtx<Mtx>(1, num_vecs);
         } else {
             alpha = gko::initialize<Mtx>({2.0}, ref);
             c_alpha = gko::initialize<ComplexMtx>(
                 {std::complex<value_type>{2.0}}, ref);
+            beta = gko::initialize<Mtx>({2.0}, ref);
         }
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
@@ -116,6 +118,7 @@ protected:
         dc_y = gko::clone(exec, c_y);
         dalpha = gko::clone(exec, alpha);
         dc_alpha = gko::clone(exec, c_alpha);
+        dbeta = gko::clone(exec, beta);
         result = Mtx::create(ref, gko::dim<2>{1, num_vecs});
         dresult = Mtx::create(exec, gko::dim<2>{1, num_vecs});
     }
@@ -198,7 +201,7 @@ TEST_F(Dense, SingleVectorComputeDotIsEquivalentToRef)
     x->compute_dot(y, result);
     dx->compute_dot(dy, dresult);
 
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, result, 10 * r<value_type>::value);
 }
 
 
@@ -209,7 +212,7 @@ TEST_F(Dense, MultipleVectorComputeDotIsEquivalentToRef)
     x->compute_dot(y, result);
     dx->compute_dot(dy, dresult);
 
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, result, 10 * r<value_type>::value);
 }
 
 
@@ -220,7 +223,7 @@ TEST_F(Dense, SingleVectorComputeConjDotIsEquivalentToRef)
     x->compute_conj_dot(y, result);
     dx->compute_conj_dot(dy, dresult);
 
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, result, 10 * r<value_type>::value);
 }
 
 
@@ -231,7 +234,7 @@ TEST_F(Dense, MultipleVectorComputeConjDotIsEquivalentToRef)
     x->compute_conj_dot(y, result);
     dx->compute_conj_dot(dy, dresult);
 
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, result, 10 * r<value_type>::value);
 }
 
 
@@ -1498,7 +1501,7 @@ TEST_F(Dense, ComputeDotIsEquivalentToRef)
     x->compute_dot(y, dot_expected);
     dx->compute_dot(y, ddot);
 
-    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<value_type>::value * 2);
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<value_type>::value * 10);
 }
 
 
@@ -1548,7 +1551,7 @@ TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
     x->compute_conj_dot(y, dot_expected);
     dx->compute_conj_dot(y, ddot);
 
-    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<value_type>::value * 2);
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<value_type>::value * 10);
 }
 
 

@@ -304,7 +304,8 @@ GKO_BIND_CUBLAS_BATCH_GETRF(ValueType, detail::not_implemented);
             as_culibs_type(Barray), ldb, info, batchSize));                   \
     }                                                                         \
     static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
 
 GKO_BIND_CUBLAS_BATCH_GETRS(float, cublasSgetrsBatched);
 GKO_BIND_CUBLAS_BATCH_GETRS(double, cublasDgetrsBatched);
