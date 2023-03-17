@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace reorder {
 namespace {
 
@@ -177,7 +178,7 @@ std::unique_ptr<LinOp> NestedDissection<ValueType, IndexType>::generate_impl(
     const auto num_rows = host_mtx->get_size()[0];
     array<IndexType> permutation(host_exec, num_rows);
     array<IndexType> inv_permutation(host_exec, num_rows);
-    exec->run(make_metis_nd(exec, num_rows, host_mtx->get_const_row_ptrs(),
+    exec->run(make_metis_nd(host_exec, num_rows, host_mtx->get_const_row_ptrs(),
                             host_mtx->get_const_col_idxs(),
                             build_metis_options(parameters_.options),
                             permutation.get_data(),
@@ -195,4 +196,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ND);
 
 
 }  // namespace reorder
+}  // namespace experimental
 }  // namespace gko
