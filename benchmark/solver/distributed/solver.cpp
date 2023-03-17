@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
-#include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <set>
@@ -42,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/solver/solver_common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"
+
+DEFINE_string(comm_precision, "default",
+              "The precision used in the communiation.");
 
 
 struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
