@@ -21,7 +21,7 @@
 #   where to find metis.h or metis64.h
 #
 # ``METIS_HEADER``
-#   either metis64.h or metis.h, dependent in which was found
+#   either metis64.h or metis.h, dependent on which was found
 #
 # ``METIS_LIBRARIES``
 #   the libraries to link against in order to use the METIS library.

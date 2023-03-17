@@ -58,8 +58,6 @@ namespace {
 
 class SparsityCsr : public CommonTestFixture {
 protected:
-    using value_type = double;
-    using index_type = int;
     using Mtx = gko::matrix::SparsityCsr<value_type, index_type>;
 
     SparsityCsr() : rng{9312}

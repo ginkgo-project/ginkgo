@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/reorder/nested_dissection.hpp>
 
 
@@ -47,11 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename IndexType>
 class NestedDissection : public CommonTestFixture {
 protected:
-    using v_type = double;
-    using i_type = IndexType;
-    using matrix_type = gko::matrix::Csr<v_type, i_type>;
-    using reorder_type = gko::reorder::NestedDissection<v_type, i_type>;
-    using perm_type = gko::matrix::Permutation<i_type>;
+    using index_type = IndexType;
+    using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using reorder_type =
+        gko::experimental::reorder::NestedDissection<value_type, index_type>;
+    using perm_type = gko::matrix::Permutation<index_type>;
 
 
     NestedDissection()
@@ -77,4 +78,10 @@ TYPED_TEST(NestedDissection, ResultIsEquivalentToRef)
 {
     auto perm = this->nd_factory->generate(this->mtx);
     auto dperm = this->dnd_factory->generate(this->dmtx);
+
+    auto perm_array = gko::make_array_view(this->ref, this->mtx->get_size()[0],
+                                           perm->get_permutation());
+    auto dperm_array = gko::make_array_view(
+        this->exec, this->mtx->get_size()[0], dperm->get_permutation());
+    GKO_ASSERT_ARRAY_EQ(perm_array, dperm_array);
 }
