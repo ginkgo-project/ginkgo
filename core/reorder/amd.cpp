@@ -83,7 +83,7 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
     std::vector<IndexType> queue(num_rows);
     std::iota(queue.begin(), queue.end(), 0);
     std::sort(queue.begin(), queue.end(), [&](IndexType i, IndexType j) {
-        return degrees[i] < degrees[j];
+        return std::tie(degrees[i], i) < std::tie(degrees[j], j);
     });
     // pop minimum until we chose every variable as pivot
     for (IndexType i = 0; i < num_rows; i++) {
@@ -128,7 +128,7 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
             degrees[variable] = set1.size() + set2.size();
         }
         std::sort(queue.begin(), queue.end(), [&](IndexType i, IndexType j) {
-            return degrees[i] < degrees[j];
+            return std::tie(degrees[i], i) < std::tie(degrees[j], j);
         });
     }
 }
