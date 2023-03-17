@@ -462,8 +462,6 @@ struct EnableLoggingWithPropagation
         propagator(std::move(exec))
             .template log<Event>(std::forward<Params>(params)...);
     }
-
-    GKO_ENABLE_SELF(T);
 };
 
 
