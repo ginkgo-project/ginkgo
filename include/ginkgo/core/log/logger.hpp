@@ -36,8 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 
@@ -78,38 +80,101 @@ namespace log {
 
 enum mpi_mode : uint8 { blocking = 1 << 0, non_blocking = 1 << 1 };
 
-namespace detail {
 
+namespace mpi {
+using operation = std::optional<void*>;
 
-template <typename mask_type>
-static constexpr mask_type disable_non_blocking_mpi_events(mask_type mask)
-{
-    auto min_event_id = 26;
-    auto max_event_id = 37;
+struct barrier {};
 
-    for (int id = min_event_id; id < max_event_id + 1; id += 2) {
-        mask = mask ^ (mask_type{1} << id);
-    }
+struct blocking {};
 
-    return mask;
-}
+struct non_blocking {
+    void* req;
+};
 
+using mode = std::variant<blocking, non_blocking>;
 
-template <typename mask_type>
-static constexpr mask_type disable_blocking_mpi_events(mask_type mask)
-{
-    auto min_event_id = 26;
-    auto max_event_id = 37;
+struct fixed {
+    int size;
+};
 
-    for (int id = min_event_id + 1; id < max_event_id + 1; id += 2) {
-        mask = mask ^ (mask_type{1} << id);
-    }
+struct variable {
+    variable(int* sizes, int* offsets) : sizes(sizes), offsets(offsets) {}
+    int* sizes;
+    int* offsets;
+};
 
-    return mask;
-}
+template <typename Size>
+struct buffer {
+    buffer(uintptr loc, Size size, void* type)
+        : loc(loc), size(std::move(size)), type(type)
+    {}
+    uintptr loc;
+    Size size;
+    void* type;
+};
 
+struct pt2pt {
+    pt2pt(buffer<fixed> data, std::optional<int> source,
+          std::optional<int> dest, int tag, std::optional<void*> status = {})
+        : data(data), source(source), dest(dest), tag(tag), status(status)
+    {}
+    buffer<fixed> data;
+    std::optional<int> source;
+    std::optional<int> dest;
+    int tag;
+    std::optional<void*> status;
+};
 
-}  // namespace detail
+template <typename Size>
+struct all_to_all {
+    all_to_all(buffer<Size> send, buffer<Size> recv, operation op = {})
+        : send(std::move(send)), recv(std::move(recv)), op(op)
+    {}
+
+    buffer<Size> send;
+    buffer<Size> recv;
+    operation op;
+};
+
+template <typename Size>
+struct all_to_one {
+    all_to_one(buffer<Size> send, buffer<Size> recv, int root,
+               operation op = {})
+        : send(std::move(send)), recv(std::move(recv)), op(op)
+    {}
+    buffer<Size> send;
+    buffer<Size> recv;
+    int root;
+    operation op;
+};
+
+template <typename Size>
+struct one_to_all {
+    one_to_all(buffer<Size> send, buffer<Size> recv, int root,
+               operation op = {})
+        : send(std::move(send)), recv(std::move(recv)), op(op)
+    {}
+    buffer<Size> send;
+    buffer<Size> recv;
+    int root;
+    operation op;
+};
+
+struct scan {
+    scan(buffer<fixed> send, uintptr recv_loc, void* op)
+        : send(std::move(send)), recv_loc(recv_loc), op(op)
+    {}
+    buffer<fixed> send;
+    uintptr_t recv_loc;
+    void* op;
+};
+
+using coll =
+    std::variant<all_to_all<fixed>, all_to_all<variable>, all_to_one<fixed>,
+                 all_to_one<variable>, one_to_all<fixed>, one_to_all<variable>,
+                 scan, barrier>;
+}  // namespace mpi
 
 
 /**
@@ -546,10 +611,10 @@ protected:                                                                 \
 public:                                                                    \
     template <size_type Event, typename... Params>                         \
     std::enable_if_t<Event == _id && (_id < event_count_max)> on(          \
-        mpi_mode mode, Params&&... params) const                           \
+        mpi::mode mode, Params&&... params) const                          \
     {                                                                      \
         if (enabled_events_ & (mask_type{1} << Event) &&                   \
-            enabled_mpi_modes_ & static_cast<uint8>(mode)) {               \
+            enabled_mpi_modes_ & static_cast<uint8>(mode.index())) {       \
             this->on_##_event_name(mode, std::forward<Params>(params)...); \
         }                                                                  \
     }                                                                      \
@@ -559,51 +624,26 @@ public:                                                                    \
         mask_type{1} << _id                                                \
     }
 
+
+    // TODO: Perhaps use similar approach as parameters to better support
+    // default/non-existing parameters
     GKO_LOGGER_REGISTER_MPI_EVENT(24, mpi_point_to_point_communication_started,
-                                  mpi_mode mode, const char* name,
-                                  const void* comm, const uintptr& loc,
-                                  int size, const void* type, int source_rank,
-                                  int destination_rank, int tag,
-                                  const void* req);
+                                  mpi::mode mode, const char* name,
+                                  const void* comm, mpi::pt2pt data);
 
     GKO_LOGGER_REGISTER_MPI_EVENT(25,
                                   mpi_point_to_point_communication_completed,
-                                  mpi_mode mode, const char* name,
-                                  const void* comm, const uintptr& loc,
-                                  int size, const void* type, int source_rank,
-                                  int destination_rank, int tag,
-                                  const void* req);
+                                  mpi::mode mode, const char* name,
+                                  const void* comm, mpi::pt2pt data);
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(
-        26, mpi_collective_communication_started, mpi_mode mode,
-        const char* name, const void* comm, const uintptr& send_loc,
-        int send_size, const int* send_sizes, const int* send_displacements,
-        const void* send_type, const uintptr& recv_loc, int recv_size,
-        const int* recv_sizes, const int* recv_displacements,
-        const void* recv_type, int root_rank, const void* req);
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(
-        27, mpi_collective_communication_completed, mpi_mode mode,
-        const char* name, const void* comm, const uintptr& send_loc,
-        int send_size, const int* send_sizes, const int* send_displacements,
-        const void* send_type, const uintptr& recv_loc, int recv_size,
-        const int* recv_sizes, const int* recv_displacements,
-        const void* recv_type, int root_rank, const void* req);
+    GKO_LOGGER_REGISTER_MPI_EVENT(26, mpi_collective_communication_started,
+                                  mpi::mode mode, const char* name,
+                                  const void* comm, const mpi::coll data);
 
-    GKO_LOGGER_REGISTER_MPI_EVENT(28, mpi_reduction_started, mpi_mode mode,
-                                  const char* name, const void* comm,
-                                  const uintptr& send_buffer,
-                                  const uintptr& recv_buffer, int size,
-                                  const void* type, const void* operation,
-                                  int root_rank, const void* req);
-
-    GKO_LOGGER_REGISTER_MPI_EVENT(29, mpi_reduction_completed, mpi_mode mode,
-                                  const char* name, const void* comm,
-                                  const uintptr& send_buffer,
-                                  const uintptr& recv_buffer, int size,
-                                  const void* type, const void* operation,
-                                  int root_rank, const void* req);
-
+    GKO_LOGGER_REGISTER_MPI_EVENT(27, mpi_collective_communication_completed,
+                                  mpi::mode mode, const char* name,
+                                  const void* comm, mpi::coll data);
 
 #undef GKO_LOGGER_REGISTER_MPI_EVENT
 
@@ -661,8 +701,7 @@ public:                                                                    \
 
     static constexpr mask_type mpi_collective_events_mask =
         mpi_collective_communication_started_mask |
-        mpi_collective_communication_completed_mask |
-        mpi_reduction_started_mask | mpi_reduction_completed_mask;
+        mpi_collective_communication_completed_mask;
 
     static constexpr mask_type mpi_events_mask =
         mpi_point_to_point_events_mask | mpi_collective_events_mask;
