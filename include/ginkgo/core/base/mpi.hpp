@@ -438,8 +438,8 @@ inline std::vector<status> wait_all(std::vector<request>& req)
 
 
 template <typename T>
-struct EnableLoggingWithPropagation
-    : log::EnableLogging<EnableLoggingWithPropagation<T>> {
+class EnableLoggingWithPropagation
+    : public log::EnableLogging<EnableLoggingWithPropagation<T>> {
     struct propagator : EnablePolymorphicObject<propagator> {
         explicit propagator(std::shared_ptr<const Executor> exec)
             : EnablePolymorphicObject<propagator>(std::move(exec))
@@ -453,7 +453,7 @@ struct EnableLoggingWithPropagation
         }
     };
 
-
+protected:
     template <size_type Event, typename... Params>
     void log(std::shared_ptr<const Executor> exec, Params&&... params) const
     {
