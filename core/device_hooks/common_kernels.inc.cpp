@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
+#include "core/distributed/preconditioner/bddc_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -298,6 +299,19 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector
+
+
+namespace distributed_bddc {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL1);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL2);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL1);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL2);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PROLONG_COARSE_SOLUTION);
+
+
+}  // namespace distributed_bddc
 
 
 namespace dense {

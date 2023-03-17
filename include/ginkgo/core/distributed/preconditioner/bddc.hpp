@@ -217,6 +217,7 @@ private:
     std::shared_ptr<global_matrix_type> global_coarse_matrix_;
     std::shared_ptr<matrix_type> local_system_matrix_;
     std::shared_ptr<matrix_type> inner_system_matrix_;
+    std::shared_ptr<matrix_type> outer_system_matrix_;
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> schur_complement_solver_;
     std::shared_ptr<const LinOp> coarse_solver_;
@@ -228,12 +229,13 @@ private:
     std::shared_ptr<vec_type> phi_t_;
     std::vector<index_type> local_rows_;
     mutable std::map<index_type, index_type> global_idx_to_recv_buffer_;
-    mutable std::map<index_type, index_type> local_idx_to_send_buffer_;
-    std::vector<index_type> non_local_to_local_;
-    std::vector<index_type> coarse_non_local_to_local_;
-    std::vector<index_type> non_local_idxs_;
-    std::vector<index_type> local_to_local_;
-    std::vector<index_type> coarse_local_to_local_;
+    mutable array<index_type> local_idx_to_send_buffer_;
+    mutable array<index_type> recv_buffer_to_global_;
+    array<index_type> non_local_to_local_;
+    array<index_type> coarse_non_local_to_local_;
+    array<index_type> non_local_idxs_;
+    array<index_type> local_to_local_;
+    array<index_type> coarse_local_to_local_;
     std::vector<index_type> local_idxs_;
     std::vector<index_type> inner_idxs_;
     std::vector<index_type> local_to_inner_;
@@ -249,6 +251,7 @@ private:
     std::shared_ptr<vec_type> inner_solution_;
     std::shared_ptr<vec_type> one_op_;
     std::shared_ptr<vec_type> neg_one_op_;
+    std::shared_ptr<vec_type> host_residual_;
     mutable std::vector<comm_index_type> send_sizes_;
     mutable std::vector<comm_index_type> send_offsets_;
     mutable std::vector<comm_index_type> recv_sizes_;
@@ -258,14 +261,25 @@ private:
     mutable std::vector<comm_index_type> coarse_recv_sizes_;
     mutable std::vector<comm_index_type> coarse_recv_offsets_;
     std::vector<comm_index_type> coarse_owners_;
-    mutable std::vector<value_type> send_buffer_;
-    mutable std::vector<value_type> recv_buffer_;
+    mutable array<value_type> send_buffer_;
+    mutable array<value_type> recv_buffer_;
     mutable std::vector<value_type> coarse_send_buffer_;
     mutable std::vector<value_type> coarse_recv_buffer_;
+    mutable array<value_type> coarsening_send_buffer_;
+    mutable array<value_type> coarsening_recv_buffer_;
+    mutable array<comm_index_type> coarsening_send_sizes_;
+    mutable array<comm_index_type> coarsening_send_offsets_;
+    mutable array<comm_index_type> coarsening_recv_sizes_;
+    mutable array<comm_index_type> coarsening_recv_offsets_;
+    array<index_type> coarsening_local_to_send_;
+    array<index_type> coarsening_recv_to_local_;
     std::shared_ptr<global_vec_type> coarse_residual_;
     std::shared_ptr<global_vec_type> coarse_solution_;
     std::vector<std::vector<index_type>> interface_dofs_;
     std::vector<std::vector<index_type>> interface_dof_ranks_;
+    array<index_type> coarse_non_local_to_global_;
+    std::shared_ptr<vec_type> nonlocal_;
+    array<IndexType> coarse_local_to_non_local_;
 };
 
 

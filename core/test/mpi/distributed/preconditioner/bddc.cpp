@@ -119,8 +119,11 @@ protected:
         bddc = Bddc::build()
                    .with_local_solver_factory(gmres_factory)
                    .with_schur_complement_solver_factory(gmres_factory)
+                   .with_coarse_solver_factory(gmres_factory)
+                   .with_inner_solver_factory(gmres_factory)
                    .with_interface_dofs(interface_dofs)
                    .with_interface_dof_ranks(interface_dof_ranks)
+                   .with_static_condensation(true)
                    .on(exec)
                    ->generate(mtx);
     }

@@ -24,6 +24,7 @@ target_sources(ginkgo_cuda
     distributed/partition_helpers_kernels.cu
     distributed/partition_kernels.cu
     distributed/vector_kernels.cu
+    distributed/preconditioner/bddc_kernels.cu
     factorization/cholesky_kernels.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
