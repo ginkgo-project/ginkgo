@@ -569,11 +569,11 @@ private:
 };
 
 
-bool validate_factorization(const Mtx* input, const Mtx* factors)
+bool validate_symbolic_factorization(const Mtx* input, const Mtx* factors)
 {
     const auto host_exec = input->get_executor()->get_master();
-    const auto host_input = gko::clone(host_exec, input);
-    const auto host_factors = gko::clone(host_exec, factors);
+    const auto host_input = gko::make_temporary_clone(host_exec, input);
+    const auto host_factors = gko::make_temporary_clone(host_exec, factors);
     const auto num_rows = input->get_size()[0];
     const auto in_row_ptrs = host_input->get_const_row_ptrs();
     const auto in_cols = host_input->get_const_col_idxs();
@@ -621,7 +621,8 @@ public:
 
     std::pair<bool, double> validate() const override
     {
-        return std::make_pair(validate_factorization(mtx_, result_.get()), 0.0);
+        return std::make_pair(
+            validate_symbolic_factorization(mtx_, result_.get()), 0.0);
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -642,7 +643,8 @@ public:
 
     std::pair<bool, double> validate() const override
     {
-        return std::make_pair(validate_factorization(mtx_, result_.get()), 0.0);
+        return std::make_pair(
+            validate_symbolic_factorization(mtx_, result_.get()), 0.0);
     }
 
     gko::size_type get_flops() const override { return 0; }
