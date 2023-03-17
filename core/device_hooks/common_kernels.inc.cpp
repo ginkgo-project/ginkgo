@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
+#include "core/distributed/preconditioner/bddc_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -269,6 +270,19 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix
+
+
+namespace distributed_bddc {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL1);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL2);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL1);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL2);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PROLONG_COARSE_SOLUTION);
+
+
+}  // namespace distributed_bddc
 
 
 namespace dense {

@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    /*std::vector<std::vector<GlobalIndexType>> interface_dofs{};
+    std::vector<std::vector<GlobalIndexType>> interface_dofs{};
     std::vector<std::vector<GlobalIndexType>> interface_dof_ranks{};
 
     // Corners
@@ -336,6 +336,8 @@ int main(int argc, char* argv[])
             GlobalIndexType corner =
                 std::min(i * elems_per_rank_x, grid_dim) +
                 grid_dim * (std::min(j * elems_per_rank_y, grid_dim));
+            std::cout << "Corner: " << corner << ", i: " << i << ", j: " << j
+                      << std::endl;
             interface_dofs.emplace_back(
                 std::vector<GlobalIndexType>(1, corner));
             std::vector<GlobalIndexType> ranks{};
@@ -388,7 +390,7 @@ int main(int argc, char* argv[])
                 interface_dof_ranks.emplace_back(ranks);
             }
         }
-    }*/
+    }
 
     // Take timings.
     comm.synchronize();
@@ -405,10 +407,10 @@ int main(int argc, char* argv[])
     x_host->read_distributed(x_data, partition.get());
     // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
-    auto A = A_host;  // gko::share(dist_mtx::create(exec, comm));
+    auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
-    // A->copy_from(A_host.get());
+    A->copy_from(A_host.get());
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
 
@@ -438,7 +440,7 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(1e-10)
+                    .with_reduction_factor(1e-6)
                     .on(exec))
             .on(exec));
     auto cg_factory = gko::share(
@@ -452,11 +454,12 @@ int main(int argc, char* argv[])
     auto Ainv = cg::build()
                     .with_preconditioner(
                         bddc::build()
-                            //.with_interface_dofs(interface_dofs)
-                            //.with_interface_dof_ranks(interface_dof_ranks)
+                            .with_interface_dofs(interface_dofs)
+                            .with_interface_dof_ranks(interface_dof_ranks)
                             .with_local_solver_factory(gmres_factory)
                             .with_schur_complement_solver_factory(gmres_factory)
                             .with_inner_solver_factory(cg_factory)
+                            .with_coarse_solver_factory(gmres_factory)
                             .on(exec))
                     .with_criteria(tol_stop, iter_stop)
                     .on(exec)
@@ -488,9 +491,9 @@ int main(int argc, char* argv[])
     if (rank == 8) input_name = "sol_8.mtx";
 
     std::ofstream in{input_name};
-    gko::write(in, x->get_local_vector());*/
+    gko::write(in, x->get_local_vector());
 
-    /*if (rank == 0) input_name = "b_0.mtx";
+    if (rank == 0) input_name = "b_0.mtx";
     if (rank == 1) input_name = "b_1.mtx";
     if (rank == 2) input_name = "b_2.mtx";
     if (rank == 3) input_name = "b_3.mtx";

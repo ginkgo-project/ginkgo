@@ -9,6 +9,7 @@ set(GINKGO_HIP_SOURCES
     distributed/matrix_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     distributed/vector_kernels.hip.cpp
+    distributed/preconditioner/bddc_kernels.hip.cpp
     factorization/cholesky_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp

@@ -131,8 +131,8 @@ protected:
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           local_system_matrix_{std::move(
-              as<experimental::distributed::Matrix<ValueType, IndexType>>(
-                  system_matrix.get())
+              as<experimental::distributed::Matrix<
+                  ValueType, IndexType, IndexType>>(system_matrix.get())
                   ->get_local_matrix())}
     {
         this->generate();

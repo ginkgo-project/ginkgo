@@ -19,6 +19,7 @@ target_sources(ginkgo_dpcpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
+    distributed/preconditioner/bddc_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
