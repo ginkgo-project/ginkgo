@@ -74,6 +74,6 @@ int main(int argc, char* argv[])
     gko::matrix_data<> data;
     gko::as<gko::matrix::Csr<>>(mtx->permute(&arr))->write(data);
     data.ensure_row_major_order();
-    gko::write_raw(std::cout, data);
-    // print_sparsity_pattern(std::cout, data, data);
+    // gko::write_raw(std::cout, data);
+    print_sparsity_pattern(std::cout, data, data);
 }
