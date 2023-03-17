@@ -124,6 +124,97 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 
 #undef GKO_BIND_DOT
 
+
+#define GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE(FuncName)                 \
+    inline void batch_getrf_scratchpad_size(                                  \
+        sycl::queue& queue, std::int64_t m, std::int64_t n, std::int64_t lda, \
+        std::int64_t stride_a, std::int64_t stride_ipiv,                      \
+        std::int64_t batch_size)                                              \
+    {                                                                         \
+        FuncName(queue, m, n, lda, stride_a, stride_ipiv, batch_size);        \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE(
+    oneapi::mkl::lapack::getrf_batch_scratchpad_size);
+#undef GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE
+
+
+#define GKO_BIND_ONEMKL_BATCH_GETRF(T, FuncName)                               \
+    inline void batch_getrf(sycl::queue& queue, std::int64_t m,                \
+                            std::int64_t n, T* a, std::int64_t lda,            \
+                            std::int64_t stride_a, std::int64_t* ipiv,         \
+                            std::int64_t stride_ipiv, std::int64_t batch_size, \
+                            T* scratchpad, std::int64_t scratchpad_size)       \
+    {                                                                          \
+        FuncName(queue, m, n, a, lda, stride_a, ipiv, stride_ipiv, batch_size, \
+                 scratchpad, scratchpad_size);                                 \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_ONEMKL_BATCH_GETRF(float, oneapi::mkl::lapack::getrf_batch);
+GKO_BIND_ONEMKL_BATCH_GETRF(double, oneapi::mkl::lapack::getrf_batch);
+GKO_BIND_ONEMKL_BATCH_GETRF(std::complex<float>,
+                            oneapi::mkl::lapack::getrf_batch);
+GKO_BIND_ONEMKL_BATCH_GETRF(std::complex<double>,
+                            oneapi::mkl::lapack::getrf_batch);
+template <typename ValueType>
+GKO_BIND_ONEMKL_BATCH_GETRF(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_ONEMKL_BATCH_GETRF
+
+
+#define GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE(FuncName)                \
+    inline void batch_getrs_scratchpad_size(                                 \
+        sycl::queue& queue, std::int64_t m, std::int64_t nrhs,               \
+        std::int64_t lda, std::int64_t stride_a, std::int64_t stride_ipiv,   \
+        std::int64_t ldb, std::int64_t stride_b, std::int64_t batch_size)    \
+    {                                                                        \
+        FuncName(queue, oneapi::mkl::transpose::nontrans, m, nrhs, lda,      \
+                 stride_a, stride_ipiv, ldb, stride_b, batch_size);          \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE(
+    oneapi::mkl::lapack::getrs_batch_scratchpad_size);
+
+#undef GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE
+
+
+#define GKO_BIND_ONEMKL_BATCH_GETRS(T, FuncName)                              \
+    inline void batch_getrs(sycl::queue& queue, std::int64_t m,               \
+                            std::int64_t nrhs, T* a, std::int64_t lda,        \
+                            std::int64_t stride_a, std::int64_t* ipiv,        \
+                            std::int64_t stride_ipiv, T* b, std::int64_t ldb, \
+                            std::int64_t stride_b, std::int64_t batch_size,   \
+                            T* scratchpad, std::int64_t scratchpad_size)      \
+    {                                                                         \
+        FuncName(queue, oneapi::mkl::transpose::nontrans, m, nrhs, a, lda,    \
+                 stride_a, ipiv, stride_ipiv, b, ldb, stride_b, batch_size,   \
+                 scratchpad, scratchpad_size)                                 \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_ONEMKL_BATCH_GETRS(float, oneapi::mkl::lapack::getrs_batch);
+GKO_BIND_ONEMKL_BATCH_GETRS(double, oneapi::mkl::lapack::getrs_batch);
+GKO_BIND_ONEMKL_BATCH_GETRS(std::complex<float>,
+                            oneapi::mkl::lapack::getrs_batch);
+GKO_BIND_ONEMKL_BATCH_GETRS(std::complex<double>,
+                            oneapi::mkl::lapack::getrs_batch);
+template <typename ValueType>
+GKO_BIND_ONEMKL_BATCH_GETRS(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_ONEMKL_BATCH_GETRS
+
+
 }  // namespace onemkl
 }  // namespace dpcpp
 }  // namespace kernels
