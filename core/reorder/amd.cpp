@@ -92,67 +92,25 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
         queue.erase(queue.begin());
         auto& cur_var_neighbors = variable_neighbors[pivot];
         const auto& cur_el_neighbors = element_neighbors[pivot];
-        //
-        std::cout << "\n\n\nEliminating " << pivot << '\n';
-        std::cout << "L_p = {";
-        auto it = std::ostream_iterator<IndexType>{std::cout, " "};
-        std::copy(cur_var_neighbors.begin(), cur_var_neighbors.end(), it);
-        std::cout << "; ";
-        //
         // update L_p
         for (auto element : cur_el_neighbors) {
             assert(element != pivot);
             const auto& el_neighbors = variable_neighbors[element];
             cur_var_neighbors.insert(el_neighbors.begin(), el_neighbors.end());
-            //
-            std::cout << ' ' << element << ": ";
-            std::copy(el_neighbors.begin(), el_neighbors.end(), it);
-            //
         }
         cur_var_neighbors.erase(pivot);
-        //
-        std::cout << "}\n";
-        //
         for (auto variable : cur_var_neighbors) {
-            //
-            std::cout << "\nUpdating " << variable << '\n';
-            //
             assert(variable != pivot);
             // A_i = A_i \setminus L_p \setminus p
-            //
-            std::cout << "Removing dependencies";
-            //
             for (auto other_variable : cur_var_neighbors) {
                 variable_neighbors[variable].erase(other_variable);
-                //
-                std::cout << ' ' << other_variable;
-                //
             }
             variable_neighbors[variable].erase(pivot);
-            //
-            std::cout << ' ' << pivot << '\n';
-            std::cout << "Resulting A = { ";
-            std::copy(variable_neighbors[variable].begin(),
-                      variable_neighbors[variable].end(), it);
-            std::cout << "}\n";
-            //
             // E_i = E_i \setminus E_p \cup {p}
-            //
-            std::cout << "Absorbing elements ";
-            //
             for (auto element : cur_el_neighbors) {
                 element_neighbors[variable].erase(element);
-                //
-                std::cout << ' ' << element;
-                //
             }
             element_neighbors[variable].insert(pivot);
-            //
-            std::cout << "\nResulting E = { ";
-            std::copy(element_neighbors[variable].begin(),
-                      element_neighbors[variable].end(), it);
-            std::cout << "}\n";
-            //
             // d_i = |A_i \setminus i| + |\bigcup_{e \in E_i} L_e \setminus i|
             auto set1 = variable_neighbors[variable];
             set1.erase(variable);
@@ -168,13 +126,6 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
             assert(set3.size() == set1.size() + set2.size());
             // update d_i in queue
             degrees[variable] = set1.size() + set2.size();
-            //
-            std::cout << "Degree " << degrees[variable] << " { ";
-            std::copy(set1.begin(), set1.end(), it);
-            std::cout << "} { ";
-            std::copy(set2.begin(), set2.end(), it);
-            std::cout << "}\n";
-            //
         }
         std::sort(queue.begin(), queue.end(), [&](IndexType i, IndexType j) {
             return degrees[i] < degrees[j];
