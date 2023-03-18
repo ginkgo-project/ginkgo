@@ -86,7 +86,7 @@ DEFINE_string(double_buffer, "",
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
-DEFINE_bool(keep_errors, false,
+DEFINE_bool(keep_errors, true,
             "If set, writes exception messages during the execution into the "
             "JSON output");
 
