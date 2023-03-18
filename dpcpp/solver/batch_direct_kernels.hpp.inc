@@ -30,24 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*
-template <typename ValueType>
-__global__ void setup_batch_pointers(
-    const size_type nbatch, const int nrows, const size_type mat_stride,
-    ValueType* const __restrict__ entire_batch_mats,
-    ValueType** const __restrict__ mat_batches, const int nrhs,
-    const size_type vec_stride, ValueType* const __restrict__ entire_batch_vecs,
-    ValueType** const __restrict__ vec_batches)
-{
-    for (size_type ib = thread::get_thread_id_flat(); ib < nbatch;
-         ib += thread::get_thread_num_flat()) {
-        mat_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_mats,
-                                                      mat_stride, nrows, ib);
-        vec_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_vecs,
-                                                      vec_stride, nrhs, ib);
-    }
-}
-*/
 
 template <typename ValueType>
 __dpct_inline__ void transpose_scale_copy_kernel(
@@ -94,33 +76,3 @@ __dpct_inline__ void pre_diag_scale_system_transpose(
             b[row * b_stride + col] * left_scale[row];
     }
 }
-/*
-template <typename ValueType>
-__global__ void pre_diag_scale_system_transpose(
-    const size_type nbatch, const int num_rows, const int num_cols,
-    const size_type a_stride, const ValueType* const __restrict__ a,
-    const int num_rhs, const size_type b_stride,
-    const ValueType* const __restrict__ b, const size_type left_scale_stride,
-    const ValueType* const __restrict__ left_scale,
-    const size_type rght_scale_stride,
-    const ValueType* const __restrict__ rght_scale,
-    const size_type a_scaled_stride, ValueType* const __restrict__ a_scaled_t,
-    const size_type b_scaled_stride, ValueType* const __restrict__ b_scaled_t)
-{
-    for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
-        auto ab = gko::batch::batch_entry_ptr(a, a_stride, num_rows, ib);
-        auto astb = gko::batch::batch_entry_ptr(a_scaled_t, a_scaled_stride,
-                                                num_cols, ib);
-        auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, ib);
-        auto bstb = gko::batch::batch_entry_ptr(b_scaled_t, b_scaled_stride,
-                                                num_rhs, ib);
-        auto lscaleb = gko::batch::batch_entry_ptr(
-            left_scale, left_scale_stride, num_rows, ib);
-        auto rscaleb = gko::batch::batch_entry_ptr(
-            rght_scale, rght_scale_stride, num_cols, ib);
-        pre_diag_scale_system_transpose(
-            num_rows, num_cols, a_stride, ab, num_rhs, b_stride, bb, lscaleb,
-            rscaleb, a_scaled_stride, astb, b_scaled_stride, bstb);
-    }
-}
-*/

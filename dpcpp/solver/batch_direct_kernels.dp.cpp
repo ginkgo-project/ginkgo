@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
 
 
@@ -88,49 +92,34 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
     const int ncols = a_t->get_size().at()[1];
     const int a_stride = a_t->get_stride().at();
     const int pivot_stride = nrows;  // TODO
-    const int lda = static_cast<int>(stride);
+    const int lda = static_cast<int>(a_stride);
     const int b_stride = b_t->get_stride().at();
     const int nrhs = static_cast<int>(b_t->get_size().at()[0]);
     const int ldb = static_cast<int>(b_stride);
 
-    int* const pivot_array = exec->alloc<int>(nbatch * nrows);
-    // int* const info_array = exec->alloc<int>(nbatch);
-    // ValueType** const matrices = exec->alloc<ValueType*>(nbatch);
-    // ValueType** const vectors = exec->alloc<ValueType*>(nbatch);
-    // const int nblk_1 = (nbatch - 1) / default_block_size + 1;
+    std::int64_t* pivot_array = exec->alloc<std::int64_t>(nbatch * nrows);
     auto a_t_values = a_t->get_values();
     auto b_t_values = b_t->get_values();
 
     auto queue = exec->get_queue();
     auto group_size =
         queue->get_device().get_info<sycl::info::device::max_work_group_size>();
-    // constexpr int subgroup_size = config::warp_size;
 
     const dim3 block(group_size);  // TODO: make the kernel launch withing
                                    // enforcing group_size
     const dim3 grid(nbatch);
-    /*
-        // setup_batch_pointers
-        queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1){
-                auto ib = item_ct1.get_global_linear_id();
-                matrices[ib] = batch::batch_entry_ptr(a_t_values, a_stride,
-       nrows, ib); vectors[ib]  = batch::batch_entry_ptr(b_t_values, b_stride,
-       nrhs, ib);
-                });
-        });
-        queue.wait();
-        */
-    auto getrf_scratchpad_size = onemkl::batch_getrf_scratchpad_size(
-        *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
-    queue->wait();
+
     try {
+        std::int64_t scratchpad_size =
+            onemkl::getrf_batch_scratchpad_size<ValueType>(
+                *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
         ValueType* const getrf_scratchpad =
-            exec->alloc<ValueType*>(getrf_scratchpad_size);
-        onemkl::batch_getrf(*queue, nrows, ncols, a_t_values, lda, a_stride,
+            exec->alloc<ValueType>(scratchpad_size);
+        onemkl::getrf_batch(*queue, nrows, ncols, a_t_values, lda, a_stride,
                             pivot_array, pivot_stride, nbatch, getrf_scratchpad,
-                            getrf_scratchpad_size);
+                            scratchpad_size);
+        queue->wait();
+        exec->free(getrf_scratchpad);
     } catch (sycl::exception const& e) {
         std::cout
             << "\t\tCaught synchronous SYCL exception during Batch-GETRF:\n"
@@ -141,42 +130,28 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
        // #ifndef NDEBUG
     //     check_batch(exec, nbatch, info_array, true);
     // #endif
-    exec->free(getrf_scratchpad);
-    /*
-        int trsm_info{};
-        cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs,
-                            const_cast<const ValueType**>(matrices), lda,
-                            pivot_array, vectors, ldb, &trsm_info, nbatch);
-        if (trsm_info != 0) {
-            std::cerr << "Cublas batch trsm got an illegal param in position "
-                      << trsm_info << std::endl;
-        }
-        cublas::destroy(handle);
-    */
-
-    auto getrs_scratchpad_size = onemkl::batch_getrs_scratchpad_size(
-        *queue, nrows, nrhs, lda, a_stride, pivot_stride, ldb, b_stride,
-        nbatch);
-    queue->wait();
 
     try {
+        std::int64_t getrs_scratchpad_size =
+            onemkl::getrs_batch_scratchpad_size<ValueType>(
+                *queue, onemkl::nontrans, nrows, nrhs, lda, a_stride,
+                pivot_stride, ldb, b_stride, nbatch);
+        queue->wait();
+
         ValueType* const getrs_scratchpad =
-            exec->alloc<ValueType*>(getrs_scratchpad_size);
-        onemkl::batch_getrs(*queue, nrows, nrhs, a_t_values, lda, a_stride,
-                            pivot_array, pivot_stride, b_t_values, ldb,
-                            b_stride, nbatch, getrs_scratchpad,
+            exec->alloc<ValueType>(getrs_scratchpad_size);
+        onemkl::getrs_batch(*queue, onemkl::nontrans, nrows, nrhs, a_t_values,
+                            lda, a_stride, pivot_array, pivot_stride,
+                            b_t_values, ldb, b_stride, nbatch, getrs_scratchpad,
                             getrs_scratchpad_size);
+        exec->free(getrs_scratchpad);
     } catch (sycl::exception const& e) {
         std::cout
             << "\t\tCaught synchronous SYCL exception during Batch-GETRF:\n"
             << e.what() << std::endl;
     }
 
-
-    //    exec->free(matrices);
-    //    exec->free(vectors);
     exec->free(pivot_array);
-    exec->free(getrs_scratchpad);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
@@ -186,7 +161,7 @@ template <typename ValueType>
 void transpose_scale_copy(std::shared_ptr<const DpcppExecutor> exec,
                           const matrix::BatchDiagonal<ValueType>* const scaling,
                           const matrix::BatchDense<ValueType>* const orig,
-                          matrix::BatchDense<ValueType>* const scaled);
+                          matrix::BatchDense<ValueType>* const scaled)
 {
     const size_type nbatch = orig->get_num_batch_entries();
     const int nrows = static_cast<int>(scaled->get_size().at()[0]);
@@ -194,7 +169,7 @@ void transpose_scale_copy(std::shared_ptr<const DpcppExecutor> exec,
     const size_type orig_stride = orig->get_stride().at();
     const size_type scaled_stride = scaled->get_stride().at();
 
-    auto queue = exec_->get_queue();
+    auto queue = exec->get_queue();
     auto group_size =
         queue->get_device().get_info<sycl::info::device::max_work_group_size>();
 
@@ -210,7 +185,7 @@ void transpose_scale_copy(std::shared_ptr<const DpcppExecutor> exec,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto batch_id = item_ct1.get_group_linear_id();
                 auto scaled_entry = gko::batch::batch_entry_ptr(
-                    scaled_values, scaled_stride, nrows, ib);
+                    scaled_values, scaled_stride, nrows, batch_id);
                 auto orig_entry = gko::batch::batch_entry_ptr(
                     orig_values, orig_stride, nrhs, batch_id);
                 auto scaling_entry = gko::batch::batch_entry_ptr(
@@ -234,7 +209,7 @@ void pre_diag_scale_system_transpose(
     const matrix::BatchDiagonal<ValueType>* const left_scale,
     const matrix::BatchDiagonal<ValueType>* const right_scale,
     matrix::BatchDense<ValueType>* const a_scaled_t,
-    matrix::BatchDense<ValueType>* const b_scaled_t) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const b_scaled_t)
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
@@ -247,7 +222,7 @@ void pre_diag_scale_system_transpose(
     constexpr size_type left_scale_stride = 1;
     constexpr size_type right_scale_stride = 1;
 
-    auto queue = exec_->get_queue();
+    auto queue = exec->get_queue();
     auto group_size =
         queue->get_device().get_info<sycl::info::device::max_work_group_size>();
 
@@ -272,7 +247,7 @@ void pre_diag_scale_system_transpose(
                 auto b_b = gko::batch::batch_entry_ptr(b_values, b_stride,
                                                        nrows, batch_id);
                 auto b_scaled_b = gko::batch::batch_entry_ptr(
-                    b_scaled_values, b_scaled_stride, num_rhs, batch_id);
+                    b_scaled_values, b_scaled_stride, nrhs, batch_id);
                 auto l_scale_b = gko::batch::batch_entry_ptr(
                     left_scale_values, left_scale_stride, nrows, batch_id);
                 auto r_scale_b = gko::batch::batch_entry_ptr(

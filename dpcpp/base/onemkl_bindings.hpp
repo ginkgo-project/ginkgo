@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_BASE_ONEMKL_BINDINGS_HPP_
 
 
+#include <functional>
 #include <type_traits>
-
 
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
@@ -125,21 +125,16 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 #undef GKO_BIND_DOT
 
 
-#define GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE(FuncName)                 \
-    inline void batch_getrf_scratchpad_size(                                  \
-        sycl::queue& queue, std::int64_t m, std::int64_t n, std::int64_t lda, \
-        std::int64_t stride_a, std::int64_t stride_ipiv,                      \
-        std::int64_t batch_size)                                              \
-    {                                                                         \
-        FuncName(queue, m, n, lda, stride_a, stride_ipiv, batch_size);        \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
-                  "semi-colon warnings")
+using oneapi::mkl::lapack::getrf_batch_scratchpad_size;
+using oneapi::mkl::lapack::getrs_batch_scratchpad_size;
+using oneapi::mkl::transpose::nontrans;
 
-GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE(
-    oneapi::mkl::lapack::getrf_batch_scratchpad_size);
-#undef GKO_BIND_ONEMKL_BATCH_GETRF_SCRATCHPAD_SIZE
+// TODO: is there any reasons that we need these macro bindings insteads of
+// using "using" keyword to put those oneMKL rountine into our dpcpp::onemkl::
+// namespace and use it directly? * Check the two lines below and
+// batch_direct_kernels.dp.cpp
+using oneapi::mkl::lapack::getrf_batch;
+using oneapi::mkl::lapack::getrs_batch;
 
 
 #define GKO_BIND_ONEMKL_BATCH_GETRF(T, FuncName)                               \
@@ -168,25 +163,6 @@ GKO_BIND_ONEMKL_BATCH_GETRF(ValueType, detail::not_implemented);
 #undef GKO_BIND_ONEMKL_BATCH_GETRF
 
 
-#define GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE(FuncName)                \
-    inline void batch_getrs_scratchpad_size(                                 \
-        sycl::queue& queue, std::int64_t m, std::int64_t nrhs,               \
-        std::int64_t lda, std::int64_t stride_a, std::int64_t stride_ipiv,   \
-        std::int64_t ldb, std::int64_t stride_b, std::int64_t batch_size)    \
-    {                                                                        \
-        FuncName(queue, oneapi::mkl::transpose::nontrans, m, nrhs, lda,      \
-                 stride_a, stride_ipiv, ldb, stride_b, batch_size);          \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE(
-    oneapi::mkl::lapack::getrs_batch_scratchpad_size);
-
-#undef GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE
-
-
 #define GKO_BIND_ONEMKL_BATCH_GETRS(T, FuncName)                              \
     inline void batch_getrs(sycl::queue& queue, std::int64_t m,               \
                             std::int64_t nrhs, T* a, std::int64_t lda,        \
@@ -195,9 +171,9 @@ GKO_BIND_ONEMKL_BATCH_GETRS_SCRATCHPAD_SIZE(
                             std::int64_t stride_b, std::int64_t batch_size,   \
                             T* scratchpad, std::int64_t scratchpad_size)      \
     {                                                                         \
-        FuncName(queue, oneapi::mkl::transpose::nontrans, m, nrhs, a, lda,    \
-                 stride_a, ipiv, stride_ipiv, b, ldb, stride_b, batch_size,   \
-                 scratchpad, scratchpad_size)                                 \
+        FuncName(queue, nontrans, m, nrhs, a, lda, stride_a, ipiv,            \
+                 stride_ipiv, b, ldb, stride_b, batch_size, scratchpad,       \
+                 scratchpad_size);                                            \
     }                                                                         \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
