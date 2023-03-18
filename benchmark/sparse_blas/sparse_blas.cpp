@@ -125,6 +125,7 @@ void apply_sparse_blas(const char* operation_name,
             op->run();
             exec->remove_logger(gen_logger);
         }
+        op->write_stats(test_case[operation_name], allocator);
 
         add_or_set_member(test_case[operation_name], "completed", true,
                           allocator);
