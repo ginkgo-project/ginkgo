@@ -34,11 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <vector>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/exception.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -62,7 +66,10 @@ protected:
     std::vector<index_type> expected;
 };
 
-TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
+using PrefixSumIndexTypes =
+    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
+
+TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, Works)
@@ -71,6 +78,17 @@ TYPED_TEST(PrefixSum, Works)
         this->exec, this->vals.data(), this->vals.size());
 
     ASSERT_EQ(this->vals, this->expected);
+}
+
+
+TYPED_TEST(PrefixSum, ThrowsOnOverflow)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max();
+    std::vector<TypeParam> vals{0, 152, max / 2, 25, 147, max / 2, 0, 1};
+
+    ASSERT_THROW(gko::kernels::reference::components::prefix_sum(
+                     this->exec, vals.data(), vals.size()),
+                 gko::OverflowError);
 }
 
 

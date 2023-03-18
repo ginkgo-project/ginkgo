@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 
 
+#include <limits>
 #include <memory>
 #include <random>
 #include <vector>
@@ -69,7 +70,10 @@ protected:
     gko::array<index_type> dvals;
 };
 
-TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
+using PrefixSumIndexTypes =
+    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
+
+TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, EqualsReference)
@@ -86,3 +90,20 @@ TYPED_TEST(PrefixSum, EqualsReference)
         GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
     }
 }
+
+
+#ifndef GKO_COMPILING_DPCPP
+// TODO implement overflow check for DPC++
+
+TYPED_TEST(PrefixSum, ThrowsOnOverflow)
+{
+    const auto large = std::numeric_limits<TypeParam>::max();
+    gko::array<TypeParam> data{
+        this->exec, {large / 3, large / 2, large / 4, large / 3, large / 4}};
+
+    ASSERT_THROW(gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+                     this->exec, data.get_data(), data.get_num_elems()),
+                 gko::OverflowError);
+}
+
+#endif

@@ -43,10 +43,16 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
                 IndexType* counts, size_type num_entries)
 {
+    constexpr auto max = std::numeric_limits<IndexType>::max();
     IndexType partial_sum{};
     for (size_type i = 0; i < num_entries; ++i) {
         auto nnz = counts[i];
         counts[i] = partial_sum;
+        if (max - partial_sum <= nnz) {
+            throw OverflowError(
+                __FILE__, __LINE__,
+                name_demangling::get_type_name(typeid(IndexType)));
+        }
         partial_sum += nnz;
     }
 }

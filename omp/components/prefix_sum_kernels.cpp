@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <limits>
 
 
 #include <omp.h>
@@ -68,6 +69,8 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
     const int nthreads = omp_get_max_threads();
     vector<IndexType> proc_sums(nthreads, 0, {exec});
     const size_type def_num_witems = (num_entries - 1) / nthreads + 1;
+    bool overflow = false;
+    constexpr auto max = std::numeric_limits<IndexType>::max();
 
 #pragma omp parallel
     {
@@ -80,7 +83,10 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
         for (size_type i = startidx; i < endidx; ++i) {
             auto nnz = counts[i];
             counts[i] = partial_sum;
-            partial_sum += nnz;
+            if (max - partial_sum <= nnz) {
+                overflow = true;
+            }
+            partial_sum = partial_sum + nnz;
         }
 
         proc_sums[thread_id] = partial_sum;
@@ -90,15 +96,25 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp single
         {
             for (int i = 0; i < nthreads - 1; i++) {
-                proc_sums[i + 1] += proc_sums[i];
+                if (max - proc_sums[i + 1] <= proc_sums[i]) {
+                    overflow = true;
+                }
+                proc_sums[i + 1] = proc_sums[i + 1] + proc_sums[i];
             }
         }
 
         if (thread_id > 0) {
             for (size_type i = startidx; i < endidx; i++) {
+                if (max - counts[i] <= proc_sums[thread_id - 1]) {
+                    overflow = true;
+                }
                 counts[i] += proc_sums[thread_id - 1];
             }
         }
+    }
+    if (overflow) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(IndexType)));
     }
 }
 
