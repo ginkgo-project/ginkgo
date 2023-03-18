@@ -184,7 +184,10 @@ int main(int argc, char* argv[])
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
                       << std::endl;
-            add_or_set_member(test_case, "size", data.size[0], allocator);
+            add_or_set_member(test_case, "rows", data.size[0], allocator);
+            add_or_set_member(test_case, "cols", data.size[1], allocator);
+            add_or_set_member(test_case, "nonzeros", data.nonzeros.size(),
+                              allocator);
 
             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size());
             mtx->read(data);
