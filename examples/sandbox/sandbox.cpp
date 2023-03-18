@@ -1,6 +1,7 @@
 #include <ginkgo/ginkgo.hpp>
 
 #include <iostream>
+#include "core/factorization/symbolic.hpp"
 #include "ginkgo/core/base/executor.hpp"
 #include "ginkgo/core/matrix/csr.hpp"
 
@@ -72,8 +73,21 @@ int main(int argc, char* argv[])
     auto arr = gko::make_array_view(exec, perm->get_size()[0],
                                     perm->get_permutation());
     gko::matrix_data<> data;
-    gko::as<gko::matrix::Csr<>>(mtx->permute(&arr))->write(data);
-    data.ensure_row_major_order();
-    // gko::write_raw(std::cout, data);
-    print_sparsity_pattern(std::cout, data, data);
+    auto reorder_mtx = gko::as<gko::matrix::Csr<>>(mtx->permute(&arr));
+    reorder_mtx->sort_by_column_index();
+    reorder_mtx->write(data);
+    gko::write_raw(std::cout, data, gko::layout_type::coordinate);
+    // print_sparsity_pattern(std::cout, data, data);
+    std::unique_ptr<gko::matrix::Csr<>> orig_factors;
+    std::unique_ptr<gko::matrix::Csr<>> reorder_factors;
+    std::unique_ptr<gko::factorization::elimination_forest<int>> forest;
+    gko::factorization::symbolic_cholesky(mtx.get(), orig_factors, forest);
+    gko::factorization::symbolic_cholesky(reorder_mtx.get(), reorder_factors,
+                                          forest);
+    orig_factors->write(data);
+    // print_sparsity_pattern(std::cout, data, data);
+    reorder_factors->write(data);
+    // print_sparsity_pattern(std::cout, data, data);
+    std::cout << orig_factors->get_num_stored_elements() << ' '
+              << reorder_factors->get_num_stored_elements() << '\n';
 }
