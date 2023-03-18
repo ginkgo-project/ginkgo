@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 
+#include <rapidjson/document.h>
+
+
 #include "benchmark/utils/types.hpp"
 
 
@@ -58,7 +61,7 @@ public:
      * Sets up all necessary data for a following call to
      * BenchmarkOperation::run.
      */
-    virtual void prepare(){};
+    virtual void prepare() {}
 
     /**
      * Computes the error between a reference solution and the solution provided
@@ -71,6 +74,14 @@ public:
      * Executes the operation to be benchmarked.
      */
     virtual void run() = 0;
+
+
+    /**
+     * Allows the operation to write arbitrary information to the JSON output.
+     */
+    virtual void write_stats(rapidjson::Value& object,
+                             rapidjson::MemoryPoolAllocator<>& allocator)
+    {}
 };
 
 

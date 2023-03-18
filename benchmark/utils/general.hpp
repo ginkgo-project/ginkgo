@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 #include "core/distributed/helpers.hpp"
@@ -185,59 +186,6 @@ std::default_random_engine& get_engine()
 {
     static std::default_random_engine engine(FLAGS_seed);
     return engine;
-}
-
-
-// helper for writing out rapidjson Values
-std::ostream& operator<<(std::ostream& os, const rapidjson::Value& value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
-                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
-                            rapidjson::kWriteNanAndInfFlag>
-        writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(n, std::forward<T>(value), allocator);
-    }
-}
-
-
-/**
-   @internal This is required to fix some MacOS problems (and possibly other
-   compilers). There is no explicit RapidJSON constructor for `std::size_t` so a
-   conversion to a known constructor is required to solve any ambiguity. See the
-   last comments of https://github.com/ginkgo-project/ginkgo/issues/270.
- */
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] =
-            std::forward<std::uint64_t>(static_cast<std::uint64_t>(value));
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(
-            n, std::forward<std::uint64_t>(static_cast<std::uint64_t>(value)),
-            allocator);
-    }
 }
 
 

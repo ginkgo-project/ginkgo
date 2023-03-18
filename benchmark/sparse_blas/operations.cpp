@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/sparse_blas/operations.hpp"
+#include "benchmark/utils/json.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -631,6 +632,13 @@ public:
 
     void run() override { gko::factorization::symbolic_lu(mtx_, result_); }
 
+    void write_stats(rapidjson::Value& object,
+                     rapidjson::MemoryPoolAllocator<>& allocator) override
+    {
+        add_or_set_member(object, "factor_nonzeros",
+                          result_->get_num_stored_elements(), allocator);
+    }
+
 private:
     const Mtx* mtx_;
     std::unique_ptr<Mtx> result_;
@@ -654,6 +662,13 @@ public:
     void run() override
     {
         gko::factorization::symbolic_cholesky(mtx_, result_, forest_);
+    }
+
+    void write_stats(rapidjson::Value& object,
+                     rapidjson::MemoryPoolAllocator<>& allocator) override
+    {
+        add_or_set_member(object, "factor_nonzeros",
+                          result_->get_num_stored_elements(), allocator);
     }
 
 private:
