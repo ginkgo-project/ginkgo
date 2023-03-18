@@ -33,7 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 
 
-#include "cuda/components/prefix_sum.cuh"
+#include <limits>
+
+
+#include <thrust/scan.h>
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+
+
+#include "cuda/base/thrust.cuh"
 
 
 namespace gko {
@@ -42,30 +53,26 @@ namespace cuda {
 namespace components {
 
 
-constexpr int prefix_sum_block_size = 512;
-
-
 template <typename IndexType>
 void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
                 size_type num_entries)
 {
-    // prefix_sum should only be performed on a valid array
-    if (num_entries > 0) {
-        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        array<IndexType> block_sum_array(exec, num_blocks - 1);
-        auto block_sums = block_sum_array.get_data();
-        if (num_blocks > 0) {
-            start_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size, 0, exec->get_stream()>>>(
-                    num_entries, counts, block_sums);
-        }
-        // add the total sum of the previous block only when the number of
-        // blocks is larger than 1.
-        if (num_blocks > 1) {
-            finalize_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size, 0, exec->get_stream()>>>(
-                    num_entries, counts, block_sums);
-        }
+    constexpr auto max = std::numeric_limits<IndexType>::max();
+    array<bool> overflow{exec, {false}};
+    thrust::exclusive_scan(thrust_policy(exec), counts, counts + num_entries,
+                           counts, 0,
+                           [overflow_flag = overflow.get_data()] __device__(
+                               IndexType i, IndexType j) {
+                               auto result = i + j;
+                               if (max - i < j) {
+                                   *overflow_flag = true;
+                               }
+                               return result;
+                           });
+    overflow.set_executor(exec->get_master());
+    if (*overflow.get_const_data()) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(IndexType)));
     }
 }
 
