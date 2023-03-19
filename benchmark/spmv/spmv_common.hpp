@@ -239,6 +239,11 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
         } catch (const std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
         }
     }
 }
