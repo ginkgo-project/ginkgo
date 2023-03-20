@@ -580,47 +580,52 @@ public:
     // There is only one corresponding `on_xxx` function which takes a bool
     // as its first parameter to distinguish between blocking and non-blocking
     // events.
-#define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)               \
-protected:                                                                 \
-    virtual void on_##_event_name(__VA_ARGS__) const                       \
-    {}                                                                     \
-                                                                           \
-public:                                                                    \
-    template <size_type Event, typename... Params>                         \
-    std::enable_if_t<Event == _id && (_id < event_count_max)> on(          \
-        mpi::mode mode, Params&&... params) const                          \
-    {                                                                      \
-        if (enabled_events_ & (mask_type{1} << Event) &&                   \
-            enabled_mpi_modes_ & static_cast<uint8>(mode.index())) {       \
-            this->on_##_event_name(mode, std::forward<Params>(params)...); \
-        }                                                                  \
-    }                                                                      \
-    static constexpr size_type _event_name{_id};                           \
-    static constexpr mask_type _event_name##_mask                          \
-    {                                                                      \
-        mask_type{1} << _id                                                \
+#define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)            \
+protected:                                                              \
+    virtual void on_##_event_name(__VA_ARGS__) const                    \
+    {}                                                                  \
+                                                                        \
+public:                                                                 \
+    template <size_type Event, typename... Params>                      \
+    std::enable_if_t<Event == _id && (_id < event_count_max)> on(       \
+        const Executor* exec, mpi::mode mode, Params&&... params) const \
+    {                                                                   \
+        if (enabled_events_ & (mask_type{1} << Event) &&                \
+            enabled_mpi_modes_ & static_cast<uint8>(mode.index())) {    \
+            this->on_##_event_name(exec, mode,                          \
+                                   std::forward<Params>(params)...);    \
+        }                                                               \
+    }                                                                   \
+    static constexpr size_type _event_name{_id};                        \
+    static constexpr mask_type _event_name##_mask                       \
+    {                                                                   \
+        mask_type{1} << _id                                             \
     }
 
 
     // TODO: Perhaps use similar approach as parameters to better support
     // default/non-existing parameters
     GKO_LOGGER_REGISTER_MPI_EVENT(24, mpi_point_to_point_communication_started,
-                                  mpi::mode mode, const char* name,
-                                  const void* comm, mpi::pt2pt data);
+                                  const Executor* exec, mpi::mode mode,
+                                  const char* name, const void* comm,
+                                  mpi::pt2pt data);
 
     GKO_LOGGER_REGISTER_MPI_EVENT(25,
                                   mpi_point_to_point_communication_completed,
-                                  mpi::mode mode, const char* name,
-                                  const void* comm, mpi::pt2pt data);
+                                  const Executor* exec, mpi::mode mode,
+                                  const char* name, const void* comm,
+                                  mpi::pt2pt data);
 
 
     GKO_LOGGER_REGISTER_MPI_EVENT(26, mpi_collective_communication_started,
-                                  mpi::mode mode, const char* name,
-                                  const void* comm, const mpi::coll data);
+                                  const Executor* exec, mpi::mode mode,
+                                  const char* name, const void* comm,
+                                  const mpi::coll data);
 
     GKO_LOGGER_REGISTER_MPI_EVENT(27, mpi_collective_communication_completed,
-                                  mpi::mode mode, const char* name,
-                                  const void* comm, mpi::coll data);
+                                  const Executor* exec, mpi::mode mode,
+                                  const char* name, const void* comm,
+                                  mpi::coll data);
 
 #undef GKO_LOGGER_REGISTER_MPI_EVENT
 

@@ -458,9 +458,9 @@ protected:
     void log(std::shared_ptr<const Executor> exec, Params&&... params) const
     {
         log::EnableLogging<EnableLoggingWithPropagation<T>>::template log<
-            Event>(std::forward<Params>(params)...);
+            Event>(exec.get(), std::forward<Params>(params)...);
         propagator(std::move(exec))
-            .template log<Event>(std::forward<Params>(params)...);
+            .template log<Event>(exec.get(), std::forward<Params>(params)...);
     }
 };
 
