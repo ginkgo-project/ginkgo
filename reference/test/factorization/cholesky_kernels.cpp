@@ -233,7 +233,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeExample)
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 26);
     gko::kernels::reference::cholesky::symbolic_count(
         this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, l_factor->get_row_ptrs(), 11);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
@@ -303,7 +303,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeSeparable)
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 26);
     gko::kernels::reference::cholesky::symbolic_count(
         this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, l_factor->get_row_ptrs(), 11);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
@@ -373,7 +373,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeMissingDiagonal)
     auto l_factor = matrix_type::create(this->ref, gko::dim<2>{10, 10}, 20);
     gko::kernels::reference::cholesky::symbolic_count(
         this->ref, mtx.get(), *forest, l_factor->get_row_ptrs(), this->tmp);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, l_factor->get_row_ptrs(), 11);
 
     gko::kernels::reference::cholesky::symbolic_factorize(
@@ -422,7 +422,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
         gko::kernels::reference::cholesky::symbolic_count(
             this->ref, this->mtx.get(), *forest, this->l_factor->get_row_ptrs(),
             this->tmp);
-        gko::kernels::reference::components::prefix_sum(
+        gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, this->l_factor->get_row_ptrs(),
             this->mtx->get_size()[0] + 1);
 

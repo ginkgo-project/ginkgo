@@ -408,8 +408,8 @@ void add_candidates(syn::value_list<int, subgroup_size>,
         num_rows);
 
     // build row ptrs
-    components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
-    components::prefix_sum(exec, u_new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, u_new_row_ptrs, num_rows + 1);
 
     // resize output arrays
     auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);

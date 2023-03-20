@@ -75,7 +75,7 @@ TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
 
 TYPED_TEST(PrefixSum, Works)
 {
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->exec, this->vals.data(), this->vals.size());
 
     ASSERT_EQ(this->vals, this->expected);
@@ -89,8 +89,8 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
     std::vector<TypeParam> vals{max - 1, 1, 0};
     std::vector<TypeParam> expected{0, max - 1, max};
 
-    gko::kernels::reference::components::prefix_sum(this->exec, vals.data(),
-                                                    vals.size());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, vals.data(), vals.size());
 
     ASSERT_EQ(vals, expected);
 }
@@ -101,7 +101,7 @@ TYPED_TEST(PrefixSum, ThrowsOnOverflow)
     constexpr auto max = std::numeric_limits<TypeParam>::max();
     std::vector<TypeParam> vals{0, 152, max / 2, 25, 147, max / 2, 0, 1};
 
-    ASSERT_THROW(gko::kernels::reference::components::prefix_sum(
+    ASSERT_THROW(gko::kernels::reference::components::prefix_sum_nonnegative(
                      this->exec, vals.data(), vals.size()),
                  gko::OverflowError);
 }

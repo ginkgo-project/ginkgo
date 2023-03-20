@@ -570,7 +570,7 @@ void spgeam(syn::value_list<int, subwarp_size>,
     }
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, m + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, m + 1);
 
     // accumulate non-zeros for alpha * A + beta * B
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
@@ -816,7 +816,8 @@ void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
             num_rows, perm, orig->get_const_row_ptrs(),
             permuted->get_row_ptrs());
     }
-    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
@@ -847,7 +848,8 @@ void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType* perm,
             num_rows, perm, orig->get_const_row_ptrs(),
             row_permuted->get_row_ptrs());
     }
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
@@ -879,7 +881,8 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
             num_rows, perm, orig->get_const_row_ptrs(),
             row_permuted->get_row_ptrs());
     }
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {

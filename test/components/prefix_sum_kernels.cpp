@@ -83,9 +83,9 @@ TYPED_TEST(PrefixSum, EqualsReference)
     for (auto size :
          {size_type{0}, size_type{1}, size_type{131}, this->total_size}) {
         SCOPED_TRACE(size);
-        gko::kernels::reference::components::prefix_sum(
+        gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, this->vals.get_data(), size);
-        gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
             this->exec, this->dvals.get_data(), size);
 
         GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
@@ -102,7 +102,7 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
                      std::is_unsigned<TypeParam>::value;
     gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
 
-    gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+    gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
         this->exec, data.get_data(), data.get_num_elems());
 
     GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, max - 1, max}));
@@ -118,9 +118,10 @@ TYPED_TEST(PrefixSum, ThrowsOnOverflow)
     gko::array<TypeParam> data{this->exec,
                                {max / 3, max / 2, max / 4, max / 3, max / 4}};
 
-    ASSERT_THROW(gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
-                     this->exec, data.get_data(), data.get_num_elems()),
-                 gko::OverflowError);
+    ASSERT_THROW(
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+            this->exec, data.get_data(), data.get_num_elems()),
+        gko::OverflowError);
 }
 
 #endif
