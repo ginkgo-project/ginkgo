@@ -81,7 +81,8 @@ void WM_pGE_app1_helper(
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
-    WM_pGE_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
+    hipLaunchKernelGGL(
+        WM_pGE_kernel_approach_1<subwarp_size>, block, shared_size, 0,
         number_WM_steps, nbatch, nrows, as_hip_type(tridiag_mat_subdiags),
         as_hip_type(tridiag_mat_maindiags), as_hip_type(tridiag_mat_superdiags),
         as_hip_type(rhs), as_hip_type(x));
@@ -113,12 +114,11 @@ void WM_pGE_app2_helper(
 
     using HipValueType = typename gko::kernels::hip::hip_type<ValueType>;
 
-    WM_pGE_kernel_approach_2<HipValueType, subwarp_size>
-        <<<grid, block, shared_size>>>(number_WM_steps, nbatch, nrows,
-                                       as_hip_type(tridiag_mat_subdiags),
-                                       as_hip_type(tridiag_mat_maindiags),
-                                       as_hip_type(tridiag_mat_superdiags),
-                                       as_hip_type(rhs), as_hip_type(x));
+    hipLaunchKernelGGL(
+        WM_pGE_kernel_approach_2<HipValueType, subwarp_size>, grid, block,
+        shared_size, 0, number_WM_steps, nbatch, nrows,
+        as_hip_type(tridiag_mat_subdiags), as_hip_type(tridiag_mat_maindiags),
+        as_hip_type(tridiag_mat_superdiags), as_hip_type(rhs), as_hip_type(x));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
