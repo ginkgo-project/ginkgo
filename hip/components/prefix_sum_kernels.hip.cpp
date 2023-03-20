@@ -61,19 +61,19 @@ void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType* counts,
                 size_type num_entries)
 {
     constexpr auto max = std::numeric_limits<IndexType>::max();
-    array<bool> overflow{exec, {false}};
-    thrust::exclusive_scan(thrust_policy(exec), counts, counts + num_entries,
-                           counts, 0,
-                           [overflow_flag = overflow.get_data()] __device__(
-                               IndexType i, IndexType j) {
-                               auto result = i + j;
-                               if (max - i < j) {
-                                   *overflow_flag = true;
-                               }
-                               return result;
-                           });
-    overflow.set_executor(exec->get_master());
-    if (*overflow.get_const_data()) {
+    constexpr auto sentinel =
+        std::is_signed<IndexType>::value ? IndexType(-1) : max;
+    thrust::exclusive_scan(
+        thrust_policy(exec), counts, counts + num_entries, counts, 0,
+        [] __device__(IndexType i, IndexType j) -> IndexType {
+            auto result = i + j;
+            if (i == sentinel || j == sentinel || max - i < j) {
+                return sentinel;
+            }
+            return result;
+        });
+    if (num_entries > 0 &&
+        exec->copy_val_to_host(counts + num_entries - 1) == sentinel) {
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(IndexType)));
     }

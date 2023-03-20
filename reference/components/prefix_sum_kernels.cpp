@@ -48,7 +48,7 @@ void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < num_entries; ++i) {
         auto nnz = counts[i];
         counts[i] = partial_sum;
-        if (max - partial_sum <= nnz) {
+        if (max - partial_sum < nnz) {
             throw OverflowError(
                 __FILE__, __LINE__,
                 name_demangling::get_type_name(typeid(IndexType)));

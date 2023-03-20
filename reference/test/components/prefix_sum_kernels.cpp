@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 
@@ -78,6 +79,20 @@ TYPED_TEST(PrefixSum, Works)
         this->exec, this->vals.data(), this->vals.size());
 
     ASSERT_EQ(this->vals, this->expected);
+}
+
+
+TYPED_TEST(PrefixSum, WorksCloseToOverflow)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max() -
+                         std::is_unsigned<TypeParam>::value;
+    std::vector<TypeParam> vals{max - 1, 1, 0};
+    std::vector<TypeParam> expected{0, max - 1, max};
+
+    gko::kernels::reference::components::prefix_sum(this->exec, vals.data(),
+                                                    vals.size());
+
+    ASSERT_EQ(vals, expected);
 }
 
 

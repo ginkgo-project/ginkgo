@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <memory>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 
@@ -92,14 +93,28 @@ TYPED_TEST(PrefixSum, EqualsReference)
 }
 
 
+TYPED_TEST(PrefixSum, WorksCloseToOverflow)
+{
+    // make sure the value we use as max isn't the sentinel used to mark overflows
+    const auto max = std::numeric_limits<TypeParam>::max() -
+                             std::is_unsigned<TypeParam>::value;
+    gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
+
+    gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+        this->exec, data.get_data(), data.get_num_elems());
+
+    GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, max - 1, max}));
+}
+
+
 #ifndef GKO_COMPILING_DPCPP
 // TODO implement overflow check for DPC++
 
 TYPED_TEST(PrefixSum, ThrowsOnOverflow)
 {
-    const auto large = std::numeric_limits<TypeParam>::max();
-    gko::array<TypeParam> data{
-        this->exec, {large / 3, large / 2, large / 4, large / 3, large / 4}};
+    const auto max = std::numeric_limits<TypeParam>::max();
+    gko::array<TypeParam> data{this->exec,
+                               {max / 3, max / 2, max / 4, max / 3, max / 4}};
 
     ASSERT_THROW(gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
                      this->exec, data.get_data(), data.get_num_elems()),
