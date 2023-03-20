@@ -113,6 +113,11 @@ public:
     };
 
     /**
+     * Returns the parameters used to construct the factory.
+     */
+    const parameters_type& get_parameters() { return parameters_; }
+
+    /**
      * @copydoc LinOpFactory::generate
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Permutation instead of a generic LinOp, which would need
@@ -120,7 +125,7 @@ public:
      *       It is only necessary because smart pointers aren't covariant.
      */
     std::unique_ptr<permutation_type> generate(
-        std::shared_ptr<const matrix_type> system_matrix) const;
+        std::shared_ptr<const LinOp> system_matrix) const;
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
