@@ -47,9 +47,6 @@ namespace kernels {
 namespace hip {
 namespace batch_tridiagonal_solver {
 
-namespace {
-
-
 #define GKO_HIP_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE \
     1, 2, 4, 8, 16, 32, 64
 
@@ -235,7 +232,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL);
 
-}  // namespace
 }  // namespace batch_tridiagonal_solver
 }  // namespace hip
 }  // namespace kernels
+}  // namespace gko
