@@ -487,31 +487,6 @@ void Stream<ValueType>::on_iteration_complete(
 }
 
 
-template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
-                                              const size_type& num_iterations,
-                                              const LinOp* residual,
-                                              const LinOp* solution,
-                                              const LinOp* residual_norm) const
-{
-    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
-                                residual, residual_norm, nullptr, nullptr,
-                                false);
-}
-
-
-template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
-{
-    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
-                                residual, residual_norm,
-                                implicit_sq_residual_norm, nullptr, false);
-}
-
-
 #define GKO_DECLARE_STREAM(_type) class Stream<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
 
