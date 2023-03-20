@@ -98,9 +98,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_x, const int position_y) {
-        return static_cast<int>(local_size) * dims[0] * position_x +
-               static_cast<int>(local_size) * position_y;
+    auto global_offset = [&](const int position_y, const int position_x) {
+        return static_cast<int>(local_size) * position_x +
+               static_cast<int>(local_size) * dims[0] * position_y;
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -116,19 +116,18 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
                             : discretization_points - i);
     };
 
-    auto flat_idx = [&](const IndexType ix, const IndexType iy) {
+    auto flat_idx = [&](const IndexType iy, const IndexType ix) {
         auto tpx = target_position(ix, positions[0]);
         auto tpy = target_position(iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return global_offset(tpx, tpy) +
-                   target_local_idx(ix) * discretization_points +
-                   target_local_idx(iy);
+            return global_offset(tpy, tpx) + target_local_idx(ix) +
+                   target_local_idx(iy) * discretization_points;
         } else {
             return static_cast<IndexType>(-1);
         }
     };
 
-    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j) {
+    auto is_valid_neighbor = [&](const IndexType d_j, const IndexType d_i) {
         return !restricted || d_i == 0 || d_j == 0;
     };
 
@@ -209,11 +208,11 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_x, const int position_y,
-                             const int position_z) {
-        return position_x * static_cast<int>(local_size) * dims[0] * dims[1] +
+    auto global_offset = [&](const int position_z, const int position_y,
+                             const int position_x) {
+        return position_x * static_cast<int>(local_size) +
                position_y * static_cast<int>(local_size) * dims[0] +
-               position_z * static_cast<int>(local_size);
+               position_z * static_cast<int>(local_size) * dims[0] * dims[1];
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -229,18 +228,17 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                             : discretization_points - i);
     };
 
-    auto flat_idx = [&](const IndexType ix, const IndexType iy,
-                        const IndexType iz) {
+    auto flat_idx = [&](const IndexType iz, const IndexType iy,
+                        const IndexType ix) {
         auto tpx = target_position(ix, positions[0]);
         auto tpy = target_position(iy, positions[1]);
         auto tpz = target_position(iz, positions[2]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
             is_in_box(tpz, dims[2])) {
-            return global_offset(tpx, tpy, tpz) +
-                   target_local_idx(ix) * discretization_points *
-                       discretization_points +
+            return global_offset(tpz, tpy, tpx) + target_local_idx(ix) +
                    target_local_idx(iy) * discretization_points +
-                   target_local_idx(iz);
+                   target_local_idx(iz) * discretization_points *
+                       discretization_points;
         } else {
             return static_cast<IndexType>(-1);
         }
