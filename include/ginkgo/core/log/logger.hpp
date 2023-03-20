@@ -99,26 +99,18 @@ struct fixed {
 };
 
 struct variable {
-    variable(int* sizes, int* offsets) : sizes(sizes), offsets(offsets) {}
-    int* sizes;
-    int* offsets;
+    const int* sizes;
+    const int* offsets;
 };
 
 template <typename Size>
 struct buffer {
-    buffer(uintptr loc, Size size, void* type)
-        : loc(loc), size(std::move(size)), type(type)
-    {}
     uintptr loc;
     Size size;
     void* type;
 };
 
 struct pt2pt {
-    pt2pt(buffer<fixed> data, std::optional<int> source,
-          std::optional<int> dest, int tag, std::optional<void*> status = {})
-        : data(data), source(source), dest(dest), tag(tag), status(status)
-    {}
     buffer<fixed> data;
     std::optional<int> source;
     std::optional<int> dest;
@@ -128,10 +120,6 @@ struct pt2pt {
 
 template <typename Size>
 struct all_to_all {
-    all_to_all(buffer<Size> send, buffer<Size> recv, operation op = {})
-        : send(std::move(send)), recv(std::move(recv)), op(op)
-    {}
-
     buffer<Size> send;
     buffer<Size> recv;
     operation op;
@@ -139,10 +127,6 @@ struct all_to_all {
 
 template <typename Size>
 struct all_to_one {
-    all_to_one(buffer<Size> send, buffer<Size> recv, int root,
-               operation op = {})
-        : send(std::move(send)), recv(std::move(recv)), op(op)
-    {}
     buffer<Size> send;
     buffer<Size> recv;
     int root;
@@ -151,10 +135,6 @@ struct all_to_one {
 
 template <typename Size>
 struct one_to_all {
-    one_to_all(buffer<Size> send, buffer<Size> recv, int root,
-               operation op = {})
-        : send(std::move(send)), recv(std::move(recv)), op(op)
-    {}
     buffer<Size> send;
     buffer<Size> recv;
     int root;
@@ -162,9 +142,6 @@ struct one_to_all {
 };
 
 struct scan {
-    scan(buffer<fixed> send, uintptr recv_loc, void* op)
-        : send(std::move(send)), recv_loc(recv_loc), op(op)
-    {}
     buffer<fixed> send;
     uintptr_t recv_loc;
     void* op;
