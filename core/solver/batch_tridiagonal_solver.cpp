@@ -94,7 +94,13 @@ std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::conj_transpose()
                              ->conj_transpose()));
 }
 
-
+/**
+ * Note: We restrict the type of system matrix in this solver to batched
+ * tridiagonal rather than having a provision to convert other matrix types such
+ * as BatchDense, BatchCsr or BatchEll to BatchTridiagonal, as the conversion
+ * might not always be possible, due to the presence of elements outside the
+ * trdiagonal sparsity pattern in such matrices.
+ */
 template <typename ValueType>
 void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
                                                    BatchLinOp* x) const
@@ -105,29 +111,11 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
 
     if (!this->system_matrix_->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
-    }  // TODO: Provision for solving non-uniform tridiagonal batch
+    }
 
     auto exec = this->get_executor();
 
-    /* EITHER: (Have the conversion facility)
-    std::shared_ptr<gko::matrix::BatchTridiagonal<ValueType>>
-        system_matrix_tridiagonal;
-
-    if (auto temp_tridiagonal =
-            dynamic_cast<const matrix_type*>(this->system_matrix_.get())) {
-        system_matrix_tridiagonal =
-            gko::share(gko::clone(exec, temp_tridiagonal));
-        // TODO: avoid extra copy if matrix is already sorted
-    } else {
-        system_matrix_tridiagonal = gko::share(matrix_type::create(exec));
-        as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
-            ->convert_to(system_matrix_tridiagonal.get());
-    }
-    */
-
-    // OR: Restrict the system matrix type
-
-    // That means the only matrix type allowed is batched tridiagonal matrix.
+    // The only matrix type allowed is batched tridiagonal matrix.
     auto system_matrix_tridiagonal =
         as<const matrix_type>(this->system_matrix_);
 

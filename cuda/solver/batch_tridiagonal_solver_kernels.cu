@@ -61,7 +61,8 @@ using batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes =
 namespace {
 
 constexpr int default_block_size =
-    128;  // found out by experimentally that 128 works the best
+    128;  // found out by experimentally that 128 works the best for medium
+          // sized matrices (nrows raound 300)
 
 #include "common/cuda_hip/solver/batch_tridiagonal_solver_kernels.hpp.inc"
 
