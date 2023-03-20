@@ -1590,20 +1590,21 @@ public:
     void scan(std::shared_ptr<const Executor> exec, const ScanType* send_buffer,
               ScanType* recv_buffer, int count, MPI_Op operation) const
     {
+        namespace log = gko::log::mpi;
         auto guard = exec->get_scoped_device_id_guard();
         auto type = type_impl<ScanType>::get_type();
-        this->template log<Logger::mpi_reduction_started>(
-            exec, mpi_mode::blocking, "scan", comm_.get(),
-            reinterpret_cast<uintptr>(send_buffer),
-            reinterpret_cast<uintptr>(recv_buffer), count, &type, &operation,
-            Logger::unspecified_mpi_rank, nullptr);
+        this->template log<Logger::mpi_collective_communication_started>(
+            exec, log::blocking{}, "scan", comm_.get(),
+            log::scan{{reinterpret_cast<uintptr>(send_buffer), count, &type},
+                      {reinterpret_cast<uintptr>(recv_buffer), count, &type},
+                      &operation});
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count, type,
                                           operation, this->get()));
-        this->template log<Logger::mpi_reduction_completed>(
-            exec, mpi_mode::blocking, "scan", comm_.get(),
-            reinterpret_cast<uintptr>(send_buffer),
-            reinterpret_cast<uintptr>(recv_buffer), count, &type, &operation,
-            Logger::unspecified_mpi_rank, nullptr);
+        this->template log<Logger::mpi_collective_communication_completed>(
+            exec, log::blocking{}, "scan", comm_.get(),
+            log::scan{{reinterpret_cast<uintptr>(send_buffer), count, &type},
+                      {reinterpret_cast<uintptr>(recv_buffer), count, &type},
+                      &operation});
     }
 
     /**

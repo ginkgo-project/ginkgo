@@ -143,7 +143,7 @@ struct one_to_all {
 
 struct scan {
     buffer<fixed> send;
-    uintptr_t recv_loc;
+    buffer<fixed> recv;
     void* op;
 };
 
