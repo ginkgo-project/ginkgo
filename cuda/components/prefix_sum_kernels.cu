@@ -53,33 +53,7 @@ namespace cuda {
 namespace components {
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
-                size_type num_entries)
-{
-    constexpr auto max = std::numeric_limits<IndexType>::max();
-    constexpr auto sentinel =
-        std::is_signed<IndexType>::value ? IndexType(-1) : max;
-    thrust::exclusive_scan(
-        thrust_policy(exec), counts, counts + num_entries, counts, 0,
-        [] __device__(IndexType i, IndexType j) -> IndexType {
-            auto result = i + j;
-            if (i == sentinel || j == sentinel || max - i < j) {
-                return sentinel;
-            }
-            return result;
-        });
-    if (num_entries > 0 &&
-        exec->copy_val_to_host(counts + num_entries - 1) == sentinel) {
-        throw OverflowError(__FILE__, __LINE__,
-                            name_demangling::get_type_name(typeid(IndexType)));
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+#include "common/cuda_hip/components/prefix_sum_kernels.hpp.inc"
 
 
 }  // namespace components
