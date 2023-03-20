@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
 
@@ -594,5 +595,49 @@ TYPED_TEST(BatchTridiagonal, GeneratesCorrectMatrixData)
     EXPECT_EQ(data[1].nonzeros[12], tpl(4, 4, value_type{3.0}));
 }
 
+TYPED_TEST(BatchTridiagonal, ThrowsOnRectangularMatrix)
+{
+    ASSERT_THROW(gko::matrix::BatchTridiagonal<TypeParam>::create(
+                     this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 5})),
+                 gko::DimensionMismatch);
+}
+
+TYPED_TEST(BatchTridiagonal, ThrowsonNonTridiagMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  7
+        3  6  1
+        0  0  9
+
+        second matrix:
+        4  3
+        3  7
+
+    */
+
+    // clang-format off
+
+    ASSERT_THROW( m->read( 
+         {gko::matrix_data<TypeParam>{{3, 3},
+                                         {{0, 0, 2.0},
+                                          {0, 1, 4.0},
+                                          {0, 2, 7.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 6.0},
+                                          {1, 2, 1.0},
+                                          {2, 2, 9.0}}},
+             gko::matrix_data<TypeParam>{{2, 2},
+                                         {{0, 0, 4.0},
+                                          {0, 1, 3.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 7.0}}}}) , std::runtime_error);
+
+    // clang-format on
+}
 
 }  // namespace

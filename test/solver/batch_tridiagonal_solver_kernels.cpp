@@ -60,7 +60,9 @@ protected:
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
    
     BatchTridiagonalSolver()
-        : tridiag_mat(get_batch_tridiagonal_matrix())
+        : tridiag_mat(gko::test::generate_uniform_batch_tridiagonal_random_matrix<value_type>(nbatch, 
+        nrows, std::uniform_int_distribution<>(nrows, nrows), std::normal_distribution<real_type>(0.0, 1.0), 
+        rand_engine, ref))
     {
         set_up_data();
     }
@@ -75,91 +77,8 @@ protected:
     std::shared_ptr<BTridiag> tridiag_mat;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
-    std::shared_ptr<BDense> expected_sol;
     std::shared_ptr<BDiag> left_scale;
     std::shared_ptr<BDiag> right_scale;
-
-    std::unique_ptr<BTridiag> get_batch_tridiagonal_matrix()
-    {       
-         /*
-        BatchTridiagonal matrix:
-
-        2  3  0  0  0         2       19
-        4  1  5  0  0         5       18
-        0  5  9  8  0     *   1    =  58
-        0  0  8  4  2         3       22
-        0  0  0  6  1         1       19
-
-        9  8  0  0  0         4        44
-        4  3  5  0  0         1        29
-        0  7  1  4  0     *   2   =    33
-        0  0  8  2  1         6        30
-        0  0  0  6  3         2        42
-
-        */
-
-        //TODO: Add a utility function whoch generates random batched tridiagonal matrix
-        auto mtx = gko::matrix::BatchTridiagonal<value_type>::create(
-            ref,
-            gko::batch_dim<2>(nbatch, gko::dim<2>{nrows,nrows}));
-        
-        value_type* subdiag = mtx->get_sub_diagonal();
-        value_type* maindiag = mtx->get_main_diagonal();
-        value_type* superdiag = mtx->get_super_diagonal();
-
-        for(int batch_idx = 0; batch_idx < nbatch; batch_idx++)
-        {
-            for(int row_idx = 0; row_idx < nrows; row_idx++)
-            {   
-                value_type sub_val = row_idx == 0 ? 0 : rand();
-                value_type main_val = rand();
-                value_type super_val = row_idx == nrows -1 ? 0 : rand();
-
-                subdiag[batch_idx * nrows + row_idx] = sub_val;
-                maindiag[batch_idx * nrows + row_idx] = main_val;
-                superdiag[batch_idx * nrows + row_idx] = super_val;
-            }
-        }
-
-        /*
-        //clang-format off
-        subdiag[0] = 0.0;
-        subdiag[1] = 4.0;
-        subdiag[2] = 5.0;
-        subdiag[3] = 8.0;
-        subdiag[4] = 6.0;
-        subdiag[5] = 0.0;
-        subdiag[6] = 4.0;
-        subdiag[7] = 7.0;
-        subdiag[8] = 8.0;
-        subdiag[9] = 6.0;
-
-        maindiag[0] = 2.0;
-        maindiag[1] = 1.0;
-        maindiag[2] = 9.0;
-        maindiag[3] = 4.0;
-        maindiag[4] = 1.0;
-        maindiag[5] = 9.0;
-        maindiag[6] = 3.0;
-        maindiag[7] = 1.0;
-        maindiag[8] = 2.0;
-        maindiag[9] = 3.0;
-
-        superdiag[0] = 3.0;
-        superdiag[1] = 5.0;
-        superdiag[2] = 8.0;
-        superdiag[3] = 2.0;
-        superdiag[4] = 0.0;
-        superdiag[5] = 8.0;
-        superdiag[6] = 5.0;
-        superdiag[7] = 4.0;
-        superdiag[8] = 1.0;
-        superdiag[9] = 0.0;
-        */
-        //clang-format on
-       
-        return mtx;
-    }
 
     void set_up_data()
     {
@@ -170,54 +89,111 @@ protected:
         
         x = gko::share(BDense::create(
             ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
-        /*
-        this->b = gko::batch_initialize<BDense>(
-            {{19.0, 18.0, 58.0, 22.0, 19.0}, {44.0, 29.0, 33.0, 30.0, 42.0}}, ref);
 
-        this->expected_sol = gko::batch_initialize<BDense>(
-            {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, ref);
+        left_scale =
+            gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
+                nbatch, nrows, nrows,
+                std::uniform_int_distribution<>(nrows, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                true, ref));
 
-        this->x = BDense::create(
-            ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1)));
-        */
-        // left_scale =
-        //     gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
-        //         nbatch, nrows, nrows,
-        //         std::uniform_int_distribution<>(nrows, nrows),
-        //         std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-        //         true, ref));
+        right_scale =
+            gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
+                nbatch, nrows, nrows,
+                std::uniform_int_distribution<>(nrows, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                true, ref));        
+    }
 
+    void check_if_solve_is_eqvt_to_ref(const enum gko::solver::batch_tridiag_solve_approach approach, const int num_WM_steps = 2, 
+    const int WM_pGE_subwarp_size = 32)
+    {
+        using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
+        auto d_tridiag_mtx = gko::share(gko::clone(exec, this->tridiag_mat.get()));
+        auto d_b = gko::share(gko::clone(exec, this->b.get()));
+        auto d_x = gko::share(gko::clone(exec, this->x.get()));
 
-        // right_scale =
-        //     gko::share(gko::test::generate_uniform_batch_random_matrix<BDiag>(
-        //         nbatch, nrows, nrows,
-        //         std::uniform_int_distribution<>(nrows, nrows),
-        //         std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-        //         true, ref));
+        auto d_tridiag_solver = solver_type::build()
+        .with_batch_tridiagonal_solution_approach(approach)
+        .with_num_WM_steps(num_WM_steps)
+        .with_WM_pGE_subwarp_size(WM_pGE_subwarp_size)
+        .on(exec)->generate(d_tridiag_mtx);
+        d_tridiag_solver->apply(d_b.get(), d_x.get());
+
+        auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
+        tridiag_solver->apply(b.get(), x.get());
+
+        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
+    }
+
+    void check_if_solve_with_scaling_solve_is_eqvt_to_ref(const enum gko::solver::batch_tridiag_solve_approach approach,
+    const int num_WM_steps = 2, 
+    const int WM_pGE_subwarp_size = 32)
+    {
+        using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
+        auto d_tridiag_mtx = gko::share(gko::clone(exec, this->tridiag_mat.get()));
+        auto d_b = gko::share(gko::clone(exec, this->b.get()));
+        auto d_x = gko::share(gko::clone(exec, this->x.get()));
+        auto d_left_scale = gko::share(gko::clone(exec, left_scale.get()));
+        auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
+
+        auto d_tridiag_solver = solver_type::build()
+        .with_batch_tridiagonal_solution_approach(approach)
+        .with_num_WM_steps(num_WM_steps)
+        .with_WM_pGE_subwarp_size(WM_pGE_subwarp_size)
+        .with_left_scaling_op(left_scale)
+        .with_right_scaling_op(right_scale)
+        .on(exec)->generate(d_tridiag_mtx);
+        d_tridiag_solver->apply(d_b.get(), d_x.get());
+
+        auto tridiag_solver = solver_type::build()
+        .with_left_scaling_op(left_scale)
+        .with_right_scaling_op(right_scale)
+        .on(ref)->generate(this->tridiag_mat);
+        tridiag_solver->apply(b.get(), x.get());
+
+        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
     }
 };
 
-TEST_F(BatchTridiagonalSolver, SolveIsEquivalentToRef)
+
+TEST_F(BatchTridiagonalSolver, App1SolveIsEquivalentToRef)
 {   
-    using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
-    auto d_tridiag_mtx = gko::share(gko::clone(exec, tridiag_mat.get()));
-    auto d_b = gko::share(gko::clone(exec, b.get()));
-    auto d_x = gko::share(gko::clone(exec, x.get()));
-
-    auto d_tridiag_solver = solver_type::build()
-    .with_num_WM_steps(2)
-    .with_batch_tridiagonal_solution_approach(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2)
-    .with_WM_pGE_subwarp_size(16)
-    .on(exec)->generate(d_tridiag_mtx);
-    d_tridiag_solver->apply(d_b.get(), d_x.get());
-
-    auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
-    tridiag_solver->apply(b.get(), x.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 5, 32);
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 3, 16);
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 2, 4);
 }
 
-//TODO: Test solve with scaling also
+TEST_F(BatchTridiagonalSolver, App2SolveIsEquivalentToRef)
+{   
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 6, 32);
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 4, 16);
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 2, 8);
+}
 
+TEST_F(BatchTridiagonalSolver, VendorProvidedSolveIsEquivalentToRef)
+{   
+   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::vendor_provided);
+}
+
+//TODO: Implement scaling for batched tridiagonal
+// TEST_F(BatchTridiagonalSolver, App1SolveWithScalingIsEquivalentToRef)
+// {   
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 5, 32);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 3, 16);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 2, 4);
+// }
+
+// TEST_F(BatchTridiagonalSolver, App2SolveWithScalingIsEquivalentToRef)
+// {   
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 6, 32);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 4, 16);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 2, 8);
+// }
+
+// TEST_F(BatchTridiagonalSolver, VendorProvidedSolveWithScalingIsEquivalentToRef)
+// {   
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::vendor_provided);
+// }
 
 #endif

@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-
+#include <ginkgo/core/matrix/batch_tridiagonal.hpp>
 
 #include "core/test/utils/assertions.hpp"
 
@@ -138,6 +138,47 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
     return result;
 }
 
+/**
+ * Generates a batch of random tridiagonal matrices.
+ */
+template <typename ValueType, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<gko::matrix::BatchTridiagonal<ValueType>>
+generate_uniform_batch_tridiagonal_random_matrix(
+    const size_type batch_size, const size_type mat_size,
+    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const Executor> exec)
+{
+    using value_type = ValueType;
+    auto mtx = gko::matrix::BatchTridiagonal<value_type>::create(
+        exec, gko::batch_dim<2>(batch_size, gko::dim<2>{mat_size, mat_size}));
+
+    value_type* subdiag = mtx->get_sub_diagonal();
+    value_type* maindiag = mtx->get_main_diagonal();
+    value_type* superdiag = mtx->get_super_diagonal();
+
+    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
+        for (int row_idx = 0; row_idx < mat_size; row_idx++) {
+            value_type sub_val = row_idx == 0
+                                     ? zero<value_type>()
+                                     : gko::detail::get_rand_value<value_type>(
+                                           value_dist, engine);
+            value_type main_val =
+                gko::detail::get_rand_value<value_type>(value_dist, engine);
+            value_type super_val =
+                row_idx == mat_size - 1
+                    ? zero<value_type>()
+                    : gko::detail::get_rand_value<value_type>(value_dist,
+                                                              engine);
+
+            subdiag[batch_idx * mat_size + row_idx] = sub_val;
+            maindiag[batch_idx * mat_size + row_idx] = main_val;
+            superdiag[batch_idx * mat_size + row_idx] = super_val;
+        }
+    }
+
+    return mtx;
+}
 
 /**
  * Generate a batch of 1D Poisson matrices on the reference executor.
