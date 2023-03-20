@@ -70,7 +70,7 @@ void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType* counts,
 {
     constexpr auto max = std::numeric_limits<IndexType>::max();
     thrust::exclusive_scan(thrust_policy(exec), counts, counts + num_entries,
-                           counts, 0, overflowing_sum<IndexType>{});
+                           counts, IndexType{}, overflowing_sum<IndexType>{});
     if (num_entries > 0 &&
         overflowing_sum<IndexType>::did_overflow(
             exec->copy_val_to_host(counts + num_entries - 1))) {
