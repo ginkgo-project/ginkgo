@@ -57,7 +57,7 @@ namespace kernels {
  * If the input is [3,4,1,9,100], it will be replaced by
  * [0,3,7,8,17].
  * The input values of the prefix sum must be non-negative, and the operation
- * throws if one of the additions would overflow.
+ * throws OverflowError if one of the additions would overflow.
  *
  * \tparam IndexType  Type of entries to be scanned (summed).
  *
