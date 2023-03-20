@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_LOG_RECORD_HPP_
 
 
+#include <cstring>
 #include <deque>
 #include <memory>
 
@@ -238,37 +239,183 @@ struct criterion_data {
 #if GINKGO_BUILD_MPI
 
 
+namespace mpi {
+namespace detail {
+
+template <typename T>
+std::optional<T> concrete_optional(std::optional<const void*> p)
+{
+    if (p) {
+        return {*reinterpret_cast<const T*>(p.value())};
+    } else {
+        return {};
+    }
+}
+
+}  // namespace detail
+template <typename T>
+struct stored;
+
+template <>
+struct stored<fixed> : fixed {
+    stored(fixed base, int num_procs) : fixed(base) {}
+
+    int total_size() const { return size; }
+};
+
+template <>
+struct stored<variable> {
+    stored(variable base, int num_procs)
+        : sizes(base.sizes, base.sizes + num_procs),
+          offsets(base.offsets, base.offsets + num_procs + 1)
+    {}
+
+    int total_size() const { return offsets.back(); }
+
+    std::vector<int> sizes;
+    std::vector<int> offsets;
+};
+
+template <typename Size>
+struct stored<buffer<Size>> {
+    stored(const gko::Executor* exec, buffer<Size> base, int num_procs)
+        : b{exec},
+          size(base.size, num_procs),
+          type(*reinterpret_cast<const MPI_Datatype*>(base.type))
+    {
+        MPI_Aint lower_bound;
+        MPI_Aint extend;
+        MPI_Type_get_extent(this->type, &lower_bound, &extend);
+        auto buffer_size = extend * size.total_size();
+
+        b.resize_and_reset(buffer_size);
+        exec->copy(buffer_size, reinterpret_cast<const std::byte*>(base.loc),
+                   b.get_data());
+    }
+
+    gko::array<std::byte> b;
+    stored<Size> size;
+    MPI_Datatype type;
+};
+
+template <>
+struct stored<pt2pt> {
+    stored(std::shared_ptr<const gko::Executor> exec, pt2pt base, int num_procs)
+        : data(exec, base.data, num_procs),
+          source(source),
+          dest(dest),
+          tag(tag),
+          status(detail::concrete_optional<MPI_Status>(base.status))
+    {}
+    stored<buffer<fixed>> data;
+    std::optional<int> source;
+    std::optional<int> dest;
+    int tag;
+    std::optional<MPI_Status> status;
+};
+
+
+template <typename Size>
+struct stored<all_to_all<Size>> {
+    stored(std::shared_ptr<const gko::Executor> exec, all_to_all<Size> base,
+           int num_procs)
+        : send(exec, base.send, num_procs),
+          recv(exec, base.recv, num_procs),
+          op(concrete_optional<MPI_Op>(base.op))
+    {}
+
+    stored<buffer<Size>> send;
+    stored<buffer<Size>> recv;
+    std::optional<MPI_Op> op;
+};
+
+
+template <typename Size>
+struct stored<all_to_one<Size>> {
+    stored(std::shared_ptr<const gko::Executor> exec, all_to_one<Size> base,
+           int num_procs)
+        : send(exec, base.send, num_procs),
+          recv(exec, base.recv, num_procs),
+          root(base.root),
+          op(concrete_optional<MPI_Op>(base.op))
+    {}
+
+    stored<buffer<Size>> send;
+    stored<buffer<Size>> recv;
+    int root;
+    std::optional<MPI_Op> op;
+};
+
+
+template <typename Size>
+struct stored<one_to_all<Size>> {
+    stored(std::shared_ptr<const gko::Executor> exec, one_to_all<Size> base,
+           int num_procs)
+        : send(exec, base.send, num_procs),
+          recv(exec, base.recv, num_procs),
+          root(base.root),
+          op(concrete_optional<MPI_Op>(base.op))
+    {}
+
+    stored<buffer<Size>> send;
+    stored<buffer<Size>> recv;
+    int root;
+    std::optional<MPI_Op> op;
+};
+
+template <>
+struct stored<scan> {
+    stored(std::shared_ptr<const gko::Executor> exec, scan base, int num_procs)
+        : send(exec, base.send, num_procs),
+          recv(exec, base.recv, num_procs),
+          op(*reinterpret_cast<const MPI_Op*>(base.op))
+    {}
+
+    stored<buffer<fixed>> send;
+    stored<buffer<fixed>> recv;
+    MPI_Op op;
+};
+
+template <>
+struct stored<barrier> : barrier {
+    using barrier::barrier;
+};
+
+
+using stored_coll =
+    std::variant<stored<all_to_all<fixed>>, stored<all_to_all<variable>>,
+                 stored<all_to_one<fixed>>, stored<all_to_one<variable>>,
+                 stored<one_to_all<fixed>>, stored<one_to_all<variable>>,
+                 stored<scan>, stored<barrier>>;
+
+struct to_stored {
+    template <typename Base>
+    stored_coll operator()(Base&& base)
+    {
+        return {exec, std::forward<Base>(base), num_procs};
+    }
+
+    std::shared_ptr<const Executor> exec;
+    int num_procs;
+};
+
+
+}  // namespace mpi
+
+
 struct mpi_point_to_point_data {
-    mpi_mode mode;
+    mpi::mode mode;
     std::string operation_name;
     MPI_Comm comm;
-    uintptr loc;
-    int size;
-    MPI_Datatype type;
-    int source_rank;
-    int destination_rank;
-    int tag;
-    MPI_Request req;
+    mpi::stored<mpi::pt2pt> data;
 };
 
 
 struct mpi_collective_data {
-    mpi_mode mode;
+    mpi::mode mode;
     std::string operation_name;
     MPI_Comm comm;
-    uintptr send_loc;
-    int send_size;
-    std::vector<int> send_sizes;
-    std::vector<int> send_displacements;
-    MPI_Datatype send_type;
-    uintptr recv_loc;
-    int recv_size;
-    std::vector<int> recv_sizes;
-    std::vector<int> recv_displacements;
-    MPI_Datatype recv_type;
-    MPI_Op reduction_operation;
-    int root_rank;
-    MPI_Request request;
+    mpi::stored_coll data;
 };
 
 
@@ -464,46 +611,20 @@ public:
 
 
     void on_mpi_point_to_point_communication_started(
-        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
-        int size, const void* type, int source_rank, int destination_rank,
-        int tag, const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, mpi::pt2pt data) const override;
 
     void on_mpi_point_to_point_communication_completed(
-        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
-        int size, const void* type, int source_rank, int destination_rank,
-        int tag, const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, mpi::pt2pt data) const override;
 
     void on_mpi_collective_communication_started(
-        mpi_mode mode, const char* name, const void* comm,
-        const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, const void* send_type,
-        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, const void* recv_type, int root_rank,
-        const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, const mpi::coll data) const override;
 
     void on_mpi_collective_communication_completed(
-        mpi_mode mode, const char* name, const void* comm,
-        const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, const void* send_type,
-        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, const void* recv_type, int root_rank,
-        const void* req) const override;
-
-    void on_mpi_reduction_started(mpi_mode mode, const char* name,
-                                  const void* comm, const uintptr& send_buffer,
-                                  const uintptr& recv_buffer, int size,
-                                  const void* type, const void* operation,
-                                  int root_rank,
-                                  const void* req) const override;
-
-    void on_mpi_reduction_completed(mpi_mode mode, const char* name,
-                                    const void* comm,
-                                    const uintptr& send_buffer,
-                                    const uintptr& recv_buffer, int size,
-                                    const void* type, const void* operation,
-                                    int root_rank,
-                                    const void* req) const override;
-
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, const mpi::coll data) const override;
 
 #endif
 
