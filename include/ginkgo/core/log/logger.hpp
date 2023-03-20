@@ -82,14 +82,14 @@ enum mpi_mode : uint8 { blocking = 1 << 0, non_blocking = 1 << 1 };
 
 
 namespace mpi {
-using operation = std::optional<void*>;
+using operation = std::optional<const void*>;
 
 struct barrier {};
 
 struct blocking {};
 
 struct non_blocking {
-    void* req;
+    const void* req;
 };
 
 using mode = std::variant<blocking, non_blocking>;
@@ -107,7 +107,7 @@ template <typename Size>
 struct buffer {
     uintptr loc;
     Size size;
-    void* type;
+    const void* type;
 };
 
 struct pt2pt {
@@ -115,7 +115,7 @@ struct pt2pt {
     std::optional<int> source;
     std::optional<int> dest;
     int tag;
-    std::optional<void*> status;
+    std::optional<const void*> status;
 };
 
 template <typename Size>
@@ -144,7 +144,7 @@ struct one_to_all {
 struct scan {
     buffer<fixed> send;
     buffer<fixed> recv;
-    void* op;
+    const void* op;
 };
 
 using coll =
