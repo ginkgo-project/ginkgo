@@ -69,7 +69,7 @@ std::string metis_error_message(idx_t metis_error)
     case METIS_OK:
         return "METIS_OK";
     default:
-        return "<unknown>";
+        return "<" + std::to_string(metis_error) + ">";
     }
 }
 
@@ -87,7 +87,12 @@ std::array<idx_t, METIS_NOPTIONS> build_metis_options(
         result[pair.first] = pair.second;
     }
     // make sure users don't accidentally switch on 1-based indexing
-    result[METIS_OPTION_NUMBERING] = 0;
+    if (options.find(METIS_OPTION_NUMBERING) != options.end() &&
+        options.at(METIS_OPTION_NUMBERING) != 0) {
+        throw MetisError(
+            __FILE__, __LINE__, "build_metis_options",
+            "METIS_OPTION_NUMBERING: Only 0-based indexing is supported");
+    }
     return result;
 }
 
@@ -151,7 +156,7 @@ NestedDissection<ValueType, IndexType>::NestedDissection(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<matrix::Permutation<IndexType>>
 NestedDissection<ValueType, IndexType>::generate(
-    std::shared_ptr<const matrix_type> system_matrix) const
+    std::shared_ptr<const LinOp> system_matrix) const
 {
     auto product =
         std::unique_ptr<permutation_type>(static_cast<permutation_type*>(
