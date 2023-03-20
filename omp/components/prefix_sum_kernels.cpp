@@ -83,7 +83,7 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
         for (size_type i = startidx; i < endidx; ++i) {
             auto nnz = counts[i];
             counts[i] = partial_sum;
-            if (max - partial_sum <= nnz) {
+            if (max - partial_sum < nnz) {
                 overflow = true;
             }
             partial_sum = partial_sum + nnz;
@@ -96,7 +96,7 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp single
         {
             for (int i = 0; i < nthreads - 1; i++) {
-                if (max - proc_sums[i + 1] <= proc_sums[i]) {
+                if (max - proc_sums[i + 1] < proc_sums[i]) {
                     overflow = true;
                 }
                 proc_sums[i + 1] = proc_sums[i + 1] + proc_sums[i];
@@ -105,7 +105,7 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 
         if (thread_id > 0) {
             for (size_type i = startidx; i < endidx; i++) {
-                if (max - counts[i] <= proc_sums[thread_id - 1]) {
+                if (max - counts[i] < proc_sums[thread_id - 1]) {
                     overflow = true;
                 }
                 counts[i] += proc_sums[thread_id - 1];
