@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/exception.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
