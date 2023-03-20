@@ -490,7 +490,6 @@ protected:
                                     implicit_tau_sq, nullptr, false);
     }
 
-
 public:
     /**
      * PolymorphicObject's move started event.
