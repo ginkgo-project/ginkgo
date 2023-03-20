@@ -280,7 +280,7 @@ void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         num_rows, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
-    components::prefix_sum(exec, storage_offsets, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, storage_offsets, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

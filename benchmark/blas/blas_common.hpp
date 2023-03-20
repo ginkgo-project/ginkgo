@@ -359,7 +359,8 @@ private:
 };
 
 
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 
 
 template <typename IndexType>
@@ -381,8 +382,8 @@ public:
 
     void run() override
     {
-        array_.get_executor()->run(
-            make_prefix_sum(array_.get_data(), array_.get_num_elems()));
+        array_.get_executor()->run(make_prefix_sum_nonnegative(
+            array_.get_data(), array_.get_num_elems()));
     }
 
 private:

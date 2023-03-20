@@ -111,7 +111,8 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
         },
         num, agg.get_const_data(), agg_map.get_data());
 
-    components::prefix_sum(exec, agg_map.get_data(), agg_map.get_num_elems());
+    components::prefix_sum_nonnegative(exec, agg_map.get_data(),
+                                       agg_map.get_num_elems());
 
     run_kernel(
         exec,

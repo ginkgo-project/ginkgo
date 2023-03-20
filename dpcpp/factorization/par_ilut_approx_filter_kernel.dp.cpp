@@ -146,7 +146,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
         oracles, num_rows, bucket, new_row_ptrs);
 
     // build row pointers
-    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);

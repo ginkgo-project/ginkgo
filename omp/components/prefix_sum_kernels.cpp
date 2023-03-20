@@ -53,8 +53,9 @@ namespace components {
  * The last entry of the input array is never used, but is replaced.
  */
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
-                IndexType* const counts, const size_type num_entries)
+void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
+                            IndexType* const counts,
+                            const size_type num_entries)
 {
     // the operation only makes sense for arrays of size at least 2
     if (num_entries < 2) {
@@ -118,10 +119,10 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 
 // instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components

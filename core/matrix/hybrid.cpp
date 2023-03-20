@@ -72,7 +72,8 @@ GKO_REGISTER_OPERATION(compute_coo_row_ptrs, hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -213,8 +214,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
         array<IndexType> coo_row_ptrs{exec, num_rows + 1};
         exec->run(hybrid::make_ell_count_nonzeros_per_row(
             this->get_ell(), ell_row_ptrs.get_data()));
-        exec->run(
-            hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
+        exec->run(hybrid::make_prefix_sum_nonnegative(ell_row_ptrs.get_data(),
+                                                      num_rows + 1));
         exec->run(hybrid::make_convert_idxs_to_ptrs(
             this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
             num_rows, coo_row_ptrs.get_data()));

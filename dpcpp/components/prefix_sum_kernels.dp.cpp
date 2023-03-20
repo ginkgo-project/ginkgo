@@ -66,8 +66,8 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
-                size_type num_entries)
+void prefix_sum_nonnegative(std::shared_ptr<const DpcppExecutor> exec,
+                            IndexType* counts, size_type num_entries)
 {
     // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
@@ -95,10 +95,10 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 
 // instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components

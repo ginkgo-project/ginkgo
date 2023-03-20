@@ -65,8 +65,8 @@ struct overflowing_sum<size_type> {
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType* counts,
-                size_type num_entries)
+void prefix_sum_nonnegative(std::shared_ptr<const DefaultExecutor> exec,
+                            IndexType* counts, size_type num_entries)
 {
     constexpr auto max = std::numeric_limits<IndexType>::max();
     thrust::exclusive_scan(thrust_policy(exec), counts, counts + num_entries,
@@ -79,8 +79,8 @@ void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType* counts,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 
 // instantiate for size_type as well, as this is used in the Sellp format
-template void prefix_sum<size_type>(std::shared_ptr<const DefaultExecutor>,
-                                    size_type*, size_type);
+template void prefix_sum_nonnegative<size_type>(
+    std::shared_ptr<const DefaultExecutor>, size_type*, size_type);

@@ -103,7 +103,8 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -664,7 +665,8 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_ptrs));
-    exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));
+    exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
+                                               row_span.length() + 1));
     auto num_nnz =
         exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
     auto sub_mat = Mat::create(exec, sub_mat_size,
@@ -708,8 +710,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
             this, row_index_set, col_index_set, row_ptrs.get_data()));
-        exec->run(
-            csr::make_prefix_sum(row_ptrs.get_data(), submat_num_rows + 1));
+        exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
+                                                   submat_num_rows + 1));
         auto num_nnz =
             exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
         auto sub_mat = Mat::create(exec, sub_mat_size,

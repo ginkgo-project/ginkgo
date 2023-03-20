@@ -202,7 +202,7 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::symbolic_count(
             this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
-        gko::kernels::reference::components::prefix_sum(
+        gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, row_ptrs.get_data(), num_rows + 1);
         const auto nnz =
             static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);

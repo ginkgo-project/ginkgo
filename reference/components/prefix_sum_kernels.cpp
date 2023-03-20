@@ -40,8 +40,8 @@ namespace components {
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
-                IndexType* counts, size_type num_entries)
+void prefix_sum_nonnegative(std::shared_ptr<const ReferenceExecutor> exec,
+                            IndexType* counts, size_type num_entries)
 {
     constexpr auto max = std::numeric_limits<IndexType>::max();
     IndexType partial_sum{};
@@ -57,10 +57,10 @@ void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 
 // instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components

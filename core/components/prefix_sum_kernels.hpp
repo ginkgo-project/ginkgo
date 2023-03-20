@@ -66,14 +66,14 @@ namespace kernels {
  * \param num_entries  Size of the array, equal to one more than the number
  *                     of entries to be summed.
  */
-#define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                 \
-    void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, \
-                    IndexType* counts, size_type num_entries)
+#define GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(IndexType)                 \
+    void prefix_sum_nonnegative(std::shared_ptr<const DefaultExecutor> exec, \
+                                IndexType* counts, size_type num_entries)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
     template <typename IndexType>    \
-    GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)
+    GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
