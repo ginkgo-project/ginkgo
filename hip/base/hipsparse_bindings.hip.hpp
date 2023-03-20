@@ -939,6 +939,83 @@ GKO_BIND_HIPSPARSE_IC0(std::complex<double>, hipsparseZcsric02);
 #undef GKO_BIND_HIPSPARSE_IC0
 
 
+template <typename ValueType>
+void gtsv2StridedBatched_buffer_size(
+    hipsparseHandle_t handle, const int nrows, const ValueType* const batched_a,
+    const ValueType* const batched_b, const ValueType* const batched_c,
+    ValueType* const batched_d, const int batch_size, const int batch_stride,
+    size_type& bufferSizeInBytes) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(ValueType,        \
+                                                           HipsparseName)    \
+    template <>                                                              \
+    inline void gtsv2StridedBatched_buffer_size<ValueType>(                  \
+        hipsparseHandle_t handle, const int nrows,                           \
+        const ValueType* const batched_a, const ValueType* const batched_b,  \
+        const ValueType* const batched_c, ValueType* const batched_d,        \
+        const int batch_size, const int batch_stride,                        \
+        size_type& bufferSizeInBytes)                                        \
+    {                                                                        \
+        size_t tmp_buffer_size{};                                            \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                        \
+            handle, nrows, as_hiplibs_type(batched_a),                       \
+            as_hiplibs_type(batched_b), as_hiplibs_type(batched_c),          \
+            as_hiplibs_type(batched_d), batch_size, batch_stride,            \
+            &tmp_buffer_size));                                              \
+                                                                             \
+        bufferSizeInBytes = tmp_buffer_size;                                 \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    float, hipsparseSgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    double, hipsparseDgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    std::complex<float>, hipsparseCgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    std::complex<double>, hipsparseZgtsv2StridedBatch_bufferSizeExt);
+
+#undef GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE
+
+
+template <typename ValueType>
+void gtsv2StridedBatch(hipsparseHandle_t handle, const int nrows,
+                       const ValueType* const batched_a,
+                       const ValueType* const batched_b,
+                       const ValueType* const batched_c,
+                       ValueType* const batched_d, const int batch_size,
+                       const int batch_stride,
+                       void* buffer_ptr) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH(ValueType, HipsparseName)     \
+    template <>                                                              \
+    inline void gtsv2StridedBatch<ValueType>(                                \
+        hipsparseHandle_t handle, const int nrows,                           \
+        const ValueType* const batched_a, const ValueType* const batched_b,  \
+        const ValueType* const batched_c, ValueType* const batched_d,        \
+        const int batch_size, const int batch_stride, void* buffer_ptr)      \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                        \
+            handle, nrows, as_hiplibs_type(batched_a),                       \
+            as_hiplibs_type(batched_b), as_hiplibs_type(batched_c),          \
+            as_hiplibs_type(batched_d), batch_size, batch_stride,            \
+            buffer_ptr));                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH(float, hipsparseSgtsv2StridedBatch);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH(double, hipsparseDgtsv2StridedBatch);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH(std::complex<float>,
+                                       hipsparseCgtsv2StridedBatch);
+GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH(std::complex<double>,
+                                       hipsparseZgtsv2StridedBatch);
+
+#undef GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH
 }  // namespace hipsparse
 }  // namespace hip
 }  // namespace kernels

@@ -32,10 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_tridiagonal_solver_kernels.hpp"
 
-
+#include <chrono>
 #include "core/matrix/batch_struct.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/exception.hip.hpp"
+#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
@@ -224,7 +225,41 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::vendor_provided) {
-        GKO_NOT_IMPLEMENTED;
+        x->copy_from(rhs);
+
+        exec->synchronize();
+        auto start = std::chrono::high_resolution_clock::now();
+
+        auto handle = exec->get_hipsparse_handle();
+        if (!hipsparse::is_supported<ValueType, int>::value) {
+            GKO_NOT_IMPLEMENTED;
+        }
+
+        size_type bufferSizeInBytes = 0;
+        hipsparse::gtsv2StridedBatched_buffer_size(
+            handle, nrows, tridiag_mat->get_const_sub_diagonal(),
+            tridiag_mat->get_const_main_diagonal(),
+            tridiag_mat->get_const_super_diagonal(), x->get_values(), nbatch,
+            nrows, bufferSizeInBytes);
+
+        gko::array<char> buffer(exec, bufferSizeInBytes);
+
+        exec->synchronize();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        millisec_subtract +=
+            static_cast<double>(
+                std::chrono::duration_cast<std::chrono::microseconds>(stop -
+                                                                      start)
+                    .count()) /
+            static_cast<double>(1000);
+
+        hipsparse::gtsv2StridedBatch(
+            handle, nrows, tridiag_mat->get_const_sub_diagonal(),
+            tridiag_mat->get_const_main_diagonal(),
+            tridiag_mat->get_const_super_diagonal(), x->get_values(), nbatch,
+            nrows, buffer.get_data());
     }
 }
 
