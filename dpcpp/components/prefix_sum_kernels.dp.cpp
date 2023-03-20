@@ -71,7 +71,7 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
 {
     // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
-        array<bool> overflow{exec, {false}};
+        // TODO detect overflow
         auto queue = exec->get_queue();
         constexpr auto block_cfg_array = as_array(block_cfg_list);
         const std::uint32_t cfg =

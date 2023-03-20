@@ -95,9 +95,11 @@ TYPED_TEST(PrefixSum, EqualsReference)
 
 TYPED_TEST(PrefixSum, WorksCloseToOverflow)
 {
-    // make sure the value we use as max isn't the sentinel used to mark overflows
+    // make sure the value we use as max isn't the sentinel used to mark
+    // overflows for unsigned types
+    // TODO remove with signed size_type
     const auto max = std::numeric_limits<TypeParam>::max() -
-                             std::is_unsigned<TypeParam>::value;
+                     std::is_unsigned<TypeParam>::value;
     gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
 
     gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
