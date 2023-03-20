@@ -82,7 +82,7 @@ void WM_pGE_app1_helper(
             ValueType>(nrows, nrhs);
 
     hipLaunchKernelGGL(
-        WM_pGE_kernel_approach_1<subwarp_size>, block, shared_size, 0,
+        WM_pGE_kernel_approach_1<subwarp_size>, grid, block, shared_size, 0,
         number_WM_steps, nbatch, nrows, as_hip_type(tridiag_mat_subdiags),
         as_hip_type(tridiag_mat_maindiags), as_hip_type(tridiag_mat_superdiags),
         as_hip_type(rhs), as_hip_type(x));
