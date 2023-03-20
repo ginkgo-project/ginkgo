@@ -86,8 +86,6 @@ constexpr Logger::mask_type
     Logger::mpi_point_to_point_communication_completed_mask;
 constexpr Logger::mask_type Logger::mpi_collective_communication_started_mask;
 constexpr Logger::mask_type Logger::mpi_collective_communication_completed_mask;
-constexpr Logger::mask_type Logger::mpi_reduction_started_mask;
-constexpr Logger::mask_type Logger::mpi_reduction_completed_mask;
 
 constexpr Logger::mask_type Logger::mpi_point_to_point_events_mask;
 constexpr Logger::mask_type Logger::mpi_collective_events_mask;
