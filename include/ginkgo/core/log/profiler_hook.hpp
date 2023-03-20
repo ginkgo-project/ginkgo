@@ -194,45 +194,20 @@ public:
         const LinOp* implicit_sq_residual_norm) const override;
 
     void on_mpi_point_to_point_communication_started(
-        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
-        int size, const void* type, int source_rank, int destination_rank,
-        int tag, const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, mpi::pt2pt data) const override;
 
     void on_mpi_point_to_point_communication_completed(
-        mpi_mode mode, const char* name, const void* comm, const uintptr& loc,
-        int size, const void* type, int source_rank, int destination_rank,
-        int tag, const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, mpi::pt2pt data) const override;
 
     void on_mpi_collective_communication_started(
-        mpi_mode mode, const char* name, const void* comm,
-        const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, const void* send_type,
-        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, const void* recv_type, int root_rank,
-        const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, const mpi::coll data) const override;
 
     void on_mpi_collective_communication_completed(
-        mpi_mode mode, const char* name, const void* comm,
-        const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, const void* send_type,
-        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, const void* recv_type, int root_rank,
-        const void* req) const override;
-
-    void on_mpi_reduction_started(mpi_mode mode, const char* name,
-                                  const void* comm, const uintptr& send_buffer,
-                                  const uintptr& recv_buffer, int size,
-                                  const void* type, const void* operation,
-                                  int root_rank,
-                                  const void* req) const override;
-
-    void on_mpi_reduction_completed(mpi_mode mode, const char* name,
-                                    const void* comm,
-                                    const uintptr& send_buffer,
-                                    const uintptr& recv_buffer, int size,
-                                    const void* type, const void* operation,
-                                    int root_rank,
-                                    const void* req) const override;
+        const Executor* exec, mpi::mode mode, const char* name,
+        const void* comm, const mpi::coll data) const override;
 
     bool needs_propagation() const override;
 

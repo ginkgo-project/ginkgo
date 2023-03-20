@@ -242,6 +242,7 @@ struct criterion_data {
 namespace mpi {
 namespace detail {
 
+
 template <typename T>
 std::optional<T> concrete_optional(std::optional<const void*> p)
 {
@@ -252,62 +253,52 @@ std::optional<T> concrete_optional(std::optional<const void*> p)
     }
 }
 
+
 }  // namespace detail
+
+
 template <typename T>
-struct stored;
+struct recorded;
 
 template <>
-struct stored<fixed> : fixed {
-    stored(fixed base, int num_procs) : fixed(base) {}
-
-    int total_size() const { return size; }
+struct recorded<fixed> : fixed {
+    recorded(fixed base, int num_procs) : fixed(base) {}
 };
 
 template <>
-struct stored<variable> {
-    stored(variable base, int num_procs)
+struct recorded<variable> {
+    recorded(variable base, int num_procs)
         : sizes(base.sizes, base.sizes + num_procs),
           offsets(base.offsets, base.offsets + num_procs + 1)
     {}
-
-    int total_size() const { return offsets.back(); }
-
     std::vector<int> sizes;
     std::vector<int> offsets;
 };
 
+
 template <typename Size>
-struct stored<buffer<Size>> {
-    stored(const gko::Executor* exec, buffer<Size> base, int num_procs)
-        : b{exec},
+struct recorded<buffer<Size>> {
+    recorded(buffer<Size> base, int num_procs)
+        : loc{base.loc},
           size(base.size, num_procs),
           type(*reinterpret_cast<const MPI_Datatype*>(base.type))
-    {
-        MPI_Aint lower_bound;
-        MPI_Aint extend;
-        MPI_Type_get_extent(this->type, &lower_bound, &extend);
-        auto buffer_size = extend * size.total_size();
+    {}
 
-        b.resize_and_reset(buffer_size);
-        exec->copy(buffer_size, reinterpret_cast<const std::byte*>(base.loc),
-                   b.get_data());
-    }
-
-    gko::array<std::byte> b;
-    stored<Size> size;
+    uintptr loc;
+    recorded<Size> size;
     MPI_Datatype type;
 };
 
 template <>
-struct stored<pt2pt> {
-    stored(std::shared_ptr<const gko::Executor> exec, pt2pt base, int num_procs)
-        : data(exec, base.data, num_procs),
+struct recorded<pt2pt> {
+    recorded(pt2pt base, int num_procs)
+        : data(base.data, num_procs),
           source(source),
           dest(dest),
           tag(tag),
           status(detail::concrete_optional<MPI_Status>(base.status))
     {}
-    stored<buffer<fixed>> data;
+    recorded<buffer<fixed>> data;
     std::optional<int> source;
     std::optional<int> dest;
     int tag;
@@ -316,106 +307,94 @@ struct stored<pt2pt> {
 
 
 template <typename Size>
-struct stored<all_to_all<Size>> {
-    stored(std::shared_ptr<const gko::Executor> exec, all_to_all<Size> base,
-           int num_procs)
-        : send(exec, base.send, num_procs),
-          recv(exec, base.recv, num_procs),
-          op(concrete_optional<MPI_Op>(base.op))
+struct recorded<all_to_all<Size>> {
+    recorded(all_to_all<Size> base, int num_procs)
+        : send(base.send, num_procs),
+          recv(base.recv, num_procs),
+          op(detail::concrete_optional<MPI_Op>(base.op))
     {}
 
-    stored<buffer<Size>> send;
-    stored<buffer<Size>> recv;
+    recorded<buffer<Size>> send;
+    recorded<buffer<Size>> recv;
     std::optional<MPI_Op> op;
 };
 
 
 template <typename Size>
-struct stored<all_to_one<Size>> {
-    stored(std::shared_ptr<const gko::Executor> exec, all_to_one<Size> base,
-           int num_procs)
-        : send(exec, base.send, num_procs),
-          recv(exec, base.recv, num_procs),
+struct recorded<all_to_one<Size>> {
+    recorded(all_to_one<Size> base, int num_procs)
+        : send(base.send, num_procs),
+          recv(base.recv, num_procs),
           root(base.root),
-          op(concrete_optional<MPI_Op>(base.op))
+          op(detail::concrete_optional<MPI_Op>(base.op))
     {}
 
-    stored<buffer<Size>> send;
-    stored<buffer<Size>> recv;
+    recorded<buffer<Size>> send;
+    recorded<buffer<Size>> recv;
     int root;
     std::optional<MPI_Op> op;
 };
 
 
 template <typename Size>
-struct stored<one_to_all<Size>> {
-    stored(std::shared_ptr<const gko::Executor> exec, one_to_all<Size> base,
-           int num_procs)
-        : send(exec, base.send, num_procs),
-          recv(exec, base.recv, num_procs),
+struct recorded<one_to_all<Size>> {
+    recorded(one_to_all<Size> base, int num_procs)
+        : send(base.send, num_procs),
+          recv(base.recv, num_procs),
           root(base.root),
-          op(concrete_optional<MPI_Op>(base.op))
+          op(detail::concrete_optional<MPI_Op>(base.op))
     {}
 
-    stored<buffer<Size>> send;
-    stored<buffer<Size>> recv;
+    recorded<buffer<Size>> send;
+    recorded<buffer<Size>> recv;
     int root;
     std::optional<MPI_Op> op;
 };
 
 template <>
-struct stored<scan> {
-    stored(std::shared_ptr<const gko::Executor> exec, scan base, int num_procs)
-        : send(exec, base.send, num_procs),
-          recv(exec, base.recv, num_procs),
+struct recorded<scan> {
+    recorded(scan base, int num_procs)
+        : send(base.send, num_procs),
+          recv(base.recv, num_procs),
           op(*reinterpret_cast<const MPI_Op*>(base.op))
     {}
 
-    stored<buffer<fixed>> send;
-    stored<buffer<fixed>> recv;
+    recorded<buffer<fixed>> send;
+    recorded<buffer<fixed>> recv;
     MPI_Op op;
 };
 
 template <>
-struct stored<barrier> : barrier {
-    using barrier::barrier;
+struct recorded<barrier> : barrier {
+    recorded(barrier base, int num_procs){};
 };
 
 
-using stored_coll =
-    std::variant<stored<all_to_all<fixed>>, stored<all_to_all<variable>>,
-                 stored<all_to_one<fixed>>, stored<all_to_one<variable>>,
-                 stored<one_to_all<fixed>>, stored<one_to_all<variable>>,
-                 stored<scan>, stored<barrier>>;
-
-struct to_stored {
-    template <typename Base>
-    stored_coll operator()(Base&& base)
-    {
-        return {exec, std::forward<Base>(base), num_procs};
-    }
-
-    std::shared_ptr<const Executor> exec;
-    int num_procs;
-};
+using recorded_coll =
+    std::variant<recorded<all_to_all<fixed>>, recorded<all_to_all<variable>>,
+                 recorded<all_to_one<fixed>>, recorded<all_to_one<variable>>,
+                 recorded<one_to_all<fixed>>, recorded<one_to_all<variable>>,
+                 recorded<scan>, recorded<barrier>>;
 
 
 }  // namespace mpi
 
 
 struct mpi_point_to_point_data {
+    const Executor* exec;
     mpi::mode mode;
     std::string operation_name;
     MPI_Comm comm;
-    mpi::stored<mpi::pt2pt> data;
+    mpi::recorded<mpi::pt2pt> data;
 };
 
 
 struct mpi_collective_data {
+    const Executor* exec;
     mpi::mode mode;
     std::string operation_name;
     MPI_Comm comm;
-    mpi::stored_coll data;
+    mpi::recorded_coll data;
 };
 
 
