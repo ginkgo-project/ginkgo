@@ -70,8 +70,7 @@ protected:
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
-                  .with_upper_eigval(value_type{1.1})
-                  .with_lower_eigval(value_type{0.9})
+                  .with_foci(value_type{0.9}, value_type{1.1})
                   .on(exec))
     {}
 
@@ -93,8 +92,7 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
-            .with_upper_eigval(upper)
-            .with_lower_eigval(lower)
+            .with_foci(lower, upper)
             .with_num_keep(3)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
@@ -218,8 +216,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
             .with_solver(inner_solver_factory)
-            .with_upper_eigval(value_type{1.1})
-            .with_lower_eigval(value_type{0.9})
+            .with_foci(value_type{0.9}, value_type{1.1})
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -387,8 +384,7 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         gko::solver::Chebyshev<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
-            .with_upper_eigval(value_type{1.1})
-            .with_lower_eigval(value_type{0.9})
+            .with_foci(value_type{0.9}, value_type{1.1})
             .on(this->exec)
             ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -399,8 +395,7 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
-                .with_upper_eigval(value_type{1.1})
-                .with_lower_eigval(value_type{0.9})
+                .with_foci(value_type{0.9}, value_type{1.1})
                 .with_default_initial_guess(guess)
                 .on(this->exec)
                 ->generate(this->mtx);
