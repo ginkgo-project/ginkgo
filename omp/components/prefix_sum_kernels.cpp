@@ -82,7 +82,7 @@ void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
 
         IndexType partial_sum{0};
         for (size_type i = startidx; i < endidx; ++i) {
-            auto nnz = counts[i];
+            auto nnz = i < num_entries - 1 ? counts[i] : IndexType{};
             counts[i] = partial_sum;
             if (max - partial_sum < nnz) {
                 overflow = true;
