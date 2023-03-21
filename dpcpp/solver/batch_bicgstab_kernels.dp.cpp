@@ -101,7 +101,7 @@ public:
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - matrix_size - 5 * sizeof(ValueType) -
+            slm_size - 5 * sizeof(ValueType) -
             2 * sizeof(real_type);  // reserve 5 for intermediate rho-s, norms,
                                     // alpha, omega, temp
         if (shmem_per_blk < 0) shmem_per_blk = 0;
@@ -114,10 +114,16 @@ public:
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  ValueType>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
+        std::cout << "HERE " << sconf.n_shared << " " << sconf.n_global << " "
+                  << sconf.prec_shared << std::endl;
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(ValueType) +
             (sconf.prec_shared ? prec_size : 0);
-        auto workspace = gko::Array<ValueType>(
+        std::cout << "slm_size: " << slm_size << ",shared_size: " << shared_size
+                  << std::endl;
+        std::cout << "Workspace size: " << sconf.gmem_stride_bytes * num_batches
+                  << std::endl;
+        auto workspace = gko::array<ValueType>(
             exec_, sconf.gmem_stride_bytes * num_batches / sizeof(ValueType));
         assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
 
