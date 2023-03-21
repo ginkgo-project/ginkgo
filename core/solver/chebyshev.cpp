@@ -244,8 +244,8 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             residual_ptr = residual;
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .residual(residual_ptr)
@@ -263,7 +263,7 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             inner_solution->copy_from(residual_ptr);
         }
         solver_->apply(residual_ptr, inner_solution);
-        auto index = (iter >= num_keep) ? num_keep : iter;
+        size_type index = (iter >= num_keep) ? num_keep : iter;
         auto alpha_scalar =
             alpha->create_submatrix(span{0, 1}, span{index, index + 1});
         auto beta_scalar =
@@ -271,6 +271,8 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (iter == 0) {
             if (num_generated_ < num_keep) {
                 alpha_scalar->fill(alpha_ref);
+                // unused beta for first iteration, but fill zero
+                beta_scalar->fill(zero<ValueType>());
                 num_generated_++;
             }
             // x = x + alpha * inner_solution
