@@ -78,6 +78,10 @@ if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
+if(GINKGO_HAVE_METIS)
+    target_sources(ginkgo PRIVATE reorder/nested_dissection.cpp)
+endif()
+
 if(GINKGO_BUILD_MPI)
     target_sources(ginkgo
         PRIVATE
@@ -113,6 +117,10 @@ endif()
 
 if(GINKGO_HAVE_VTUNE)
     target_link_libraries(ginkgo PUBLIC VTune::ITT)
+endif()
+
+if(GINKGO_HAVE_METIS)
+    target_link_libraries(ginkgo PUBLIC METIS::METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)

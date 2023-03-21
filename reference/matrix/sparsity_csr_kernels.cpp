@@ -149,33 +149,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
+void diagonal_element_prefix_sum(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements)
+    IndexType* prefix_sum)
 {
     auto num_rows = matrix->get_size()[0];
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();
-    size_type num_diag = 0;
-    for (auto i = 0; i < num_rows; ++i) {
+    IndexType num_diag = 0;
+    for (size_type i = 0; i < num_rows; ++i) {
+        prefix_sum[i] = num_diag;
         for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
             if (col_idxs[j] == i) {
                 num_diag++;
             }
         }
     }
-    *num_diagonal_elements = num_diag;
+    prefix_sum[num_rows] = num_diag;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_DIAGONAL_ELEMENT_PREFIX_SUM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType* row_ptrs,
                               const IndexType* col_idxs,
+                              const IndexType* diag_prefix_sum,
                               matrix::SparsityCsr<ValueType, IndexType>* matrix)
 {
     auto num_rows = matrix->get_size()[0];
@@ -183,7 +185,7 @@ void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
     auto adj_idxs = matrix->get_col_idxs();
     size_type num_diag = 0;
     adj_ptrs[0] = row_ptrs[0];
-    for (auto i = 0; i < num_rows; ++i) {
+    for (size_type i = 0; i < num_rows; ++i) {
         for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
             if (col_idxs[j] == i) {
                 num_diag++;
@@ -192,7 +194,7 @@ void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
         adj_ptrs[i + 1] = row_ptrs[i + 1] - num_diag;
     }
     auto nnz = 0;
-    for (auto i = 0; i < num_rows; ++i) {
+    for (size_type i = 0; i < num_rows; ++i) {
         for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
             if (col_idxs[j] != i) {
                 adj_idxs[nnz] = col_idxs[j];

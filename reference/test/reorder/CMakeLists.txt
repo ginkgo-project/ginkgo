@@ -1,3 +1,6 @@
+if(GINKGO_HAVE_METIS)
+    ginkgo_create_test(nested_dissection)
+endif()
 ginkgo_create_test(rcm)
 ginkgo_create_test(rcm_kernels)
 ginkgo_create_test(scaled_reordered)

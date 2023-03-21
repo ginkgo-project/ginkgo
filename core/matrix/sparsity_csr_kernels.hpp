@@ -75,14 +75,15 @@ namespace kernels {
     void remove_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const IndexType* row_ptrs, const IndexType* col_idxs,               \
+        const IndexType* diag_prefix_sum,                                   \
         matrix::SparsityCsr<ValueType, IndexType>* matrix)
 
-#define GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
+#define GKO_DECLARE_SPARSITY_CSR_DIAGONAL_ELEMENT_PREFIX_SUM_KERNEL(ValueType, \
                                                                     IndexType) \
-    void count_num_diagonal_elements(                                          \
+    void diagonal_element_prefix_sum(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::SparsityCsr<ValueType, IndexType>* matrix,               \
-        size_type* num_diagonal_elements)
+        IndexType* prefix_sum)
 
 #define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,           \
@@ -116,7 +117,7 @@ namespace kernels {
     GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
                                                              IndexType);    \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
+    GKO_DECLARE_SPARSITY_CSR_DIAGONAL_ELEMENT_PREFIX_SUM_KERNEL(ValueType,  \
                                                                 IndexType); \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \

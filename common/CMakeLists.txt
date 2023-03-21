@@ -13,6 +13,7 @@ set(UNIFIED_SOURCES
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
+    matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/jacobi_kernels.cpp
