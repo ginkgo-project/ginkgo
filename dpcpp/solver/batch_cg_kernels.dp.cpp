@@ -91,7 +91,7 @@ public:
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
         constexpr int subgroup_size = config::warp_size;
-        GKO_ASSERT(nrows >= 2 * subgroup_size);
+        GKO_ASSERT(group_size >= 2 * subgroup_size);
 
         const dim3 block(group_size);
         const dim3 grid(num_batches);
@@ -100,9 +100,9 @@ public:
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - matrix_size - 3 * sizeof(ValueType) -
-            2 * sizeof(real_type);  // reserve 5 for intermediate rho-s, norms,
-                                    // and alp
+            slm_size - 3 * sizeof(ValueType) -
+            2 * sizeof(real_type);  // reserve 3 for intermediate rho-s, norms,
+                                    // and alpha
         if (shmem_per_blk < 0) shmem_per_blk = 0;
         const int shared_gap =
             nrows;  // TODO: check if it is neccessary to align
@@ -113,8 +113,8 @@ public:
             gko::kernels::batch_cg::compute_shared_storage<PrecType, ValueType>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
         const size_t shared_size =
-            sconf.n_shared * shared_gap * sizeof(ValueType) +
-            (sconf.prec_shared ? prec_size : 0);
+            sconf.n_shared * shared_gap +
+            (sconf.prec_shared ? prec_size : 0) / sizeof(ValueType);
         auto workspace = gko::Array<ValueType>(
             exec_, sconf.gmem_stride_bytes * num_batches / sizeof(ValueType));
         assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
@@ -124,7 +124,7 @@ public:
         auto x_values = x.values;
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
-        const int local_accessor_size = shared_size + 3 * sizeof(ValueType);
+        const int local_accessor_size = shared_size + 3;
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
@@ -149,12 +149,14 @@ public:
                             gko::batch::batch_entry_ptr(x_values, 1, nrows,
                                                         batch_id);
 
+                        ValueType* const slm_values_ptr =
+                            slm_values.get_pointer();
+                        real_type* const slm_reals_ptr =
+                            slm_reals.get_pointer();
                         apply_kernel<StopType>(
                             sconf, max_iters, res_tol, logger, prec,
                             a_global_entry, b_global_entry, x_global_entry,
-                            nrows, a.num_nnz,
-                            static_cast<ValueType*>(slm_values.get_pointer()),
-                            static_cast<real_type*>(slm_reals.get_pointer()),
+                            nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
                             item_ct1, workspace_data);
                     });
         });

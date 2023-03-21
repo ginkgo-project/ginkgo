@@ -92,7 +92,7 @@ public:
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
         constexpr int subgroup_size = config::warp_size;
-        GKO_ASSERT(nrows >= 2 * subgroup_size);
+        GKO_ASSERT(group_size >= 2 * subgroup_size);
 
         const dim3 block(group_size);
         const dim3 grid(num_batches);
@@ -114,15 +114,9 @@ public:
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  ValueType>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
-        std::cout << "HERE " << sconf.n_shared << " " << sconf.n_global << " "
-                  << sconf.prec_shared << std::endl;
         const size_t shared_size =
-            sconf.n_shared * shared_gap * sizeof(ValueType) +
-            (sconf.prec_shared ? prec_size : 0);
-        std::cout << "slm_size: " << slm_size << ",shared_size: " << shared_size
-                  << std::endl;
-        std::cout << "Workspace size: " << sconf.gmem_stride_bytes * num_batches
-                  << std::endl;
+            sconf.n_shared * shared_gap +
+            (sconf.prec_shared ? prec_size : 0) / sizeof(ValueType);
         auto workspace = gko::array<ValueType>(
             exec_, sconf.gmem_stride_bytes * num_batches / sizeof(ValueType));
         assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
@@ -132,7 +126,7 @@ public:
         auto x_values = x.values;
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
-        const int local_accessor_size = shared_size + 5 * sizeof(ValueType);
+        const int local_accessor_size = shared_size + 5;
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
