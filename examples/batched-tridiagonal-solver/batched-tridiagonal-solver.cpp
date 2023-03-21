@@ -65,7 +65,8 @@ int main(int argc, char* argv[])
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr
             << "Usage: " << argv[0]
-            << " [executor] [dir_path] [problem_name] [num_duplications] "
+            << " [executor] [dir_path] [problem_name] [num_systems] "
+               "[num_duplications] "
                "[num_WM_steps] [subwarp_size] [tridiag approach] [file_timings]"
             << std::endl;
         std::exit(-1);
@@ -105,25 +106,27 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    const std::string dir_name =
-        argc >= 3 ? argv[2] : "/home/hp/Desktop/Tridiagonal_test_matrices/";
+    const std::string dir_name = argc >= 3 ? argv[2] : "data/";
 
     // @sect3{Read batch from files}
     // Name of the problem
     const std::string problem_name = argc >= 4 ? argv[3] : "gallery_lesp_100";
 
+    // Number of linear systems to read from files.
+    const size_type num_systems = argc >= 5 ? std::atoi(argv[4]) : 2;
+
     // Number of times to duplicate whatever systems are read from files.
-    const size_type num_duplications = argc >= 5 ? std::atoi(argv[4]) : 1;
+    const size_type num_duplications = argc >= 6 ? std::atoi(argv[5]) : 10;
 
     // Number of WM steps
-    const int number_WM_steps = argc >= 6 ? std::atoi(argv[5]) : 2;
+    const int number_WM_steps = argc >= 7 ? std::atoi(argv[6]) : 2;
 
     // WM_pGE subwarp size
-    const int subwarp_size = argc >= 7 ? std::atoi(argv[6]) : 16;
+    const int subwarp_size = argc >= 8 ? std::atoi(argv[7]) : 16;
 
     // Approach
     enum gko::solver::batch_tridiag_solve_approach approach;
-    const std::string approach_str = argc >= 8 ? argv[7] : "WM_pGE_app1";
+    const std::string approach_str = argc >= 9 ? argv[8] : "WM_pGE_app1";
     if (approach_str == std::string("WM_pGE_app1")) {
         approach = gko::solver::batch_tridiag_solve_approach::WM_pGE_app1;
     } else if (approach_str == std::string("WM_pGE_app2")) {
@@ -132,16 +135,19 @@ int main(int argc, char* argv[])
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
 
-    const char* log_file = argc >= 9 ? argv[8] : "timings_file.txt";
+    const char* log_file = argc >= 10 ? argv[9] : "timings_file.txt";
 
-    const std::string mat_str = problem_name + ".mtx";
-    const std::string fbase = dir_name;
-    std::string fname = fbase + mat_str;
-    std::cout << "\n\nfile to be read: " << fname << std::endl;
-    std::ifstream mtx_fd(fname);
+    auto data = std::vector<gko::matrix_data<value_type>>(num_systems);
 
-    auto data = std::vector<gko::matrix_data<value_type>>(1);
-    data[0] = gko::read_raw<value_type>(mtx_fd);
+    for (size_type i = 0; i < data.size(); ++i) {
+        const std::string mat_str = "A.mtx";
+        const std::string fbase =
+            dir_name + problem_name + "/" + std::to_string(i) + "/";
+        std::string fname = fbase + mat_str;
+        std::cout << "\n\nfile to be read: " << fname << std::endl;
+        std::ifstream mtx_fd(fname);
+        data[i] = gko::read_raw<value_type>(mtx_fd);
+    }
 
     auto single_batch = mtx_type::create(exec);
     single_batch->read(data);
@@ -152,27 +158,8 @@ int main(int argc, char* argv[])
 
     // Create RHS
     const auto nrows = A->get_size().at(0)[0];
-    /*
-    std::cout << "num_rows is: " << nrows << std::endl;
 
-    auto A_host = gko::clone(exec->get_master(), A.get());
-    for (int i = 0; i < nrows; i++) {
-        std::cout << "\nsub_diag[" << i
-                  << "]: " << A_host->get_const_sub_diagonal()[i];
-    }
-    for (int i = 0; i < nrows; i++) {
-        std::cout << "\nmain_diag[" << i
-                  << "]: " << A_host->get_const_main_diagonal()[i];
-    }
-    for (int i = 0; i < nrows; i++) {
-        std::cout << "\nsuper_diag[" << i
-                  << "]: " << A_host->get_const_super_diagonal()[i];
-    }
-    */
-
-    const size_type num_total_systems = num_duplications;
-
-    // std::cout << "\n\nNum total systems: " << num_total_systems << std::endl;
+    const size_type num_total_systems = num_systems * num_duplications;
 
     auto host_b = vec_type::create(
         exec->get_master(),
@@ -232,14 +219,15 @@ int main(int argc, char* argv[])
 
     if (approach ==
         gko::solver::batch_tridiag_solve_approach::vendor_provided) {
-        // std::cout << "\n\nThe total time before subtraction: "
-        //           << total_time_millisec << " millisec " << std::endl;
+        std::cout << "\n\nThe total time before subtraction: "
+                  << total_time_millisec << " millisec " << std::endl;
 
         total_time_millisec -= solver->get_time_in_millisec_to_be_subtracted();
-        // std::cout << "\n\nThe total time subtracted: "
-        //           << solver->get_time_in_millisec_to_be_subtracted()
-        //           << " and now finally time is: " << total_time_millisec
-        //           << " millisec " << std::endl;
+        std::cout << "\n\nThe total time subtracted (time taken up by buffer "
+                     "size calculation + allocations): "
+                  << solver->get_time_in_millisec_to_be_subtracted()
+                  << " and now finally time is: " << total_time_millisec
+                  << " millisec " << std::endl;
     }
 
     double av_time_millisec = total_time_millisec / num_rounds;
