@@ -191,10 +191,10 @@ struct workspace_traits<Gcr<ValueType>> {
     constexpr static int krylov_bases_p = 3;
     // mapped krylov bases (Ap in the algorithm)
     constexpr static int mapped_krylov_bases_Ap = 4;
-    // tmp alpha parameter (alpha in the algorithm)
-    constexpr static int tmp_alpha = 5;
-    // tmp beta parameter (beta in the algorithm)
-    constexpr static int tmp_beta = 6;
+    // tmp rAp parameter (r dot Ap in the algorithm)
+    constexpr static int tmp_rAp = 5;
+    // tmp minus beta parameter (-beta in the algorithm)
+    constexpr static int tmp_minus_beta = 6;
     // array of norms of Ap
     constexpr static int Ap_norms = 7;
     // residual norm scalar

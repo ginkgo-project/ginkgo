@@ -94,7 +94,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* Ap,
             const matrix::Dense<remove_complex<ValueType>>* Ap_norm,
-            const matrix::Dense<ValueType>* alpha,
+            const matrix::Dense<ValueType>* rAp,
             const stopping_status* stop_status)
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
@@ -103,7 +103,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
                 continue;
             }
             if (Ap_norm->at(j) != zero<ValueType>()) {
-                auto tmp = alpha->at(j) / Ap_norm->at(j);
+                auto tmp = rAp->at(j) / Ap_norm->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
                 residual->at(i, j) -= tmp * Ap->at(i, j);
             }

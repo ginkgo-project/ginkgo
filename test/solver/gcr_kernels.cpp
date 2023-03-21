@@ -114,7 +114,7 @@ protected:
         p = gen_mtx(m, nrhs);
         Ap_bases = gen_mtx(m * (gko::solver::gcr_default_krylov_dim + 1), nrhs);
         Ap = gen_mtx(m, nrhs);
-        alpha = gen_mtx(1, nrhs);
+        rAp = gen_mtx(1, nrhs);
         Ap_norm = gen_mtx(1, nrhs);
 
 
@@ -135,7 +135,7 @@ protected:
         d_p = gko::clone(exec, p);
         d_Ap_bases = gko::clone(exec, Ap_bases);
         d_Ap = gko::clone(exec, Ap);
-        d_alpha = gko::clone(exec, alpha);
+        d_rAp = gko::clone(exec, rAp);
         d_Ap_norm = gko::clone(exec, Ap_norm);
         d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
         d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
@@ -157,7 +157,7 @@ protected:
     std::unique_ptr<Mtx> p;
     std::unique_ptr<Mtx> Ap_bases;
     std::unique_ptr<Mtx> Ap;
-    std::unique_ptr<Mtx> alpha;
+    std::unique_ptr<Mtx> rAp;
     std::unique_ptr<Mtx> Ap_norm;
     gko::array<gko::stopping_status> stop_status;
     gko::array<gko::size_type> final_iter_nums;
@@ -170,7 +170,7 @@ protected:
     std::unique_ptr<Mtx> d_p;
     std::unique_ptr<Mtx> d_Ap_bases;
     std::unique_ptr<Mtx> d_Ap;
-    std::unique_ptr<Mtx> d_alpha;
+    std::unique_ptr<Mtx> d_rAp;
     std::unique_ptr<Mtx> d_Ap_norm;
     gko::array<gko::stopping_status> d_stop_status;
     gko::array<gko::size_type> d_final_iter_nums;
@@ -214,11 +214,11 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(),
-                                         Ap.get(), Ap_norm.get(), alpha.get(),
+                                         Ap.get(), Ap_norm.get(), rAp.get(),
                                          stop_status.get_data());
     gko::kernels::EXEC_NAMESPACE::gcr::step_1(
         exec, d_x.get(), d_residual.get(), d_p.get(), d_Ap.get(),
-        d_Ap_norm.get(), d_alpha.get(), d_stop_status.get_data());
+        d_Ap_norm.get(), d_rAp.get(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
