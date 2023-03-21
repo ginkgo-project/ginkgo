@@ -60,10 +60,12 @@ class BatchDense;
 
 
 /**
- * BatchTridiagonal is a batch matrix format which stores the sub-diagonal (with
- * an extra zero in the beginning), the main- diagonal and the super-diagonal
- * (with an extra zero at the end) of each matrix in the batch.
+ * BatchTridiagonal is a matrix format that holds a collection of tridiagonal
+ * matrices.
  *
+ * It stores the sub-diagonal (with an extra zero at the start),
+ * main-diagonal, and super-diagonal (with an extra zero at the end)
+ * corresponding to each matrix in the batch.
  *
  * The diagonals are stored in a strided fashion, i.e. first all elements of the
  * sub-diagonal of the first matrix, then all the elements of the sub-diagonal

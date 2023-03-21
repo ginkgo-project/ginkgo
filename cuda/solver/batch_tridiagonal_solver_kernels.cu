@@ -62,7 +62,7 @@ namespace {
 
 constexpr int default_block_size =
     128;  // found out by experimentally that 128 works the best for medium
-          // sized matrices (nrows raound 300)
+          // sized matrices (nrows around 300)
 
 #include "common/cuda_hip/solver/batch_tridiagonal_solver_kernels.hpp.inc"
 

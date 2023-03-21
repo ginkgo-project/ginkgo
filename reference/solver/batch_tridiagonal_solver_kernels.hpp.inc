@@ -52,7 +52,7 @@ inline void batch_entry_tridiagonal_thomas_solve_impl(
     auto b_entry = tridiag_mat_maindiags + ibatch * nrows;
     const auto c_entry = tridiag_mat_superdiags + ibatch * nrows;
 
-    // Thomas algorithm - simplified gaussean elimination
+    // Thomas algorithm - simplified gaussian elimination
 
     // Forward elimination phase
     for (int row_idx = 1; row_idx < nrows; row_idx++) {

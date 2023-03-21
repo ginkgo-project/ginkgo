@@ -140,13 +140,12 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
         b_scaled_ptr = dense_b;
     }
 
-    // Note that system and rhs are changed during the solve.
     exec->run(batch_tridiagonal_solver::make_apply(
         system_matrix_tridiagonal.get(), b_scaled_ptr, dense_x,
         this->workspace_.get_num_elems(), this->workspace_.get_data(),
         parameters_.num_WM_steps, parameters_.WM_pGE_subwarp_size,
         parameters_.batch_tridiagonal_solution_approach,
-        this->millisec_to_be_subtracted));
+        this->millisec_to_be_subtracted_));
 
     if (to_scale) {
         as<const BDiag>(this->parameters_.right_scaling_op)

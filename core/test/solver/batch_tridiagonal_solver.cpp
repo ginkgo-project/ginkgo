@@ -80,39 +80,6 @@ protected:
     const enum gko::solver::batch_tridiag_solve_approach approach =
         gko::solver::batch_tridiag_solve_approach::WM_pGE_app2;
     std::unique_ptr<gko::BatchLinOp> solver;
-
-    // /*
-    //     2  0  0  0
-    //     1  2  0  0
-    //     4  0  5  0
-    //     0  0  7  1
-
-    //     1  0  0  0
-    //     3  4  0  0
-    //     1  0  1  0
-    //     0  0  4  5
-    // */
-    // std::unique_ptr<Mtx> get_csr_lower_matrix()
-    // {
-    //     auto mat = Mtx::create(gko::as<const gko::ReferenceExecutor>(exec),
-    //     2,
-    //                            gko::dim<2>(4, 4), 7);
-    //     int* const row_ptrs = mat->get_row_ptrs();
-    //     int* const col_idxs = mat->get_col_idxs();
-    //     value_type* const vals = mat->get_values();
-
-    //     // clang-format off
-    //     row_ptrs[0] = 0;row_ptrs[1] = 1; row_ptrs[2] = 3;
-    //     row_ptrs[3] = 5; row_ptrs[4] = 7;
-    //     col_idxs[0] = 0; col_idxs[1] = 0; col_idxs[2] = 1;
-    //     col_idxs[3] = 0;  col_idxs[4] = 2; col_idxs[5] = 2; col_idxs[6] = 3;
-    //     vals[0] = 2.0; vals[1] = 1.0; vals[2] = 2.0; vals[3] = 4.0;
-    //     vals[4] = 5.0; vals[5] = 7.0; vals[6] = 1.0; vals[7] = 1.0;
-    //     vals[8] = 3.0; vals[9] = 4.0; vals[10] = 1.0; vals[11] = 1.0;
-    //     vals[12] = 4.0; vals[13] = 5.0;
-    //     // clang-format on
-    //     return mat;
-    // }
 };
 
 TYPED_TEST_SUITE(BatchTridiagonalSolver, gko::test::ValueTypes);

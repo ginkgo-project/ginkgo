@@ -253,7 +253,7 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
         if (final_group_size > tile_size) {
             printf(
                 "\n Number of WM steps ans subwarp size should satisfy the "
-                "equation: pow(2, WM_steps) <=  tile_size, where tile_size = "
+                "inequality: pow(2, WM_steps) <=  tile_size, where tile_size = "
                 "subwarp_size");
             assert(false);
         }
@@ -289,9 +289,9 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
                 // In each WM step, the adjacent groups are merged
                 // independently.
 
-                // Phase-2 of the algorithm - Full Gaussean elimination of the
+                // Phase-2 of the algorithm - Full Gaussian elimination of the
                 // groups.
-                // Now perform full Gaussean elimination on each group of the
+                // Now perform full Gaussian elimination on each group of the
                 // transformed system to eliminate the bottom spikes
                 assert(curr_group_size == final_group_size);
 
@@ -756,7 +756,8 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
         if (final_group_size > tile_size) {
             printf(
                 "\n Number of WM steps ans subwarp size should satisfy the "
-                "equation: pow(2, WM_steps) <= tile_size, where tile_size = 2 "
+                "inequality: pow(2, WM_steps) <= tile_size, where tile_size = "
+                "2 "
                 "* subwarp_size");
             assert(false);
         }
@@ -825,9 +826,9 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
                 // In each WM step, the adjacent groups are merged
                 // independently.
 
-                // Phase-2 of the algorithm - Full Gaussean elimination of the
+                // Phase-2 of the algorithm - Full Gaussian elimination of the
                 // groups.
-                // Now perform full Gaussean elimination on each group of the
+                // Now perform full Gaussian elimination on each group of the
                 // transformed system to eliminate the bottom spikes
                 assert(curr_group_size == final_group_size);
 

@@ -47,6 +47,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
+/**
+ * The approach to be used for solving the batched trdiagonal system on CUDA/HIP
+ * executor.
+ *
+ * Both "WM_pGE_app1" and "WM_pGE_app2" are based on the Wang and Mou parallel
+ * Gaussian Elimination algorithm. The only difference between the two lies is
+ * the parallel scheme; in "WM_pGE_app1" each thread of the subwarp operates on
+ * a single row of the matrix tile, while in "WM_pGE_2", each thread of the
+ * subwarp handles two adjacent rows of the matrix tile.
+ *
+ * The approach- "vendor_provided" makes use of the "gtsv2StridedBatched"
+ * function provided by cuSparse/hipSparse.
+ *
+ */
 enum class batch_tridiag_solve_approach {
     WM_pGE_app1,
     WM_pGE_app2,
@@ -100,14 +114,30 @@ public:
         return right_scaling_;
     }
 
+    /**
+     *
+     * Time in milliseconds taken up by the buffersize calculation and
+     * allocation in the vendor library batched tridiagonal functions.
+     *
+     * This time must be subtracted from the overall time
+     * taken up by the "vendor-provided" approach to get the actual computation
+     * time.
+     *
+     * Note: The time gets added up in each solver apply step, therefore,
+     * accessing this time after performing n solver applies means that the time
+     * returned is the total time taken up by buffersize calculation +
+     * allocation in n steps.
+     *
+     */
     double get_time_in_millisec_to_be_subtracted() const
     {
-        return millisec_to_be_subtracted;
+        return millisec_to_be_subtracted_;
     }
+
 
     void set_time_in_millisec_to_be_subtracted(const double time)
     {
-        millisec_to_be_subtracted = time;
+        millisec_to_be_subtracted_ = time;
     }
 
     std::unique_ptr<BatchLinOp> transpose() const override;
@@ -128,20 +158,40 @@ public:
          * Batch diagonal matrix for scaling the system matrix from the right
          * before the solve. Note that `left_scaling_op` must also be set if
          * this is set.
+         *
          */
         std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
             right_scaling_op, nullptr);
 
         /**
-         * Number of WM steps in the WM-pGE algorithm
+         * The approach to be used to solve the batched tridiagonal system.
+         *
+         * Note: This parameter is used only in the case of CUDA/HIP executor.
+         * The reference and omp implementations make use of Thomas algorithm.
          *
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(num_WM_steps, 1);
-
         batch_tridiag_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
             batch_tridiagonal_solution_approach,
             batch_tridiag_solve_approach::WM_pGE_app1);
 
+        /**
+         * Number of WM steps in the WM-pGE algorithm.
+         *
+         * Note: This parameter is used only in the case of CUDA/HIP executor.
+         *
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(num_WM_steps, 1);
+
+        /**
+         * The subwarp size to be used in the WM-pGE algorithm.
+         *
+         * Note: The tile size used in WM_pGE_app1 would be equal to the subwarp
+         * size set here, while the tile size in WM_pGE_app2 would be 2 *
+         * subwarp size.
+         *
+         * Note: This parameter is used only in the case of CUDA/HIP executor.
+         *
+         */
         int GKO_FACTORY_PARAMETER_SCALAR(WM_pGE_subwarp_size, 4);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchTridiagonalSolver, parameters,
@@ -167,7 +217,8 @@ protected:
           system_matrix_{std::move(system_matrix)},
           workspace_(factory->get_executor(),
                      2 * system_matrix_->get_num_batch_entries() *
-                         system_matrix_->get_size().at(0)[0])
+                         system_matrix_->get_size().at(0)[0]),
+          millisec_to_be_subtracted_{0}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
@@ -216,7 +267,7 @@ private:
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
     mutable gko::array<ValueType> workspace_{};
-    mutable double millisec_to_be_subtracted;
+    mutable double millisec_to_be_subtracted_{};
 };
 
 
