@@ -50,6 +50,48 @@ protected:
 
 TYPED_TEST_SUITE(Chebyshev, gko::test::ValueTypes, TypenameNameGenerator);
 
+TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto upper = value_type{1.1};
+    auto lower = value_type{0.9};
+    auto factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
+            .with_upper_eigval(upper)
+            .with_lower_eigval(lower)
+            .with_num_keep(3)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
+    auto beta = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
+    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+    // check the num_keep alpha, beta
+    auto d = (upper + lower) / value_type{2};
+    auto c = (upper - lower) / value_type{2};
+    EXPECT_EQ(alpha->at(0, 0), value_type{1} / d);
+    EXPECT_EQ(beta->at(0, 0), value_type{0});
+    EXPECT_EQ(beta->at(0, 1),
+              value_type{0.5} * (c * alpha->at(0, 0)) * (c * alpha->at(0, 0)));
+    EXPECT_EQ(alpha->at(0, 1),
+              value_type{1} / (d - beta->at(0, 1) / alpha->at(0, 0)));
+    EXPECT_EQ(beta->at(0, 2), (c * alpha->at(0, 1) / value_type{2}) *
+                                  (c * alpha->at(0, 1) / value_type{2}));
+    EXPECT_EQ(alpha->at(0, 2),
+              value_type{1} / (d - beta->at(0, 2) / alpha->at(0, 1)));
+}
+
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystem)
 {
@@ -339,8 +381,8 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         } else {
             ref_x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
         }
-        solver->apply(lend(b), lend(x));
-        ref_solver->apply(lend(b), lend(ref_x));
+        solver->apply(b, x);
+        ref_solver->apply(b, ref_x);
 
         GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
     }
