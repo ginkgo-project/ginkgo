@@ -93,8 +93,7 @@ std::unique_ptr<LinOp> Chebyshev<ValueType>::transpose() const
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
-        .with_upper_eigval(parameters_.upper_eigval)
-        .with_lower_eigval(parameters_.lower_eigval)
+        .with_foci(parameters_.foci)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -108,8 +107,8 @@ std::unique_ptr<LinOp> Chebyshev<ValueType>::conj_transpose() const
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
-        .with_upper_eigval(conj(parameters_.upper_eigval))
-        .with_lower_eigval(conj(parameters_.lower_eigval))
+        .with_foci(conj(std::get<0>(parameters_.foci)),
+                   conj(std::get<1>(parameters_.foci)))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -164,9 +163,9 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    auto alpha_ref = ValueType{1} / center_eig_;
-    auto beta_ref =
-        ValueType{0.5} * (radius_eig_ * alpha_ref) * (radius_eig_ * alpha_ref);
+    auto alpha_ref = ValueType{1} / center_;
+    auto beta_ref = ValueType{0.5} * (foci_direction_ * alpha_ref) *
+                    (foci_direction_ * alpha_ref);
 
     bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
@@ -251,10 +250,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         // beta_ref for iter == 1 is initialized in the beginning
         if (iter > 1) {
-            beta_ref = (radius_eig_ * alpha_ref / ValueType{2.0}) *
-                       (radius_eig_ * alpha_ref / ValueType{2.0});
+            beta_ref = (foci_direction_ * alpha_ref / ValueType{2.0}) *
+                       (foci_direction_ * alpha_ref / ValueType{2.0});
         }
-        alpha_ref = ValueType{1.0} / (center_eig_ - beta_ref / alpha_ref);
+        alpha_ref = ValueType{1.0} / (center_ - beta_ref / alpha_ref);
         // The last one is always the updated one
         if (num_generated_ < num_keep || iter >= num_keep) {
             alpha_scalar->fill(alpha_ref);
