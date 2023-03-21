@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
         const std::string fbase =
             dir_name + problem_name + "/" + std::to_string(i) + "/";
         std::string fname = fbase + mat_str;
-        std::cout << "\n\nfile to be read: " << fname << std::endl;
+        std::cout << "\nReading file: " << fname << std::endl;
         std::ifstream mtx_fd(fname);
         data[i] = gko::read_raw<value_type>(mtx_fd);
     }
@@ -232,20 +232,13 @@ int main(int argc, char* argv[])
 
     double av_time_millisec = total_time_millisec / num_rounds;
 
-    std::cout << "the solve took " << av_time_millisec << " milliseconds."
-              << std::endl;
+    std::cout << "\nThe entire solve took " << av_time_millisec
+              << " milliseconds." << std::endl;
 
     std::ofstream timings_file;
     timings_file.open(log_file, std::ofstream::app);
     timings_file << num_total_systems << "  " << av_time_millisec << " \n";
     timings_file.close();
-
-    // auto vec_b = b->unbatch(); TODO: //seg fault???
-    // gko::write(std::ofstream(std::string("b.mtx")), vec_b[0].get());
-
-    // auto host_x = gko::clone(exec->get_master(), x.get());
-    // auto vec_x = host_x->unbatch();
-    // gko::write(std::cout, vec_x[0].get());
 
     return 0;
 }
