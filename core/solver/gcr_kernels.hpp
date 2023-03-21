@@ -69,7 +69,7 @@ namespace gcr {
                 matrix::Dense<_type>* x, matrix::Dense<_type>* residual,       \
                 const matrix::Dense<_type>* p, const matrix::Dense<_type>* Ap, \
                 const matrix::Dense<remove_complex<_type>>* Ap_norm,           \
-                const matrix::Dense<_type>* alpha,                             \
+                const matrix::Dense<_type>* rAp,                               \
                 const stopping_status* stop_status)
 
 

@@ -62,7 +62,6 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             if (row == 0) {
                 stop[col].reset();
             }
-            // TODO: possibly set other vals to zero here?
             residual(row, col) = b(row, col);
         },
         // Note: default_stride only applied to objects created using
@@ -103,20 +102,20 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* Ap,
             const matrix::Dense<remove_complex<ValueType>>* Ap_norm,
-            const matrix::Dense<ValueType>* alpha,
+            const matrix::Dense<ValueType>* rAp,
             const stopping_status* stop_status)
 {
     run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto residual, auto p,
-                      auto Ap, auto Ap_norm, auto alpha, auto stop) {
+                      auto Ap, auto Ap_norm, auto rAp, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto tmp = alpha[col] / Ap_norm[col];
+                auto tmp = rAp[col] / Ap_norm[col];
                 x(row, col) += tmp * p(row, col);
                 residual(row, col) -= tmp * Ap(row, col);
             }
         },
-        x->get_size(), p->get_stride(), x, residual, p, Ap, Ap_norm, alpha,
+        x->get_size(), p->get_stride(), x, residual, p, Ap, Ap_norm, rAp,
         stop_status);
 }
 
