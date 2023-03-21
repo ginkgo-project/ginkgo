@@ -425,7 +425,7 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
         for (auto _ : ic.run()) {
             op->run();
         }
-        const auto runtime = ic.compute_average_time();
+        const auto runtime = ic.compute_time(FLAGS_timer_method);
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
         const auto repetitions = ic.get_num_repetitions();

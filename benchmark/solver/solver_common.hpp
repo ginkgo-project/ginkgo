@@ -565,9 +565,11 @@ void solve_system(const std::string& solver_name,
                               allocator);
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_average_time(), allocator);
+                          generate_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_average_time(), allocator);
+                          apply_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json, "repetitions",
                           apply_timer->get_num_repetitions(), allocator);
 

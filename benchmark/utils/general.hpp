@@ -115,9 +115,10 @@ DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
               "If 'repetitions = auto' is used, the maximal number of"
               " repetitions for a single benchmark.");
 
-DEFINE_double(repetition_growth_factor, 1.5,
-              "If 'repetitions = auto' is used, the factor with which the"
-              " repetitions between two timings increase.");
+DEFINE_double(
+    repetition_growth_factor, 1.5,
+    "The factor with which the repetitions between two timings increase. If it "
+    "is lower than or equal to 1, the timing region is always 1 repetition.");
 
 
 /**
@@ -581,10 +582,25 @@ public:
         return status_run_.managed_timer.timer;
     }
 
-    double compute_average_time() const
+    /**
+     * Compute the time from the given statistical method
+     *
+     * @param method  the statistical method. If the timer does not have the
+     *                same iteration as the IterationControl, it can only use
+     *                average from the IterationControl.
+     *
+     * @return the statistical time
+     */
+    double compute_time(const std::string& method = "average") const
     {
-        return status_run_.managed_timer.get_total_time() /
-               get_num_repetitions();
+        if (status_run_.managed_timer.timer->get_num_repetitions() ==
+            this->get_num_repetitions()) {
+            return status_run_.managed_timer.compute_time(method);
+        } else {
+            assert(method == "average");
+            return status_run_.managed_timer.get_total_time() /
+                   this->get_num_repetitions();
+        }
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
@@ -600,16 +616,21 @@ private:
                 timer->tic();
             }
         }
-        void toc()
+        void toc(unsigned int num = 1)
         {
             if (manage_timings) {
-                timer->toc();
+                timer->toc(num);
             }
         }
 
         void clear() { timer->clear(); }
 
         double get_total_time() const { return timer->get_total_time(); }
+
+        double compute_time(const std::string& method = "average") const
+        {
+            return timer->compute_time(method);
+        }
     };
 
     /**
@@ -664,10 +685,16 @@ private:
             {
                 cur_info->cur_it++;
                 if (cur_info->cur_it >= next_timing && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                     next_timing = static_cast<IndexType>(std::ceil(
                         next_timing * FLAGS_repetition_growth_factor));
+                    // If repetition_growth_factor <= 1, next_timing will be
+                    // next iteration.
+                    if (next_timing <= cur_info->cur_it) {
+                        next_timing = cur_info->cur_it + 1;
+                    }
                 }
                 return *this;
             }
@@ -695,15 +722,18 @@ private:
                 if (!is_finished && stopped) {
                     stopped = false;
                     cur_info->managed_timer.tic();
+                    start_timing = cur_info->cur_it;
                 } else if (is_finished && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                 }
                 return !is_finished;
             }
 
             status* cur_info;
-            IndexType next_timing = 1;  //!< next iteration to stop timing
+            IndexType next_timing = 1;   //!< next iteration to stop timing
+            IndexType start_timing = 0;  //!< iteration for starting timing
             bool stopped = true;
         };
 
