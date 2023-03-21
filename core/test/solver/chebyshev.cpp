@@ -179,13 +179,12 @@ TYPED_TEST(Chebyshev, CanSetEigenRegion)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_upper_eigval(value_type{1.2})
-            .with_lower_eigval(value_type{0.2})
+            .with_foci(value_type{0.2}, value_type{1.2})
             .on(this->exec)
             ->generate(this->mtx);
 
-    ASSERT_EQ(chebyshev_solver->get_parameters().lower_eigval, value_type{0.2});
-    ASSERT_EQ(chebyshev_solver->get_parameters().upper_eigval, value_type{1.2});
+    ASSERT_EQ(chebyshev_solver->get_parameters().foci,
+              std::make_pair(value_type{0.2}, value_type{1.2}));
 }
 
 
