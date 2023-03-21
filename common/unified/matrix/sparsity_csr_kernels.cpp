@@ -97,7 +97,7 @@ void diagonal_element_prefix_sum(
         },
         num_rows, matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
         prefix_sum);
-    components::prefix_sum(exec, prefix_sum, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, prefix_sum, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
