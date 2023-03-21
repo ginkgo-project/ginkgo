@@ -169,14 +169,11 @@ public:
             generated_solver, nullptr);
 
         /**
-         * Upper estimated eigenvalue
+         * The pair of foci of ellipse. It is usually be {lower bound of eigval,
+         * upper bound of eigval} for real matrices.
          */
-        ValueType GKO_FACTORY_PARAMETER_SCALAR(upper_eigval, value_type{1});
-
-        /**
-         * Lower estimated eigenvalue
-         */
-        ValueType GKO_FACTORY_PARAMETER_SCALAR(lower_eigval, value_type{0});
+        std::pair<value_type, value_type> GKO_FACTORY_PARAMETER_VECTOR(
+            foci, value_type{0}, value_type{1});
 
         /**
          * Default initial guess mode. The available options are under
@@ -236,10 +233,13 @@ protected:
                 this->get_executor(), this->get_size()));
         }
         this->set_default_initial_guess(parameters_.default_initial_guess);
-        center_eig_ = (parameters_.upper_eigval + parameters_.lower_eigval) /
-                      ValueType{2};
-        radius_eig_ = (parameters_.upper_eigval - parameters_.lower_eigval) /
-                      ValueType{2};
+        center_ =
+            (std::get<0>(parameters_.foci) + std::get<1>(parameters_.foci)) /
+            ValueType{2};
+        // the absolute value of foci_direction is the focal direction
+        foci_direction_ =
+            (std::get<1>(parameters_.foci) - std::get<0>(parameters_.foci)) /
+            ValueType{2};
         // if changing the lower/upper eig, need to reset it to zero
         num_generated_ = 0;
     }
@@ -247,8 +247,8 @@ protected:
 private:
     std::shared_ptr<const LinOp> solver_{};
     mutable int num_generated_;
-    ValueType center_eig_;
-    ValueType radius_eig_;
+    ValueType center_;
+    ValueType foci_direction_;
 };
 
 
