@@ -55,7 +55,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
-* _ROCm 4.0+_
+* _ROCm 4.5+_
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
     * _9.2 <= CUDA < 11_ backend
