@@ -109,17 +109,12 @@ void metis_nd(std::shared_ptr<const Executor> host_exec, size_type num_rows,
                                {host_exec});
     vector<idx_t> tmp_perm(num_rows, {host_exec});
     vector<idx_t> tmp_iperm(num_rows, {host_exec});
-    auto result = METIS_NodeND(&nvtxs, tmp_row_ptrs.data(), tmp_col_idxs.data(),
-                               nullptr, const_cast<idx_t*>(options.data()),
-                               tmp_perm.data(), tmp_iperm.data());
-    if (result != METIS_OK) {
-        throw MetisError(__FILE__, __LINE__, "METIS_NodeND",
-                         metis_error_message(result));
-    }
+    metis_nd<idx_t>(host_exec, num_rows, tmp_row_ptrs.data(),
+                    tmp_col_idxs.data(), options, tmp_perm.data(),
+                    tmp_iperm.data());
     std::copy_n(tmp_perm.begin(), num_rows, perm);
     std::copy_n(tmp_iperm.begin(), num_rows, iperm);
 }
-
 
 template <>
 void metis_nd<idx_t>(std::shared_ptr<const Executor> host_exec,
