@@ -58,20 +58,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
-    const auto nrhs = rhs->get_size().at(0)[1];
+    const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
     assert(nrhs == 1);
 
-    // auto rhs_clone = gko::share(gko::clone(exec, rhs)).get(); //WHY IS THIS
-    // NOT WORKING?
-
-    // auto rhs_copy = matrix::BatchDense<ValueType>::create(exec);
-    // rhs_copy->copy_from(rhs);
-    // auto rhs_clone = rhs_copy.get(); //compilation errors
-
-    auto rhs_clone = const_cast<matrix::BatchDense<ValueType>*>(rhs);
-
     namespace device = gko::kernels::host;
-    const auto rhs_clone_batch = device::get_batch_struct(rhs_clone);
     const auto x_batch = device::get_batch_struct(x);
 
     const int local_size_bytes =
@@ -86,11 +76,19 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         tridiag_mat->get_const_super_diagonal();
 
     assert(workspace_size >=
-           tridiag_mat->get_num_stored_elements_per_diagonal());
+           tridiag_mat->get_num_stored_elements_per_diagonal() +
+               rhs->get_num_stored_elements());
 
     ValueType* const tridiag_mat_maindiags = workspace_ptr;
     exec->copy(tridiag_mat->get_num_stored_elements_per_diagonal(),
                tridiag_mat->get_const_main_diagonal(), tridiag_mat_maindiags);
+
+    ValueType* rhs_copy = tridiag_mat_maindiags +
+                          tridiag_mat->get_num_stored_elements_per_diagonal();
+    exec->copy(rhs->get_num_stored_elements(), rhs->get_const_values(),
+               rhs_copy);
+    auto rhs_clone_batch = gko::batch_dense::UniformBatch<ValueType>{
+        rhs_copy, nbatch, rhs->get_stride().at(0), nrows, nrhs, nrows * nrhs};
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_tridiagonal_thomas_solve_impl(
