@@ -57,22 +57,12 @@ const auto benchmark_name = "sparse_blas";
 
 using mat_data = gko::matrix_data<etype, itype>;
 
+DEFINE_string(operations, "spgemm,spgeam,transpose",
+              "Comma-separated list of operations to be benchmarked. Can be "
+              "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, "
+              "lookup, symbolic_lu, symbolic_cholesky");
 
-const std::map<std::string,
-               const std::function<std::shared_ptr<Mtx::strategy_type>()>>
-    strategy_map{
-        {"classical", [] { return std::make_shared<Mtx::classical>(); }},
-        {"sparselib", [] { return std::make_shared<Mtx::sparselib>(); }}};
-
-DEFINE_string(
-    operations, "spgemm,spgeam,transpose",
-    "Comma-separated list of operations to be benchmarked. Can be "
-    "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, lookup");
-
-DEFINE_string(strategies, "classical,sparselib",
-              "Comma-separated list of CSR strategies: classical, sparselib");
-
-DEFINE_bool(validate_results, false,
+DEFINE_bool(validate, false,
             "Check for correct sparsity pattern and compute the L2 norm "
             "against the ReferenceExecutor solution.");
 
@@ -117,7 +107,7 @@ void apply_sparse_blas(const char* operation_name,
         add_or_set_member(test_case[operation_name], "repetitions", repetitions,
                           allocator);
 
-        if (FLAGS_validate_results) {
+        if (FLAGS_validate) {
             auto validation_result = op->validate();
             add_or_set_member(test_case[operation_name], "correct",
                               validation_result.first, allocator);
@@ -135,6 +125,7 @@ void apply_sparse_blas(const char* operation_name,
             op->run();
             exec->remove_logger(gen_logger);
         }
+        op->write_stats(test_case[operation_name], allocator);
 
         add_or_set_member(test_case[operation_name], "completed", true,
                           allocator);
@@ -175,7 +166,6 @@ int main(int argc, char* argv[])
 
     auto& allocator = test_cases.GetAllocator();
 
-    auto strategies = split(FLAGS_strategies, ',');
     auto operations = split(FLAGS_operations, ',');
 
     for (auto& test_case : test_cases.GetArray()) {
@@ -195,22 +185,21 @@ int main(int argc, char* argv[])
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
                       << std::endl;
-            add_or_set_member(test_case, "size", data.size[0], allocator);
+            add_or_set_member(test_case, "rows", data.size[0], allocator);
+            add_or_set_member(test_case, "cols", data.size[1], allocator);
+            add_or_set_member(test_case, "nonzeros", data.nonzeros.size(),
+                              allocator);
 
-            for (const auto& strategy_name : strategies) {
-                auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),
-                                       strategy_map.at(strategy_name)());
-                mtx->read(data);
-                for (const auto& operation_name : operations) {
-                    const auto name = operation_name + "-" + strategy_name;
-                    if (FLAGS_overwrite ||
-                        !sp_blas_case.HasMember(name.c_str())) {
-                        apply_sparse_blas(operation_name.c_str(), exec,
-                                          mtx.get(), sp_blas_case, allocator);
-                        std::clog << "Current state:" << std::endl
-                                  << test_cases << std::endl;
-                        backup_results(test_cases);
-                    }
+            auto mtx = Mtx::create(exec, data.size, data.nonzeros.size());
+            mtx->read(data);
+            for (const auto& operation_name : operations) {
+                if (FLAGS_overwrite ||
+                    !sp_blas_case.HasMember(operation_name.c_str())) {
+                    apply_sparse_blas(operation_name.c_str(), exec, mtx.get(),
+                                      sp_blas_case, allocator);
+                    std::clog << "Current state:" << std::endl
+                              << test_cases << std::endl;
+                    backup_results(test_cases);
                 }
             }
             // write the output if we have no strategies
@@ -218,6 +207,11 @@ int main(int argc, char* argv[])
         } catch (const std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
         }
     }
 
