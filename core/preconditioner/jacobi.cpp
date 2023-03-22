@@ -367,6 +367,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // It should be sorted in the convert_to_with_sorting
             // We only use it to generate the inversed block, so we do not need
             // to rebuild srow
+            // Note: Does the diagonal make the find_block different?
             exec->run(jacobi::make_add_diagonal_elements(csr_mtx.get(), true));
             // block_pointers has larger size than actual num_blocks_
             exec->run(jacobi::make_block_l1(
