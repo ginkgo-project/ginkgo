@@ -198,8 +198,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 

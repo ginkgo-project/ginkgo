@@ -1066,7 +1066,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
@@ -1131,7 +1131,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);

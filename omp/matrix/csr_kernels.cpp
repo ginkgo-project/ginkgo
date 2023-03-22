@@ -356,7 +356,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto heap = heap_array.get_data();
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -439,7 +439,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -529,7 +529,7 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
         [&](IndexType row, IndexType nnz) { c_row_ptrs[row] = nnz; });
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -688,7 +688,7 @@ void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
     for (size_type i = 0; i < orig_nnz; i++) {
         trans_row_ptrs[orig_col_idxs[i] + 1]++;
     }
-    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
+    components::prefix_sum_nonnegative(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
                        trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
@@ -904,7 +904,7 @@ void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
         auto dst_row = perm[row];
         p_row_ptrs[dst_row] = in_row_ptrs[src_row + 1] - in_row_ptrs[src_row];
     }
-    components::prefix_sum(exec, p_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, p_row_ptrs, num_rows + 1);
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         auto src_row = row;
@@ -943,7 +943,7 @@ void row_permute(std::shared_ptr<const OmpExecutor> exec, const IndexType* perm,
         rp_row_ptrs[dst_row] =
             orig_row_ptrs[src_row + 1] - orig_row_ptrs[src_row];
     }
-    components::prefix_sum(exec, rp_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, rp_row_ptrs, num_rows + 1);
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         auto src_row = perm[row];
@@ -982,7 +982,7 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
         rp_row_ptrs[dst_row] =
             orig_row_ptrs[src_row + 1] - orig_row_ptrs[src_row];
     }
-    components::prefix_sum(exec, rp_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, rp_row_ptrs, num_rows + 1);
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         auto src_row = row;

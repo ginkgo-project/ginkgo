@@ -551,7 +551,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
         return;
     }
 
-    components::prefix_sum(exec, dpcpp_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum_nonnegative(exec, dpcpp_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
     auto total_additions =
@@ -604,8 +604,8 @@ void initialize_row_ptrs_l_u(
                                   system_matrix->get_const_values(), l_row_ptrs,
                                   u_row_ptrs);
 
-    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
-    components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -655,7 +655,7 @@ void initialize_row_ptrs_l(
                                 system_matrix->get_const_col_idxs(),
                                 system_matrix->get_const_values(), l_row_ptrs);
 
-    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

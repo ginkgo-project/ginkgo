@@ -117,6 +117,7 @@ public:
                 return copy.at(mid);
             }
         }
+        GKO_NOT_IMPLEMENTED;
     }
 
     /**

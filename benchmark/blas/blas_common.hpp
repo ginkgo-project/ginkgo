@@ -46,12 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 // Command-line arguments
 DEFINE_string(
     operations, "copy,axpy,scal",
-    "A comma-separated list of BLAS operations to benchmark.\nCandidates are"
+    "A comma-separated list of operations to benchmark.\nCandidates are"
+    "BLAS algorithms:\n"
     "   copy (y = x),\n"
     "   axpy (y = y + a * x),\n"
     "   multiaxpy (like axpy, but a has one entry per column),\n"
@@ -61,6 +63,9 @@ DEFINE_string(
     "   norm (a = sqrt(x' * x)),\n"
     "   mm (C = A * B),\n"
     "   gemm (C = a * A * B + b * C)\n"
+    "Non-numerical algorithms:\n"
+    "   prefix_sum32 (x_i <- sum_{j=0}^{i-1} x_i, 32 bit indices)\n"
+    "   prefix_sum64 (                            64 bit indices)\n"
     "where A has dimensions n x k, B has dimensions k x m,\n"
     "C has dimensions n x m and x and y have dimensions n x r");
 
@@ -351,6 +356,38 @@ private:
     std::unique_ptr<gko::LinOp> A_;
     std::unique_ptr<gko::LinOp> B_;
     std::unique_ptr<gko::LinOp> C_;
+};
+
+
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
+
+
+template <typename IndexType>
+class PrefixSumOperation : public BenchmarkOperation {
+public:
+    PrefixSumOperation(std::shared_ptr<const gko::Executor> exec,
+                       gko::size_type n)
+        : array_{exec, n}
+    {
+        array_.fill(0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override
+    {
+        return 2 * sizeof(IndexType) * array_.get_num_elems();
+    }
+
+    void run() override
+    {
+        array_.get_executor()->run(make_prefix_sum_nonnegative(
+            array_.get_data(), array_.get_num_elems()));
+    }
+
+private:
+    gko::array<IndexType> array_;
 };
 
 

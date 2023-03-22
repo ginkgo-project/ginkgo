@@ -605,6 +605,24 @@ public:
 
 
 /**
+ * OverflowError is thrown when an index calculation for storage requirements
+ * overflows. This most likely means that the index type is too small.
+ */
+class OverflowError : public Error {
+public:
+    /**
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param index_type  The integer type that overflowed
+     */
+    OverflowError(const std::string& file, const int line,
+                  const std::string& index_type)
+        : Error(file, line, "Overflowing " + index_type)
+    {}
+};
+
+
+/**
  * StreamError is thrown if accessing a stream failed.
  */
 class StreamError : public Error {

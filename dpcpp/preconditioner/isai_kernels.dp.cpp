@@ -655,8 +655,8 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
                 inverse->get_values(), excess_rhs_ptrs, excess_nz_ptrs);
         }
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -682,8 +682,8 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             inverse->get_col_idxs(), inverse->get_values(), excess_rhs_ptrs,
             excess_nz_ptrs, spd);
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

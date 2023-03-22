@@ -368,7 +368,7 @@ void transpose_and_transform(
     for (size_type i = 0; i < orig_nbnz; i++) {
         trans_row_ptrs[orig_col_idxs[i] + 1]++;
     }
-    components::prefix_sum(exec, trans_row_ptrs + 1, nbcols);
+    components::prefix_sum_nonnegative(exec, trans_row_ptrs + 1, nbcols);
 
     convert_fbcsr_to_fbcsc<ValueType, IndexType, UnaryOperator, true>(
         nbrows, bs, orig_row_ptrs, orig_col_idxs, orig_vals, trans_col_idxs,

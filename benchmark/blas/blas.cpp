@@ -100,6 +100,16 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
              return std::make_unique<AdvancedApplyOperation<Generator>>(
                  exec, Generator{}, dims.n, dims.k, dims.m, dims.stride_A,
                  dims.stride_B, dims.stride_C);
+         }},
+        {"prefix_sum32",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<PrefixSumOperation<gko::int32>>(exec,
+                                                                     dims.n);
+         }},
+        {"prefix_sum64",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<PrefixSumOperation<gko::int64>>(exec,
+                                                                     dims.n);
          }}};
 
 

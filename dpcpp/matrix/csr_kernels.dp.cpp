@@ -1696,7 +1696,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -1794,7 +1794,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -1905,7 +1905,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
         });
     });
 
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -2015,7 +2015,7 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
         });
     });
 
-    components::prefix_sum(exec, tmp_counts, num_cols + 1);
+    components::prefix_sum_nonnegative(exec, tmp_counts, num_cols + 1);
     exec->copy(num_cols + 1, tmp_counts, out_row_ptrs);
 
     queue->submit([&](sycl::handler& cgh) {
@@ -2070,7 +2070,8 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_permute_kernel<config::warp_size>(
@@ -2095,7 +2096,8 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
     row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     row_permute_kernel<config::warp_size>(
@@ -2120,7 +2122,8 @@ void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_row_permute_kernel<config::warp_size>(

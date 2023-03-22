@@ -166,7 +166,7 @@ void transpose_and_transform(
     for (size_type i = 0; i < orig_nnz; i++) {
         trans_row_ptrs[orig_col_idxs[i] + 1]++;
     }
-    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
+    components::prefix_sum_nonnegative(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_sparsity_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
                             trans_col_idxs, trans_row_ptrs + 1);

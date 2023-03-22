@@ -59,7 +59,8 @@ void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
                                                static_cast<int64>(ell_lim));
         },
         row_nnz.get_num_elems(), row_nnz, ell_lim, coo_row_ptrs);
-    components::prefix_sum(exec, coo_row_ptrs, row_nnz.get_num_elems() + 1);
+    components::prefix_sum_nonnegative(exec, coo_row_ptrs,
+                                       row_nnz.get_num_elems() + 1);
 }
 
 

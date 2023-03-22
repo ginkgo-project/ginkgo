@@ -73,7 +73,7 @@ void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type i = 0; i < num_idxs; i++) {
         ptrs[idxs[i]]++;
     }
-    prefix_sum(exec, ptrs, num_blocks + 1);
+    prefix_sum_nonnegative(exec, ptrs, num_blocks + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);

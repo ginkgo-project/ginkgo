@@ -87,7 +87,7 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
                              exec->get_queue(), partial_counts, total_counts,
                              num_blocks);
     // compute prefix sum over bucket counts
-    components::prefix_sum(exec, total_counts, bucket_count + 1);
+    components::prefix_sum_nonnegative(exec, total_counts, bucket_count + 1);
 }
 
 

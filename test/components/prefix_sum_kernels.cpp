@@ -33,8 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 
 
+#include <limits>
 #include <memory>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 
@@ -69,7 +71,10 @@ protected:
     gko::array<index_type> dvals;
 };
 
-TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
+using PrefixSumIndexTypes =
+    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
+
+TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, EqualsReference)
@@ -78,11 +83,45 @@ TYPED_TEST(PrefixSum, EqualsReference)
     for (auto size :
          {size_type{0}, size_type{1}, size_type{131}, this->total_size}) {
         SCOPED_TRACE(size);
-        gko::kernels::reference::components::prefix_sum(
+        gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, this->vals.get_data(), size);
-        gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
             this->exec, this->dvals.get_data(), size);
 
         GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
     }
 }
+
+
+TYPED_TEST(PrefixSum, WorksCloseToOverflow)
+{
+    // make sure the value we use as max isn't the sentinel used to mark
+    // overflows for unsigned types
+    // TODO remove with signed size_type
+    const auto max = std::numeric_limits<TypeParam>::max() -
+                     std::is_unsigned<TypeParam>::value;
+    gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
+
+    gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+        this->exec, data.get_data(), data.get_num_elems());
+
+    GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, max - 1, max}));
+}
+
+
+#ifndef GKO_COMPILING_DPCPP
+// TODO implement overflow check for DPC++
+
+TYPED_TEST(PrefixSum, ThrowsOnOverflow)
+{
+    const auto max = std::numeric_limits<TypeParam>::max();
+    gko::array<TypeParam> data{this->exec,
+                               {max / 3, max / 2, max / 4, max / 3, max / 4}};
+
+    ASSERT_THROW(
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+            this->exec, data.get_data(), data.get_num_elems()),
+        gko::OverflowError);
+}
+
+#endif
