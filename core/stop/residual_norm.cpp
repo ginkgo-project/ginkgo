@@ -193,14 +193,17 @@ bool ResidualNormBase<ValueType>::check_impl(
     const NormVector* dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
+    } else if (updater.ignore_residual_check_) {
+        // If solver already provide the residual norm, we will still store it.
+        // Otherwise, we skip the residual check.
+        return false;
     } else if (updater.residual_ != nullptr) {
         norm_dispatch<ValueType>(
             [&](auto dense_r) { dense_r->compute_norm2(u_dense_tau_); },
             updater.residual_);
         dense_tau = u_dense_tau_.get();
-    } else if (set_finalized && updater.solution_ != nullptr &&
-               system_matrix_ != nullptr && b_ != nullptr) {
-        // Only compute the residual from solution in the finalized step
+    } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
+               b_ != nullptr) {
         auto exec = this->get_executor();
         norm_dispatch<ValueType>(
             [&](auto dense_b, auto dense_x) {
@@ -210,10 +213,6 @@ bool ResidualNormBase<ValueType>::check_impl(
             },
             b_.get(), updater.solution_);
         dense_tau = u_dense_tau_.get();
-    } else if (!set_finalized) {
-        // If it is not the finalized step and does not contain residual, we
-        // skip the residual norm check
-        return false;
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }

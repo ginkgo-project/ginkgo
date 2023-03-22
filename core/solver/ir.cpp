@@ -240,6 +240,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .solution(dense_x)
+                    // we have the residual check later
+                    .ignore_residual_check(true)
                     .check(relative_stopping_id, false, &stop_status,
                            &one_changed)) {
                 break;
