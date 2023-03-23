@@ -64,9 +64,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             }
             residual(row, col) = b(row, col);
         },
-        // Note: default_stride only applied to objects created using
-        // create_with_config_of as this guarantees identical stride.
-        b->get_size(), b->get_stride(), b, residual, stop_status);
+        b->get_size(), b->get_stride(), default_stride(b),
+        default_stride(residual), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
@@ -75,7 +74,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
 template <typename ValueType>
 void restart(std::shared_ptr<const DefaultExecutor> exec,
              const matrix::Dense<ValueType>* residual,
-             matrix::Dense<ValueType>* A_residual,
+             const matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
              matrix::Dense<ValueType>* Ap_bases, size_type* final_iter_nums)
 {
@@ -89,8 +88,8 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
             p_bases(row, col) = residual(row, col);
             Ap_bases(row, col) = A_residual(row, col);
         },
-        residual->get_size(), residual->get_stride(), residual, A_residual,
-        p_bases, Ap_bases, final_iter_nums);
+        residual->get_size(), residual->get_stride(), default_stride(residual),
+        default_stride(A_residual), p_bases, Ap_bases, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
