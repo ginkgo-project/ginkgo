@@ -48,7 +48,7 @@ namespace gko {
 namespace solver {
 
 /**
- * The approach to be used for solving the batched trdiagonal system on CUDA/HIP
+ * The approach to be used to solve the batched trdiagonal system on CUDA/HIP
  * executor.
  *
  * Both "WM_pGE_app1" and "WM_pGE_app2" are based on the Wang and Mou parallel

@@ -106,9 +106,9 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
+    // @sect3{Other optional command-line arguments}
     const std::string dir_name = argc >= 3 ? argv[2] : "data/";
 
-    // @sect3{Read batch from files}
     // Name of the problem
     const std::string problem_name = argc >= 4 ? argv[3] : "gallery_lesp_100";
 
@@ -137,6 +137,7 @@ int main(int argc, char* argv[])
 
     const char* log_file = argc >= 10 ? argv[9] : "timings_file.txt";
 
+    // @sect3{Read batch from files}
     auto data = std::vector<gko::matrix_data<value_type>>(num_systems);
 
     for (size_type i = 0; i < data.size(); ++i) {
