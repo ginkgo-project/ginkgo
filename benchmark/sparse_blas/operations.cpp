@@ -651,8 +651,16 @@ public:
 
     std::pair<bool, double> validate() const override
     {
+        const auto exec = mtx_->get_executor();
+        const auto symm_result = result_->clone();
+        const auto lt_factor = gko::as<Mtx>(symm_result->transpose());
+        const auto scalar = gko::initialize<gko::matrix::Dense<etype>>(
+            {gko::one<etype>()}, exec);
+        const auto id =
+            gko::matrix::Identity<etype>::create(exec, mtx_->get_size()[0]);
+        lt_factor->apply(scalar, id, scalar, symm_result);
         return std::make_pair(
-            validate_symbolic_factorization(mtx_, result_.get()), 0.0);
+            validate_symbolic_factorization(mtx_, symm_result.get()), 0.0);
     }
 
     gko::size_type get_flops() const override { return 0; }
@@ -661,7 +669,7 @@ public:
 
     void run() override
     {
-        gko::factorization::symbolic_cholesky(mtx_, result_, forest_);
+        gko::factorization::symbolic_cholesky(mtx_, false, result_, forest_);
     }
 
     void write_stats(rapidjson::Value& object,

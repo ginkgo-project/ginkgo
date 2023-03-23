@@ -442,8 +442,8 @@ TYPED_TEST(Cholesky, SymbolicFactorize)
     this->forall_matrices([this] {
         std::unique_ptr<matrix_type> combined_factor;
         std::unique_ptr<elimination_forest> forest;
-        gko::factorization::symbolic_cholesky(this->mtx.get(), combined_factor,
-                                              forest);
+        gko::factorization::symbolic_cholesky(this->mtx.get(), true,
+                                              combined_factor, forest);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, this->combined_ref);
     });
@@ -478,8 +478,8 @@ TYPED_TEST(Cholesky, KernelForestFromFactor)
     this->forall_matrices([this] {
         std::unique_ptr<matrix_type> combined_factor;
         std::unique_ptr<elimination_forest> forest_ref;
-        gko::factorization::symbolic_cholesky(this->mtx.get(), combined_factor,
-                                              forest_ref);
+        gko::factorization::symbolic_cholesky(this->mtx.get(), true,
+                                              combined_factor, forest_ref);
         elimination_forest forest{this->ref,
                                   static_cast<index_type>(this->num_rows)};
 
