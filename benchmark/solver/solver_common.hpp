@@ -103,6 +103,8 @@ DEFINE_string(
 DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
+DEFINE_bool(profile, true, "If set, profiles solver generation and execution.");
+
 
 std::string example_config = R"(
   [
@@ -157,10 +159,15 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
                                static_cast<rc_etype>(FLAGS_rel_res_goal))
                            .on(exec));
     }
+    auto impl_res_stop =
+        gko::share(gko::stop::ImplicitResidualNorm<rc_etype>::build()
+                       .with_baseline(gko::stop::mode::absolute)
+                       .with_reduction_factor(static_cast<rc_etype>(1e-20))
+                       .on(exec));
     auto iteration_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
-        criterion_vector{residual_stop, iteration_stop};
+        criterion_vector{residual_stop, iteration_stop, impl_res_stop};
     return gko::stop::combine(criterion_vector);
 }
 
@@ -452,7 +459,7 @@ void solve_system(const std::string& solver_name,
         }
 
         // detail run
-        if (FLAGS_detailed && !FLAGS_overhead) {
+        if ((FLAGS_detailed || FLAGS_profile) && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(x);
 
@@ -505,7 +512,7 @@ void solve_system(const std::string& solver_name,
             }
 
             // slow run, gets the recurrent and true residuals of each iteration
-            if (b->get_size()[1] == 1) {
+            if (FLAGS_detailed && b->get_size()[1] == 1) {
                 x_clone = clone(x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     system_matrix, b, solver_json["recurrent_residuals"],

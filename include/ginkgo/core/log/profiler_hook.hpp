@@ -391,9 +391,10 @@ public:
     static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
                                                        hook_function end);
 
-private:
+protected:
     ProfilerHook(hook_function begin, hook_function end);
 
+private:
     void maybe_synchronize(const Executor* exec) const;
 
     std::string stringify_object(const PolymorphicObject* obj) const;

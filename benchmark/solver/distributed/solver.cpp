@@ -141,6 +141,10 @@ int main(int argc, char* argv[])
         print_config_error_and_exit();
     }
 
+    //    if(rank == 0){
+    //        exec->add_logger(StorageTracker::create());
+    //    }
+
     run_solver_benchmarks(exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
                           test_cases, Generator(comm), rank == 0);
 

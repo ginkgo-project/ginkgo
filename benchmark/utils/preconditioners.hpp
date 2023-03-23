@@ -353,6 +353,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                         etype>::build()
                  .with_local_solver_factory(
                      gko::preconditioner::Jacobi<etype>::build()
+                         .with_skip_sorting(FLAGS_skip_sorting)
                          .with_max_block_size(FLAGS_jacobi_max_block_size)
                          .with_storage_optimization(
                              parse_storage_optimization(FLAGS_jacobi_storage))

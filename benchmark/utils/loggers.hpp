@@ -284,4 +284,125 @@ private:
 };
 
 
+struct StorageTracker : public gko::log::ProfilerHook {
+    std::string format_bytes(gko::size_type bytes) const
+    {
+        std::map<int, std::string> suffix{
+            {0, "  B"}, {1, " KB"}, {1, " MB"}, {3, " GB"}, {4, " TB"}};
+        auto log1000 = [](auto num) { return std::log(num) / std::log(1'000); };
+        auto magnitude = static_cast<int>(log1000(bytes));
+        auto it = std::lower_bound(
+            suffix.begin(), suffix.end(), magnitude,
+            [](const auto& a, const auto& b) { return a.first < b; });
+        return std::to_string(int(bytes / std::pow(1000, it->first))) +
+               it->second;
+    }
+
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        gko::log::ProfilerHook::on_allocation_started(exec, num_bytes);
+        const std::lock_guard<std::mutex> lock(mutex);
+        if (num_bytes > 1'000'000'000) {
+            std::cerr << "  Allocating " << format_bytes(num_bytes)
+                      << std::endl;
+            es->print();
+        }
+    }
+
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
+    {
+        gko::log::ProfilerHook::on_allocation_completed(exec, num_bytes,
+                                                        location);
+        const std::lock_guard<std::mutex> lock(mutex);
+        storage[location] = num_bytes;
+        total_storage += num_bytes;
+        if (num_bytes > 1'000'000'000) {
+            std::cerr << "  Allocation done at " << location << std::endl;
+            std::cerr << "Total bytes: " << format_bytes(total_storage)
+                      << std::endl;
+            if (total_storage > max_storage) {
+                max_storage = total_storage;
+                max_es = *es;
+            }
+        }
+    }
+
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr& location) const override
+    {
+        gko::log::ProfilerHook::on_free_completed(exec, location);
+        const std::lock_guard<std::mutex> lock(mutex);
+        auto num_bytes = storage.at(location);
+        total_storage -= num_bytes;
+        storage[location] = 0;
+        if (num_bytes > 1'000'000'000) {
+            std::cerr << "  Freed " << format_bytes(num_bytes) << " at "
+                      << location << std::endl;
+            std::cerr << "Total bytes: " << format_bytes(total_storage)
+                      << std::endl;
+            es->print();
+        }
+    }
+
+    struct event_stack {
+        std::deque<std::string> stack;
+
+        void push(const char* name) { stack.emplace_back(name); }
+
+        void pop(const char* name) { stack.pop_back(); }
+
+        void print()
+        {
+            std::cerr << "  Current event stack:" << std::endl;
+            std::string prefix{"  "};
+            for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+                std::cerr << prefix << *it << std::endl;
+                if (prefix.size() / 2 < 6) {
+                    prefix.append("  ");
+                }
+            }
+        }
+    };
+
+    static std::unique_ptr<StorageTracker> create()
+    {
+        auto es = std::make_shared<event_stack>();
+        return std::unique_ptr<StorageTracker>(new StorageTracker(
+            es,
+            [es](const char* name, gko::log::profile_event_category) {
+                es->push(name);
+            },
+            [es](const char* name, gko::log::profile_event_category) {
+                es->pop(name);
+            }));
+    }
+
+    ~StorageTracker()
+    {
+        std::cerr << "Maximal storage: " << format_bytes(max_storage)
+                  << std::endl;
+        max_es.print();
+    }
+
+private:
+    template <typename F1, typename F2>
+    explicit StorageTracker(std::shared_ptr<event_stack> es, F1&& begin_fn,
+                            F2&& end_fn)
+        : gko::log::ProfilerHook(std::forward<F1>(begin_fn),
+                                 std::forward<F2>(end_fn)),
+          es(es)
+    {}
+
+    mutable std::shared_ptr<event_stack> es;
+    mutable std::mutex mutex;
+    mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
+    mutable gko::size_type total_storage;
+    mutable gko::size_type max_storage = 0;
+    mutable event_stack max_es;
+};
+
+
 #endif  // GKO_BENCHMARK_UTILS_LOGGERS_HPP_

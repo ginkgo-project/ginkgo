@@ -97,6 +97,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
+    A_data.nonzeros.reserve(local_size * (restricted ? 5 : 9));
 
     auto global_offset = [&](const int position_y, const int position_x) {
         return static_cast<int>(local_size) * position_x +
@@ -207,6 +208,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
+    A_data.nonzeros.reserve(local_size * (restricted ? 7 : 27));
 
     auto global_offset = [&](const int position_z, const int position_y,
                              const int position_x) {
