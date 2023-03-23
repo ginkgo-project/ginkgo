@@ -116,6 +116,10 @@ public:
 
 #if GINKGO_ENABLE_HALF
     friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Diagonal<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Diagonal<next_precision<next_precision<ValueType>>>>::move_to;
 
     void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result)
         const override;

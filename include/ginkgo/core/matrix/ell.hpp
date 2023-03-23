@@ -125,6 +125,10 @@ public:
 #if GINKGO_ENABLE_HALF
     friend class Ell<previous_precision<previous_precision<ValueType>>,
                      IndexType>;
+    using ConvertibleTo<
+        Ell<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Ell<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
 
     void convert_to(Ell<next_precision<next_precision<ValueType>>, IndexType>*
                         result) const override;

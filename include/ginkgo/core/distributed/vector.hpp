@@ -198,6 +198,10 @@ public:
 
 #if GINKGO_ENABLE_HALF
     friend class Vector<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Vector<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Vector<next_precision<next_precision<ValueType>>>>::move_to;
 
     void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
         const override;
