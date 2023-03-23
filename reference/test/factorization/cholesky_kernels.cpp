@@ -450,6 +450,21 @@ TYPED_TEST(Cholesky, SymbolicFactorize)
 }
 
 
+TYPED_TEST(Cholesky, SymbolicFactorizeOnlyLower)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    this->forall_matrices([this] {
+        std::unique_ptr<matrix_type> l_factor;
+        std::unique_ptr<elimination_forest> forest;
+        gko::factorization::symbolic_cholesky(this->mtx.get(), false, l_factor,
+                                              forest);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(l_factor, this->l_factor_ref);
+    });
+}
+
+
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 {
     using index_type = typename TestFixture::index_type;
