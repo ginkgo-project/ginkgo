@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-// namespace matrix {
-// namespace bccoo {
+namespace matrix {
+namespace bccoo {
 
 
 /**
@@ -647,8 +647,8 @@ void convert_to_bccoo_blk_blk(
 }
 
 
-// }  // namespace bccoo
-// }  // namespace matrix
+}  // namespace bccoo
+}  // namespace matrix
 }  // namespace gko
 
 

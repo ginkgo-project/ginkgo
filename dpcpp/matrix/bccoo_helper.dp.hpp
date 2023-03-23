@@ -33,8 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/segment_scan.dp.hpp"
 
 
-namespace gko {
+using namespace gko::matrix::bccoo;
 
+
+namespace gko {
 namespace kernels {
 /**
  * @brief DPCPP namespace.

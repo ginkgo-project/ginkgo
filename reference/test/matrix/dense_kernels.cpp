@@ -819,12 +819,12 @@ TYPED_TEST(Dense, ConvertsToBccooElm32)
 
     EXPECT_EQ(chunk_data[ind], 0x00);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{1.0});
     ind += sizeof(T);
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{3.0});
     ind += sizeof(T);
 
     if (block_size < 3) {
@@ -833,7 +833,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm32)
         EXPECT_EQ(chunk_data[ind], 0x01);
     }
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{2.0});
     ind += sizeof(T);
 
     if ((block_size == 2) || (block_size >= 4)) {
@@ -843,7 +843,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm32)
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{5.0});
     ind += sizeof(T);
 }
 
@@ -895,22 +895,26 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
     case 1:
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -920,9 +924,11 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -935,9 +941,11 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -949,16 +957,20 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x02);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -981,13 +993,17 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1029,12 +1045,12 @@ TYPED_TEST(Dense, MovesToBccooElm32)
 
     EXPECT_EQ(chunk_data[ind], 0x00);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{1.0});
     ind += sizeof(T);
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{3.0});
     ind += sizeof(T);
 
     if (block_size < 3) {
@@ -1043,7 +1059,7 @@ TYPED_TEST(Dense, MovesToBccooElm32)
         EXPECT_EQ(chunk_data[ind], 0x01);
     }
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{2.0});
     ind += sizeof(T);
 
     if ((block_size == 2) || (block_size >= 4)) {
@@ -1053,7 +1069,7 @@ TYPED_TEST(Dense, MovesToBccooElm32)
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{5.0});
     ind += sizeof(T);
 }
 
@@ -1105,22 +1121,26 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
     case 1:
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1130,9 +1150,11 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -1145,9 +1167,11 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1159,16 +1183,20 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x02);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1191,13 +1219,17 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1239,12 +1271,12 @@ TYPED_TEST(Dense, ConvertsToBccooElm64)
 
     EXPECT_EQ(chunk_data[ind], 0x00);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{1.0});
     ind += sizeof(T);
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{3.0});
     ind += sizeof(T);
 
     if (block_size < 3) {
@@ -1253,7 +1285,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm64)
         EXPECT_EQ(chunk_data[ind], 0x01);
     }
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{2.0});
     ind += sizeof(T);
 
     if ((block_size == 2) || (block_size >= 4)) {
@@ -1263,7 +1295,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm64)
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{5.0});
     ind += sizeof(T);
 }
 
@@ -1315,22 +1347,26 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
     case 1:
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1340,9 +1376,11 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -1355,9 +1393,11 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1369,16 +1409,20 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x02);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1401,13 +1445,17 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1450,12 +1498,12 @@ TYPED_TEST(Dense, MovesToBccooElm64)
 
     EXPECT_EQ(chunk_data[ind], 0x00);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{1.0});
     ind += sizeof(T);
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{3.0});
     ind += sizeof(T);
 
     if (block_size < 3) {
@@ -1464,7 +1512,7 @@ TYPED_TEST(Dense, MovesToBccooElm64)
         EXPECT_EQ(chunk_data[ind], 0x01);
     }
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{2.0});
     ind += sizeof(T);
 
     if ((block_size == 2) || (block_size >= 4)) {
@@ -1474,7 +1522,7 @@ TYPED_TEST(Dense, MovesToBccooElm64)
 
     EXPECT_EQ(chunk_data[ind], 0x01);
     ind++;
-    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind), T{5.0});
     ind += sizeof(T);
 }
 
@@ -1526,22 +1574,26 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
     case 1:
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1551,9 +1603,11 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -1566,9 +1620,11 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1580,16 +1636,20 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x02);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;
@@ -1612,13 +1672,17 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
 
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{1.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{3.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{2.0});
         ind += sizeof(T);
-        EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<T>(chunk_data, ind),
+                  T{5.0});
         ind += sizeof(T);
 
         break;

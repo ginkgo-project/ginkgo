@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "dpcpp/base/config.hpp"
@@ -57,6 +58,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/matrix/bccoo_helper.dp.hpp"
+
+
+using namespace gko::matrix::bccoo;
 
 
 namespace gko {
@@ -641,9 +645,9 @@ void get_default_block_size(std::shared_ptr<const DpcppExecutor> exec,
 
 
 void get_default_compression(std::shared_ptr<const DpcppExecutor> exec,
-                             matrix::bccoo::compression* compression)
+                             compression* compression)
 {
-    *compression = matrix::bccoo::compression::block;
+    *compression = compression::block;
 }
 
 
@@ -752,8 +756,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    matrix::bccoo::compression commpress_res,
-                    const size_type block_size_res,
+                    compression commpress_res, const size_type block_size_res,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

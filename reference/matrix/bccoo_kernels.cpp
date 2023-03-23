@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_memsize_convert.hpp"
 
 
+using namespace gko::matrix::bccoo;
+
+
 namespace gko {
 namespace kernels {
 /**
@@ -70,9 +73,9 @@ void get_default_block_size(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 void get_default_compression(std::shared_ptr<const ReferenceExecutor> exec,
-                             matrix::bccoo::compression* compression)
+                             compression* compression)
 {
-    *compression = matrix::bccoo::compression::element;
+    *compression = compression::element;
 }
 
 
@@ -236,8 +239,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    matrix::bccoo::compression compress_res,
-                    const size_type block_size_res, size_type* mem_size)
+                    compression compress_res, const size_type block_size_res,
+                    size_type* mem_size)
 {
     // If source and result have the same block_size and compression
     // size of the chunk will also be the same
@@ -249,7 +252,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         mem_size_bccoo_elm_elm(exec, source, block_size_res, mem_size);
     } else if (source->use_element_compression()) {
         mem_size_bccoo_elm_blk(exec, source, block_size_res, mem_size);
-    } else if (compress_res == matrix::bccoo::compression::element) {
+    } else if (compress_res == compression::element) {
         mem_size_bccoo_blk_elm(exec, source, block_size_res, mem_size);
     } else {
         mem_size_bccoo_blk_blk(exec, source, block_size_res, mem_size);
@@ -278,7 +281,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                                  [](ValueType val) { return val; });
     } else if (source->use_element_compression()) {
         convert_to_bccoo_elm_blk(exec, source, result);
-    } else if (compress_res == matrix::bccoo::compression::element) {
+    } else if (compress_res == compression::element) {
         convert_to_bccoo_blk_elm(exec, source, result);
     } else {
         convert_to_bccoo_blk_blk(exec, source, result,
@@ -304,7 +307,7 @@ void convert_to_next_precision(
                                  [](ValueType val) { return val; });
     } else if (source->use_element_compression()) {
         convert_to_bccoo_elm_blk(exec, source, result);
-    } else if (compress_res == matrix::bccoo::compression::element) {
+    } else if (compress_res == compression::element) {
         convert_to_bccoo_blk_elm(exec, source, result);
     } else {
         convert_to_bccoo_blk_blk(exec, source, result,

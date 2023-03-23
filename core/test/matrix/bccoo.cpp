@@ -39,8 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/unaligned_access.hpp"
 #include "core/test/utils.hpp"
 
+
+using namespace gko::matrix::bccoo;
+
+
 #define BCCOO_BLOCK_SIZE_TESTED 1
 #define BCCOO_BLOCK_SIZE_COPIED 3
+
 
 namespace {
 
@@ -57,11 +62,9 @@ protected:
     Bccoo()
         : exec(gko::ReferenceExecutor::create()),
           mtx_elm(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-              gko::matrix::bccoo::compression::element)),
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::element)),
           mtx_blk(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-              gko::matrix::bccoo::compression::block))
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::block))
     {
         mtx_elm->read({{2, 3},
                        {{0, 0, 1.0},
@@ -110,13 +113,13 @@ protected:
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                   value_type{1.0});
         ind += sizeof(value_type);
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                   value_type{3.0});
         ind += sizeof(value_type);
 
@@ -126,7 +129,7 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
         }
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                   value_type{2.0});
         ind += sizeof(value_type);
 
@@ -137,7 +140,7 @@ protected:
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                   value_type{5.0});
         ind += sizeof(value_type);
     }
@@ -186,25 +189,25 @@ protected:
         case 1:
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -215,10 +218,10 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
@@ -232,10 +235,10 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -248,19 +251,19 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x02);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -284,16 +287,16 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -304,8 +307,7 @@ protected:
     void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_compression(),
-                  gko::matrix::bccoo::compression::def_value);
+        ASSERT_EQ(m->get_compression(), compression::def_value);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_block_size(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
@@ -320,8 +322,7 @@ protected:
     void assert_empty_elm(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_compression(),
-                  gko::matrix::bccoo::compression::element);
+        ASSERT_EQ(m->get_compression(), compression::element);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
@@ -335,7 +336,7 @@ protected:
     void assert_empty_blk(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_compression(), gko::matrix::bccoo::compression::block);
+        ASSERT_EQ(m->get_compression(), compression::block);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
@@ -388,8 +389,8 @@ TYPED_TEST(Bccoo, CanBeEmpty)
 TYPED_TEST(Bccoo, CanBeEmptyElm)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_elm = Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED,
-                               gko::matrix::bccoo::compression::element);
+    auto mtx_elm =
+        Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED, compression::element);
 
     this->assert_empty_elm(mtx_elm.get());
 }
@@ -398,8 +399,8 @@ TYPED_TEST(Bccoo, CanBeEmptyElm)
 TYPED_TEST(Bccoo, CanBeEmptyBlk)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_blk = Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED,
-                               gko::matrix::bccoo::compression::block);
+    auto mtx_blk =
+        Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED, compression::block);
 
     this->assert_empty_blk(mtx_blk.get());
 }
@@ -418,18 +419,18 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     index_type rows[] = {0};
     // Fill the vectors
     chunk[ind++] = 0x00;
-    gko::set_value_chunk<value_type>(chunk, ind, 1.0);
+    set_value_chunk<value_type>(chunk, ind, 1.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0x01;
-    gko::set_value_chunk<value_type>(chunk, ind, 2.0);
+    set_value_chunk<value_type>(chunk, ind, 2.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0xFF;
     chunk[ind++] = 0x01;
-    gko::set_value_chunk<value_type>(chunk, ind, 3.0);
+    set_value_chunk<value_type>(chunk, ind, 3.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0xFF;
     chunk[ind++] = 0x00;
-    gko::set_value_chunk<value_type>(chunk, ind, 4.0);
+    set_value_chunk<value_type>(chunk, ind, 4.0);
     ind += sizeof(value_type);
 
     auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
@@ -470,13 +471,13 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     chunk[ind++] = 0x01;
     chunk[ind++] = 0x00;
     // Fill the values
-    gko::set_value_chunk<value_type>(chunk, ind, 1.0);
+    set_value_chunk<value_type>(chunk, ind, 1.0);
     ind += sizeof(value_type);
-    gko::set_value_chunk<value_type>(chunk, ind, 2.0);
+    set_value_chunk<value_type>(chunk, ind, 2.0);
     ind += sizeof(value_type);
-    gko::set_value_chunk<value_type>(chunk, ind, 3.0);
+    set_value_chunk<value_type>(chunk, ind, 3.0);
     ind += sizeof(value_type);
-    gko::set_value_chunk<value_type>(chunk, ind, 4.0);
+    set_value_chunk<value_type>(chunk, ind, 4.0);
     ind += sizeof(value_type);
 
     auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
@@ -502,7 +503,7 @@ TYPED_TEST(Bccoo, CanBeCopiedElmElm)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::element);
+                            compression::element);
 
     copy->copy_from(this->mtx_elm.get());
 
@@ -519,7 +520,7 @@ TYPED_TEST(Bccoo, CanBeCopiedElmBlk)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::block);
+                            compression::block);
 
     copy->copy_from(this->mtx_elm.get());
 
@@ -536,7 +537,7 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkElm)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::element);
+                            compression::element);
 
     copy->copy_from(this->mtx_blk.get());
 
@@ -554,7 +555,7 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkBlk)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::block);
+                            compression::block);
 
     copy->copy_from(this->mtx_blk.get());
 
@@ -571,7 +572,7 @@ TYPED_TEST(Bccoo, CanBeMovedElm)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::element);
+                            compression::element);
 
     copy->copy_from(std::move(this->mtx_elm));
 
@@ -584,7 +585,7 @@ TYPED_TEST(Bccoo, CanBeMovedBlk)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            gko::matrix::bccoo::compression::block);
+                            compression::block);
 
     copy->copy_from(std::move(this->mtx_blk));
 
@@ -643,7 +644,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         gko::matrix::bccoo::compression::element);
+                         compression::element);
 
     m->read({{2, 3},
              {{0, 0, 1.0},
@@ -662,7 +663,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         gko::matrix::bccoo::compression::block);
+                         compression::block);
 
     m->read({{2, 3},
              {{0, 0, 1.0},
@@ -682,7 +683,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         gko::matrix::bccoo::compression::element);
+                         compression::element);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -703,7 +704,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         gko::matrix::bccoo::compression::block);
+                         compression::block);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);

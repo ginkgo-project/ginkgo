@@ -51,6 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
+using namespace gko::matrix::bccoo;
+
+
 #define BCCOO_BLOCK_SIZE_TESTED 1
 #define BCCOO_BLOCK_SIZE_COPIED 5
 
@@ -74,17 +77,16 @@ protected:
     Bccoo()
         : exec(gko::ReferenceExecutor::create()),
           mtx_elm(Mtx::create(exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                              gko::matrix::bccoo::compression::element)),
+                              compression::element)),
           mtx_blk(Mtx::create(exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                              gko::matrix::bccoo::compression::block))
+                              compression::block))
     {
-        mtx_elm =
-            gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
-                                 index_type{BCCOO_BLOCK_SIZE_TESTED},
-                                 gko::matrix::bccoo::compression::element);
+        mtx_elm = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
+                                       index_type{BCCOO_BLOCK_SIZE_TESTED},
+                                       compression::element);
         mtx_blk = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
                                        index_type{BCCOO_BLOCK_SIZE_TESTED},
-                                       gko::matrix::bccoo::compression::block);
+                                       compression::block);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -551,8 +553,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecisionElm)
     using OtherType = typename gko::next_precision<ValueType>;
     using Bccoo = typename TestFixture::Mtx;
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
-    auto empty = OtherBccoo::create(this->exec, 0,
-                                    gko::matrix::bccoo::compression::element);
+    auto empty = OtherBccoo::create(this->exec, 0, compression::element);
     auto res = Bccoo::create(this->exec);
 
     empty->convert_to(res.get());
@@ -569,8 +570,7 @@ TYPED_TEST(Bccoo, MovesEmptyToPrecisionElm)
     using OtherType = typename gko::next_precision<ValueType>;
     using Bccoo = typename TestFixture::Mtx;
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
-    auto empty = OtherBccoo::create(this->exec, 0,
-                                    gko::matrix::bccoo::compression::element);
+    auto empty = OtherBccoo::create(this->exec, 0, compression::element);
     auto res = Bccoo::create(this->exec);
 
     empty->move_to(res.get());
@@ -587,8 +587,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecisionBlk)
     using OtherType = typename gko::next_precision<ValueType>;
     using Bccoo = typename TestFixture::Mtx;
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
-    auto empty = OtherBccoo::create(this->exec, 0,
-                                    gko::matrix::bccoo::compression::block);
+    auto empty = OtherBccoo::create(this->exec, 0, compression::block);
     auto res = Bccoo::create(this->exec);
 
     empty->convert_to(res.get());
@@ -605,8 +604,7 @@ TYPED_TEST(Bccoo, MovesEmptyToPrecisionBlk)
     using OtherType = typename gko::next_precision<ValueType>;
     using Bccoo = typename TestFixture::Mtx;
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
-    auto empty = OtherBccoo::create(this->exec, 0,
-                                    gko::matrix::bccoo::compression::block);
+    auto empty = OtherBccoo::create(this->exec, 0, compression::block);
     auto res = Bccoo::create(this->exec);
 
     empty->move_to(res.get());
@@ -655,9 +653,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToCooElm)
     using Bccoo = typename TestFixture::Mtx;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Coo::create(this->exec);
     empty_elm->convert_to(res.get());
 
@@ -673,9 +670,8 @@ TYPED_TEST(Bccoo, MovesEmptyToCooElm)
     using Bccoo = typename TestFixture::Mtx;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Coo::create(this->exec);
     empty_elm->move_to(res.get());
 
@@ -691,9 +687,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToCooBlk)
     using Bccoo = typename TestFixture::Mtx;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Coo::create(this->exec);
     empty_blk->convert_to(res.get());
 
@@ -709,9 +704,8 @@ TYPED_TEST(Bccoo, MovesEmptyToCooBlk)
     using Bccoo = typename TestFixture::Mtx;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Coo::create(this->exec);
     empty_blk->move_to(res.get());
 
@@ -760,9 +754,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToCsrElm)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Csr::create(this->exec);
 
     empty_elm->convert_to(res.get());
@@ -779,9 +772,8 @@ TYPED_TEST(Bccoo, MovesEmptyToCsrElm)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Csr::create(this->exec);
 
     empty_elm->move_to(res.get());
@@ -798,9 +790,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToCsrBlk)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Csr::create(this->exec);
 
     empty_blk->convert_to(res.get());
@@ -817,9 +808,8 @@ TYPED_TEST(Bccoo, MovesEmptyToCsrBlk)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Csr::create(this->exec);
 
     empty_blk->move_to(res.get());
@@ -866,9 +856,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToDenseElm)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<ValueType>;
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Dense::create(this->exec);
 
     empty_elm->convert_to(res.get());
@@ -883,9 +872,8 @@ TYPED_TEST(Bccoo, MovesEmptyToDenseElm)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<ValueType>;
-    auto empty_elm =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::element);
+    auto empty_elm = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
     auto res = Dense::create(this->exec);
 
     empty_elm->move_to(res.get());
@@ -900,9 +888,8 @@ TYPED_TEST(Bccoo, ConvertsEmptyToDenseBlk)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<ValueType>;
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Dense::create(this->exec);
 
     empty_blk->convert_to(res.get());
@@ -917,9 +904,8 @@ TYPED_TEST(Bccoo, MovesEmptyToDenseBlk)
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<ValueType>;
-    auto empty_blk =
-        Bccoo::create(this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED},
-                      gko::matrix::bccoo::compression::block);
+    auto empty_blk = Bccoo::create(
+        this->exec, IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
     auto res = Dense::create(this->exec);
 
     empty_blk->move_to(res.get());
@@ -1490,8 +1476,7 @@ TYPED_TEST(Bccoo, InplaceAbsoluteElm)
     using IndexType = typename TestFixture::index_type;
     auto mtx_elm = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
-        IndexType{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
 
     mtx_elm->compute_absolute_inplace();
 
@@ -1506,8 +1491,7 @@ TYPED_TEST(Bccoo, InplaceAbsoluteBlk)
     using IndexType = typename TestFixture::index_type;
     auto mtx_blk = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
-        IndexType{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::block);
+        IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
 
     mtx_blk->compute_absolute_inplace();
 
@@ -1522,8 +1506,7 @@ TYPED_TEST(Bccoo, OutplaceAbsoluteElm)
     using IndexType = typename TestFixture::index_type;
     auto mtx_elm = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
-        IndexType{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::element);
 
     auto abs_mtx_elm = mtx_elm->compute_absolute();
 
@@ -1539,8 +1522,7 @@ TYPED_TEST(Bccoo, OutplaceAbsoluteBlk)
     using IndexType = typename TestFixture::index_type;
     auto mtx_blk = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
-        IndexType{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::block);
+        IndexType{BCCOO_BLOCK_SIZE_TESTED}, compression::block);
 
     auto abs_mtx_blk = mtx_blk->compute_absolute();
 
@@ -2027,7 +2009,7 @@ TYPED_TEST(BccooComplex, OutplaceAbsoluteElm)
          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec,
 						index_type{BCCOO_BLOCK_SIZE_TESTED},
-            gko::matrix::bccoo::compression::element);
+            compression::element);
     // clang-format on
 
     auto abs_mtx_elm = mtx_elm->compute_absolute();
@@ -2050,7 +2032,7 @@ TYPED_TEST(BccooComplex, OutplaceAbsoluteBlk)
          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec,
 						index_type{BCCOO_BLOCK_SIZE_TESTED},
-            gko::matrix::bccoo::compression::block);
+            compression::block);
     // clang-format on
 
     auto abs_mtx_blk = mtx_blk->compute_absolute();
@@ -2073,7 +2055,7 @@ TYPED_TEST(BccooComplex, InplaceAbsoluteElm)
          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec,
             index_type{BCCOO_BLOCK_SIZE_TESTED},
-            gko::matrix::bccoo::compression::element);
+            compression::element);
     // clang-format on
 
     mtx_elm->compute_absolute_inplace();
@@ -2095,7 +2077,7 @@ TYPED_TEST(BccooComplex, InplaceAbsoluteBlk)
          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec,
             index_type{BCCOO_BLOCK_SIZE_TESTED},
-            gko::matrix::bccoo::compression::block);
+            compression::block);
     // clang-format on
 
     mtx_blk->compute_absolute_inplace();

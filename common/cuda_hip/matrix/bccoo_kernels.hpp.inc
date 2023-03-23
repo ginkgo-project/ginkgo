@@ -30,11 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "common/cuda_hip/matrix/bccoo_helper.hpp.inc"
-#include "core/matrix/bccoo_aux_structs.hpp"
 
 namespace {
-
 
 /**
  * The device function of BCCOO spmv

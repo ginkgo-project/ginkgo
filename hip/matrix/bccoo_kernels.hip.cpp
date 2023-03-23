@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
@@ -58,6 +59,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
+
+
+using namespace gko::matrix::bccoo;
 
 
 namespace gko {
@@ -80,7 +84,10 @@ constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
+
+#include "common/cuda_hip/matrix/bccoo_helper.hpp.inc"
 #include "common/cuda_hip/matrix/bccoo_kernels.hpp.inc"
+
 
 void get_default_block_size(std::shared_ptr<const HipExecutor> exec,
                             size_type* block_size)
@@ -90,9 +97,9 @@ void get_default_block_size(std::shared_ptr<const HipExecutor> exec,
 
 
 void get_default_compression(std::shared_ptr<const HipExecutor> exec,
-                             matrix::bccoo::compression* compression)
+                             compression* compression)
 {
-    *compression = matrix::bccoo::compression::block;
+    *compression = compression::block;
 }
 
 
@@ -209,8 +216,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    matrix::bccoo::compression commpress_res,
-                    const size_type block_size_res,
+                    compression commpress_res, const size_type block_size_res,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

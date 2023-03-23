@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace matrix {
+namespace bccoo {
 
 
 /**
@@ -98,6 +100,8 @@ T* get_address_chunk(const void* ptr, size_type start)
 }
 
 
+}  // namespace bccoo
+}  // namespace matrix
 }  // namespace gko
 
 

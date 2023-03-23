@@ -44,9 +44,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/unaligned_access.hpp"
 #include "core/matrix/bccoo_aux_structs.hpp"
 
+
+using namespace gko::matrix::bccoo;
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
+namespace bccoo {
 
 
 /*
@@ -219,6 +224,7 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 }
 
 
+}  // namespace bccoo
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

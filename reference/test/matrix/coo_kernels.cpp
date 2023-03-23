@@ -131,14 +131,16 @@ protected:
 
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{1.0});
+        EXPECT_EQ(
+            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
+            value_type{1.0});
         ind += sizeof(value_type);
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{3.0});
+        EXPECT_EQ(
+            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
+            value_type{3.0});
         ind += sizeof(value_type);
 
         if (block_size < 3) {
@@ -147,8 +149,9 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
         }
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{2.0});
+        EXPECT_EQ(
+            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
+            value_type{2.0});
         ind += sizeof(value_type);
 
         if ((block_size == 2) || (block_size >= 4)) {
@@ -158,8 +161,9 @@ protected:
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{5.0});
+        EXPECT_EQ(
+            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
+            value_type{5.0});
         ind += sizeof(value_type);
     }
 
@@ -207,25 +211,29 @@ protected:
         case 1:
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -236,10 +244,12 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
@@ -253,10 +263,12 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -269,19 +281,23 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x02);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
@@ -305,16 +321,20 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
+                          chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 

@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_aux_structs.hpp"
 
 namespace gko {
-// namespace matrix {
-// namespace bccoo {
+namespace matrix {
+namespace bccoo {
 
 
 /*
@@ -600,8 +600,8 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
 }
 
 
-// }  // namespace bccoo
-// }  // namespace matrix
+}  // namespace bccoo
+}  // namespace matrix
 }  // namespace gko
 
 

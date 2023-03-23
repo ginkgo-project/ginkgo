@@ -48,8 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/bccoo_kernels.hpp"
+
+
+using namespace gko::matrix::bccoo;
 
 
 namespace gko {
@@ -160,8 +164,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     size_type block_size_res = result->get_block_size();
 
     // Adapting the compression and block_size values for the result
-    if ((compress_res == matrix::bccoo::compression::def_value) &&
-        (block_size_res == 0)) {
+    if ((compress_res == compression::def_value) && (block_size_res == 0)) {
         // For non initialized result objects, the compression and
         // block_size values are copied from "this"
         block_size_res = block_size_src;
@@ -169,7 +172,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     } else {
         // For partial non initialized result objects, compression or
         // block_size defaults are used
-        if (compress_res == matrix::bccoo::compression::def_value) {
+        if (compress_res == compression::def_value) {
             exec->run(bccoo::make_get_default_compression(&compress_res));
         }
         if (block_size_res == 0) {
@@ -185,7 +188,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
         // If the compression and block_size values are the same in "this" and
         // result objects, a raw copy is applied
         *result = *this;
-    } else if ((compress_src == matrix::bccoo::compression::def_value) ||
+    } else if ((compress_src == compression::def_value) ||
                (block_size_src == 0)) {
         // In case of the source matrix was empty, the result is also empty
         auto tmp = Bccoo<ValueType, IndexType>::create(exec, block_size_res,
@@ -220,10 +223,10 @@ void Bccoo<ValueType, IndexType>::convert_to(
     // const auto num_blocks_res = ceildiv(num_stored_elements, block_size_res);
     // array<IndexType> rows(exec, num_blocks_res);
     // array<IndexType> cols(exec,
-    //		(compress_src == matrix::bccoo::compression::block) *
+    //		(compress_src == compression::block) *
     //                           num_blocks_res);
     // array<uint8> types(exec,
-    // 		(compress_src == matrix::bccoo::compression::block) *
+    // 		(compress_src == compression::block) *
     //                           num_blocks_res);
     // array<IndexType> offsets(exec, num_blocks_res + 1);
     // And use an alternative definition of make_mem_size_bccoo:
@@ -257,8 +260,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     size_type block_size_res = result->get_block_size();
 
     // Adapting the compression and block_size values for the result
-    if ((compress_res == matrix::bccoo::compression::def_value) &&
-        (block_size_res == 0)) {
+    if ((compress_res == compression::def_value) && (block_size_res == 0)) {
         // For non initialized result objects, the compression and
         // block_size values are copied from "this"
         block_size_res = block_size_src;
@@ -266,7 +268,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     } else {
         // For partial non initialized result objects, compression or
         // block_size defaults are used
-        if (compress_res == matrix::bccoo::compression::def_value) {
+        if (compress_res == compression::def_value) {
             exec->run(bccoo::make_get_default_compression(&compress_res));
         }
         if (block_size_res == 0) {
@@ -277,8 +279,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     // Creating the result
     auto num_stored_elements = this->get_num_stored_elements();
     size_type mem_size_res{};
-    if ((compress_src == matrix::bccoo::compression::def_value) ||
-        (block_size_src == 0)) {
+    if ((compress_src == compression::def_value) || (block_size_src == 0)) {
         // In case of the source matrix was empty, the result is also empty
         auto tmp = Bccoo<new_precision, IndexType>::create(exec, block_size_res,
                                                            compress_res);
@@ -451,7 +452,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 
     // Compression. If the initial value is def_value, the default is chosen
     bccoo::compression compress = this->get_compression();
-    if (compress == matrix::bccoo::compression::def_value) {
+    if (compress == compression::def_value) {
         exec->run(bccoo::make_get_default_compression(&compress));
     }
 
@@ -462,7 +463,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     }
     size_type num_blocks = ceildiv(nnz, block_size);
 
-    if (compress == matrix::bccoo::compression::element) {
+    if (compress == compression::element) {
         // Creation of some components of Bccoo
         array<IndexType> rows(exec_master, num_blocks);
         array<size_type> offsets(exec_master, num_blocks + 1);

@@ -49,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "omp/matrix/bccoo_helper.hpp"
 
 
+using namespace gko::matrix::bccoo;
+
+
 namespace gko {
 namespace kernels {
 /**
@@ -73,9 +76,9 @@ void get_default_block_size(std::shared_ptr<const OmpExecutor> exec,
 
 
 void get_default_compression(std::shared_ptr<const OmpExecutor> exec,
-                             matrix::bccoo::compression* compression)
+                             compression* compression)
 {
-    *compression = matrix::bccoo::compression::element;
+    *compression = compression::element;
 }
 
 
@@ -483,7 +486,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     template <typename ValueType, typename IndexType>
     void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                         const matrix::Bccoo<ValueType, IndexType>* source,
-                        matrix::bccoo::compression compress_res,
+                        compression compress_res,
                         const size_type block_size_res, size_type* mem_size)
     {
         // This code is exactly equal to the reference executor
@@ -495,7 +498,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             mem_size_bccoo_elm_elm(exec, source, block_size_res, mem_size);
         } else if (source->use_element_compression()) {
             mem_size_bccoo_elm_blk(exec, source, block_size_res, mem_size);
-        } else if (compress_res == matrix::bccoo::compression::element) {
+        } else if (compress_res == compression::element) {
             mem_size_bccoo_blk_elm(exec, source, block_size_res, mem_size);
         } else {
             mem_size_bccoo_blk_blk(exec, source, block_size_res, mem_size);
@@ -535,7 +538,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                                          [](ValueType val) { return val; });
             } else if (source->use_element_compression()) {
                 convert_to_bccoo_elm_blk(exec, source, result);
-            } else if (compress_res == matrix::bccoo::compression::element) {
+            } else if (compress_res == compression::element) {
                 convert_to_bccoo_blk_elm(exec, source, result);
             } else {
                 convert_to_bccoo_blk_blk(exec, source, result,
@@ -1063,17 +1066,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                         set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val,
                                                    val);
                         blk_idxs.shf_val += sizeof(ValueType);
-                        /*
-                                            get_block_position_value_put<IndexType,
-                           ValueType>( chunk_data, blk_idxs, idxs.row, idxs.col,
-                           val,
-                                                [](ValueType val) { return
-                           abs(val);
-                           }); ValueType* vals_blk =
-                           reinterpret_cast<ValueType*>( chunk_data +
-                           blk_idxs.shf_val); val = vals_blk[i]; val = abs(val);
-                                            vals_blk[i] = val;
-                        */
                     }
                 }
             }
@@ -1245,6 +1237,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 
 
 }  // namespace bccoo
+}  // namespace bccoo
 }  // namespace omp
 }  // namespace kernels
-}  // namespace gko
