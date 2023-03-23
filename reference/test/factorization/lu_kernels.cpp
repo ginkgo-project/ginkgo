@@ -142,7 +142,8 @@ TYPED_TEST(Lu, SymbolicCholeskyWorks)
             std::unique_ptr<gko::matrix::Csr<value_type, index_type>> lu;
             std::unique_ptr<gko::factorization::elimination_forest<index_type>>
                 forest;
-            gko::factorization::symbolic_cholesky(this->mtx.get(), lu, forest);
+            gko::factorization::symbolic_cholesky(this->mtx.get(), true, lu,
+                                                  forest);
 
             GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
         },
