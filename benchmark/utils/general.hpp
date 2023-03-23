@@ -707,7 +707,7 @@ private:
             bool stopped = true;
         };
 
-        iterator begin() const { return iterator{info}; }
+        iterator begin() const { return iterator{info, info->min_it, true}; }
 
         // not used, could potentially be used in c++17 as a sentinel
         iterator end() const { return iterator{}; }

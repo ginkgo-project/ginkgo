@@ -99,13 +99,12 @@ struct comm_info_t {
  * is handled purely locally, also wrt to commmunication (ie only local indices
  * are used in the communication).
  */
-struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
+struct overlapping_vec : public vec {
     overlapping_vec(std::shared_ptr<const Executor> exec,
                     experimental::mpi::communicator comm = {MPI_COMM_NULL},
                     std::shared_ptr<vec> local_vec = nullptr,
                     comm_info_t comm_info = {})
-        : EnableLinOp<overlapping_vec, vec>(local_vec->get_executor(),
-                                            local_vec->get_size()),
+        : vec(local_vec->get_executor(), local_vec->get_size()),
           local_flag(local_vec->get_executor(), local_vec->get_size()[0]),
           num_ovlp(comm_info.non_owned_idxs.get_num_elems()),
           comm(comm),
@@ -118,20 +117,6 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
                 false;
         }
     }
-
-    /**
-     * Creates a Dense matrix with the same size and stride as the callers
-     * matrix.
-     *
-     * @returns a Dense matrix with the same size and stride as the caller.
-     */
-    std::unique_ptr<vec> create_with_same_config() const override
-    {
-        return std::make_unique<overlapping_vec>(
-            this->get_executor(), comm,
-            gko::clone(static_cast<const vec*>(this)), comm_info);
-    }
-
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -280,8 +265,9 @@ struct overlapping_operator
     {
         local_op->apply(b, x);
         // exchange data
-        as<overlapping_vec>(x)->make_consistent(
-            overlapping_vec::operation::copy);
+        overlapping_vec(x->get_executor(), this->get_communicator(),
+                        make_dense_view(as<vec>(x)), comm_info)
+            .make_consistent(overlapping_vec::operation::copy);
     }
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override

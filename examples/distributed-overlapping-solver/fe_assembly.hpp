@@ -36,7 +36,7 @@ template <typename IndexType>
 auto create_utr_map(gko::size_type num_vertices_y,
                     gko::size_type num_vertices_x)
 {
-    return [&](const auto y, const auto x) {
+    return [=](const auto y, const auto x) {
         std::array<gko::size_type, 3> map{(y + 1) * num_vertices_x + x,
                                           (y + 1) * num_vertices_x + x + 1,
                                           y * num_vertices_x + x};
