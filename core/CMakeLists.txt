@@ -28,7 +28,7 @@ target_sources(ginkgo
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
     factorization/symbolic.cpp
-    log/batch_convergence.cpp
+	log/batch_convergence.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
@@ -39,8 +39,6 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
-    log/tau.cpp
-    log/vtune.cpp
     matrix/batch_csr.cpp
     matrix/batch_dense.cpp
     matrix/batch_diagonal.cpp
@@ -57,11 +55,11 @@ target_sources(ginkgo
     matrix/identity.cpp
     matrix/permutation.cpp
     matrix/row_gatherer.cpp
-    matrix/row_gatherer.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    multigrid/fixed_coarsening.cpp
+    matrix/row_gatherer.cpp
     multigrid/pgm.cpp
+    multigrid/fixed_coarsening.cpp
     preconditioner/batch_ilu.cpp
     preconditioner/batch_ilu_isai.cpp
     preconditioner/batch_isai.cpp
