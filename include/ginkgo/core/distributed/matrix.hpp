@@ -302,6 +302,11 @@ public:
 #if GINKGO_ENABLE_HALF
     friend class Matrix<previous_precision<previous_precision<ValueType>>,
                         LocalIndexType, GlobalIndexType>;
+    using ConvertibleTo<
+        Matrix<next_precision<next_precision<value_type>>, local_index_type,
+               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<next_precision<value_type>>,
+                               local_index_type, global_index_type>>::move_to;
 
     void convert_to(
         Matrix<next_precision<next_precision<value_type>>, local_index_type,

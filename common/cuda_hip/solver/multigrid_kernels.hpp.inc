@@ -191,8 +191,8 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
         kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
                                            exec->get_stream()>>>(
             nrhs, as_device_type(old_norm->get_const_values()),
-            as_device_type(new_norm->get_const_values()), rel_tol,
-            as_device_type(dis_stop.get_data()));
+            as_device_type(new_norm->get_const_values()),
+            as_device_type(rel_tol), as_device_type(dis_stop.get_data()));
     }
     is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
 }

@@ -308,6 +308,10 @@ public:
 
 #if GINKGO_ENABLE_HALF
     friend class Dense<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::move_to;
 
     void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
         const override;
