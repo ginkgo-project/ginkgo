@@ -45,11 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+// namespace matrix {
+// namespace bccoo {
 
 
 /**
  *  Routines for mem_size computing
  */
+
 
 /**
  *  Returns the size of the chunk, which it is need
@@ -153,6 +156,7 @@ inline void mem_size_bccoo_elm_blk(
     }
     *mem_size = idxs_res.shf;
 }
+
 
 /**
  *  Returns the size of the chunk, which it is need
@@ -311,8 +315,6 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
             auto offsets_data_src = source->get_const_offsets();
             auto offsets_data_res = result->get_offsets();
             std::memcpy((offsets_data_res), (offsets_data_src),
-                        //                        (source->get_num_blocks() + 1)
-                        //                        * sizeof(IndexType));
                         (source->get_num_blocks() + 1) * sizeof(size_type));
             auto chunk_data_src = source->get_const_chunk();
             auto chunk_data_res = result->get_chunk();
@@ -326,8 +328,6 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
             std::memcpy((result->get_types()), (source->get_const_types()),
                         source->get_num_blocks() * sizeof(uint8));
             std::memcpy((result->get_offsets()), (source->get_const_offsets()),
-                        //                        (source->get_num_blocks() + 1)
-                        //                        * sizeof(IndexType));
                         (source->get_num_blocks() + 1) * sizeof(size_type));
             std::memcpy((result->get_chunk()), (source->get_const_chunk()),
                         source->get_num_bytes() * sizeof(uint8));
@@ -647,6 +647,8 @@ void convert_to_bccoo_blk_blk(
 }
 
 
+// }  // namespace bccoo
+// }  // namespace matrix
 }  // namespace gko
 
 

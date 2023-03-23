@@ -101,14 +101,15 @@ namespace host_kernel {
 /**
  * @internal
  *
- * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * It calculates the number of warps used in Bccoo Spmv depending on the GPU
  * architecture and the number of stored elements.
  */
 template <size_type subgroup_size = config::warp_size>
 size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
-    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    //    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type nwarps_in_dpcpp = exec->get_num_subgroups();
     size_type multiple = 8;
     if (nnz >= 2e8) {
         multiple = 256;

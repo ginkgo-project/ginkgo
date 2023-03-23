@@ -41,22 +41,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
 namespace kernels {
-
-
 namespace cuda {
 
 #include "common/cuda_hip/base/unaligned_access.hpp.inc"
 
 
 }  // namespace cuda
-
-
 }  // namespace kernels
-
-
 }  // namespace gko
 
 

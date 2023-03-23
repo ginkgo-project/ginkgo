@@ -57,11 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_helper.hpp"
 
 
-// const int GKO_BCCOO_ROWS_MULTIPLE = 1;
-// const int GKO_BCCOO_COLS_8BITS = 2;
-// const int GKO_BCCOO_COLS_16BITS = 4;
-
-
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -527,7 +522,6 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         size_type block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
-        //        IndexType* offsets_data = result->get_offsets();
         size_type* offsets_data = result->get_offsets();
         uint8* chunk_data = result->get_chunk();
 

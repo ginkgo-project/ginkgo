@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_aux_structs.hpp"
 
 namespace gko {
+// namespace matrix {
+// namespace bccoo {
 
 
 /*
@@ -158,12 +160,10 @@ inline void put_next_position_value(uint8* chunk_data, size_type& nblk,
 
 
 template <typename IndexType>
-inline void get_detect_newblock(
-    const IndexType* rows_data,
-    //                                const IndexType* offsets_data, size_type
-    //                                nblk,
-    const size_type* offsets_data, size_type nblk, size_type blk,
-    size_type& shf, size_type& row, size_type& col)
+inline void get_detect_newblock(const IndexType* rows_data,
+                                const size_type* offsets_data, size_type nblk,
+                                size_type blk, size_type& shf, size_type& row,
+                                size_type& col)
 {
     if (nblk == 0) {
         row = rows_data[blk];
@@ -221,12 +221,12 @@ inline void cnt_detect_newblock(const size_type nblk, size_type& shf,
 
 
 template <typename IndexType>
-inline void get_detect_newblock_csr(
-    const IndexType* rows_data,
-    //                                    const IndexType* offsets_data,
-    const size_type* offsets_data, size_type nblk, size_type blk,
-    IndexType* row_ptrs, size_type pos, size_type& shf, size_type& row,
-    size_type& col)
+inline void get_detect_newblock_csr(const IndexType* rows_data,
+                                    const size_type* offsets_data,
+                                    size_type nblk, size_type blk,
+                                    IndexType* row_ptrs, size_type pos,
+                                    size_type& shf, size_type& row,
+                                    size_type& col)
 {
     if (nblk == 0) {
         if (row != rows_data[blk]) {
@@ -335,8 +335,7 @@ inline void get_detect_endblock(const size_type block_size, size_type& nblk,
     }
 }
 
-// template <typename IndexType>
-// inline void put_detect_endblock(IndexType* offsets_data, const size_type shf,
+
 inline void put_detect_endblock(size_type* offsets_data, const size_type shf,
                                 const size_type block_size, size_type& nblk,
                                 size_type& blk)
@@ -373,7 +372,6 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
         blk_idxs.row_frs = row;
         blk_idxs.col_frs = col;
     }
-    //    blk_idxs.mul_row = blk_idxs.mul_row || (row != blk_idxs.row_frs);
     if (row != blk_idxs.row_frs) {
         blk_idxs.mul_row = true;
         if (row > (blk_idxs.row_frs + blk_idxs.row_dif)) {
@@ -393,7 +391,6 @@ template <typename ValueType>
 inline void cnt_block_indices(const size_type block_size,
                               const compr_blk_idxs blk_idxs, compr_idxs& idxs)
 {
-    //    if (blk_idxs.mul_row) idxs.shf += block_size;
     if (blk_idxs.row_dif > 0) {
         idxs.shf +=
             ((blk_idxs.row_dif > 0xFF) ? sizeof(uint16) : 1) * block_size;
@@ -439,38 +436,6 @@ inline void get_block_position_value(const uint8* chunk_data,
     blk_idxs.shf_val += sizeof(ValueType);
 }
 
-/*
-template <typename IndexType, typename ValueType, typename Callable>
-inline void get_block_position_value_put(uint8* chunk_data, bool mul_row,
-                                         bool col_8bits, bool col_16bits,
-                                         size_type row_frs, size_type col_frs,
-                                         size_type& row, size_type& col,
-                                         ValueType& val, size_type& shf_row,
-                                         size_type& shf_col, size_type& shf_val,
-                                         Callable finalize_op)
-{
-    row = row_frs;
-    col = col_frs;
-    if (mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, shf_row);
-        shf_row++;
-    }
-    if (col_8bits) {
-        col += get_value_chunk<uint8>(chunk_data, shf_col);
-        shf_col++;
-    } else if (col_16bits) {
-        col += get_value_chunk<uint16>(chunk_data, shf_col);
-        shf_col += sizeof(uint16);
-    } else {
-        col += get_value_chunk<uint32>(chunk_data, shf_col);
-        shf_col += sizeof(uint32);
-    }
-    val = get_value_chunk<ValueType>(chunk_data, shf_val);
-    val = finalize_op(val);
-    set_value_chunk<ValueType>(chunk_data, shf_val, val);
-    shf_val += sizeof(ValueType);
-}
-*/
 
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data,
@@ -635,6 +600,8 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
 }
 
 
+// }  // namespace bccoo
+// }  // namespace matrix
 }  // namespace gko
 
 

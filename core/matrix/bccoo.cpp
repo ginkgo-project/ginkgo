@@ -88,7 +88,7 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(!this->use_default_compression());
+    GKO_ASSERT(!this->use_default_compression() && this->get_block_size() > 0);
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -103,7 +103,7 @@ void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                              const LinOp* beta, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(!this->use_default_compression());
+    GKO_ASSERT(!this->use_default_compression() && this->get_block_size() > 0);
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -118,7 +118,7 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(!this->use_default_compression());
+    GKO_ASSERT(!this->use_default_compression() && this->get_block_size() > 0);
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -134,7 +134,7 @@ void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* alpha,
                                               const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(!this->use_default_compression());
+    GKO_ASSERT(!this->use_default_compression() && this->get_block_size() > 0);
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
@@ -215,18 +215,19 @@ void Bccoo<ValueType, IndexType>::convert_to(
             bccoo::make_convert_to_bccoo(host_bccoo.get(), tmp.get()));
         *result = *tmp;
     }
-    // Other alternative could that make_mem_size_bccoo inicializes
+    // Other alternative could be that make_mem_size_bccoo inicializes
     // the internal vectors whose size is num_blocks_res:
     // const auto num_blocks_res = ceildiv(num_stored_elements, block_size_res);
     // array<IndexType> rows(exec, num_blocks_res);
     // array<IndexType> cols(exec,
     //		(compress_src == matrix::bccoo::compression::block) *
-    // num_blocks_res);
+    //                           num_blocks_res);
     // array<uint8> types(exec,
     // 		(compress_src == matrix::bccoo::compression::block) *
-    // num_blocks_res); array<IndexType> offsets(exec, num_blocks_res + 1);
+    //                           num_blocks_res);
+    // array<IndexType> offsets(exec, num_blocks_res + 1);
     // And use an alternative definition of make_mem_size_bccoo:
-    // exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
+    // exec->run(bccoo::make_mem_size_bccoo(this, rows.get_data(),
     // 		cols.get_data(), types.get_data(), offsets.get_data(),
     // 		num_blocks_res, block_size_res, &mem_size_res));
 }
@@ -438,16 +439,15 @@ void Bccoo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 {
+    // Definition of executors
+    auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
     // Computation of nnz
     size_type nnz = 0;
     for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    //		printf("SIZE = %ld , nnz = %ld\n", data.nonzeros.size(), nnz);
-
-    // Definition of executors
-    auto exec = this->get_executor();
-    auto exec_master = exec->get_master();
 
     // Compression. If the initial value is def_value, the default is chosen
     bccoo::compression compress = this->get_compression();
@@ -461,24 +461,14 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         exec->run(bccoo::make_get_default_block_size(&block_size));
     }
     size_type num_blocks = ceildiv(nnz, block_size);
-    //		printf("num_blocks = %ld , block_size = %ld\n", num_blocks,
-    // block_size);
-    /*
-        if (compress == matrix::bccoo::compression::element) {
-          printf ("ELEMENT_COMPRESSION with block_size = %ld\n", block_size);
-        } else {
-          printf (" BLOCK_COMPRESSION  with block_size = %ld\n", block_size);
-        }
-    */
+
     if (compress == matrix::bccoo::compression::element) {
         // Creation of some components of Bccoo
         array<IndexType> rows(exec_master, num_blocks);
-        //        array<IndexType> offsets(exec_master, num_blocks + 1);
         array<size_type> offsets(exec_master, num_blocks + 1);
 
         // Computation of mem_size (idxs.shf)
         IndexType* rows_data = rows.get_data();
-        // IndexType* offsets_data = offsets.get_data();
         size_type* offsets_data = offsets.get_data();
         compr_idxs idxs = {};
         offsets_data[0] = 0;
@@ -497,8 +487,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 num++;
             }
         }
-        //				if (num > 0) printf ("ZERO VALUES =
-        //%ld\n", num);
 
         // Creation of chunk
         array<uint8> chunk(exec_master, idxs.shf);
@@ -534,13 +522,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         array<IndexType> rows(exec_master, num_blocks);
         array<IndexType> cols(exec_master, num_blocks);
         array<uint8> types(exec_master, num_blocks);
-        // array<IndexType> offsets(exec_master, num_blocks + 1);
         array<size_type> offsets(exec_master, num_blocks + 1);
 
         IndexType* rows_data = rows.get_data();
         IndexType* cols_data = cols.get_data();
         uint8* types_data = types.get_data();
-        // IndexType* offsets_data = offsets.get_data();
         size_type* offsets_data = offsets.get_data();
 
         // Computation of mem_size (idxs.shf)
@@ -561,16 +547,12 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 num++;
             }
         }
-        //				if (num > 0) printf ("ZERO VALUES =
-        //%ld\n", num);
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
             cnt_block_indices<ValueType>(block_size, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
         }
-        //				printf ("shf = %ld , num_blks = \n",
-        // idxs.shf, idxs.blk);
 
         // Creation of chunk
         array<uint8> chunk(exec_master, idxs.shf);
@@ -594,20 +576,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 vals_blk.get_data()[idxs.nblk] = elem.value;
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
-                    // if ((elem.row - blk_idxs.row_frs) >= 256)
-                    // 		printf("(A) HHHOOORRROOORRR (%ld,%ld)\n",
-                    // 						blk_idxs.row_frs,
-                    // blk_idxs.row_dif);
                     type_blk =
                         write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
                                              vals_blk, chunk_data);
-                    // if (blk_idxs.row_dif >= 256)
-                    // 		printf("(B) HHHOOORRROOORRR (%ld,%ld)\n",
-                    // 						blk_idxs.row_frs,
-                    // blk_idxs.row_dif); if (type_blk & cst_rows_16bits)
-                    // 		printf("(C) HHHOOORRROOORRR (%ld,%ld)\n",
-                    // 						blk_idxs.row_frs,
-                    // blk_idxs.row_dif);
                     rows_data[idxs.blk] = blk_idxs.row_frs;
                     cols_data[idxs.blk] = blk_idxs.col_frs;
                     types_data[idxs.blk] = type_blk;

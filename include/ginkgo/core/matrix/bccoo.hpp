@@ -70,7 +70,7 @@ enum class compression { def_value, element, block };
 }
 
 
-/* // JIAE
+/* TODO: Is this required?
  template <typename ValueType, typename IndexType>
  class BccooBuilder;
  */
@@ -267,7 +267,6 @@ public:
      *
      * @return the offsets related to the first entry of each block.
      */
-    //    index_type* get_offsets() noexcept { return offsets_.get_data(); }
     size_type* get_offsets() noexcept { return offsets_.get_data(); }
 
     /**
@@ -277,7 +276,6 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    //    const index_type* get_const_offsets() const noexcept
     const size_type* get_const_offsets() const noexcept
     {
         return offsets_.get_const_data();
@@ -369,9 +367,9 @@ public:
         return compression_ == bccoo::compression::block;
     }
 
-    // JIAE It could be better to use
-    // JIAE        b = Bccoo * x + b
-    // JIAE It would be easier to understand
+    // TODO: It could be better to use
+    // TODO:        b = Bccoo * x + b
+    // TODO: It would be easier to understand
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -527,8 +525,6 @@ protected:
      *       matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          //          array<uint8> chunk, array<IndexType> offsets,
-          //          array<IndexType> rows,
           array<uint8> chunk, array<size_type> offsets, array<IndexType> rows,
           size_type num_nonzeros, size_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
@@ -567,8 +563,6 @@ protected:
      *       array will not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          //          array<uint8> chunk, array<IndexType> offsets, array<uint8>
-          //          types,
           array<uint8> chunk, array<size_type> offsets, array<uint8> types,
           array<IndexType> cols, array<IndexType> rows, size_type num_nonzeros,
           size_type block_size)
@@ -600,7 +594,6 @@ private:
     array<index_type> rows_;
     array<index_type> cols_;
     array<uint8> types_;
-    //    array<index_type> offsets_;
     array<size_type> offsets_;
     array<uint8> chunk_;
     size_type block_size_;

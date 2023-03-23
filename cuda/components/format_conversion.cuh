@@ -185,7 +185,6 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
 
 }  // namespace host_kernel
 }  // namespace bccoo
-
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

@@ -46,7 +46,7 @@ namespace gko {
 
 /**
  * Copies the value in the m-th byte of ptr.
-unsigned char *
+ *
  * @tparam T     the type of value
  *
  * @param ptr    the starting pointer
@@ -90,14 +90,12 @@ T get_value_chunk(const void* ptr, size_type start)
  *
  * @return the address in the m-th byte of ptr, which is adjusting to T class.
  */
-/*
 template <typename T>
 T* get_address_chunk(const void* ptr, size_type start)
 {
     const unsigned char* ptr2 = static_cast<const unsigned char*>(ptr) + start;
     return static_cast<T*>(ptr2);
 }
-*/
 
 
 }  // namespace gko

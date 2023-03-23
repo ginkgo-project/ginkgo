@@ -55,17 +55,15 @@ inline __device__ void loop_block_single_row(
 
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        //        if (pos < block_size_local) {
         idxs.col = blk_idxs.col_frs +
                    get_value_chunk<IndexType>(
                        chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
         val = get_value_chunk<ValueType>(
             chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
-        //        }
         new_value = true;
     }
-    if (new_value) {
+    if (tile_block.any(new_value)) {
         bool is_first_in_segment = segment_scan<subwarp_size>(
             tile_block, blk_idxs.row_frs, temp_val,
             [](ValueType a, ValueType b) { return a + b; });
@@ -104,15 +102,7 @@ inline __device__ void loop_block_multi_row(
             chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexType1));
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        //        if (pos < block_size_local) {
         idxs.row = next_row;
-        /*
-                    idxs.row =
-                        blk_idxs.row_frs +
-                          get_value_chunk<IndexType1>(
-                            chunk_data, blk_idxs.shf_row + pos *
-           sizeof(IndexType1));
-        */
         idxs.col = blk_idxs.col_frs +
                    get_value_chunk<IndexType2>(
                        chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType2));
@@ -127,11 +117,6 @@ inline __device__ void loop_block_multi_row(
                    get_value_chunk<IndexType1>(
                        chunk_data, blk_idxs.shf_row + (pos + jump_in_blk) *
                                                           sizeof(IndexType1)));
-        //        } else {
-        //            temp_val = zero<ValueType>();
-        //            new_value = false;
-        //            next_row = last_row;
-        //        }
         // segmented scan
         if (tile_block.any(idxs.row != next_row)) {
             bool is_first_in_segment = segment_scan<subwarp_size>(

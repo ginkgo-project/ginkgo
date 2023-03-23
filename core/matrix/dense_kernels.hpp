@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/kernel_declaration.hpp"
 
+
 namespace gko {
 namespace kernels {
 
@@ -426,6 +427,7 @@ namespace kernels {
     GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                 \
     template <typename ValueType, typename ScalarType>                      \
     GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
+
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);
 

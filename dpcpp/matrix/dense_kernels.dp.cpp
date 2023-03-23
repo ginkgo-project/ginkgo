@@ -331,7 +331,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
+void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const size_type block_size,
                     const matrix::bccoo::compression compress,
@@ -341,7 +341,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_bccoo(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
@@ -351,7 +351,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {

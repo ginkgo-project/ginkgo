@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/coo_kernels.hpp"
 #include "core/test/utils.hpp"
-// #include "core/test/utils/unsort_matrix.hpp"
 #include "dpcpp/test/utils.hpp"
 
 
@@ -88,58 +87,18 @@ protected:
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
     }
-    /*
-        void set_up_apply_data(int num_vectors = 1)
-        {
-            mtx = gen_mtx<Mtx>(532, 231);
-            expected = gen_mtx(532, num_vectors);
-            y = gen_mtx(231, num_vectors);
-            alpha = gko::initialize<Vec>({2.0}, ref);
-            beta = gko::initialize<Vec>({-1.0}, ref);
-            dmtx = gko::clone(dpcpp, mtx);
-            dresult = gko::clone(dpcpp, expected);
-            dy = gko::clone(dpcpp, y);
-            dalpha = gko::clone(dpcpp, alpha);
-            dbeta = gko::clone(dpcpp, beta);
-        }
-    */
+
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
         mtx_blk->copy_from(gen_mtx(532, 231));
-        /*
-        //				std::unique_ptr<Vec> mat = gen_mtx(532,
-        231); auto mat = gen_mtx(532, 231); for(int i=0; i<532; i++) { int k = i
-        % 231; for(int j=0; j<231; j++) { mat->at(i,k) = (i*231 + j + 1.0) /
-        1000; k++; if (k == 231) k = 0;
-                                                        }
-                                        }
-        //        mtx_blk->copy_from(gko::share(&mat));
-        //        mtx_blk->copy_from(mat);
-                mtx_blk->copy_from(gko::clone(ref, mat));
-        */
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
-        /*
-                                        for(int i=0; i<231; i++) {
-                                                        int k = i % num_vectors;
-                                                        for(int j=0;
-           j<num_vectors; j++) { y->at(i,k) = -(i*num_vectors + j + 1.0) / 1000;
-                                                                        k++; if
-           (k == num_vectors) k = 0;
-                                                        }
-                                        }
-        */
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        //        dmtx_blk = Mtx::create(dpcpp, 32,
-        //        gko::matrix::bccoo::compression::block);
         dmtx_blk =
-            //            Mtx::create(dpcpp, 10,
-            //            gko::matrix::bccoo::compression::block);
             Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::block);
         dmtx_blk->copy_from(mtx_blk.get());
-        //				dmtx_blk = gko::clone(dpcpp, mtx_blk);
         dresult = Vec::create(dpcpp);
         dresult->copy_from(expected.get());
         dy = Vec::create(dpcpp);
@@ -149,26 +108,18 @@ protected:
         dbeta = Vec::create(dpcpp);
         dbeta->copy_from(beta.get());
     }
-    /*
-        void unsort_mtx()
-        {
-            gko::test::unsort_matrix(mtx.get(), rand_engine);
-            dmtx->copy_from(mtx.get());
-        }
-    */
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::DpcppExecutor> dpcpp;
 
     std::default_random_engine rand_engine;
 
-    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
-    //    std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx_blk;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
@@ -179,50 +130,14 @@ protected:
 
 TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
 {
-    //    std::cout << "SimpleApplyIsEquivalentToRef - A " << std::endl;
     set_up_apply_data_blk();
 
-    //    std::cout << "SimpleApplyIsEquivalentToRef - B " << std::endl;
     mtx_blk->apply(y.get(), expected.get());
-    //    std::cout << "SimpleApplyIsEquivalentToRef - C " << std::endl;
     dmtx_blk->apply(dy.get(), dresult.get());
 
-    //    std::cout << "SimpleApplyIsEquivalentToRef - D " << std::endl;
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
-    //    std::cout << "SimpleApplyIsEquivalentToRef - E " << std::endl;
-}
-
-/*
-TEST_F(Bccoo, SimpleApplyDoesntOverwritePadding)
-{
-    set_up_apply_data_blk();
-    auto dresult_padded =
-        Vec::create(dpcpp, dresult->get_size(), dresult->get_stride() + 1);
-    dresult_padded->copy_from(dresult.get());
-    vtype padding_val{1234.0};
-    dpcpp->copy_from(dpcpp->get_master().get(), 1, &padding_val,
-                     dresult_padded->get_values() + 1);
-
-    mtx_blk->apply(y.get(), expected.get());
-    dmtx_blk->apply(dy.get(), dresult_padded.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<vtype>::value);
-    ASSERT_EQ(dpcpp->copy_val_to_host(dresult_padded->get_values() + 1),
-              1234.0);
-}
-*/
-/*
-TEST_F(Bccoo, SimpleApplyIsEquivalentToRefUnsorted)
-{
-    set_up_apply_data_blk();
-    unsort_mtx();
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
-*/
+
 
 TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
 {
@@ -231,37 +146,9 @@ TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
     mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx_blk->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    //		std::cout << dresult->get_size() << std::endl;
-    //		std::cout << dresult->get_size()[0] << std::endl;
-    //		std::cout << expected->get_values()[1] << "  $$   "
-    //		          <<  dresult->get_values()[1] << std::endl;
-    //		std::cout << expected->get_values()[0] << "  $$   "
-    //		          << expected->get_values()[expected->get_size()[0]-1]
-    //<< std::endl; 		std::cout << dresult->get_values()[0] << "  $$ "
-    //		          << dresult->get_values()[dresult->get_size()[0]-1] <<
-    // std::endl;
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
-/*
-TEST_F(Bccoo, AdvancedApplyDoesntOverwritePadding)
-{
-    set_up_apply_data_blk();
-    auto dresult_padded =
-        Vec::create(dpcpp, dresult->get_size(), dresult->get_stride() + 1);
-    dresult_padded->copy_from(dresult.get());
-    vtype padding_val{1234.0};
-    dpcpp->copy_from(dpcpp->get_master().get(), 1, &padding_val,
-                     dresult_padded->get_values() + 1);
-
-    mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx_blk->apply(dalpha.get(), dy.get(), dbeta.get(), dresult_padded.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<vtype>::value);
-    ASSERT_EQ(dpcpp->copy_val_to_host(dresult_padded->get_values() + 1),
-              1234.0);
-}
-*/
 
 TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
 {

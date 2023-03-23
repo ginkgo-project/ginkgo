@@ -48,6 +48,7 @@ namespace kernels {
 
 namespace hip {
 
+
 #include "common/cuda_hip/base/unaligned_access.hpp.inc"
 
 

@@ -317,11 +317,7 @@ private:
         void insert_entry(
             const IndexType& row, const IndexType& col, const ValueType& entry,
             matrix_data<ValueType, IndexType>& data) const override
-        {
-            //						printf("HHOOLLAA
-            // GGG\n");
-            data.nonzeros.emplace_back(row, col, entry);
-        }
+        {}
 
         /**
          * Get the start of the rows
@@ -361,7 +357,6 @@ private:
             const IndexType& row, const IndexType& col, const ValueType& entry,
             matrix_data<ValueType, IndexType>& data) const override
         {
-            //						printf("HHOOLLAA\n");
             data.nonzeros.emplace_back(row, col, entry);
             if (row != col) {
                 data.nonzeros.emplace_back(col, row, entry);
@@ -536,8 +531,6 @@ private:
             matrix_data<ValueType, IndexType> data(dim<2>{num_rows, num_cols});
             data.nonzeros.reserve(modifier->get_reservation_size(
                 num_rows, num_cols, num_nonzeros));
-            //						printf("HERE(%ld)!!\n",
-            // num_nonzeros);
             for (size_type i = 0; i < num_nonzeros; ++i) {
                 IndexType row{};
                 IndexType col{};
@@ -548,10 +541,6 @@ private:
                 auto entry = entry_reader->read_entry(content);
                 GKO_CHECK_STREAM(content, "error when reading matrix entry " +
                                               std::to_string(i));
-                //								std::cout
-                //<< row << " - " << col << " - " << entry << std::endl;
-                // if(entry
-                //!= gko::zero<ValueType>())
                 modifier->insert_entry(row - 1, col - 1, entry, data);
             }
             return data;

@@ -47,7 +47,7 @@ GKO_ATTRIBUTES void set_value_chunk(void* ptr, size_type start, T value)
     //    *reinterpret_cast<T*>
     //          (static_cast<unsigned char*>(ptr) + start) =
     //                                        value;
-    // Defined behaviour, but might be slower
+    // TODO: Defined behaviour, but might be slower
     auto value_ptr = reinterpret_cast<const unsigned char*>(&value);
     for (int i = 0; i < sizeof(T); ++i) {
         static_cast<unsigned char*>(ptr)[start + i] = value_ptr[i];
@@ -70,7 +70,7 @@ GKO_ATTRIBUTES T get_value_chunk(const void* ptr, size_type start)
 {
     //  return *reinterpret_cast<const T*>
     //    (static_cast<const unsigned char*>(ptr) + start);
-    // Defined behaviour, but might be slower
+    // TODO: Defined behaviour, but might be slower
     T value;
     auto value_ptr = reinterpret_cast<unsigned char*>(&value);
     for (int i = 0; i < sizeof(T); ++i) {

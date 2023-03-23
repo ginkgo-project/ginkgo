@@ -45,7 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
+// namespace matrix {
+// namespace bccoo {
 
 /**
  *  Constants used to manage bccoo objects
@@ -132,7 +133,8 @@ inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
     }
 }
 
-
+// }  // namespace bccoo
+// }  // namespace matrix
 }  // namespace gko
 
 

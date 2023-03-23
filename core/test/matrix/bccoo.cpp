@@ -63,9 +63,6 @@ protected:
               exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
               gko::matrix::bccoo::compression::block))
     {
-        //        std::cout << "BEFORE READ -> "
-        //									<<
-        // mtx_elm->get_block_size() << std::endl;
         mtx_elm->read({{2, 3},
                        {{0, 0, 1.0},
                         {0, 1, 3.0},
@@ -73,8 +70,6 @@ protected:
                         {1, 0, 0.0},
                         {1, 1, 5.0},
                         {1, 2, 0.0}}});
-        // std::cout << "AFTER READ -> " << mtx_elm->get_block_size() <<
-        // std::endl;
         mtx_blk->read({{2, 3},
                        {{0, 0, 1.0},
                         {0, 1, 3.0},
@@ -98,15 +93,9 @@ protected:
 
         gko::size_type block_size = m->get_block_size();
 
-        // std::cout << "ROWS AND OFFSETS" << std::endl;
         index_type row = {};
-        //        index_type offset = {};
         gko::size_type offset = {};
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
-            //  std::cout << block_size << " - " << i
-            // 	 << " - " << rows_data[i]
-            //    << " - " << row << " - " << offsets_data[i]
-            //    << " - " << offset << std::endl;
             EXPECT_EQ(rows_data[i], row);
             EXPECT_EQ(offsets_data[i], offset);
             auto elms = std::min(block_size, 4 - i * block_size);
@@ -115,12 +104,8 @@ protected:
                       (((block_size == 2) || (block_size >= 4)) &&
                        (i + block_size > 2));
         }
-        // std::cout << block_size << " - " << m->get_num_blocks() << " - "
-        // << offsets_data[m->get_num_blocks()] << " - " << offset
-        // << std::endl;
         EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
 
-        // std::cout << "CHUNK" << std::endl;
         index_type ind = {};
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -170,17 +155,10 @@ protected:
 
         gko::size_type block_size = m->get_block_size();
 
-        // std::cout << "ROWS, COLS, TYPES, AND OFFSETS" <<
-        // std::endl;
-
         index_type row = {};
         index_type col = {};
         gko::uint8 type = ((block_size >= 4) ? 3 : 2);
-        //        index_type offset = {};
         gko::size_type offset = {};
-        // std::cout << m->get_num_blocks() << " - "
-        //		<< m->get_num_stored_elements() << " - "
-        //		<< m->get_num_bytes() << std::endl;
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
             auto elms = std::min(block_size, 4 - i * block_size);
             row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
@@ -189,15 +167,6 @@ protected:
                     (i + block_size > 2))
                        ? 5
                        : 4;
-            // 	std::cout << i
-            // 			<< " - " << rows_data[i]
-            // 			<< " - " << row
-            // 			<< " - " << cols_data[i]
-            // 			<< " - " << col
-            // 			<< " - " << (int) types_data[i]
-            // 			<< " - " << (int) type
-            // 			<< " - " << offsets_data[i]
-            // 			<< " - " << offset << std::endl;
             EXPECT_EQ(rows_data[i], row);
             EXPECT_EQ(cols_data[i], col);
             EXPECT_EQ(types_data[i], type);
@@ -208,8 +177,6 @@ protected:
                           elms;
         }
 
-        // std::cout << "CHUNK" << std::endl;
-
         index_type ind = {};
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -217,38 +184,29 @@ protected:
 
         switch (block_size) {
         case 1:
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             break;
         case 2:
@@ -448,17 +406,17 @@ TYPED_TEST(Bccoo, CanBeEmptyBlk)
 
 TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
 {
+    // Name the involved datatypes
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
+    // Declare the variables
     const index_type block_size = 10;
     const index_type num_bytes = 6 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
-    //    index_type offsets[] = {0, num_bytes};
     gko::size_type offsets[] = {0, num_bytes};
     index_type rows[] = {0};
-
+    // Fill the vectors
     chunk[ind++] = 0x00;
     gko::set_value_chunk<value_type>(chunk, ind, 1.0);
     ind += sizeof(value_type);
@@ -477,7 +435,6 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
-        //        gko::array<index_type>::view(this->exec, 2, offsets),
         gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
 
@@ -490,29 +447,29 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
 
 TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
 {
+    // Name the involved datatypes
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
+    // Declare the variables
     const index_type block_size = 10;
     const index_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
-    //    index_type offsets[] = {0, num_bytes};
     gko::size_type offsets[] = {0, num_bytes};
     gko::uint8 types[] = {3};
     index_type cols[] = {0};
     index_type rows[] = {0};
-
+    // Fill the rows
     chunk[ind++] = 0x00;
     chunk[ind++] = 0x00;
     chunk[ind++] = 0x01;
     chunk[ind++] = 0x02;
-
+    // Fill the colums
     chunk[ind++] = 0x00;
     chunk[ind++] = 0x01;
     chunk[ind++] = 0x01;
     chunk[ind++] = 0x00;
-
+    // Fill the values
     gko::set_value_chunk<value_type>(chunk, ind, 1.0);
     ind += sizeof(value_type);
     gko::set_value_chunk<value_type>(chunk, ind, 2.0);
@@ -525,7 +482,6 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
-        //        gko::array<index_type>::view(this->exec, 2, offsets),
         gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<gko::uint8>::view(this->exec, 1, types),
         gko::array<index_type>::view(this->exec, 1, cols),
@@ -640,11 +596,13 @@ TYPED_TEST(Bccoo, CanBeClonedElm)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+
     auto clone = this->mtx_elm->clone();
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    *((value_type*)(this->mtx_elm->get_chunk() + (2 + sizeof(value_type)))) =
-        5.0;
+
+    reinterpret_cast<value_type*>(this->mtx_blk->get_chunk() +
+                                  (2 + sizeof(value_type)))[0] = 5.0;
     this->assert_equal_to_original_mtx_elm(dynamic_cast<Mtx*>(clone.get()));
 }
 
@@ -656,10 +614,9 @@ TYPED_TEST(Bccoo, CanBeClonedBlk)
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
 
-    *((value_type*)(this->mtx_blk->get_chunk() +
-                    (this->mtx_blk->get_num_bytes() - sizeof(value_type)))) =
-        5.0;
-
+    reinterpret_cast<value_type*>(
+        this->mtx_blk->get_chunk() +
+        (this->mtx_blk->get_num_bytes() - sizeof(value_type)))[0] = 5.0;
     this->assert_equal_to_original_mtx_blk(dynamic_cast<Mtx*>(clone.get()));
 }
 
@@ -684,10 +641,10 @@ TYPED_TEST(Bccoo, CanBeClearedBlk)
 TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
 {
     using Mtx = typename TestFixture::Mtx;
-    //    auto m = Mtx::create(this->exec);
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::element);
+
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -706,6 +663,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::block);
+
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -723,7 +681,6 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    //    auto m = Mtx::create(this->exec);
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::element);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});

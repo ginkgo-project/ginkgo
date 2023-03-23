@@ -152,18 +152,23 @@ template <typename ValueType, typename IndexType, typename MatrixType,
 inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
                               MatrixType* source, const OperationType& op)
 {
+    // Definition of executors
     auto exec = source->get_executor();
     auto exec_master = exec->get_master();
 
+    // Compression. If the initial value is def_value, the default is chosen
     bccoo::compression compression = result->get_compression();
     if (result->use_default_compression()) {
         exec->run(bccoo::make_get_default_compression(&compression));
     }
 
+    // Block partitioning. If the initial value is 0, the default is chosen
     size_type block_size = result->get_block_size();
     if (block_size == 0) {
         exec->run(bccoo::make_get_default_block_size(&block_size));
     }
+
+    // Computation of nnz
     const auto num_rows = source->get_size()[0];
     array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(dense::make_count_nonzeros_per_row(source, row_ptrs.get_data()));
@@ -172,6 +177,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
     size_type mem_size = 0;
 
+    // Creating the result
     if (exec == exec_master) {
         exec->run(dense::make_mem_size_bccoo(source, block_size, compression,
                                              &mem_size));

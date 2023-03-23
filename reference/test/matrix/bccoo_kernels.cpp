@@ -77,10 +77,7 @@ protected:
                               gko::matrix::bccoo::compression::element)),
           mtx_blk(Mtx::create(exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                               gko::matrix::bccoo::compression::block))
-    //          , mtx(Mtx::create(exec))
     {
-        //        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}},
-        //        exec);
         mtx_elm =
             gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
                                  index_type{BCCOO_BLOCK_SIZE_TESTED},
@@ -88,20 +85,9 @@ protected:
         mtx_blk = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec,
                                        index_type{BCCOO_BLOCK_SIZE_TESTED},
                                        gko::matrix::bccoo::compression::block);
-        //				if (mtx_elm->use_block_compression()) {
-        //						std::cout << "MTX_ELM
-        // BLOCK"
-        //<< std::endl;
-        //				}
-        //				if (mtx_blk->use_element_compression())
-        //{ 						std::cout << "MTX_BLK
-        // ELEMENT"
-        //<< std::endl;
-        //				}
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_elm;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Mtx> uns_mtx;
@@ -147,15 +133,10 @@ TYPED_TEST(Bccoo, ConvertsToPrecisionBlk)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    //		std::cout << "BEFORE NEXT PRECISION A" << std::endl;
     this->mtx_blk->convert_to(tmp.get());
-    //		std::cout << "BEFORE NEXT PRECISION B" << std::endl;
     tmp->convert_to(res.get());
-    //		std::cout << "AFTER  NEXT PRECISION A+B" << std::endl;
 
-    //		std::cout << "BEFORE TESTING" << std::endl;
     GKO_ASSERT_MTX_NEAR(this->mtx_blk, res, residual);
-    //		std::cout << "AFTER  TESTING" << std::endl;
 }
 
 
@@ -213,7 +194,6 @@ TYPED_TEST(Bccoo, ConvertsToCooElm)
     auto v = coo_mtx_elm->get_const_values();
     auto c = coo_mtx_elm->get_const_col_idxs();
     auto r = coo_mtx_elm->get_const_row_idxs();
-
     ASSERT_EQ(coo_mtx_elm->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(coo_mtx_elm->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
@@ -243,7 +223,6 @@ TYPED_TEST(Bccoo, ConvertsToCooBlk)
     auto v = coo_mtx_blk->get_const_values();
     auto c = coo_mtx_blk->get_const_col_idxs();
     auto r = coo_mtx_blk->get_const_row_idxs();
-
     ASSERT_EQ(coo_mtx_blk->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(coo_mtx_blk->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
@@ -273,7 +252,6 @@ TYPED_TEST(Bccoo, MovesToCooElm)
     auto v = coo_mtx_elm->get_const_values();
     auto c = coo_mtx_elm->get_const_col_idxs();
     auto r = coo_mtx_elm->get_const_row_idxs();
-
     ASSERT_EQ(coo_mtx_elm->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(coo_mtx_elm->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
@@ -303,7 +281,6 @@ TYPED_TEST(Bccoo, MovesToCooBlk)
     auto v = coo_mtx_blk->get_const_values();
     auto c = coo_mtx_blk->get_const_col_idxs();
     auto r = coo_mtx_blk->get_const_row_idxs();
-
     ASSERT_EQ(coo_mtx_blk->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(coo_mtx_blk->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
@@ -543,9 +520,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecision)
     auto empty = OtherBccoo::create(this->exec);
     auto res = Bccoo::create(this->exec);
 
-    //		std::cout << "BEFORE EMPTY " << std::endl;
     empty->convert_to(res.get());
-    //		std::cout << "AFTER  EMPTY " << std::endl;
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -580,9 +555,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecisionElm)
                                     gko::matrix::bccoo::compression::element);
     auto res = Bccoo::create(this->exec);
 
-    //		std::cout << "BEFORE EMPTY " << std::endl;
     empty->convert_to(res.get());
-    //		std::cout << "AFTER  EMPTY " << std::endl;
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -618,9 +591,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecisionBlk)
                                     gko::matrix::bccoo::compression::block);
     auto res = Bccoo::create(this->exec);
 
-    //		std::cout << "BEFORE EMPTY " << std::endl;
     empty->convert_to(res.get());
-    //		std::cout << "AFTER  EMPTY " << std::endl;
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -956,23 +927,6 @@ TYPED_TEST(Bccoo, MovesEmptyToDenseBlk)
     ASSERT_FALSE(res->get_size());
 }
 
-/*
-TYPED_TEST(Bccoo, AppliesToDenseVector)
-{
-    using Vec = typename TestFixture::Vec;
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
-    auto y_elm = Vec::create(this->exec, gko::dim<2>{2, 1});
-    auto y_blk = Vec::create(this->exec, gko::dim<2>{2, 1});
-
-    this->mtx_elm->apply(x.get(), y_elm.get());
-
-    GKO_ASSERT_MTX_NEAR(y_elm, l({13.0, 5.0}), 0.0);
-
-    this->mtx_blk->apply(x.get(), y_blk.get());
-
-    GKO_ASSERT_MTX_NEAR(y_blk, l({13.0, 5.0}), 0.0);
-}
-*/
 
 TYPED_TEST(Bccoo, AppliesToDenseVectorElm)
 {

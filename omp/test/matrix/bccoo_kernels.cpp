@@ -86,22 +86,7 @@ protected:
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
-    /*
-        void set_up_apply_data(int num_vectors = 1)
-        {
-            mtx = Mtx::create(ref);
-            mtx->copy_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
-            expected = gen_mtx(mtx_size[0], num_vectors, 1);
-            y = gen_mtx(mtx_size[1], num_vectors, 1);
-            alpha = gko::initialize<Vec>({2.0}, ref);
-            beta = gko::initialize<Vec>({-1.0}, ref);
-            dmtx = gko::clone(omp, mtx);
-            dresult = gko::clone(omp, expected);
-            dy = gko::clone(omp, y);
-            dalpha = gko::clone(omp, alpha);
-            dbeta = gko::clone(omp, beta);
-        }
-    */
+
     void set_up_apply_data_elm(int num_vectors = 1)
     {
         mtx_elm = Mtx::create(ref, 0, gko::matrix::bccoo::compression::element);
@@ -143,7 +128,6 @@ protected:
     const gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
 
-    //    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx_elm;
     std::unique_ptr<Mtx> mtx_blk;
     std::unique_ptr<Vec> expected;
@@ -151,7 +135,6 @@ protected:
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
-    //    std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx_elm;
     std::unique_ptr<Mtx> dmtx_blk;
     std::unique_ptr<Vec> dresult;
@@ -160,17 +143,6 @@ protected:
     std::unique_ptr<Vec> dbeta;
 };
 
-/*
-TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-*/
 
 TEST_F(Bccoo, SimpleApplyIsEquivalentToRefElm)
 {
@@ -185,8 +157,6 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRefElm)
     if (dmtx_elm->use_block_compression()) {
         std::cout << "Elm__omp_error: " << std::endl;
     }
-    // std::cout << "Elm_ref: " << mtx_elm->get_block_size() << std::endl;
-    // std::cout << "Elm_omp: " << dmtx_elm->get_block_size() << std::endl;
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -205,8 +175,6 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRefBlk)
     if (dmtx_blk->use_element_compression()) {
         std::cout << "Blk__omp_error: " << std::endl;
     }
-    // std::cout << "Blk_ref: " << mtx_blk->get_block_size() << std::endl;
-    // std::cout << "Blk_omp: " << dmtx_blk->get_block_size() << std::endl;
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

@@ -679,13 +679,14 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, val, col_idxs, row_ptrs, b,
-                                         b_stride, c, c_stride, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
+                        c_stride, item_ct1);
+                });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -731,14 +732,14 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, alpha, val, col_idxs,
-                                         row_ptrs, b, b_stride, beta, c,
-                                         c_stride, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
+                        beta, c, c_stride, item_ct1);
+                });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -1957,8 +1958,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
-                    //                    IndexType* rows, IndexType* offsets,
-                    //                    const size_type num_blocks,
                     const size_type block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;

@@ -321,65 +321,7 @@ protected:
             break;
         }
     }
-    /*
-        void assert_equal_to_mtx(const Bccoo* m)
-        {
-            auto rows_data = bccoo_mtx->get_const_rows();
-            auto offsets_data = bccoo_mtx->get_const_offsets();
-            auto chunk_data = m->get_const_chunk();
-            gko::size_type block_size = m->get_block_size();
-            index_type ind = {};
 
-            ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-            ASSERT_EQ(m->get_num_stored_elements(), 4);
-
-            index_type row = {};
-            index_type offset = {};
-            for (index_type i = 0; i < m->get_num_blocks(); i++) {
-                EXPECT_EQ(rows_data[i], row);
-                EXPECT_EQ(offsets_data[i], offset);
-                auto elms = std::min(block_size, 4 - i * block_size);
-                row += ((block_size == 1) && (i == 2)) || (block_size == 3);
-                offset += (1 + sizeof(value_type)) * elms +
-                          (((block_size == 2) || (block_size >= 4)) &&
-                           (i + block_size > 2));
-            }
-            EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
-
-            EXPECT_EQ(chunk_data[ind], 0x00);
-            ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{1.0});
-            ind += sizeof(value_type);
-
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{3.0});
-            ind += sizeof(value_type);
-
-            if (block_size < 3) {
-                EXPECT_EQ(chunk_data[ind], 0x02);
-            } else {
-                EXPECT_EQ(chunk_data[ind], 0x01);
-            }
-            ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{2.0});
-            ind += sizeof(value_type);
-
-            if ((block_size == 2) || (block_size >= 4)) {
-                EXPECT_EQ(chunk_data[ind], 0xFF);
-                ind++;
-            }
-
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{5.0});
-            ind += sizeof(value_type);
-        }
-    */
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> uns_mtx;

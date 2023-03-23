@@ -29,7 +29,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-
 #ifndef GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 #define GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 
@@ -65,44 +64,6 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
 
         auto system_matrix = generator.generate_matrix_with_format(
             exec, format_name, data, &spmv_case[format_name], &allocator);
-
-        // NOTE: I guess should be here?
-        // /* */
-        // auto spMat = gko::matrix::Bccoo<etype, itype>::create(
-        //     exec, 512, gko::matrix::bccoo::compression::block);
-        // spMat->read(data);
-        // gko::matrix_data<etype, itype> data_new = {system_matrix->get_size(),
-        //                                            {}};
-        // spMat->write(data_new);
-        // /* */
-        // if (data.nonzeros.size() != data_new.nonzeros.size()) {
-        //     printf("SIZES -> %ld , %ld\n", data.nonzeros.size(),
-        //            data_new.nonzeros.size());
-        // }
-        // /* */
-        // auto data_cln = data;
-        // data_cln.ensure_row_major_order();
-        // data_new.ensure_row_major_order();
-        // gko::size_type j = 0;
-        // for (gko::size_type i = 0; i < data_cln.nonzeros.size(); i++) {
-        //     if (data_cln.nonzeros[i].value != gko::zero<etype>()) {
-        //         if ((data_cln.nonzeros[i].row != data_new.nonzeros[j].row) ||
-        //             (data_cln.nonzeros[i].column !=
-        //              data_new.nonzeros[j].column) ||
-        //             (data_cln.nonzeros[i].value !=
-        //              data_new.nonzeros[j].value)) {
-        //             printf("(%ld,%ld) : (%ld,%ld,%f) != (%ld, %ld, %f)\n", i, j,
-        //                    data_cln.nonzeros[i].row,
-        //                    data_cln.nonzeros[i].column,
-        //                    data_cln.nonzeros[i].value, data_new.nonzeros[j].row,
-        //                    data_new.nonzeros[j].column,
-        //                    data_new.nonzeros[j].value);
-        //         }
-        //         j++;
-        //     }
-        // }
-        // /* */
-
 
         // check the residual
         if (FLAGS_detailed) {

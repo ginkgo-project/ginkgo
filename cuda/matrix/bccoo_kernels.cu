@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
 
+//#include "core/matrix/bccoo_aux_structs.hpp"
 
 namespace gko {
 namespace kernels {
@@ -79,6 +80,8 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
+//#include "core/matrix/bccoo_aux_structs.hpp"
+//#include "common/cuda_hip/matrix/bccoo_helper.hpp.inc"
 #include "common/cuda_hip/matrix/bccoo_kernels.hpp.inc"
 
 
