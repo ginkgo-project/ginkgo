@@ -59,7 +59,7 @@ namespace gcr {
 #define GKO_DECLARE_GCR_RESTART_KERNEL(_type)                 \
     void restart(std::shared_ptr<const DefaultExecutor> exec, \
                  const matrix::Dense<_type>* residual,        \
-                 matrix::Dense<_type>* A_residual,            \
+                 const matrix::Dense<_type>* A_residual,      \
                  matrix::Dense<_type>* p_bases,               \
                  matrix::Dense<_type>* Ap_bases, size_type* final_iter_nums)
 

@@ -103,7 +103,7 @@ protected:
         int m = 597;
 #endif
         x = gen_mtx(m, nrhs);
-        y = gen_mtx(gko::solver::default_krylov_dim, nrhs);
+        y = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
         before_preconditioner = Mtx::create_with_config_of(x);
         b = gen_mtx(m, nrhs);
         krylov_bases =
