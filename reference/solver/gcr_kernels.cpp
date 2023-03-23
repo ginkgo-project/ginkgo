@@ -72,7 +72,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
 template <typename ValueType>
 void restart(std::shared_ptr<const ReferenceExecutor> exec,
              const matrix::Dense<ValueType>* residual,
-             matrix::Dense<ValueType>* A_residual,
+             const matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
              matrix::Dense<ValueType>* Ap_bases, size_type* final_iter_nums)
 {
