@@ -212,8 +212,8 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // If krylov_dim reached, restart with new initial guess
         if (restart_iter == krylov_dim) {
             // Restart
-            // p(:, 1) = precon_residual(:, 1)
-            // Ap(:, 1) = A_precon_residual(:, 1)
+            // p(:, 1) = precon_residual(:)
+            // Ap(:, 1) = A_precon_residual(:)
             // final_iter_nums = {0, ..., 0}
             exec->run(gcr::make_restart(precon_residual, A_precon_residual,
                                         krylov_bases_p, mapped_krylov_bases_Ap,
