@@ -66,7 +66,7 @@ GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 /** Computes the symbolic Cholesky factorization of the given matrix. */
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
-    const matrix::Csr<ValueType, IndexType>* mtx,
+    const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
     std::unique_ptr<elimination_forest<IndexType>>& forest)
 {
@@ -86,18 +86,20 @@ void symbolic_cholesky(
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
     exec->run(make_symbolic(mtx, *forest, factors.get(), tmp));
     factors->sort_by_column_index();
-    auto lt_factor = as<matrix_type>(factors->transpose());
-    const auto scalar =
-        initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-    const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-    lt_factor->apply(scalar, id, scalar, factors);
+    if (symmetrize) {
+        auto lt_factor = as<matrix_type>(factors->transpose());
+        const auto scalar =
+            initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+        const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
+        lt_factor->apply(scalar, id, scalar, factors);
+    }
 }
 
 
-#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)          \
-    void symbolic_cholesky(                                          \
-        const matrix::Csr<ValueType, IndexType>* mtx,                \
-        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors, \
+#define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)            \
+    void symbolic_cholesky(                                            \
+        const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize, \
+        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,   \
         std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
