@@ -63,7 +63,6 @@ GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 }  // namespace
 
 
-/** Computes the symbolic Cholesky factorization of the given matrix. */
 template <typename ValueType, typename IndexType>
 void symbolic_cholesky(
     const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize,
@@ -105,13 +104,6 @@ void symbolic_cholesky(
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
 
 
-/**
- * Computes the symbolic Cholesky factorization of the given matrix.
- * The implementation is based on fill1 algorithm introduced in Rose and Tarjan,
- * "Algorithmic Aspects of Vertex Elimination on Directed Graphs," SIAM J. Appl.
- * Math. 1978. and its formulation in Gaihre et. al,
- * "GSoFa: Scalable Sparse Symbolic LU Factorization on GPUs," arXiv 2021
- */
 template <typename ValueType, typename IndexType>
 void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
                  std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
