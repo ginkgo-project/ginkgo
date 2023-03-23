@@ -96,6 +96,20 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
 }
 
 
+TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max() -
+                         std::is_unsigned<TypeParam>::value;
+    std::vector<TypeParam> vals{2, max - 1};
+    std::vector<TypeParam> expected{0, 2};
+
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, vals.data(), vals.size());
+
+    ASSERT_EQ(vals, expected);
+}
+
+
 TYPED_TEST(PrefixSum, ThrowsOnOverflow)
 {
     constexpr auto max = std::numeric_limits<TypeParam>::max();

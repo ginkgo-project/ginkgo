@@ -46,7 +46,7 @@ void prefix_sum_nonnegative(std::shared_ptr<const ReferenceExecutor> exec,
     constexpr auto max = std::numeric_limits<IndexType>::max();
     IndexType partial_sum{};
     for (size_type i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
+        auto nnz = i < num_entries - 1 ? counts[i] : IndexType{};
         counts[i] = partial_sum;
         if (max - partial_sum < nnz) {
             throw OverflowError(
