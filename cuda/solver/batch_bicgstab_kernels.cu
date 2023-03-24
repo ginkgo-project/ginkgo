@@ -156,10 +156,11 @@ public:
         const size_type nbatch = a.num_batch;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
 
+        const auto matrix_storage = a.get_entry_storage();
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                          BatchMatrixType, value_type>(exec_,
-                                                                       0);
+                                          BatchMatrixType, value_type>(
+                exec_, matrix_storage);
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,

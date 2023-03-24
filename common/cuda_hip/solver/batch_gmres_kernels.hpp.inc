@@ -116,9 +116,11 @@ template <typename BatchMatrixType_entry, typename ValueType, typename PrecType>
 __device__ __forceinline__ void arnoldi(
     group::thread_block_tile<config::warp_size>& warp_grp,
     const BatchMatrixType_entry& a_gl_entry, const int inner_iter,
-    ValueType* const V_shared_entry, ValueType* const H_shared_entry,
-    const size_type h_stride, ValueType* const w_shared_entry,
-    ValueType* const helper_shared_entry, const PrecType& prec_shared)
+    ValueType* const __restrict__ V_shared_entry,
+    ValueType* const __restrict__ H_shared_entry, const size_type h_stride,
+    ValueType* const __restrict__ w_shared_entry,
+    ValueType* const __restrict__ helper_shared_entry,
+    const PrecType& prec_shared)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const int num_rows = a_gl_entry.num_rows;
@@ -166,10 +168,10 @@ __device__ __forceinline__ void arnoldi(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void apply_plane_rotation(const ValueType* const cs,
-                                                     const ValueType* const sn,
-                                                     ValueType* const x,
-                                                     ValueType* const y)
+__device__ __forceinline__ void apply_plane_rotation(
+    const ValueType* const __restrict__ cs,
+    const ValueType* const __restrict__ sn, ValueType* const __restrict__ x,
+    ValueType* const __restrict__ y)
 {
     if (threadIdx.x == 0) {
         const ValueType temp = cs[0] * x[0] + sn[0] * y[0];
@@ -181,9 +183,10 @@ __device__ __forceinline__ void apply_plane_rotation(const ValueType* const cs,
 
 template <typename ValueType>
 __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
-    ValueType* const cs_i, ValueType* const sn_i, ValueType* const H_i_i,
-    ValueType* const H_i_plus_1_i, ValueType* const s_i,
-    ValueType* const s_i_plus_1)
+    ValueType* const __restrict__ cs_i, ValueType* const __restrict__ sn_i,
+    ValueType* const __restrict__ H_i_i,
+    ValueType* const __restrict__ H_i_plus_1_i,
+    ValueType* const __restrict__ s_i, ValueType* const __restrict__ s_i_plus_1)
 {
     if (threadIdx.x == 0) {
         if (H_i_plus_1_i[0] == zero<ValueType>()) {
@@ -212,13 +215,14 @@ __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void update_x(const int num_rows, const int m,
-                                         const ValueType* const H_shared_entry,
-                                         const size_type h_stride,
-                                         const ValueType* const s_shared_entry,
-                                         const ValueType* const V_shared_entry,
-                                         ValueType* const x_shared_entry,
-                                         ValueType* const y_shared_entry)
+__device__ __forceinline__ void update_x(
+    const int num_rows, const int m,
+    const ValueType* const __restrict__ H_shared_entry,
+    const size_type h_stride,
+    const ValueType* const __restrict__ s_shared_entry,
+    const ValueType* const __restrict__ V_shared_entry,
+    ValueType* const __restrict__ x_shared_entry,
+    ValueType* const __restrict__ y_shared_entry)
 {
     // triangular solve
     if (threadIdx.x == 0) {
