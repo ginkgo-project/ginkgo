@@ -45,9 +45,9 @@ namespace log {
 namespace {
 
 
-using clock = std::chrono::steady_clock;
-using duration = clock::duration;
-using time_point = clock::time_point;
+using cpu_clock = std::chrono::steady_clock;
+using cpu_duration = cpu_clock::duration;
+using cpu_time_point = cpu_clock::time_point;
 
 
 template <typename Summary>
@@ -134,58 +134,68 @@ struct summary {
     std::vector<std::pair<int64, time_point>> stack;
     std::unordered_map<std::string, int64> name_map;
     std::vector<ProfilerHook::summary_entry> entries;
+    std::shared_ptr<Timer> timer;
     bool broken{};
     bool check_nesting{};
     std::mutex mutex{};
 
-    summary() { push("total"); }
+    summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
+    {
+        push("total");
+    }
 
     void push(const char* name)
     {
         if (broken) {
             return;
         }
-        const auto now = clock::now();
-        std::lock_guard<std::mutex> guard{mutex};
-        auto it = name_map.find(name);
-        if (it == name_map.end()) {
-            const auto new_id = static_cast<int64>(entries.size());
-            it = name_map.emplace_hint(it, name, new_id);
-            entries.emplace_back();
-            entries.back().name = name;
+        const auto cpu_now = cpu_clock::now();
+        {
+            // scope the time_point to capture its destruction in overhead
+            auto now = timer->record();
+            std::lock_guard<std::mutex> guard{mutex};
+            auto it = name_map.find(name);
+            if (it == name_map.end()) {
+                const auto new_id = static_cast<int64>(entries.size());
+                it = name_map.emplace_hint(it, name, new_id);
+                entries.emplace_back();
+                entries.back().name = name;
+            }
+            const auto id = it->second;
+            stack.emplace_back(id, std::move(now));
         }
-        const auto id = it->second;
-        stack.emplace_back(id, now);
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                clock::now() - now)
+                cpu_clock::now() - cpu_now)
                 .count();
     }
 
     void pop(const char* name, bool allow_pop_root = false)
     {
-        const auto now = clock::now();
-        std::lock_guard<std::mutex> guard{mutex};
-        if (!check_pop_status(*this, name, allow_pop_root)) {
-            return;
-        }
-        const auto id = stack.back().first;
-        const auto partial_entry = stack.back();
-        stack.pop_back();
-        auto& entry = entries[id];
-        const auto elapsed_ns =
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                now - partial_entry.second)
-                .count();
-        entry.count++;
-        entry.inclusive_ns += elapsed_ns;
-        entry.exclusive_ns += elapsed_ns;
-        if (!stack.empty()) {
-            entries[stack.back().first].exclusive_ns -= elapsed_ns;
+        const auto cpu_now = cpu_clock::now();
+        {
+            // scope the time_point to capture its destruction in overhead
+            const auto now = timer->record();
+            std::lock_guard<std::mutex> guard{mutex};
+            if (!check_pop_status(*this, name, allow_pop_root)) {
+                return;
+            }
+            const auto id = stack.back().first;
+            const auto partial_entry = std::move(stack.back());
+            stack.pop_back();
+            auto& entry = entries[id];
+            const auto elapsed_ns =
+                timer->difference(partial_entry.second, now);
+            entry.count++;
+            entry.inclusive_ns += elapsed_ns;
+            entry.exclusive_ns += elapsed_ns;
+            if (!stack.empty()) {
+                entries[stack.back().first].exclusive_ns -= elapsed_ns;
+            }
         }
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                clock::now() - now)
+                cpu_clock::now() - cpu_now)
                 .count();
     }
 
@@ -215,7 +225,7 @@ struct nested_summary {
         time_point start;
 
         partial_entry(int64 name_id, int64 node_id, time_point start)
-            : name_id{name_id}, node_id{node_id}, start{start}
+            : name_id{name_id}, node_id{node_id}, start{std::move(start)}
         {}
     };
 
@@ -232,11 +242,15 @@ struct nested_summary {
     std::unordered_map<std::string, int64> name_map;
     std::vector<entry> nodes;
     std::vector<std::string> names;
+    std::shared_ptr<Timer> timer;
     bool broken{};
     bool check_nesting{};
     std::mutex mutex{};
 
-    nested_summary() { push("total"); }
+    nested_summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
+    {
+        push("total");
+    }
 
     int64 get_or_add_name_id(const char* name)
     {
@@ -274,39 +288,44 @@ struct nested_summary {
         if (broken) {
             return;
         }
-        const auto now = clock::now();
-        std::lock_guard<std::mutex> guard{mutex};
-        const auto name_id = get_or_add_name_id(name);
-        const auto node_id = get_or_add_node_id(name_id);
-        stack.emplace_back(name_id, node_id, clock::now());
+        const auto cpu_now = cpu_clock::now();
+        {
+            // scope the time_point to capture its destruction in overhead
+            auto now = timer->record();
+            std::lock_guard<std::mutex> guard{mutex};
+            const auto name_id = get_or_add_name_id(name);
+            const auto node_id = get_or_add_node_id(name_id);
+            stack.emplace_back(name_id, node_id, std::move(now));
+        }
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                clock::now() - now)
+                cpu_clock::now() - cpu_now)
                 .count();
     }
 
     void pop(const char* name, bool allow_pop_root = false)
     {
-        const auto now = clock::now();
-        std::lock_guard<std::mutex> guard{mutex};
-        if (!check_pop_status(*this, name, allow_pop_root)) {
-            return;
+        const auto cpu_now = cpu_clock::now();
+        {
+            // scope the time_point to capture its destruction in overhead
+            const auto now = timer->record();
+            std::lock_guard<std::mutex> guard{mutex};
+            if (!check_pop_status(*this, name, allow_pop_root)) {
+                return;
+            }
+            const auto partial_entry = std::move(stack.back());
+            const auto name_id = partial_entry.name_id;
+            stack.pop_back();
+            const auto node_id =
+                node_map.at(std::make_pair(name_id, get_parent_id()));
+            auto& node = nodes[node_id];
+            const auto elapsed_ns = timer->difference(partial_entry.start, now);
+            node.count++;
+            node.elapsed_ns += elapsed_ns;
         }
-        const auto partial_entry = stack.back();
-        const auto name_id = partial_entry.name_id;
-        stack.pop_back();
-        const auto node_id =
-            node_map.at(std::make_pair(name_id, get_parent_id()));
-        auto& node = nodes[node_id];
-        const auto elapsed_ns =
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                now - partial_entry.start)
-                .count();
-        node.count++;
-        node.elapsed_ns += elapsed_ns;
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                clock::now() - now)
+                cpu_clock::now() - cpu_now)
                 .count();
     }
 
@@ -364,13 +383,14 @@ ProfilerHook::nested_summary_entry build_tree(const nested_summary& summary)
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
-    std::unique_ptr<SummaryWriter> writer, bool debug_check_nesting)
+    std::shared_ptr<Timer> timer, std::unique_ptr<SummaryWriter> writer,
+    bool debug_check_nesting)
 {
     // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
     // related to move-only functors
     std::shared_ptr<summary> data{
-        new summary{}, [writer = std::shared_ptr<SummaryWriter>{
-                            std::move(writer)}](summary* ptr) {
+        new summary{std::move(timer)}, [writer = std::shared_ptr<SummaryWriter>{
+                                            std::move(writer)}](summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
             writer->write(ptr->entries, ptr->overhead_ns);
@@ -384,13 +404,15 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_nested_summary(
-    std::unique_ptr<NestedSummaryWriter> writer, bool debug_check_nesting)
+    std::shared_ptr<Timer> timer, std::unique_ptr<NestedSummaryWriter> writer,
+    bool debug_check_nesting)
 {
     // we need to wrap the deleter in a shared_ptr to deal with a GCC 5.5 bug
     // related to move-only functors
     std::shared_ptr<nested_summary> data{
-        new nested_summary{}, [writer = std::shared_ptr<NestedSummaryWriter>{
-                                   std::move(writer)}](nested_summary* ptr) {
+        new nested_summary{std::move(timer)},
+        [writer = std::shared_ptr<NestedSummaryWriter>{std::move(writer)}](
+            nested_summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
             writer->write_nested(build_tree(*ptr), ptr->overhead_ns);

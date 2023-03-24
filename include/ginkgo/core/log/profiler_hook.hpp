@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -361,6 +362,7 @@ public:
      * Creates a logger measuring the runtime of Ginkgo events and printing a
      * summary when it is destroyed.
      *
+     * @param timer  The timer used to record time points.
      * @param writer  The SummaryWriter to receive the performance results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
      *                             might contain incorrect nesting. This
@@ -368,10 +370,11 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, enable
-     *       synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, use a GPU timer or
+     *       enable synchronization via `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_summary(
+        std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
         std::unique_ptr<SummaryWriter> writer =
             std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);
@@ -380,6 +383,7 @@ public:
      * Creates a logger measuring the runtime of Ginkgo events in a nested
      * fashion and printing a summary when it is destroyed.
      *
+     * @param timer  The timer used to record time points.
      * @param writer  The NestedSummaryWriter to receive the performance
      *                results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
@@ -388,10 +392,11 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, enable
-     *       synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, use a GPU timer or
+     *       enable synchronization via `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_nested_summary(
+        std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
         std::unique_ptr<NestedSummaryWriter> writer =
             std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);

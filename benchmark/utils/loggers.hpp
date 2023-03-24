@@ -102,14 +102,23 @@ struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
 
 
 inline std::shared_ptr<gko::log::ProfilerHook> create_operations_logger(
-    bool nested, rapidjson::Value& object,
-    rapidjson::MemoryPoolAllocator<>& alloc, gko::uint32 repetitions)
+    bool gpu_timer, bool nested, std::shared_ptr<gko::Executor> exec,
+    rapidjson::Value& object, rapidjson::MemoryPoolAllocator<>& alloc,
+    gko::uint32 repetitions)
 {
+    std::shared_ptr<gko::Timer> timer;
+    if (gpu_timer) {
+        timer = gko::Timer::create_for_executor(exec);
+    } else {
+        timer = std::make_unique<gko::CpuTimer>();
+    }
     if (nested) {
         return gko::log::ProfilerHook::create_nested_summary(
+            timer,
             std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     } else {
         return gko::log::ProfilerHook::create_summary(
+            timer,
             std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     }
 }

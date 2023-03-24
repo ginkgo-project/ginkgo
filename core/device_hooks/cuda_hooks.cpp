@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
@@ -163,6 +164,31 @@ cuda_stream::cuda_stream(cuda_stream&&) GKO_NOT_COMPILED(cuda);
 
 
 CUstream_st* cuda_stream::get() const GKO_NOT_COMPILED(cuda);
+
+
+CudaTimer::CudaTimer(std::shared_ptr<const CudaExecutor> exec)
+    GKO_NOT_COMPILED(cuda);
+
+
+time_point CudaTimer::record() GKO_NOT_COMPILED(cuda);
+
+
+int64 CudaTimer::difference(const time_point& start, const time_point& stop)
+    GKO_NOT_COMPILED(cuda);
+
+
+namespace kernels {
+namespace cuda {
+
+
+void reset_device(int device_id) GKO_NOT_COMPILED(cuda);
+
+
+void destroy_event(CUevent_st* event) GKO_NOT_COMPILED(cuda);
+
+
+}  // namespace cuda
+}  // namespace kernels
 
 
 namespace log {

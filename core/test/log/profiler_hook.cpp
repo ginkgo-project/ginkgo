@@ -318,6 +318,7 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
 TEST(ProfilerHook, SummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_summary(
+        std::make_unique<gko::CpuTimer>(),
         std::make_unique<TestSummaryWriter>());
 
     call_ranges_unique(logger);
@@ -391,6 +392,7 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
 TEST(ProfilerHook, NestedSummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_nested_summary(
+        std::make_unique<gko::CpuTimer>(),
         std::make_unique<TestNestedSummaryWriter>());
 
     call_ranges(logger);

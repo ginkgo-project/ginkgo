@@ -461,8 +461,8 @@ void solve_system(const std::string& solver_name,
 
             {
                 auto gen_logger = create_operations_logger(
-                    FLAGS_nested_names, solver_json["generate"]["components"],
-                    allocator, 1);
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                    solver_json["generate"]["components"], allocator, 1);
                 exec->add_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(gen_logger);
@@ -491,8 +491,8 @@ void solve_system(const std::string& solver_name,
 
             {
                 auto apply_logger = create_operations_logger(
-                    FLAGS_nested_names, solver_json["apply"]["components"],
-                    allocator, 1);
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                    solver_json["apply"]["components"], allocator, 1);
                 exec->add_logger(apply_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(apply_logger);

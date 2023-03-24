@@ -4,6 +4,7 @@ set(GINKGO_HIP_SOURCES
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
     base/scoped_device_id.hip.cpp
+    base/timer.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp

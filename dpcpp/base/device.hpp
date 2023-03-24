@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_DEVICE_HPP_
-#define GKO_CUDA_BASE_DEVICE_HPP_
+#ifndef GKO_DPCPP_BASE_DEVICE_HPP_
+#define GKO_DPCPP_BASE_DEVICE_HPP_
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -39,20 +39,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace dpcpp {
 
 
-/** calls cudaDeviceReset on the given device. */
-void reset_device(int device_id);
+/** calls delete on the given event. */
+void destroy_event(sycl::event* event);
 
 
-/** calls cudaEventDestroy on the given event. */
-void destroy_event(CUevent_st* event);
-
-
-}  // namespace cuda
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_DEVICE_HPP_
+#endif  // GKO_DPCPP_BASE_DEVICE_HPP_
