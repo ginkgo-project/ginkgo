@@ -144,6 +144,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
+    A_data.nonzeros.reserve(nnz_in_row() * local_size);
+
     for (IndexType iy = 0; iy < discretization_points; ++iy) {
         for (IndexType ix = 0; ix < discretization_points; ++ix) {
             auto row = flat_idx(iy, ix);
@@ -263,6 +265,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         return num_neighbors;
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
+
+    A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
     for (IndexType iz = 0; iz < discretization_points; ++iz) {
         for (IndexType iy = 0; iy < discretization_points; ++iy) {
