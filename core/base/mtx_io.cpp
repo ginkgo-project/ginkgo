@@ -317,7 +317,9 @@ private:
         void insert_entry(
             const IndexType& row, const IndexType& col, const ValueType& entry,
             matrix_data<ValueType, IndexType>& data) const override
-        {}
+        {
+            data.nonzeros.emplace_back(row, col, entry);
+        }
 
         /**
          * Get the start of the rows
