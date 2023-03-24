@@ -27,7 +27,8 @@ struct comm_info_t {
           send_offsets(comm.size() + 1),
           recv_sizes(comm.size()),
           recv_offsets(comm.size() + 1),
-          recv_idxs(shared_idxs.get_executor(), shared_idxs.get_num_elems())
+          recv_idxs(shared_idxs.get_executor(), shared_idxs.get_num_elems()),
+          send_idxs(shared_idxs.get_executor())
     {
         auto exec = shared_idxs.get_executor()->get_master();
         std::vector<int> remote_idxs(shared_idxs.get_num_elems());
@@ -64,6 +65,7 @@ struct comm_info_t {
         comm.all_to_all(exec, recv_sizes.data(), 1, send_sizes.data(), 1);
         std::partial_sum(send_sizes.begin(), send_sizes.end(),
                          send_offsets.begin() + 1);
+        send_idxs.resize_and_reset(send_offsets.back());
 
         comm.all_to_all_v(exec, remote_idxs.data(), recv_sizes.data(),
                           recv_offsets.data(), send_idxs.get_data(),
@@ -102,7 +104,7 @@ struct comm_info_t {
 struct overlapping_vec : public vec {
     overlapping_vec(std::shared_ptr<const Executor> exec,
                     experimental::mpi::communicator comm = {MPI_COMM_NULL},
-                    std::shared_ptr<vec> local_vec = nullptr,
+                    std::unique_ptr<vec> local_vec = nullptr,
                     comm_info_t comm_info = {})
         : vec(local_vec->get_executor(), local_vec->get_size()),
           local_flag(local_vec->get_executor(), local_vec->get_size()[0]),
@@ -110,7 +112,7 @@ struct overlapping_vec : public vec {
           comm(comm),
           comm_info(comm_info)
     {
-        static_cast<vec&>(*this) = *local_vec;
+        static_cast<vec&>(*this) = std::move(*local_vec);
         local_flag.fill(true);
         for (int i = 0; i < comm_info.non_owned_idxs.get_num_elems(); ++i) {
             local_flag.get_data()[comm_info.non_owned_idxs.get_data()[i]] =
@@ -277,6 +279,8 @@ struct overlapping_operator
         as<vec>(x)->scale(alpha);
         as<vec>(x)->add_scaled(beta, copy_x);
     }
+
+    bool apply_uses_initial_guess() const override { return true; }
 
     std::shared_ptr<LinOp> local_op;
     comm_info_t comm_info;
