@@ -160,7 +160,10 @@ DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
     GKO_NOT_COMPILED(dpcpp);
 
 
-time_point DpcppTimer::record() GKO_NOT_COMPILED(dpcpp);
+time_point DpcppTimer::create_time_point() GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppTimer::record(time_point&) GKO_NOT_COMPILED(dpcpp);
 
 
 int64 DpcppTimer::difference(const time_point& start, const time_point& stop)

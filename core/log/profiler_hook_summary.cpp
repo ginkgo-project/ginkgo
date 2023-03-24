@@ -132,6 +132,7 @@ void pop_all(Summary& s)
 struct summary {
     int64 overhead_ns{};
     std::vector<std::pair<int64, time_point>> stack;
+    std::vector<time_point> free_list;
     std::unordered_map<std::string, int64> name_map;
     std::vector<ProfilerHook::summary_entry> entries;
     std::shared_ptr<Timer> timer;
@@ -144,6 +145,25 @@ struct summary {
         push("total");
     }
 
+    time_point get_current_time_point()
+    {
+        if (free_list.empty()) {
+            auto time = timer->create_time_point();
+            timer->record(time);
+            return time;
+        } else {
+            auto time = std::move(free_list.back());
+            free_list.pop_back();
+            timer->record(time);
+            return time;
+        }
+    }
+
+    void release_time_point(time_point time)
+    {
+        free_list.push_back(std::move(time));
+    }
+
     void push(const char* name)
     {
         if (broken) {
@@ -152,7 +172,7 @@ struct summary {
         const auto cpu_now = cpu_clock::now();
         {
             // scope the time_point to capture its destruction in overhead
-            auto now = timer->record();
+            auto now = get_current_time_point();
             std::lock_guard<std::mutex> guard{mutex};
             auto it = name_map.find(name);
             if (it == name_map.end()) {
@@ -175,17 +195,19 @@ struct summary {
         const auto cpu_now = cpu_clock::now();
         {
             // scope the time_point to capture its destruction in overhead
-            const auto now = timer->record();
+            auto now = get_current_time_point();
             std::lock_guard<std::mutex> guard{mutex};
             if (!check_pop_status(*this, name, allow_pop_root)) {
                 return;
             }
             const auto id = stack.back().first;
-            const auto partial_entry = std::move(stack.back());
+            auto partial_entry = std::move(stack.back());
             stack.pop_back();
             auto& entry = entries[id];
             const auto elapsed_ns =
                 timer->difference(partial_entry.second, now);
+            release_time_point(std::move(partial_entry.second));
+            release_time_point(std::move(now));
             entry.count++;
             entry.inclusive_ns += elapsed_ns;
             entry.exclusive_ns += elapsed_ns;
@@ -238,6 +260,7 @@ struct nested_summary {
 
     int64 overhead_ns{};
     std::vector<partial_entry> stack;
+    std::vector<time_point> free_list;
     std::unordered_map<std::pair<int64, int64>, int64, pair_hash> node_map;
     std::unordered_map<std::string, int64> name_map;
     std::vector<entry> nodes;
@@ -250,6 +273,25 @@ struct nested_summary {
     nested_summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
     {
         push("total");
+    }
+
+    time_point get_current_time_point()
+    {
+        if (free_list.empty()) {
+            auto time = timer->create_time_point();
+            timer->record(time);
+            return time;
+        } else {
+            auto time = std::move(free_list.back());
+            free_list.pop_back();
+            timer->record(time);
+            return time;
+        }
+    }
+
+    void release_time_point(time_point time)
+    {
+        free_list.push_back(std::move(time));
     }
 
     int64 get_or_add_name_id(const char* name)
@@ -291,7 +333,7 @@ struct nested_summary {
         const auto cpu_now = cpu_clock::now();
         {
             // scope the time_point to capture its destruction in overhead
-            auto now = timer->record();
+            auto now = get_current_time_point();
             std::lock_guard<std::mutex> guard{mutex};
             const auto name_id = get_or_add_name_id(name);
             const auto node_id = get_or_add_node_id(name_id);
@@ -308,18 +350,20 @@ struct nested_summary {
         const auto cpu_now = cpu_clock::now();
         {
             // scope the time_point to capture its destruction in overhead
-            const auto now = timer->record();
+            auto now = get_current_time_point();
             std::lock_guard<std::mutex> guard{mutex};
             if (!check_pop_status(*this, name, allow_pop_root)) {
                 return;
             }
-            const auto partial_entry = std::move(stack.back());
+            auto partial_entry = std::move(stack.back());
             const auto name_id = partial_entry.name_id;
             stack.pop_back();
             const auto node_id =
                 node_map.at(std::make_pair(name_id, get_parent_id()));
             auto& node = nodes[node_id];
             const auto elapsed_ns = timer->difference(partial_entry.start, now);
+            release_time_point(std::move(partial_entry.start));
+            release_time_point(std::move(now));
             node.count++;
             node.elapsed_ns += elapsed_ns;
         }

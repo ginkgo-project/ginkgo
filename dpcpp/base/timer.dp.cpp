@@ -21,15 +21,22 @@ DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-time_point DpcppTimer::record()
+time_point DpcppTimer::create_time_point()
 {
     time_point result;
     result.type_ = time_point::type::dpcpp;
-    result.data_.dpcpp_event =
-        new sycl::event{exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
-        })};
+    result.data_.dpcpp_event = new sycl::event{};
     return result;
+}
+
+
+void DpcppTimer::record(time_point& time)
+{
+    GKO_ASSERT(time.type_ == time_point::type::dpcpp);
+    *time.data_.dpcpp_event =
+        exec_->get_queue()->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(1, [=](sycl::id<1> id) {});
+        });
 }
 
 
