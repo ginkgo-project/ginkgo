@@ -25,7 +25,7 @@ template <typename IndexType>
 auto create_ltr_map(gko::size_type num_vertices_y,
                     gko::size_type num_vertices_x)
 {
-    return [&](const auto y, const auto x) {
+    return [=](const auto y, const auto x) {
         std::array<gko::size_type, 3> map{y * num_vertices_x + x + 1,
                                           (y + 1) * num_vertices_x + x + 1,
                                           y * num_vertices_x + x};
@@ -192,15 +192,15 @@ std::vector<shared_idx_t> setup_shared_idxs(gko::size_type num_elements_y,
                             remote_map(element_local_bdry_idx[0]), remote_rank,
                             remote_rank};
             }
-            idxs[iy + 1] = idxs[iy] = {local_map(element_local_bdry_idx[1]),
-                                       remote_map(element_local_bdry_idx[1]),
-                                       remote_rank, remote_rank};
+            idxs[iy + 1] = {local_map(element_local_bdry_idx[1]),
+                            remote_map(element_local_bdry_idx[1]), remote_rank,
+                            remote_rank};
         }
     };
     if (share_left_bdry) {
         setup_idxs(fixed_x_map(0, utr_map),
                    fixed_x_map(num_elements_x - 1 - overlap_size, utr_map),
-                   this_rank - 1, {0, 1}, shared_idxs.data());
+                   this_rank - 1, {2, 0}, shared_idxs.data());
     }
     if (share_right_bdry) {
         auto offset = share_left_bdry * (num_elements_y + 1);
