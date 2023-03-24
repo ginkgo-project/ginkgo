@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 
@@ -141,6 +142,28 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 
 scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
                                                int device_id)
+    GKO_NOT_COMPILED(dpcpp);
+
+
+namespace kernels {
+namespace dpcpp {
+
+
+void destroy_event(sycl::event* event) GKO_NOT_COMPILED(cuda);
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+
+
+DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
+    GKO_NOT_COMPILED(dpcpp);
+
+
+time_point DpcppTimer::record() GKO_NOT_COMPILED(dpcpp);
+
+
+int64 DpcppTimer::difference(const time_point& start, const time_point& stop)
     GKO_NOT_COMPILED(dpcpp);
 
 

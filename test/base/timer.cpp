@@ -30,29 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_DEVICE_HPP_
-#define GKO_CUDA_BASE_DEVICE_HPP_
+#include <ginkgo/core/base/timer.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <map>
+#include <thread>
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
+#include <gtest/gtest.h>
 
 
-/** calls cudaDeviceReset on the given device. */
-void reset_device(int device_id);
+#include "core/test/utils/assertions.hpp"
+#include "test/utils/executor.hpp"
 
 
-/** calls cudaEventDestroy on the given event. */
-void destroy_event(CUevent_st* event);
+class Timer : public CommonTestFixture {};
 
 
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+TEST_F(Timer, Works)
+{
+    auto timer = gko::Timer::create_for_executor(this->exec);
 
+    auto start = timer->record();
+    std::this_thread::sleep_for(std::chrono::seconds{5});
+    auto stop = timer->record();
 
-#endif  // GKO_CUDA_BASE_DEVICE_HPP_
+    ASSERT_GT(timer->difference(start, stop), 1'000'000'000);
+}

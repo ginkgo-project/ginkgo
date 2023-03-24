@@ -384,6 +384,12 @@ void reset_device(int device_id)
 }
 
 
+void destroy_event(CUevent_st* event)
+{
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

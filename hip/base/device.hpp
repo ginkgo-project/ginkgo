@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_BASE_DEVICE_HPP_
 #define GKO_HIP_BASE_DEVICE_HPP_
 
+#include <ginkgo/core/base/executor.hpp>
 
 namespace gko {
 namespace kernels {
@@ -41,6 +42,10 @@ namespace hip {
 
 /** calls hipDeviceReset on the given device. */
 void reset_device(int device_id);
+
+
+/** calls hipEventDestroy on the given event. */
+void destroy_event(GKO_HIP_EVENT_STRUCT* event);
 
 
 }  // namespace hip
