@@ -54,7 +54,9 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
-using solver_type = gko::solver::BatchBicgstab<value_type>;
+using bicgstab = gko::solver::BatchBicgstab<value_type>;
+using cg = gko::solver::BatchCg<value_type>;
+using gmres = gko::solver::BatchGmres<value_type>;
 
 
 // @sect3{'Application' structures and functions}
@@ -101,7 +103,8 @@ void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 int main(int argc, char* argv[])
 {
     // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
+    if (!(std::string(argv[5]) == "time"))
+        std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
@@ -143,7 +146,12 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
-    const int num_rows = 35;  // per system
+    const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
+    const std::string in_solver = argc >= 5 ? argv[4] : "bicgstab";
+    const bool print_time =
+        argc >= 6 ? (std::string(argv[5]) == "time") : false;
+    const bool print_residuals =
+        argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
@@ -194,13 +202,36 @@ int main(int argc, char* argv[])
     // @sect3{Create the batch solver factory}
     const real_type reduction_factor{1e-6};
     // Create a batched solver factory with relevant parameters.
-    auto solver_gen =
-        solver_type::build()
+    auto solver_gmres =
+        gmres::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(reduction_factor)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_restart(10)
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
+            .on(exec);
+    auto solver_cg =
+        cg::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
+            .on(exec);
+    auto solver_bicgstab =
+        bicgstab::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(reduction_factor)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
             .on(exec);
 
     // @sect3{Batch logger}
@@ -211,11 +242,42 @@ int main(int argc, char* argv[])
 
     // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
-    auto solver = solver_gen->generate(A);
+    std::shared_ptr<gko::BatchLinOp> solver{};
+    if (in_solver == "cg") {
+        solver = solver_cg->generate(A);
+    } else if (in_solver == "gmres") {
+        solver = solver_gmres->generate(A);
+    } else if (in_solver == "bicgstab") {
+        solver = solver_bicgstab->generate(A);
+    } else {
+        throw "Not implemented";
+    }
     // add the logger to the solver
+
     solver->add_logger(logger);
     // Solve the batch system
-    solver->apply(lend(b), lend(x));
+    // Warmup
+    auto x_clone = gko::clone(x);
+
+    for (int i = 0; i < 3; ++i) {
+        x_clone->copy_from(x.get());
+        solver->apply(lend(b), lend(x_clone));
+    }
+
+    int num_reps = 20;
+    double apply_time = 0.0;
+    for (int i = 0; i < num_reps; ++i) {
+        x_clone->copy_from(x.get());
+        std::chrono::steady_clock::time_point t1 =
+            std::chrono::steady_clock::now();
+        solver->apply(lend(b), lend(x_clone));
+        std::chrono::steady_clock::time_point t2 =
+            std::chrono::steady_clock::now();
+        auto time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        apply_time += time_span.count();
+    }
+    x->copy_from(x_clone.get());
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
     solver->remove_logger(logger.get());
@@ -237,25 +299,36 @@ int main(int argc, char* argv[])
                                                          exec->get_master());
     res->compute_norm2(lend(res_norm));
 
-    std::cout << "Residual norm sqrt(r^T r):\n";
-    // "unbatch" converts a batch object into a vector of objects of the
-    //   corresponding single type, eg. BatchDense --> vector<Dense>.
-    auto unb_res = res_norm->unbatch();
-    auto unb_bnorm = b_norm->unbatch();
-    for (size_type i = 0; i < num_systems; ++i) {
-        std::cout << " System no. " << i
-                  << ": residual norm = " << unb_res[i]->at(0, 0)
-                  << ", internal residual norm = "
-                  << logger->get_residual_norm()->at(i, 0, 0)
-                  << ", iterations = "
-                  << logger->get_num_iterations().get_const_data()[i]
-                  << std::endl;
-        const real_type relresnorm =
-            unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
-        if (!(relresnorm <= reduction_factor)) {
-            std::cout << "System " << i << " converged only to " << relresnorm
-                      << " relative residual." << std::endl;
+    if (print_residuals) {
+        std::cout << "Residual norm sqrt(r^T r):\n";
+        // "unbatch" converts a batch object into a vector of objects of the
+        //   corresponding single type, eg. BatchDense --> vector<Dense>.
+        auto unb_res = res_norm->unbatch();
+        auto unb_bnorm = b_norm->unbatch();
+        for (size_type i = 0; i < num_systems; ++i) {
+            std::cout << " System no. " << i
+                      << ": residual norm = " << unb_res[i]->at(0, 0)
+                      << ", internal residual norm = "
+                      << logger->get_residual_norm()->at(i, 0, 0)
+                      << ", iterations = "
+                      << logger->get_num_iterations().get_const_data()[i]
+                      << std::endl;
+            const real_type relresnorm =
+                unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
+            if (!(relresnorm <= reduction_factor)) {
+                std::cout << "System " << i << " converged only to "
+                          << relresnorm << " relative residual." << std::endl;
+            }
         }
+    }
+    if (print_time) {
+        std::cout << apply_time / num_reps << std::endl;
+    } else {
+        std::cout << "Solver type: " << in_solver
+                  << "\nMatrix size: " << A->get_size().at(0)
+                  << "\nNum batch entries: " << A->get_num_batch_entries()
+                  << "\nEntire solve took: " << apply_time / num_reps
+                  << " seconds." << std::endl;
     }
 
     // Ginkgo objects are cleaned up automatically; but the "application" still
