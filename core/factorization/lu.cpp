@@ -98,7 +98,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         if (parameters_.symmetric_sparsity) {
             std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
                 forest;
-            exec->run(make_symbolic_cholesky(mtx.get(), factors, forest));
+            exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
         } else {
             exec->run(make_symbolic_lu(mtx.get(), factors));
         }

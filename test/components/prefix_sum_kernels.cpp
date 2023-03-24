@@ -109,6 +109,18 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
 }
 
 
+TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
+{
+    const auto max = std::numeric_limits<TypeParam>::max();
+    gko::array<TypeParam> data{this->exec, I<TypeParam>({2, max - 1})};
+
+    gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+        this->exec, data.get_data(), data.get_num_elems());
+
+    GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, 2}));
+}
+
+
 #ifndef GKO_COMPILING_DPCPP
 // TODO implement overflow check for DPC++
 
