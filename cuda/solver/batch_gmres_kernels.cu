@@ -155,7 +155,7 @@ public:
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
-        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
+        // gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
