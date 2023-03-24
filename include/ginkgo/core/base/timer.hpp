@@ -88,9 +88,14 @@ private:
 class Timer {
 public:
     /**
-     * Returns a time point recorded now.
+     * Creates a new time_point instance for this timer.
      */
-    virtual time_point record() = 0;
+    virtual time_point create_time_point() = 0;
+
+    /**
+     * Records a time point at the current time.
+     */
+    virtual void record(time_point& time) = 0;
 
     /**
      * Computes the difference between the two time points.
@@ -108,7 +113,9 @@ public:
 
 class CpuTimer : public Timer {
 public:
-    time_point record() override;
+    time_point create_time_point() override;
+
+    void record(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 };
@@ -116,7 +123,9 @@ public:
 
 class CudaTimer : public Timer {
 public:
-    time_point record() override;
+    time_point create_time_point() override;
+
+    void record(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
@@ -129,7 +138,9 @@ private:
 
 class HipTimer : public Timer {
 public:
-    time_point record() override;
+    time_point create_time_point() override;
+
+    void record(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
@@ -142,7 +153,9 @@ private:
 
 class DpcppTimer : public Timer {
 public:
-    time_point record() override;
+    time_point create_time_point() override;
+
+    void record(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 

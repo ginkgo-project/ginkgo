@@ -45,12 +45,18 @@ time_point& time_point::operator=(time_point&& other)
 }
 
 
-time_point CpuTimer::record()
+time_point CpuTimer::create_time_point()
 {
     time_point result;
     result.type_ = time_point::type::cpu;
-    result.data_.chrono = std::chrono::steady_clock::now();
     return result;
+}
+
+
+void CpuTimer::record(time_point& time)
+{
+    GKO_ASSERT(time.type_ == time_point::type::cpu);
+    time.data_.chrono = std::chrono::steady_clock::now();
 }
 
 
