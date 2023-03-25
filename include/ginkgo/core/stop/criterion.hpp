@@ -153,7 +153,7 @@ public:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if one vector's status changed
+     * @param one_changed  indicates if the status of a vector has changed
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
@@ -188,7 +188,7 @@ protected:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if one vector's status changed
+     * @param one_changed  indicates if the status of a vector has changed
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached

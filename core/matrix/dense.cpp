@@ -227,6 +227,15 @@ void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_squared_norm2_impl(
+        make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -467,6 +476,33 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
         make_temporary_conversion<remove_complex<ValueType>>(result);
     array<char> tmp{exec};
     exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2(LinOp* result,
+                                             array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_squared_norm2(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    this->compute_squared_norm2(make_temporary_output_clone(exec, result).get(),
+                                tmp);
 }
 
 

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_GCR_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_GCR_HPP_
 
 
 #include <vector>
@@ -54,18 +54,17 @@ namespace gko {
 namespace solver {
 
 
-[[deprecated]] constexpr size_type default_krylov_dim = 100u;
-
-constexpr size_type gmres_default_krylov_dim = 100u;
+constexpr size_type gcr_default_krylov_dim = 100u;
 
 
 /**
- * GMRES or the generalized minimal residual method is an iterative type Krylov
- * subspace method which is suitable for nonsymmetric linear systems.
+ * GCR or the generalized conjugate residual method is an iterative type Krylov
+ * subspace method similar to GMRES which is suitable for nonsymmetric linear
+ * systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of GMRES are
- * merged into 2 separate steps. Modified Gram-Schmidt is used.
+ * use of data locality. The inner operations in one iteration of GCR are
+ * merged into one step. Modified Gram-Schmidt is used.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -73,16 +72,16 @@ constexpr size_type gmres_default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres
-    : public EnableLinOp<Gmres<ValueType>>,
-      public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
+class Gcr
+    : public EnableLinOp<Gcr<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Gmres>;
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
+    friend class EnableLinOp<Gcr>;
+    friend class EnablePolymorphicObject<Gcr, LinOp>;
 
 public:
     using value_type = ValueType;
-    using transposed_type = Gmres<ValueType>;
+    using transposed_type = Gcr<ValueType>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -134,13 +133,8 @@ public:
          * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
-
-        /**
-         * Flexible GMRES
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(Gcr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -152,28 +146,28 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Gmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gmres>(std::move(exec))
+    explicit Gcr(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Gcr>(std::move(exec))
     {}
 
-    explicit Gmres(const Factory* factory,
-                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gmres>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+    explicit Gcr(const Factory* factory,
+                 std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Gcr>(factory->get_executor(),
+                           gko::transpose(system_matrix->get_size())),
+          EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
-            parameters_.krylov_dim = gmres_default_krylov_dim;
+            parameters_.krylov_dim = gcr_default_krylov_dim;
         }
     }
 };
 
 
 template <typename ValueType>
-struct workspace_traits<Gmres<ValueType>> {
-    using Solver = Gmres<ValueType>;
+struct workspace_traits<Gcr<ValueType>> {
+    using Solver = Gcr<ValueType>;
     // number of vectors used by this workspace
     static int num_vectors(const Solver&);
     // number of arrays used by this workspace
@@ -190,33 +184,25 @@ struct workspace_traits<Gmres<ValueType>> {
     // residual vector
     constexpr static int residual = 0;
     // preconditioned vector
-    constexpr static int preconditioned_vector = 1;
-    // krylov basis multivector
-    constexpr static int krylov_bases = 2;
-    // hessenberg matrix
-    constexpr static int hessenberg = 3;
-    // givens sin parameters
-    constexpr static int givens_sin = 4;
-    // givens cos parameters
-    constexpr static int givens_cos = 5;
-    // coefficients of the residual in Krylov space
-    constexpr static int residual_norm_collection = 6;
+    constexpr static int precon_residual = 1;
+    // A* preconditioned vector
+    constexpr static int A_precon_residual = 2;
+    // krylov bases (p in the algorithm)
+    constexpr static int krylov_bases_p = 3;
+    // mapped krylov bases (Ap in the algorithm)
+    constexpr static int mapped_krylov_bases_Ap = 4;
+    // tmp rAp parameter (r dot Ap in the algorithm)
+    constexpr static int tmp_rAp = 5;
+    // tmp minus beta parameter (-beta in the algorithm)
+    constexpr static int tmp_minus_beta = 6;
+    // array of norms of Ap
+    constexpr static int Ap_norms = 7;
     // residual norm scalar
-    constexpr static int residual_norm = 7;
-    // solution of the least-squares problem in Krylov space
-    constexpr static int y = 8;
-    // solution of the least-squares problem mapped to the full space
-    constexpr static int before_preconditioner = 9;
-    // preconditioned solution of the least-squares problem
-    constexpr static int after_preconditioner = 10;
+    constexpr static int residual_norm = 8;
     // constant 1.0 scalar
-    constexpr static int one = 11;
+    constexpr static int one = 9;
     // constant -1.0 scalar
-    constexpr static int minus_one = 12;
-    // temporary norm vector of next_krylov to copy into hessenberg matrix
-    constexpr static int next_krylov_norm_tmp = 13;
-    // preconditioned krylov basis multivector
-    constexpr static int preconditioned_krylov_bases = 14;
+    constexpr static int minus_one = 10;
 
     // stopping status array
     constexpr static int stop = 0;
@@ -231,4 +217,4 @@ struct workspace_traits<Gmres<ValueType>> {
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_GCR_HPP_
