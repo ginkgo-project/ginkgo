@@ -462,8 +462,21 @@ private:
                 // TODO: handle denormals
                 return conv::shift_sign(data_);
             } else {
-                return conv::shift_sign(data_) | exp |
-                       conv::shift_significand(data_);
+                // Rounding to even
+                const auto result = conv::shift_sign(data_) | exp |
+                                    conv::shift_significand(data_);
+                // return result + ((result & 1) &&
+                //        ((data_ >> (f32_traits::significand_bits -
+                //                    f16_traits::significand_bits - 1)) &
+                //         1));
+                const auto tail =
+                    data_ & static_cast<f32_traits::bits_type>(
+                                (1 << conv::significand_offset) - 1);
+
+                constexpr auto half = static_cast<f32_traits::bits_type>(
+                    1 << (conv::significand_offset - 1));
+                return result +
+                       (tail > half || ((tail == half) && (result & 1)));
             }
         }
     }
