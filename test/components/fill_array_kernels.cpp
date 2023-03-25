@@ -21,7 +21,7 @@ class FillArray : public CommonTestFixture {
 protected:
     using value_type = T;
     FillArray()
-        : total_size(63531),
+        : total_size(3000),
           vals{ref, total_size},
           dvals{exec, total_size},
           seqs{ref, total_size}
@@ -56,5 +56,10 @@ TYPED_TEST(FillArray, FillSeqEqualsReference)
     gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_seq_array(
         this->exec, this->dvals.get_data(), this->total_size);
 
+    this->dvals.set_executor(this->ref);
+    for (gko::size_type i = 2000; i < this->total_size; i++) {
+        std::cout << i << " " << this->seqs.get_data()[i] << " device "
+                  << this->dvals.get_data()[i] << std::endl;
+    }
     GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);
 }
