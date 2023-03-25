@@ -204,18 +204,21 @@ TEST_F(FloatToHalf, TruncatesSmallNumber)
 }
 
 
-TEST_F(FloatToHalf, TruncatesLargeNumber)
+TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
 {
-    half x = create_from_bits("1" "10001110" "10010011111000010000100");
+    half neg_x = create_from_bits("1" "10001110" "10010011111000010000100");
+    half neg_x2 = create_from_bits("1" "10001110" "10010011101000010000100");
+    half x = create_from_bits("0" "10001110" "10010011111000010000100");
+    half x2 = create_from_bits("0" "10001110" "10010011101000010000100");
+    half x3 = create_from_bits("0" "10001110" "10010011101000000000000");
+    half x4 = create_from_bits("0" "10001110" "10010011111000000000000");
 
-    #if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
-    // TODO: sycl::half seems to did rounding, but ours just truncates
-    ASSERT_EQ(get_bits(x), get_bits("1" "11110" "1001010000"));
-    #else
-    ASSERT_EQ(get_bits(x), get_bits("1" "11110" "1001001111"));
-    #endif
-
+    EXPECT_EQ(get_bits(x), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(x2), get_bits("0" "11110" "1001001111"));
+    EXPECT_EQ(get_bits(x3), get_bits("0" "11110" "1001001110"));
+    EXPECT_EQ(get_bits(x4), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x), get_bits("1" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
 }
 
 
