@@ -193,9 +193,16 @@ public:
         //           << "\n CG: number of threads per block = " << block_size
         //           << "\n";
 
-        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            sconf, opts_.max_its, opts_.residual_tol, logger, prec, a, b.values,
-            x.values, workspace.get_data());
+        if (sconf.n_global == 0) {
+            assert(sconf.gmem_stride_bytes == 0);
+            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values);
+        } else {
+            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values, workspace.get_data());
+        }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

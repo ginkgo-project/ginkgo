@@ -158,7 +158,7 @@ public:
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
-        // gko::kernels::cuda::configure_shared_memory_banks<value_type>();
+        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
@@ -168,7 +168,6 @@ public:
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
                                                                    a.num_rows);
-        // int block_size = 2 * config::warp_size;
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
@@ -193,9 +192,15 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num, logger,
-            prec, a, b.values, x.values, workspace.get_data());
+        if (sconf.gmem_stride_bytes == 0) {
+            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                logger, prec, a, b.values, x.values);
+        } else {
+            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                logger, prec, a, b.values, x.values, workspace.get_data());
+        }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
