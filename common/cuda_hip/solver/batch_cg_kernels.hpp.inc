@@ -254,3 +254,109 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         __syncthreads();
     }
 }
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+__global__ void small_apply_kernel(
+    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, LogType logger,
+    PrecType prec_shared, const BatchMatrixType a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    ValueType* const __restrict__ workspace = nullptr)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    const auto nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+
+    constexpr auto tile_size = config::warp_size;
+    auto thread_block = group::this_thread_block();
+    auto warp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+        extern __shared__ char local_mem_sh[];
+        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        ValueType* const z_sh = r_sh + sconf.padded_vec_len;
+        ValueType* const p_sh = z_sh + sconf.padded_vec_len;
+        ValueType* const Ap_sh = p_sh + sconf.padded_vec_len;
+        ValueType* const prec_work_sh = Ap_sh + sconf.padded_vec_len;
+        ValueType* const x_sh =
+            prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
+        __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
+        __shared__ uninitialized_array<ValueType, 1> alpha_sh;
+        __shared__ real_type norms_rhs_sh[1];
+        __shared__ real_type norms_res_sh[1];
+
+        const auto A_global_entry = gko::batch::batch_entry(a, ibatch);
+        const ValueType* const b_global_entry =
+            gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
+        ValueType* const x_global_entry =
+            gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
+
+        // generate preconditioner
+        prec_shared.generate(ibatch, A_global_entry, prec_work_sh);
+
+        // initialization
+        // compute b norms
+        // r = b - A*x
+        // z = precond*r
+        // rho_old = r' * z (' is for hermitian transpose)
+        // p = z
+        initialize(warp_grp, nrows, A_global_entry, b_global_entry,
+                   x_global_entry, x_sh, r_sh, prec_shared, z_sh, rho_old_sh[0],
+                   p_sh, norms_rhs_sh[0]);
+        __syncthreads();
+
+        // stopping criterion object
+        StopType stop(tol, norms_rhs_sh);
+
+        int iter = 0;
+        for (; iter < max_iter; iter++) {
+            norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
+            __syncthreads();
+            if (stop.check_converged(norms_res_sh)) {
+                break;
+            }
+
+            // Ap = A * p
+            single_matvec_kernel(A_global_entry, p_sh, Ap_sh);
+            __syncthreads();
+
+            // alpha = rho_old / (p' * Ap)
+            // x = x + alpha * p
+            // r = r - alpha * Ap
+            update_x_and_r(warp_grp, nrows, rho_old_sh[0], p_sh, Ap_sh,
+                           alpha_sh[0], x_sh, r_sh);
+            __syncthreads();
+
+            // z = precond * r
+            prec_shared.apply(nrows, r_sh, z_sh);
+            __syncthreads();
+
+            if (threadIdx.x / config::warp_size == 0) {
+                // rho_new =  (r)' * (z)
+                single_compute_dot_product(warp_grp, nrows, r_sh, z_sh,
+                                           rho_new_sh[0]);
+            }
+            __syncthreads();
+
+            // beta = rho_new / rho_old
+            // p = z + beta * p
+            update_p(nrows, rho_new_sh[0], rho_old_sh[0], z_sh, p_sh);
+            __syncthreads();
+
+            // rho_old = rho_new
+            if (threadIdx.x == 0) {
+                rho_old_sh[0] = rho_new_sh[0];
+            }
+            __syncthreads();
+        }
+
+        logger.log_iteration(ibatch, iter, norms_res_sh[0]);
+
+        // copy x back to global memory
+        single_copy(nrows, x_sh, x_global_entry);
+        __syncthreads();
+    }
+}

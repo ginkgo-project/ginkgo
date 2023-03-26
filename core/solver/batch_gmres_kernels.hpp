@@ -136,7 +136,8 @@ void set_gmem_stride_bytes(StorageConfig& sconf, const int nrows,
 {
     int gmem_stride =
         local_memory_requirement<value_type>(nrows, nrhs, restart) -
-        sconf.n_shared * multi_vector_size_bytes;
+        sconf.n_shared * multi_vector_size_bytes - rot_storage_bytes -
+        prec_storage_bytes - subspace_storage_bytes - hess_storage_bytes;
     if (!sconf.rot_shared) {
         gmem_stride += rot_storage_bytes;
     }
