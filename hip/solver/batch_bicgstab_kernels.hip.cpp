@@ -81,14 +81,15 @@ int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     const int num_regs_used_per_thread = 64;
     int max_regs_blk = 0;
     hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
                           exec->get_device_id());
-    const int max_threads_regs =
-        (max_regs_blk /
-         num_regs_used_per_thread);  // - (5 * config::warp_size);
+    const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
     const int max_threads = std::min(max_threads_regs, device_max_threads);
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }

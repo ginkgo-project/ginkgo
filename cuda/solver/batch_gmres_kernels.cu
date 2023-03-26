@@ -81,7 +81,10 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
@@ -165,6 +168,7 @@ public:
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
                                                                    a.num_rows);
+        // int block_size = 2 * config::warp_size;
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
@@ -189,7 +193,7 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
+        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
             sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num, logger,
             prec, a, b.values, x.values, workspace.get_data());
 
