@@ -81,7 +81,10 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 768;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
@@ -156,10 +159,11 @@ public:
         const size_type nbatch = a.num_batch;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
 
+        const auto matrix_storage = a.get_entry_storage();
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                          BatchMatrixType, value_type>(exec_,
-                                                                       0);
+                                          BatchMatrixType, value_type>(
+                exec_, matrix_storage);
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
@@ -192,9 +196,16 @@ public:
         //          block_size
         //          << "\n";
 
-        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            sconf, opts_.max_its, opts_.residual_tol, logger, prec, a, b.values,
-            x.values, workspace.get_data());
+        if (sconf.n_global == 0) {
+            assert(sconf.gmem_stride_bytes == 0);
+            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values);
+        } else {
+            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values, workspace.get_data());
+        }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

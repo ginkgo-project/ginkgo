@@ -79,14 +79,15 @@ int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     const int num_regs_used_per_thread = 64;
     int max_regs_blk = 0;
     hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
                           exec->get_device_id());
-    const int max_threads_regs =
-        (max_regs_blk /
-         num_regs_used_per_thread);  // - (5 * config::warp_size);
+    const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
     const int max_threads = std::min(max_threads_regs, device_max_threads);
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }
@@ -145,10 +146,17 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        hipLaunchKernelGGL(apply_kernel<StopType>, nbatch, default_block_size,
-                           shared_size, 0, sconf, opts_.max_its,
-                           opts_.residual_tol, opts_.restart_num, logger, prec,
-                           a, b.values, x.values, workspace.get_data());
+        if (sconf.gmem_stride_bytes == 0) {
+            hipLaunchKernelGGL(small_apply_kernel<StopType>, nbatch, block_size,
+                               shared_size, 0, sconf, opts_.max_its,
+                               opts_.residual_tol, opts_.restart_num, logger,
+                               prec, a, b.values, x.values);
+        } else {
+            hipLaunchKernelGGL(
+                apply_kernel<StopType>, nbatch, block_size, shared_size, 0,
+                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                logger, prec, a, b.values, x.values, workspace.get_data());
+        }
 
         GKO_HIP_LAST_IF_ERROR_THROW;
     }

@@ -79,7 +79,10 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
@@ -190,9 +193,16 @@ public:
         //           << "\n CG: number of threads per block = " << block_size
         //           << "\n";
 
-        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            sconf, opts_.max_its, opts_.residual_tol, logger, prec, a, b.values,
-            x.values, workspace.get_data());
+        if (sconf.n_global == 0) {
+            assert(sconf.gmem_stride_bytes == 0);
+            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values);
+        } else {
+            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b.values, x.values, workspace.get_data());
+        }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

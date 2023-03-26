@@ -81,7 +81,10 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps < 2) {
         nwarps = 2;
     }
-    constexpr int device_max_threads = 1024;
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
@@ -189,9 +192,15 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
-            sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num, logger,
-            prec, a, b.values, x.values, workspace.get_data());
+        if (sconf.gmem_stride_bytes == 0) {
+            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                logger, prec, a, b.values, x.values);
+        } else {
+            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                logger, prec, a, b.values, x.values, workspace.get_data());
+        }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

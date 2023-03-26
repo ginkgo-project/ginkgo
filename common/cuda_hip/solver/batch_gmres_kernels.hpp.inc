@@ -116,9 +116,11 @@ template <typename BatchMatrixType_entry, typename ValueType, typename PrecType>
 __device__ __forceinline__ void arnoldi(
     group::thread_block_tile<config::warp_size>& warp_grp,
     const BatchMatrixType_entry& a_gl_entry, const int inner_iter,
-    ValueType* const V_shared_entry, ValueType* const H_shared_entry,
-    const size_type h_stride, ValueType* const w_shared_entry,
-    ValueType* const helper_shared_entry, const PrecType& prec_shared)
+    ValueType* const __restrict__ V_shared_entry,
+    ValueType* const __restrict__ H_shared_entry, const size_type h_stride,
+    ValueType* const __restrict__ w_shared_entry,
+    ValueType* const __restrict__ helper_shared_entry,
+    const PrecType& prec_shared)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const int num_rows = a_gl_entry.num_rows;
@@ -166,10 +168,10 @@ __device__ __forceinline__ void arnoldi(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void apply_plane_rotation(const ValueType* const cs,
-                                                     const ValueType* const sn,
-                                                     ValueType* const x,
-                                                     ValueType* const y)
+__device__ __forceinline__ void apply_plane_rotation(
+    const ValueType* const __restrict__ cs,
+    const ValueType* const __restrict__ sn, ValueType* const __restrict__ x,
+    ValueType* const __restrict__ y)
 {
     if (threadIdx.x == 0) {
         const ValueType temp = cs[0] * x[0] + sn[0] * y[0];
@@ -181,9 +183,10 @@ __device__ __forceinline__ void apply_plane_rotation(const ValueType* const cs,
 
 template <typename ValueType>
 __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
-    ValueType* const cs_i, ValueType* const sn_i, ValueType* const H_i_i,
-    ValueType* const H_i_plus_1_i, ValueType* const s_i,
-    ValueType* const s_i_plus_1)
+    ValueType* const __restrict__ cs_i, ValueType* const __restrict__ sn_i,
+    ValueType* const __restrict__ H_i_i,
+    ValueType* const __restrict__ H_i_plus_1_i,
+    ValueType* const __restrict__ s_i, ValueType* const __restrict__ s_i_plus_1)
 {
     if (threadIdx.x == 0) {
         if (H_i_plus_1_i[0] == zero<ValueType>()) {
@@ -212,13 +215,14 @@ __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void update_x(const int num_rows, const int m,
-                                         const ValueType* const H_shared_entry,
-                                         const size_type h_stride,
-                                         const ValueType* const s_shared_entry,
-                                         const ValueType* const V_shared_entry,
-                                         ValueType* const x_shared_entry,
-                                         ValueType* const y_shared_entry)
+__device__ __forceinline__ void update_x(
+    const int num_rows, const int m,
+    const ValueType* const __restrict__ H_shared_entry,
+    const size_type h_stride,
+    const ValueType* const __restrict__ s_shared_entry,
+    const ValueType* const __restrict__ V_shared_entry,
+    ValueType* const __restrict__ x_shared_entry,
+    ValueType* const __restrict__ y_shared_entry)
 {
     // triangular solve
     if (threadIdx.x == 0) {
@@ -356,6 +360,204 @@ __global__ void apply_kernel(
         } else {
             H_sh = workspace + gmem_offset;
         }
+
+
+        // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
+        //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
+        // real_type *const norms_res_sh = norms_rhs_sh + nrhs;
+        // real_type *const norms_tmp_sh = norms_res_sh + nrhs;
+        __shared__ real_type norms_rhs_sh[1];
+        __shared__ real_type norms_res_sh[1];
+
+        const auto a_gl_entry = gko::batch::batch_entry(a, ibatch);
+        const ValueType* const b_entry_ptr =
+            gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
+        ValueType* const x_gl_entry_ptr =
+            gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
+
+        // Stride of Hessenberg matrix
+        const auto h_stride = static_cast<size_type>(restart);
+
+        prec_shared.generate(ibatch, a_gl_entry, prec_work_sh);
+
+        // initialization
+        // compute b norms
+        // r = b - A*x
+        // z = precond*r
+        // compute residual norms
+        // initialize V, H, cs, sn with zeroes
+        initialize(warp_grp, restart, a_gl_entry, b_entry_ptr, x_gl_entry_ptr,
+                   x_sh, r_sh, prec_shared, z_sh, V_sh, H_sh, cs_sh, sn_sh,
+                   norms_rhs_sh[0], norms_res_sh[0]);
+        __syncthreads();
+
+        // stopping criterion object
+        StopType stop(tol, norms_rhs_sh);
+
+        int total_iter = 0;
+
+        // Note: restart - inner iterations and the outer iteration:  are
+        // counted as (restart + 1) number of iterations instead of one.
+        while (1) {
+            if (stop.check_converged(norms_res_sh) || total_iter >= max_iter) {
+                break;
+            }
+
+            // KrylovBasis_0 = z/norm(z)
+            // s -> fill with zeroes
+            // s(0) = norm(z)
+            update_v_naught_and_s(warp_grp, nrows, restart, z_sh, V_sh, s_sh);
+            __syncthreads();
+
+            bool inner_loop_break_flag = false;
+
+            for (int inner_iter = 0; inner_iter < restart; inner_iter++) {
+                // w_temp = A * v_i
+                // w = precond * w_temp
+                // i = inner_iter
+                // for k = 0 to inner_iter
+                //     Hessenburg(k,i) =  w' * v_k
+                //     w = w - Hessenburg(k,i) * v_k
+                // end
+                // Hessenburg(i+1, i) = norm(w)
+                // KrylovBasis_i+1 = w / Hessenburg(i+1,i)
+                arnoldi(warp_grp, a_gl_entry, inner_iter, V_sh, H_sh, h_stride,
+                        w_sh, helper_sh, prec_shared);
+                __syncthreads();
+
+                for (int k = 0; k < inner_iter; k++) {
+                    // temp = cs(k) * Hessenberg( k, inner_iter )  +   sn(k) *
+                    // Hessenberg(k + 1, inner_iter)
+                    // Hessenberg(k + 1, inner_iter) = -1 * conj(sn(k)) *
+                    // Hessenberg( k , inner_iter) + conj(cs(k)) * Hessenberg(k
+                    // + 1 , inner_iter) Hessenberg(k,inner_iter) = temp
+                    apply_plane_rotation(
+                        &cs_sh[k], &sn_sh[k], &H_sh[k * h_stride + inner_iter],
+                        &H_sh[(k + 1) * h_stride + inner_iter]);
+                    __syncthreads();
+                }
+
+                // compute sine and cos
+                // temp = cs(inner_iter) * s(inner_iter)
+                // s(inner_iter + 1) = -1 * conj(sn(inner_iter)) * s(inner_iter)
+                // s(inner_iter) = temp
+                // Hessenberg(inner_iter , inner_iter) = cs(inner_iter) *
+                // Hessenberg(inner_iter , inner_iter) + sn(inner_iter) *
+                // Hessenberg(inner_iter + 1, inner_iter)
+                // Hessenberg(inner_iter + 1, inner_iter) = 0
+                generate_and_apply_plane_rot_fused(
+                    &cs_sh[inner_iter], &sn_sh[inner_iter],
+                    &H_sh[inner_iter * h_stride + inner_iter],
+                    &H_sh[(inner_iter + 1) * h_stride + inner_iter],
+                    &s_sh[inner_iter], &s_sh[(inner_iter + 1)]);
+                __syncthreads();
+
+                // estimate of residual norms
+                if (threadIdx.x == 0) {
+                    norms_res_sh[0] = abs(s_sh[(inner_iter + 1)]);
+                }
+                __syncthreads();
+
+                total_iter++;
+
+                if (stop.check_converged(norms_res_sh) ||
+                    total_iter >= max_iter) {
+                    update_x(nrows, inner_iter, H_sh, h_stride, s_sh, V_sh,
+                             x_sh, y_sh);
+                    inner_loop_break_flag = true;
+                    break;
+                }
+            }
+
+            if (inner_loop_break_flag == true) {
+                break;
+            }
+
+            // y = Hessenburg(0:restart - 1,0:restart - 1) \ s(0:restart-1)
+            // x = x + KrylovBasis(:,0 : restart - 1) * y
+            update_x(nrows, restart - 1, H_sh, h_stride, s_sh, V_sh, x_sh,
+                     y_sh);
+            __syncthreads();
+
+            // r = b
+            single_copy(nrows, b_entry_ptr, r_sh);
+            __syncthreads();
+            // r = r - A*x
+            single_advanced_matvec_kernel(static_cast<ValueType>(-1.0),
+                                          a_gl_entry, x_sh,
+                                          static_cast<ValueType>(1.0), r_sh);
+            __syncthreads();
+
+            if (threadIdx.x / config::warp_size == 0) {
+                single_compute_norm2(warp_grp, nrows, r_sh, norms_res_sh[0]);
+            }
+
+            prec_shared.apply(nrows, r_sh, z_sh);
+            __syncthreads();
+        }
+
+        // copy x back to global memory
+        single_copy(nrows, x_sh, x_gl_entry_ptr);
+
+        logger.log_iteration(ibatch, total_iter, norms_res_sh[0]);
+    }
+}
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+__global__ void small_apply_kernel(
+    const gko::kernels::batch_gmres::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, const int restart, LogType logger,
+    PrecType prec_shared, const BatchMatrixType a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    ValueType* const workspace = nullptr)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    const auto nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+
+    constexpr auto tile_size = config::warp_size;
+    auto thread_block = group::this_thread_block();
+    auto warp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+        extern __shared__ char local_mem_sh[];
+        ValueType* const prec_work_sh =
+            reinterpret_cast<ValueType*>(local_mem_sh);
+
+        ValueType* const r_sh =
+            prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        ValueType* const z_sh = r_sh + sconf.padded_vec_len;
+        ValueType* const w_sh = z_sh + sconf.padded_vec_len;
+        ValueType* const x_sh = w_sh + sconf.padded_vec_len;
+        ValueType* const helper_sh = x_sh + sconf.padded_vec_len;
+
+        ValueType* const cs_sh = helper_sh + sconf.padded_vec_len;
+        ValueType* const sn_sh = cs_sh + restart;
+        ValueType* const y_sh = sn_sh + restart;
+        ValueType* const s_sh = y_sh + restart;
+
+        // Krylov subspace basis vectors
+        // storage:row-major order , subspace basis vectors corr. to each rhs
+        // are stored in a single col. one after the other-(on paper). This
+        // allows for efficient memory access And to get vi : that is ith basis
+        // vector for each rhs: vi_entry{  &V[i* V_entry.stride * nrows],
+        // V_entry.stride , nrows, nrhs}; So if nrhs=1, effectively the cols.
+        // are stored contiguously in memory one after the other.
+        // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
+        //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
+        ValueType* const V_sh = s_sh + (restart + 1);
+
+        // Hessenberg matrix
+        // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
+        //     H_sh, static_cast<size_type>(nrhs * restart), restart + 1,
+        //     nrhs * restart};
+        // storage:row-major ,  entry (i,j) for different RHSs are placed after
+        // the other in a row - when drawn on paper, (and the same is true for
+        // actual storage as the storage order is row-major) to get entry (i,j)
+        // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
+        ValueType* const H_sh = V_sh + nrows * (restart + 1);
 
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(

@@ -3,7 +3,6 @@ option(GINKGO_RUN_EXAMPLES " Compile run and validation targets for the examples
 
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
-    batched-solver
     batched-solver-from-files
     cb-gmres
     custom-logger
@@ -22,6 +21,7 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
+    batched-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
