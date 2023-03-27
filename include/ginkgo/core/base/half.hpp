@@ -610,18 +610,28 @@ public:
     template <typename T>
     complex& operator*=(const complex<T>& val)
     {
-        auto tmp = real_;
-        real_ = real_ * val.real() - imag_ * val.imag();
-        imag_ = tmp * val.imag() + imag_ * val.real();
+        auto val_f = static_cast<std::complex<float>>(val);
+        auto result_f = static_cast<std::complex<float>>(*this);
+        result_f *= val_f;
+        real_ = result_f.real();
+        imag_ = result_f.imag();
+        // auto tmp = real_;
+        // real_ = real_ * val.real() - imag_ * val.imag();
+        // imag_ = tmp * val.imag() + imag_ * val.real();
         return *this;
     }
     template <typename T>
     complex& operator/=(const complex<T>& val)
     {
-        auto real = val.real();
-        auto imag = val.imag();
-        (*this) *= complex<T>{val.real(), -val.imag()};
-        (*this) /= (real * real + imag * imag);
+        // auto real = val.real();
+        // auto imag = val.imag();
+        // (*this) *= complex<T>{val.real(), -val.imag()};
+        // (*this) /= (real * real + imag * imag);
+        auto val_f = static_cast<std::complex<float>>(val);
+        auto result_f = static_cast<std::complex<float>>(*this);
+        result_f /= val_f;
+        real_ = result_f.real();
+        imag_ = result_f.imag();
         return *this;
     }
 

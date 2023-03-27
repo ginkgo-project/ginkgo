@@ -567,6 +567,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
@@ -584,6 +585,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
@@ -601,6 +603,7 @@ TYPED_TEST(Gmres, SolveWithImplicitResNormCritIsDisabled)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
@@ -615,6 +618,7 @@ TYPED_TEST(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -706,6 +710,7 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto gmres_factory_preconditioner =
         Solver::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
@@ -732,6 +737,7 @@ TYPED_TEST(Gmres, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big->transpose());
     auto b = gko::initialize<Mtx>(
         {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
@@ -749,6 +755,7 @@ TYPED_TEST(Gmres, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver =
         this->gmres_factory_big->generate(this->mtx_big->conj_transpose());
     auto b = gko::initialize<Mtx>(
