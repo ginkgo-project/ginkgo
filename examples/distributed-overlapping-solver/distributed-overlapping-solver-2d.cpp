@@ -92,7 +92,6 @@ int main(int argc, char* argv[])
         num_elements_y + overlap * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
-    const auto dx = 1.0 / static_cast<double>(num_elements_y);
 
     // Pick the requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -216,8 +215,8 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(exec),
                 gko::stop::ResidualNorm<>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
+                    .with_baseline(gko::stop::mode::rhs_norm)
+                    .with_reduction_factor(1e-10)
                     .on(exec))
             .with_preconditioner(gko::preconditioner::Jacobi<>::build()
                                      .with_max_block_size(1u)
@@ -230,11 +229,7 @@ int main(int argc, char* argv[])
         gko::solver::Ir<ValueType>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(1e-4)
-                    .on(exec))
+                    exec))
             .with_generated_solver(pre)
             .on(exec)
             ->generate(ovlp_A);
