@@ -73,7 +73,7 @@ protected:
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(0, 10.0),
+            std::normal_distribution<>(0, 10.0),
             rand_engine, ref);
         dmtx_ani = Csr::create(exec);
         dmtx_l_ani = Csr::create(exec);

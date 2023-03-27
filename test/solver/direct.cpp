@@ -82,9 +82,7 @@ protected:
         return gko::test::generate_random_matrix<vector_type>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(const char* mtx_filename, int nrhs)

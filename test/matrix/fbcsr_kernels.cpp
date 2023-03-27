@@ -69,7 +69,7 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted;
 
-    std::normal_distribution<gko::remove_complex<T>> distb;
+    std::normal_distribution<> distb;
     std::default_random_engine engine;
 
     value_type get_random_value()
@@ -83,7 +83,10 @@ protected:
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
             xarr[i] =
                 static_cast<real_type>(2.0) *
-                std::sin(static_cast<real_type>(i / 2.0) + get_random_value());
+                static_cast<value_type>(
+                    std::sin(static_cast<
+                             typename gko::detail::arth_type<value_type>::type>(
+                        static_cast<real_type>(i / 2.0) + get_random_value())));
         }
     }
 };

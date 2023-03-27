@@ -53,7 +53,7 @@ protected:
     ArrayGenerator() : exec(gko::ReferenceExecutor::create())
     {
         array = gko::test::generate_random_array<T>(
-            500, std::normal_distribution<gko::remove_complex<T>>(20.0, 5.0),
+            500, std::normal_distribution<>(20.0, 5.0),
             std::default_random_engine(42), exec);
     }
 

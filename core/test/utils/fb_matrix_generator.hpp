@@ -161,16 +161,15 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     const IndexType* const row_ptrs = fmtx->get_const_row_ptrs();
     const IndexType* const col_idxs = fmtx->get_const_col_idxs();
     ValueType* const vals = fmtx->get_values();
-    std::uniform_real_distribution<gko::remove_complex<ValueType>>
-        off_diag_dist(-1.0, 1.0);
+    std::uniform_real_distribution<> off_diag_dist(-1.0, 1.0);
 
     for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
         if (row_diag_dominant) {
             const IndexType nrownz =
                 (row_ptrs[ibrow + 1] - row_ptrs[ibrow]) * block_size;
 
-            std::uniform_real_distribution<gko::remove_complex<ValueType>>
-                diag_dist(1.01 * nrownz, 2 * nrownz);
+            std::uniform_real_distribution<> diag_dist(1.01 * nrownz,
+                                                       2 * nrownz);
 
             for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
                  ibz++) {
@@ -235,13 +234,11 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
                   matrix::Csr<ValueType, IndexType>>(
                   nbrows, nbcols,
                   std::uniform_int_distribution<IndexType>(0, nbcols - 1),
-                  std::normal_distribution<real_type>(0.0, 1.0),
-                  std::move(engine), ref)
+                  std::normal_distribution<>(0.0, 1.0), std::move(engine), ref)
             : generate_random_matrix<matrix::Csr<ValueType, IndexType>>(
                   nbrows, nbcols,
                   std::uniform_int_distribution<IndexType>(0, nbcols - 1),
-                  std::normal_distribution<real_type>(0.0, 1.0),
-                  std::move(engine), ref);
+                  std::normal_distribution<>(0.0, 1.0), std::move(engine), ref);
     if (unsort && rand_csr_ref->is_sorted_by_column_index()) {
         unsort_matrix(rand_csr_ref, engine);
     }

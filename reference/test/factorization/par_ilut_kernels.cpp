@@ -86,6 +86,7 @@ protected:
     using ComplexCsr =
         gko::matrix::Csr<std::complex<gko::remove_complex<value_type>>,
                          index_type>;
+    using complex_value_type = std::complex<gko::remove_complex<value_type>>;
 
     ParIlut()
         : ref(gko::ReferenceExecutor::create()),
@@ -107,16 +108,24 @@ protected:
                                                   {0., -3., 0., 1.}},
                                                  ref)),
           mtx1_complex(gko::initialize<ComplexCsr>(
-              {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
-               {{-1., .1}, {.1, -1.}, {0., 0.}, {0., 0.}},
-               {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
-               {{1., -2.}, {-3., -.1}, {-1., .1}, {.1, 2.}}},
+              {{complex_value_type{.1, 0.}, complex_value_type{0., 0.},
+                complex_value_type{0., 0.}, complex_value_type{0., 0.}},
+               {complex_value_type{-1., .1}, complex_value_type{.1, -1.},
+                complex_value_type{0., 0.}, complex_value_type{0., 0.}},
+               {complex_value_type{-1., 1.}, complex_value_type{-2., .2},
+                complex_value_type{-1., -.3}, complex_value_type{0., 0.}},
+               {complex_value_type{1., -2.}, complex_value_type{-3., -.1},
+                complex_value_type{-1., .1}, complex_value_type{.1, 2.}}},
               ref)),
           mtx1_expect_complex_thrm(gko::initialize<ComplexCsr>(
-              {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
-               {{0., 0.}, {.1, -1.}, {0., 0.}, {0., 0.}},
-               {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
-               {{1., -2.}, {-3., -.1}, {0., 0.}, {.1, 2.}}},
+              {{complex_value_type{.1, 0.}, complex_value_type{0., 0.},
+                complex_value_type{0., 0.}, complex_value_type{0., 0.}},
+               {complex_value_type{0., 0.}, complex_value_type{.1, -1.},
+                complex_value_type{0., 0.}, complex_value_type{0., 0.}},
+               {complex_value_type{-1., 1.}, complex_value_type{-2., .2},
+                complex_value_type{-1., -.3}, complex_value_type{0., 0.}},
+               {complex_value_type{1., -2.}, complex_value_type{-3., -.1},
+                complex_value_type{0., 0.}, complex_value_type{.1, 2.}}},
               ref)),
           identity(gko::initialize<Csr>(
               {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}}, ref)),

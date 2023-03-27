@@ -67,7 +67,7 @@ protected:
             0, host_data.size[0] - 1);
         std::uniform_int_distribution<index_type> col_distr(
             0, host_data.size[1] - 1);
-        std::uniform_real_distribution<gko::remove_complex<value_type>>
+        std::uniform_real_distribution<>
             val_distr(1.0, 2.0);
         // add random entries
         for (int i = 0; i < 1000; i++) {
