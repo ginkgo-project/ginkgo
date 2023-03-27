@@ -40,7 +40,7 @@ namespace thrust {
 template <>
 GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 {
-    return hypot(z.real(), z.imag());
+    return abs(static_cast<complex<float>>(z));
 }
 
 
@@ -51,7 +51,7 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
     GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
         const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
     {                                                                         \
-        return thrust::complex<float>{lhs} + thrust::complex<float>(rhs);     \
+        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
     }
 
 THRUST_HALF_FRIEND_OPERATOR(+, +=)
