@@ -69,11 +69,10 @@ int main(int argc, char* argv[])
     }
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
-            std::cerr
-                << "Usage: " << argv[0]
-                << " [executor] [num_grid_points_per_domain] [num_overlap] "
-                   "[num_iterations] "
-                << std::endl;
+            std::cerr << "Usage: " << argv[0]
+                      << " [executor] [num_grid_points_per_domain]"
+                         " [num_iterations] "
+                      << std::endl;
         }
         std::exit(-1);
     }
@@ -86,10 +85,8 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto overlap =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1);
-    const auto num_elements_y =
+    const auto num_elements =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
-    const auto num_elements_x =
-        num_elements_y + overlap * (2 - num_boundary_intersections);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
 
@@ -143,8 +140,7 @@ int main(int argc, char* argv[])
     // specialized constructor. See @ref
     // gko::experimental::distributed::Partition for other modes of creating a
     // partition.
-    const auto num_vertices_y = num_elements_y + 1;
-    const auto num_vertices_x = num_elements_x + 1;
+    const auto num_vertices = num_elements + 1;
 
     // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
     // with a sine value. The distributed matrix supports only constructing an
@@ -152,10 +148,10 @@ int main(int argc, char* argv[])
     // gko::experimental::distributed::Matrix::read_distributed. Only the data
     // that belongs to the rows by this rank will be assembled.
     auto A_data = assemble<ValueType, LocalIndexType>(
-        num_elements_y, num_elements_x, num_vertices_y, num_vertices_x, true,
-        true);
+        num_elements, num_elements, num_vertices, num_vertices, rank == 0,
+        rank == comm.size() - 1);
     auto b_data = assemble_rhs<ValueType, LocalIndexType>(
-        num_vertices_y, num_vertices_x, rank == 0, rank == comm.size() - 1);
+        num_vertices, num_vertices, rank == 0, rank == comm.size() - 1);
 
     // Take timings.
     comm.synchronize();
@@ -185,18 +181,18 @@ int main(int argc, char* argv[])
 
     auto one = gko::initialize<vec>({1}, exec);
     auto exact_solution = dist_vec ::create(
-        exec, comm, vec::create(exec, gko::dim<2>{num_vertices_y, 1}).get());
+        exec, comm, vec::create(exec, gko::dim<2>{num_vertices, 1}).get());
     exact_solution->fill(1.0);
 
     auto tmp_shared_idxs =
-        setup_shared_idxs(comm, num_elements_y, num_elements_x, overlap);
+        setup_non_ovlp_shared_idxs(comm, num_elements, num_elements);
     gko::array<shared_idx_t> shared_idxs{exec, tmp_shared_idxs.begin(),
                                          tmp_shared_idxs.end()};
 
     gko::comm_info_t comm_info{comm, shared_idxs};
 
     auto ovlp_A = std::make_shared<gko::overlapping_operator>(
-        exec, comm, A, comm_info, gko::overlapping_vec::operation::copy);
+        exec, comm, A, comm_info, gko::overlapping_vec::operation::add);
 
     auto ovlp_x = std::make_shared<gko::overlapping_vec>(
         exec, comm, std::move(x), comm_info);
@@ -210,28 +206,14 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
-    auto pre = std::make_shared<gko::overlapping_operator>(
-        exec, comm,
-        solver ::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_baseline(gko::stop::mode::rhs_norm)
-                    .with_reduction_factor(1e-10)
-                    .on(exec))
-            .with_preconditioner(gko::preconditioner::Jacobi<>::build()
-                                     .with_max_block_size(1u)
-                                     .on(exec))
-            .on(exec)
-            ->generate(ovlp_A->local_op),
-        comm_info, gko::overlapping_vec::operation::copy);
-
     auto Ainv =
-        gko::solver::Ir<ValueType>::build()
+        gko::solver::Cg<ValueType>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec))
-            .with_generated_solver(pre)
+                    exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(1e-5)
+                    .on(exec))
             .on(exec)
             ->generate(ovlp_A);
     auto logger = gko::share(gko::log::Convergence<ValueType>::create());

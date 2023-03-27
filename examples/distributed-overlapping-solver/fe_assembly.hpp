@@ -49,7 +49,9 @@ template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> assemble(gko::size_type num_elements_y,
                                                 gko::size_type num_elements_x,
                                                 gko::size_type num_vertices_y,
-                                                gko::size_type num_vertices_x)
+                                                gko::size_type num_vertices_x,
+                                                bool left_dirichlet_brdy,
+                                                bool right_dirichlet_bdry)
 {
     auto utr_map = create_utr_map<IndexType>(num_vertices_y, num_vertices_x);
     auto ltr_map = create_ltr_map<IndexType>(num_vertices_y, num_vertices_x);
@@ -102,10 +104,10 @@ gko::matrix_data<ValueType, IndexType> assemble(gko::size_type num_elements_y,
     for (int iy = 0; iy < num_elements_y; iy++) {
         for (int ix = 0; ix < num_elements_x; ix++) {
             // handle boundary
-            if (ix == 0) {
+            if (ix == 0 && left_dirichlet_brdy) {
                 process_boundary({0, 2}, utr_map(iy, ix), data);
             }
-            if (ix == num_elements_x - 1) {
+            if (ix == num_elements_x - 1 && right_dirichlet_bdry) {
                 process_boundary({0, 1}, ltr_map(iy, ix), data);
             }
             if (iy == 0) {
@@ -250,5 +252,80 @@ std::vector<shared_idx_t> setup_shared_idxs(
     }
     return shared_idxs;
 }
+
+
+std::vector<shared_idx_t> setup_non_ovlp_shared_idxs(
+    const gko::experimental::mpi::communicator& comm,
+    gko::size_type num_elements_y, gko::size_type num_elements_x)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    auto this_rank = comm.rank();
+    auto share_left_bdry = this_rank > 0;
+    auto share_right_bdry = this_rank < comm.size() - 1;
+
+    gko::experimental::mpi::request req_l;
+    gko::experimental::mpi::request req_r;
+    gko::size_type left_neighbor_nex;
+    gko::size_type right_neighbor_nex;
+    if (share_left_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank - 1, this_rank - 1);
+        req_l =
+            comm.i_recv(exec, &left_neighbor_nex, 1, this_rank - 1, this_rank);
+    }
+    if (share_right_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank + 1, this_rank + 1);
+        req_r =
+            comm.i_recv(exec, &right_neighbor_nex, 1, this_rank + 1, this_rank);
+    }
+    req_l.wait();
+    req_r.wait();
+
+    gko::size_type num_inner_idxs = num_elements_y - 1;
+    std::vector<shared_idx_t> shared_idxs;
+    auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
+    auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
+    // TODO: should remove physical boundary idxs
+    auto fixed_x_map = [&](const auto x, auto&& map) {
+        return [=](const auto y) { return map(y, x); };
+    };
+    auto setup_idxs = [num_elements_y, this_rank](
+                          auto&& partial_map_local, auto&& partial_map_remote,
+                          int remote_rank,
+                          const std::vector<int> element_local_bdry_idx,
+                          const std::vector<int> element_neighbor_bdry_idx,
+                          std::vector<shared_idx_t>& idxs) {
+        for (int iy = 1; iy < num_elements_y - 1; ++iy) {
+            auto local_map = partial_map_local(iy);
+            auto remote_map = partial_map_remote(iy);
+            idxs.push_back({local_map(element_local_bdry_idx[0]),
+                            remote_map(element_neighbor_bdry_idx[0]),
+                            remote_rank, this_rank});
+            if (iy == num_elements_y - 2) {
+                idxs.push_back({local_map(element_local_bdry_idx[1]),
+                                remote_map(element_neighbor_bdry_idx[1]),
+                                remote_rank, this_rank});
+            }
+        }
+    };
+
+    if (share_left_bdry) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements_y + 1, left_neighbor_nex + 1);
+        setup_idxs(fixed_x_map(0, utr_map),
+                   fixed_x_map(left_neighbor_nex - 1, neighbor_ltr_map),
+                   this_rank - 1, {2, 0}, {0, 1}, shared_idxs);
+    }
+    if (share_right_bdry) {
+        auto neighbor_utr_map =
+            create_utr_map<int>(num_elements_y + 1, right_neighbor_nex + 1);
+
+        setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map),
+                   fixed_x_map(0, neighbor_utr_map), this_rank + 1, {0, 1},
+                   {2, 0}, shared_idxs);
+    }
+    return shared_idxs;
+}
+
 
 #endif  // GINKGO_EXAMPLES_DISTRIBUTED_OVERLAPPING_SOLVER_FE_ASSEMBLY_HPP

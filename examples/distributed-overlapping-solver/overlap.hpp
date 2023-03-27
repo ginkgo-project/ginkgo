@@ -28,12 +28,16 @@ struct comm_info_t {
           recv_sizes(comm.size()),
           recv_offsets(comm.size() + 1),
           recv_idxs(shared_idxs.get_executor(), shared_idxs.get_num_elems()),
-          send_idxs(shared_idxs.get_executor())
+          send_idxs(shared_idxs.get_executor()),
+          multiplicity{gko::array<LocalIndexType>{shared_idxs.get_executor()},
+                       gko::array<ValueType>{shared_idxs.get_executor()}}
     {
         auto exec = shared_idxs.get_executor()->get_master();
         std::vector<int> remote_idxs(shared_idxs.get_num_elems());
         std::vector<int> non_owned_idxs_temp;
         std::vector<int> recv_ranks(shared_idxs.get_num_elems());
+
+        std::map<LocalIndexType, ValueType> weight_map;
 
         // this is basically AOS->SOA but with just counting the remote ranks
         for (int i = 0; i < shared_idxs.get_num_elems(); ++i) {
@@ -47,6 +51,24 @@ struct comm_info_t {
 
             if (shared_idx.owning_rank != comm.rank()) {
                 non_owned_idxs_temp.push_back(shared_idx.local_idx);
+            } else {
+                auto it = weight_map.find(shared_idx.local_idx);
+                if (it == weight_map.end()) {
+                    weight_map[shared_idx.local_idx] = 1.0;
+                }
+                weight_map[shared_idx.local_idx] += 1.0;
+            }
+        }
+        multiplicity.idxs.resize_and_reset(weight_map.size());
+        multiplicity.weights.resize_and_reset(weight_map.size());
+        {
+            int i = 0;
+            for (const auto& elem : weight_map) {
+                const auto& idx = elem.first;
+                const auto& weight = elem.second;
+                multiplicity.idxs.get_data()[i] = idx;
+                multiplicity.weights.get_data()[i] = 1.0 / weight;
+                ++i;
             }
         }
         // sort by rank
@@ -76,6 +98,20 @@ struct comm_info_t {
                                                     non_owned_idxs_temp.end()};
     }
 
+    ValueType get_weight(LocalIndexType idx) const
+    {
+        auto it = std::lower_bound(multiplicity.idxs.get_const_data(),
+                                   multiplicity.idxs.get_const_data() +
+                                       multiplicity.idxs.get_num_elems(),
+                                   idx);
+        if (*it != idx) {
+            return one<ValueType>();
+        } else {
+            return multiplicity.weights.get_const_data()[std::distance(
+                multiplicity.idxs.get_const_data(), it)];
+        }
+    }
+
     // default variable all-to-all data
     std::vector<int> send_sizes;
     std::vector<int> send_offsets;
@@ -91,6 +127,12 @@ struct comm_info_t {
     // Keep track of which shared DOFs are not owned by this rank,
     // i.e. recv_idxs/send_idxs
     gko::array<LocalIndexType> non_owned_idxs;
+    // maybe also store multiplicity of each index?
+    struct multiplicity_t {
+        gko::array<LocalIndexType> idxs;
+        gko::array<ValueType> weights;
+    };
+    multiplicity_t multiplicity;
 };
 
 
@@ -101,12 +143,16 @@ struct comm_info_t {
  * is handled purely locally, also wrt to commmunication (ie only local indices
  * are used in the communication).
  */
-struct overlapping_vec : public vec {
+struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
+    overlapping_vec(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<overlapping_vec, vec>(exec), comm(MPI_COMM_NULL)
+    {}
+
     overlapping_vec(std::shared_ptr<const Executor> exec,
-                    experimental::mpi::communicator comm = {MPI_COMM_NULL},
-                    std::unique_ptr<vec> local_vec = nullptr,
-                    comm_info_t comm_info = {})
-        : vec(local_vec->get_executor(), local_vec->get_size()),
+                    experimental::mpi::communicator comm,
+                    std::unique_ptr<vec> local_vec, comm_info_t comm_info)
+        : EnableLinOp<overlapping_vec, vec>(local_vec->get_executor(),
+                                            local_vec->get_size()),
           local_flag(local_vec->get_executor(), local_vec->get_size()[0]),
           num_ovlp(comm_info.non_owned_idxs.get_num_elems()),
           comm(comm),
@@ -119,6 +165,14 @@ struct overlapping_vec : public vec {
                 false;
         }
     }
+
+    std::unique_ptr<Dense> create_with_same_config() const override
+    {
+        return std::make_unique<overlapping_vec>(
+            this->get_executor(), this->comm, vec::create_with_same_config(),
+            comm_info);
+    }
+
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -187,6 +241,40 @@ struct overlapping_vec : public vec {
                         recv_buffer->at(i);
                 }
             }
+        } else if (op == operation::average) {
+            if (comm_info.send_offsets.back() > 0) {
+                // can't handle row gather with empty idxs??
+                this->row_gather(&comm_info.send_idxs, send_buffer.get());
+                comm.all_to_all_v(
+                    exec, send_buffer->get_values(),
+                    comm_info.send_sizes.data(), comm_info.send_offsets.data(),
+                    recv_buffer->get_values(), comm_info.recv_sizes.data(),
+                    comm_info.recv_offsets.data());
+                // inverse row_gather
+                // unnecessary if shared_idxs would be stored separately
+                for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
+                    this->at(comm_info.recv_idxs.get_data()[i]) =
+                        (this->at(comm_info.recv_idxs.get_data()[i]) +
+                         recv_buffer->at(i)) /
+                        2;
+                }
+            }
+        } else if (op == operation::add) {
+            if (comm_info.send_offsets.back() > 0) {
+                // can't handle row gather with empty idxs??
+                this->row_gather(&comm_info.send_idxs, send_buffer.get());
+                comm.all_to_all_v(
+                    exec, send_buffer->get_values(),
+                    comm_info.send_sizes.data(), comm_info.send_offsets.data(),
+                    recv_buffer->get_values(), comm_info.recv_sizes.data(),
+                    comm_info.recv_offsets.data());
+                // inverse row_gather
+                // unnecessary if shared_idxs would be stored separately
+                for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
+                    this->at(comm_info.recv_idxs.get_data()[i]) +=
+                        recv_buffer->at(i);
+                }
+            }
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -208,7 +296,7 @@ struct overlapping_vec : public vec {
         int i = 0;
         for (int j = 0; j < this->get_size()[0]; ++j) {
             if (local_flag.get_const_data()[j]) {
-                no_ovlp_local->at(i) = this->at(j);
+                no_ovlp_local->at(i) = this->at(j) / comm_info.get_weight(j);
                 i++;
             }
         }
@@ -255,12 +343,14 @@ struct overlapping_operator
     overlapping_operator(std::shared_ptr<const Executor> exec,
                          experimental::mpi::communicator comm,
                          std::shared_ptr<LinOp> local_op = nullptr,
-                         comm_info_t comm_info = {})
+                         comm_info_t comm_info = {},
+                         overlapping_vec::operation shared_mode = {})
         : experimental::distributed::DistributedBase(comm),
           experimental::EnableDistributedLinOp<overlapping_operator>{
               exec, local_op->get_size()},
           local_op(local_op),
-          comm_info(comm_info)
+          comm_info(comm_info),
+          shared_mode(shared_mode)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override
@@ -269,7 +359,7 @@ struct overlapping_operator
         // exchange data
         overlapping_vec(x->get_executor(), this->get_communicator(),
                         make_dense_view(as<vec>(x)), comm_info)
-            .make_consistent(overlapping_vec::operation::copy);
+            .make_consistent(shared_mode);
     }
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
@@ -284,6 +374,7 @@ struct overlapping_operator
 
     std::shared_ptr<LinOp> local_op;
     comm_info_t comm_info;
+    overlapping_vec::operation shared_mode;
 };
 
 
