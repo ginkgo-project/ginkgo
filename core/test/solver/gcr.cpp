@@ -60,8 +60,7 @@ protected:
     using Solver = gko::solver::Gcr<value_type>;
     using Big_solver = gko::solver::Gcr<double>;
 
-    static constexpr gko::remove_complex<T> reduction_factor =
-        gko::remove_complex<T>(1e-6);
+    static const gko::remove_complex<T> reduction_factor;
 
     Gcr()
         : exec(gko::ReferenceExecutor::create()),
@@ -108,7 +107,8 @@ protected:
 };
 
 template <typename T>
-constexpr gko::remove_complex<T> Gcr<T>::reduction_factor;
+const gko::remove_complex<T> Gcr<T>::reduction_factor =
+    gko::remove_complex<T>(1e-6);
 
 TYPED_TEST_SUITE(Gcr, gko::test::ValueTypes, TypenameNameGenerator);
 

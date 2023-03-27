@@ -339,7 +339,7 @@ struct next_precision_impl {};
 
 template <>
 struct next_precision_impl<gko::half> {
-    using type = gko::half;
+    using type = float;
 };
 
 template <>
@@ -363,6 +363,15 @@ struct next_precision_impl<std::complex<T>> {
 
 template <typename T>
 using next_precision = typename detail::next_precision_impl<T>::type;
+
+
+#define SKIP_IF_HALF(type)                                                   \
+    if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
+        GTEST_SKIP() << "Skip due to single mode";                           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

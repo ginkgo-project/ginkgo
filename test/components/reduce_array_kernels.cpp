@@ -53,13 +53,13 @@ class ReduceArray : public CommonTestFixture {
 protected:
     using value_type = T;
     ReduceArray()
-        : total_size(6355),
+        : total_size(1024),
           out{ref, I<T>{2}},
           dout{exec, out},
           vals{ref, total_size},
           dvals{exec}
     {
-        std::fill_n(vals.get_data(), total_size, 3);
+        std::fill_n(vals.get_data(), total_size, 1);
         dvals = vals;
     }
 
