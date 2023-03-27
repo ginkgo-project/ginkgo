@@ -189,8 +189,7 @@ int main(int argc, char* argv[])
     exact_solution->fill(1.0);
 
     auto tmp_shared_idxs =
-        setup_shared_idxs(num_elements_y, num_elements_x, overlap, rank > 0,
-                          rank < comm.size() - 1, rank);
+        setup_shared_idxs(comm, num_elements_y, num_elements_x, overlap);
     gko::array<shared_idx_t> shared_idxs{exec, tmp_shared_idxs.begin(),
                                          tmp_shared_idxs.end()};
 

@@ -163,15 +163,36 @@ gko::matrix_data<ValueType, IndexType> assemble_rhs(
 }
 
 
-std::vector<shared_idx_t> setup_shared_idxs(gko::size_type num_elements_y,
-                                            gko::size_type num_elements_x,
-                                            int overlap_size,
-                                            bool share_left_bdry,
-                                            bool share_right_bdry,
-                                            int this_rank)
+std::vector<shared_idx_t> setup_shared_idxs(
+    const gko::experimental::mpi::communicator& comm,
+    gko::size_type num_elements_y, gko::size_type num_elements_x,
+    int overlap_size)
 {
+    auto exec = gko::ReferenceExecutor::create();
+
+    auto this_rank = comm.rank();
+    auto share_left_bdry = this_rank > 0;
+    auto share_right_bdry = this_rank < comm.size() - 1;
+
+    gko::experimental::mpi::request req_l;
+    gko::experimental::mpi::request req_r;
+    gko::size_type left_neighbor_nex;
+    gko::size_type right_neighbor_nex;
+    if (share_left_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank - 1, this_rank - 1);
+        req_l =
+            comm.i_recv(exec, &left_neighbor_nex, 1, this_rank - 1, this_rank);
+    }
+    if (share_right_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank + 1, this_rank + 1);
+        req_r =
+            comm.i_recv(exec, &right_neighbor_nex, 1, this_rank + 1, this_rank);
+    }
+    req_l.wait();
+    req_r.wait();
+
     std::vector<shared_idx_t> shared_idxs(
-        share_right_bdry * (num_elements_y + 1) +
+        share_right_bdry * 1 * (num_elements_y + 1) +
         share_left_bdry * (num_elements_y + 1));
     auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
     auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
@@ -197,17 +218,23 @@ std::vector<shared_idx_t> setup_shared_idxs(gko::size_type num_elements_y,
                             remote_rank};
         }
     };
+
     if (share_left_bdry) {
-        setup_idxs(fixed_x_map(0, utr_map),
-                   fixed_x_map(num_elements_x - 1 - overlap_size, utr_map),
-                   this_rank - 1, {2, 0}, shared_idxs.data());
+        auto neighbor_utr_map =
+            create_utr_map<int>(num_elements_y + 1, left_neighbor_nex + 1);
+        setup_idxs(
+            fixed_x_map(0, utr_map),
+            fixed_x_map(left_neighbor_nex - 2 * overlap_size, neighbor_utr_map),
+            this_rank - 1, {2, 0}, shared_idxs.data());
     }
     if (share_right_bdry) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements_y + 1, right_neighbor_nex + 1);
         auto offset = share_left_bdry * (num_elements_y + 1);
 
         setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map),
-                   fixed_x_map(overlap_size, ltr_map), this_rank + 1, {0, 1},
-                   shared_idxs.data() + offset);
+                   fixed_x_map(2 * overlap_size - 1, neighbor_ltr_map),
+                   this_rank + 1, {0, 1}, shared_idxs.data() + offset);
     }
     return shared_idxs;
 }
