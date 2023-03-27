@@ -32,8 +32,8 @@ protected:
     using Solver = gko::solver::Gmres<value_type>;
     using Big_solver = gko::solver::Gmres<double>;
 
-    static constexpr gko::remove_complex<T> reduction_factor =
-        gko::remove_complex<T>(1e-6);
+    // half does not have constexpr constructor
+    static const gko::remove_complex<T> reduction_factor;
 
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
@@ -66,7 +66,8 @@ protected:
 };
 
 template <typename T>
-constexpr gko::remove_complex<T> Gmres<T>::reduction_factor;
+const gko::remove_complex<T> Gmres<T>::reduction_factor =
+    gko::remove_complex<T>(1e-6);
 
 TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes, TypenameNameGenerator);
 
