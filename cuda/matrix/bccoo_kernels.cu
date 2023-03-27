@@ -58,9 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 
 
-using namespace gko::matrix::bccoo;
-
-
 namespace gko {
 namespace kernels {
 /**
@@ -75,6 +72,9 @@ namespace cuda {
  * @ingroup bccoo
  */
 namespace bccoo {
+
+
+using namespace matrix::bccoo;
 
 
 constexpr int default_block_size = 512;
@@ -149,7 +149,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(a->get_const_chunk()),
                 as_cuda_type(a->get_const_offsets()),
@@ -189,7 +189,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_chunk()),
@@ -283,9 +283,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type length)
+inline void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
+                                     const IndexType* idxs,
+                                     size_type num_nonzeros, IndexType* ptrs,
+                                     size_type length)
 {
     const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
 
@@ -411,7 +412,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_extract<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(orig->get_const_chunk()),
                 as_cuda_type(orig->get_const_offsets()),
@@ -447,8 +448,8 @@ void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_absolute_inplace<cuda_type<ValueType>,
-                                      cuda_type<IndexType>>
+            kernel::abstract_absolute_inplace<cuda_type<ValueType>,
+                                              cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_cuda_type(matrix->get_chunk()),
@@ -486,7 +487,8 @@ void compute_absolute(
             const dim3 bccoo_grid(num_blocks_grid, 1);
             auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_absolute<cuda_type<ValueType>, cuda_type<IndexType>>
+            kernel::abstract_absolute<cuda_type<ValueType>,
+                                      cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_cuda_type(source->get_const_chunk()),

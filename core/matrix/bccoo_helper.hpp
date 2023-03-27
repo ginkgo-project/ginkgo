@@ -487,7 +487,7 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
                 set_value_chunk<uint16>(chunk_data, idxs.shf, row_dif);
                 idxs.shf += sizeof(uint16);
             }
-            type_blk |= cst_rows_16bits;
+            type_blk |= type_mask_rows_16bits;
         } else {
             for (size_type j = 0; j < idxs.nblk; j++) {
                 uint8 row_dif = rows_blk.get_data()[j] - blk_idxs.row_frs;
@@ -495,7 +495,7 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
                 idxs.shf++;
             }
         }
-        type_blk |= cst_rows_multiple;
+        type_blk |= type_mask_rows_multiple;
     }
     if (blk_idxs.col_dif <= 0xFF) {
         for (size_type j = 0; j < idxs.nblk; j++) {
@@ -503,14 +503,14 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
             set_value_chunk<uint8>(chunk_data, idxs.shf, col_dif);
             idxs.shf++;
         }
-        type_blk |= cst_cols_8bits;
+        type_blk |= type_mask_cols_8bits;
     } else if (blk_idxs.col_dif <= 0xFFFF) {
         for (size_type j = 0; j < idxs.nblk; j++) {
             uint16 col_dif = cols_blk.get_data()[j] - blk_idxs.col_frs;
             set_value_chunk<uint16>(chunk_data, idxs.shf, col_dif);
             idxs.shf += sizeof(uint16);
         }
-        type_blk |= cst_cols_16bits;
+        type_blk |= type_mask_cols_16bits;
     } else {
         for (size_type j = 0; j < idxs.nblk; j++) {
             uint32 col_dif = cols_blk.get_data()[j] - blk_idxs.col_frs;
@@ -527,7 +527,7 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
     return type_blk;
 }
 
-
+// #define NO_COMPACT
 template <typename ValueType_src, typename ValueType_res, typename Callable>
 inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
                             const size_type block_size_local_src,
@@ -544,21 +544,43 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
                 reinterpret_cast<const uint16*>(chunk_data_src + idxs_src.shf);
             uint16* rows_blk_res =
                 reinterpret_cast<uint16*>(chunk_data_res + idxs_res.shf);
+#ifdef NO_COMPACT
             for (size_type j = 0; j < block_size_local_src; j++) {
-                rows_blk_res[j] = rows_blk_src[j];
+                //                rows_blk_res[j] = rows_blk_src[j];
+                uint16 value =
+                    get_value_chunk<uint16>(chunk_data_src, idxs_src.shf);
+                set_value_chunk<uint16>(chunk_data_res, idxs_res.shf, value);
+                idxs_src.shf += sizeof(uint16);
+                idxs_res.shf += sizeof(uint16);
             }
+#else
+            get_set_value_chunk<uint16>(chunk_data_res, idxs_res.shf,
+                                        chunk_data_src, idxs_src.shf,
+                                        block_size_local_src);
             idxs_src.shf += block_size_local_src * sizeof(uint16);
             idxs_res.shf += block_size_local_res * sizeof(uint16);
+#endif
         } else {
             const uint8* rows_blk_src =
                 reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
             uint8* rows_blk_res =
                 reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+#ifdef NO_COMPACT
             for (size_type j = 0; j < block_size_local_src; j++) {
-                rows_blk_res[j] = rows_blk_src[j];
+                //                rows_blk_res[j] = rows_blk_src[j];
+                uint8 value =
+                    get_value_chunk<uint8>(chunk_data_src, idxs_src.shf);
+                set_value_chunk<uint8>(chunk_data_res, idxs_res.shf, value);
+                idxs_src.shf++;
+                idxs_res.shf++;
             }
+#else
+            get_set_value_chunk<uint8>(chunk_data_res, idxs_res.shf,
+                                       chunk_data_src, idxs_src.shf,
+                                       block_size_local_src);
             idxs_src.shf += block_size_local_src;
             idxs_res.shf += block_size_local_res;
+#endif
         }
     }
     if (blk_idxs_src.col_8bits) {
@@ -566,23 +588,44 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
             reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
         uint8* cols_blk_res =
             reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+#ifdef NO_COMPACT
         for (size_type j = 0; j < block_size_local_src; j++) {
-            cols_blk_res[j] = cols_blk_src[j];
+            //            cols_blk_res[j] = cols_blk_src[j];
+            uint8 value = get_value_chunk<uint8>(chunk_data_src, idxs_src.shf);
+            set_value_chunk<uint8>(chunk_data_res, idxs_res.shf, value);
+            idxs_src.shf++;
+            idxs_res.shf++;
         }
+#else
+        get_set_value_chunk<uint8>(chunk_data_res, idxs_res.shf, chunk_data_src,
+                                   idxs_src.shf, block_size_local_src);
         idxs_src.shf += block_size_local_src;
         idxs_res.shf += block_size_local_res;
+#endif
     } else if (blk_idxs_src.col_16bits) {
+#ifdef NO_COMPACT
         std::memcpy(
             reinterpret_cast<uint16*>(chunk_data_res + idxs_res.shf),
             reinterpret_cast<const uint16*>(chunk_data_src + idxs_src.shf),
             block_size_local_res * sizeof(uint16));
+#else
+        get_set_value_chunk<uint16>(chunk_data_res, idxs_res.shf,
+                                    chunk_data_src, idxs_src.shf,
+                                    block_size_local_src);
+#endif
         idxs_src.shf += block_size_local_src * sizeof(uint16);
         idxs_res.shf += block_size_local_res * sizeof(uint16);
     } else {
+#ifdef NO_COMPACT
         std::memcpy(
             reinterpret_cast<uint32*>(chunk_data_res + idxs_res.shf),
             reinterpret_cast<const uint32*>(chunk_data_src + idxs_src.shf),
             block_size_local_res * sizeof(uint32));
+#else
+        get_set_value_chunk<uint32>(chunk_data_res, idxs_res.shf,
+                                    chunk_data_src, idxs_src.shf,
+                                    block_size_local_src);
+#endif
         idxs_src.shf += block_size_local_src * sizeof(uint32);
         idxs_res.shf += block_size_local_res * sizeof(uint32);
     }

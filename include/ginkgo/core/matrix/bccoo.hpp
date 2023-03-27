@@ -367,6 +367,19 @@ public:
         return compression_ == bccoo::compression::block;
     }
 
+    /**
+     * Returns if the object is initialized
+     *
+     * @returns if the object is initialized
+     */
+    bool is_initialized() const
+    {
+        //        return (this->use_default_compression() != true &&
+        //        this->get_block_size() > 0;
+        return (compression_ != bccoo::compression::def_value &&
+                block_size_ > 0);
+    }
+
     // TODO: It could be better to use
     // TODO:        b = Bccoo * x + b
     // TODO: It would be easier to understand

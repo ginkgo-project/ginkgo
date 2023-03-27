@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-namespace {
+namespace kernel {
 
 
 // Routines for block compression objects
@@ -75,8 +75,8 @@ inline __device__ void loop_block_single_row(
 }
 
 
-template <int subwarp_size = config::warp_size, typename IndexType1,
-          typename IndexType2, typename ValueType, typename Closure>
+template <int subwarp_size = config::warp_size, typename IndexTypeRow,
+          typename IndexTypeCol, typename ValueType, typename Closure>
 inline __device__ void loop_block_multi_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
@@ -93,30 +93,31 @@ inline __device__ void loop_block_multi_row(
         group::tiled_partition<subwarp_size>(group::this_thread_block());
 
     last_row = blk_idxs.row_frs +
-               get_value_chunk<IndexType1>(
-                   chunk_data, blk_idxs.shf_row +
-                                   (block_size_local - 1) * sizeof(IndexType1));
+               get_value_chunk<IndexTypeRow>(
+                   chunk_data, blk_idxs.shf_row + (block_size_local - 1) *
+                                                      sizeof(IndexTypeRow));
     next_row =
         blk_idxs.row_frs +
-        get_value_chunk<IndexType1>(
-            chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexType1));
+        get_value_chunk<IndexTypeRow>(
+            chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.row = next_row;
-        idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType2>(
-                       chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType2));
+        idxs.col =
+            blk_idxs.col_frs +
+            get_value_chunk<IndexTypeCol>(
+                chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
         val = get_value_chunk<ValueType>(
             chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
         new_value = true;
-        next_row =
-            ((pos + jump_in_blk) >= block_size_local)
-                ? last_row
-                : (blk_idxs.row_frs +
-                   get_value_chunk<IndexType1>(
-                       chunk_data, blk_idxs.shf_row + (pos + jump_in_blk) *
-                                                          sizeof(IndexType1)));
+        next_row = ((pos + jump_in_blk) >= block_size_local)
+                       ? last_row
+                       : (blk_idxs.row_frs +
+                          get_value_chunk<IndexTypeRow>(
+                              chunk_data,
+                              blk_idxs.shf_row +
+                                  (pos + jump_in_blk) * sizeof(IndexTypeRow)));
         // segmented scan
         if (tile_block.any(idxs.row != next_row)) {
             bool is_first_in_segment = segment_scan<subwarp_size>(
@@ -143,8 +144,10 @@ inline __device__ void loop_block_multi_row(
 }
 
 
-template <typename IndexType, typename ValueType>
-inline GKO_ATTRIBUTES void get_block_position_value(
+template <typename ValueType>
+// template <typename IndexType, typename ValueType>
+inline __device__ void get_block_position_value(
+    // inline GKO_ATTRIBUTES void get_block_position_value(
     const size_type pos, const uint8* chunk_data, compr_blk_idxs& blk_idxs,
     size_type& row, size_type& col, ValueType& val)
 {
@@ -172,8 +175,10 @@ inline GKO_ATTRIBUTES void get_block_position_value(
 }
 
 
-template <typename IndexType, typename ValueType, typename Closure>
-inline GKO_ATTRIBUTES void get_block_position_value_put(
+template <typename ValueType, typename Closure>
+// template <typename IndexType, typename ValueType, typename Closure>
+inline __device__ void get_block_position_value_put(
+    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, uint8* chunk_data, compr_blk_idxs& blk_idxs,
     size_type& row, size_type& col, ValueType& val, Closure finalize_op)
 {
@@ -204,13 +209,16 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
 }
 
 
-template <typename IndexType, typename ValueType1, typename ValueType2,
+template <typename ValueTypeSrc, typename ValueTypeRes,
+          // template <typename IndexType, typename ValueTypeSrc, typename
+          // ValueTypeRes,
           typename Closure>
-inline GKO_ATTRIBUTES void get_block_position_value_put(
+inline __device__ void get_block_position_value_put(
+    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, const uint8* chunk_data_src,
     compr_blk_idxs& blk_idxs_src, uint8* chunk_data_res,
     compr_blk_idxs& blk_idxs_res, size_type& row, size_type& col,
-    ValueType1& val, Closure finalize_op)
+    ValueTypeSrc& val, Closure finalize_op)
 {
     row = blk_idxs_src.row_frs;
     col = blk_idxs_src.col_frs;
@@ -251,13 +259,13 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
                                 col_dif);
         col += col_dif;
     }
-    val = get_value_chunk<ValueType1>(
-        chunk_data_src, blk_idxs_src.shf_val + pos * sizeof(ValueType1));
+    val = get_value_chunk<ValueTypeSrc>(
+        chunk_data_src, blk_idxs_src.shf_val + pos * sizeof(ValueTypeSrc));
     auto new_val = finalize_op(val);
-    set_value_chunk<ValueType2>(chunk_data_res,
-                                blk_idxs_res.shf_val + pos * sizeof(ValueType2),
-                                new_val);
+    set_value_chunk<ValueTypeRes>(
+        chunk_data_res, blk_idxs_res.shf_val + pos * sizeof(ValueTypeRes),
+        new_val);
 }
 
 
-}  // namespace
+}  // namespace kernel

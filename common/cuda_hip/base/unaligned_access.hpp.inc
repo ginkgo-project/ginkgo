@@ -39,19 +39,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param ptr    the starting pointer
  * @param start  the offset
  * @param value  the value
+ *
+ * @note The memory does not need to be aligned to be read.
  */
 template <typename T>
-GKO_ATTRIBUTES void set_value_chunk(void* ptr, size_type start, T value)
+__device__ void set_value_chunk(void* ptr, size_type start, T value)
+// GKO_ATTRIBUTES void set_value_chunk(void* ptr, size_type start, T value)
 {
     // Technically UB, but so far the best option for type punning
     //    *reinterpret_cast<T*>
     //          (static_cast<unsigned char*>(ptr) + start) =
     //                                        value;
     // TODO: Defined behaviour, but might be slower
-    auto value_ptr = reinterpret_cast<const unsigned char*>(&value);
-    for (int i = 0; i < sizeof(T); ++i) {
-        static_cast<unsigned char*>(ptr)[start + i] = value_ptr[i];
-    }
+    // auto value_ptr = reinterpret_cast<const unsigned char*>(&value);
+    // for (int i = 0; i < sizeof(T); ++i) {
+    //     static_cast<unsigned char*>(ptr)[start + i] = value_ptr[i];
+    // }
+    memcpy(static_cast<unsigned char*>(ptr) + start, &value, sizeof(T));
 }
 
 
@@ -64,17 +68,55 @@ GKO_ATTRIBUTES void set_value_chunk(void* ptr, size_type start, T value)
  * @param start  the offset
  *
  * @return the value in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @note The memory does not need to be aligned to be written.
  */
 template <typename T>
-GKO_ATTRIBUTES T get_value_chunk(const void* ptr, size_type start)
+__device__ T get_value_chunk(const void* ptr, size_type start)
+// GKO_ATTRIBUTES T get_value_chunk(const void* ptr, size_type start)
 {
     //  return *reinterpret_cast<const T*>
     //    (static_cast<const unsigned char*>(ptr) + start);
     // TODO: Defined behaviour, but might be slower
     T value;
-    auto value_ptr = reinterpret_cast<unsigned char*>(&value);
-    for (int i = 0; i < sizeof(T); ++i) {
-        value_ptr[i] = static_cast<const unsigned char*>(ptr)[start + i];
-    }
+    // auto value_ptr = reinterpret_cast<unsigned char*>(&value);
+    // for (int i = 0; i < sizeof(T); ++i) {
+    //     value_ptr[i] = static_cast<const unsigned char*>(ptr)[start + i];
+    // }
+    memcpy(&value, static_cast<const unsigned char*>(ptr) + start, sizeof(T));
     return value;
+}
+
+
+/**
+ * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr_res    the starting pointer of the result
+ * @param start_res  the offset of the result
+ * @param ptr_src    the starting pointer of the source
+ * @param start_src  the offset of the source
+ * @param num        the number of values to copy
+ *
+ * @note The memory does not need to be aligned to be written or read.
+ */
+template <typename T>
+__device__ void get_set_value_chunk(
+    void* ptr_res, size_type start_res,
+    // GKO_ATTRIBUTES void get_set_value_chunk(void* ptr_res, size_type
+    // start_res,
+    const void* ptr_src, size_type start_src, size_type num)
+{
+    //  return *reinterpret_cast<const T*>
+    //    (static_cast<const unsigned char*>(ptr) + start);
+    // TODO: Defined behaviour, but might be slower
+    T value;
+    // auto value_ptr = reinterpret_cast<unsigned char*>(&value);
+    // for (int i = 0; i < sizeof(T); ++i) {
+    //     value_ptr[i] = static_cast<const unsigned char*>(ptr)[start + i];
+    // }
+    memcpy(static_cast<unsigned char*>(ptr_res) + start_res,
+           static_cast<const unsigned char*>(ptr_src) + start_src,
+           sizeof(T) * num);
 }

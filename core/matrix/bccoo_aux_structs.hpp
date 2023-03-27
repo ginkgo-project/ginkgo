@@ -51,10 +51,10 @@ namespace bccoo {
 /**
  *  Constants used to manage bccoo objects
  */
-constexpr uint8 cst_rows_multiple = 1;
-constexpr uint8 cst_rows_16bits = 2;
-constexpr uint8 cst_cols_8bits = 4;
-constexpr uint8 cst_cols_16bits = 8;
+constexpr uint8 type_mask_rows_multiple = 1;
+constexpr uint8 type_mask_rows_16bits = 2;
+constexpr uint8 type_mask_cols_8bits = 4;
+constexpr uint8 type_mask_cols_16bits = 8;
 
 
 /**
@@ -113,17 +113,18 @@ inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
                                               const uint8 type_blk,
                                               compr_blk_idxs& blk_idxs)
 {
-    blk_idxs.mul_row = type_blk & cst_rows_multiple;
-    blk_idxs.row_16bits = type_blk & cst_rows_16bits;
-    blk_idxs.col_8bits = type_blk & cst_cols_8bits;
-    blk_idxs.col_16bits = type_blk & cst_cols_16bits;
+    blk_idxs.mul_row = type_blk & type_mask_rows_multiple;
+    blk_idxs.row_16bits = type_blk & type_mask_rows_16bits;
+    blk_idxs.col_8bits = type_blk & type_mask_cols_8bits;
+    blk_idxs.col_16bits = type_blk & type_mask_cols_16bits;
 
     blk_idxs.row_frs = rows_data[idxs.blk];
     blk_idxs.col_frs = cols_data[idxs.blk];
     blk_idxs.shf_row = blk_idxs.shf_col = idxs.shf;
-    if (blk_idxs.mul_row)
+    if (blk_idxs.mul_row) {
         blk_idxs.shf_col +=
             ((blk_idxs.row_16bits) ? sizeof(uint16) : 1) * block_size;
+    }
     if (blk_idxs.col_8bits) {
         blk_idxs.shf_val = blk_idxs.shf_col + block_size;
     } else if (blk_idxs.col_16bits) {

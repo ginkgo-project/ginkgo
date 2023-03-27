@@ -61,9 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/thread_ids.hip.hpp"
 
 
-using namespace gko::matrix::bccoo;
-
-
 namespace gko {
 namespace kernels {
 /**
@@ -78,6 +75,9 @@ namespace hip {
  * @ingroup bccoo
  */
 namespace bccoo {
+
+
+using namespace matrix::bccoo;
 
 
 constexpr int default_block_size = 512;
@@ -152,7 +152,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(a->get_const_chunk()),
                 as_hip_type(a->get_const_offsets()),
@@ -193,7 +193,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_chunk()),
@@ -415,7 +415,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_extract<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(orig->get_const_chunk()),
                 as_hip_type(orig->get_const_offsets()),
@@ -451,7 +451,8 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_absolute_inplace<hip_type<ValueType>, hip_type<IndexType>>
+            kernel::abstract_absolute_inplace<hip_type<ValueType>,
+                                              hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(matrix->get_chunk()),
@@ -489,7 +490,7 @@ void compute_absolute(
             const dim3 bccoo_grid(num_blocks_grid, 1);
             auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_absolute<hip_type<ValueType>, hip_type<IndexType>>
+            kernel::abstract_absolute<hip_type<ValueType>, hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(source->get_const_chunk()),

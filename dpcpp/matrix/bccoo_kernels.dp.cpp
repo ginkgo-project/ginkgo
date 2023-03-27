@@ -60,9 +60,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/matrix/bccoo_helper.dp.hpp"
 
 
-using namespace gko::matrix::bccoo;
-
-
 namespace gko {
 namespace kernels {
 /**
@@ -77,6 +74,9 @@ namespace dpcpp {
  * @ingroup bccoo
  */
 namespace bccoo {
+
+
+using namespace matrix::bccoo;
 
 
 constexpr int default_block_size = 256;
@@ -282,7 +282,9 @@ void fill_in_coo(const size_type nnz, const size_type num_blks,
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                get_block_position_value<IndexType, ValueType>(
+                get_block_position_value<ValueType>(
+                    //                get_block_position_value<IndexType,
+                    //                ValueType>(
                     pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
                 auto index = blk * block_size + pos;
                 rows_idxs[index] = idxs.row;
@@ -352,7 +354,9 @@ void fill_in_dense(const size_type nnz, const size_type num_blks,
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                get_block_position_value<IndexType, ValueType>(
+                get_block_position_value<ValueType>(
+                    //                get_block_position_value<IndexType,
+                    //                ValueType>(
                     pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
                 result[idxs.row * stride + idxs.col] = val;
             }
@@ -428,7 +432,9 @@ void extract_kernel(const size_type nnz, const size_type num_blks,
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                get_block_position_value<IndexType, ValueType>(
+                get_block_position_value<ValueType>(
+                    //                get_block_position_value<IndexType,
+                    //                ValueType>(
                     pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
                 if (idxs.row == idxs.col) diag[idxs.col] = val;
             }
@@ -490,7 +496,9 @@ void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                get_block_position_value_put<IndexType, ValueType, Closure>(
+                get_block_position_value_put<ValueType, Closure>(
+                    //                get_block_position_value_put<IndexType,
+                    //                ValueType, Closure>(
                     pos, chunk_data, blk_idxs, idxs.row, idxs.col, val,
                     comp_abs);
             }
@@ -605,7 +613,9 @@ void absolute_kernel(ValueType val, const size_type nnz,
             if (pos < block_size_local) {
                 ValueType val;
                 get_block_position_value_put<
-                    IndexType, ValueType, remove_complex<ValueType>, Closure>(
+                    ValueType, remove_complex<ValueType>, Closure>(
+                    //                    IndexType, ValueType,
+                    //                    remove_complex<ValueType>, Closure>(
                     pos, chunk_data_src, blk_idxs_src, chunk_data_res,
                     blk_idxs_res, idxs_src.row, idxs_src.col, val, comp_abs);
             }

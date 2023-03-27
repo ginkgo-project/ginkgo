@@ -46,9 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_memsize_convert.hpp"
 
 
-using namespace gko::matrix::bccoo;
-
-
 namespace gko {
 namespace kernels {
 /**
@@ -63,6 +60,9 @@ namespace reference {
  * @ingroup bccoo
  */
 namespace bccoo {
+
+
+using namespace matrix::bccoo;
 
 
 void get_default_block_size(std::shared_ptr<const ReferenceExecutor> exec,
@@ -131,6 +131,7 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     if (a->use_element_compression()) {
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
+            // Reading (row,col,val) from matrix
             get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
                                 idxs.shf, idxs.row, idxs.col);
             uint8 ind =
@@ -138,6 +139,7 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
                                     idxs.col, val);
             get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            // Writing (row,col,val) to result
             for (size_type j = 0; j < num_cols; j++) {
                 c->at(idxs.row, j) += val * b->at(idxs.col, j);
             }
@@ -194,6 +196,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     if (a->use_element_compression()) {
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
+            // Reading (row,col,val) from matrix
             get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
                                 idxs.shf, idxs.row, idxs.col);
             uint8 ind =
@@ -201,6 +204,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
                                     idxs.col, val);
             get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            // Writing (row,col,val) to result
             for (size_type j = 0; j < num_cols; j++) {
                 c->at(idxs.row, j) += alpha_val * val * b->at(idxs.col, j);
             }

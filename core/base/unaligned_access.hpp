@@ -83,6 +83,38 @@ T get_value_chunk(const void* ptr, size_type start)
 
 
 /**
+ * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr_res    the starting pointer of the result
+ * @param start_res  the offset of the result
+ * @param ptr_src    the starting pointer of the source
+ * @param start_src  the offset of the source
+ * @param num        the number of values to copy
+ *
+ * @note The memory does not need to be aligned to be written or read.
+ */
+template <typename T>
+void get_set_value_chunk(void* ptr_res, size_type start_res,
+                         const void* ptr_src, size_type start_src,
+                         size_type num)
+{
+    //  return *reinterpret_cast<const T*>
+    //    (static_cast<const unsigned char*>(ptr) + start);
+    // TODO: Defined behaviour, but might be slower
+    T val{};
+    // auto value_ptr = reinterpret_cast<unsigned char*>(&value);
+    // for (int i = 0; i < sizeof(T); ++i) {
+    //     value_ptr[i] = static_cast<const unsigned char*>(ptr)[start + i];
+    // }
+    memcpy(static_cast<unsigned char*>(ptr_res) + start_res,
+           static_cast<const unsigned char*>(ptr_src) + start_src,
+           sizeof(T) * num);
+}
+
+
+/**
  * Returns the address in the m-th byte of ptr, which is adjusting to T class.
  *
  * @tparam T     the type of the address
@@ -92,12 +124,14 @@ T get_value_chunk(const void* ptr, size_type start)
  *
  * @return the address in the m-th byte of ptr, which is adjusting to T class.
  */
+/*
 template <typename T>
 T* get_address_chunk(const void* ptr, size_type start)
 {
     const unsigned char* ptr2 = static_cast<const unsigned char*>(ptr) + start;
     return static_cast<T*>(ptr2);
 }
+*/
 
 
 }  // namespace bccoo
