@@ -192,8 +192,8 @@ std::vector<shared_idx_t> setup_shared_idxs(
     req_r.wait();
 
     std::vector<shared_idx_t> shared_idxs(
-        share_right_bdry * 1 * (num_elements_y + 1) +
-        share_left_bdry * (num_elements_y + 1));
+        share_right_bdry * (overlap_size + 1) * (num_elements_y + 1) +
+        share_left_bdry * overlap_size * (num_elements_y + 1));
     auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
     auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
     // TODO: should remove physical boundary idxs
@@ -222,19 +222,31 @@ std::vector<shared_idx_t> setup_shared_idxs(
     if (share_left_bdry) {
         auto neighbor_utr_map =
             create_utr_map<int>(num_elements_y + 1, left_neighbor_nex + 1);
-        setup_idxs(
-            fixed_x_map(0, utr_map),
-            fixed_x_map(left_neighbor_nex - 2 * overlap_size, neighbor_utr_map),
-            this_rank - 1, {2, 0}, shared_idxs.data());
+        for (int overlap_idx = 0; overlap_idx < overlap_size; ++overlap_idx) {
+            setup_idxs(
+                fixed_x_map(overlap_idx, utr_map),
+                fixed_x_map(left_neighbor_nex - 2 * overlap_size + overlap_idx,
+                            neighbor_utr_map),
+                this_rank - 1, {2, 0},
+                shared_idxs.data() + overlap_idx * (num_elements_y + 1));
+        }
     }
     if (share_right_bdry) {
         auto neighbor_ltr_map =
             create_ltr_map<int>(num_elements_y + 1, right_neighbor_nex + 1);
-        auto offset = share_left_bdry * (num_elements_y + 1);
+        auto offset = share_left_bdry * overlap_size * (num_elements_y + 1);
 
-        setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map),
-                   fixed_x_map(2 * overlap_size - 1, neighbor_ltr_map),
-                   this_rank + 1, {0, 1}, shared_idxs.data() + offset);
+        // one additional layer to create a partition of unity, currently uses
+        // unique ownership
+        for (int overlap_idx = 0; overlap_idx < overlap_size + 1;
+             ++overlap_idx) {
+            setup_idxs(fixed_x_map(num_elements_x - 1 - overlap_idx, ltr_map),
+                       fixed_x_map(2 * overlap_size - 1 - overlap_idx,
+                                   neighbor_ltr_map),
+                       this_rank + 1, {0, 1},
+                       shared_idxs.data() + offset +
+                           overlap_idx * (num_elements_y + 1));
+        }
     }
     return shared_idxs;
 }
