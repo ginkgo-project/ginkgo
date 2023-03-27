@@ -909,12 +909,16 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
     }
     DECLARE_OVERLOAD(double, int32)
     DECLARE_OVERLOAD(float, int32)
+    DECLARE_OVERLOAD(half, int32)
     DECLARE_OVERLOAD(std::complex<double>, int32)
     DECLARE_OVERLOAD(std::complex<float>, int32)
+    DECLARE_OVERLOAD(std::complex<half>, int32)
     DECLARE_OVERLOAD(double, int64)
     DECLARE_OVERLOAD(float, int64)
+    DECLARE_OVERLOAD(half, int64)
     DECLARE_OVERLOAD(std::complex<double>, int64)
     DECLARE_OVERLOAD(std::complex<float>, int64)
+    DECLARE_OVERLOAD(std::complex<half>, int64)
 #undef DECLARE_OVERLOAD
     else
     {

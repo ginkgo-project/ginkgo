@@ -50,6 +50,8 @@ template <typename T>
 class MatrixGenerator : public ::testing::Test {
 protected:
     using value_type = T;
+    using check_type =
+        typename gko::detail::arth_type<gko::remove_complex<value_type>>::type;
     using real_type = gko::remove_complex<T>;
     using mtx_type = gko::matrix::Dense<T>;
 
@@ -126,15 +128,15 @@ protected:
 
 
     template <typename InputIterator, typename ValueType, typename Closure>
-    ValueType get_nth_moment(int n, ValueType c, InputIterator sample_start,
-                             InputIterator sample_end, Closure closure_op)
+    check_type get_nth_moment(int n, ValueType c, InputIterator sample_start,
+                              InputIterator sample_end, Closure closure_op)
     {
         using std::pow;
-        ValueType res = 0;
-        ValueType num_elems = 0;
+        check_type res = 0;
+        check_type num_elems = 0;
         while (sample_start != sample_end) {
             auto tmp = *(sample_start++);
-            res += pow(closure_op(tmp) - c, n);
+            res += pow(check_type{closure_op(tmp)} - check_type{c}, n);
             num_elems += 1;
         }
         return res / num_elems;

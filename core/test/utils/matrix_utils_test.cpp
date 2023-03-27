@@ -273,7 +273,7 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixCorrectly)
 TYPED_TEST(MatrixUtils, MakeHpdMatrixWithRatioCorrectly)
 {
     using T = typename TestFixture::value_type;
-    gko::remove_complex<T> ratio = 1.00001;
+    gko::remove_complex<T> ratio = 1.002;
     auto cpy_data = this->data;
 
     gko::utils::make_hpd(this->data, ratio);
@@ -308,7 +308,7 @@ TYPED_TEST(MatrixUtils, MakeSpdMatrixCorrectly)
 TYPED_TEST(MatrixUtils, MakeSpdMatrixWithRatioCorrectly)
 {
     using T = typename TestFixture::value_type;
-    gko::remove_complex<T> ratio = 1.00001;
+    gko::remove_complex<T> ratio = 1.002;
     auto cpy_data = this->data;
 
     gko::utils::make_spd(this->data, ratio);

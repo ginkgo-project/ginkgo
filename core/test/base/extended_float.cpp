@@ -38,7 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-
+#include <complex>
+#include "ginkgo/core/base/math.hpp"
 
 namespace {
 
@@ -221,6 +222,21 @@ TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
     EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
 }
 
+
+TEST_F(FloatToHalf, Convert)
+{
+    float rho = 86.25;
+    float beta = 1110;
+    auto float_res = rho/beta;
+    gko::half rho_h = rho;
+    gko::half beta_h = beta;
+    auto half_res = rho_h/beta_h;
+    std::cout << float_res << std::endl;
+    std::cout << float(half_res) << std::endl;
+
+    std::complex<gko::half> cpx{100.0, 0.0};
+    std::cout << float(gko::squared_norm(cpx)) << std::endl;
+}
 
 // clang-format on
 

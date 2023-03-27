@@ -122,7 +122,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypesNoHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Fft, Apply1DIsEqualToReference)

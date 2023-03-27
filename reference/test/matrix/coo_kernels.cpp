@@ -149,6 +149,8 @@ TYPED_TEST(Coo, MovesToPrecision)
     this->mtx->move_to(tmp);
     tmp->move_to(res);
 
+    // TODO: When use move_to to the different precision, it will keep the
+    // original data
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
 
