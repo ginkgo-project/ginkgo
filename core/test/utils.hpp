@@ -323,12 +323,22 @@ using add_inner_wrapper_t =
 
 using RealValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<gko::half, float>;
+#else
+    ::testing::Types<gko::half, float, double>;
+#endif
+
+using RealValueTypesNoHalf =
+#if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<float>;
 #else
     ::testing::Types<float, double>;
 #endif
 
 using ComplexValueTypes = add_inner_wrapper_t<std::complex, RealValueTypes>;
+
+using ComplexValueTypesNoHalf =
+    add_inner_wrapper_t<std::complex, RealValueTypesNoHalf>;
 
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
 
@@ -359,7 +369,8 @@ using TwoValueIndexType = add_to_cartesian_type_product_t<
     IndexTypes>;
 
 using ValueLocalGlobalIndexTypes =
-    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
+    add_to_cartesian_type_product_left_t<ValueTypesNoHalf,
+                                         LocalGlobalIndexTypes>;
 
 
 template <typename Precision, typename OutputType>
@@ -461,6 +472,11 @@ namespace detail {
 // singly linked list of all our supported precisions
 template <typename T>
 struct next_precision_impl {};
+
+template <>
+struct next_precision_impl<gko::half> {
+    using type = gko::half;
+};
 
 template <>
 struct next_precision_impl<float> {
