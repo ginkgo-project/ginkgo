@@ -80,39 +80,27 @@ protected:
         mtx1 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(10, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(0, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_square = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[0],
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
         dmtx1 = gko::clone(exec, mtx1);
         dmtx2 = gko::clone(exec, mtx2);
@@ -166,7 +154,7 @@ protected:
                      const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto size = index_type(mtx->get_num_stored_elements());
         using ValueType = typename Mtx::value_type;
 
@@ -221,7 +209,7 @@ protected:
                             const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto res = Mtx::create(ref, mtx_size);
         auto dres = Mtx::create(exec, mtx_size);
         auto res_coo = Coo::create(ref, mtx_size);

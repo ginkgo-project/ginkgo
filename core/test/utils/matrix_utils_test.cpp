@@ -62,8 +62,8 @@ protected:
     MatrixUtils()
         : exec(gko::ReferenceExecutor::create()),
           data(gko::test::generate_random_matrix_data<value_type, int>(
-              500, 500, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              500, 500, std::normal_distribution<>(50, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42))),
           rectangular_data(gko::dim<2>(500, 100))
     {}

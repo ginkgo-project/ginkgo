@@ -56,25 +56,25 @@ protected:
     MatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix<mtx_type>(
-              500, 100, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              500, 100, std::normal_distribution<>(50, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           dense_mtx(gko::test::generate_random_dense_matrix<value_type>(
-              500, 100, std::normal_distribution<real_type>(20.0, 5.0),
+              500, 100, std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(41), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
-              4, true, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              4, true, std::normal_distribution<>(50, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           u_mtx(gko::test::generate_random_upper_triangular_matrix<mtx_type>(
-              4, true, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              4, true, std::normal_distribution<>(50, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           lower_bandwidth(2),
           upper_bandwidth(3),
           band_mtx(gko::test::generate_random_band_matrix<mtx_type>(
               100, lower_bandwidth, upper_bandwidth,
-              std::normal_distribution<real_type>(20.0, 5.0),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           nnz_per_row_sample(500, 0),
           values_sample(0),

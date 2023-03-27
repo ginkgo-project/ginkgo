@@ -59,8 +59,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix<
               gko::matrix::Csr<real_type, int>>(
-              nbrows, nbcols, std::normal_distribution<real_type>(10, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              nbrows, nbcols, std::normal_distribution<>(10, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           rbmtx(gko::test::generate_fbcsr_from_csr(
               exec, mtx.get(), blk_sz, false, std::default_random_engine(42))),

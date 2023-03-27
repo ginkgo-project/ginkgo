@@ -185,7 +185,7 @@ protected:
     {
         auto alpha_value =
             gko::as<gko::matrix::Dense<ValueType>>(alpha)->at(0, 0);
-        gko::remove_complex<ValueType> scale = std::real(alpha_value);
+        gko::remove_complex<ValueType> scale = gko::real(alpha_value);
         global_step *= static_cast<int>(scale);
         step.push_back(global_step);
         global_step++;
