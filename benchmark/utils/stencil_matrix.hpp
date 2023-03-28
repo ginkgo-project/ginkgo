@@ -98,9 +98,10 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_y, const int position_x) {
-        return static_cast<int>(local_size) * position_x +
-               static_cast<int>(local_size) * dims[0] * position_y;
+    auto global_offset = [&](const IndexType position_y,
+                             const IndexType position_x) {
+        return static_cast<IndexType>(local_size) * position_x +
+               static_cast<IndexType>(local_size) * dims[0] * position_y;
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -210,11 +211,13 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_z, const int position_y,
-                             const int position_x) {
-        return position_x * static_cast<int>(local_size) +
-               position_y * static_cast<int>(local_size) * dims[0] +
-               position_z * static_cast<int>(local_size) * dims[0] * dims[1];
+    auto global_offset = [&](const IndexType position_z,
+                             const IndexType position_y,
+                             const IndexType position_x) {
+        return position_x * static_cast<IndexType>(local_size) +
+               position_y * static_cast<IndexType>(local_size) * dims[0] +
+               position_z * static_cast<IndexType>(local_size) * dims[0] *
+                   dims[1];
     };
 
     auto target_position = [&](const IndexType i, const int position) {
