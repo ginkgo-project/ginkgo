@@ -67,7 +67,8 @@ struct comm_info_t {
                 const auto& idx = elem.first;
                 const auto& weight = elem.second;
                 multiplicity.idxs.get_data()[i] = idx;
-                multiplicity.weights.get_data()[i] = 1.0 / weight;
+                // need sqrt for norms and scalar products
+                multiplicity.weights.get_data()[i] = sqrt(1.0 / weight);
                 ++i;
             }
         }
@@ -104,11 +105,11 @@ struct comm_info_t {
                                    multiplicity.idxs.get_const_data() +
                                        multiplicity.idxs.get_num_elems(),
                                    idx);
-        if (*it != idx) {
-            return one<ValueType>();
+        auto dist = std::distance(multiplicity.idxs.get_const_data(), it);
+        if (dist < multiplicity.idxs.get_num_elems() && *it == idx) {
+            return multiplicity.weights.get_const_data()[dist];
         } else {
-            return multiplicity.weights.get_const_data()[std::distance(
-                multiplicity.idxs.get_const_data(), it)];
+            return one<ValueType>();
         }
     }
 
@@ -128,6 +129,7 @@ struct comm_info_t {
     // i.e. recv_idxs/send_idxs
     gko::array<LocalIndexType> non_owned_idxs;
     // maybe also store multiplicity of each index?
+    // could also store explicit zero for non-owned idxs
     struct multiplicity_t {
         gko::array<LocalIndexType> idxs;
         gko::array<ValueType> weights;
@@ -296,7 +298,7 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
         int i = 0;
         for (int j = 0; j < this->get_size()[0]; ++j) {
             if (local_flag.get_const_data()[j]) {
-                no_ovlp_local->at(i) = this->at(j) / comm_info.get_weight(j);
+                no_ovlp_local->at(i) = this->at(j) * comm_info.get_weight(j);
                 i++;
             }
         }
