@@ -64,12 +64,13 @@ namespace bccoo {
  */
 
 
-template <typename IndexType, typename ValueType>
+template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline void loop_block_single_row(const uint8* chunk_data,
                                   size_type block_size_local,
                                   const matrix::Dense<ValueType>* b,
                                   matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                  compr_blk_idxs& blk_idxs, ValueType* sumV)
+                                  compr_blk_idxs<IndexType>& blk_idxs,
+                                  ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row = blk_idxs.row_frs;
@@ -78,8 +79,8 @@ inline void loop_block_single_row(const uint8* chunk_data,
 
     for (size_type i = 0; i < block_size_local; i++) {
         idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType>(chunk_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexType);
+                   get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
         for (size_type j = 0; j < num_cols; j++) {
@@ -96,13 +97,14 @@ inline void loop_block_single_row(const uint8* chunk_data,
 }
 
 
-template <typename IndexType, typename ValueType>
+template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline void loop_block_single_row(const uint8* chunk_data,
                                   size_type block_size_local,
                                   const ValueType alpha_val,
                                   const matrix::Dense<ValueType>* b,
                                   matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                  compr_blk_idxs& blk_idxs, ValueType* sumV)
+                                  compr_blk_idxs<IndexType>& blk_idxs,
+                                  ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row = blk_idxs.row_frs;
@@ -111,8 +113,8 @@ inline void loop_block_single_row(const uint8* chunk_data,
 
     for (size_type i = 0; i < block_size_local; i++) {
         idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType>(chunk_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexType);
+                   get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
         for (size_type j = 0; j < num_cols; j++) {
@@ -129,12 +131,14 @@ inline void loop_block_single_row(const uint8* chunk_data,
 }
 
 
-template <typename IndexType1, typename IndexType2, typename ValueType>
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType>
 inline void loop_block_multi_row(const uint8* chunk_data,
                                  size_type block_size_local,
                                  const matrix::Dense<ValueType>* b,
                                  matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                 compr_blk_idxs& blk_idxs, ValueType* sumV)
+                                 compr_blk_idxs<IndexType>& blk_idxs,
+                                 ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row_old = blk_idxs.row_frs;
@@ -143,11 +147,11 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 
     for (size_type i = 0; i < block_size_local; i++) {
         idxs.row = blk_idxs.row_frs +
-                   get_value_chunk<IndexType1>(chunk_data, blk_idxs.shf_row);
-        blk_idxs.shf_row += sizeof(IndexType1);
+                   get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row);
+        blk_idxs.shf_row += sizeof(IndexTypeRow);
         idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType2>(chunk_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexType2);
+                   get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
         if (row_old != idxs.row) {
@@ -176,13 +180,15 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 }
 
 
-template <typename IndexType1, typename IndexType2, typename ValueType>
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType>
 inline void loop_block_multi_row(const uint8* chunk_data,
                                  size_type block_size_local,
                                  const ValueType alpha_val,
                                  const matrix::Dense<ValueType>* b,
                                  matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                 compr_blk_idxs& blk_idxs, ValueType* sumV)
+                                 compr_blk_idxs<IndexType>& blk_idxs,
+                                 ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row_old = blk_idxs.row_frs;
@@ -191,11 +197,11 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 
     for (size_type i = 0; i < block_size_local; i++) {
         idxs.row = blk_idxs.row_frs +
-                   get_value_chunk<IndexType1>(chunk_data, blk_idxs.shf_row);
-        blk_idxs.shf_row += sizeof(IndexType1);
+                   get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row);
+        blk_idxs.shf_row += sizeof(IndexTypeRow);
         idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType2>(chunk_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexType2);
+                   get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
         if (row_old != idxs.row) {

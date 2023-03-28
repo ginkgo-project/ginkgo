@@ -401,21 +401,23 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const ValueType* values = csr->get_const_values();
         auto num_rows = csr->get_size()[0];
         auto num_cols = csr->get_size()[1];
-        auto num_stored_elements =
-            0;  // TODO: Also compute and return this value
+        // TODO: Also compute internally and return this value
+        auto num_stored_elements = 0;
         matrix::bccoo::compr_idxs idxs = {};
-        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         for (size_type i = 0; i < num_rows; i++) {
             for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
                 const size_type row = i;
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
-                proc_block_indices(row, col, idxs, blk_idxs);
+                matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
+                                                             blk_idxs);
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
                     // Counting bytes to write block on result
-                    matrix::bccoo::cnt_block_indices<ValueType>(block_size,
-                                                                blk_idxs, idxs);
+                    matrix::bccoo::cnt_block_indices<IndexType, ValueType>(
+                        block_size, blk_idxs, idxs);
                     idxs.blk++;
                     idxs.nblk = 0;
                     blk_idxs = {};
@@ -424,8 +426,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            matrix::bccoo::cnt_block_indices<ValueType>(block_size, blk_idxs,
-                                                        idxs);
+            matrix::bccoo::cnt_block_indices<IndexType, ValueType>(
+                block_size, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
             blk_idxs = {};
@@ -499,7 +501,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto block_size = result->get_block_size();
 
         matrix::bccoo::compr_idxs idxs = {};
-        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         uint8 type_blk = {};
         ValueType val;
 
@@ -516,7 +519,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
                 // Analyzing the impact of (row,col,val) in the block
-                proc_block_indices(row, col, idxs, blk_idxs);
+                matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
+                                                             blk_idxs);
                 rows_blk.get_data()[idxs.nblk] = row;
                 cols_blk.get_data()[idxs.nblk] = col;
                 vals_blk.get_data()[idxs.nblk] = val;

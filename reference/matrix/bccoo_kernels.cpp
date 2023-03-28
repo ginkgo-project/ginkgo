@@ -149,13 +149,17 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = a->get_const_cols();
         auto* types_data = a->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
@@ -214,13 +218,17 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = a->get_const_cols();
         auto* types_data = a->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
@@ -363,13 +371,17 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = source->get_const_cols();
         auto* types_data = source->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
@@ -430,14 +442,18 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = source->get_const_cols();
         auto* types_data = source->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
         size_type row_prv = 0;
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
@@ -505,13 +521,17 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = source->get_const_cols();
         auto* types_data = source->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
@@ -572,13 +592,17 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = orig->get_const_cols();
         auto* types_data = orig->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from orig
                 get_block_position_value<IndexType, ValueType>(
@@ -630,13 +654,17 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
         auto* cols_data = matrix->get_const_cols();
         auto* types_data = matrix->get_const_types();
 
-        compr_blk_idxs blk_idxs = {};
+        //        compr_blk_idxs blk_idxs = {};
 
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading/Writing (row,col,val) from/to matrix
                 get_block_position_value_put<IndexType, ValueType>(

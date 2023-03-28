@@ -207,53 +207,58 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
                 compr_idxs idxs = {};
-                compr_blk_idxs blk_idxs = {};
+                //                compr_blk_idxs blk_idxs = {};
                 uint8 type_blk = types_data[blk];
                 idxs.shf = offsets_data[blk];
                 idxs.blk = blk;
-                init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                                   types_data[idxs.blk], blk_idxs);
+                //                init_block_indices(rows_data, cols_data,
+                //                block_size_local, idxs,
+                //                                   types_data[idxs.blk],
+                //                                   blk_idxs);
+                compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                                   block_size_local, idxs,
+                                                   types_data[idxs.blk]);
                 if (blk_idxs.mul_row) {
                     if (blk_idxs.row_16bits) {
                         if (blk_idxs.col_8bits) {
-                            loop_block_multi_row<uint16, uint8, ValueType>(
+                            loop_block_multi_row<uint16, uint8, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         } else if (blk_idxs.col_16bits) {
-                            loop_block_multi_row<uint16, uint16, ValueType>(
+                            loop_block_multi_row<uint16, uint16, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         } else {
-                            loop_block_multi_row<uint16, uint32, ValueType>(
+                            loop_block_multi_row<uint16, uint32, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         }
                     } else {
                         if (blk_idxs.col_8bits) {
-                            loop_block_multi_row<uint8, uint8, ValueType>(
+                            loop_block_multi_row<uint8, uint8, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         } else if (blk_idxs.col_16bits) {
-                            loop_block_multi_row<uint8, uint16, ValueType>(
+                            loop_block_multi_row<uint8, uint16, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         } else {
-                            loop_block_multi_row<uint8, uint32, ValueType>(
+                            loop_block_multi_row<uint8, uint32, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
                                 blk_idxs, sumV);
                         }
                     }
                 } else {
                     if (blk_idxs.col_8bits) {
-                        loop_block_single_row<uint8, ValueType>(
+                        loop_block_single_row<uint8, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
                             sumV);
                     } else if (blk_idxs.col_16bits) {
-                        loop_block_single_row<uint16, ValueType>(
+                        loop_block_single_row<uint16, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
                             sumV);
                     } else {
-                        loop_block_single_row<uint32, ValueType>(
+                        loop_block_single_row<uint32, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
                             sumV);
                     }
@@ -359,53 +364,58 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
                 compr_idxs idxs = {};
-                compr_blk_idxs blk_idxs = {};
+                //                compr_blk_idxs blk_idxs = {};
                 uint8 type_blk = types_data[blk];
                 idxs.shf = offsets_data[blk];
                 idxs.blk = blk;
-                init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                                   types_data[idxs.blk], blk_idxs);
+                //                init_block_indices(rows_data, cols_data,
+                //                block_size_local, idxs,
+                //                                   types_data[idxs.blk],
+                //                                   blk_idxs);
+                compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                                   block_size_local, idxs,
+                                                   types_data[idxs.blk]);
                 if (blk_idxs.mul_row) {
                     if (blk_idxs.row_16bits) {
                         if (blk_idxs.col_8bits) {
-                            loop_block_multi_row<uint16, uint8, ValueType>(
+                            loop_block_multi_row<uint16, uint8, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         } else if (blk_idxs.col_16bits) {
-                            loop_block_multi_row<uint16, uint16, ValueType>(
+                            loop_block_multi_row<uint16, uint16, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         } else {
-                            loop_block_multi_row<uint16, uint32, ValueType>(
+                            loop_block_multi_row<uint16, uint32, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         }
                     } else {
                         if (blk_idxs.col_8bits) {
-                            loop_block_multi_row<uint8, uint8, ValueType>(
+                            loop_block_multi_row<uint8, uint8, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         } else if (blk_idxs.col_16bits) {
-                            loop_block_multi_row<uint8, uint16, ValueType>(
+                            loop_block_multi_row<uint8, uint16, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         } else {
-                            loop_block_multi_row<uint8, uint32, ValueType>(
+                            loop_block_multi_row<uint8, uint32, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
                                 idxs, blk_idxs, sumV);
                         }
                     }
                 } else {
                     if (blk_idxs.col_8bits) {
-                        loop_block_single_row<uint8, ValueType>(
+                        loop_block_single_row<uint8, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
                             blk_idxs, sumV);
                     } else if (blk_idxs.col_16bits) {
-                        loop_block_single_row<uint16, ValueType>(
+                        loop_block_single_row<uint16, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
                             blk_idxs, sumV);
                     } else {
-                        loop_block_single_row<uint32, ValueType>(
+                        loop_block_single_row<uint32, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
                             blk_idxs, sumV);
                     }
@@ -588,13 +598,19 @@ void convert_to_next_precision(
                                                  blk_src * block_size_src);
 
                 compr_idxs idxs_src = {};
-                compr_blk_idxs blk_idxs_src = {};
+                //                compr_blk_idxs blk_idxs_src = {};
                 idxs_src.shf = offsets_data_src[blk_src];
                 idxs_src.blk = blk_src;
                 ValueType val_src;
-                init_block_indices(rows_data_src, cols_data_src,
-                                   block_size_local_src, idxs_src,
-                                   types_data_src[idxs_src.blk], blk_idxs_src);
+                compr_blk_idxs<IndexType> blk_idxs_src(
+                    rows_data_src, cols_data_src, block_size_local_src,
+                    idxs_src, types_data_src[idxs_src.blk]);
+                //                init_block_indices(rows_data_src,
+                //                cols_data_src,
+                //                                   block_size_local_src,
+                //                                   idxs_src,
+                //                                   types_data_src[idxs_src.blk],
+                //                                   blk_idxs_src);
 
                 auto* rows_data_res = result->get_rows();
                 auto* cols_data_res = result->get_cols();
@@ -606,15 +622,22 @@ void convert_to_next_precision(
                 auto block_size_local_res = block_size_local_src;
 
                 compr_idxs idxs_res = {};
-                compr_blk_idxs blk_idxs_res = {};
+                //                compr_blk_idxs blk_idxs_res = {};
                 idxs_res.shf = offsets_data_res[blk_src];
                 idxs_res.blk = blk_src;
                 next_precision<ValueType> val_res;
-                init_block_indices(rows_data_res, cols_data_res,
-                                   block_size_local_res, idxs_res,
-                                   types_data_res[idxs_res.blk], blk_idxs_res);
+                compr_blk_idxs<IndexType> blk_idxs_res(
+                    rows_data_res, cols_data_res, block_size_local_res,
+                    idxs_res, types_data_res[idxs_res.blk]);
+                //                init_block_indices(rows_data_res,
+                //                cols_data_res,
+                //                                   block_size_local_res,
+                //                                   idxs_res,
+                //                                   types_data_res[idxs_res.blk],
+                //                                   blk_idxs_res);
 
-                write_chunk_blk<ValueType, next_precision<ValueType>>(
+                write_chunk_blk<IndexType, ValueType,
+                                next_precision<ValueType>>(
                     idxs_src, blk_idxs_src, block_size_local_src,
                     chunk_data_src, idxs_res, blk_idxs_res,
                     block_size_local_res, chunk_data_res,
@@ -684,11 +707,15 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             size_type pos = block_size * blk;
 
             compr_idxs idxs = {};
-            compr_blk_idxs blk_idxs = {};
+            //            compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
@@ -765,11 +792,15 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             size_type pos = block_size * blk;
 
             compr_idxs idxs = {};
-            compr_blk_idxs blk_idxs = {};
+            //            compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
@@ -843,11 +874,15 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             size_type pos = block_size * blk;
 
             compr_idxs idxs = {};
-            compr_blk_idxs blk_idxs = {};
+            //            compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
@@ -917,11 +952,15 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             size_type pos = block_size * blk;
 
             compr_idxs idxs = {};
-            compr_blk_idxs blk_idxs = {};
+            //            compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
@@ -983,11 +1022,15 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
             size_type pos = block_size * blk;
 
             compr_idxs idxs = {};
-            compr_blk_idxs blk_idxs = {};
+            //            compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            init_block_indices(rows_data, cols_data, block_size_local, idxs,
-                               types_data[idxs.blk], blk_idxs);
+            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                                               block_size_local, idxs,
+                                               types_data[idxs.blk]);
+            //            init_block_indices(rows_data, cols_data,
+            //            block_size_local, idxs,
+            //                               types_data[idxs.blk], blk_idxs);
             for (size_type i = 0; i < block_size_local; i++) {
                 if (true) {
                     ValueType val;
@@ -1124,13 +1167,19 @@ void compute_absolute(
                                                  blk_src * block_size_src);
 
                 compr_idxs idxs_src = {};
-                compr_blk_idxs blk_idxs_src = {};
+                //                compr_blk_idxs blk_idxs_src = {};
                 idxs_src.shf = offsets_data_src[blk_src];
                 idxs_src.blk = blk_src;
                 ValueType val_src;
-                init_block_indices(rows_data_src, cols_data_src,
-                                   block_size_local_src, idxs_src,
-                                   types_data_src[idxs_src.blk], blk_idxs_src);
+                compr_blk_idxs<IndexType> blk_idxs_src(
+                    rows_data_src, cols_data_src, block_size_local_src,
+                    idxs_src, types_data_src[idxs_src.blk]);
+                //                init_block_indices(rows_data_src,
+                //                cols_data_src,
+                //                                   block_size_local_src,
+                //                                   idxs_src,
+                //                                   types_data_src[idxs_src.blk],
+                //                                   blk_idxs_src);
 
                 auto* rows_data_res = result->get_rows();
                 auto* cols_data_res = result->get_cols();
@@ -1142,14 +1191,21 @@ void compute_absolute(
                 auto block_size_local_res = block_size_local_src;
 
                 compr_idxs idxs_res = {};
-                compr_blk_idxs blk_idxs_res = {};
+                //                compr_blk_idxs blk_idxs_res = {};
                 idxs_res.shf = offsets_data_res[blk_src];
                 idxs_res.blk = blk_src;
                 remove_complex<ValueType> val_res;
-                init_block_indices(rows_data_res, cols_data_res,
-                                   block_size_local_res, idxs_res,
-                                   types_data_res[idxs_res.blk], blk_idxs_res);
-                write_chunk_blk<ValueType, remove_complex<ValueType>>(
+                compr_blk_idxs<IndexType> blk_idxs_res(
+                    rows_data_res, cols_data_res, block_size_local_res,
+                    idxs_res, types_data_res[idxs_res.blk]);
+                //                init_block_indices(rows_data_res,
+                //                cols_data_res,
+                //                                   block_size_local_res,
+                //                                   idxs_res,
+                //                                   types_data_res[idxs_res.blk],
+                //                                   blk_idxs_res);
+                write_chunk_blk<IndexType, ValueType,
+                                remove_complex<ValueType>>(
                     idxs_src, blk_idxs_src, block_size_local_src,
                     chunk_data_src, idxs_res, blk_idxs_res,
                     block_size_local_res, chunk_data_res,

@@ -543,17 +543,18 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 
         // Computation of mem_size (idxs.shf)
         bccoo::compr_idxs idxs = {};
-        bccoo::compr_blk_idxs blk_idxs = {};
+        //        bccoo::compr_blk_idxs blk_idxs = {};
+        bccoo::compr_blk_idxs<IndexType> blk_idxs;
         size_type num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
-                bccoo::proc_block_indices(elem.row, elem.column, idxs,
-                                          blk_idxs);
+                bccoo::proc_block_indices<IndexType>(elem.row, elem.column,
+                                                     idxs, blk_idxs);
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
                     // Counting bytes to write block on result
-                    bccoo::cnt_block_indices<ValueType>(block_size, blk_idxs,
-                                                        idxs);
+                    bccoo::cnt_block_indices<IndexType, ValueType>(
+                        block_size, blk_idxs, idxs);
                     idxs.blk++;
                     idxs.nblk = 0;
                 }
@@ -563,7 +564,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            bccoo::cnt_block_indices<ValueType>(block_size, blk_idxs, idxs);
+            bccoo::cnt_block_indices<IndexType, ValueType>(block_size, blk_idxs,
+                                                           idxs);
             idxs.blk++;
             idxs.nblk = 0;
         }
@@ -584,8 +586,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         offsets_data[0] = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
-                bccoo::proc_block_indices(elem.row, elem.column, idxs,
-                                          blk_idxs);
+                bccoo::proc_block_indices<IndexType>(elem.row, elem.column,
+                                                     idxs, blk_idxs);
                 rows_blk.get_data()[idxs.nblk] = elem.row;
                 cols_blk.get_data()[idxs.nblk] = elem.column;
                 vals_blk.get_data()[idxs.nblk] = elem.value;
@@ -677,14 +679,20 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
             }
         } else {
             bccoo::compr_idxs idxs = {};
-            bccoo::compr_blk_idxs blk_idxs = {};
+            //            bccoo::compr_blk_idxs blk_idxs = {};
             ValueType val;
             for (size_type i = 0; i < num_stored_elements; i += block_size) {
                 size_type block_size_local =
                     std::min(block_size, num_stored_elements - i);
-                bccoo::init_block_indices(rows_data, cols_data,
-                                          block_size_local, idxs,
-                                          types_data[idxs.blk], blk_idxs);
+                //                bccoo::init_block_indices(rows_data,
+                //                cols_data,
+                //                                          block_size_local,
+                //                                          idxs,
+                //                                          types_data[idxs.blk],
+                //                                          blk_idxs);
+                bccoo::compr_blk_idxs<IndexType> blk_idxs(
+                    rows_data, cols_data, block_size_local, idxs,
+                    types_data[idxs.blk]);
                 for (size_type j = 0; j < block_size_local; j++) {
                     // Reading (row,col,val) from source
                     bccoo::get_block_position_value<IndexType, ValueType>(

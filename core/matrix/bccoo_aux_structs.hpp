@@ -72,13 +72,18 @@ typedef struct compr_idxs {
 /**
  *  Specific struct to manage block compression bccoo objects
  */
-typedef struct compr_blk_idxs {
-    size_type row_frs;  // minimum row index in a block
-    size_type col_frs;  // minimum column index in a block
-    size_type row_dif;  // maximum difference between row indices
-                        // in a block
-    size_type col_dif;  // maximum difference between column indices
-                        // in a block
+template <typename IndexType>
+struct compr_blk_idxs {
+    IndexType row_frs;  // minimum row index in a block
+    //    size_type row_frs;  // minimum row index in a block
+    IndexType col_frs;  // minimum column index in a block
+    //    size_type col_frs;  // minimum column index in a block
+    IndexType row_dif;  // maximum difference between row indices
+    //    size_type row_dif;  // maximum difference between row indices
+    // in a block
+    IndexType col_dif;  // maximum difference between column indices
+    //    size_type col_dif;  // maximum difference between column indices
+    // in a block
     size_type shf_row;  // shift in chunk where the rows vector starts
     size_type shf_col;  // shift in chunk where the cols vector starts
     size_type shf_val;  // shift in chunk where the vals vector starts
@@ -87,7 +92,47 @@ typedef struct compr_blk_idxs {
     bool row_16bits;    // determines that row_dif is greater than 0xFF
     bool col_8bits;     // determines that col_dif is lower than 0x100
     bool col_16bits;    // determines that col_dif is lower than 0x10000
-} compr_blk_idxs;
+
+    GKO_ATTRIBUTES compr_blk_idxs()
+        : row_frs(0),
+          col_frs(0),
+          row_dif(0),
+          col_dif(0),
+          shf_row(0),
+          shf_col(0),
+          shf_val(0),
+          mul_row(false),
+          row_16bits(false),
+          col_8bits(false),
+          col_16bits(false)
+    {}
+
+    GKO_ATTRIBUTES compr_blk_idxs(const IndexType* rows_data,
+                                  const IndexType* cols_data,
+                                  const size_type block_size,
+                                  const compr_idxs idxs, const uint8 type_blk)
+        : mul_row(type_blk & type_mask_rows_multiple),
+          row_16bits(type_blk & type_mask_rows_16bits),
+          col_8bits(type_blk & type_mask_cols_8bits),
+          col_16bits(type_blk & type_mask_cols_16bits),
+          row_frs(rows_data[idxs.blk]),
+          col_frs(cols_data[idxs.blk]),
+          shf_row(idxs.shf),
+          shf_col(idxs.shf),
+          shf_val(idxs.shf)
+    // shf_col(idxs.shf+((mul_row)?
+    //	((row_16bits) ? sizeof(uint16) : 1) * block_size : 0 )),
+    // shf_val(shf_col+block_size * ((col_8bits)? 1 :
+    //	(col_16bits)? sizeof(uint16): sizeof(uint32)))
+    {
+        shf_col +=
+            ((mul_row) ? ((row_16bits) ? sizeof(uint16) : 1) * block_size : 0);
+        shf_val = shf_col + block_size * ((col_8bits)
+                                              ? 1
+                                              : (col_16bits) ? sizeof(uint16)
+                                                             : sizeof(uint32));
+    }
+};
 
 
 /*
@@ -105,6 +150,7 @@ typedef struct compr_blk_idxs {
  *  included in idxs and type_blk, making easier the management of
  *   a block compression bccoo object
  */
+/*
 template <typename IndexType>
 inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
                                               const IndexType* cols_data,
@@ -133,6 +179,7 @@ inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
         blk_idxs.shf_val = blk_idxs.shf_col + block_size * sizeof(uint32);
     }
 }
+*/
 
 }  // namespace bccoo
 }  // namespace matrix

@@ -448,6 +448,7 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
 
 
+// template <typename ValueType, typename IndexType>
 template <typename ValueType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType>* source,
@@ -486,15 +487,17 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_cols = source->get_size()[1];
         auto num_nonzeros = 0;  // TODO: Also compute and return this value
         matrix::bccoo::compr_idxs idxs = {};
-        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        matrix::bccoo::compr_blk_idxs<size_type> blk_idxs;
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
-                    proc_block_indices(row, col, idxs, blk_idxs);
+                    matrix::bccoo::proc_block_indices<size_type>(row, col, idxs,
+                                                                 blk_idxs);
                     idxs.nblk++;
                     if (idxs.nblk == block_size) {
                         // Counting bytes to write block on result
-                        matrix::bccoo::cnt_block_indices<ValueType>(
+                        matrix::bccoo::cnt_block_indices<size_type, ValueType>(
                             block_size, blk_idxs, idxs);
                         idxs.blk++;
                         idxs.nblk = 0;
@@ -505,8 +508,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            matrix::bccoo::cnt_block_indices<ValueType>(idxs.nblk, blk_idxs,
-                                                        idxs);
+            matrix::bccoo::cnt_block_indices<size_type, ValueType>(
+                idxs.nblk, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
             blk_idxs = {};
@@ -515,6 +518,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
 
 
@@ -576,7 +580,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto block_size = result->get_block_size();
 
         matrix::bccoo::compr_idxs idxs = {};
-        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
+        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         uint8 type_blk = {};
         ValueType val;
 
@@ -591,7 +596,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Analyzing the impact of (row,col,val) in the block
-                    proc_block_indices(row, col, idxs, blk_idxs);
+                    matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
+                                                                 blk_idxs);
                     rows_blk.get_data()[idxs.nblk] = row;
                     cols_blk.get_data()[idxs.nblk] = col;
                     vals_blk.get_data()[idxs.nblk] = source->at(row, col);

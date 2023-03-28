@@ -37,14 +37,17 @@ namespace kernel {
 // Routines for block compression objects
 
 
-template <int subwarp_size = config::warp_size, typename IndexType,
-          typename ValueType, typename Closure>
+// template <int subwarp_size = config::warp_size, typename IndexType,
+template <typename IndexTypeCol, typename IndexType,
+          int subwarp_size = config::warp_size, typename ValueType,
+          typename Closure>
 inline __device__ void loop_block_single_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
-    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
-    const size_type start_in_blk, const size_type jump_in_blk, Closure scale)
+    const size_type c_stride, compr_idxs& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
+    const size_type jump_in_blk, Closure scale)
 {
     ValueType temp_val = zero<ValueType>();
     bool new_value = false;
@@ -55,9 +58,10 @@ inline __device__ void loop_block_single_row(
 
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType>(
-                       chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
+        idxs.col =
+            blk_idxs.col_frs +
+            get_value_chunk<IndexTypeCol>(
+                chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
         val = get_value_chunk<ValueType>(
             chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
@@ -75,14 +79,18 @@ inline __device__ void loop_block_single_row(
 }
 
 
-template <int subwarp_size = config::warp_size, typename IndexTypeRow,
-          typename IndexTypeCol, typename ValueType, typename Closure>
+// template <int subwarp_size = config::warp_size, typename IndexTypeRow,
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          int subwarp_size = config::warp_size, typename ValueType,
+          typename Closure>
+//          typename IndexTypeCol, typename ValueType, typename Closure>
 inline __device__ void loop_block_multi_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
-    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
-    const size_type start_in_blk, const size_type jump_in_blk, Closure scale)
+    const size_type c_stride, compr_idxs& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
+    const size_type jump_in_blk, Closure scale)
 {
     auto next_row = blk_idxs.row_frs;
     auto last_row = blk_idxs.row_frs;
@@ -144,12 +152,13 @@ inline __device__ void loop_block_multi_row(
 }
 
 
-template <typename ValueType>
-// template <typename IndexType, typename ValueType>
+// template <typename ValueType>
+template <typename IndexType, typename ValueType>
 inline __device__ void get_block_position_value(
     // inline GKO_ATTRIBUTES void get_block_position_value(
-    const size_type pos, const uint8* chunk_data, compr_blk_idxs& blk_idxs,
-    size_type& row, size_type& col, ValueType& val)
+    const size_type pos, const uint8* chunk_data,
+    compr_blk_idxs<IndexType>& blk_idxs, size_type& row, size_type& col,
+    ValueType& val)
 {
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
@@ -175,11 +184,11 @@ inline __device__ void get_block_position_value(
 }
 
 
-template <typename ValueType, typename Closure>
-// template <typename IndexType, typename ValueType, typename Closure>
+// template <typename ValueType, typename Closure>
+template <typename IndexType, typename ValueType, typename Closure>
 inline __device__ void get_block_position_value_put(
     // inline GKO_ATTRIBUTES void get_block_position_value_put(
-    const size_type pos, uint8* chunk_data, compr_blk_idxs& blk_idxs,
+    const size_type pos, uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
     size_type& row, size_type& col, ValueType& val, Closure finalize_op)
 {
     row = blk_idxs.row_frs;
@@ -209,15 +218,15 @@ inline __device__ void get_block_position_value_put(
 }
 
 
-template <typename ValueTypeSrc, typename ValueTypeRes,
+template <typename IndexType, typename ValueTypeSrc, typename ValueTypeRes,
           // template <typename IndexType, typename ValueTypeSrc, typename
           // ValueTypeRes,
           typename Closure>
 inline __device__ void get_block_position_value_put(
     // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, const uint8* chunk_data_src,
-    compr_blk_idxs& blk_idxs_src, uint8* chunk_data_res,
-    compr_blk_idxs& blk_idxs_res, size_type& row, size_type& col,
+    compr_blk_idxs<IndexType>& blk_idxs_src, uint8* chunk_data_res,
+    compr_blk_idxs<IndexType>& blk_idxs_res, size_type& row, size_type& col,
     ValueTypeSrc& val, Closure finalize_op)
 {
     row = blk_idxs_src.row_frs;

@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/unaligned_access.hpp"
 #include "core/matrix/bccoo_aux_structs.hpp"
 
+
 namespace gko {
 namespace matrix {
 namespace bccoo {
@@ -365,7 +366,8 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
 
 template <typename IndexType>
 inline void proc_block_indices(const IndexType row, const IndexType col,
-                               const compr_idxs idxs, compr_blk_idxs& blk_idxs)
+                               const compr_idxs idxs,
+                               compr_blk_idxs<IndexType>& blk_idxs)
 {
     if (idxs.nblk == 0) {
         blk_idxs = {};
@@ -387,9 +389,10 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
 }
 
 
-template <typename ValueType>
+template <typename IndexType, typename ValueType>
 inline void cnt_block_indices(const size_type block_size,
-                              const compr_blk_idxs blk_idxs, compr_idxs& idxs)
+                              const compr_blk_idxs<IndexType> blk_idxs,
+                              compr_idxs& idxs)
 {
     if (blk_idxs.row_dif > 0) {
         idxs.shf +=
@@ -408,8 +411,9 @@ inline void cnt_block_indices(const size_type block_size,
 
 template <typename IndexType, typename ValueType>
 inline void get_block_position_value(const uint8* chunk_data,
-                                     compr_blk_idxs& blk_idxs, size_type& row,
-                                     size_type& col, ValueType& val)
+                                     compr_blk_idxs<IndexType>& blk_idxs,
+                                     size_type& row, size_type& col,
+                                     ValueType& val)
 {
     row = blk_idxs.row_frs;
     col = blk_idxs.col_frs;
@@ -439,7 +443,7 @@ inline void get_block_position_value(const uint8* chunk_data,
 
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data,
-                                         compr_blk_idxs& blk_idxs,
+                                         compr_blk_idxs<IndexType>& blk_idxs,
                                          size_type& row, size_type& col,
                                          ValueType& val, Callable finalize_op)
 {
@@ -472,7 +476,8 @@ inline void get_block_position_value_put(uint8* chunk_data,
 
 
 template <typename IndexType, typename ValueType>
-inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
+inline uint8 write_chunk_blk_type(compr_idxs& idxs,
+                                  compr_blk_idxs<IndexType> blk_idxs,
                                   array<IndexType> rows_blk,
                                   array<IndexType> cols_blk,
                                   array<ValueType> vals_blk, uint8* chunk_data)
@@ -528,11 +533,13 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
 }
 
 // #define NO_COMPACT
-template <typename ValueType_src, typename ValueType_res, typename Callable>
-inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
+template <typename IndexType, typename ValueType_src, typename ValueType_res,
+          typename Callable>
+inline void write_chunk_blk(compr_idxs& idxs_src,
+                            compr_blk_idxs<IndexType> blk_idxs_src,
                             const size_type block_size_local_src,
                             const uint8* chunk_data_src, compr_idxs& idxs_res,
-                            compr_blk_idxs blk_idxs_res,
+                            compr_blk_idxs<IndexType> blk_idxs_res,
                             const size_type block_size_local_res,
                             uint8* chunk_data_res, Callable finalize_op)
 {
