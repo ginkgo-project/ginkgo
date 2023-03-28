@@ -77,7 +77,6 @@ void restrict_residual2(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto non_local_to_local_data = non_local_to_local.get_const_data();
     auto global_to_recv_data = global_to_recv_buffer.get_const_data();
-    auto non_local_idxs_data = non_local_idxs.get_const_data();
     auto recv_data = recv_buffer.get_const_data();
 
     for (auto i = 0; i < non_local_to_local.get_num_elems(); i++) {
@@ -165,6 +164,62 @@ void prolong_coarse_solution(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PROLONG_COARSE_SOLUTION);
+
+
+template <typename ValueType, typename IndexType>
+void finalize1(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ValueType>* coarse_solution,
+               const matrix::Diagonal<ValueType>* weights,
+               const array<IndexType>& recv_to_local,
+               const array<IndexType>& non_local_to_local,
+               array<ValueType>& recv_buffer,
+               matrix::Dense<ValueType>* local_solution)
+{
+    auto num_rows = coarse_solution->get_size()[0];
+    auto w = weights->get_const_values();
+    auto non_local_to_local_data = non_local_to_local.get_const_data();
+    auto recv_to_local_data = recv_to_local.get_const_data();
+    auto recv_data = recv_buffer.get_data();
+
+    for (auto i = 0; i < num_rows; i++) {
+        local_solution->at(i, 0) =
+            w[i] * (local_solution->at(i, 0) + coarse_solution->at(i, 0));
+    }
+
+    for (auto i = 0; i < non_local_to_local.get_num_elems(); i++) {
+        recv_data[recv_to_local_data[i]] =
+            local_solution->at(non_local_to_local_data[i], 0);
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE1);
+
+
+template <typename ValueType, typename IndexType>
+void finalize2(std::shared_ptr<const DefaultExecutor> exec,
+               const array<ValueType>& send_buffer,
+               const array<IndexType>& local_to_send_buffer,
+               const array<IndexType>& local_to_local,
+               matrix::Dense<ValueType>* local_solution,
+               ValueType* global_solution)
+{
+    auto num_rows = local_to_local.get_num_elems();
+    auto send_data = send_buffer.get_const_data();
+    auto local_to_send_data = local_to_send_buffer.get_const_data();
+    auto local_to_local_data = local_to_local.get_const_data();
+
+    for (auto i = 0; i < send_buffer.get_num_elems(); i++) {
+        local_solution->at(local_to_send_data[i], 0) += send_data[i];
+    }
+
+    for (auto i = 0; i < num_rows; i++) {
+        global_solution[i] = local_solution->at(local_to_local_data[i], 0);
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE2);
 
 
 }  // namespace distributed_bddc

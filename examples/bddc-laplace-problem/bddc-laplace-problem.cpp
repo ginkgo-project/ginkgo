@@ -333,11 +333,13 @@ int main(int argc, char* argv[])
                 (i == r_x && j == 0) || (i == r_x && j == r_y)) {
                 continue;
             }
+            if (std::min(i * elems_per_rank_x, grid_dim) == grid_dim ||
+                std::min(j * elems_per_rank_y, grid_dim) == grid_dim) {
+                continue;
+            }
             GlobalIndexType corner =
                 std::min(i * elems_per_rank_x, grid_dim) +
                 grid_dim * (std::min(j * elems_per_rank_y, grid_dim));
-            std::cout << "Corner: " << corner << ", i: " << i << ", j: " << j
-                      << std::endl;
             interface_dofs.emplace_back(
                 std::vector<GlobalIndexType>(1, corner));
             std::vector<GlobalIndexType> ranks{};
@@ -451,19 +453,30 @@ int main(int argc, char* argv[])
                     .with_reduction_factor(1e-6)
                     .on(exec))
             .on(exec));
-    auto Ainv = cg::build()
-                    .with_preconditioner(
-                        bddc::build()
-                            .with_interface_dofs(interface_dofs)
-                            .with_interface_dof_ranks(interface_dof_ranks)
-                            .with_local_solver_factory(gmres_factory)
-                            .with_schur_complement_solver_factory(gmres_factory)
-                            .with_inner_solver_factory(cg_factory)
-                            .with_coarse_solver_factory(gmres_factory)
-                            .on(exec))
-                    .with_criteria(tol_stop, iter_stop)
-                    .on(exec)
-                    ->generate(A);
+    auto direct_factory = gko::share(
+        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<ValueType,
+                                                     LocalIndexType>::build()
+                    .with_symmetric_sparsity(true)
+                    .on(exec))
+            .on(exec));
+    auto Ainv =
+        cg::build()
+            .with_preconditioner(
+                bddc::build()
+                    .with_interface_dofs(interface_dofs)
+                    .with_interface_dof_ranks(interface_dof_ranks)
+                    .with_local_solver_factory(
+                        direct_factory)  // gmres_factory)
+                    .with_schur_complement_solver_factory(
+                        direct_factory)  // gmres_factory)
+                    .with_inner_solver_factory(direct_factory)  // cg_factory)
+                    .with_coarse_solver_factory(gmres_factory)
+                    .on(exec))
+            .with_criteria(tol_stop, iter_stop)
+            .on(exec)
+            ->generate(A);
     /*auto Ainv = bddc::build()
         .with_local_solver_factory(gmres_factory)
         .with_schur_complement_solver_factory(gmres_factory)

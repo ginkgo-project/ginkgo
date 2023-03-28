@@ -93,6 +93,22 @@ namespace kernels {
         const matrix::Dense<ValueType>* non_local,                \
         matrix::Dense<ValueType>* local_intermediate)
 
+#define GKO_DECLARE_FINALIZE1(ValueType, IndexType)                 \
+    void finalize1(std::shared_ptr<const DefaultExecutor> exec,     \
+                   const matrix::Dense<ValueType>* coarse_solution, \
+                   const matrix::Diagonal<ValueType>* weights,      \
+                   const array<IndexType>& recv_to_local,           \
+                   const array<IndexType>& non_local_to_local,      \
+                   array<ValueType>& recv_buffer,                   \
+                   matrix::Dense<ValueType>* local_solution)
+
+#define GKO_DECLARE_FINALIZE2(ValueType, IndexType)              \
+    void finalize2(std::shared_ptr<const DefaultExecutor> exec,  \
+                   const array<ValueType>& send_buffer,          \
+                   const array<IndexType>& local_to_send_buffer, \
+                   const array<IndexType>& local_to_local,       \
+                   matrix::Dense<ValueType>* local_solution,     \
+                   ValueType* global_solution)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
@@ -105,7 +121,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_COARSEN_RESIDUAL2(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_PROLONG_COARSE_SOLUTION(ValueType, IndexType)
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FINALIZE1(ValueType, IndexType);                        \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FINALIZE2(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_bddc,

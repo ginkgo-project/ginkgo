@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <map>
+#include <set>
 
 
 #if GINKGO_BUILD_MPI
@@ -149,6 +150,8 @@ public:
          */
         std::vector<std::vector<index_type>> GKO_FACTORY_PARAMETER_VECTOR(
             interface_dof_ranks, 0);
+
+        std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs, {});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -252,10 +255,10 @@ private:
     std::shared_ptr<vec_type> one_op_;
     std::shared_ptr<vec_type> neg_one_op_;
     std::shared_ptr<vec_type> host_residual_;
-    mutable std::vector<comm_index_type> send_sizes_;
-    mutable std::vector<comm_index_type> send_offsets_;
-    mutable std::vector<comm_index_type> recv_sizes_;
-    mutable std::vector<comm_index_type> recv_offsets_;
+    mutable array<comm_index_type> send_sizes_;
+    mutable array<comm_index_type> send_offsets_;
+    mutable array<comm_index_type> recv_sizes_;
+    mutable array<comm_index_type> recv_offsets_;
     mutable std::vector<comm_index_type> coarse_send_sizes_;
     mutable std::vector<comm_index_type> coarse_send_offsets_;
     mutable std::vector<comm_index_type> coarse_recv_sizes_;
@@ -280,6 +283,7 @@ private:
     array<index_type> coarse_non_local_to_global_;
     std::shared_ptr<vec_type> nonlocal_;
     array<IndexType> coarse_local_to_non_local_;
+    std::vector<IndexType> dbcs_;
 };
 
 

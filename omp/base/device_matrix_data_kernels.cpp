@@ -177,6 +177,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
 
 
+template <typename ValueType>
+void scale(std::shared_ptr<const DefaultExecutor> exec, ValueType s,
+           array<ValueType>& values)
+{
+    auto nnz = values.get_num_elems();
+#pragma omp parallel for
+    for (size_type i = 0; i < nnz; i++) {
+        values.get_data()[i] *= s;
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SCALE_KERNEL);
+
+
 }  // namespace components
 }  // namespace omp
 }  // namespace kernels

@@ -503,6 +503,13 @@ struct matrix_data {
             end(nonzeros));
     }
 
+    void scale(ValueType s)
+    {
+        for (auto entry : nonzeros) {
+            entry.value *= s;
+        }
+    }
+
     /**
      * Sum up all values that refer to the same matrix entry.
      * The result is sorted in row-major order.

@@ -42,13 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/tuple.h>
 
 
+#include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace components {
+
+
+constexpr int default_block_size = 512;
 
 
 #include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"

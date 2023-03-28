@@ -51,6 +51,7 @@ GKO_REGISTER_OPERATION(soa_to_aos, components::soa_to_aos);
 GKO_REGISTER_OPERATION(remove_zeros, components::remove_zeros);
 GKO_REGISTER_OPERATION(sum_duplicates, components::sum_duplicates);
 GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
+GKO_REGISTER_OPERATION(scale, components::scale);
 
 
 }  // anonymous namespace
@@ -158,6 +159,13 @@ device_matrix_data<ValueType, IndexType>::empty_out()
                   std::move(values_)};
     size_ = {};
     return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::scale(ValueType s)
+{
+    this->values_.get_executor()->run(components::make_scale(s, this->values_));
 }
 
 
