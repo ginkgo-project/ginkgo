@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 #include "core/distributed/helpers.hpp"
@@ -103,12 +104,10 @@ void Cg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-template <typename VectorType>
-void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                     VectorType* dense_x) const
+void Cg<ValueType>::apply_dense_impl(const matrix::MultiVector* dense_b,
+                                     matrix::MultiVector* dense_x) const
 {
     using std::swap;
-    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 

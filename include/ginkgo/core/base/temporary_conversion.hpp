@@ -174,9 +174,8 @@ struct conversion_helper {
         if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
-            auto converted = conversion_target_helper<
-                std::remove_cv_t<TargetType>>::create_empty(cast_obj);
-            cast_obj->convert_to(converted);
+            auto converted =
+                cast_obj->create_converted(static_cast<TargetType*>(nullptr));
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
                 std::is_base_of<ConvertibleTo<std::remove_cv_t<TargetType>>,
