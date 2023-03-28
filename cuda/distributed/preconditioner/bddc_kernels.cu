@@ -33,73 +33,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/preconditioner/bddc_kernels.hpp"
 
 
+#include <ginkgo/core/base/math.hpp>
+
+
+#include "cuda/base/config.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace distributed_bddc {
 
 
-template <typename ValueType, typename IndexType>
-void restrict_residual1(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* global_residual,
-    const array<IndexType>& local_to_local,
-    const array<IndexType>& local_to_send_buffer,
-    const matrix::Diagonal<ValueType>* weights, array<ValueType>& send_buffer,
-    matrix::Dense<ValueType>* local_residual) GKO_NOT_IMPLEMENTED;
+constexpr int default_block_size = 512;
 
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL1);
-
-
-template <typename ValueType, typename IndexType>
-void restrict_residual2(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const array<IndexType>& non_local_to_local,
-    const array<IndexType>& global_to_recv_buffer,
-    const array<IndexType>& non_local_idxs, const array<ValueType>& recv_buffer,
-    matrix::Dense<ValueType>* local_residual) GKO_NOT_IMPLEMENTED;
-
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RESTRICT_RESIDUAL2);
-
-
-template <typename ValueType, typename IndexType>
-void coarsen_residual1(std::shared_ptr<const DefaultExecutor> exec,
-                       const array<IndexType>& coarse_local_to_local,
-                       const array<IndexType>& coarse_local_to_send,
-                       const matrix::Dense<ValueType>* local_coarse_residual,
-                       array<ValueType>& coarse_send_buffer,
-                       ValueType* coarse_residual,
-                       ValueType* coarse_solution) GKO_NOT_IMPLEMENTED;
-
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL1);
-
-
-template <typename ValueType, typename IndexType>
-void coarsen_residual2(std::shared_ptr<const DefaultExecutor> exec,
-                       const array<IndexType>& coarse_recv_to_local,
-                       const array<ValueType>& coarse_recv_buffer,
-                       ValueType* coarse_residual) GKO_NOT_IMPLEMENTED;
-
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSEN_RESIDUAL2);
-
-
-template <typename ValueType, typename IndexType>
-void prolong_coarse_solution(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const array<IndexType>& coarse_local_to_local,
-    const matrix::Dense<ValueType>* coarse_solution_local,
-    const array<IndexType>& coarse_non_local_to_local,
-    const array<IndexType>& coarse_local_to_non_local,
-    const matrix::Dense<ValueType>* non_local,
-    matrix::Dense<ValueType>* local_intermediate) GKO_NOT_IMPLEMENTED;
-
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PROLONG_COARSE_SOLUTION);
+#include "common/cuda_hip/distributed/preconditioner/bddc_kernels.hpp.inc"
 
 
 }  // namespace distributed_bddc

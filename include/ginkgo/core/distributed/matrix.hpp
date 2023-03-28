@@ -488,6 +488,8 @@ public:
         return non_local_to_global_;
     }
 
+    void scale_mat_data(ValueType s) { matrix_data_.scale(s); }
+
 protected:
     /**
      * Creates an empty distributed matrix.

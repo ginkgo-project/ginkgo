@@ -262,6 +262,8 @@ public:
      */
     arrays empty_out();
 
+    void scale(ValueType s);
+
 private:
     dim<2> size_;
     array<index_type> row_idxs_;

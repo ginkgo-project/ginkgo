@@ -102,6 +102,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PROLONG_COARSE_SOLUTION);
 
 
+template <typename ValueType, typename IndexType>
+void finalize1(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ValueType>* coarse_solution,
+               const matrix::Diagonal<ValueType>* weights,
+               const array<IndexType>& recv_to_local,
+               const array<IndexType>& non_local_to_local,
+               array<ValueType>& recv_buffer,
+               matrix::Dense<ValueType>* local_solution) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE1);
+
+
+template <typename ValueType, typename IndexType>
+void finalize2(std::shared_ptr<const DefaultExecutor> exec,
+               const array<ValueType>& send_buffer,
+               const array<IndexType>& local_to_send_buffer,
+               const array<IndexType>& local_to_local,
+               matrix::Dense<ValueType>* local_solution,
+               ValueType* global_solution) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE2);
+
+
 }  // namespace distributed_bddc
 }  // namespace omp
 }  // namespace kernels
