@@ -17,9 +17,9 @@ target_sources(ginkgo_dpcpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
+    factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
     factorization/lu_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
@@ -30,12 +30,17 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
+    matrix/batch_csr_kernels.dp.cpp
+    matrix/batch_dense_kernels.dp.cpp
+    matrix/batch_dense_kernels.dp.cpp
+    matrix/batch_diagonal_kernels.dp.cpp
+    matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
-    matrix/fbcsr_kernels.dp.cpp
     matrix/dense_kernels.dp.cpp
     matrix/diagonal_kernels.dp.cpp
     matrix/ell_kernels.dp.cpp
+    matrix/fbcsr_kernels.dp.cpp
     matrix/fft_kernels.dp.cpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp

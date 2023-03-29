@@ -23,6 +23,10 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
+    matrix/batch_csr_kernels.hip.cpp
+    matrix/batch_diagonal_kernels.hip.cpp
+    matrix/batch_dense_kernels.hip.cpp
+    matrix/batch_ell_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp

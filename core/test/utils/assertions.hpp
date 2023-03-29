@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <initializer_list>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 
 #include <gtest/gtest.h>
@@ -51,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -311,7 +313,90 @@ double get_relative_error(const MatrixData1& first, const MatrixData2& second)
     if (first_norm == 0.0 && second_norm == 0.0) {
         first_norm = 1.0;
     }
-    return sqrt(diff / std::max(first_norm, second_norm));
+    return sqrt(diff) / sqrt(std::max(first_norm, second_norm));
+}
+
+
+template <typename MatrixData1, typename MatrixData2>
+::testing::AssertionResult batch_matrices_near_impl(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const MatrixData1& first,
+    const MatrixData2& second, double tolerance)
+{
+    std::vector<double> err;
+    std::vector<bool> err_flag;
+    for (size_type b = 0; b < first.size(); ++b) {
+        auto num_rows = first[b].size[0];
+        auto num_cols = first[b].size[1];
+        if (num_rows != second[b].size[0] || num_cols != second[b].size[1]) {
+            return ::testing::AssertionFailure()
+                   << "Expected matrices of equal size\n\t" << first_expression
+                   << " is of size [" << num_rows << " x " << num_cols
+                   << "]\n\t" << second_expression << " is of size ["
+                   << second[b].size[0] << " x " << second[b].size[1] << "]"
+                   << " for batch " << b;
+        }
+
+        err.push_back(detail::get_relative_error(first[b], second[b]));
+        err_flag.push_back(err.back() <= tolerance);
+    }
+
+    auto bat = std::find_if(err.begin(), err.end(),
+                            [&](double& e) { return !(e <= tolerance); });
+    if (bat == err.end()) {
+        return ::testing::AssertionSuccess();
+    } else {
+        const auto b_pos = static_cast<ptrdiff_t>(bat - err.begin());
+        auto num_rows = first[b_pos].size[0];
+        auto num_cols = first[b_pos].size[1];
+        auto fail = ::testing::AssertionFailure();
+        fail << "Error for batch: " << b_pos << "\n Relative error between "
+             << first_expression << " and " << second_expression << " is "
+             << err[b_pos] << "\n"
+             << "\twhich is larger than " << tolerance_expression
+             << " (which is " << tolerance << ")\n";
+        if (num_rows * num_cols <= 1000) {
+            fail << first_expression << " is:\n";
+            detail::print_matrix(fail, first[b_pos]);
+            fail << second_expression << " is:\n";
+            detail::print_matrix(fail, second[b_pos]);
+            fail << "component-wise relative error is:\n";
+            detail::print_componentwise_error(fail, first[b_pos],
+                                              second[b_pos]);
+        } else {
+            // build output filenames
+            auto test_case_info =
+                ::testing::UnitTest::GetInstance()->current_test_info();
+            auto testname =
+                test_case_info ? std::string{test_case_info->test_case_name()} +
+                                     "." + test_case_info->name()
+                               : std::string{"null"};
+            auto firstfile = testname + "." + first_expression + ".mtx";
+            auto secondfile = testname + "." + second_expression + ".mtx";
+            auto to_remove = [](char c) {
+                return !std::isalnum(c) && c != '_' && c != '.' && c != '-' &&
+                       c != '<' && c != '>';
+            };
+            // remove all but alphanumerical and _.-<> characters from
+            // expressions
+            firstfile.erase(
+                std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
+                firstfile.end());
+            secondfile.erase(
+                std::remove_if(secondfile.begin(), secondfile.end(), to_remove),
+                secondfile.end());
+            // save matrices
+            std::ofstream first_stream{firstfile};
+            gko::write_raw(first_stream, first[b_pos],
+                           gko::layout_type::coordinate);
+            std::ofstream second_stream{secondfile};
+            gko::write_raw(second_stream, second[b_pos],
+                           gko::layout_type::coordinate);
+            fail << first_expression << " saved as " << firstfile << "\n";
+            fail << second_expression << " saved as " << secondfile << "\n";
+        }
+        return fail;
+    }
 }
 
 
@@ -621,6 +706,83 @@ template <>
  *                     first, second, tolerance);
  * ```
  *
+ * @see GKO_ASSERT_BATCH_MTX_NEAR
+ * @see GKO_EXPECT_BATCH_MTX_NEAR
+ */
+template <typename LinOp1, typename LinOp2>
+::testing::AssertionResult batch_matrices_near(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
+    const LinOp2* second, double tolerance)
+{
+    auto exec = first->get_executor()->get_master();
+    std::vector<
+        matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>>
+        first_data;
+    std::vector<
+        matrix_data<typename LinOp2::value_type, typename LinOp2::index_type>>
+        second_data;
+
+    first->write(first_data);
+    second->write(second_data);
+
+    if (first_data.size() != second_data.size()) {
+        return ::testing::AssertionFailure()
+               << "Expected same batch sizes for " << first_expression
+               << " and " << second_expression << ", but got batch size "
+               << first_data.size() << " for " << first_expression
+               << " and batch size " << second_data.size() << " for "
+               << second_expression;
+    }
+
+    for (size_type b = 0; b < first_data.size(); ++b) {
+        first_data[b].ensure_row_major_order();
+        second_data[b].ensure_row_major_order();
+    }
+
+    return detail::batch_matrices_near_impl(
+        detail::remove_pointer_wrapper(first_expression),
+        detail::remove_pointer_wrapper(second_expression), tolerance_expression,
+        first_data, second_data, tolerance);
+}
+
+
+template <typename LinOp1, typename T>
+::testing::AssertionResult batch_matrices_near(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
+    std::initializer_list<std::initializer_list<T>> second, double tolerance)
+{
+    auto second_mtx =
+        batch_initialize<matrix::BatchDense<detail::remove_container<T>>>(
+            second, first->get_executor()->get_master());
+    return batch_matrices_near(
+        first_expression, detail::remove_list_wrapper(second_expression),
+        tolerance_expression, first, second_mtx.get(), tolerance);
+}
+
+
+/**
+ * This is a gtest predicate which checks if two matrices are relatively near.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||first - second|| <= tolerance * max(||first||, ||second||)
+ * ```
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * ```
+ *
  * @see GKO_ASSERT_MTX_NEAR
  * @see GKO_EXPECT_MTX_NEAR
  */
@@ -857,6 +1019,15 @@ namespace detail {
 
 
 template <typename T>
+const std::initializer_list<std::initializer_list<std::initializer_list<T>>>&
+l(const std::initializer_list<std::initializer_list<std::initializer_list<T>>>&
+      list)
+{
+    return list;
+}
+
+
+template <typename T>
 const std::initializer_list<std::initializer_list<T>>& l(
     const std::initializer_list<std::initializer_list<T>>& list)
 {
@@ -937,6 +1108,44 @@ T* plain_ptr(T* ptr)
     {                                                                    \
         EXPECT_PRED_FORMAT3(::gko::test::assertions::values_near, _val1, \
                             _val2, _tol);                                \
+    }
+
+
+/**
+ * Checks if two batched matrices are near each other.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||_mtx1 - _mtx2|| <= _tol * max(||_mtx1||, ||_mtx2||)
+ * ```
+ * for all batches
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::batch_matrices_near().
+ *
+ * @param _mtx1  first matrix
+ * @param _mtx2  second matrix
+ * @param _tol  tolerance level
+ */
+#define GKO_ASSERT_BATCH_MTX_NEAR(_mtx1, _mtx2, _tol)                     \
+    {                                                                     \
+        using ::gko::test::assertions::detail::l;                         \
+        using ::gko::test::assertions::detail::plain_ptr;                 \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::batch_matrices_near, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);    \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_MTX_NEAR
+ */
+#define GKO_EXPECT_BATCH_MTX_NEAR(_mtx1, _mtx2, _tol)                     \
+    {                                                                     \
+        using ::gko::test::assertions::detail::l;                         \
+        using ::gko::test::assertions::detail::plain_ptr;                 \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::batch_matrices_near, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);    \
     }
 
 
@@ -1051,6 +1260,19 @@ T* plain_ptr(T* ptr)
     {                                                                     \
         ASSERT_PRED_FORMAT2(::gko::test::assertions::str_contains, _str1, \
                             _str2);                                       \
+    }
+
+
+/**
+ * Throws an error if a positive numerical value is too close to zero.
+ */
+#define GKO_ASSERT_AWAY_FROM_ZERO(_val, _tolerance)                            \
+    {                                                                          \
+        if ((_val) < (_tolerance)) {                                           \
+            throw gko::Error(                                                  \
+                __FILE__, __LINE__,                                            \
+                "Value " + std::to_string(_val) + " is too close to zero!\n"); \
+        }                                                                      \
     }
 
 

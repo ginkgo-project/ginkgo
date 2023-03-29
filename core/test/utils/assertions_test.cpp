@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -140,6 +142,109 @@ TEST_F(MatricesNear, CanPassInitializerList)
 {
     GKO_EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
     GKO_ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+}
+
+
+class BatchMatricesNear : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::BatchDense<>;
+    using Sparse = gko::matrix::BatchCsr<>;
+
+    template <typename Type, std::size_t size>
+    gko::array<Type> make_view(std::array<Type, size>& array)
+    {
+        return gko::array<Type>::view(exec, size, array.data());
+    }
+
+    BatchMatricesNear()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx1(gko::batch_initialize<Mtx>(
+              num_batch, {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
+          mtx2(gko::batch_initialize<Mtx>(
+              num_batch, {{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
+          mtx3(gko::batch_initialize<Mtx>(
+              num_batch, {{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec)),
+          mtx3b(gko::batch_initialize<Mtx>({{{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}},
+                                            {{1.0, 2.0, 3.0}, {0.0, 4.2, 0.0}}},
+                                           exec)),
+          mtx4(gko::batch_initialize<Mtx>(
+              num_batch, {{1.0, 2.0, 3.0}, {4.0, 0.0, 0.0}}, exec)),
+          mtx1_vals({1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0}),
+          mtx2_vals({1.0, 2.0, 3.0, 4.0, 4.0, 1.0, 2.0, 3.0, 4.0, 4.0}),
+          mtx3_vals({1.0, 2.0, 3.0, 4.1, 1.0, 2.0, 3.0, 4.1}),
+          mtx3b_vals({1.0, 2.0, 3.0, 4.1, 1.0, 2.0, 3.0, 4.2}),
+          mtx4_vals({1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0})
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    const gko::size_type num_batch = 2;
+    std::unique_ptr<Mtx> mtx1;
+    std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> mtx3;
+    std::unique_ptr<Mtx> mtx3b;
+    std::unique_ptr<Mtx> mtx4;
+    std::array<Sparse::value_type, 8> mtx1_vals;
+    std::array<Sparse::value_type, 10> mtx2_vals;
+    std::array<Sparse::value_type, 8> mtx3_vals;
+    std::array<Sparse::value_type, 8> mtx3b_vals;
+    std::array<Sparse::value_type, 8> mtx4_vals;
+};
+
+
+TEST_F(BatchMatricesNear, SuceedsIfSame)
+{
+    ASSERT_PRED_FORMAT3(gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx1.get(), 0.0);
+}
+
+
+TEST_F(BatchMatricesNear, FailsIfDifferent)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx2.get(), 0.0);
+}
+
+
+TEST_F(BatchMatricesNear, FailsIfOnlySparsityIsDifferent)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx4.get(), 0.0);
+}
+
+
+TEST_F(BatchMatricesNear, FailsIfDifferentBatchIsDifferent)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx3.get(),
+                        mtx3b.get(), 0.0);
+}
+
+
+TEST_F(BatchMatricesNear, SucceedsIfClose)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx3.get(), 0.0);
+    ASSERT_PRED_FORMAT3(gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx3.get(), 0.1);
+}
+
+
+TEST_F(BatchMatricesNear, CanUseShortNotation)
+{
+    GKO_EXPECT_BATCH_MTX_NEAR(mtx1, mtx1, 0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx1, mtx3, 0.1);
+}
+
+
+TEST_F(BatchMatricesNear, CanPassInitializerList)
+{
+    GKO_EXPECT_BATCH_MTX_NEAR(mtx1,
+                              l({{{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}},
+                                 {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}}),
+                              0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx1,
+                              l({{{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}},
+                                 {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}}),
+                              0.0);
 }
 
 

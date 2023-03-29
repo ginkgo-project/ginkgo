@@ -1,5 +1,6 @@
 ginkgo_create_test(array_generator_test)
 ginkgo_create_test(assertions_test)
+ginkgo_create_test(batch_test)
 ginkgo_create_test(matrix_generator_test)
 ginkgo_create_test(matrix_utils_test)
 ginkgo_create_test(fb_matrix_generator_test)
