@@ -55,15 +55,16 @@ namespace bccoo {
 // Routines for block compression objects
 
 
-template <int subgroup_size = config::warp_size, typename IndexType,
-          typename ValueType, typename Closure>
+template <typename IndexTypeCol, typename IndexType,
+          int subgroup_size = config::warp_size, typename ValueType,
+          typename Closure>
 inline GKO_ATTRIBUTES void loop_block_single_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
-    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
-    const size_type start_in_blk, const size_type jump_in_blk, Closure scale,
-    sycl::nd_item<3> item_ct1)
+    const size_type c_stride, compr_idxs<IndexType>& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
+    const size_type jump_in_blk, Closure scale, sycl::nd_item<3> item_ct1)
 {
     ValueType temp_val = zero<ValueType>();
     bool new_value = false;
@@ -74,9 +75,10 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
 
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        idxs.col = blk_idxs.col_frs +
-                   get_value_chunk<IndexType>(
-                       chunk_data, blk_idxs.shf_col + pos * sizeof(IndexType));
+        idxs.col =
+            blk_idxs.col_frs +
+            get_value_chunk<IndexTypeCol>(
+                chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
         val = get_value_chunk<ValueType>(
             chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
@@ -93,15 +95,16 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
 }
 
 
-template <int subgroup_size = config::warp_size, typename IndexTypeRow,
-          typename IndexTypeCol, typename ValueType, typename Closure>
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          int subgroup_size = config::warp_size, typename ValueType,
+          typename Closure>
 inline GKO_ATTRIBUTES void loop_block_multi_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
-    const size_type c_stride, compr_idxs& idxs, compr_blk_idxs& blk_idxs,
-    const size_type start_in_blk, const size_type jump_in_blk, Closure scale,
-    sycl::nd_item<3> item_ct1)
+    const size_type c_stride, compr_idxs<IndexType>& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
+    const size_type jump_in_blk, Closure scale, sycl::nd_item<3> item_ct1)
 {
     auto next_row = blk_idxs.row_frs;
     auto last_row = blk_idxs.row_frs;

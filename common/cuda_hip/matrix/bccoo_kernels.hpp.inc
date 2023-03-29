@@ -85,11 +85,13 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
 
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs idxs = {};
+        // compr_idxs idxs = {};
+        // compr_idxs<IndexType> idxs;
+        // idxs.blk = blk;
+        // idxs.shf = offsets_data[blk];
+        // idxs.row = rows_data[blk];
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
         //        compr_blk_idxs blk_idxs = {};
-        idxs.blk = blk;
-        idxs.shf = offsets_data[blk];
-        idxs.row = rows_data[blk];
         //        init_block_indices(rows_data, cols_data, block_size_local,
         //        idxs,
         //                           types_data[blk], blk_idxs);
@@ -244,11 +246,12 @@ __device__ void extract_kernel(const size_type nnz, const size_type num_blks,
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs idxs = {};
+        // compr_idxs idxs = {};
+        // compr_idxs<IndexType> idxs;
+        // idxs.blk = blk;
+        // idxs.shf = offsets_data[blk];
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         //        compr_blk_idxs blk_idxs = {};
-
-        idxs.blk = blk;
-        idxs.shf = offsets_data[blk];
         //        init_block_indices(rows_data, cols_data, block_size_local,
         //        idxs,
         //                           types_data[blk], blk_idxs);
@@ -258,10 +261,11 @@ __device__ void extract_kernel(const size_type nnz, const size_type num_blks,
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                //                get_block_position_value<IndexType,
-                //                ValueType>(
+                // get_block_position_value<IndexType,ValueType>(
                 get_block_position_value<IndexType, ValueType>(
-                    pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    pos, chunk_data, blk_idxs, idxs, val);
+                //                    pos, chunk_data, blk_idxs, idxs.row,
+                //                    idxs.col, val);
                 if (idxs.row == idxs.col) diag[idxs.col] = val;
             }
         }
@@ -318,11 +322,12 @@ __device__ void absolute_inplace_kernel(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs idxs = {};
+        // compr_idxs idxs = {};
+        // compr_idxs<IndexType> idxs;
+        // idxs.blk = blk;
+        // idxs.shf = offsets_data[blk];
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         //        compr_blk_idxs blk_idxs = {};
-
-        idxs.blk = blk;
-        idxs.shf = offsets_data[blk];
         //        init_block_indices(rows_data, cols_data, block_size_local,
         //        idxs,
         //                           types_data[blk], blk_idxs);
@@ -332,10 +337,11 @@ __device__ void absolute_inplace_kernel(
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                //                get_block_position_value_put<IndexType,
-                //                ValueType, Closure>(
+                // get_block_position_value_put<IndexType,ValueType, Closure>(
                 get_block_position_value_put<IndexType, ValueType, Closure>(
-                    pos, chunk_data, blk_idxs, idxs.row, idxs.col, val,
+                    pos, chunk_data, blk_idxs, idxs, val,
+                    //                    pos, chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val,
                     comp_abs);
             }
         }
@@ -411,10 +417,12 @@ __device__ void absolute_kernel(
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
 
-        compr_idxs idxs_src = {};
+        // compr_idxs idxs_src = {};
+        // compr_idxs<IndexType> idxs_src;
+        // idxs_src.blk = blk;
+        // idxs_src.shf = offsets_data_src[blk];
+        compr_idxs<IndexType> idxs_src(blk, offsets_data_src[blk]);
         //        compr_blk_idxs blk_idxs_src = {};
-        idxs_src.blk = blk;
-        idxs_src.shf = offsets_data_src[blk];
         //        init_block_indices(rows_data_src, cols_data_src,
         //        block_size_local,
         //                           idxs_src, types_data_src[blk],
@@ -433,10 +441,12 @@ __device__ void absolute_kernel(
                  : (blk - 1) * block_size *
                        (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
 
-        compr_idxs idxs_res = {};
+        // compr_idxs idxs_res = {};
+        // compr_idxs<IndexType> idxs_res;
+        // idxs_res.blk = blk;
+        // idxs_res.shf = offsets_data_res[blk];
+        compr_idxs<IndexType> idxs_res(blk, offsets_data_res[blk]);
         //        compr_blk_idxs blk_idxs_res = {};
-        idxs_res.blk = blk;
-        idxs_res.shf = offsets_data_res[blk];
         //        init_block_indices(rows_data_res, cols_data_res,
         //        block_size_local,
         //                           idxs_res, types_data_res[blk],
@@ -453,11 +463,13 @@ __device__ void absolute_kernel(
             if (pos < block_size_local) {
                 ValueType val;
                 get_block_position_value_put<
-                    //                    IndexType, ValueType,
-                    //                    remove_complex<ValueType>, Closure>(
+                    // IndexType, ValueType,
+                    // remove_complex<ValueType>, Closure>(
                     IndexType, ValueType, remove_complex<ValueType>, Closure>(
                     pos, chunk_data_src, blk_idxs_src, chunk_data_res,
-                    blk_idxs_res, idxs_src.row, idxs_src.col, val, comp_abs);
+                    blk_idxs_res, idxs_src, val, comp_abs);
+                //                    blk_idxs_res, idxs_src.row, idxs_src.col,
+                //                    val, comp_abs);
             }
         }
     }
@@ -543,11 +555,12 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs idxs = {};
+        // compr_idxs idxs = {};
+        // compr_idxs<IndexType> idxs;
+        // idxs.blk = blk;
+        // idxs.shf = offsets_data[blk];
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         //        compr_blk_idxs blk_idxs = {};
-
-        idxs.blk = blk;
-        idxs.shf = offsets_data[blk];
         //        init_block_indices(rows_data, cols_data, block_size_local,
         //        idxs,
         //                           types_data[blk], blk_idxs);
@@ -557,10 +570,11 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                //                get_block_position_value<IndexType,
-                //                ValueType>(
+                // get_block_position_value<IndexType,ValueType>(
                 get_block_position_value<IndexType, ValueType>(
-                    pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    pos, chunk_data, blk_idxs, idxs, val);
+                //                    pos, chunk_data, blk_idxs, idxs.row,
+                //                    idxs.col, val);
                 result[idxs.row * stride + idxs.col] = val;
             }
         }
@@ -590,11 +604,12 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         size_type block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs idxs = {};
+        // compr_idxs idxs = {};
+        // compr_idxs<IndexType> idxs;
+        // idxs.blk = blk;
+        // idxs.shf = offsets_data[blk];
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         //        compr_blk_idxs blk_idxs = {};
-
-        idxs.blk = blk;
-        idxs.shf = offsets_data[blk];
         //        init_block_indices(rows_data, cols_data, block_size_local,
         //        idxs,
         //                           types_data[blk], blk_idxs);
@@ -604,10 +619,11 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
-                //                get_block_position_value<IndexType,
-                //                ValueType>(
+                // get_block_position_value<IndexType,ValueType>(
                 get_block_position_value<IndexType, ValueType>(
-                    pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    pos, chunk_data, blk_idxs, idxs, val);
+                //                    pos, chunk_data, blk_idxs, idxs.row,
+                //                    idxs.col, val);
                 auto index = blk * block_size + pos;
                 rows_idxs[index] = idxs.row;
                 cols_idxs[index] = idxs.col;

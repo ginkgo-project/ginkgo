@@ -163,19 +163,25 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const ValueType* values = coo->get_const_values();
         const size_type num_rows = coo->get_size()[0];
         const size_type num_stored_elements = coo->get_num_stored_elements();
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
         for (size_type i = 0; i < num_stored_elements; i++) {
             const size_type row = row_idxs[i];
             const size_type col = col_idxs[i];
             const ValueType val = values[i];
             // Counting bytes to write (row,col,val) on result
-            matrix::bccoo::cnt_detect_newblock(idxs.nblk, idxs.shf, idxs.row,
-                                               row - idxs.row, idxs.col);
-            size_type col_src_res = matrix::bccoo::cnt_position_newrow_mat_data(
-                row, col, idxs.shf, idxs.row, idxs.col);
-            matrix::bccoo::cnt_next_position_value(col_src_res, idxs.shf,
-                                                   idxs.col, val, idxs.nblk);
-            matrix::bccoo::cnt_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            // matrix::bccoo::cnt_detect_newblock(idxs.nblk, idxs.shf, idxs.row,
+            // row - idxs.row, idxs.col);
+            matrix::bccoo::cnt_detect_newblock<IndexType>(row - idxs.row, idxs);
+            size_type col_src_res =
+                matrix::bccoo::cnt_position_newrow_mat_data(row, col, idxs);
+            // row, col, idxs.shf, idxs.row, idxs.col);
+            // matrix::bccoo::cnt_next_position_value(col_src_res, idxs.shf,
+            // idxs.col, val, idxs.nblk);
+            matrix::bccoo::cnt_next_position_value(col_src_res, val, idxs);
+            // matrix::bccoo::cnt_detect_endblock(block_size, idxs.nblk,
+            // idxs.blk);
+            matrix::bccoo::cnt_detect_endblock(block_size, idxs);
         }
         *mem_size = idxs.shf;
     } else {
@@ -186,7 +192,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_rows = coo->get_size()[0];
         auto num_cols = coo->get_size()[1];
         auto num_stored_elements = coo->get_num_stored_elements();
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
         //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
         matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         for (size_type i = 0; i < num_stored_elements; i++) {
@@ -240,7 +247,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const ValueType* values = source->get_const_values();
         const size_type num_rows = source->get_size()[0];
         const size_type num_stored_elements = source->get_num_stored_elements();
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
 
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
@@ -250,15 +258,21 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             const size_type col = col_idxs[i];
             const ValueType val = values[i];
             // Writing (row,col,val) to result
-            matrix::bccoo::put_detect_newblock(chunk_data, rows_data, idxs.nblk,
-                                               idxs.blk, idxs.shf, idxs.row,
-                                               row - idxs.row, idxs.col);
+            // matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, row - idxs.row,
+            // idxs.col);
+            matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
+                                               row - idxs.row, idxs);
             size_type col_src_res = matrix::bccoo::put_position_newrow_mat_data(
-                row, col, chunk_data, idxs.shf, idxs.row, idxs.col);
+                // row, col, chunk_data, idxs.shf, idxs.row, idxs.col);
+                row, col, chunk_data, idxs);
             matrix::bccoo::put_next_position_value(
-                chunk_data, idxs.nblk, col - idxs.col, idxs.shf, idxs.col, val);
-            matrix::bccoo::put_detect_endblock(offsets_data, idxs.shf,
-                                               block_size, idxs.nblk, idxs.blk);
+                // chunk_data, idxs.nblk, col - idxs.col, idxs.shf, idxs.col,
+                // val);
+                chunk_data, col - idxs.col, val, idxs);
+            // matrix::bccoo::put_detect_endblock(offsets_data, idxs.shf,
+            // block_size, idxs.nblk, idxs.blk);
+            matrix::bccoo::put_detect_endblock(offsets_data, block_size, idxs);
         }
         if (idxs.nblk > 0) {
             offsets_data[idxs.blk + 1] = idxs.shf;
@@ -280,7 +294,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_stored_elements = result->get_num_stored_elements();
         auto block_size = result->get_block_size();
 
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
         //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
         matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         uint8 type_blk = {};

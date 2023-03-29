@@ -60,13 +60,32 @@ constexpr uint8 type_mask_cols_16bits = 8;
 /**
  *  Struct to manage bccoo objects
  */
-typedef struct compr_idxs {
-    size_type nblk;  // position in the block
-    size_type blk;   // active block
-    size_type row;   // row index
-    size_type col;   // column index
-    size_type shf;   // shift on the chunk
-} compr_idxs;
+template <typename IndexType>
+struct compr_idxs {
+    // typedef struct compr_idxs {
+    IndexType nblk;  // position in the block
+    // size_type nblk;  // position in the block
+    IndexType blk;  // active block
+    // size_type blk;   // active block
+    IndexType row;  // row index
+    // size_type row;   // row index
+    IndexType col;  // column index
+    // size_type col;   // column index
+    size_type shf;  // shift on the chunk
+                    // } compr_idxs;
+
+    GKO_ATTRIBUTES compr_idxs() : nblk(0), blk(0), row(0), col(0), shf(0) {}
+
+    GKO_ATTRIBUTES compr_idxs(IndexType blk_init, size_type shf_init,
+                              IndexType row_init = 0, IndexType col_init = 0,
+                              IndexType nblk_init = 0)
+        : nblk(nblk_init),
+          blk(blk_init),
+          row(row_init),
+          col(col_init),
+          shf(shf_init)
+    {}
+};
 
 
 /**
@@ -75,15 +94,11 @@ typedef struct compr_idxs {
 template <typename IndexType>
 struct compr_blk_idxs {
     IndexType row_frs;  // minimum row index in a block
-    //    size_type row_frs;  // minimum row index in a block
     IndexType col_frs;  // minimum column index in a block
-    //    size_type col_frs;  // minimum column index in a block
     IndexType row_dif;  // maximum difference between row indices
-    //    size_type row_dif;  // maximum difference between row indices
-    // in a block
+                        // in a block
     IndexType col_dif;  // maximum difference between column indices
-    //    size_type col_dif;  // maximum difference between column indices
-    // in a block
+                        // in a block
     size_type shf_row;  // shift in chunk where the rows vector starts
     size_type shf_col;  // shift in chunk where the cols vector starts
     size_type shf_val;  // shift in chunk where the vals vector starts
@@ -110,7 +125,8 @@ struct compr_blk_idxs {
     GKO_ATTRIBUTES compr_blk_idxs(const IndexType* rows_data,
                                   const IndexType* cols_data,
                                   const size_type block_size,
-                                  const compr_idxs idxs, const uint8 type_blk)
+                                  const compr_idxs<IndexType> idxs,
+                                  const uint8 type_blk)
         : mul_row(type_blk & type_mask_rows_multiple),
           row_16bits(type_blk & type_mask_rows_16bits),
           col_8bits(type_blk & type_mask_cols_8bits),
@@ -120,10 +136,6 @@ struct compr_blk_idxs {
           shf_row(idxs.shf),
           shf_col(idxs.shf),
           shf_val(idxs.shf)
-    // shf_col(idxs.shf+((mul_row)?
-    //	((row_16bits) ? sizeof(uint16) : 1) * block_size : 0 )),
-    // shf_val(shf_col+block_size * ((col_8bits)? 1 :
-    //	(col_16bits)? sizeof(uint16): sizeof(uint32)))
     {
         shf_col +=
             ((mul_row) ? ((row_16bits) ? sizeof(uint16) : 1) * block_size : 0);

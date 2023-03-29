@@ -461,7 +461,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         auto num_nonzeros = 0;  // TODO: Also compute and return this value
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<size_type> idxs;
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
@@ -486,7 +487,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         auto num_nonzeros = 0;  // TODO: Also compute and return this value
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<size_type> idxs;
         //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
         matrix::bccoo::compr_blk_idxs<size_type> blk_idxs;
         for (size_type row = 0; row < num_rows; ++row) {
@@ -538,7 +540,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_cols = source->get_size()[1];
 
         auto num_stored_elements = result->get_num_stored_elements();
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
 
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
@@ -548,17 +551,22 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Writing (row,col,val) to result
                     matrix::bccoo::put_detect_newblock(
-                        chunk_data, rows_data, idxs.nblk, idxs.blk, idxs.shf,
-                        idxs.row, row - idxs.row, idxs.col);
+                        // chunk_data, rows_data, idxs.nblk, idxs.blk, idxs.shf,
+                        // idxs.row, row - idxs.row, idxs.col);
+                        chunk_data, rows_data, row - idxs.row, idxs);
                     size_type col_src_res =
                         matrix::bccoo::put_position_newrow_mat_data(
-                            row, col, chunk_data, idxs.shf, idxs.row, idxs.col);
+                            // row, col, chunk_data, idxs.shf, idxs.row,
+                            // idxs.col);
+                            row, col, chunk_data, idxs);
                     matrix::bccoo::put_next_position_value(
-                        chunk_data, idxs.nblk, col - idxs.col, idxs.shf,
-                        idxs.col, source->at(row, col));
-                    matrix::bccoo::put_detect_endblock(offsets_data, idxs.shf,
-                                                       block_size, idxs.nblk,
-                                                       idxs.blk);
+                        // chunk_data, idxs.nblk, col - idxs.col, idxs.shf,
+                        // idxs.col, source->at(row, col));
+                        chunk_data, col - idxs.col, source->at(row, col), idxs);
+                    // matrix::bccoo::put_detect_endblock(offsets_data,
+                    // idxs.shf, block_size, idxs.nblk, idxs.blk);
+                    matrix::bccoo::put_detect_endblock(offsets_data, block_size,
+                                                       idxs);
                 }
             }
         }
@@ -579,7 +587,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_stored_elements = result->get_num_stored_elements();
         auto block_size = result->get_block_size();
 
-        matrix::bccoo::compr_idxs idxs = {};
+        // matrix::bccoo::compr_idxs idxs = {};
+        matrix::bccoo::compr_idxs<IndexType> idxs;
         //        matrix::bccoo::compr_blk_idxs blk_idxs = {};
         matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         uint8 type_blk = {};

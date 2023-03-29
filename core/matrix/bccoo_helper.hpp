@@ -69,6 +69,22 @@ inline void cnt_next_position(const size_type col_src_res, size_type& shf,
 }
 
 
+template <typename IndexType>
+inline void cnt_next_position(const size_type col_src_res,
+                              compr_idxs<IndexType>& idxs)
+
+{
+    if (col_src_res < 0xFD) {
+        idxs.shf++;
+    } else if (col_src_res < 0xFFFF) {
+        idxs.shf += sizeof(uint16) + 1;
+    } else {
+        idxs.shf += sizeof(uint32) + 1;
+    }
+    idxs.col += col_src_res;
+}
+
+
 template <typename ValueType>
 inline void cnt_next_position_value(const size_type col_src_res, size_type& shf,
                                     size_type& col, const ValueType val,
@@ -77,6 +93,17 @@ inline void cnt_next_position_value(const size_type col_src_res, size_type& shf,
     cnt_next_position(col_src_res, shf, col);
     shf += sizeof(ValueType);
     nblk++;
+}
+
+
+template <typename IndexType, typename ValueType>
+inline void cnt_next_position_value(const size_type col_src_res,
+                                    const ValueType val,
+                                    compr_idxs<IndexType>& idxs)
+{
+    cnt_next_position(col_src_res, idxs);
+    idxs.shf += sizeof(ValueType);
+    idxs.nblk++;
 }
 
 
@@ -97,6 +124,24 @@ inline void get_next_position(const uint8* chunk_data, const uint8 ind,
     }
 }
 
+template <typename IndexType>
+inline void get_next_position(const uint8* chunk_data, const uint8 ind,
+                              compr_idxs<IndexType>& idxs)
+{
+    if (ind < 0xFD) {
+        idxs.col += ind;
+        idxs.shf++;
+    } else if (ind == 0xFD) {
+        idxs.shf++;
+        idxs.col += get_value_chunk<uint16>(chunk_data, idxs.shf);
+        idxs.shf += sizeof(uint16);
+    } else {
+        idxs.shf++;
+        idxs.col += get_value_chunk<uint32>(chunk_data, idxs.shf);
+        idxs.shf += sizeof(uint32);
+    }
+}
+
 
 template <typename ValueType>
 inline void get_next_position_value(const uint8* chunk_data, size_type& nblk,
@@ -107,6 +152,17 @@ inline void get_next_position_value(const uint8* chunk_data, size_type& nblk,
     val = get_value_chunk<ValueType>(chunk_data, shf);
     shf += sizeof(ValueType);
     nblk++;
+}
+
+
+template <typename IndexType, typename ValueType>
+inline void get_next_position_value(const uint8* chunk_data, const uint8 ind,
+                                    compr_idxs<IndexType>& idxs, ValueType& val)
+{
+    get_next_position(chunk_data, ind, idxs);
+    val = get_value_chunk<ValueType>(chunk_data, idxs.shf);
+    idxs.shf += sizeof(ValueType);
+    idxs.nblk++;
 }
 
 
@@ -122,6 +178,20 @@ inline void get_next_position_value_put(uint8* chunk_data, size_type& nblk,
     set_value_chunk<ValueType>(chunk_data, shf, val);
     shf += sizeof(ValueType);
     nblk++;
+}
+
+
+template <typename IndexType, typename ValueType, typename Callable>
+inline void get_next_position_value_put(uint8* chunk_data, const uint8 ind,
+                                        compr_idxs<IndexType>& idxs,
+                                        ValueType& val, Callable finalize_op)
+{
+    get_next_position(chunk_data, ind, idxs);
+    val = get_value_chunk<ValueType>(chunk_data, idxs.shf);
+    val = finalize_op(val);
+    set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
+    idxs.shf += sizeof(ValueType);
+    idxs.nblk++;
 }
 
 
@@ -148,6 +218,30 @@ inline void put_next_position(uint8* chunk_data, const size_type col_src_res,
 }
 
 
+template <typename IndexType>
+inline void put_next_position(uint8* chunk_data, const size_type col_src_res,
+                              compr_idxs<IndexType>& idxs)
+{
+    if (col_src_res < 0xFD) {
+        set_value_chunk<uint8>(chunk_data, idxs.shf, col_src_res);
+        idxs.col += col_src_res;
+        idxs.shf++;
+    } else if (col_src_res < 0xFFFF) {
+        set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFD);
+        idxs.shf++;
+        set_value_chunk<uint16>(chunk_data, idxs.shf, col_src_res);
+        idxs.col += col_src_res;
+        idxs.shf += sizeof(uint16);
+    } else {
+        set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFE);
+        idxs.shf++;
+        set_value_chunk<uint32>(chunk_data, idxs.shf, col_src_res);
+        idxs.col += col_src_res;
+        idxs.shf += sizeof(uint32);
+    }
+}
+
+
 template <typename ValueType>
 inline void put_next_position_value(uint8* chunk_data, size_type& nblk,
                                     const size_type col_src_res, size_type& shf,
@@ -157,6 +251,19 @@ inline void put_next_position_value(uint8* chunk_data, size_type& nblk,
     set_value_chunk<ValueType>(chunk_data, shf, val);
     shf += sizeof(ValueType);
     nblk++;
+}
+
+
+template <typename IndexType, typename ValueType>
+inline void put_next_position_value(uint8* chunk_data,
+                                    const size_type col_src_res,
+                                    const ValueType val,
+                                    compr_idxs<IndexType>& idxs)
+{
+    put_next_position(chunk_data, col_src_res, idxs);
+    set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
+    idxs.shf += sizeof(ValueType);
+    idxs.nblk++;
 }
 
 
@@ -175,6 +282,19 @@ inline void get_detect_newblock(const IndexType* rows_data,
 
 
 template <typename IndexType>
+inline void get_detect_newblock(const IndexType* rows_data,
+                                const size_type* offsets_data,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        idxs.row = rows_data[idxs.blk];
+        idxs.col = 0;
+        idxs.shf = offsets_data[idxs.blk];
+    }
+}
+
+
+template <typename IndexType>
 inline void put_detect_newblock(IndexType* rows_data, const size_type nblk,
                                 const size_type blk, size_type& row,
                                 const size_type row_src_res, size_type& col)
@@ -184,6 +304,136 @@ inline void put_detect_newblock(IndexType* rows_data, const size_type nblk,
         col = 0;
         rows_data[blk] = row;
     }
+}
+
+
+template <typename IndexType>
+inline void put_detect_newblock(IndexType* rows_data,
+                                const size_type row_src_res,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        idxs.row += row_src_res;
+        idxs.col = 0;
+        rows_data[idxs.blk] = idxs.row;
+    }
+}
+
+
+template <typename IndexType>
+inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
+                                const size_type nblk, const size_type blk,
+                                size_type& shf, size_type& row,
+                                const size_type row_src_res, size_type& col)
+{
+    if (nblk == 0) {
+        row += row_src_res;
+        col = 0;
+        rows_data[blk] = row;
+    } else if (row_src_res != 0) {  // new row
+        row += row_src_res;
+        col = 0;
+        set_value_chunk<uint8>(chunk_data, shf, 0xFF);
+        shf++;
+    }
+}
+
+
+template <typename IndexType>
+inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
+                                const size_type row_src_res,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        idxs.row += row_src_res;
+        idxs.col = 0;
+        rows_data[idxs.blk] = idxs.row;
+    } else if (row_src_res != 0) {  // new row
+        idxs.row += row_src_res;
+        idxs.col = 0;
+        set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFF);
+        idxs.shf++;
+    }
+}
+
+
+inline void cnt_detect_newblock(const size_type nblk, size_type& shf,
+                                size_type& row, const size_type row_src_res,
+                                size_type& col)
+{
+    if (nblk == 0) {
+        row += row_src_res;
+        col = 0;
+    } else if (row_src_res != 0) {  // new row
+        row += row_src_res;
+        col = 0;
+        shf += row_src_res;
+    }
+}
+
+
+template <typename IndexType>
+inline void cnt_detect_newblock(const size_type row_src_res,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        idxs.row += row_src_res;
+        idxs.col = 0;
+    } else if (row_src_res != 0) {  // new row
+        idxs.row += row_src_res;
+        idxs.col = 0;
+        idxs.shf += row_src_res;
+    }
+}
+
+
+template <typename IndexType>
+inline void get_detect_newblock_csr(const IndexType* rows_data,
+                                    const size_type* offsets_data,
+                                    size_type nblk, size_type blk,
+                                    IndexType* row_ptrs, size_type pos,
+                                    size_type& shf, size_type& row,
+                                    size_type& col)
+{
+    if (nblk == 0) {
+        if (row != rows_data[blk]) {
+            row = rows_data[blk];
+            row_ptrs[row] = pos;
+        }
+        col = 0;
+        shf = offsets_data[blk];
+    }
+}
+
+
+template <typename IndexType>
+inline void get_detect_newblock_csr(const IndexType* rows_data,
+                                    const size_type* offsets_data,
+                                    IndexType* row_ptrs, IndexType pos,
+                                    compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        if (idxs.row != rows_data[idxs.blk]) {
+            idxs.row = rows_data[idxs.blk];
+            row_ptrs[idxs.row] = pos;
+        }
+        idxs.col = 0;
+        idxs.shf = offsets_data[idxs.blk];
+    }
+}
+
+/*
+inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
+                                              const size_type col_mat_data,
+                                              size_type& shf, size_type& row,
+                                              size_type& col)
+{
+    if (row_mat_data != row) {
+        shf += row_mat_data - row;
+        row = row_mat_data;
+        col = 0;
+    }
+    return (col_mat_data - col);
 }
 
 
@@ -222,6 +472,21 @@ inline void cnt_detect_newblock(const size_type nblk, size_type& shf,
 
 
 template <typename IndexType>
+inline void cnt_detect_newblock(const size_type row_src_res,
+                                                                                                                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        idxs.row += row_src_res;
+        idxs.col = 0;
+    } else if (row_src_res != 0) {  // new row
+        idxs.row += row_src_res;
+        idxs.col = 0;
+        idxs.shf += row_src_res;
+    }
+}
+
+
+template <typename IndexType>
 inline void get_detect_newblock_csr(const IndexType* rows_data,
                                     const size_type* offsets_data,
                                     size_type nblk, size_type blk,
@@ -240,6 +505,23 @@ inline void get_detect_newblock_csr(const IndexType* rows_data,
 }
 
 
+template <typename IndexType>
+inline void get_detect_newblock_csr(const IndexType* rows_data,
+                                    const size_type* offsets_data,
+                                    IndexType* row_ptrs, IndexType pos,
+                                                                                                                                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == 0) {
+        if (idxs.row != rows_data[idxs.blk]) {
+            idxs.row = rows_data[idxs.blk];
+            row_ptrs[idxs.row] = pos;
+        }
+        idxs.col = 0;
+        idxs.shf = offsets_data[idxs.blk];
+    }
+}
+
+*/
 inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
                                               const size_type col_mat_data,
                                               size_type& shf, size_type& row,
@@ -251,6 +533,20 @@ inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
         col = 0;
     }
     return (col_mat_data - col);
+}
+
+
+template <typename IndexType>
+inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
+                                              const size_type col_mat_data,
+                                              compr_idxs<IndexType>& idxs)
+{
+    if (row_mat_data != idxs.row) {
+        idxs.shf += row_mat_data - idxs.row;
+        idxs.row = row_mat_data;
+        idxs.col = 0;
+    }
+    return (col_mat_data - idxs.col);
 }
 
 
@@ -269,6 +565,21 @@ inline uint8 get_position_newrow(const uint8* chunk_data, size_type& shf,
 
 
 template <typename IndexType>
+inline uint8 get_position_newrow(const uint8* chunk_data,
+                                 compr_idxs<IndexType>& idxs)
+{
+    uint8 ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
+    while (ind == 0xFF) {
+        idxs.row++;
+        idxs.shf++;
+        idxs.col = 0;
+        ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
+    }
+    return ind;
+}
+
+
+template <typename IndexType>
 inline uint8 get_position_newrow_csr(const uint8* chunk_data,
                                      IndexType* row_ptrs, size_type pos,
                                      size_type& shf, size_type& row,
@@ -281,6 +592,23 @@ inline uint8 get_position_newrow_csr(const uint8* chunk_data,
         row_ptrs[row] = pos;
         shf++;
         ind = get_value_chunk<uint8>(chunk_data, shf);
+    }
+    return ind;
+}
+
+
+template <typename IndexType>
+inline uint8 get_position_newrow_csr(const uint8* chunk_data,
+                                     IndexType* row_ptrs, size_type pos,
+                                     compr_idxs<IndexType>& idxs)
+{
+    uint8 ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
+    while (ind == 0xFF) {
+        idxs.row++;
+        idxs.col = 0;
+        row_ptrs[idxs.row] = pos;
+        idxs.shf++;
+        ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
     }
     return ind;
 }
@@ -312,6 +640,32 @@ inline uint8 get_position_newrow_put(
 }
 
 
+template <typename IndexType>
+inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
+                                     compr_idxs<IndexType>& idxs_src,
+                                     uint8* chunk_data_res,
+                                     IndexType* rows_data_res,
+                                     compr_idxs<IndexType>& idxs_res)
+{
+    uint8 ind_src = get_value_chunk<uint8>(chunk_data_src, idxs_src.shf);
+    while (ind_src == 0xFF) {
+        idxs_src.row++;
+        idxs_src.col = 0;
+        idxs_src.shf++;
+        ind_src = get_value_chunk<uint8>(chunk_data_src, idxs_src.shf);
+        idxs_res.row++;
+        idxs_res.col = 0;
+        if (idxs_res.nblk == 0) {
+            rows_data_res[idxs_res.blk] = idxs_res.row;
+        } else {
+            set_value_chunk<uint8>(chunk_data_res, idxs_res.shf, 0xFF);
+            idxs_res.shf++;
+        }
+    }
+    return ind_src;
+}
+
+
 inline size_type put_position_newrow_mat_data(const size_type row_mat_data,
                                               const size_type col_mat_data,
                                               uint8* chunk_data, size_type& shf,
@@ -327,12 +681,39 @@ inline size_type put_position_newrow_mat_data(const size_type row_mat_data,
 }
 
 
+template <typename IndexType>
+inline size_type put_position_newrow_mat_data(const size_type row_mat_data,
+                                              const size_type col_mat_data,
+                                              uint8* chunk_data,
+                                              compr_idxs<IndexType>& idxs)
+{
+    while (row_mat_data != idxs.row) {
+        idxs.row++;
+        idxs.col = 0;
+        set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFF);
+        idxs.shf++;
+    }
+    return (col_mat_data - idxs.col);
+}
+
+
 inline void get_detect_endblock(const size_type block_size, size_type& nblk,
                                 size_type& blk)
 {
     if (nblk == block_size) {
         nblk = 0;
         blk++;
+    }
+}
+
+
+template <typename IndexType>
+inline void get_detect_endblock(const size_type block_size,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == block_size) {
+        idxs.nblk = 0;
+        idxs.blk++;
     }
 }
 
@@ -349,12 +730,36 @@ inline void put_detect_endblock(size_type* offsets_data, const size_type shf,
 }
 
 
+template <typename IndexType>
+inline void put_detect_endblock(size_type* offsets_data,
+                                const size_type block_size,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == block_size) {
+        idxs.nblk = 0;
+        idxs.blk++;
+        offsets_data[idxs.blk] = idxs.shf;
+    }
+}
+
+
 inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
                                 size_type& blk)
 {
     if (nblk == block_size) {
         nblk = 0;
         blk++;
+    }
+}
+
+
+template <typename IndexType>
+inline void cnt_detect_endblock(const size_type block_size,
+                                compr_idxs<IndexType>& idxs)
+{
+    if (idxs.nblk == block_size) {
+        idxs.nblk = 0;
+        idxs.blk++;
     }
 }
 
@@ -366,7 +771,7 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
 
 template <typename IndexType>
 inline void proc_block_indices(const IndexType row, const IndexType col,
-                               const compr_idxs idxs,
+                               const compr_idxs<IndexType> idxs,
                                compr_blk_idxs<IndexType>& blk_idxs)
 {
     if (idxs.nblk == 0) {
@@ -392,7 +797,7 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
 template <typename IndexType, typename ValueType>
 inline void cnt_block_indices(const size_type block_size,
                               const compr_blk_idxs<IndexType> blk_idxs,
-                              compr_idxs& idxs)
+                              compr_idxs<IndexType>& idxs)
 {
     if (blk_idxs.row_dif > 0) {
         idxs.shf +=
@@ -441,6 +846,38 @@ inline void get_block_position_value(const uint8* chunk_data,
 }
 
 
+template <typename IndexType, typename ValueType>
+inline void get_block_position_value(const uint8* chunk_data,
+                                     compr_blk_idxs<IndexType>& blk_idxs,
+                                     compr_idxs<IndexType>& idxs,
+                                     ValueType& val)
+{
+    idxs.row = blk_idxs.row_frs;
+    idxs.col = blk_idxs.col_frs;
+    if (blk_idxs.mul_row) {
+        if (blk_idxs.row_16bits) {
+            idxs.row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row += sizeof(uint16);
+        } else {
+            idxs.row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row++;
+        }
+    }
+    if (blk_idxs.col_8bits) {
+        idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col++;
+    } else if (blk_idxs.col_16bits) {
+        idxs.col += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(uint16);
+    } else {
+        idxs.col += get_value_chunk<uint32>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(uint32);
+    }
+    val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
+    blk_idxs.shf_val += sizeof(ValueType);
+}
+
+
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data,
                                          compr_blk_idxs<IndexType>& blk_idxs,
@@ -475,8 +912,42 @@ inline void get_block_position_value_put(uint8* chunk_data,
 }
 
 
+template <typename IndexType, typename ValueType, typename Callable>
+inline void get_block_position_value_put(uint8* chunk_data,
+                                         compr_blk_idxs<IndexType>& blk_idxs,
+                                         compr_idxs<IndexType>& idxs,
+                                         ValueType& val, Callable finalize_op)
+{
+    idxs.row = blk_idxs.row_frs;
+    idxs.col = blk_idxs.col_frs;
+    if (blk_idxs.mul_row) {
+        if (blk_idxs.row_16bits) {
+            idxs.row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row += sizeof(uint16);
+        } else {
+            idxs.row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
+            blk_idxs.shf_row++;
+        }
+    }
+    if (blk_idxs.col_8bits) {
+        idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col++;
+    } else if (blk_idxs.col_16bits) {
+        idxs.col += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(uint16);
+    } else {
+        idxs.col += get_value_chunk<uint32>(chunk_data, blk_idxs.shf_col);
+        blk_idxs.shf_col += sizeof(uint32);
+    }
+    val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
+    val = finalize_op(val);
+    set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, val);
+    blk_idxs.shf_val += sizeof(ValueType);
+}
+
+
 template <typename IndexType, typename ValueType>
-inline uint8 write_chunk_blk_type(compr_idxs& idxs,
+inline uint8 write_chunk_blk_type(compr_idxs<IndexType>& idxs,
                                   compr_blk_idxs<IndexType> blk_idxs,
                                   array<IndexType> rows_blk,
                                   array<IndexType> cols_blk,
@@ -535,10 +1006,11 @@ inline uint8 write_chunk_blk_type(compr_idxs& idxs,
 // #define NO_COMPACT
 template <typename IndexType, typename ValueType_src, typename ValueType_res,
           typename Callable>
-inline void write_chunk_blk(compr_idxs& idxs_src,
+inline void write_chunk_blk(compr_idxs<IndexType>& idxs_src,
                             compr_blk_idxs<IndexType> blk_idxs_src,
                             const size_type block_size_local_src,
-                            const uint8* chunk_data_src, compr_idxs& idxs_res,
+                            const uint8* chunk_data_src,
+                            compr_idxs<IndexType>& idxs_res,
                             compr_blk_idxs<IndexType> blk_idxs_res,
                             const size_type block_size_local_res,
                             uint8* chunk_data_res, Callable finalize_op)

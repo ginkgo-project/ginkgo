@@ -68,7 +68,8 @@ template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline void loop_block_single_row(const uint8* chunk_data,
                                   size_type block_size_local,
                                   const matrix::Dense<ValueType>* b,
-                                  matrix::Dense<ValueType>* c, compr_idxs& idxs,
+                                  matrix::Dense<ValueType>* c,
+                                  compr_idxs<IndexType>& idxs,
                                   compr_blk_idxs<IndexType>& blk_idxs,
                                   ValueType* sumV)
 {
@@ -98,13 +99,11 @@ inline void loop_block_single_row(const uint8* chunk_data,
 
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
-inline void loop_block_single_row(const uint8* chunk_data,
-                                  size_type block_size_local,
-                                  const ValueType alpha_val,
-                                  const matrix::Dense<ValueType>* b,
-                                  matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                  compr_blk_idxs<IndexType>& blk_idxs,
-                                  ValueType* sumV)
+inline void loop_block_single_row(
+    const uint8* chunk_data, size_type block_size_local,
+    const ValueType alpha_val, const matrix::Dense<ValueType>* b,
+    matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row = blk_idxs.row_frs;
@@ -136,7 +135,8 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
 inline void loop_block_multi_row(const uint8* chunk_data,
                                  size_type block_size_local,
                                  const matrix::Dense<ValueType>* b,
-                                 matrix::Dense<ValueType>* c, compr_idxs& idxs,
+                                 matrix::Dense<ValueType>* c,
+                                 compr_idxs<IndexType>& idxs,
                                  compr_blk_idxs<IndexType>& blk_idxs,
                                  ValueType* sumV)
 {
@@ -182,13 +182,11 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
-inline void loop_block_multi_row(const uint8* chunk_data,
-                                 size_type block_size_local,
-                                 const ValueType alpha_val,
-                                 const matrix::Dense<ValueType>* b,
-                                 matrix::Dense<ValueType>* c, compr_idxs& idxs,
-                                 compr_blk_idxs<IndexType>& blk_idxs,
-                                 ValueType* sumV)
+inline void loop_block_multi_row(
+    const uint8* chunk_data, size_type block_size_local,
+    const ValueType alpha_val, const matrix::Dense<ValueType>* b,
+    matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
+    compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
     auto row_old = blk_idxs.row_frs;

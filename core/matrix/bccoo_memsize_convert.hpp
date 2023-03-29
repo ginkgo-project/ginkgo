@@ -75,30 +75,40 @@ inline void mem_size_bccoo_elm_elm(
     auto num_stored_elements = source->get_num_stored_elements();
     auto block_size_src = source->get_block_size();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     ValueType val_src;
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     ValueType val_res;
 
     for (size_type i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
-        get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
-                            idxs_src.blk, idxs_src.shf, idxs_src.row,
-                            idxs_src.col);
-        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
-                                            idxs_src.row, idxs_src.col);
-        get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
-                                idxs_src.shf, idxs_src.col, val_src);
-        get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+        // get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
+        // idxs_src.blk, idxs_src.shf, idxs_src.row,
+        // idxs_src.col);
+        get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
+        // uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
+        // idxs_src.row, idxs_src.col);
+        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
+        // get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
+        // idxs_src.shf, idxs_src.col, val_src);
+        get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+        // get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+        get_detect_endblock(block_size_src, idxs_src);
         // Counting bytes to write (row,col,val) on result
-        cnt_detect_newblock(idxs_res.nblk, idxs_res.shf, idxs_res.row,
-                            idxs_src.row - idxs_res.row, idxs_res.col);
+        // cnt_detect_newblock(idxs_res.nblk, idxs_res.shf, idxs_res.row,
+        // idxs_src.row - idxs_res.row, idxs_res.col);
+        cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
         size_type col_src_res = cnt_position_newrow_mat_data(
-            idxs_src.row, idxs_src.col, idxs_res.shf, idxs_res.row,
-            idxs_res.col);
-        cnt_next_position_value(col_src_res, idxs_res.shf, idxs_res.col,
-                                val_src, idxs_res.nblk);
-        cnt_detect_endblock(block_size_res, idxs_res.nblk, idxs_res.blk);
+            // idxs_src.row, idxs_src.col, idxs_res.shf, idxs_res.row,
+            // idxs_res.col);
+            idxs_src.row, idxs_src.col, idxs_res);
+        // cnt_next_position_value(col_src_res, idxs_res.shf, idxs_res.col,
+        // val_src, idxs_res.nblk);
+        cnt_next_position_value(col_src_res, val_src, idxs_res);
+        // cnt_detect_endblock(block_size_res, idxs_res.nblk, idxs_res.blk);
+        cnt_detect_endblock(block_size_res, idxs_res);
     }
     *mem_size = idxs_res.shf;
 }
@@ -125,10 +135,12 @@ inline void mem_size_bccoo_elm_blk(
     auto num_stored_elements = source->get_num_stored_elements();
     auto block_size_src = source->get_block_size();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     ValueType val_src;
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
 
     for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
         size_type block_size_local =
@@ -139,16 +151,22 @@ inline void mem_size_bccoo_elm_blk(
         blk_idxs_res.col_frs = idxs_src.col;
         for (size_type j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
-            get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
-                                idxs_src.blk, idxs_src.shf, idxs_src.row,
-                                idxs_src.col);
-            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
-                                                idxs_src.row, idxs_src.col);
-            get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
-                                    idxs_src.shf, idxs_src.col, val_src);
-            get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+            // get_detect_newblock(rows_data_src, offsets_data_src,
+            // idxs_src.nblk, idxs_src.blk, idxs_src.shf, idxs_src.row,
+            // idxs_src.col);
+            get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
+            // uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
+            // idxs_src.row, idxs_src.col);
+            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
+            // get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
+            // idxs_src.shf, idxs_src.col, val_src);
+            get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+            // get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+            get_detect_endblock(block_size_src, idxs_src);
             // Analyzing the impact of (row,col,val) in the block
             idxs_res.nblk = j;
+            // proc_block_indices<IndexType>(idxs_src.row, idxs_src.col,
+            // idxs_res,
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
                                           blk_idxs_res);
         }
@@ -184,11 +202,13 @@ inline void mem_size_bccoo_blk_elm(
     auto num_bytes_src = source->get_num_bytes();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     //    compr_blk_idxs blk_idxs_src = {};
     ValueType val_src;
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
 
     for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
         size_type block_size_local =
@@ -203,17 +223,22 @@ inline void mem_size_bccoo_blk_elm(
         for (size_type j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
-                chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
-                val_src);
+                // chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
+                // val_src);
+                chunk_data_src, blk_idxs_src, idxs_src, val_src);
             // Counting bytes to write (row,col,val) on result
-            cnt_detect_newblock(idxs_res.nblk, idxs_res.shf, idxs_res.row,
-                                idxs_src.row - idxs_res.row, idxs_res.col);
+            // cnt_detect_newblock(idxs_res.nblk, idxs_res.shf, idxs_res.row,
+            // idxs_src.row - idxs_res.row, idxs_res.col);
+            cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
             size_type col_src_res = cnt_position_newrow_mat_data(
-                idxs_src.row, idxs_src.col, idxs_res.shf, idxs_res.row,
-                idxs_res.col);
-            cnt_next_position_value(col_src_res, idxs_res.shf, idxs_res.col,
-                                    val_src, idxs_res.nblk);
-            cnt_detect_endblock(block_size_res, idxs_res.nblk, idxs_res.blk);
+                // idxs_src.row, idxs_src.col, idxs_res.shf, idxs_res.row,
+                // idxs_res.col);
+                idxs_src.row, idxs_src.col, idxs_res);
+            // cnt_next_position_value(col_src_res, idxs_res.shf, idxs_res.col,
+            // val_src, idxs_res.nblk);
+            cnt_next_position_value(col_src_res, val_src, idxs_res);
+            // cnt_detect_endblock(block_size_res, idxs_res.nblk, idxs_res.blk);
+            cnt_detect_endblock(block_size_res, idxs_res);
         }
         idxs_src.blk++;
         idxs_src.shf = blk_idxs_src.shf_val;
@@ -246,7 +271,8 @@ inline void mem_size_bccoo_blk_blk(
     auto num_bytes_src = source->get_num_bytes();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     //    compr_blk_idxs blk_idxs_src = {};
     ValueType val_src;
 
@@ -256,7 +282,8 @@ inline void mem_size_bccoo_blk_blk(
     auto* cols_data_res = source->get_const_cols();
     auto* types_data_res = source->get_const_types();
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     //    compr_blk_idxs blk_idxs_res = {};
     compr_blk_idxs<IndexType> blk_idxs_res;
     ValueType val_res;
@@ -278,8 +305,9 @@ inline void mem_size_bccoo_blk_blk(
         for (size_type j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
-                chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
-                val_src);
+                // chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
+                // val_src);
+                chunk_data_src, blk_idxs_src, idxs_src, val_src);
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
                                           blk_idxs_res);
             idxs_res.nblk++;
@@ -368,7 +396,8 @@ void convert_to_bccoo_elm_elm(
     auto num_stored_elements = source->get_num_stored_elements();
     auto block_size_src = source->get_block_size();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     ValueType_src val_src;
 
     auto* rows_data_res = result->get_rows();
@@ -377,7 +406,8 @@ void convert_to_bccoo_elm_elm(
 
     auto block_size_res = result->get_block_size();
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     ValueType_res val_res;
 
     if (num_stored_elements > 0) {
@@ -385,26 +415,35 @@ void convert_to_bccoo_elm_elm(
     }
     for (size_type i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
-        get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
-                            idxs_src.blk, idxs_src.shf, idxs_src.row,
-                            idxs_src.col);
-        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
-                                            idxs_src.row, idxs_src.col);
-        get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
-                                idxs_src.shf, idxs_src.col, val_src);
-        get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+        // get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
+        // idxs_src.blk, idxs_src.shf, idxs_src.row,
+        // idxs_src.col);
+        get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
+        // uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
+        // idxs_src.row, idxs_src.col);
+        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
+        // get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
+        // idxs_src.shf, idxs_src.col, val_src);
+        get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+        // get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+        get_detect_endblock(block_size_src, idxs_src);
         // Writing (row,col,val) to result
         val_res = finalize_op(val_src);
-        put_detect_newblock(rows_data_res, idxs_res.nblk, idxs_res.blk,
-                            idxs_res.row, idxs_src.row - idxs_res.row,
-                            idxs_res.col);
+        // put_detect_newblock(rows_data_res, idxs_res.nblk, idxs_res.blk,
+        // idxs_res.row, idxs_src.row - idxs_res.row,
+        // idxs_res.col);
+        put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
+                            idxs_res);
         size_type col_src_res = put_position_newrow_mat_data(
-            idxs_src.row, idxs_src.col, chunk_data_res, idxs_res.shf,
-            idxs_res.row, idxs_res.col);
-        put_next_position_value(chunk_data_res, idxs_res.nblk, col_src_res,
-                                idxs_res.shf, idxs_res.col, val_res);
-        put_detect_endblock(offsets_data_res, idxs_res.shf, block_size_res,
-                            idxs_res.nblk, idxs_res.blk);
+            // idxs_src.row, idxs_src.col, chunk_data_res, idxs_res.shf,
+            // idxs_res.row, idxs_res.col);
+            idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
+        // put_next_position_value(chunk_data_res, idxs_res.nblk, col_src_res,
+        // idxs_res.shf, idxs_res.col, val_res);
+        put_next_position_value(chunk_data_res, col_src_res, val_res, idxs_res);
+        // put_detect_endblock(offsets_data_res, idxs_res.shf, block_size_res,
+        // idxs_res.nblk, idxs_res.blk);
+        put_detect_endblock(offsets_data_res, block_size_res, idxs_res);
     }
     if (idxs_res.nblk > 0) {
         offsets_data_res[++idxs_res.blk] = idxs_res.shf;
@@ -432,7 +471,8 @@ void convert_to_bccoo_elm_blk(
     auto num_stored_elements = source->get_num_stored_elements();
     auto block_size_src = source->get_block_size();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     ValueType_src val_src;
 
     auto* rows_data_res = result->get_rows();
@@ -443,7 +483,8 @@ void convert_to_bccoo_elm_blk(
 
     auto block_size_res = result->get_block_size();
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     ValueType_res val_res;
 
     array<IndexType> rows_blk(exec, block_size_res);
@@ -464,14 +505,18 @@ void convert_to_bccoo_elm_blk(
         blk_idxs_res.col_frs = idxs_src.col;
         for (size_type j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
-            get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
-                                idxs_src.blk, idxs_src.shf, idxs_src.row,
-                                idxs_src.col);
-            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
-                                                idxs_src.row, idxs_src.col);
-            get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
-                                    idxs_src.shf, idxs_src.col, val_src);
-            get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+            // get_detect_newblock(rows_data_src, offsets_data_src,
+            // idxs_src.nblk, idxs_src.blk, idxs_src.shf, idxs_src.row,
+            // idxs_src.col);
+            get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
+            // uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src.shf,
+            // idxs_src.row, idxs_src.col);
+            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
+            // get_next_position_value(chunk_data_src, idxs_src.nblk, ind_src,
+            // idxs_src.shf, idxs_src.col, val_src);
+            get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+            // get_detect_endblock(block_size_src, idxs_src.nblk, idxs_src.blk);
+            get_detect_endblock(block_size_src, idxs_src);
             // Analyzing the impact of (row,col,val) in the block
             idxs_res.nblk = j;
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
@@ -515,7 +560,8 @@ void convert_to_bccoo_blk_elm(
     size_type num_bytes_src = source->get_num_bytes();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     //    compr_blk_idxs blk_idxs_src = {};
     ValueType_src val_src;
 
@@ -524,7 +570,8 @@ void convert_to_bccoo_blk_elm(
     auto* chunk_data_res = result->get_chunk();
     auto block_size_res = result->get_block_size();
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     ValueType_res val_res;
 
     if (num_stored_elements > 0) {
@@ -544,20 +591,27 @@ void convert_to_bccoo_blk_elm(
         for (size_type j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
-                chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
-                val_src);
+                // chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
+                // val_src);
+                chunk_data_src, blk_idxs_src, idxs_src, val_src);
             // Writing (row,col,val) to result
             val_res = val_src;
-            put_detect_newblock(rows_data_res, idxs_res.nblk, idxs_res.blk,
-                                idxs_res.row, idxs_src.row - idxs_res.row,
-                                idxs_res.col);
+            // put_detect_newblock(rows_data_res, idxs_res.nblk, idxs_res.blk,
+            // idxs_res.row, idxs_src.row - idxs_res.row,
+            // idxs_res.col);
+            put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
+                                idxs_res);
             size_type col_src_res = put_position_newrow_mat_data(
-                idxs_src.row, idxs_src.col, chunk_data_res, idxs_res.shf,
-                idxs_res.row, idxs_res.col);
-            put_next_position_value(chunk_data_res, idxs_res.nblk, col_src_res,
-                                    idxs_res.shf, idxs_res.col, val_res);
-            put_detect_endblock(offsets_data_res, idxs_res.shf, block_size_res,
-                                idxs_res.nblk, idxs_res.blk);
+                // idxs_src.row, idxs_src.col, chunk_data_res, idxs_res.shf,
+                // idxs_res.row, idxs_res.col);
+                idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
+            // put_next_position_value(chunk_data_res, idxs_res.nblk,
+            // col_src_res, idxs_res.shf, idxs_res.col, val_res);
+            put_next_position_value(chunk_data_res, col_src_res, val_res,
+                                    idxs_res);
+            // put_detect_endblock(offsets_data_res, idxs_res.shf,
+            // block_size_res, idxs_res.nblk, idxs_res.blk);
+            put_detect_endblock(offsets_data_res, block_size_res, idxs_res);
         }
         idxs_src.blk++;
         idxs_src.shf = blk_idxs_src.shf_val;
@@ -592,7 +646,8 @@ void convert_to_bccoo_blk_blk(
     auto num_bytes_src = source->get_num_bytes();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs_src = {};
+    // compr_idxs idxs_src = {};
+    compr_idxs<IndexType> idxs_src;
     //    compr_blk_idxs blk_idxs_src = {};
     ValueType_src val_src;
 
@@ -604,7 +659,8 @@ void convert_to_bccoo_blk_blk(
 
     auto block_size_res = result->get_block_size();
 
-    compr_idxs idxs_res = {};
+    // compr_idxs idxs_res = {};
+    compr_idxs<IndexType> idxs_res;
     //    compr_blk_idxs blk_idxs_res = {};
     compr_blk_idxs<IndexType> blk_idxs_res;
 
@@ -635,8 +691,9 @@ void convert_to_bccoo_blk_blk(
         for (size_type j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
-                chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
-                val_src);
+                // chunk_data_src, blk_idxs_src, idxs_src.row, idxs_src.col,
+                // val_src);
+                chunk_data_src, blk_idxs_src, idxs_src, val_src);
             // Analyzing the impact of (row,col,val) in the block
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
                                           blk_idxs_res);

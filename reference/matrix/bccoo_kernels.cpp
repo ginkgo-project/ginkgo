@@ -125,20 +125,26 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_stored_elements = a->get_num_stored_elements();
     auto num_cols = b->get_size()[1];
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     if (a->use_element_compression()) {
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (size_type j = 0; j < num_cols; j++) {
                 c->at(idxs.row, j) += val * b->at(idxs.col, j);
@@ -163,7 +169,9 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (size_type k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += val * b->at(idxs.col, k);
@@ -194,20 +202,26 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto alpha_val = alpha->at(0, 0);
     auto num_cols = b->get_size()[1];
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     if (a->use_element_compression()) {
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (size_type j = 0; j < num_cols; j++) {
                 c->at(idxs.row, j) += alpha_val * val * b->at(idxs.col, j);
@@ -232,7 +246,9 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (size_type k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += alpha_val * val * b->at(idxs.col, k);
@@ -343,7 +359,8 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     auto row_idxs = result->get_row_idxs();
@@ -354,13 +371,18 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             row_idxs[i] = idxs.row;
             col_idxs[i] = idxs.col;
@@ -385,7 +407,9 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 row_idxs[i + j] = idxs.row;
                 col_idxs[i + j] = idxs.col;
@@ -413,7 +437,8 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     auto row_ptrs = result->get_row_ptrs();
@@ -425,14 +450,19 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
-            get_detect_newblock_csr(rows_data, offsets_data, idxs.nblk,
-                                    idxs.blk, row_ptrs, i, idxs.shf, idxs.row,
-                                    idxs.col);
-            uint8 ind = get_position_newrow_csr(chunk_data, row_ptrs, i,
-                                                idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            // get_detect_newblock_csr<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, row_ptrs, i, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock_csr<IndexType>(rows_data, offsets_data,
+                                               row_ptrs, i, idxs);
+            uint8 ind =
+                // get_position_newrow_csr(chunk_data, row_ptrs, i,
+                // idxs.shf, idxs.row, idxs.col);
+                get_position_newrow_csr(chunk_data, row_ptrs, i, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             col_idxs[i] = idxs.col;
             values[i] = val;
@@ -457,7 +487,9 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 if (row_prv < idxs.row) row_ptrs[idxs.row] = i + j;
                 col_idxs[i + j] = idxs.col;
@@ -489,7 +521,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     auto num_rows = result->get_size()[0];
@@ -506,13 +539,18 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             result->at(idxs.row, idxs.col) += val;
         }
@@ -535,7 +573,9 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 result->at(idxs.row, idxs.col) += val;
             }
@@ -561,7 +601,8 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = orig->get_block_size();
     auto num_stored_elements = orig->get_num_stored_elements();
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     auto diag_values = diag->get_values();
@@ -575,13 +616,19 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from orig
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk,
+            // idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
-                                    idxs.col, val);
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val);
+            get_next_position_value(chunk_data, ind, idxs, val);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to diag
             if (idxs.row == idxs.col) {
                 diag_values[idxs.row] = val;
@@ -606,7 +653,9 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from orig
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val);
+                    chunk_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to diag
                 if (idxs.row == idxs.col) {
                     diag_values[idxs.row] = val;
@@ -633,21 +682,28 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = matrix->get_block_size();
     auto num_stored_elements = matrix->get_num_stored_elements();
 
-    compr_idxs idxs = {};
+    // compr_idxs idxs = {};
+    compr_idxs<IndexType> idxs;
     ValueType val;
 
     if (matrix->use_element_compression()) {
         // For element compression objects
         for (size_type i = 0; i < num_stored_elements; i++) {
             // Reading/Writing (row,col,val) from/to matrix
-            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
-                                idxs.shf, idxs.row, idxs.col);
+            // get_detect_newblock<IndexType>(rows_data, offsets_data,
+            // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
+            get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
             uint8 ind =
-                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
-            get_next_position_value_put(chunk_data, idxs.nblk, ind, idxs.shf,
-                                        idxs.col, val,
+                // get_position_newrow(chunk_data, idxs.shf, idxs.row,
+                // idxs.col);
+                get_position_newrow(chunk_data, idxs);
+            // get_next_position_value_put(chunk_data, idxs.nblk, ind, idxs.shf,
+            // idxs.col, val,
+            // [](ValueType val) { return abs(val); });
+            get_next_position_value_put(chunk_data, ind, idxs, val,
                                         [](ValueType val) { return abs(val); });
-            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            // get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+            get_detect_endblock(block_size, idxs);
         }
     } else {
         // For block compression objects
@@ -668,7 +724,9 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = 0; j < block_size_local; j++) {
                 // Reading/Writing (row,col,val) from/to matrix
                 get_block_position_value_put<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs.row, idxs.col, val,
+                    //                    chunk_data, blk_idxs, idxs.row,
+                    //                    idxs.col, val,
+                    chunk_data, blk_idxs, idxs, val,
                     [](ValueType val) { return abs(val); });
             }
             idxs.blk++;
