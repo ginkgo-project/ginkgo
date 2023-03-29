@@ -23,6 +23,7 @@ target_sources(ginkgo_reference
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
+    matrix/batch_band_kernels.cpp
     matrix/batch_csr_kernels.cpp
     matrix/batch_dense_kernels.cpp
     matrix/batch_diagonal_kernels.cpp

@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/batch_band_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
@@ -929,6 +930,9 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
 namespace batch_tridiagonal {}  // namespace batch_tridiagonal
+
+
+namespace batch_band {}  // namespace batch_band
 
 
 namespace batch_ell {

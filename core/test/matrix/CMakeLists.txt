@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_band)
 ginkgo_create_test(batch_csr)
 ginkgo_create_test(batch_dense)
 ginkgo_create_test(batch_diagonal)
