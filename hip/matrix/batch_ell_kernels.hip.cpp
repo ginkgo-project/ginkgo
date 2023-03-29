@@ -78,9 +78,6 @@ constexpr int default_block_size = 1024;
 constexpr int sm_multiplier = 4;
 
 
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
-
-
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::BatchEll<ValueType, IndexType>* const a,

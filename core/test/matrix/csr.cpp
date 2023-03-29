@@ -276,4 +276,138 @@ TYPED_TEST(Csr, GeneratesCorrectMatrixData)
 }
 
 
+class CsrBlockDiagonal : public ::testing::Test {
+protected:
+    using value_type = double;
+    using index_type = int;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+
+    CsrBlockDiagonal() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+
+    std::vector<std::unique_ptr<Mtx>> generate_csr_matrices()
+    {
+        std::vector<std::unique_ptr<Mtx>> matset;
+        auto mat1 = Mtx::create(exec, gko::dim<2>(4, 4), 8);
+        value_type* v = mat1->get_values();
+        index_type* r = mat1->get_row_ptrs();
+        index_type* c = mat1->get_col_idxs();
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 5; r[3] = 7; r[4] = 8;
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2; c[4] = 3;
+        c[5] = 1; c[6] = 3;
+        c[7] = 3;
+        // clang-format on
+        for (int i = 0; i < 8; i++) {
+            v[i] = i;
+        }
+        matset.emplace_back(std::move(mat1));
+        auto mat2 = Mtx::create(exec, gko::dim<2>(3, 3), 6);
+        v = mat2->get_values();
+        r = mat2->get_row_ptrs();
+        c = mat2->get_col_idxs();
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 4; r[3] = 6;
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2;
+        c[4] = 0; c[5] = 1;
+        // clang-format on
+        for (int i = 0; i < 6; i++) {
+            v[i] = 3 * i;
+        }
+        matset.emplace_back(std::move(mat2));
+        auto mat3 = Mtx::create(exec, gko::dim<2>(2, 2), 4);
+        v = mat3->get_values();
+        r = mat3->get_row_ptrs();
+        c = mat3->get_col_idxs();
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 4;
+        c[0] = 0; c[1] = 1;
+        c[2] = 0; c[3] = 1;
+        // clang-format on
+        for (int i = 0; i < 4; i++) {
+            v[i] = 1 + 0.5 * i;
+        }
+        matset.emplace_back(std::move(mat3));
+        return matset;
+    }
+
+    std::unique_ptr<Mtx> get_big_matrix()
+    {
+        auto mat = Mtx::create(exec, gko::dim<2>(9, 9), 18);
+        value_type* v = mat->get_values();
+        index_type* r = mat->get_row_ptrs();
+        index_type* c = mat->get_col_idxs();
+        r[0] = 0;
+        r[1] = 2;
+        r[2] = 5;
+        r[3] = 7;
+        r[4] = 8;
+        r[5] = 10;
+        r[6] = 12;
+        r[7] = 14;
+        r[8] = 16;
+        r[9] = 18;
+
+        // clang-format off
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2; c[4] = 3;
+        c[5] = 1; c[6] = 3;
+        c[7] = 3;
+        c[8] = 4; c[9] = 6;
+        c[10] = 5; c[11] = 6;
+        c[12] = 4; c[13] = 5;
+        c[14] = 7; c[15] = 8;
+        c[16] = 7; c[17] = 8;
+        // clang-format on
+        for (int i = 0; i < 8; i++) {
+            v[i] = i;
+        }
+        for (int i = 8; i < 14; i++) {
+            v[i] = 3 * (i - 8);
+        }
+        for (int i = 14; i < 18; i++) {
+            v[i] = 1 + 0.5 * (i - 14);
+        }
+        return mat;
+    }
+};
+
+
+TEST_F(CsrBlockDiagonal, GeneratesCorrectBlockDiagonalMatrix)
+{
+    auto matset = generate_csr_matrices();
+
+    auto bdcsr = gko::create_block_diagonal_matrix(exec, matset);
+    auto check = get_big_matrix();
+
+    ASSERT_EQ(bdcsr->get_size(), check->get_size());
+    for (size_t irow = 0; irow < bdcsr->get_size()[0]; irow++) {
+        ASSERT_EQ(bdcsr->get_const_row_ptrs()[irow],
+                  check->get_const_row_ptrs()[irow]);
+        for (size_t inz = bdcsr->get_const_row_ptrs()[irow];
+             inz < bdcsr->get_const_row_ptrs()[irow + 1]; inz++) {
+            ASSERT_EQ(bdcsr->get_const_col_idxs()[inz],
+                      check->get_const_col_idxs()[inz]);
+            ASSERT_EQ(bdcsr->get_const_values()[inz],
+                      check->get_const_values()[inz]);
+        }
+    }
+    ASSERT_EQ(bdcsr->get_const_row_ptrs()[bdcsr->get_size()[0]],
+              check->get_const_row_ptrs()[bdcsr->get_size()[0]]);
+}
+
+TEST_F(CsrBlockDiagonal, ThrowsOnRectangularInput)
+{
+    std::vector<std::unique_ptr<Mtx>> matrices;
+    auto mtx = Mtx::create(exec, gko::dim<2>(3, 6), 10);
+    matrices.emplace_back(std::move(mtx));
+
+    ASSERT_THROW(gko::create_block_diagonal_matrix(exec, matrices),
+                 gko::DimensionMismatch);
+}
+
+
 }  // namespace

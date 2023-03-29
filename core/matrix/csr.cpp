@@ -812,4 +812,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
 
 
 }  // namespace matrix
+
+
+#define GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX(ValueType, IndexType)                \
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>                         \
+    create_block_diagonal_matrix(                                              \
+        std::shared_ptr<const Executor> exec,                                  \
+        const std::vector<std::unique_ptr<matrix::Csr<ValueType, IndexType>>>& \
+            matrices)
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX(ValueType, IndexType)
+{
+    using mtx_type = matrix::Csr<ValueType, IndexType>;
+    size_type total_rows = 0, total_nnz = 0;
+    for (size_type imat = 0; imat < matrices.size(); imat++) {
+        GKO_ASSERT_IS_SQUARE_MATRIX(matrices[imat]);
+        total_rows += matrices[imat]->get_size()[0];
+        total_nnz += matrices[imat]->get_num_stored_elements();
+    }
+    array<IndexType> h_row_ptrs(exec->get_master(), total_rows + 1);
+    array<IndexType> h_col_idxs(exec->get_master(), total_nnz);
+    array<ValueType> h_values(exec->get_master(), total_nnz);
+    size_type roffset = 0, nzoffset = 0;
+    for (size_type im = 0; im < matrices.size(); im++) {
+        auto imatrix = mtx_type::create(exec->get_master());
+        imatrix->copy_from(matrices[im].get());
+        const auto irowptrs = imatrix->get_const_row_ptrs();
+        const auto icolidxs = imatrix->get_const_col_idxs();
+        const auto ivalues = imatrix->get_const_values();
+        for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
+            h_row_ptrs.get_data()[irow + roffset] = irowptrs[irow] + nzoffset;
+            for (size_type inz = irowptrs[irow]; inz < irowptrs[irow + 1];
+                 inz++) {
+                h_col_idxs.get_data()[nzoffset + inz] = icolidxs[inz] + roffset;
+                h_values.get_data()[nzoffset + inz] = ivalues[inz];
+            }
+        }
+        roffset += imatrix->get_size()[0];
+        nzoffset += irowptrs[imatrix->get_size()[0]];
+    }
+    h_row_ptrs.get_data()[roffset] = nzoffset;
+    assert(nzoffset == total_nnz);
+    assert(roffset == total_rows);
+    auto outm = mtx_type::create(exec, dim<2>(total_rows, total_rows), h_values,
+                                 h_col_idxs, h_row_ptrs);
+    return outm;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX);
+
+
 }  // namespace gko
