@@ -301,7 +301,7 @@ int main(int argc, char* argv[])
         }
 
         // inner solve
-        Ainv->apply(gko::lend(b), gko::lend(x));
+        Ainv->apply(b, x);
         // depending on partition of unity, might need to combine overlapping
         // dofs
 
@@ -324,7 +324,7 @@ int main(int argc, char* argv[])
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
-    Ainv->apply(gko::lend(b), gko::lend(x));
+    Ainv->apply(b, x);
 
     // Take timings.
     comm.synchronize();
@@ -334,10 +334,9 @@ int main(int argc, char* argv[])
     // non-distributed case.
     x_host->copy_from(x.get());
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(gko::lend(minus_one), gko::lend(x_host), gko::lend(one),
-                  gko::lend(b_host));
+    A_host->apply(minus_one, x_host, one, b_host);
     auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(gko::lend(res_norm));
+    b_host->compute_norm2(res_norm);
 
     // Take timings.
     comm.synchronize();
