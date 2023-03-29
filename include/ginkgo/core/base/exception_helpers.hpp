@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
 
 
+#include <tuple>
 #include <typeinfo>
+#include <vector>
 
 
 #include <ginkgo/core/base/dim.hpp>
@@ -65,6 +67,22 @@ namespace gko {
 #define GKO_NOT_IMPLEMENTED                                                  \
     {                                                                        \
         throw ::gko::NotImplemented(__FILE__, __LINE__, __func__);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Marks a function as not supported by batched ginkgo.
+ *
+ * Attempts to call this function will result in a runtime error of type
+ * BatchedNotSupported.
+ */
+#define GKO_BATCHED_NOT_SUPPORTED(_error_descr)                              \
+    {                                                                        \
+        throw ::gko::BatchedNotSupported(__FILE__, __LINE__, __func__,       \
+                                         _error_descr);                      \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -145,6 +163,179 @@ inline dim<2> get_size(const T& op)
 }
 
 inline dim<2> get_size(const dim<2>& size) { return size; }
+
+
+template <typename T>
+inline batch_dim<2> get_batch_size(const T& op)
+{
+    return op->get_size();
+}
+
+
+inline batch_dim<2> get_batch_size(const batch_dim<2>& size) { return size; }
+
+
+template <typename T>
+inline size_type get_num_batch_entries(const T& obj)
+{
+    return obj.get_num_batch_entries();
+}
+
+
+inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
+{
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+
+    if (size1.stores_equal_sizes() && size2.stores_equal_sizes()) {
+        if (size1.at(0)[1] != size2.at(0)[0]) {
+            return std::tuple<bool, int>{false, 0};
+        }
+    } else {
+        for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
+            if (size1.at(i)[1] != size2.at(i)[0]) {
+                return std::tuple<bool, int>{false, i};
+            }
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
+{
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+
+    if (size1.stores_equal_sizes() && size2.stores_equal_sizes()) {
+        if (size1.at(0)[0] != size2.at(0)[1]) {
+            return std::tuple<bool, int>{false, 0};
+        } else {
+            return std::tuple<bool, int>{true, 0};
+        }
+    }
+
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
+        if (size1.at(i)[0] != size2.at(i)[1]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
+{
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+
+    if (size1.stores_equal_sizes() && size2.stores_equal_sizes()) {
+        if (size1.at(0)[0] != size2.at(0)[0]) {
+            return std::tuple<bool, int>{false, 0};
+        } else {
+            return std::tuple<bool, int>{true, 0};
+        }
+    }
+
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
+        if (size1.at(i)[0] != size2.at(i)[0]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
+{
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+
+    if (size1.stores_equal_sizes() && size2.stores_equal_sizes()) {
+        if (size1.at(0)[1] != size2.at(0)[1]) {
+            return std::tuple<bool, int>{false, 0};
+        } else {
+            return std::tuple<bool, int>{true, 0};
+        }
+    }
+
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
+        if (size1.at(i)[1] != size2.at(i)[1]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> check_batch_square(const batch_dim<>& size)
+{
+    if (size.stores_equal_sizes()) {
+        if (size.at(0)[0] != size.at(0)[1]) {
+            return std::tuple<bool, int>{false, 0};
+        } else {
+            return std::tuple<bool, int>{true, 0};
+        }
+    }
+
+    for (auto i = 0; i < size.get_num_batch_entries(); ++i) {
+        if (size.at(i)[1] != size.at(i)[0]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int, char> check_batch_twosided_transformable(
+    const batch_dim<>& mat_size, const batch_dim<>& left_size,
+    const batch_dim<>& right_size)
+{
+    if (mat_size.stores_equal_sizes() && left_size.stores_equal_sizes() &&
+        right_size.stores_equal_sizes()) {
+        if (mat_size.at(0)[0] == left_size.at(0)[1] &&
+            mat_size.at(0)[1] == right_size.at(0)[0]) {
+            return std::tuple<bool, int, char>{true, 0, 'g'};
+        } else {
+            if (mat_size.at(0)[0] != left_size.at(0)[1]) {
+                return std::tuple<bool, int, char>{false, 0, 'l'};
+            } else {
+                return std::tuple<bool, int, char>{false, 0, 'r'};
+            }
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+
+inline std::tuple<bool, size_type> check_batch_single_column(
+    const batch_dim<2>& mat_size)
+{
+    if (mat_size.stores_equal_sizes()) {
+        if (mat_size.at(0)[1] == 1) {
+            return std::tuple<bool, size_type>{true, 0};
+        } else {
+            return std::tuple<bool, size_type>{false, 0};
+        }
+    } else {
+        for (size_type batch = 0; batch < mat_size.get_num_batch_entries();
+             batch++) {
+            if (mat_size.at(0)[1] != 1) {
+                return std::tuple<bool, size_type>{false, batch};
+            }
+        }
+        return std::tuple<bool, size_type>{true, 0};
+    }
+}
 
 
 }  // namespace detail
@@ -295,6 +486,190 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op1)[1], #_op2,                        \
             ::gko::detail::get_size(_op2)[0],                               \
             ::gko::detail::get_size(_op2)[1], "expected equal dimensions"); \
+    }
+
+
+/**
+ * Asserts that _op1 can be applied to _op2.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
+ */
+#define GKO_ASSERT_BATCH_CONFORMANT(_op1, _op2)                               \
+    {                                                                         \
+        auto comp = ::gko::detail::compare_batch_inner(                       \
+            ::gko::detail::get_batch_size(_op1),                              \
+            ::gko::detail::get_batch_size(_op2));                             \
+        if (!std::get<0>(comp)) {                                             \
+            throw ::gko::DimensionMismatch(                                   \
+                __FILE__, __LINE__, __func__, #_op1,                          \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[1], \
+                #_op2,                                                        \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[1], \
+                "expected matching inner dimensions among all batches");      \
+        }                                                                     \
+    }
+
+
+/**
+ * Asserts that _op1 can be applied to _op2 from the right.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2 from the right.
+ */
+#define GKO_ASSERT_BATCH_REVERSE_CONFORMANT(_op1, _op2)                       \
+    {                                                                         \
+        auto comp = ::gko::detail::compare_batch_outer(                       \
+            ::gko::detail::get_batch_size(_op1),                              \
+            ::gko::detail::get_batch_size(_op2));                             \
+        if (!std::get<0>(comp)) {                                             \
+            throw ::gko::DimensionMismatch(                                   \
+                __FILE__, __LINE__, __func__, #_op1,                          \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[1], \
+                #_op2,                                                        \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[1], \
+                "expected matching outer dimensions among all batches");      \
+        }                                                                     \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of rows.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of rows
+ */
+#define GKO_ASSERT_BATCH_EQUAL_ROWS(_op1, _op2)                               \
+    {                                                                         \
+        auto comp = ::gko::detail::compare_batch_rows(                        \
+            ::gko::detail::get_batch_size(_op1),                              \
+            ::gko::detail::get_batch_size(_op2));                             \
+        if (!std::get<0>(comp)) {                                             \
+            throw ::gko::DimensionMismatch(                                   \
+                __FILE__, __LINE__, __func__, #_op1,                          \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[1], \
+                #_op2,                                                        \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[1], \
+                "expected equal rows");                                       \
+        }                                                                     \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of columns.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
+ *                           columns
+ */
+#define GKO_ASSERT_BATCH_EQUAL_COLS(_op1, _op2)                               \
+    {                                                                         \
+        auto comp = ::gko::detail::compare_batch_cols(                        \
+            ::gko::detail::get_batch_size(_op1),                              \
+            ::gko::detail::get_batch_size(_op2));                             \
+        if (!std::get<0>(comp)) {                                             \
+            throw ::gko::DimensionMismatch(                                   \
+                __FILE__, __LINE__, __func__, #_op1,                          \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp))[1], \
+                #_op2,                                                        \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[0], \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp))[1], \
+                "expected equal cols");                                       \
+        }                                                                     \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of rows and columns.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
+ *                           rows or columns
+ */
+#define GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(_op1, _op2)                          \
+    {                                                                          \
+        auto comp1 = ::gko::detail::compare_batch_rows(                        \
+            ::gko::detail::get_batch_size(_op1),                               \
+            ::gko::detail::get_batch_size(_op2));                              \
+        auto comp2 = ::gko::detail::compare_batch_cols(                        \
+            ::gko::detail::get_batch_size(_op1),                               \
+            ::gko::detail::get_batch_size(_op2));                              \
+        if (!std::get<0>(comp1) || !std::get<0>(comp2)) {                      \
+            throw ::gko::DimensionMismatch(                                    \
+                __FILE__, __LINE__, __func__, #_op1,                           \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp1))[0], \
+                ::gko::detail::get_batch_size(_op1).at(std::get<1>(comp1))[1], \
+                #_op2,                                                         \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp2))[0], \
+                ::gko::detail::get_batch_size(_op2).at(std::get<1>(comp2))[1], \
+                "expected equal dimensions");                                  \
+        }                                                                      \
+    }
+/**
+ *Asserts that _op is a batch made up of square matrices.
+ *
+ *@throw DimensionMismatch  if the number of rows of _op is different from the
+ *                          number of columns of _op.
+ */
+#define GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(_op)                              \
+    auto comp =                                                                \
+        ::gko::detail::check_batch_square(::gko::detail::get_batch_size(_op)); \
+    if (!std::get<0>(comp)) {                                                  \
+        throw ::gko::DimensionMismatch(                                        \
+            __FILE__, __LINE__, __func__, #_op,                                \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[0],       \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[1], #_op, \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[0],       \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[1],       \
+            "expected square matrices in batch");                              \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+#define GKO_ASSERT_IS_BATCH_SCALAR(_op)                                      \
+    {                                                                        \
+        auto op_sz = gko::detail::get_batch_size(_op);                       \
+        auto scalar_sz = gko::batch_dim<>(op_sz.get_num_batch_entries(),     \
+                                          gko::dim<2>(1, 1));                \
+        auto comprows = gko::detail::compare_batch_rows(op_sz, scalar_sz);   \
+        if (!std::get<0>(comprows)) {                                        \
+            const int bidx = std::get<1>(comprows);                          \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      op_sz.at(bidx)[0], op_sz.at(bidx)[1],  \
+                                      "expected batch scalar");              \
+        }                                                                    \
+        auto compcols = gko::detail::compare_batch_cols(op_sz, scalar_sz);   \
+        if (!std::get<0>(compcols)) {                                        \
+            const int bidx = std::get<1>(compcols);                          \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      op_sz.at(bidx)[0], op_sz.at(bidx)[1],  \
+                                      "expected batch scalar");              \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Asserts that _op1 has the same number of batch entries as _op2.
+ *
+ * @throw DimensionMismatch  if _op1 contains a different number of entries
+ *   from _op2.
+ */
+#define GKO_ASSERT_EQUAL_BATCH_ENTRIES(_op1, _op2)                          \
+    {                                                                       \
+        auto sz1 = ::gko::detail::get_num_batch_entries(_op1);              \
+        auto sz2 = ::gko::detail::get_num_batch_entries(_op2);              \
+        if (sz1 != sz2) {                                                   \
+            throw ::gko::DimensionMismatch(                                 \
+                __FILE__, __LINE__, __func__, #_op1, sz1, 0, #_op2, sz2, 0, \
+                "expected matching number of batch entries");               \
+        }                                                                   \
     }
 
 
@@ -700,6 +1075,53 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
             throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
                                       sz[0], sz[1], "expected scalar");      \
         }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(_opA, _left_op, _right_op)       \
+    auto chkleft = ::gko::detail::check_batch_twosided_transformable(        \
+        ::gko::detail::get_batch_size(_opA),                                 \
+        ::gko::detail::get_batch_size(_left_op),                             \
+        ::gko::detail::get_batch_size(_right_op));                           \
+    if (!std::get<0>(chk)) {                                                 \
+        const int bidx = std::get<1>(chk);                                   \
+        const char side = std::get<2>(chk);                                  \
+        if (side == 'l') {                                                   \
+            throw ::gko::DimensionMismatch(                                  \
+                __FILE__, __LINE__, __func__, #_opA,                         \
+                ::gko::detail::get_batch_size(_opA).at(bidx)[0],             \
+                ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_left_op,  \
+                ::gko::detail::get_batch_size(_left_op).at(bidx)[0],         \
+                ::gko::detail::get_batch_size(_left_op).at(bidx)[1],         \
+                "expected matching left scaling vector");                    \
+        } else {                                                             \
+            throw ::gko::DimensionMismatch(                                  \
+                __FILE__, __LINE__, __func__, #_opA,                         \
+                ::gko::detail::get_batch_size(_opA).at(bidx)[0],             \
+                ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_right_op, \
+                ::gko::detail::get_batch_size(_right_op).at(bidx)[0],        \
+                ::gko::detail::get_batch_size(_right_op).at(bidx)[1],        \
+                "expected matching right scaling vector");                   \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(_opA)                             \
+    auto chk = ::gko::detail::check_batch_single_column(                     \
+        ::gko::detail::get_batch_size(_opA));                                \
+    if (!std::get<0>(chk)) {                                                 \
+        const int bidx = std::get<1>(chk);                                   \
+        throw ::gko::BadDimension(                                           \
+            __FILE__, __LINE__, __func__, #_opA,                             \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[0],                 \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[1],                 \
+            "expected single vector");                                       \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
