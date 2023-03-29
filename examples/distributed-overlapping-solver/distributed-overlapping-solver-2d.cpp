@@ -60,8 +60,11 @@ int main(int argc, char* argv[])
     // Create an MPI communicator wrapper and get the rank.
     const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
-    const int num_boundary_intersections =
-        (rank == 0) + (rank == comm.size() - 1);
+
+    std::array<int, 2> dims{};
+    MPI_Dims_create(comm.size(), dims.size(), dims.data());
+
+    std::array<int, 2> coords{rank % dims[0], rank / dims[0]};
 
     // Print the ginkgo version information and help message.
     if (rank == 0) {
@@ -86,10 +89,12 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto overlap =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1);
-    const auto num_elements_y =
+    const auto num_interior_elements =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
-    const auto num_elements_x =
-        num_elements_y + overlap * (2 - num_boundary_intersections);
+    const auto num_elements =
+        add_overlap(dims, coords, num_interior_elements, overlap);
+    const auto num_elements_x = num_elements[0];
+    const auto num_elements_y = num_elements[1];
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
 
@@ -151,11 +156,13 @@ int main(int argc, char* argv[])
     // empty matrix of zero size and filling in the values with
     // gko::experimental::distributed::Matrix::read_distributed. Only the data
     // that belongs to the rows by this rank will be assembled.
+    // process boundaries are also treated as dirichlet boundaries
     auto A_data = assemble<ValueType, LocalIndexType>(
         num_elements_y, num_elements_x, num_vertices_y, num_vertices_x, true,
-        true);
+        true, true, true);
     auto b_data = assemble_rhs<ValueType, LocalIndexType>(
-        num_vertices_y, num_vertices_x, rank == 0, rank == comm.size() - 1);
+        num_vertices_y, num_vertices_x, on_bdry[0][0], on_bdry[0][1],
+        on_bdry[1][0], on_bdry[1][1]);
 
     // Take timings.
     comm.synchronize();
@@ -164,29 +171,16 @@ int main(int argc, char* argv[])
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
     // distributed matrix-vector multiplication.
-    auto A_host = gko::share(mtx::create(exec->get_master()));
-    auto x_host = vec::create(exec->get_master());
-    auto b_host = vec::create(exec->get_master());
-    A_host->read(A_data);
-    b_host->read(b_data);
-    x_host->read(b_data);
-    // After reading, the matrix and vector can be moved to the chosen executor,
-    // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(mtx::create(exec));
     auto x = vec::create(exec);
     auto b = vec::create(exec);
-    A->copy_from(A_host.get());
-    b->copy_from(b_host.get());
-    x->copy_from(x_host.get());
+    A->read(A_data);
+    b->read(b_data);
+    x->read(b_data);
 
     // Take timings.
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
-
-    auto one = gko::initialize<vec>({1}, exec);
-    auto exact_solution = dist_vec ::create(
-        exec, comm, vec::create(exec, gko::dim<2>{num_vertices_y, 1}).get());
-    exact_solution->fill(1.0);
 
     auto tmp_shared_idxs =
         setup_shared_idxs(comm, num_elements_y, num_elements_x, overlap);
