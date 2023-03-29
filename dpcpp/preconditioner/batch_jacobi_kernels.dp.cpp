@@ -91,7 +91,7 @@ void batch_jacobi_apply_helper(
         device.get_info<sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
-    const dim3 grid(nbatch * group_size);
+    const dim3 grid(nbatch);
 
     const auto r_values = r->get_const_values();
     auto z_values = z->get_values();
@@ -117,34 +117,31 @@ void batch_jacobi_apply_helper(
                 });
         });
     } else {
-        GKO_NOT_IMPLEMENTED;
-        /*
-          const auto shared_size =
-              BatchBlockJacobi<ValueType>::dynamic_work_size(
-                  sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
-              sizeof(ValueType);
-          auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
-              max_block_size, num_blocks, storage_scheme,
-              cumulative_block_storage, blocks_array, block_ptrs,
-              row_part_of_which_block_info);
+        const auto shared_size =
+            BatchBlockJacobi<ValueType>::dynamic_work_size(
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
+            sizeof(ValueType);
+        auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
+            max_block_size, num_blocks, storage_scheme,
+            cumulative_block_storage, blocks_array, block_ptrs,
+            row_part_of_which_block_info);
 
-          (exec->get_queue())->submit([&](sycl::handler& cgh) {
-              sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                             sycl::access::target::local>
-                  slm_storage(sycl::range<1>(shared_size), cgh);
-              cgh.parallel_for(
-                  sycl_nd_range(grid, block),
-                  [=](sycl::nd_item<3> item_ct1)
-                      [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                          auto batch_id = item_ct1.get_group_linear_id();
-                          batch_block_jacobi_apply(
-                              prec_block_jacobi, batch_id, nrows, r_values,
-                              z_values,
-                              static_cast<ValueType*>(slm_storage.get_pointer()),
-                              item_ct1);
-                      });
-          });
-          */
+        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_storage(sycl::range<1>(shared_size), cgh);
+            cgh.parallel_for(
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1)
+                    [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                        auto batch_id = item_ct1.get_group_linear_id();
+                        batch_block_jacobi_apply(
+                            prec_block_jacobi, batch_id, nrows, r_values,
+                            z_values,
+                            static_cast<ValueType*>(slm_storage.get_pointer()),
+                            item_ct1);
+                    });
+        });
     }
 }
 
@@ -205,23 +202,11 @@ void compute_cumulative_block_storage(
     const IndexType* const block_pointers,
     IndexType* const blocks_cumulative_storage)
 {
-    constexpr int subgroup_size = config::warp_size;
-    auto device = exec->get_queue()->get_device();
-    auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
-
-    const dim3 block(group_size);
-    const dim3 grid(num_blocks);
-
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 auto gid = item_ct1.get_global_linear_id();
-                                 const auto bsize = block_pointers[gid + 1] -
-                                                    block_pointers[gid];
-                                 blocks_cumulative_storage[gid] = bsize * bsize;
-                             });
+        cgh.parallel_for(num_blocks, [=](auto id) {
+            const auto bsize = block_pointers[id + 1] - block_pointers[id];
+            blocks_cumulative_storage[id] = bsize * bsize;
+        });
     });
     exec->get_queue()->wait();
     components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
@@ -238,22 +223,11 @@ void find_row_is_part_of_which_block(
     const IndexType* const block_pointers,
     IndexType* const row_part_of_which_block_info)
 {
-    constexpr int subgroup_size = config::warp_size;
-    auto device = exec->get_queue()->get_device();
-    auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
-
-    const dim3 block(group_size);
-    const dim3 grid(num_blocks);  // *subgroup_size
-
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 find_row_is_part_of_which_block_kernel(
-                                     num_blocks, block_pointers,
-                                     row_part_of_which_block_info, item_ct1);
-                             });
+        cgh.parallel_for(num_blocks, [=](auto id) {
+            for (int i = block_pointers[id]; i < block_pointers[id + 1]; i++)
+                row_part_of_which_block_info[i] = id;
+        });
     });
 }
 
@@ -282,7 +256,7 @@ void extract_common_blocks_pattern(
         device.get_info<sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
-    const dim3 grid(nrows * subgroup_size);
+    const dim3 grid(ceildiv(nrows * subgroup_size, group_size));
 
     const auto row_ptrs = first_sys_csr->get_const_row_ptrs();
     const auto col_idxs = first_sys_csr->get_const_col_idxs();
@@ -334,7 +308,7 @@ void compute_block_jacobi_helper(
     const auto sys_csr_values = sys_csr->get_const_values();
 
     dim3 block(group_size);
-    dim3 grid(num_blocks * nbatch * subgroup_size);
+    dim3 grid(ceildiv(num_blocks * nbatch * subgroup_size, group_size));
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
@@ -396,7 +370,7 @@ void transpose_block_jacobi(
         device.get_info<sycl::info::device::max_work_group_size>();
 
     dim3 block(group_size);
-    dim3 grid(nrows * nbatch * subgroup_size);
+    dim3 grid(ceildiv(nrows * nbatch * subgroup_size, group_size));
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),

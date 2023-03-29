@@ -30,32 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-__dpct_inline__ void find_row_is_part_of_which_block_kernel(
-    const size_type num_blocks, const int* const __restrict__ block_pointers,
-    int* const __restrict__ row_part_of_which_block_info,
-    sycl::nd_item<3> item_ct1)
-{
-    /*
-      const auto sg = item_ct1.get_sub_group();
-      const int sg_size = sg.get_local_range().size();
-      const int sg_tid = sg.get_local_id();
-      const int sg_global_id =
-          item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
-
-      auto block_start = block_pointers[sg_global_id];
-      auto block_end = block_pointers[sg_global_id + 1];
-      auto block_size = block_end - block_start;
-
-      for (int i = block_start + sg_tid; i < block_end; i += sg_size) {
-        row_part_of_which_block_info[i + sg_tid] = sg_global_id;
-      }
-      */
-    const auto gid = item_ct1.get_global_linear_id();
-    for (int i = block_pointers[gid]; i < block_pointers[gid + 1]; i++)
-        row_part_of_which_block_info[i] = gid;
-}
-
-
 __dpct_inline__ void extract_common_block_pattern_kernel(
     const int nrows, const int* const __restrict__ sys_row_ptrs,
     const int* const __restrict__ sys_col_idxs, const size_type num_blocks,
@@ -191,9 +165,6 @@ __dpct_inline__ void compute_block_jacobi_kernel(
     constexpr int sg_size = config::warp_size;
     const int sg_tid = sg.get_local_id();
     const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
-    //        item_ct1.get_group_linear_id() * num_blocks + sg.get_group_id();
-    // const int num_sg_total = item_ct1.get_group_range().size() / sg_size;
-    //    const int num_sg_total = item_ct1.get_global_range().size() / sg_size;
 
     // one subwarp per small diagonal block
     const auto batch_idx = sg_global_id / num_blocks;
