@@ -114,10 +114,12 @@ void Convergence<ValueType>::on_iteration_complete(
                                            dim<2>{1, residual->get_size()[1]});
                     dense_r->compute_norm2(this->residual_norm_);
                 });
-        } else if (dynamic_cast<const solver::SolverBase*>(solver) &&
+        } else if (dynamic_cast<const solver::detail::SolverBaseLinOp*>(
+                       solver) &&
                    b != nullptr && x != nullptr) {
-            auto system_mtx = dynamic_cast<const solver::SolverBase*>(solver)
-                                  ->get_system_matrix();
+            auto system_mtx =
+                dynamic_cast<const solver::detail::SolverBaseLinOp*>(solver)
+                    ->get_system_matrix();
             using Vector = matrix::Dense<ValueType>;
             using NormVector = matrix::Dense<remove_complex<ValueType>>;
             detail::vector_dispatch<ValueType>(b, [&](const auto* dense_b) {
