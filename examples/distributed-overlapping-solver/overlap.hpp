@@ -6,6 +6,69 @@
 
 #include "types.hpp"
 
+
+template <typename Vec>
+std::pair<int, double> cg(gko::ptr_param<const gko::LinOp> op,
+                          gko::ptr_param<const gko::LinOp> pre,
+                          gko::ptr_param<const Vec> b, gko::ptr_param<Vec> x,
+                          int max_it, double reduction)
+{
+    auto exec = op->get_executor();
+    auto r = b->clone();
+    auto z = b->clone();
+
+    auto rho = gko::initialize<vec>({0.0}, exec);
+    auto alpha = gko::initialize<vec>({0.0}, exec);
+    auto pAq = gko::initialize<vec>({0.0}, exec);
+    auto beta = gko::initialize<vec>({0.0}, exec);
+    auto rho_old = rho->clone();
+
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+
+    op->apply(neg_one, x, one, r);
+
+    // need to make sure that z has zeros on dirichlet dofs
+    z->fill(0.0);
+    pre->apply(r, z);
+
+    auto p = z->clone();
+    auto q = b->clone();
+
+    r->compute_dot(z, rho);
+
+    for (int i = 0; i < max_it; ++i) {
+        op->apply(p, q);
+
+        p->compute_dot(q, pAq);
+
+        alpha->copy_from(rho);
+        alpha->inv_scale(pAq);
+
+        x->add_scaled(alpha, p);
+        r->sub_scaled(alpha, q);
+
+        z->fill(0.0);
+        pre->apply(r, z);
+
+        std::swap(rho, rho_old);
+        r->compute_dot(z, rho);
+
+        if (rho->at(0) < reduction) {
+            return {i, rho->at(0)};
+        }
+
+        beta->copy_from(rho);
+        beta->inv_scale(rho_old);
+
+        z->add_scaled(beta, p);
+        std::swap(p, z);
+    }
+
+    return {max_it, rho->at(0)};
+}
+
+
 namespace gko {
 
 /**
@@ -312,11 +375,8 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
         auto no_ovlp_b = ovlp_b->extract_local();
         auto no_ovlp_local = this->extract_local();
 
-        auto dist_b = dist_vec::create(
-            no_ovlp_b->get_executor(),
-            as<const experimental::distributed::DistributedBase>(b)
-                ->get_communicator(),
-            no_ovlp_b.get());
+        auto dist_b =
+            dist_vec::create(no_ovlp_b->get_executor(), comm, no_ovlp_b.get());
         auto dist_local = dist_vec::create(no_ovlp_local->get_executor(), comm,
                                            no_ovlp_local.get());
 
@@ -359,9 +419,7 @@ struct overlapping_operator
     {
         local_op->apply(b, x);
         // exchange data
-        overlapping_vec(x->get_executor(), this->get_communicator(),
-                        make_dense_view(as<vec>(x)), comm_info)
-            .make_consistent(shared_mode);
+        as<overlapping_vec>(x)->make_consistent(shared_mode);
     }
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override

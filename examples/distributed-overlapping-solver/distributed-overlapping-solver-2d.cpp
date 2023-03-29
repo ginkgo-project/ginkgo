@@ -226,20 +226,8 @@ int main(int argc, char* argv[])
             ->generate(ovlp_A->local_op),
         comm_info, gko::overlapping_vec::operation::copy);
 
-    auto Ainv =
-        gko::solver::Ir<ValueType>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec))
-            .with_generated_solver(pre)
-            .on(exec)
-            ->generate(ovlp_A);
-    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
-    Ainv->add_logger(logger);
-
-    Ainv->apply(ovlp_b, ovlp_x);
-
-    auto res_norm = gko::as<vec>(logger->get_residual_norm());
+    auto monitor =
+        cg<gko::overlapping_vec>(ovlp_A, pre, ovlp_b, ovlp_x, num_iters, 1e-5);
 
     // Take timings.
     comm.synchronize();
@@ -255,9 +243,8 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << ovlp_A->local_op->get_size()
                   << "\nNum ranks: " << comm.size()
-                  << "\nNum iters: " << logger->get_num_iterations()
-                  << "\nFinal Res norm: ";
-        gko::write(std::cout, res_norm);
+                  << "\nNum iters: " << monitor.first
+                  << "\nFinal Res norm: " << monitor.second;
         std::cout << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
