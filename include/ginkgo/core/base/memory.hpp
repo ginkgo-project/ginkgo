@@ -81,6 +81,10 @@ class DpcppAllocatorBase : public Allocator {
 public:
     DpcppAllocatorBase(sycl::queue* queue);
 
+    void* allocate(size_type num_bytes) const final;
+
+    void deallocate(void* ptr) const final;
+
 protected:
     virtual void* allocate_impl(sycl::queue* queue,
                                 size_type num_bytes) const = 0;

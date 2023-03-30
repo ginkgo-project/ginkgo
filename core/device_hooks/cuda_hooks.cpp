@@ -97,8 +97,18 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, CUstream_st* stream)
 {
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master),
+                         std::make_shared<CudaAllocator>(), stream));
+}
+
+
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master,
+    std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
+{
     return std::shared_ptr<CudaExecutor>(new CudaExecutor(
-        device_id, std::move(master), device_reset, alloc_mode, stream));
+        device_id, std::move(master), std::move(alloc), stream));
 }
 
 
