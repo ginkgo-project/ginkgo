@@ -14,12 +14,10 @@ CudaTimer::CudaTimer(std::shared_ptr<const CudaExecutor> exec)
 {}
 
 
-time_point CudaTimer::create_time_point()
+void CudaTimer::init_time_point(time_point& time)
 {
-    time_point result;
-    result.type_ = time_point::type::cuda;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&result.data_.cuda_event));
-    return result;
+    time.type_ = time_point::type::cuda;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&time.data_.cuda_event));
 }
 
 
@@ -28,6 +26,13 @@ void CudaTimer::record(time_point& time)
     GKO_ASSERT(time.type_ == time_point::type::cuda);
     GKO_ASSERT_NO_CUDA_ERRORS(
         cudaEventRecord(time.data_.cuda_event, exec_->get_stream()));
+}
+
+
+void CudaTimer::wait(const time_point& time)
+{
+    GKO_ASSERT(time.type_ == time_point::type::cuda);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(time.data_.cuda_event));
 }
 
 

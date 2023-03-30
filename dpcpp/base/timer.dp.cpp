@@ -21,12 +21,10 @@ DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-time_point DpcppTimer::create_time_point()
+void DpcppTimer::init_time_point(time_point& time)
 {
-    time_point result;
-    result.type_ = time_point::type::dpcpp;
-    result.data_.dpcpp_event = new sycl::event{};
-    return result;
+    time.type_ = time_point::type::dpcpp;
+    time.data_.dpcpp_event = new sycl::event{};
 }
 
 
@@ -40,15 +38,24 @@ void DpcppTimer::record(time_point& time)
 }
 
 
+void DpcppTimer::wait(const time_point& time)
+{
+    GKO_ASSERT(time.type_ == time_point::type::dpcpp);
+    time.data_.dpcpp_event->wait_and_throw();
+}
+
+
 int64 DpcppTimer::difference(const time_point& start, const time_point& stop)
 {
     GKO_ASSERT(start.type_ == time_point::type::dpcpp);
     GKO_ASSERT(stop.type_ == time_point::type::dpcpp);
     stop.data_.dpcpp_event->wait_and_throw();
     auto stop_time =
-        stop.get_profiling_info<sycl::info::event_profiling::command_start>();
+        stop.data_.dpcpp_event
+            ->get_profiling_info<sycl::info::event_profiling::command_start>();
     auto start_time =
-        start.get_profiling_info<sycl::info::event_profiling::command_end>();
+        stop.data_.dpcpp_event
+            ->get_profiling_info<sycl::info::event_profiling::command_end>();
     return static_cast<int64>(stop_time - start_time);
 }
 
