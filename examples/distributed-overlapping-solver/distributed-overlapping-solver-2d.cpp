@@ -61,10 +61,13 @@ int main(int argc, char* argv[])
     const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
 
-    std::array<int, 2> dims{};
-    MPI_Dims_create(comm.size(), dims.size(), dims.data());
+    std::array<int, 2> dims{comm.size(), 1};
 
-    std::array<int, 2> coords{rank % dims[0], rank / dims[0]};
+    std::array<int, 2> coords{rank, 0};
+
+    std::array<std::array<bool, 2>, 2> on_bdry = {
+        {{coords[0] == 0, coords[0] == dims[0] - 1},
+         {coords[1] == 0, coords[1] == dims[1] - 1}}};
 
     // Print the ginkgo version information and help message.
     if (rank == 0) {

@@ -1,3 +1,35 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2023, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
 #ifndef GINKGO_EXAMPLES_DISTRIBUTED_OVERLAPPING_SOLVER_FE_ASSEMBLY_HPP
 #define GINKGO_EXAMPLES_DISTRIBUTED_OVERLAPPING_SOLVER_FE_ASSEMBLY_HPP
 
@@ -151,11 +183,11 @@ gko::matrix_data<ValueType, IndexType> assemble_rhs(
     }
     // horizontal boundaries
     for (int i = 0; i < num_vertices_x; i++) {
-        if (top_bdry) {
+        if (bottom_bdry) {
             auto idx = i;
             data.set_value(idx, 0, f_one(0, i));
         }
-        if (bottom_bdry) {
+        if (top_bdry) {
             auto idx = i + (num_vertices_y - 1) * num_vertices_x;
             data.set_value(idx, 0, f_one(num_vertices_y - 1, i));
         }
@@ -271,73 +303,113 @@ std::vector<shared_idx_t> setup_shared_idxs(
 
 std::vector<shared_idx_t> setup_non_ovlp_shared_idxs(
     const gko::experimental::mpi::communicator& comm,
-    gko::size_type num_elements_y, gko::size_type num_elements_x)
+    const std::array<int, 2> dims, const std::array<int, 2> coords,
+    gko::size_type num_elements)
 {
     auto exec = gko::ReferenceExecutor::create();
 
     auto this_rank = comm.rank();
-    auto share_left_bdry = this_rank > 0;
-    auto share_right_bdry = this_rank < comm.size() - 1;
 
-    gko::experimental::mpi::request req_l;
-    gko::experimental::mpi::request req_r;
-    gko::size_type left_neighbor_nex;
-    gko::size_type right_neighbor_nex;
-    if (share_left_bdry) {
-        comm.i_send(exec, &num_elements_x, 1, this_rank - 1, this_rank - 1);
-        req_l =
-            comm.i_recv(exec, &left_neighbor_nex, 1, this_rank - 1, this_rank);
-    }
-    if (share_right_bdry) {
-        comm.i_send(exec, &num_elements_x, 1, this_rank + 1, this_rank + 1);
-        req_r =
-            comm.i_recv(exec, &right_neighbor_nex, 1, this_rank + 1, this_rank);
-    }
-    req_l.wait();
-    req_r.wait();
+    std::array<std::array<bool, 2>, 2> on_bdry = {
+        {{coords[0] == 0, coords[0] == dims[0] - 1},
+         {coords[1] == 0, coords[1] == dims[1] - 1}}};
+
+
+    auto target_rank = [=](int dx, int dy) {
+        return coords[0] + dx + dims[0] * (coords[1] + dy);
+    };
 
     std::vector<shared_idx_t> shared_idxs;
-    auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
-    auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
+    auto utr_map = create_utr_map<int>(num_elements + 1, num_elements + 1);
+    auto ltr_map = create_ltr_map<int>(num_elements + 1, num_elements + 1);
     // TODO: should remove physical boundary idxs
     auto fixed_x_map = [&](const auto x, auto&& map) {
         return [=](const auto y) { return map(y, x); };
     };
-    auto setup_idxs = [num_elements_y, this_rank](
-                          auto&& partial_map_local, auto&& partial_map_remote,
-                          int remote_rank,
-                          const std::vector<int> element_local_bdry_idx,
-                          const std::vector<int> element_neighbor_bdry_idx,
-                          std::vector<shared_idx_t>& idxs) {
-        for (int iy = 1; iy < num_elements_y - 1; ++iy) {
-            auto local_map = partial_map_local(iy);
-            auto remote_map = partial_map_remote(iy);
-            idxs.push_back({local_map(element_local_bdry_idx[0]),
-                            remote_map(element_neighbor_bdry_idx[0]),
-                            remote_rank, this_rank});
-            if (iy == num_elements_y - 2) {
-                idxs.push_back({local_map(element_local_bdry_idx[1]),
-                                remote_map(element_neighbor_bdry_idx[1]),
-                                remote_rank, this_rank});
-            }
-        }
+    auto fixed_y_map = [&](const auto y, auto&& map) {
+        return [=](const auto x) { return map(y, x); };
     };
+    auto setup_idxs =
+        [num_elements, this_rank](
+            auto&& partial_map_local, auto&& partial_map_remote,
+            int remote_rank, const std::vector<int> element_local_bdry_idx,
+            const std::vector<int> element_neighbor_bdry_idx, int first_offset,
+            int last_offset, std::vector<shared_idx_t>& idxs) {
+            for (int iy = first_offset; iy < num_elements - last_offset; ++iy) {
+                auto local_map = partial_map_local(iy);
+                auto remote_map = partial_map_remote(iy);
+                idxs.push_back({local_map(element_local_bdry_idx[0]),
+                                remote_map(element_neighbor_bdry_idx[0]),
+                                remote_rank, this_rank});
+                if (iy == num_elements - last_offset - 1) {
+                    idxs.push_back({local_map(element_local_bdry_idx[1]),
+                                    remote_map(element_neighbor_bdry_idx[1]),
+                                    remote_rank, this_rank});
+                }
+            }
+        };
 
-    if (share_left_bdry) {
+    if (!on_bdry[0][0]) {
         auto neighbor_ltr_map =
-            create_ltr_map<int>(num_elements_y + 1, left_neighbor_nex + 1);
+            create_ltr_map<int>(num_elements + 1, num_elements + 1);
         setup_idxs(fixed_x_map(0, utr_map),
-                   fixed_x_map(left_neighbor_nex - 1, neighbor_ltr_map),
-                   this_rank - 1, {2, 0}, {0, 1}, shared_idxs);
+                   fixed_x_map(num_elements - 1, neighbor_ltr_map),
+                   target_rank(-1, 0), {2, 0}, {0, 1}, on_bdry[1][0],
+                   on_bdry[1][1], shared_idxs);
     }
-    if (share_right_bdry) {
+    if (!on_bdry[0][1]) {
         auto neighbor_utr_map =
-            create_utr_map<int>(num_elements_y + 1, right_neighbor_nex + 1);
-
-        setup_idxs(fixed_x_map(num_elements_x - 1, ltr_map),
-                   fixed_x_map(0, neighbor_utr_map), this_rank + 1, {0, 1},
-                   {2, 0}, shared_idxs);
+            create_utr_map<int>(num_elements + 1, num_elements + 1);
+        setup_idxs(fixed_x_map(num_elements - 1, ltr_map),
+                   fixed_x_map(0, neighbor_utr_map), target_rank(1, 0), {0, 1},
+                   {2, 0}, on_bdry[1][0], on_bdry[1][1], shared_idxs);
     }
+    if (!on_bdry[1][0]) {
+        auto neighbor_utr_map =
+            create_utr_map<int>(num_elements + 1, num_elements + 1);
+        setup_idxs(fixed_y_map(0, ltr_map),
+                   fixed_y_map(num_elements - 1, neighbor_utr_map),
+                   target_rank(0, -1), {2, 0}, {0, 1}, on_bdry[0][0],
+                   on_bdry[0][1], shared_idxs);
+    }
+    if (!on_bdry[1][1]) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements + 1, num_elements + 1);
+        setup_idxs(fixed_y_map(num_elements - 1, utr_map),
+                   fixed_y_map(0, neighbor_ltr_map), target_rank(0, 1), {0, 1},
+                   {2, 0}, on_bdry[0][0], on_bdry[0][1], shared_idxs);
+    }
+
+    if (!on_bdry[0][0] && !on_bdry[1][0]) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements + 1, num_elements + 1);
+        shared_idxs.push_back(
+            {utr_map(0, 0)(2),
+             neighbor_ltr_map(num_elements - 1, num_elements - 1)(1),
+             target_rank(-1, -1), this_rank});
+    }
+    if (!on_bdry[0][1] && !on_bdry[1][0]) {
+        auto neighbor_utr_map =
+            create_utr_map<int>(num_elements + 1, num_elements + 1);
+        shared_idxs.push_back({ltr_map(0, num_elements - 1)(0),
+                               neighbor_utr_map(num_elements - 1, 0)(0),
+                               target_rank(1, -1), this_rank});
+    }
+    if (!on_bdry[0][0] && !on_bdry[1][1]) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements + 1, num_elements + 1);
+        shared_idxs.push_back({utr_map(num_elements - 1, 0)(0),
+                               neighbor_ltr_map(0, num_elements - 1)(0),
+                               target_rank(-1, 1), this_rank});
+    }
+    if (!on_bdry[0][1] && !on_bdry[1][1]) {
+        auto neighbor_ltr_map =
+            create_ltr_map<int>(num_elements + 1, num_elements + 1);
+        shared_idxs.push_back({utr_map(num_elements - 1, num_elements - 1)(1),
+                               neighbor_ltr_map(0, 0)(2), target_rank(1, 1),
+                               this_rank});
+    }
+
     return shared_idxs;
 }
 

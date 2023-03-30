@@ -60,8 +60,16 @@ int main(int argc, char* argv[])
     // Create an MPI communicator wrapper and get the rank.
     const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
-    const int num_boundary_intersections =
-        (rank == 0) + (rank == comm.size() - 1);
+
+    std::array<int, 2> dims{};
+    MPI_Dims_create(comm.size(), dims.size(), dims.data());
+
+    std::array<int, 2> coords{rank % dims[0], rank / dims[0]};
+
+    std::array<std::array<bool, 2>, 2> on_bdry = {
+        {{coords[0] == 0, coords[0] == dims[0] - 1},
+         {coords[1] == 0, coords[1] == dims[1] - 1}}};
+
 
     // Print the ginkgo version information and help message.
     if (rank == 0) {
@@ -83,12 +91,10 @@ int main(int argc, char* argv[])
     // - The executor, defaults to reference.
     // - The number of grid points, defaults to 100.
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const auto overlap =
-        static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1);
     const auto num_elements =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 50);
     const auto num_iters =
-        static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
+        static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
 
     // Pick the requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -148,10 +154,11 @@ int main(int argc, char* argv[])
     // gko::experimental::distributed::Matrix::read_distributed. Only the data
     // that belongs to the rows by this rank will be assembled.
     auto A_data = assemble<ValueType, LocalIndexType>(
-        num_elements, num_elements, num_vertices, num_vertices, rank == 0,
-        rank == comm.size() - 1);
+        num_elements, num_elements, num_vertices, num_vertices, on_bdry[0][0],
+        on_bdry[0][1], on_bdry[1][0], on_bdry[1][1]);
     auto b_data = assemble_rhs<ValueType, LocalIndexType>(
-        num_vertices, num_vertices, rank == 0, rank == comm.size() - 1);
+        num_vertices, num_vertices, on_bdry[0][0], on_bdry[0][1], on_bdry[1][0],
+        on_bdry[1][1]);
 
     // Take timings.
     comm.synchronize();
@@ -185,7 +192,7 @@ int main(int argc, char* argv[])
     exact_solution->fill(1.0);
 
     auto tmp_shared_idxs =
-        setup_non_ovlp_shared_idxs(comm, num_elements, num_elements);
+        setup_non_ovlp_shared_idxs(comm, dims, coords, num_elements);
     gko::array<shared_idx_t> shared_idxs{exec, tmp_shared_idxs.begin(),
                                          tmp_shared_idxs.end()};
 
