@@ -51,28 +51,27 @@ namespace bccoo {
 /**
  *  Constants used to manage bccoo objects
  */
-constexpr uint8 type_mask_rows_multiple = 1;
-constexpr uint8 type_mask_rows_16bits = 2;
-constexpr uint8 type_mask_cols_8bits = 4;
-constexpr uint8 type_mask_cols_16bits = 8;
+// constexpr uint8 type_mask_rows_multiple = 1;
+// constexpr uint8 type_mask_rows_16bits = 2;
+// constexpr uint8 type_mask_cols_8bits = 4;
+// constexpr uint8 type_mask_cols_16bits = 8;
 
+constexpr uint8 type_mask_rows_cols = 15;
+constexpr uint8 type_mask_rows_multiple = 8;
+constexpr uint8 type_mask_rows_16bits = 4;
+constexpr uint8 type_mask_cols_16bits = 2;
+constexpr uint8 type_mask_cols_8bits = 1;
 
 /**
  *  Struct to manage bccoo objects
  */
 template <typename IndexType>
 struct compr_idxs {
-    // typedef struct compr_idxs {
     IndexType nblk;  // position in the block
-    // size_type nblk;  // position in the block
-    IndexType blk;  // active block
-    // size_type blk;   // active block
-    IndexType row;  // row index
-    // size_type row;   // row index
-    IndexType col;  // column index
-    // size_type col;   // column index
-    size_type shf;  // shift on the chunk
-                    // } compr_idxs;
+    IndexType blk;   // active block
+    IndexType row;   // row index
+    IndexType col;   // column index
+    size_type shf;   // shift on the chunk
 
     GKO_ATTRIBUTES compr_idxs() : nblk(0), blk(0), row(0), col(0), shf(0) {}
 
@@ -107,6 +106,7 @@ struct compr_blk_idxs {
     bool row_16bits;    // determines that row_dif is greater than 0xFF
     bool col_8bits;     // determines that col_dif is lower than 0x100
     bool col_16bits;    // determines that col_dif is lower than 0x10000
+    uint8 rows_cols;    // combination of previous bool variables
 
     GKO_ATTRIBUTES compr_blk_idxs()
         : row_frs(0),
@@ -119,18 +119,20 @@ struct compr_blk_idxs {
           mul_row(false),
           row_16bits(false),
           col_8bits(false),
-          col_16bits(false)
+          col_16bits(false),
+          rows_cols(0)
     {}
 
     GKO_ATTRIBUTES compr_blk_idxs(const IndexType* rows_data,
                                   const IndexType* cols_data,
                                   const size_type block_size,
-                                  const compr_idxs<IndexType> idxs,
+                                  const compr_idxs<IndexType>& idxs,
                                   const uint8 type_blk)
         : mul_row(type_blk & type_mask_rows_multiple),
           row_16bits(type_blk & type_mask_rows_16bits),
           col_8bits(type_blk & type_mask_cols_8bits),
           col_16bits(type_blk & type_mask_cols_16bits),
+          rows_cols(type_blk & type_mask_rows_cols),
           row_frs(rows_data[idxs.blk]),
           col_frs(cols_data[idxs.blk]),
           shf_row(idxs.shf),
@@ -144,54 +146,16 @@ struct compr_blk_idxs {
                                               : (col_16bits) ? sizeof(uint16)
                                                              : sizeof(uint32));
     }
+
+    GKO_ATTRIBUTES bool is_multi_row() { return this->mul_row; }
+
+    GKO_ATTRIBUTES bool is_row_16bits() { return this->row_16bits; }
+
+    GKO_ATTRIBUTES bool is_column_16bits() { return this->col_16bits; }
+
+    GKO_ATTRIBUTES bool is_column_8bits() { return this->col_8bits; }
 };
 
-
-/*
- *  Routines for managing bccoo objects
- */
-
-
-/*
- *  Routines for managing block compression objects
- */
-
-
-/**
- *  This routine initializes a compr_blk_idxs object from the information
- *  included in idxs and type_blk, making easier the management of
- *   a block compression bccoo object
- */
-/*
-template <typename IndexType>
-inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
-                                              const IndexType* cols_data,
-                                              const size_type block_size,
-                                              const compr_idxs idxs,
-                                              const uint8 type_blk,
-                                              compr_blk_idxs& blk_idxs)
-{
-    blk_idxs.mul_row = type_blk & type_mask_rows_multiple;
-    blk_idxs.row_16bits = type_blk & type_mask_rows_16bits;
-    blk_idxs.col_8bits = type_blk & type_mask_cols_8bits;
-    blk_idxs.col_16bits = type_blk & type_mask_cols_16bits;
-
-    blk_idxs.row_frs = rows_data[idxs.blk];
-    blk_idxs.col_frs = cols_data[idxs.blk];
-    blk_idxs.shf_row = blk_idxs.shf_col = idxs.shf;
-    if (blk_idxs.mul_row) {
-        blk_idxs.shf_col +=
-            ((blk_idxs.row_16bits) ? sizeof(uint16) : 1) * block_size;
-    }
-    if (blk_idxs.col_8bits) {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size;
-    } else if (blk_idxs.col_16bits) {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size * sizeof(uint16);
-    } else {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size * sizeof(uint32);
-    }
-}
-*/
 
 }  // namespace bccoo
 }  // namespace matrix

@@ -37,7 +37,6 @@ namespace kernel {
 // Routines for block compression objects
 
 
-// template <int subwarp_size = config::warp_size, typename IndexType,
 template <typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
@@ -79,11 +78,9 @@ inline __device__ void loop_block_single_row(
 }
 
 
-// template <int subwarp_size = config::warp_size, typename IndexTypeRow,
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
-//          typename IndexTypeCol, typename ValueType, typename Closure>
 inline __device__ void loop_block_multi_row(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
@@ -152,10 +149,8 @@ inline __device__ void loop_block_multi_row(
 }
 
 
-// template <typename ValueType>
 template <typename IndexType, typename ValueType>
 inline __device__ void get_block_position_value(
-    // inline GKO_ATTRIBUTES void get_block_position_value(
     const size_type pos, const uint8* chunk_data,
     compr_blk_idxs<IndexType>& blk_idxs, size_type& row, size_type& col,
     ValueType& val)
@@ -184,10 +179,8 @@ inline __device__ void get_block_position_value(
 }
 
 
-// template <typename ValueType>
 template <typename IndexType, typename ValueType>
 inline __device__ void get_block_position_value(
-    // inline GKO_ATTRIBUTES void get_block_position_value(
     const size_type pos, const uint8* chunk_data,
     compr_blk_idxs<IndexType>& blk_idxs, compr_idxs<IndexType>& idxs,
     ValueType& val)
@@ -216,11 +209,9 @@ inline __device__ void get_block_position_value(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
 }
 
-
-// template <typename ValueType, typename Closure>
+/*
 template <typename IndexType, typename ValueType, typename Closure>
 inline __device__ void get_block_position_value_put(
-    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
     size_type& row, size_type& col, ValueType& val, Closure finalize_op)
 {
@@ -249,12 +240,10 @@ inline __device__ void get_block_position_value_put(
     set_value_chunk<ValueType>(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType), new_val);
 }
+*/
 
-
-// template <typename ValueType, typename Closure>
 template <typename IndexType, typename ValueType, typename Closure>
 inline __device__ void get_block_position_value_put(
-    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
     compr_idxs<IndexType>& idxs, ValueType& val, Closure finalize_op)
 {
@@ -285,13 +274,10 @@ inline __device__ void get_block_position_value_put(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType), new_val);
 }
 
-
+/*
 template <typename IndexType, typename ValueTypeSrc, typename ValueTypeRes,
-          // template <typename IndexType, typename ValueTypeSrc, typename
-          // ValueTypeRes,
           typename Closure>
 inline __device__ void get_block_position_value_put(
-    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, const uint8* chunk_data_src,
     compr_blk_idxs<IndexType>& blk_idxs_src, uint8* chunk_data_res,
     compr_blk_idxs<IndexType>& blk_idxs_res, size_type& row, size_type& col,
@@ -343,14 +329,11 @@ inline __device__ void get_block_position_value_put(
         chunk_data_res, blk_idxs_res.shf_val + pos * sizeof(ValueTypeRes),
         new_val);
 }
-
+*/
 
 template <typename IndexType, typename ValueTypeSrc, typename ValueTypeRes,
-          // template <typename IndexType, typename ValueTypeSrc, typename
-          // ValueTypeRes,
           typename Closure>
 inline __device__ void get_block_position_value_put(
-    // inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, const uint8* chunk_data_src,
     compr_blk_idxs<IndexType>& blk_idxs_src, uint8* chunk_data_res,
     compr_blk_idxs<IndexType>& blk_idxs_res, compr_idxs<IndexType>& idxs_src,

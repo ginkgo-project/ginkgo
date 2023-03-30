@@ -89,8 +89,6 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    //    GKO_ASSERT(!this->use_default_compression() && this->get_block_size()
-    //    > 0);
     GKO_ASSERT(this->is_initialized);
 
     precision_dispatch_real_complex<ValueType>(
@@ -106,8 +104,6 @@ void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                              const LinOp* beta, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    //    GKO_ASSERT(!this->use_default_compression() && this->get_block_size()
-    //    > 0);
     GKO_ASSERT(this->is_initialized);
 
     precision_dispatch_real_complex<ValueType>(
@@ -123,8 +119,6 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    //    GKO_ASSERT(!this->use_default_compression() && this->get_block_size()
-    //    > 0);
     GKO_ASSERT(this->is_initialized);
 
     precision_dispatch_real_complex<ValueType>(
@@ -141,8 +135,6 @@ void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* alpha,
                                               const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    //    GKO_ASSERT(!this->use_default_compression() && this->get_block_size()
-    //    > 0);
     GKO_ASSERT(this->is_initialized);
 
     precision_dispatch_real_complex<ValueType>(
@@ -479,25 +471,16 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Computation of mem_size (idxs.shf)
         IndexType* rows_data = rows.get_data();
         size_type* offsets_data = offsets.get_data();
-        // bccoo::compr_idxs idxs = {};
         bccoo::compr_idxs<IndexType> idxs;
         offsets_data[0] = 0;
         size_type num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
-                // bccoo::put_detect_newblock(rows_data, idxs.nblk, idxs.blk,
-                // idxs.row, elem.row - idxs.row,
-                // idxs.col);
                 bccoo::put_detect_newblock(rows_data, elem.row - idxs.row,
                                            idxs);
                 size_type col_src_res = bccoo::cnt_position_newrow_mat_data(
-                    // elem.row, elem.column, idxs.shf, idxs.row, idxs.col);
                     elem.row, elem.column, idxs);
-                // bccoo::cnt_next_position_value(col_src_res, idxs.shf,
-                // idxs.col, elem.value, idxs.nblk);
                 bccoo::cnt_next_position_value(col_src_res, elem.value, idxs);
-                // bccoo::put_detect_endblock(offsets_data, idxs.shf,
-                // block_size, idxs.nblk, idxs.blk);
                 bccoo::put_detect_endblock(offsets_data, block_size, idxs);
             } else {
                 num++;
@@ -513,22 +496,12 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         offsets_data[0] = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
-                // bccoo::put_detect_newblock(rows_data, idxs.nblk, idxs.blk,
-                // idxs.row, elem.row - idxs.row,
-                // idxs.col);
                 bccoo::put_detect_newblock(rows_data, elem.row - idxs.row,
                                            idxs);
                 size_type col_src_res = bccoo::put_position_newrow_mat_data(
-                    // elem.row, elem.column, chunk_data, idxs.shf, idxs.row,
-                    // idxs.col);
                     elem.row, elem.column, chunk_data, idxs);
-                // bccoo::put_next_position_value(chunk_data, idxs.nblk,
-                // col_src_res, idxs.shf, idxs.col,
-                // elem.value);
                 bccoo::put_next_position_value(chunk_data, col_src_res,
                                                elem.value, idxs);
-                // bccoo::put_detect_endblock(offsets_data, idxs.shf,
-                // block_size, idxs.nblk, idxs.blk);
                 bccoo::put_detect_endblock(offsets_data, block_size, idxs);
             }
         }
@@ -554,9 +527,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         size_type* offsets_data = offsets.get_data();
 
         // Computation of mem_size (idxs.shf)
-        // bccoo::compr_idxs idxs = {};
         bccoo::compr_idxs<IndexType> idxs;
-        //        bccoo::compr_blk_idxs blk_idxs = {};
         bccoo::compr_blk_idxs<IndexType> blk_idxs;
         size_type num = 0;
         for (const auto& elem : data.nonzeros) {
@@ -648,8 +619,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    // If the executor of the object is not master, a copy on
-    // master is done
+    // If the executor of the object is not master, a copy on master is done
     std::unique_ptr<const LinOp> op{};
     const Bccoo* tmp{};
     if (exec_master != exec) {
@@ -663,7 +633,6 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     const IndexType* rows_data = tmp->get_const_rows();
     const IndexType* cols_data = tmp->get_const_cols();
     const uint8* types_data = tmp->get_const_types();
-    // const IndexType* offsets_data = tmp->get_const_offsets();
     const size_type* offsets_data = tmp->get_const_offsets();
     const uint8* chunk_data = tmp->get_const_chunk();
 
@@ -675,46 +644,29 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
 
     if ((!this->use_default_compression()) && (this->get_block_size() > 0)) {
         if (tmp->use_element_compression()) {
-            // bccoo::compr_idxs idxs = {};
             bccoo::compr_idxs<IndexType> idxs;
             ValueType val;
             for (size_type i = 0; i < num_stored_elements; i++) {
-                // bccoo::get_detect_newblock(rows_data, offsets_data,
-                // idxs.nblk, idxs.blk, idxs.shf, idxs.row, idxs.col);
                 bccoo::get_detect_newblock(rows_data, offsets_data, idxs);
-                // uint8 ind = bccoo::get_position_newrow(chunk_data, idxs.shf,
-                // idxs.row, idxs.col);
                 uint8 ind = bccoo::get_position_newrow(chunk_data, idxs);
                 // Reading (row,col,val) from source
-                // bccoo::get_next_position_value(chunk_data, idxs.nblk, ind,
-                // idxs.shf, idxs.col, val);
                 bccoo::get_next_position_value(chunk_data, ind, idxs, val);
                 // Writing (row,col,val) to result
                 data.nonzeros.emplace_back(idxs.row, idxs.col, val);
-                // bccoo::get_detect_endblock(block_size, idxs.nblk, idxs.blk);
                 bccoo::get_detect_endblock(block_size, idxs);
             }
         } else {
-            // bccoo::compr_idxs idxs = {};
             bccoo::compr_idxs<IndexType> idxs;
-            //  bccoo::compr_blk_idxs blk_idxs = {};
             ValueType val;
             for (size_type i = 0; i < num_stored_elements; i += block_size) {
                 size_type block_size_local =
                     std::min(block_size, num_stored_elements - i);
-                //                bccoo::init_block_indices(rows_data,
-                //                cols_data,
-                //                                          block_size_local,
-                //                                          idxs,
-                //                                          types_data[idxs.blk],
-                //                                          blk_idxs);
                 bccoo::compr_blk_idxs<IndexType> blk_idxs(
                     rows_data, cols_data, block_size_local, idxs,
                     types_data[idxs.blk]);
                 for (size_type j = 0; j < block_size_local; j++) {
                     // Reading (row,col,val) from source
                     bccoo::get_block_position_value<IndexType, ValueType>(
-                        // chunk_data, blk_idxs, idxs.row, idxs.col, val);
                         chunk_data, blk_idxs, idxs, val);
                     // Writing (row,col,val) to result
                     data.nonzeros.emplace_back(idxs.row, idxs.col, val);
@@ -803,8 +755,10 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
 
         // The size of chunk related to the new object is computed from
         // the size of original object
-        num_bytes += (sizeof(remove_complex<ValueType>) * block_size) -
-                     (sizeof(ValueType) * block_size);
+        // num_bytes += (sizeof(remove_complex<ValueType>) * block_size) -
+        // (sizeof(ValueType) * block_size);
+        num_bytes += (sizeof(remove_complex<ValueType>) * num_nonzeros) -
+                     (sizeof(ValueType) * num_nonzeros);
         auto abs_bccoo =
             absolute_type::create(exec, this->get_size(), num_nonzeros,
                                   block_size, num_bytes, compress);

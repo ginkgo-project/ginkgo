@@ -49,10 +49,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/unaligned_access.hpp"
+#include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/test/utils.hpp"
 
+
 #define BCCOO_BLOCK_SIZE_TESTED 1
+
 
 namespace {
 
@@ -195,8 +198,11 @@ protected:
             col = i % 3 + i / 3;
             type = (((block_size == 2) || (block_size >= 4)) &&
                     (i + block_size > 2))
-                       ? 5
-                       : 4;
+                       // ? 5
+                       // : 4;
+                       ? (gko::matrix::bccoo::type_mask_cols_8bits |
+                          gko::matrix::bccoo::type_mask_rows_multiple)
+                       : gko::matrix::bccoo::type_mask_cols_8bits;
             EXPECT_EQ(rows_data[i], row);
             EXPECT_EQ(cols_data[i], col);
             EXPECT_EQ(types_data[i], type);

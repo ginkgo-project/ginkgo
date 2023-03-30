@@ -63,6 +63,24 @@ void set_value_chunk(void* ptr, size_type start, T value)
 
 
 /**
+ * Copies the value in the m-th byte of ptr.
+ *   Also, start is updated by the size of T.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ * @param value  the value
+ */
+template <typename T>
+void set_value_chunk_and_increment(void* ptr, size_type& start, T value)
+{
+    std::memcpy(static_cast<unsigned char*>(ptr) + start, &value, sizeof(T));
+    start += sizeof(T);
+}
+
+
+/**
  * Returns the value in the m-th byte of ptr, which is adjusting to T class.
  *
  * @tparam T     the type of value
@@ -78,6 +96,28 @@ T get_value_chunk(const void* ptr, size_type start)
     T val{};
     std::memcpy(&val, static_cast<const unsigned char*>(ptr) + start,
                 sizeof(T));
+    return val;
+}
+
+
+/**
+ * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *   Also, start is updated by the size of T.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ *
+ * @return the value in the m-th byte of ptr, which is adjusting to T class.
+ */
+template <typename T>
+T get_value_chunk_and_increment(const void* ptr, size_type& start)
+{
+    T val{};
+    std::memcpy(&val, static_cast<const unsigned char*>(ptr) + start,
+                sizeof(T));
+    start += sizeof(T);
     return val;
 }
 
@@ -111,6 +151,41 @@ void get_set_value_chunk(void* ptr_res, size_type start_res,
     memcpy(static_cast<unsigned char*>(ptr_res) + start_res,
            static_cast<const unsigned char*>(ptr_src) + start_src,
            sizeof(T) * num);
+}
+
+
+/**
+ * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *   Also, start_src and start_res are updated by the size of T.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr_res    the starting pointer of the result
+ * @param start_res  the offset of the result
+ * @param ptr_src    the starting pointer of the source
+ * @param start_src  the offset of the source
+ * @param num        the number of values to copy
+ *
+ * @note The memory does not need to be aligned to be written or read.
+ */
+template <typename T>
+void get_set_value_chunk_and_increment(void* ptr_res, size_type& start_res,
+                                       const void* ptr_src,
+                                       size_type& start_src, size_type num)
+{
+    //  return *reinterpret_cast<const T*>
+    //    (static_cast<const unsigned char*>(ptr) + start);
+    // TODO: Defined behaviour, but might be slower
+    T val{};
+    // auto value_ptr = reinterpret_cast<unsigned char*>(&value);
+    // for (int i = 0; i < sizeof(T); ++i) {
+    //     value_ptr[i] = static_cast<const unsigned char*>(ptr)[start + i];
+    // }
+    size_type num_bytes = sizeof(T) * num;
+    memcpy(static_cast<unsigned char*>(ptr_res) + start_res,
+           static_cast<const unsigned char*>(ptr_src) + start_src, num_bytes);
+    start_src += num_bytes;
+    start_res += num_bytes;
 }
 
 

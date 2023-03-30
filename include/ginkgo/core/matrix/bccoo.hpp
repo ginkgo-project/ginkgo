@@ -70,23 +70,18 @@ enum class compression { def_value, element, block };
 }
 
 
-/* TODO: Is this required?
- template <typename ValueType, typename IndexType>
- class BccooBuilder;
- */
-
 /**
  * BCCOO is a matrix format which only stores nonzero coeffficients
  * using an element or block compression.
  *
  * In both cases, the object stores blocks of consecutive elements.
- * The use of element compression allows that an specific compression
- * criteria was applied to each element of a block,  whereas
- * the block compresion forces that all elements in a block uses
- * the same criteria, obviously the less restrictive.
+ * The use of element compression allows that a specific compression
+ * criteria was applied to each element of a block, whereas
+ * the block compression forces that all elements in a block use
+ * the same criteria, which can lead to a lowered compression ratio.
  *
- * In the element compression,  the elements are sorted by row
- * and column indexes, and, then, the tuple (lev_compress, column, value)
+ * In the element compression, the elements are sorted first by row
+ * and then column indexes. Then, tuples of (lev_compress, column, value)
  * are stored in a 1D array of bytes. For each tuple, lev_compress
  * determinates how the colums indexes will be stored, directly or
  * as the difference from the previous element in the same row.
