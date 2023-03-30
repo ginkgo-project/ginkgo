@@ -184,56 +184,42 @@ void BatchBand<ValueType>::read(const std::vector<mat_data32>& data)
 namespace {
 
 template <typename MatrixType, typename MatrixData>
-inline void write_impl(const MatrixType* mtx,
-                       std::vector<MatrixData>& data) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-//    std::unique_ptr<const BatchLinOp> op{};
-//    const MatrixType* tmp{};
-//
-//    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-//        op = mtx->clone(mtx->get_executor()->get_master());
-//        tmp = static_cast<const MatrixType*>(op.get());
-//    } else {
-//        tmp = mtx;
-//    }
-//
-//    data = std::vector<MatrixData>(mtx->get_num_batch_entries());
-//
-//    for (size_type batch_entry_idx = 0;
-//         batch_entry_idx < mtx->get_num_batch_entries(); ++batch_entry_idx) {
-//        assert(mtx->get_size().at(batch_entry_idx)[0] ==
-//               mtx->get_size().at(batch_entry_idx)[1]);
-//
-//        const auto size = mtx->get_size().at(batch_entry_idx)[0];
-//        data[batch_entry_idx] = {mtx->get_size().at(batch_entry_idx), {}};
-//
-//        for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
-//            for (size_type col = 0; col < data[batch_entry_idx].size[1];
-//                 ++col) {
-//                auto val = zero<typename MatrixType::value_type>();
-//                if (row == col)  // main diagonal
-//                {
-//                    val = tmp->get_const_main_diagonal(batch_entry_idx)[row];
-//
-//                } else if (col == row + 1)  // super-diagonal
-//                {
-//                    val = tmp->get_const_super_diagonal(batch_entry_idx)[row];
-//
-//                } else if (row == col + 1)  // sub-diagonal
-//                {
-//                    val = tmp->get_const_sub_diagonal(batch_entry_idx)[row];
-//                }
-//
-//                if (val != zero<typename MatrixType::value_type>()) {
-//                    data[batch_entry_idx].nonzeros.emplace_back(row, col,
-//                    val);
-//                }
-//            }
-//        }
-//    }
-//}
+inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
+{
+    std::unique_ptr<const BatchLinOp> op{};
+    const MatrixType* tmp{};
+
+    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
+        op = mtx->clone(mtx->get_executor()->get_master());
+        tmp = static_cast<const MatrixType*>(op.get());
+    } else {
+        tmp = mtx;
+    }
+
+    data = std::vector<MatrixData>(mtx->get_num_batch_entries());
+
+    for (size_type batch_entry_idx = 0;
+         batch_entry_idx < mtx->get_num_batch_entries(); ++batch_entry_idx) {
+        assert(mtx->get_size().at(batch_entry_idx)[0] ==
+               mtx->get_size().at(batch_entry_idx)[1]);
+
+        const auto size = mtx->get_size().at(batch_entry_idx)[0];
+        data[batch_entry_idx] = {mtx->get_size().at(batch_entry_idx), {}};
+
+        const auto kl = tmp->get_num_lower_diagonals().at(batch_entry_idx);
+        const auto ku = tmp->get_num_upper_diagonals().at(batch_entry_idx);
+
+        for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
+            for (size_type col = std::max(size_type{0}, row - kl);
+                 col <= std::min(size - 1, row + ku); ++col) {
+                auto val = tmp->at(batch_entry_idx, row, col);
+                if (val != zero<typename MatrixType::value_type>()) {
+                    data[batch_entry_idx].nonzeros.emplace_back(row, col, val);
+                }
+            }
+        }
+    }
+}
 
 }  // namespace
 

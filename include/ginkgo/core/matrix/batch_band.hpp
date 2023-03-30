@@ -146,6 +146,73 @@ public:
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
+    bool check_if_element_is_part_of_the_band(
+        size_type batch, size_type dense_row,
+        size_type dense_col) const noexcept
+    {
+        const auto n = this->get_size().at(batch)[0];
+        const auto kl = KL_.at(batch);
+        const auto ku = KU_.at(batch);
+
+        if (dense_row >= std::max(size_type{0}, dense_col - ku) ||
+            dense_row <= std::min(n - 1, dense_col + kl)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    size_type get_linear_index_wrt_band_arr(size_type batch,
+                                            size_type dense_row,
+                                            size_type dense_col) const
+    {
+        const auto n = this->get_size().at(batch)[0];
+        const auto kl = KL_.at(batch);
+        const auto ku = KU_.at(batch);
+
+        if (!check_if_element_is_part_of_the_band(batch, dense_row,
+                                                  dense_col)) {
+            throw std::runtime_error(
+                "Requested element is not a part of the band!");
+        }
+
+        const auto band_row = kl + ku + dense_row - dense_col;
+        const auto band_col = dense_col;
+        return num_elems_per_batch_cumul_.get_const_data()[batch] + band_row +
+               band_col * (2 * kl + ku + 1);
+    }
+
+    /**
+     * Returns a single element for a particular batch.
+     *
+     * @param batch  the batch index to be queried
+     * @param row  the row of the requested element
+     * @param col  the column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the OMP results in a runtime error)
+     */
+    value_type& at(size_type batch, size_type row_in_dense_layout,
+                   size_type col_in_dense_layout)
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return band_array_col_major_.get_data()[get_linear_index_wrt_band_arr(
+            batch, row_in_dense_layout, col_in_dense_layout)];
+    }
+
+    /**
+     * @copydoc BatchBand::at(size_type, size_type, size_type)
+     */
+    value_type at(size_type batch, size_type row_in_dense_layout,
+                  size_type col_in_dense_layout) const
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return band_array_col_major_
+            .get_const_data()[get_linear_index_wrt_band_arr(
+                batch, row_in_dense_layout, col_in_dense_layout)];
+    }
+
     /**
      * Returns a pointer to the array of bands of the batched matrix.
      *
