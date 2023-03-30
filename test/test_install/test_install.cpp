@@ -466,7 +466,7 @@ int main()
     // core/solver/gcr.hpp
     {
         using Solver = gko::solver::Gcr<>;
-        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
+        check_solver<Solver>(exec, A_raw, b, x);
     }
 
     // core/solver/gmres.hpp

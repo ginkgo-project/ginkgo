@@ -195,7 +195,8 @@ protected:
     gko::array<global_index_type> non_local_to_global;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, BuildsLocalNonLocalEmpty)
