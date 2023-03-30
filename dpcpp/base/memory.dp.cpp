@@ -42,10 +42,22 @@ namespace gko {
 DpcppAllocatorBase::DpcppAllocatorBase(sycl::queue* queue) : queue_{queue} {}
 
 
+void* DpcppAllocatorBase::allocate(size_type num_bytes) const
+{
+    return this->allocate_impl(queue_, num_bytes);
+}
+
+
+void DpcppAllocatorBase::deallocate(void* ptr) const
+{
+    this->deallocate_impl(queue_, ptr);
+}
+
+
 void* DpcppAllocator::allocate_impl(sycl::queue* queue,
                                     size_type num_bytes) const
 {
-    return sycl::malloc_device(size, *queue);
+    return sycl::malloc_device(num_bytes, *queue);
 }
 
 
@@ -56,16 +68,17 @@ void DpcppAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
 }
 
 
-void* DpcppUnifiedAllocator::allocate(size_type num_bytes)
+void* DpcppUnifiedAllocator::allocate_impl(sycl::queue* queue,
+                                           size_type num_bytes)
 {
-    return sycl::malloc_shared(size, *queue_);
+    return sycl::malloc_shared(num_bytes, *queue);
 }
 
 
-void DpcppUnifiedAllocator::deallocate(void* ptr)
+void DpcppUnifiedAllocator::deallocate_impl(sycl::queue* queue, void* ptr)
 {
-    queue_->wait_and_throw();
-    sycl::free(ptr, queue_->get_context());
+    queue->wait_and_throw();
+    sycl::free(ptr, queue->get_context());
 }
 
 

@@ -97,6 +97,9 @@ void CudaAllocator::deallocate(void* ptr) const
 }
 
 
+#if CUDA_VERSION >= 11020
+
+
 CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{stream} {}
 
 
@@ -108,10 +111,35 @@ void* CudaAsyncAllocator::allocate(size_type num_bytes) const
     return ptr;
 }
 
+
 void CudaAsyncAllocator::deallocate(void* ptr) const
 {
     GKO_EXIT_ON_CUDA_ERROR(cudaFreeAsync(ptr, stream_));
 }
+
+
+#else  // Fall back to regular allocation
+
+
+CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{} {}
+
+
+void* CudaAsyncAllocator::allocate(size_type num_bytes) const
+{
+    void* ptr{};
+    GKO_ASSERT_NO_CUDA_ALLOCATION_ERRORS(cudaMalloc(&ptr, num_bytes),
+                                         num_bytes);
+    return ptr;
+}
+
+
+void CudaAsyncAllocator::deallocate(void* ptr) const
+{
+    GKO_EXIT_ON_CUDA_ERROR(cudaFree(ptr));
+}
+
+
+#endif
 
 
 CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id)

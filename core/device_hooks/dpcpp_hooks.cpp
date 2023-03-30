@@ -53,7 +53,18 @@ version version_info::get_dpcpp_version() noexcept
 }
 
 
-void* DpcppAllocator::allocate_impl(sycl::queue* queue, size_type size) const
+DpcppAllocatorBase::DpcppAllocatorBase(sycl::queue*) GKO_NOT_COMPILED(dpcpp);
+
+
+void* DpcppAllocatorBase::allocate(size_type num_bytes) const
+    GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppAllocatorBase::deallocate(void* ptr) const GKO_NOT_COMPILED(dpcpp);
+
+
+void* DpcppAllocator::allocate_impl(sycl::queue* queue,
+                                    size_type num_bytes) const
     GKO_NOT_COMPILED(dpcpp);
 
 
@@ -62,7 +73,7 @@ void DpcppAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
 
 
 void* DpcppUnifiedAllocator::allocate_impl(sycl::queue* queue,
-                                           size_type size) const
+                                           size_type num_bytes) const
     GKO_NOT_COMPILED(dpcpp);
 
 

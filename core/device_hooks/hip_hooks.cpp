@@ -36,10 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
+#include "ginkgo/core/base/memory.hpp"
 
 
 namespace gko {
@@ -53,29 +55,22 @@ version version_info::get_hip_version() noexcept
 }
 
 
-void* HipAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
+void* HipAllocator::allocate(size_type num_bytes) const GKO_NOT_COMPILED(hip);
 
 
-void HipAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
-
-
-HipAsyncAllocator::HipAsyncAllocator(GKO_HIP_STREAM_STRUCT* stream)
-    GKO_NOT_COMPILED(hip);
-
-
-void* HipAsyncAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
-
-
-void HipAsyncAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
+void HipAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(hip);
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, GKO_HIP_STREAM_STRUCT* stream)
-{
-    return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, alloc_mode, stream));
-}
+    GKO_NOT_COMPILED(hip);
+
+
+std::shared_ptr<HipExecutor> HipExecutor::create(
+    int device_id, std::shared_ptr<Executor> master,
+    std::shared_ptr<HipAllocatorBase> alloc, GKO_HIP_STREAM_STRUCT* stream)
+    GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
