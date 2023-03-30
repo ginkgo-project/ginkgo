@@ -206,8 +206,8 @@ std::array<gko::size_type, 2> add_overlap(const std::array<int, 2>& dims,
          {coords[1] == 0, coords[1] == dims[1] - 1}}};
 
     std::array<int, 2> num_boundary_intersections = {
-        on_bdry[0][0] + on_bdry[1][0],
-        on_bdry[0][1] + on_bdry[1][1],
+        on_bdry[0][0] + on_bdry[0][1],
+        on_bdry[1][0] + on_bdry[1][1],
     };
 
     return {
@@ -244,9 +244,7 @@ std::vector<shared_idx_t> setup_shared_idxs(
     req_l.wait();
     req_r.wait();
 
-    std::vector<shared_idx_t> shared_idxs(
-        share_right_bdry * (overlap_size + 1) * (num_elements_y + 1) +
-        share_left_bdry * overlap_size * (num_elements_y + 1));
+    std::vector<shared_idx_t> shared_idxs;
     auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
     auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
     // TODO: should remove physical boundary idxs
