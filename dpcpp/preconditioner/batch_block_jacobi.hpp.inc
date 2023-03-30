@@ -83,7 +83,7 @@ public:
      */
     static constexpr int dynamic_work_size(const int num_rows, int)
     {
-        return 1;
+        return 0;
     }
 
     void generate(size_type batch_id,
