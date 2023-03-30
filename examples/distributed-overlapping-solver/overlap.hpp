@@ -100,12 +100,44 @@ std::pair<int, double> cg(gko::ptr_param<const gko::LinOp> op,
     return {max_it, rho->at(0)};
 }
 
+struct set {
+    template <typename ValueType>
+    ValueType operator()(const ValueType& local, const ValueType& remote)
+    {
+        return remote;
+    }
+};
+struct add {
+    template <typename ValueType>
+    ValueType operator()(const ValueType& local, const ValueType& remote)
+    {
+        return local + remote;
+    }
+};
+
 
 namespace gko {
+
+
+struct neighborhood_descriptor {
+    neighborhood_descriptor() {}
+
+    std::vector<int> send_sizes;
+    std::vector<int> send_offsets;
+    std::vector<int> recv_sizes;
+    std::vector<int> recv_offsets;
+};
+
 
 /**
  * Struct to hold all necessary information for an all-to-all communication
  * on vectors with shared DOFs.
+ *
+ * Specialize this to partition DOFs according to if they are shared or not.
+ * This would store first all locally owned DOFs, and then all non-owned/shared.
+ * It would then be possible to skip the row_gather/inv_row_gather and use the
+ * partitioned memory as send/recv buffers directly.
+ * Note: this will create a reordering of the DOFs.
  */
 struct comm_info_t {
     comm_info_t() = default;
@@ -129,7 +161,6 @@ struct comm_info_t {
     {
         auto exec = shared_idxs.get_executor()->get_master();
         std::vector<int> remote_idxs(shared_idxs.get_num_elems());
-        std::vector<int> non_owned_idxs_temp;
         std::vector<int> recv_ranks(shared_idxs.get_num_elems());
 
         std::map<LocalIndexType, ValueType> weight_map;
@@ -145,7 +176,10 @@ struct comm_info_t {
             remote_idxs[i] = shared_idx.remote_idx;
 
             if (shared_idx.owning_rank != comm.rank()) {
-                non_owned_idxs_temp.push_back(shared_idx.local_idx);
+                auto it = weight_map.find(shared_idx.local_idx);
+                if (it == weight_map.end()) {
+                    weight_map[shared_idx.local_idx] = 0.0;
+                }
             } else {
                 auto it = weight_map.find(shared_idx.local_idx);
                 if (it == weight_map.end()) {
@@ -163,7 +197,11 @@ struct comm_info_t {
                 const auto& weight = elem.second;
                 multiplicity.idxs.get_data()[i] = idx;
                 // need sqrt for norms and scalar products
-                multiplicity.weights.get_data()[i] = sqrt(1.0 / weight);
+                if (weight == 0.0) {
+                    multiplicity.weights.get_data()[i] = 1.0;
+                } else {
+                    multiplicity.weights.get_data()[i] = sqrt(1.0 / weight);
+                }
                 ++i;
             }
         }
@@ -188,10 +226,6 @@ struct comm_info_t {
         comm.all_to_all_v(exec, remote_idxs.data(), recv_sizes.data(),
                           recv_offsets.data(), send_idxs.get_data(),
                           send_sizes.data(), send_offsets.data());
-
-        non_owned_idxs = gko::array<LocalIndexType>{shared_idxs.get_executor(),
-                                                    non_owned_idxs_temp.begin(),
-                                                    non_owned_idxs_temp.end()};
     }
 
     ValueType get_weight(LocalIndexType idx) const
@@ -220,11 +254,9 @@ struct comm_info_t {
     // DOFs to send. These are dofs that are shared with other ranks,
     // but other ranks own them. May overlap with send_idxs.
     gko::array<LocalIndexType> recv_idxs;
-    // Keep track of which shared DOFs are not owned by this rank,
-    // i.e. recv_idxs/send_idxs
-    gko::array<LocalIndexType> non_owned_idxs;
     // maybe also store multiplicity of each index?
     // could also store explicit zero for non-owned idxs
+    // non-owned idxs have explicit zero weight.
     struct multiplicity_t {
         gko::array<LocalIndexType> idxs;
         gko::array<ValueType> weights;
@@ -250,17 +282,10 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
                     std::unique_ptr<vec> local_vec, comm_info_t comm_info)
         : EnableLinOp<overlapping_vec, vec>(local_vec->get_executor(),
                                             local_vec->get_size()),
-          local_flag(local_vec->get_executor(), local_vec->get_size()[0]),
-          num_ovlp(comm_info.non_owned_idxs.get_num_elems()),
           comm(comm),
           comm_info(comm_info)
     {
         static_cast<vec&>(*this) = std::move(*local_vec);
-        local_flag.fill(true);
-        for (int i = 0; i < comm_info.non_owned_idxs.get_num_elems(); ++i) {
-            local_flag.get_data()[comm_info.non_owned_idxs.get_data()[i]] =
-                false;
-        }
     }
 
     std::unique_ptr<Dense> create_with_same_config() const override
@@ -385,17 +410,12 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
     std::unique_ptr<vec> extract_local() const
     {
         auto exec = this->get_executor();
-        auto no_ovlp_local =
-            vec::create(exec, dim<2>{this->get_size()[0] - num_ovlp, 1});
+        auto no_ovlp_local = vec::create(exec, dim<2>{this->get_size()[0], 1});
 
         // copy-if, but in stupid
         // could be row_gather(complement(idx_set))
-        int i = 0;
         for (int j = 0; j < this->get_size()[0]; ++j) {
-            if (local_flag.get_const_data()[j]) {
-                no_ovlp_local->at(i) = this->at(j) * comm_info.get_weight(j);
-                i++;
-            }
+            no_ovlp_local->at(j) = this->at(j) * comm_info.get_weight(j);
         }
 
         return no_ovlp_local;
@@ -424,8 +444,6 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
             ->compute_norm2(result);
     }
 
-    array<int> local_flag;
-    size_type num_ovlp;
     experimental::mpi::communicator comm;
     comm_info_t comm_info;
 };
