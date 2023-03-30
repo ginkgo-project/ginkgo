@@ -79,7 +79,8 @@ protected:
         std::copy(std::begin(vals), std::end(vals), arr);
     }
 
-    void assert_same_precond(const Schwarz* a, const Schwarz* b)
+    void assert_same_precond(gko::ptr_param<const Schwarz> a,
+                             gko::ptr_param<const Schwarz> b)
     {
         ASSERT_EQ(a->get_size(), b->get_size());
         ASSERT_EQ(a->get_parameters().local_solver_factory,
@@ -92,7 +93,8 @@ protected:
     std::shared_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
@@ -112,7 +114,7 @@ TYPED_TEST(SchwarzFactory, CanBeCloned)
 {
     auto schwarz_clone = clone(this->schwarz);
 
-    this->assert_same_precond(lend(schwarz_clone), lend(this->schwarz));
+    this->assert_same_precond(schwarz_clone, this->schwarz);
 }
 
 
@@ -127,9 +129,9 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
-    copy->copy_from(lend(this->schwarz));
+    copy->copy_from(this->schwarz);
 
-    this->assert_same_precond(lend(copy), lend(this->schwarz));
+    this->assert_same_precond(copy, this->schwarz);
 }
 
 
@@ -145,9 +147,9 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
-    copy->move_from(gko::lend(this->schwarz));
+    copy->move_from(this->schwarz);
 
-    this->assert_same_precond(lend(copy), lend(tmp));
+    this->assert_same_precond(copy, tmp);
 }
 
 

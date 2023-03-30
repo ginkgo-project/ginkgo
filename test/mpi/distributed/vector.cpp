@@ -127,7 +127,8 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 #ifndef GKO_COMPILING_DPCPP
@@ -392,7 +393,8 @@ public:
     std::unique_ptr<vec_type> dst;
 };
 
-TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes);
+TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(VectorCreationHelpers, CanCreateWithConfigOf)
@@ -543,7 +545,8 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes);
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(VectorReductions, ComputesDotProductIsSameAsDense)
@@ -768,7 +771,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes);
+TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(VectorLocalOps, ApplyNotSupported)
