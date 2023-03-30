@@ -110,7 +110,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
             throw std::runtime_error{"No suitable CUDA devices"};
         }
         exec = gko::CudaExecutor::create(
-            0, ref, std::make_shared<gko::CudaAsyncAllocator>(stream), stream);
+            0, ref, std::make_shared<gko::CudaAllocator>(stream), stream);
     }
 }
 
