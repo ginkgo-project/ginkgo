@@ -469,7 +469,12 @@ public:
 
     const local_vector_type* get_recv_buffer() const
     {
-        return recv_buffer_.get();
+        if (mpi::requires_host_buffer(this->get_executor(),
+                                      this->get_communicator())) {
+            return host_recv_buffer_.get();
+        } else {
+            return recv_buffer_.get();
+        }
     }
 
     const array<global_index_type> get_non_local_to_global() const

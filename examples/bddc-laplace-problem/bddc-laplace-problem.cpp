@@ -49,8 +49,8 @@ int main(int argc, char* argv[])
     // @sect3{Type Definitiions}
     // Define the needed types. In a parallel program we need to differentiate
     // beweeen global and local indices, thus we have two index types.
-    using GlobalIndexType = gko::int64;
-    using LocalIndexType = gko::int64;
+    using GlobalIndexType = gko::int32;
+    using LocalIndexType = gko::int32;
     using CommIndexType = gko::experimental::distributed::comm_index_type;
     // The underlying value type.
     using ValueType = double;
@@ -444,6 +444,15 @@ int main(int argc, char* argv[])
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(1e-6)
                     .on(exec))
+            .with_preconditioner(gko::preconditioner::Ilu<>::build().on(exec))
+            .on(exec));
+    auto schur_factory = gko::share(
+        gmres::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
             .on(exec));
     auto cg_factory = gko::share(
         cg::build()
@@ -453,6 +462,15 @@ int main(int argc, char* argv[])
                     .with_reduction_factor(1e-6)
                     .on(exec))
             .on(exec));
+    /*auto schur_factory = gko::share(
+        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
+            .with_num_rhs(3u)
+            .with_factorization(
+                gko::experimental::factorization::Lu<ValueType,
+                                                     LocalIndexType>::build()
+                    .with_symmetric_sparsity(true)
+                    .on(exec))
+            .on(exec));*/
     auto direct_factory = gko::share(
         gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
             .with_factorization(
@@ -467,12 +485,10 @@ int main(int argc, char* argv[])
                 bddc::build()
                     .with_interface_dofs(interface_dofs)
                     .with_interface_dof_ranks(interface_dof_ranks)
-                    .with_local_solver_factory(
-                        direct_factory)  // gmres_factory)
-                    .with_schur_complement_solver_factory(
-                        direct_factory)  // gmres_factory)
-                    .with_inner_solver_factory(direct_factory)  // cg_factory)
-                    .with_coarse_solver_factory(gmres_factory)
+                    .with_local_solver_factory(gmres_factory)
+                    .with_schur_complement_solver_factory(schur_factory)
+                    .with_inner_solver_factory(cg_factory)
+                    .with_coarse_solver_factory(cg_factory)  // gmres_factory)
                     .on(exec))
             .with_criteria(tol_stop, iter_stop)
             .on(exec)
@@ -492,7 +508,7 @@ int main(int argc, char* argv[])
     // case.
     Ainv->apply(gko::lend(b), gko::lend(x));
 
-    /*const char* input_name;
+    const char* input_name;
     if (rank == 0) input_name = "sol_0.mtx";
     if (rank == 1) input_name = "sol_1.mtx";
     if (rank == 2) input_name = "sol_2.mtx";
@@ -512,7 +528,7 @@ int main(int argc, char* argv[])
     if (rank == 3) input_name = "b_3.mtx";
 
     std::ofstream in2{input_name};
-    gko::write(in2, b->get_local_vector());*/
+    gko::write(in2, b->get_local_vector());
 
     // Take timings.
     comm.synchronize();

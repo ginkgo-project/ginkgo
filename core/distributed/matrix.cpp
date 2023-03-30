@@ -237,9 +237,6 @@ inline void communicate_overlap(
     }
 
     data.sum_duplicates();
-
-    std::cout << "RANK " << comm.rank() << ": "
-              << recv_offsets[recv_offsets.size() - 1] << std::endl;
 }
 
 
