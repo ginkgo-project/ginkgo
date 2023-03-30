@@ -337,12 +337,12 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
         {"cuda",
          [](bool) {
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create(), true);
+                                              gko::OmpExecutor::create());
          }},
         {"hip",
          [](bool) {
              return gko::HipExecutor::create(FLAGS_device_id,
-                                             gko::OmpExecutor::create(), true);
+                                             gko::OmpExecutor::create());
          }},
         {"dpcpp", [](bool use_gpu_timer) {
              auto property = dpcpp_queue_property::in_order;

@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main()
 {
     // Instantiate a CUDA executor
-    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
+    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
     auto A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);
     auto b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <thread>
 #include <type_traits>
+#include "ginkgo/core/base/memory.hpp"
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -263,35 +264,6 @@ TEST(CudaExecutor, KnowsItsDeviceId)
 }
 
 
-TEST(CudaExecutor, CanGetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
-
-    ASSERT_EQ(false, cuda->get_device_reset());
-}
-
-
-TEST(CudaExecutor, CanSetDefaultDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp, true);
-
-    ASSERT_EQ(true, cuda->get_device_reset());
-}
-
-
-TEST(CudaExecutor, CanSetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
-
-    cuda->set_device_reset(true);
-
-    ASSERT_EQ(true, cuda->get_device_reset());
-}
-
-
 TEST(HipExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
@@ -307,35 +279,6 @@ TEST(HipExecutor, KnowsItsDeviceId)
     auto hip = gko::HipExecutor::create(0, omp);
 
     ASSERT_EQ(0, hip->get_device_id());
-}
-
-
-TEST(HipExecutor, CanGetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-
-    ASSERT_EQ(false, hip->get_device_reset());
-}
-
-
-TEST(HipExecutor, CanSetDefaultDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp, true);
-
-    ASSERT_EQ(true, hip->get_device_reset());
-}
-
-
-TEST(HipExecutor, CanSetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-
-    hip->set_device_reset(true);
-
-    ASSERT_EQ(true, hip->get_device_reset());
 }
 
 
@@ -442,20 +385,11 @@ TEST(Executor, CanVerifyMemory)
 }
 
 
-template <typename T>
-struct mock_free : T {
-    /**
-     * @internal Due to a bug with gcc 5.3, the constructor needs to be called
-     * with `()` operator instead of `{}`.
-     */
-    template <typename... Params>
-    mock_free(Params&&... params) : T(std::forward<Params>(params)...)
-    {}
-
-    void raw_free(void* ptr) const noexcept override
+struct MockAllocator : gko::CpuAllocator {
+    void deallocate(void* ptr) const noexcept override
     {
         called_free = true;
-        T::raw_free(ptr);
+        CpuAllocator::deallocate(ptr);
     }
 
     mutable bool called_free{false};
@@ -464,12 +398,13 @@ struct mock_free : T {
 
 TEST(ExecutorDeleter, DeletesObject)
 {
-    auto ref = std::make_shared<mock_free<gko::ReferenceExecutor>>();
+    auto alloc = std::make_shared<MockAllocator>();
+    auto ref = gko::ReferenceExecutor::create(alloc);
     auto x = ref->alloc<int>(5);
 
     gko::executor_deleter<int>{ref}(x);
 
-    ASSERT_TRUE(ref->called_free);
+    ASSERT_TRUE(alloc->called_free);
 }
 
 

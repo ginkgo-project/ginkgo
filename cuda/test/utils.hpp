@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 
 #include "cuda/base/device.hpp"
@@ -60,8 +61,9 @@ protected:
     CudaTestFixture()
         : ref(gko::ReferenceExecutor::create()),
 #ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream(0),
           exec(gko::CudaExecutor::create(
-              0, ref, false, gko::default_cuda_alloc_mode, stream.get()))
+              0, ref, std::make_shared<gko::CudaAllocator>(), stream.get()))
 #else
           exec(gko::CudaExecutor::create(0, ref))
 #endif

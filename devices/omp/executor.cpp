@@ -55,7 +55,10 @@ void OmpExecutor::populate_exec_info(const machine_topology* mach_topo)
 }
 
 
-void OmpExecutor::raw_free(void* ptr) const noexcept { std::free(ptr); }
+void OmpExecutor::raw_free(void* ptr) const noexcept
+{
+    return alloc_->deallocate(ptr);
+}
 
 
 std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
@@ -72,7 +75,7 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 
 void* OmpExecutor::raw_alloc(size_type num_bytes) const
 {
-    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    return alloc_->allocate(num_bytes);
 }
 
 

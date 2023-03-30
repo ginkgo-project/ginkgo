@@ -30,58 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
+#define GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
 
 
-#include <thread>
+#include <ginkgo/config.hpp>
 
 
-#include <gtest/gtest.h>
+struct cublasContext;
+
+struct cusparseContext;
+
+struct CUstream_st;
+
+struct CUevent_st;
+
+struct hipblasContext;
+
+struct hipsparseContext;
+
+#if GINKGO_HIP_PLATFORM_HCC
+struct ihipStream_t;
+struct ihipEvent_t;
+#define GKO_HIP_STREAM_STRUCT ihipStream_t
+#define GKO_HIP_EVENT_STRUCT ihipEvent_t
+#else
+#define GKO_HIP_STREAM_STRUCT CUstream_st
+#define GKO_HIP_EVENT_STRUCT CUevent_st
+#endif
 
 
-namespace {
+// after intel/llvm September'22 release, which uses major version 6, they
+// introduce another inline namespace _V1.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
+inline namespace _V1 {
 
 
-#define GTEST_ASSERT_NO_EXIT(statement) \
-    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
+class queue;
+class event;
 
 
-TEST(DeviceReset, HipCuda)
-{
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto hip = gko::HipExecutor::create(0, ref, true);
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-    });
-}
+}  // namespace _V1
+}  // namespace sycl
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
+inline namespace cl {
+namespace sycl {
 
 
-TEST(DeviceReset, CudaHip)
-{
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-        auto hip = gko::HipExecutor::create(0, ref, true);
-    });
-}
+class queue;
+class event;
 
 
-void func()
-{
-    auto ref = gko::ReferenceExecutor::create();
-    auto exec = gko::CudaExecutor::create(0, ref, true);
-}
+}  // namespace sycl
+}  // namespace cl
+#endif
 
 
-TEST(DeviceReset, CudaCuda)
-{
-    GTEST_ASSERT_NO_EXIT({
-        std::thread t1(func);
-        std::thread t2(func);
-        t1.join();
-        t2.join();
-    });
-}
-
-
-}  // namespace
+#endif  // GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_

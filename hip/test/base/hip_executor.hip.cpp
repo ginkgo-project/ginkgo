@@ -109,18 +109,18 @@ protected:
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
 #ifdef GKO_TEST_NONDEFAULT_STREAM
         hip = gko::HipExecutor::create(
-            0, omp, false, gko::default_hip_alloc_mode, stream.get());
-        hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
-                                        omp, false, gko::default_hip_alloc_mode,
-                                        other_stream.get());
+            0, omp, std::make_shared<gko::HipAllocator>(), stream.get());
+        hip2 = gko::HipExecutor::create(
+            gko::HipExecutor::get_num_devices() - 1, omp,
+            std::make_shared<gko::HipAllocator>(), other_stream.get());
         hip3 = gko::HipExecutor::create(
-            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+            0, omp, std::make_shared<gko::HipAllocator>(), stream.get());
 #else
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
-        hip3 = gko::HipExecutor::create(0, omp, false,
-                                        gko::allocation_mode::unified_global);
+        hip3 = gko::HipExecutor::create(0, omp,
+                                        std::make_shared<gko::HipAllocator>());
 #endif
     }
 

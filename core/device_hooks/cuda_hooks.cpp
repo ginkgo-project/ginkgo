@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
+#include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
@@ -50,6 +52,45 @@ version version_info::get_cuda_version() noexcept
     // placeholder modules.
     return {GKO_VERSION_STR, "not compiled"};
 }
+
+
+void* CudaAllocator::allocate(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+CudaAsyncAllocator::CudaAsyncAllocator(CUstream_st* stream)
+    GKO_NOT_COMPILED(cuda);
+
+
+void* CudaAsyncAllocator::allocate(size_type num_bytes) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaAsyncAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id, unsigned int flags)
+    GKO_NOT_COMPILED(cuda);
+
+
+void* CudaUnifiedAllocator::allocate(size_type num_bytes) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUnifiedAllocator::deallocate(void* dev_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+CudaHostAllocator::CudaHostAllocator(int device_id) GKO_NOT_COMPILED(cuda);
+
+
+void* CudaHostAllocator::allocate(size_type num_bytes) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaHostAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
@@ -152,6 +193,9 @@ void CudaExecutor::init_handles() {}
 scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
                                                int device_id)
     GKO_NOT_COMPILED(cuda);
+
+
+cuda_stream::cuda_stream() GKO_NOT_COMPILED(cuda);
 
 
 cuda_stream::cuda_stream(int device_id) GKO_NOT_COMPILED(cuda);

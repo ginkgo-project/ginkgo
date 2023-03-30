@@ -51,6 +51,39 @@ namespace gko {
 namespace detail {
 
 
+DpcppAllocator::DpcppAllocator(sycl::queue* queue) : queue_{queue} {}
+
+
+void* DpcppAllocator::allocate(size_type size)
+{
+    return sycl::malloc_device(size, *queue_);
+}
+
+
+void DpcppAllocator::deallocate(void* ptr)
+{
+    queue_->wait_and_throw();
+    sycl::free(ptr, queue_->get_context());
+}
+
+
+DpcppUnifiedAllocator::DpcppUnifiedAllocator(sycl::queue* queue) : queue_{queue}
+{}
+
+
+void* DpcppUnifiedAllocator::allocate(size_type size)
+{
+    return sycl::malloc_shared(size, *queue_);
+}
+
+
+void DpcppUnifiedAllocator::deallocate(void* ptr)
+{
+    queue_->wait_and_throw();
+    sycl::free(ptr, queue_->get_context());
+}
+
+
 const std::vector<sycl::device> get_devices(std::string device_type)
 {
     std::map<std::string, sycl::info::device_type> device_type_map{

@@ -30,38 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <cuda_runtime.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/stream.hpp>
+
+
+#include "cuda/base/scoped_device_id.hpp"
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+cuda_stream::cuda_stream() : stream_{}, device_id_{-1} {}
+
+
+cuda_stream::cuda_stream(int device_id) : stream_{}, device_id_(device_id)
 {
-    return master_;
+    detail::cuda_scoped_device_id_guard g(device_id_);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+cuda_stream::~cuda_stream()
 {
-    return master_;
+    if (stream_) {
+        detail::cuda_scoped_device_id_guard g(device_id_);
+        cudaStreamDestroy(stream_);
+    }
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
+cuda_stream::cuda_stream(cuda_stream&& other)
+    : stream_{std::exchange(other.stream_, nullptr)},
+      device_id_(std::exchange(other.device_id_, -1))
+{}
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
+CUstream_st* cuda_stream::get() const { return stream_; }
 
 
 }  // namespace gko
