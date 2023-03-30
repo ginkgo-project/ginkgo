@@ -71,13 +71,6 @@ namespace kernels {
                     const matrix::BatchDense<_type>* x,          \
                     matrix::BatchDense<_type>* y)
 
-#define GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL(_type)         \
-    void add_scale(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::BatchDense<_type>* alpha,      \
-                   const matrix::BatchDense<_type>* x,          \
-                   const matrix::BatchDense<_type>* beta,       \
-                   matrix::BatchDense<_type>* y)
-
 #define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(_type)         \
     void convergence_add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                                 const matrix::BatchDense<_type>* alpha,      \
@@ -187,8 +180,6 @@ namespace kernels {
     GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                           \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                      \
-    template <typename ValueType>                                              \
-    GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL(ValueType);                       \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(ValueType);          \
     template <typename ValueType>                                              \

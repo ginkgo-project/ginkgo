@@ -313,30 +313,6 @@ TYPED_TEST(BatchDense, AddsScaled)
 }
 
 
-TYPED_TEST(BatchDense, AddsScale)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
-        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>(
-        {{{-1.0, 3.0, 0.5}}, {{1.5, 0.5, -4.0}}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
 TYPED_TEST(BatchDense, ConvergenceAddScaled)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -396,51 +372,6 @@ TYPED_TEST(BatchDense, AddsScaledWithScalar)
 }
 
 
-TYPED_TEST(BatchDense, AddsScaleWithScalar)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{-0.5}, {3.0}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
-TYPED_TEST(BatchDense, AddScaleWithScalarViaApply)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{-0.5}, {3.0}}, this->exec);
-    auto id = gko::matrix::BatchIdentity<T>::create(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 3)));
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_0->apply(alpha.get(), id.get(), beta.get(), this->mtx_1.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
 TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -489,31 +420,6 @@ TYPED_TEST(BatchDense, AddScaledFailsOnWrongSizes)
 
     ASSERT_THROW(this->mtx_1->add_scaled(alpha.get(), this->mtx_2.get()),
                  gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchDense, AddScaleFailsOnWrongSizes)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{2.0}, {3.0}}, this->exec);
-
-    ASSERT_THROW(
-        this->mtx_1->add_scale(alpha.get(), this->mtx_2.get(), beta.get()),
-        gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchDense, AddScaleFailsOnWrongScalarSizes)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto alpha = gko::batch_initialize<Mtx>(
-        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{3.0}, {1.5}}, this->exec);
-
-    ASSERT_THROW(
-        this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get()),
-        gko::DimensionMismatch);
 }
 
 

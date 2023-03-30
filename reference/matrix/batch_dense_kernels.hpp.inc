@@ -132,33 +132,6 @@ inline void add_scaled(
 
 
 template <typename ValueType>
-inline void add_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<const ValueType>& beta,
-    const gko::batch_dense::BatchEntry<ValueType>& y)
-{
-    if (alpha.num_rhs == 1) {
-        for (int i = 0; i < x.num_rows; ++i) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] =
-                    alpha.values[0] * x.values[i * x.stride + j] +
-                    beta.values[0] * y.values[i * y.stride + j];
-            }
-        }
-    } else {
-        for (int i = 0; i < x.num_rows; ++i) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] =
-                    alpha.values[j] * x.values[i * x.stride + j] +
-                    beta.values[j] * y.values[i * y.stride + j];
-            }
-        }
-    }
-}
-
-
-template <typename ValueType>
 inline void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType>& x,
     const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>& result)
