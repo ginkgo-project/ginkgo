@@ -51,13 +51,13 @@ __global__ __launch_bounds__(default_block_size) void restrict_residual(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_reordered(
-    size_type size, const IndexType* src_numbering,
+    size_type buf_size, const IndexType* src_numbering,
     const IndexType* dst_numbering, const ValueType* src, ValueType* dst,
     bool add)
 {
     const auto tidx = thread::get_thread_id_flat();
 
-    if (tidx < size) {
+    if (tidx < buf_size) {
         const auto dst_idx =
             dst_numbering == nullptr ? tidx : dst_numbering[tidx];
         const auto src_idx =
@@ -68,7 +68,11 @@ __global__ __launch_bounds__(default_block_size) void fill_reordered(
                 return;
             }
         }
-        dst[dst_idx] = add ? dst[dst_idx] + src[src_idx] : src[src_idx];
+        if (add) {
+            atomic_add(&dst[dst_idx], src[src_idx]);
+        } else {
+            dst[dst_idx] = src[src_idx];
+        }
     }
 }
 
@@ -128,9 +132,8 @@ void restrict_residual1(std::shared_ptr<const DefaultExecutor> exec,
     kernel::restrict_residual<<<restrict_grid_dim, config::warp_size>>>(
         global_rows, global_vals, local_to_local_data, w, local_vals);
 
+    exec->synchronize();
     const auto fill_grid_dim = ceildiv(buf_size, config::warp_size);
-    std::cout << "BUF SIZE: " << buf_size << ", GRID DIM: " << fill_grid_dim
-              << std::endl;
     kernel::fill_reordered<<<fill_grid_dim, config::warp_size>>>(
         buf_size, local_to_send_data, static_cast<const IndexType*>(nullptr),
         local_vals, send_data, false);
@@ -156,8 +159,6 @@ void restrict_residual2(std::shared_ptr<const DefaultExecutor> exec,
     auto buf_size = non_local_to_local.get_num_elems();
 
     auto grid_dim = ceildiv(buf_size, config::warp_size);
-    std::cout << "BUF SIZE: " << buf_size << ", GRID DIM: " << grid_dim
-              << std::endl;
     kernel::fill_reordered<<<grid_dim, config::warp_size>>>(
         buf_size, global_to_recv_data, non_local_to_local_data, recv_data,
         local_vals, false);

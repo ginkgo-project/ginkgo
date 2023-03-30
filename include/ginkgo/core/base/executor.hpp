@@ -101,8 +101,7 @@ constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
 #else
 
 // When in debug, always UM allocations.
-constexpr allocation_mode default_cuda_alloc_mode =
-    allocation_mode::unified_global;
+constexpr allocation_mode default_cuda_alloc_mode = allocation_mode::device;
 
 #if (GINKGO_HIP_PLATFORM_HCC == 1)
 

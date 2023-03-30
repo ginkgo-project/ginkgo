@@ -281,11 +281,14 @@ inline void communicate_overlap(
 template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::generate_interfaces()
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_master();
     auto comm = global_system_matrix_->get_communicator();
     auto rank = comm.rank();
 
-    auto partition = global_system_matrix_->get_row_partition();
+    std::shared_ptr<
+        const gko::experimental::distributed::Partition<IndexType, IndexType>>
+        partition = share(
+            clone(exec, global_system_matrix_->get_row_partition().get()));
     std::vector<IndexType> non_local_idxs{};
     std::vector<IndexType> non_local_to_local{};
     std::vector<IndexType> local_idxs{};
@@ -294,6 +297,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<IndexType> local_rows{};
     IndexType local_row = -1;
 
+    // std::cout << "298" << std::endl;
     for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
         if (mat_data.nonzeros[i].row != local_row) {
             local_row = mat_data.nonzeros[i].row;
@@ -320,6 +324,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                      count_offsets.data() + 1);
     std::vector<IndexType> send_buffer(
         non_local_idxs.size() * (comm.size() - 1), 0);
+    // std::cout << "325" << std::endl;
     for (auto i = 0; i < send_buffer.size(); i++) {
         send_buffer[i] = non_local_idxs[i % non_local_idxs.size()];
     }
@@ -330,6 +335,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                       send_offsets.data(), recv_buffer.data(),
                       count_buffer.data(), count_offsets.data());
 
+    // std::cout << "336" << std::endl;
     for (auto i = 0; i < non_local_idxs.size(); i++) {
         recv_buffer[count_offsets[comm.size()] + i] = non_local_idxs[i];
     }
@@ -338,6 +344,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     recv_buffer.erase(std::unique(recv_buffer.begin(), recv_buffer.end()),
                       recv_buffer.end());
 
+    // std::cout << "345" << std::endl;
     std::vector<int> send_mask(comm.size() * recv_buffer.size(), 0);
     for (auto i = 0; i < recv_buffer.size(); i++) {
         if (std::find(local_rows.begin(), local_rows.end(), recv_buffer[i]) !=
@@ -351,6 +358,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     comm.all_to_all(exec, send_mask.data(), recv_buffer.size(),
                     recv_mask.data(), recv_buffer.size());
 
+    // std::cout << "359" << std::endl;
     std::map<std::vector<IndexType>, std::vector<IndexType>> interface_map{};
     for (auto i = 0; i < recv_buffer.size(); i++) {
         std::vector<IndexType> ranks{};
@@ -367,14 +375,10 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         if (it->second.size() == 1) {  // first.size() > 2) {
             if (parameters_.boundary_idxs.find(it->second[0]) !=
                 parameters_.boundary_idxs.end()) {
-                std::cout << "RANK " << rank << " ignoring corner "
-                          << it->second[0] << std::endl;
                 continue;
             }
             // std::sort(it->second.begin(), it->second.end());
             for (auto i = 0; i < it->second.size(); i++) {
-                std::cout << "RANK" << rank << " adding corner "
-                          << it->second[0] << std::endl;
                 interface_dof_ranks_.emplace_back(it->first);
                 interface_dofs_.emplace_back(
                     std::vector<IndexType>{it->second[i]});
@@ -382,57 +386,32 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         }
     }
 
+    // std::cout << "387" << std::endl;
     for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
         if (it->second.size() > 1) {  // first.size() == 2) {
             std::vector<IndexType> edge{};
             for (auto i = 0; i < it->second.size(); i++) {
                 if (parameters_.boundary_idxs.find(it->second[i]) !=
                     parameters_.boundary_idxs.end()) {
-                    std::cout << "RANK " << rank << " ignoring edge dof "
-                              << it->second[i] << std::endl;
                     continue;
                 }
                 edge.emplace_back(it->second[i]);
             }
             if (edge.size() > 0) {
                 for (auto i = 0; i < edge.size(); i++) {
-                    std::cout << "RANK " << rank << "adding edge dof "
-                              << it->second[i] << std::endl;
                 }
                 interface_dof_ranks_.emplace_back(it->first);
                 interface_dofs_.emplace_back(it->second);
             }
         }
     }
-
-    /*    const char* input_name;
-        if (comm.rank() == 0) input_name = "out_0.mtx";
-        if (comm.rank() == 1) input_name = "out_1.mtx";
-        std::ofstream out{input_name};
-
-        comm.synchronize();
-        out << "RANK " << comm.rank() << " NUM INTERFACES: " <<
-       interface_dofs_.size() << std::endl; comm.synchronize(); for (auto i = 0;
-       i < interface_dofs_.size(); i++) { out << "RANK " << comm.rank() << "
-       INTERFACES " << i << ": "; for (auto j = 0; j <
-       interface_dofs_[i].size(); j++) { out << interface_dofs_[i][j] << ", ";
-            }
-            out << std::endl;
-        }
-
-        for (auto i = 0; i < interface_dof_ranks_.size(); i++) {
-            out << "RANK " << comm.rank() << " RANKS " << i << ": ";
-            for (auto j = 0; j < interface_dof_ranks_[i].size(); j++) {
-                out << interface_dof_ranks_[i][j] << ", ";
-            }
-            out << std::endl;
-        }*/
 }
 
 
 template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::generate_constraints()
 {
+    // std::cout << "406" << std::endl;
     auto exec = this->get_executor();
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
@@ -450,6 +429,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
+    // std::cout << "424" << std::endl;
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
     mat_data.ensure_row_major_order();
 
@@ -459,7 +439,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         global_system_matrix_->get_local_matrix()->get_size()[0] +
         num_interface_dofs);
 
-    auto partition = global_system_matrix_->get_row_partition();
+    std::shared_ptr<
+        const gko::experimental::distributed::Partition<IndexType, IndexType>>
+        partition = share(
+            clone(host, global_system_matrix_->get_row_partition().get()));
     std::vector<IndexType> non_local_idxs{};
     std::vector<IndexType> non_local_to_local{};
     std::vector<IndexType> local_idxs{};
@@ -469,6 +452,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     std::vector<IndexType> local_to_inner{};
     std::vector<IndexType> local_to_outer{};
 
+    // std::cout << "444" << std::endl;
     for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
         if (mat_data.nonzeros[i].row != local_row) {
             local_row = mat_data.nonzeros[i].row;
@@ -503,6 +487,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
+    // std::cout << "479" << std::endl;
     std::vector<std::tuple<gko::experimental::distributed::comm_index_type,
                            IndexType, IndexType>>
         send_pattern{};
@@ -526,6 +511,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
+    // std::cout << "503" << std::endl;
     std::stable_sort(send_pattern.begin(), send_pattern.end(),
                      [](const auto& a, const auto& b) {
                          return std::get<0>(a) < std::get<0>(b);
@@ -553,10 +539,12 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                           recv_offsets.data());
     };
 
+    // std::cout << "531" << std::endl;
     communicate(send_buffer.data(), global_idxs.data());
 
     comm.synchronize();
 
+    // std::cout << "536" << std::endl;
     std::map<IndexType, IndexType> global_idx_to_recv_buffer{};
     for (IndexType i = 0; i < recv_offsets.back(); i++) {
         global_idx_to_recv_buffer.insert({global_idxs[i], i});
@@ -576,7 +564,9 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     auto nnz = mat_data.nonzeros[idx];
     std::set<IndexType> dbcs{};
     while (i < local_rows.size()) {
+        // std::cout << "549" << std::endl;
         while (nnz.row == local_rows[i] && idx < mat_data.nonzeros.size()) {
+            // std::cout << "551" << std::endl;
             auto j = std::distance(
                 local_rows.begin(),
                 std::find(local_rows.begin(), local_rows.end(), nnz.column));
@@ -609,11 +599,14 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     nnz = mat_data.nonzeros[idx];
     std::set<IndexType> inner_dbcs{};
     while (i < inner_idxs.size()) {
+        // std::cout << "584" << std::endl;
         while (nnz.row < inner_idxs[i]) {
+            // std::cout << "586" << std::endl;
             idx++;
             nnz = mat_data.nonzeros[idx];
         }
         while (nnz.row == inner_idxs[i] && idx < mat_data.nonzeros.size()) {
+            // std::cout << "591" << std::endl;
             auto found =
                 std::find(inner_idxs.begin(), inner_idxs.end(), nnz.column);
             if (found != inner_idxs.end()) {
@@ -641,7 +634,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         inner_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
 
-    matrix_data<ValueType, IndexType> outer_data{
+    /*matrix_data<ValueType, IndexType> outer_data{
         dim<2>{outer_idxs.size(), outer_idxs.size()}};
     i = 0;
     idx = 0;
@@ -662,7 +655,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
             nnz = mat_data.nonzeros[idx];
         }
         i++;
-    }
+    }*/
 
     for (auto interface = 0; interface < num_interfaces; interface++) {
         IndexType interface_size =
@@ -687,9 +680,9 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     inner_data.ensure_row_major_order();
     inner_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
     inner_system_matrix_->read(inner_data);
-    outer_data.ensure_row_major_order();
-    outer_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
-    outer_system_matrix_->read(outer_data);
+    // outer_data.ensure_row_major_order();
+    // outer_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
+    // outer_system_matrix_->read(outer_data);
     local_rows_ = local_rows;
     non_local_to_local_ = array<IndexType>(exec, non_local_to_local.begin(),
                                            non_local_to_local.end());
@@ -715,7 +708,9 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     recv_offsets_ = array<comm_index_type>(
         exec->get_master(), recv_offsets.begin(), recv_offsets.end());
     send_buffer_ = array<ValueType>(exec, send_offsets.back());
+    send_buffer_.fill(zero<ValueType>());
     recv_buffer_ = array<ValueType>(exec, recv_offsets.back());
+    recv_buffer_.fill(zero<ValueType>());
     global_idx_to_recv_buffer_ = global_idx_to_recv_buffer;
     inner_idxs_ = inner_idxs;
     local_to_inner_ = local_to_inner;
@@ -731,8 +726,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     auto row_ptrs = host_local_system_matrix->get_const_row_ptrs();
     auto col_idxs = host_local_system_matrix->get_const_col_idxs();
     for (auto interface = 0; interface < num_interfaces; interface++) {
-        // std::cout << "RANK " << rank << ", INTERFACE " << interface << ",
-        // INTERFACES[INTERFACE] " << interfaces_[interface] << std::endl;
         auto start = row_ptrs[local_rows.size() + interface];
         auto stop = row_ptrs[local_rows.size() + interface + 1];
         for (auto idx = start; idx < stop; idx++) {
@@ -741,34 +734,8 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                 ValueType{interface_dof_ranks_[interfaces_[interface]].size()};
         }
     }
-    /*if (rank == 0) {
-        std::ofstream wstream{"weights"};
-        for (auto i = 0; i < local_rows.size(); i++) {
-            wstream << weights_v[i] << ", ";
-        }
-    }*/
     local_system_matrix_->copy_from(host_local_system_matrix.get());
     weights_ = clone(exec, host_weights);
-    /*if (comm.rank() == 0) {
-        std::ofstream out{"local_0.mtx"};
-        gko::write(out, host_local_system_matrix.get(),
-                   gko::layout_type::coordinate);
-        std::ofstream out2{"localmat_0.mtx"};
-        gko::write(out2, as<matrix::Csr<ValueType,
-    IndexType>>(as<experimental::distributed::Matrix<ValueType, IndexType,
-    IndexType>>(global_system_matrix_)->get_local_matrix()).get(),
-    gko::layout_type::coordinate);
-    }
-    if (comm.rank() == 1) {
-        std::ofstream out{"local_1.mtx"};
-        gko::write(out, host_local_system_matrix.get(),
-                   gko::layout_type::coordinate);
-        std::ofstream out2{"localmat_1.mtx"};
-        gko::write(out2, as<matrix::Csr<ValueType,
-    IndexType>>(as<experimental::distributed::Matrix<ValueType, IndexType,
-    IndexType>>(global_system_matrix_)->get_local_matrix()).get(),
-    gko::layout_type::coordinate);
-    }*/
 }
 
 
@@ -853,38 +820,27 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
         }
     }
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 1" << std::endl;
 
     std::stable_sort(
         coarse_non_local_owners.begin(), coarse_non_local_owners.end(),
         [](const auto& a, const auto& b) { return a.first < b.first; });
 
     std::vector<IndexType> coarsening_local_to_send{};
-    // std::cout << "RANK " << rank << ": ";
     for (auto i = 0; i < coarse_non_local_owners.size(); i++) {
-        // std::cout << "(" << coarse_non_local_owners[i].first << ", " <<
-        // coarse_non_local_owners[i].second << ")";
         coarsening_local_to_send.emplace_back(
             coarse_non_local_owners[i].second);
     }
-    // std::cout << std::endl;
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 2" << std::endl;
 
     std::stable_sort(
         coarse_recv_to_local.begin(), coarse_recv_to_local.end(),
         [](const auto& a, const auto& b) { return a.first < b.first; });
 
     std::vector<IndexType> coarsening_recv_to_local{};
-    // std::cout << "RANK " << rank << ": ";
     for (auto i = 0; i < coarse_recv_to_local.size(); i++) {
-        // std::cout << "(" << coarse_recv_to_local[i].first << ", " <<
-        // coarse_recv_to_local[i].second << ")";
         coarsening_recv_to_local.emplace_back(coarse_recv_to_local[i].second);
     }
-    // std::cout << std::endl;
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 3" << std::endl;
 
     std::vector<comm_index_type> coarsening_send_sizes;
     std::vector<comm_index_type> coarsening_send_offsets;
@@ -896,7 +852,6 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
     IndexType recv_idx = 0;
     coarsening_send_offsets.emplace_back(0);
     coarsening_recv_offsets.emplace_back(0);
-    // std::cout << "RANK " << rank << ": ";
     for (auto i = 0; i < comm.size(); i++) {
         while (coarse_non_local_owners.size() > 0 &&
                coarse_non_local_owners[send_idx].first == i) {
@@ -906,10 +861,6 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
                coarse_recv_to_local[recv_idx].first == i) {
             recv_idx++;
         }
-        std::cout << "RANK " << rank << ": (" << send_idx << ", "
-                  << send_idx - coarsening_send_offsets[i] << ", " << recv_idx
-                  << ", " << recv_idx - coarsening_recv_offsets[i] << ")"
-                  << std::endl;
         comm.synchronize();
         coarsening_send_offsets.emplace_back(send_idx);
         coarsening_send_sizes.emplace_back(send_idx -
@@ -918,9 +869,7 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
         coarsening_recv_sizes.emplace_back(recv_idx -
                                            coarsening_recv_offsets[i]);
     }
-    // std::cout << std::endl;
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 4" << std::endl;
 
     coarsening_send_sizes_ = array<comm_index_type>(
         exec->get_master(), coarsening_send_sizes.begin(),
@@ -967,7 +916,6 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
 
     exec->synchronize();
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 5" << std::endl;
 
     global_coarse_matrix_ =
         gko::experimental::distributed::Matrix<ValueType, IndexType,
@@ -1002,7 +950,6 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
         array<IndexType>(exec, coarse_non_local_to_local.begin(),
                          coarse_non_local_to_local.end());
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 6" << std::endl;
 
     coarse_send_buffer_ = std::vector<ValueType>(coarse_send_offsets_.back());
     coarse_recv_buffer_ = std::vector<ValueType>(coarse_recv_offsets_.back());
@@ -1021,7 +968,6 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
     coarse_residual_->read_distributed(vec_data, part.get());
     coarse_solution_->read_distributed(vec_data, part.get());
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "COARSE 7" << std::endl;
 }
 
 
@@ -1043,16 +989,15 @@ void Bddc<ValueType, IndexType>::restrict_residual(
     auto exec = this->get_executor();
     auto comm = global_system_matrix_->get_communicator();
 
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
-        comm.all_to_all_v(exec, send_buffer, send_sizes_.get_data(),
+        comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
+                          send_buffer, send_sizes_.get_data(),
                           send_offsets_.get_data(), recv_buffer,
                           recv_sizes_.get_data(), recv_offsets_.get_data());
     };
 
-    // std::cout << "RANK " << comm.rank() << " SEND SIZE: " <<
-    // send_buffer_.get_num_elems() << " RECV SIZE: " <<
-    // recv_buffer_.get_num_elems() << std::endl;
-
+    exec->synchronize();
     exec->run(bddc::make_restrict_residual1(
         as<experimental::distributed::Vector<ValueType>>(global_residual)
             ->get_local_vector(),
@@ -1060,7 +1005,7 @@ void Bddc<ValueType, IndexType>::restrict_residual(
         send_buffer_, local_residual_.get()));
     exec->synchronize();
 
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+
     if (use_host_buffer) {
         recv_buffer_.set_executor(exec->get_master());
         send_buffer_.set_executor(exec->get_master());
@@ -1101,9 +1046,6 @@ void Bddc<ValueType, IndexType>::coarsen_residual() const
 
     exec->synchronize();
 
-    std::cout << "RANK " << comm.rank() << ": "
-              << coarse_local_to_local_.get_num_elems() << ", "
-              << coarse_residual_->get_local_vector()->get_size() << std::endl;
     exec->run(bddc::make_coarsen_residual1(
         coarse_local_to_local_, coarsening_local_to_send_,
         local_coarse_residual_.get(), coarsening_send_buffer_,
@@ -1137,6 +1079,7 @@ template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::prolong_coarse_solution() const
 {
     auto exec = this->get_executor();
+    auto comm = global_coarse_matrix_->get_communicator();
     auto req = global_coarse_matrix_->communicate(
         coarse_solution_->get_local_vector());
     req.wait();
@@ -1163,84 +1106,24 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 
     auto part = global_system_matrix_->get_row_partition();
     restrict_residual(dense_b);
-    if (comm.rank() == 0 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/restricted_res_0.mtx"};
-        gko::write(out, local_residual_large_.get());
-    }
     coarsen_residual();
-    if (comm.rank() == 0 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/coarse_res_0.mtx"};
-        gko::write(out, coarse_residual_->get_local_vector());
-    }
     coarse_solver_->apply(coarse_residual_.get(), coarse_solution_.get());
 
-    auto coarse_res = clone(coarse_residual_.get());
-    auto resnorm = clone(exec->get_master(), one_op_.get());
-    global_coarse_matrix_->apply(neg_one_op_.get(), coarse_solution_.get(),
-                                 one_op_.get(), coarse_res.get());
-    coarse_res->compute_norm2(resnorm.get());
-    if (comm.rank() == 0) {
-        std::cout << "COARSE RESIDUAL NORM: " << resnorm->at(0, 0) << std::endl;
-    }
-
     prolong_coarse_solution();
-    if (comm.rank() == 0 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/prolonged_coarse_sol_0.mtx"};
-        gko::write(out, local_coarse_solution_.get());
-    }
+
     local_solution_large_->fill(zero<ValueType>());
     local_solver_->apply(local_residual_large_.get(),
                          local_solution_large_.get());
-    if (comm.rank() == 0 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/local_sol_0.mtx"};
-        gko::write(out, local_solution_.get());
-    }
 
-    auto local_res = clone(local_residual_large_.get());
-    local_system_matrix_->apply(neg_one_op_.get(), local_solution_large_.get(),
-                                one_op_.get(), local_res.get());
-    local_res->compute_norm2(resnorm.get());
-    comm.synchronize();
-    std::cout << "RANK " << comm.rank()
-              << " LOCAL RESIDUAL NORM: " << resnorm->at(0, 0) << std::endl;
-
-    // local_coarse_solution_->fill(zero<ValueType>());
     exec->run(bddc::make_finalize1(local_coarse_solution_.get(), weights_.get(),
                                    recv_buffer_to_global_, non_local_to_local_,
                                    recv_buffer_, local_solution_.get()));
-
-    // local_coarse_solution_->add_scaled(one_op_.get(), local_solution_.get());
-    // weights_->apply(local_coarse_solution_.get(),
-    // local_coarse_solution_.get());
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         comm.all_to_all_v(exec, send_buffer, recv_sizes_.get_data(),
                           recv_offsets_.get_data(), recv_buffer,
                           send_sizes_.get_data(), send_offsets_.get_data());
     };
-
-    /*auto num_rows = as<experimental::distributed::Vector<ValueType>>(dense_x)
-                        ->get_local_vector()
-                        ->get_size()[0];
-    auto global_sol = as<experimental::distributed::Vector<ValueType>>(dense_x)
-                          ->get_local_values();
-
-    for (auto i = 0; i < non_local_to_local_.get_num_elems(); i++) {
-        recv_buffer_.get_data()[recv_buffer_to_global_.get_const_data()[i]] =
-            local_coarse_solution_->at(non_local_to_local_.get_const_data()[i]);
-    }*/
 
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
@@ -1264,111 +1147,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                    local_to_local_, local_solution_.get(),
                                    global_solution));
 
-    /*for (auto i = 0; i < send_buffer_.get_num_elems(); i++) {
-        local_coarse_solution_->at(
-            local_idx_to_send_buffer_.get_const_data()[i], 0) +=
-            send_buffer_.get_const_data()[i];
-    }
-
-    for (auto i = 0; i < num_rows; i++) {
-        global_sol[i] =
-            local_coarse_solution_->at(local_to_local_.get_const_data()[i], 0);
-    }*/
-
     comm.synchronize();
-    auto global_res = clone(dense_b);
-    global_system_matrix_->apply(neg_one_op_.get(), dense_x, one_op_.get(),
-                                 global_res.get());
-    global_res->compute_norm2(resnorm.get());
-    if (comm.rank() == 0) {
-        std::cout << "GLOBAL RESIDUAL NORM: " << resnorm->at(0, 0) << std::endl;
-    }
-
-    if (comm.rank() == 0 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_rhs_0.mtx"};
-        gko::write(out,
-                   as<experimental::distributed::Vector<ValueType>>(dense_b)
-                       ->get_local_vector());
-        std::ofstream out2{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_sol_0.mtx"};
-        gko::write(out2,
-                   as<experimental::distributed::Vector<ValueType>>(dense_x)
-                       ->get_local_vector());
-        std::ofstream out3{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_res_0.mtx"};
-        gko::write(out3, as<experimental::distributed::Vector<ValueType>>(
-                             global_res.get())
-                             ->get_local_vector());
-    }
-    if (comm.rank() == 1 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_rhs_1.mtx"};
-        gko::write(out,
-                   as<experimental::distributed::Vector<ValueType>>(dense_b)
-                       ->get_local_vector());
-        std::ofstream out2{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_sol_1.mtx"};
-        gko::write(out2,
-                   as<experimental::distributed::Vector<ValueType>>(dense_x)
-                       ->get_local_vector());
-        std::ofstream out3{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_res_1.mtx"};
-        gko::write(out3, as<experimental::distributed::Vector<ValueType>>(
-                             global_res.get())
-                             ->get_local_vector());
-    }
-    if (comm.rank() == 2 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_rhs_2.mtx"};
-        gko::write(out,
-                   as<experimental::distributed::Vector<ValueType>>(dense_b)
-                       ->get_local_vector());
-        std::ofstream out2{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_sol_2.mtx"};
-        gko::write(out2,
-                   as<experimental::distributed::Vector<ValueType>>(dense_x)
-                       ->get_local_vector());
-        std::ofstream out3{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_res_2.mtx"};
-        gko::write(out3, as<experimental::distributed::Vector<ValueType>>(
-                             global_res.get())
-                             ->get_local_vector());
-    }
-    if (comm.rank() == 3 && cnt == 0) {
-        std::cout << "CNTCNTCNTCNT" << cnt << std::endl;
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_rhs_3.mtx"};
-        gko::write(out,
-                   as<experimental::distributed::Vector<ValueType>>(dense_b)
-                       ->get_local_vector());
-        std::ofstream out2{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_sol_3.mtx"};
-        gko::write(out2,
-                   as<experimental::distributed::Vector<ValueType>>(dense_x)
-                       ->get_local_vector());
-        std::ofstream out3{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "stimulation/global_res_3.mtx"};
-        gko::write(out3, as<experimental::distributed::Vector<ValueType>>(
-                             global_res.get())
-                             ->get_local_vector());
-    }
-    cnt++;
     /*if (parameters_.static_condensation) {
         auto intermediate =
             clone(as<experimental::distributed::Vector<ValueType>>(dense_b));
@@ -1418,7 +1197,7 @@ void Bddc<ValueType, IndexType>::generate()
     auto exec = this->get_executor();
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
-    std::cout << "RANK " << comm.rank() << "STARTING GEN" << std::endl;
+    // std::cout << "1181" << std::endl;
     if (parameters_.interface_dofs.size() > 0 &&
         parameters_.interface_dof_ranks.size() > 0) {
         interface_dofs_ = parameters_.interface_dofs;
@@ -1427,20 +1206,19 @@ void Bddc<ValueType, IndexType>::generate()
         generate_interfaces();
     }
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "DONE WITH INTERFACES" << std::endl;
+    // std::cout << "1190" << std::endl;
     generate_constraints();
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "DONE WITH CONSTRAINTS" << std::endl;
+    // std::cout << "1193" << std::endl;
     schur_complement_solver_ =
         parameters_.schur_complement_solver_factory->generate(
             local_system_matrix_);
     schur_complement_solve();
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "DONE WITH SCHUR COMPLEMENT"
-              << std::endl;
+    // std::cout << "1199" << std::endl;
     generate_coarse_system();
     comm.synchronize();
-    std::cout << "RANK " << comm.rank() << "DONE WITH COARSE" << std::endl;
+    // std::cout << "1202" << std::endl;
     coarse_solver_ =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
     local_solver_ =
@@ -1452,16 +1230,6 @@ void Bddc<ValueType, IndexType>::generate()
     local_residual_large_->fill(zero<ValueType>());
     local_residual_ = local_residual_large_->create_submatrix(
         span{0, local_rows_.size()}, span{0, 1});
-    /*if (comm.rank() == 0) {
-        std::ofstream out{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "noground_bidom/local_res_0_init.mtx"};
-        gko::write(out, local_residual_.get());
-        std::ofstream out2{
-            "/home/fritzgoebel/git/experiments/regression/devtests/bidomain/"
-            "noground_bidom/local_res_large_0_init.mtx"};
-        gko::write(out2, local_residual_large_.get());
-    }*/
     local_coarse_residual_ = matrix::Dense<ValueType>::create(
         exec, dim<2>{local_coarse_matrix_->get_size()[0], 1});
     local_intermediate_ = clone(local_coarse_residual_.get());
@@ -1478,7 +1246,6 @@ void Bddc<ValueType, IndexType>::generate()
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     host_residual_ = matrix::Dense<ValueType>::create(host);
     nonlocal_ = matrix::Dense<ValueType>::create(exec);
-    std::cout << "RANK " << comm.rank() << "DONE" << std::endl;
 }
 
 
