@@ -37,9 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType>
 inline void matvec_kernel(
-    const gko::batch_csr::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const gko::batch_dense::BatchEntry<ValueType>& c)
+    const gko::experimental::matrix::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < b.num_rhs; ++j) {
@@ -64,9 +65,12 @@ inline void matvec_kernel(
  */
 template <typename ValueType>
 inline void advanced_matvec_kernel(
-    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+    const ValueType alpha,
+    const gko::experimental::matrix::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const ValueType beta,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < c.num_rhs; ++j) {
@@ -90,9 +94,9 @@ inline void advanced_matvec_kernel(
  * One warp is assigned to each row.
  */
 template <typename ValueType>
-inline void batch_scale(const ValueType* const left_scale,
-                        const ValueType* const right_scale,
-                        const gko::batch_csr::BatchEntry<ValueType>& a)
+inline void batch_scale(
+    const ValueType* const left_scale, const ValueType* const right_scale,
+    const gko::experimental::matrix::batch_csr::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
         const ValueType rowscale = left_scale[i_row];
@@ -115,11 +119,12 @@ inline void pre_diag_scale_system(
     const ValueType* const left_scale, const ValueType* const right_scale)
 {
     auto ab = a_values + a_batch_stride * batch_id;
-    auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, batch_id);
-    auto left_scaleb =
-        gko::batch::batch_entry_ptr(left_scale, 1, num_rows, batch_id);
-    auto right_scaleb =
-        gko::batch::batch_entry_ptr(right_scale, 1, num_cols, batch_id);
+    auto bb = gko::experimental::matrix::batch::batch_entry_ptr(
+        b, b_stride, num_rows, batch_id);
+    auto left_scaleb = gko::experimental::matrix::batch::batch_entry_ptr(
+        left_scale, 1, num_rows, batch_id);
+    auto right_scaleb = gko::experimental::matrix::batch::batch_entry_ptr(
+        right_scale, 1, num_cols, batch_id);
     for (int irow = 0; irow < num_rows; irow++) {
         const ValueType left_scale_value = left_scaleb[irow];
         for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {

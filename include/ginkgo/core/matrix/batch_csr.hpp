@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 
 
@@ -86,7 +87,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = BatchCsr<ValueType, IndexType>;
-    using unbatch_type = Csr<ValueType, IndexType>;
+    using unbatch_type = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<BatchCsr>;
 
@@ -305,8 +306,7 @@ protected:
      * @param csr_mat  the csr matrix to be duplicated
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries,
-             const matrix::Csr<value_type, index_type>* csr_mat)
+             const size_type num_batch_entries, const unbatch_type* csr_mat)
         : EnableBatchLinOp<BatchCsr>(
               exec, batch_dim<2>(num_batch_entries, csr_mat->get_size())),
           values_(exec, csr_mat->get_num_stored_elements() * num_batch_entries),
@@ -458,6 +458,7 @@ private:
 
 
 }  // namespace matrix
+}  // namespace experimental
 }  // namespace gko
 
 

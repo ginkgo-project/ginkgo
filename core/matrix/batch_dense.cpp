@@ -52,8 +52,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 namespace batch_dense {
+namespace {
 
 
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
@@ -83,6 +85,7 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 GKO_REGISTER_OPERATION(add_scaled_identity, batch_dense::add_scaled_identity);
 
 
+}  // namespace
 }  // namespace batch_dense
 
 
@@ -391,7 +394,8 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDense<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = BatchDense::create(exec, gko::transpose(this->get_size()));
+    auto trans_cpy = BatchDense::create(
+        exec, gko::experimental::transpose(this->get_size()));
 
     exec->run(batch_dense::make_transpose(this, trans_cpy.get()));
 
@@ -403,7 +407,8 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDense<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = BatchDense::create(exec, gko::transpose(this->get_size()));
+    auto trans_cpy = BatchDense::create(
+        exec, gko::experimental::transpose(this->get_size()));
 
     exec->run(batch_dense::make_conj_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
@@ -424,6 +429,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
 
 
 }  // namespace matrix
-
-
+}  // namespace experimental
 }  // namespace gko

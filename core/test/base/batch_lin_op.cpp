@@ -48,8 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class DummyBatchLinOp : public gko::EnableBatchLinOp<DummyBatchLinOp>,
-                        public gko::EnableCreateMethod<DummyBatchLinOp> {
+class DummyBatchLinOp
+    : public gko::experimental::EnableBatchLinOp<DummyBatchLinOp>,
+      public gko::EnableCreateMethod<DummyBatchLinOp> {
 public:
     DummyBatchLinOp(std::shared_ptr<const gko::Executor> exec,
                     std::vector<gko::dim<2>> size = std::vector<gko::dim<2>>{})
@@ -65,7 +66,8 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::BatchLinOp* b, gko::BatchLinOp* x) const override
+    void apply_impl(const gko::experimental::BatchLinOp* b,
+                    gko::experimental::BatchLinOp* x) const override
     {
         this->access();
         static_cast<const DummyBatchLinOp*>(b)->access();
@@ -74,9 +76,10 @@ protected:
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::BatchLinOp* alpha, const gko::BatchLinOp* b,
-                    const gko::BatchLinOp* beta,
-                    gko::BatchLinOp* x) const override
+    void apply_impl(const gko::experimental::BatchLinOp* alpha,
+                    const gko::experimental::BatchLinOp* b,
+                    const gko::experimental::BatchLinOp* beta,
+                    gko::experimental::BatchLinOp* x) const override
     {
         this->access();
         static_cast<const DummyBatchLinOp*>(alpha)->access();
@@ -145,9 +148,9 @@ TEST_F(EnableBatchLinOp, KnowsNumBatches)
 
 TEST_F(EnableBatchLinOp, KnowsItsSizes)
 {
-    auto op1_sizes =
-        gko::batch_dim<2>(std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
-    auto op2_sizes = gko::batch_dim<2>(
+    auto op1_sizes = gko::experimental::batch_dim<2>(
+        std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
+    auto op2_sizes = gko::experimental::batch_dim<2>(
         std::vector<gko::dim<2>>{gko::dim<2>{3, 5}, gko::dim<2>{3, 5}});
     ASSERT_EQ(op->get_size(), op1_sizes);
     ASSERT_EQ(op2->get_size(), op2_sizes);
@@ -334,11 +337,11 @@ TEST_F(EnableBatchLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 
 
 template <typename T = int>
-class DummyBatchLinOpWithFactory
-    : public gko::EnableBatchLinOp<DummyBatchLinOpWithFactory<T>> {
+class DummyBatchLinOpWithFactory : public gko::experimental::EnableBatchLinOp<
+                                       DummyBatchLinOpWithFactory<T>> {
 public:
     DummyBatchLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableBatchLinOp<DummyBatchLinOpWithFactory>(exec)
+        : gko::experimental::EnableBatchLinOp<DummyBatchLinOpWithFactory>(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -349,23 +352,26 @@ public:
                                     Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    DummyBatchLinOpWithFactory(const Factory* factory,
-                               std::shared_ptr<const gko::BatchLinOp> op)
-        : gko::EnableBatchLinOp<DummyBatchLinOpWithFactory>(
+    DummyBatchLinOpWithFactory(
+        const Factory* factory,
+        std::shared_ptr<const gko::experimental::BatchLinOp> op)
+        : gko::experimental::EnableBatchLinOp<DummyBatchLinOpWithFactory>(
               factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
 
-    std::shared_ptr<const gko::BatchLinOp> op_;
+    std::shared_ptr<const gko::experimental::BatchLinOp> op_;
 
 protected:
-    void apply_impl(const gko::BatchLinOp* b, gko::BatchLinOp* x) const override
+    void apply_impl(const gko::experimental::BatchLinOp* b,
+                    gko::experimental::BatchLinOp* x) const override
     {}
 
-    void apply_impl(const gko::BatchLinOp* alpha, const gko::BatchLinOp* b,
-                    const gko::BatchLinOp* beta,
-                    gko::BatchLinOp* x) const override
+    void apply_impl(const gko::experimental::BatchLinOp* alpha,
+                    const gko::experimental::BatchLinOp* b,
+                    const gko::experimental::BatchLinOp* beta,
+                    gko::experimental::BatchLinOp* x) const override
     {}
 };
 

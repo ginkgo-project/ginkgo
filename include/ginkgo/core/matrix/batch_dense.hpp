@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 
 
@@ -101,7 +102,7 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using transposed_type = BatchDense<ValueType>;
-    using unbatch_type = Dense<ValueType>;
+    using unbatch_type = gko::matrix::Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<BatchDense>;
@@ -430,7 +431,7 @@ private:
      * Extract strides from the vector of the distinct Dense matrices.
      */
     inline batch_stride get_strides_from_mtxs(
-        const std::vector<Dense<ValueType>*> mtxs)
+        const std::vector<unbatch_type*> mtxs)
     {
         auto strides = std::vector<size_type>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
@@ -443,7 +444,7 @@ private:
      * Extract sizes from the vector of the distinct Dense matrices.
      */
     inline batch_dim<2> get_sizes_from_mtxs(
-        const std::vector<Dense<ValueType>*> mtxs)
+        const std::vector<unbatch_type*> mtxs)
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
@@ -547,7 +548,7 @@ protected:
      * @param matrices  The matrices that need to be batched.
      */
     BatchDense(std::shared_ptr<const Executor> exec,
-               const std::vector<Dense<ValueType>*>& matrices)
+               const std::vector<unbatch_type*>& matrices)
         : EnableBatchLinOp<BatchDense>(exec, get_sizes_from_mtxs(matrices)),
           stride_{get_strides_from_mtxs(matrices)},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
@@ -574,12 +575,12 @@ protected:
     BatchDense(std::shared_ptr<const Executor> exec, size_type num_duplications,
                const BatchDense<value_type>* input)
         : EnableBatchLinOp<BatchDense>(
-              exec, gko::batch_dim<2>(
-                        input->get_num_batch_entries() * num_duplications,
-                        input->get_size().at(0))),
-          stride_{gko::batch_stride(
-              input->get_num_batch_entries() * num_duplications,
-              input->get_stride().at(0))},
+              exec,
+              batch_dim<2>(input->get_num_batch_entries() * num_duplications,
+                           input->get_size().at(0))),
+          stride_{
+              batch_stride(input->get_num_batch_entries() * num_duplications,
+                           input->get_stride().at(0))},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
         // Check if it works when stride neq num_cols
@@ -602,10 +603,10 @@ protected:
      * @param input  The matrix to be duplicated.
      */
     BatchDense(std::shared_ptr<const Executor> exec, size_type num_duplications,
-               const Dense<value_type>* input)
+               const unbatch_type* input)
         : EnableBatchLinOp<BatchDense>(
-              exec, gko::batch_dim<2>(num_duplications, input->get_size())),
-          stride_{gko::batch_stride(num_duplications, input->get_stride())},
+              exec, batch_dim<2>(num_duplications, input->get_size())),
+          stride_{batch_stride(num_duplications, input->get_stride())},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
         // Check if it works when stride neq num_cols
@@ -1071,6 +1072,7 @@ std::unique_ptr<Matrix> batch_initialize(
 }
 
 
+}  // namespace experimental
 }  // namespace gko
 
 

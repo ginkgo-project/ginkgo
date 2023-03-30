@@ -50,14 +50,14 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
+    using Mtx = gko::experimental::matrix::BatchCsr<value_type, index_type>;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
     using size_type = gko::size_type;
 
     BatchCsr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::BatchCsr<value_type, index_type>::create(
-              exec, 2, gko::dim<2>{2, 3}, 4))
+          mtx(gko::experimental::matrix::BatchCsr<
+              value_type, index_type>::create(exec, 2, gko::dim<2>{2, 3}, 4))
     {
         value_type* v = mtx->get_values();
         index_type* c = mtx->get_col_idxs();
@@ -181,10 +181,12 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromOneCsrMatrix)
         gko::array<index_type>::view(this->exec, 4, col_idxs),
         gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
-    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-        this->exec, 3, csr_mat.get());
+    auto mtx =
+        gko::experimental::matrix::BatchCsr<value_type, index_type>::create(
+            this->exec, 3, csr_mat.get());
 
-    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(3, gko::dim<2>{3, 2}));
+    ASSERT_EQ(mtx->get_size(),
+              gko::experimental::batch_dim<2>(3, gko::dim<2>{3, 2}));
     this->assert_equal_data_array(12, batch_values, mtx->get_values());
     this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
     this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
@@ -203,16 +205,19 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromBatchMatrices)
                             1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0,
                             1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
 
-    auto batch_mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-        this->exec, 2, gko::dim<2>{3, 2},
-        gko::array<value_type>::view(this->exec, 8, values),
-        gko::array<index_type>::view(this->exec, 4, col_idxs),
-        gko::array<index_type>::view(this->exec, 4, row_ptrs));
+    auto batch_mtx =
+        gko::experimental::matrix::BatchCsr<value_type, index_type>::create(
+            this->exec, 2, gko::dim<2>{3, 2},
+            gko::array<value_type>::view(this->exec, 8, values),
+            gko::array<index_type>::view(this->exec, 4, col_idxs),
+            gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
-    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-        this->exec, 3, batch_mtx.get());
+    auto mtx =
+        gko::experimental::matrix::BatchCsr<value_type, index_type>::create(
+            this->exec, 3, batch_mtx.get());
 
-    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(6, gko::dim<2>{3, 2}));
+    ASSERT_EQ(mtx->get_size(),
+              gko::experimental::batch_dim<2>(6, gko::dim<2>{3, 2}));
     this->assert_equal_data_array(24, bvalues, mtx->get_values());
     this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
     this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
@@ -228,11 +233,12 @@ TYPED_TEST(BatchCsr, CanBeCreatedFromExistingData)
     index_type col_idxs[] = {0, 1, 1, 0};
     index_type row_ptrs[] = {0, 2, 3, 4};
 
-    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-        this->exec, gko::batch_dim<>(2, gko::dim<2>{3, 2}),
-        gko::array<value_type>::view(this->exec, 8, values),
-        gko::array<index_type>::view(this->exec, 4, col_idxs),
-        gko::array<index_type>::view(this->exec, 4, row_ptrs));
+    auto mtx =
+        gko::experimental::matrix::BatchCsr<value_type, index_type>::create(
+            this->exec, gko::experimental::batch_dim<>(2, gko::dim<2>{3, 2}),
+            gko::array<value_type>::view(this->exec, 8, values),
+            gko::array<index_type>::view(this->exec, 4, col_idxs),
+            gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
@@ -249,11 +255,12 @@ TYPED_TEST(BatchCsr, CanBeCreatedFromExistingConstData)
     const index_type col_idxs[] = {0, 1, 1, 0};
     index_type row_ptrs[] = {0, 2, 3, 4};
 
-    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create_const(
-        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}},
-        gko::array<value_type>::const_view(this->exec, 8, values),
-        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
-        gko::array<index_type>::const_view(this->exec, 4, row_ptrs));
+    auto mtx = gko::experimental::matrix::BatchCsr<value_type, index_type>::
+        create_const(
+            this->exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 2}},
+            gko::array<value_type>::const_view(this->exec, 8, values),
+            gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+            gko::array<index_type>::const_view(this->exec, 4, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 
 
@@ -78,7 +79,7 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using transposed_type = BatchIdentity<ValueType>;
-    using unbatch_type = Identity<ValueType>;
+    using unbatch_type = gko::matrix::Identity<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<BatchIdentity>;
@@ -119,7 +120,7 @@ private:
      * Extract sizes from the vector of the distinct Identity matrices.
      */
     batch_dim<2> get_sizes_from_mtxs(
-        const std::vector<Identity<ValueType>*> mtxs) const
+        const std::vector<unbatch_type*> mtxs) const
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
@@ -147,7 +148,7 @@ protected:
      * @param matrices  The matrices that need to be batched.
      */
     BatchIdentity(std::shared_ptr<const Executor> exec,
-                  const std::vector<Identity<ValueType>*>& matrices)
+                  const std::vector<unbatch_type*>& matrices)
         : EnableBatchLinOp<BatchIdentity>(exec, get_sizes_from_mtxs(matrices))
     {}
 
@@ -187,9 +188,9 @@ protected:
      */
     BatchIdentity(std::shared_ptr<const Executor> exec,
                   const size_type num_duplications,
-                  const Identity<value_type>* const input)
+                  const unbatch_type* const input)
         : EnableBatchLinOp<BatchIdentity>(
-              exec, gko::batch_dim<2>(num_duplications, input->get_size()))
+              exec, batch_dim<2>(num_duplications, input->get_size()))
     {}
 
     void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override
@@ -204,6 +205,7 @@ protected:
 
 
 }  // namespace matrix
+}  // namespace experimental
 }  // namespace gko
 
 

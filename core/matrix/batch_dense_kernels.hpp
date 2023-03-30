@@ -42,133 +42,144 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(_type)         \
-    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                      const matrix::BatchDense<_type>* a,          \
-                      const matrix::BatchDense<_type>* b,          \
-                      matrix::BatchDense<_type>* c)
+#define GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(_type)              \
+    void simple_apply(std::shared_ptr<const DefaultExecutor> exec,      \
+                      const experimental::matrix::BatchDense<_type>* a, \
+                      const experimental::matrix::BatchDense<_type>* b, \
+                      experimental::matrix::BatchDense<_type>* c)
 
-#define GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(_type)         \
-    void apply(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::BatchDense<_type>* alpha,      \
-               const matrix::BatchDense<_type>* a,          \
-               const matrix::BatchDense<_type>* b,          \
-               const matrix::BatchDense<_type>* beta,       \
-               matrix::BatchDense<_type>* c)
+#define GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(_type)                  \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,          \
+               const experimental::matrix::BatchDense<_type>* alpha, \
+               const experimental::matrix::BatchDense<_type>* a,     \
+               const experimental::matrix::BatchDense<_type>* b,     \
+               const experimental::matrix::BatchDense<_type>* beta,  \
+               experimental::matrix::BatchDense<_type>* c)
 
-#define GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(_type)         \
-    void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::BatchDense<_type>* alpha,      \
-               matrix::BatchDense<_type>* x)
+#define GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(_type)                  \
+    void scale(std::shared_ptr<const DefaultExecutor> exec,          \
+               const experimental::matrix::BatchDense<_type>* alpha, \
+               experimental::matrix::BatchDense<_type>* x)
 
-#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(_type)         \
-    void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::BatchDense<_type>* alpha,      \
-                    const matrix::BatchDense<_type>* x,          \
-                    matrix::BatchDense<_type>* y)
+#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(_type)                  \
+    void add_scaled(std::shared_ptr<const DefaultExecutor> exec,          \
+                    const experimental::matrix::BatchDense<_type>* alpha, \
+                    const experimental::matrix::BatchDense<_type>* x,     \
+                    experimental::matrix::BatchDense<_type>* y)
 
-#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(_type)         \
-    void convergence_add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                                const matrix::BatchDense<_type>* alpha,      \
-                                const matrix::BatchDense<_type>* x,          \
-                                matrix::BatchDense<_type>* y,                \
-                                const uint32& converged)
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(_type) \
+    void convergence_add_scaled(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        const experimental::matrix::BatchDense<_type>* alpha,        \
+        const experimental::matrix::BatchDense<_type>* x,            \
+        experimental::matrix::BatchDense<_type>* y, const uint32& converged)
 
-#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(_type)         \
-    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::BatchDense<_type>* alpha,      \
-                         const matrix::Diagonal<_type>* x,            \
-                         matrix::BatchDense<_type>* y)
+#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(_type)                  \
+    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,          \
+                         const experimental::matrix::BatchDense<_type>* alpha, \
+                         const matrix::Diagonal<_type>* x,                     \
+                         experimental::matrix::BatchDense<_type>* y)
 
-#define GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(_type)         \
-    void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                     const matrix::BatchDense<_type>* x,          \
-                     const matrix::BatchDense<_type>* y,          \
-                     matrix::BatchDense<_type>* result)
+#define GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(_type)              \
+    void compute_dot(std::shared_ptr<const DefaultExecutor> exec,      \
+                     const experimental::matrix::BatchDense<_type>* x, \
+                     const experimental::matrix::BatchDense<_type>* y, \
+                     experimental::matrix::BatchDense<_type>* result)
 
 
-#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(_type)         \
-    void convergence_compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                                 const matrix::BatchDense<_type>* x,          \
-                                 const matrix::BatchDense<_type>* y,          \
-                                 matrix::BatchDense<_type>* result,           \
-                                 const uint32& converged)
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(_type) \
+    void convergence_compute_dot(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const experimental::matrix::BatchDense<_type>* x,             \
+        const experimental::matrix::BatchDense<_type>* y,             \
+        experimental::matrix::BatchDense<_type>* result,              \
+        const uint32& converged)
 
-#define GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(_type)         \
-    void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::BatchDense<_type>* x,          \
-                       matrix::BatchDense<remove_complex<_type>>* result)
+#define GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(_type) \
+    void compute_norm2(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,        \
+        const experimental::matrix::BatchDense<_type>* x,   \
+        experimental::matrix::BatchDense<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL(_type) \
-    void convergence_compute_norm2(                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::BatchDense<_type>* x,                             \
-        matrix::BatchDense<remove_complex<_type>>* result,              \
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL(_type)  \
+    void convergence_compute_norm2(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const experimental::matrix::BatchDense<_type>* x,                \
+        experimental::matrix::BatchDense<remove_complex<_type>>* result, \
         const uint32& converged)
 
 
-#define GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(_type)         \
-    void copy(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::BatchDense<_type>* x,          \
-              matrix::BatchDense<_type>* result)
+#define GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(_type)              \
+    void copy(std::shared_ptr<const DefaultExecutor> exec,      \
+              const experimental::matrix::BatchDense<_type>* x, \
+              experimental::matrix::BatchDense<_type>* result)
 
-#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(_type)         \
-    void convergence_copy(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::BatchDense<_type>* x,          \
-                          matrix::BatchDense<_type>* result,           \
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(_type)              \
+    void convergence_copy(std::shared_ptr<const DefaultExecutor> exec,      \
+                          const experimental::matrix::BatchDense<_type>* x, \
+                          experimental::matrix::BatchDense<_type>* result,  \
                           const uint32& converged)
 
-#define GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(_type, _prec)  \
-    void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                              const matrix::BatchDense<_type>* source,     \
-                              matrix::BatchCsr<_type, _prec>* other)
+#define GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(_type, _prec) \
+    void convert_to_batch_csr(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const experimental::matrix::BatchDense<_type>* source,            \
+        experimental::matrix::BatchCsr<_type, _prec>* other)
 
-#define GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(_type)         \
-    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::BatchDense<_type>* source,     \
+#define GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(_type)                   \
+    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,           \
+                        const experimental::matrix::BatchDense<_type>* source, \
                         size_type* result)
 
 #define GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(_type) \
     void calculate_max_nnz_per_row(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::BatchDense<_type>* source, size_type* result)
+        const experimental::matrix::BatchDense<_type>* source,          \
+        size_type* result)
 
 #define GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(_type) \
     void calculate_nonzeros_per_row(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                     \
-        const matrix::BatchDense<_type>* source, array<size_type>* result)
+        const experimental::matrix::BatchDense<_type>* source,           \
+        array<size_type>* result)
 
-#define GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)  \
-    void calculate_total_cols(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                \
-        const matrix::BatchDense<_type>* source, size_type* result, \
-        const size_type* stride_factor, const size_type* slice_size)
+#define GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type) \
+    void calculate_total_cols(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const experimental::matrix::BatchDense<_type>* source,     \
+        size_type* result, const size_type* stride_factor,         \
+        const size_type* slice_size)
 
-#define GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(_type)         \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::BatchDense<_type>* orig,       \
-                   matrix::BatchDense<_type>* trans)
+#define GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(_type)                 \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec,         \
+                   const experimental::matrix::BatchDense<_type>* orig, \
+                   experimental::matrix::BatchDense<_type>* trans)
 
-#define GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(_type)         \
-    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::BatchDense<_type>* orig,       \
-                        matrix::BatchDense<_type>* trans)
+#define GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(_type)                 \
+    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,         \
+                        const experimental::matrix::BatchDense<_type>* orig, \
+                        experimental::matrix::BatchDense<_type>* trans)
 
-#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)             \
-    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,         \
-                     const matrix::BatchDiagonal<ValueType>* left_scale,  \
-                     const matrix::BatchDiagonal<ValueType>* right_scale, \
-                     matrix::BatchDense<ValueType>* vec_to_scale)
+#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)              \
+    void batch_scale(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const experimental::matrix::BatchDiagonal<ValueType>* left_scale,  \
+        const experimental::matrix::BatchDiagonal<ValueType>* right_scale, \
+        experimental::matrix::BatchDense<ValueType>* vec_to_scale)
 
-#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)     \
-    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
-                             const matrix::BatchDense<ValueType>* a,      \
-                             const matrix::BatchDense<ValueType>* b,      \
-                             matrix::BatchDense<ValueType>* mtx)
+#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType) \
+    void add_scaled_identity(                                         \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const experimental::matrix::BatchDense<ValueType>* a,         \
+        const experimental::matrix::BatchDense<ValueType>* b,         \
+        experimental::matrix::BatchDense<ValueType>* mtx)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
@@ -220,49 +231,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)
 
 
-namespace omp {
-namespace batch_dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_dense
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_dense
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_dense
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_dense
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_dense
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_dense,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -39,105 +39,116 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+
+
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_CSR_SPMV_KERNEL(ValueType, IndexType) \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,      \
-              const matrix::BatchCsr<ValueType, IndexType>* a,  \
-              const matrix::BatchDense<ValueType>* b,           \
-              matrix::BatchDense<ValueType>* c)
+#define GKO_DECLARE_BATCH_CSR_SPMV_KERNEL(ValueType, IndexType)              \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                   \
+              const experimental::matrix::BatchCsr<ValueType, IndexType>* a, \
+              const experimental::matrix::BatchDense<ValueType>* b,          \
+              experimental::matrix::BatchDense<ValueType>* c)
 
 #define GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,      \
-                       const matrix::BatchDense<ValueType>* alpha,       \
-                       const matrix::BatchCsr<ValueType, IndexType>* a,  \
-                       const matrix::BatchDense<ValueType>* b,           \
-                       const matrix::BatchDense<ValueType>* beta,        \
-                       matrix::BatchDense<ValueType>* c)
+    void advanced_spmv(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const experimental::matrix::BatchDense<ValueType>* alpha,        \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* a,   \
+        const experimental::matrix::BatchDense<ValueType>* b,            \
+        const experimental::matrix::BatchDense<ValueType>* beta,         \
+        experimental::matrix::BatchDense<ValueType>* c)
 
 #define GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
     void convert_to_dense(                                                  \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::BatchCsr<ValueType, IndexType>* source,               \
-        matrix::BatchDense<ValueType>* result)
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* source, \
+        experimental::matrix::BatchDense<ValueType>* result)
 
-#define GKO_DECLARE_BATCH_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, \
-                                                          IndexType) \
-    void calculate_total_cols(                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const matrix::BatchCsr<ValueType, IndexType>* source,        \
+#define GKO_DECLARE_BATCH_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType,        \
+                                                          IndexType)        \
+    void calculate_total_cols(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* source, \
         size_type* result, size_type stride_factor, size_type slice_size)
 
-#define GKO_DECLARE_BATCH_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec,        \
-                   const matrix::BatchCsr<ValueType, IndexType>* orig, \
-                   matrix::BatchCsr<ValueType, IndexType>* trans)
-
-#define GKO_DECLARE_BATCH_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)   \
-    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,        \
-                        const matrix::BatchCsr<ValueType, IndexType>* orig, \
-                        matrix::BatchCsr<ValueType, IndexType>* trans)
-
-#define GKO_DECLARE_BATCH_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, \
-                                                               IndexType) \
-    void calculate_max_nnz_per_row(                                       \
+#define GKO_DECLARE_BATCH_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)      \
+    void transpose(                                                       \
         std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::BatchCsr<ValueType, IndexType>* source,             \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* orig, \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* trans)
+
+#define GKO_DECLARE_BATCH_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType) \
+    void conj_transpose(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* orig, \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* trans)
+
+#define GKO_DECLARE_BATCH_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType,   \
+                                                               IndexType)   \
+    void calculate_max_nnz_per_row(                                         \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* source, \
         size_type* result)
 
-#define GKO_DECLARE_BATCH_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
-                                                                IndexType) \
-    void calculate_nonzeros_per_row(                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::BatchCsr<ValueType, IndexType>* source,              \
+#define GKO_DECLARE_BATCH_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType,  \
+                                                                IndexType)  \
+    void calculate_nonzeros_per_row(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* source, \
         array<size_type>* result)
 
-#define GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)   \
-    void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
-                              matrix::BatchCsr<ValueType, IndexType>* to_sort)
+#define GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType) \
+    void sort_by_column_index(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* to_sort)
 
 #define GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType) \
     void is_sorted_by_column_index(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::BatchCsr<ValueType, IndexType>* to_check,               \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* to_check, \
         bool* is_sorted)
 
-#define GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)                 \
-    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,         \
-                     const matrix::BatchDiagonal<ValueType>* left_scale,  \
-                     const matrix::BatchDiagonal<ValueType>* right_scale, \
-                     matrix::BatchCsr<ValueType, IndexType>* mat)
+#define GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)                  \
+    void batch_scale(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const experimental::matrix::BatchDiagonal<ValueType>* left_scale,  \
+        const experimental::matrix::BatchDiagonal<ValueType>* right_scale, \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* mat)
 
 #define GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM(ValueType, IndexType) \
     void pre_diag_transform_system(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::BatchDiagonal<ValueType>* left_op,                      \
-        const matrix::BatchDiagonal<ValueType>* right_op,                     \
-        matrix::BatchCsr<ValueType, IndexType>* a,                            \
-        matrix::BatchDense<ValueType>* b)
+        const experimental::matrix::BatchDiagonal<ValueType>* left_op,        \
+        const experimental::matrix::BatchDiagonal<ValueType>* right_op,       \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* a,              \
+        experimental::matrix::BatchDense<ValueType>* b)
 
 #define GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType) \
     void convert_to_batch_dense(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::BatchCsr<ValueType, IndexType>* csr,                 \
-        matrix::BatchDense<ValueType>* dense)
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* csr,   \
+        experimental::matrix::BatchDense<ValueType>* dense)
 
-#define GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, \
-                                                           IndexType) \
-    void check_diagonal_entries_exist(                                \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::BatchCsr<ValueType, IndexType>* mtx, bool& all_diags)
+#define GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType,    \
+                                                           IndexType)    \
+    void check_diagonal_entries_exist(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const experimental::matrix::BatchCsr<ValueType, IndexType>* mtx, \
+        bool& all_diags)
 
 #define GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType) \
-    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,      \
-                             const matrix::BatchDense<ValueType>* a,           \
-                             const matrix::BatchDense<ValueType>* b,           \
-                             matrix::BatchCsr<ValueType, IndexType>* mtx)
+    void add_scaled_identity(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const experimental::matrix::BatchDense<ValueType>* a,                  \
+        const experimental::matrix::BatchDense<ValueType>* b,                  \
+        experimental::matrix::BatchCsr<ValueType, IndexType>* mtx)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
     template <typename ValueType, typename IndexType>                         \
@@ -174,49 +185,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace batch_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_csr
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_csr
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_csr
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_csr
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_csr
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_csr,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

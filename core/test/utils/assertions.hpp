@@ -753,9 +753,9 @@ template <typename LinOp1, typename T>
     const std::string& tolerance_expression, const LinOp1* first,
     std::initializer_list<std::initializer_list<T>> second, double tolerance)
 {
-    auto second_mtx =
-        batch_initialize<matrix::BatchDense<detail::remove_container<T>>>(
-            second, first->get_executor()->get_master());
+    auto second_mtx = experimental::batch_initialize<
+        experimental::matrix::BatchDense<detail::remove_container<T>>>(
+        second, first->get_executor()->get_master());
     return batch_matrices_near(
         first_expression, detail::remove_list_wrapper(second_expression),
         tolerance_expression, first, second_mtx.get(), tolerance);

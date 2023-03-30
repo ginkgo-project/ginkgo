@@ -67,17 +67,20 @@ namespace batch_ell {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor>,
-          const matrix::BatchEll<ValueType, IndexType>* const a,
-          const matrix::BatchDense<ValueType>* const b,
-          matrix::BatchDense<ValueType>* const c)
+          const experimental::matrix::BatchEll<ValueType, IndexType>* const a,
+          const experimental::matrix::BatchDense<ValueType>* const b,
+          experimental::matrix::BatchDense<ValueType>* const c)
 {
     const auto a_ub = host::get_batch_struct(a);
     const auto b_ub = host::get_batch_struct(b);
     const auto c_ub = host::get_batch_struct(c);
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
-        const auto a_b = gko::batch::batch_entry(a_ub, batch);
-        const auto b_b = gko::batch::batch_entry(b_ub, batch);
-        const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        const auto a_b =
+            gko::experimental::matrix::batch::batch_entry(a_ub, batch);
+        const auto b_b =
+            gko::experimental::matrix::batch::batch_entry(b_ub, batch);
+        const auto c_b =
+            gko::experimental::matrix::batch::batch_entry(c_ub, batch);
         matvec_kernel(a_b, b_b, c_b);
     }
 }
@@ -87,12 +90,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const ReferenceExecutor>,
-                   const matrix::BatchDense<ValueType>* const alpha,
-                   const matrix::BatchEll<ValueType, IndexType>* const a,
-                   const matrix::BatchDense<ValueType>* const b,
-                   const matrix::BatchDense<ValueType>* const beta,
-                   matrix::BatchDense<ValueType>* const c)
+void advanced_spmv(
+    std::shared_ptr<const ReferenceExecutor>,
+    const experimental::matrix::BatchDense<ValueType>* const alpha,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* const a,
+    const experimental::matrix::BatchDense<ValueType>* const b,
+    const experimental::matrix::BatchDense<ValueType>* const beta,
+    experimental::matrix::BatchDense<ValueType>* const c)
 {
     const auto a_ub = host::get_batch_struct(a);
     const auto b_ub = host::get_batch_struct(b);
@@ -100,11 +104,16 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor>,
     const auto alpha_ub = host::get_batch_struct(alpha);
     const auto beta_ub = host::get_batch_struct(beta);
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
-        const auto a_b = gko::batch::batch_entry(a_ub, batch);
-        const auto b_b = gko::batch::batch_entry(b_ub, batch);
-        const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
-        const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
+        const auto a_b =
+            gko::experimental::matrix::batch::batch_entry(a_ub, batch);
+        const auto b_b =
+            gko::experimental::matrix::batch::batch_entry(b_ub, batch);
+        const auto c_b =
+            gko::experimental::matrix::batch::batch_entry(c_ub, batch);
+        const auto alpha_b =
+            gko::experimental::matrix::batch::batch_entry(alpha_ub, batch);
+        const auto beta_b =
+            gko::experimental::matrix::batch::batch_entry(beta_ub, batch);
         advanced_matvec_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
                                c_b);
     }
@@ -115,10 +124,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void batch_scale(std::shared_ptr<const ReferenceExecutor>,
-                 const matrix::BatchDiagonal<ValueType>* const left_scale,
-                 const matrix::BatchDiagonal<ValueType>* const right_scale,
-                 matrix::BatchEll<ValueType, IndexType>* const mat)
+void batch_scale(
+    std::shared_ptr<const ReferenceExecutor>,
+    const experimental::matrix::BatchDiagonal<ValueType>* const left_scale,
+    const experimental::matrix::BatchDiagonal<ValueType>* const right_scale,
+    experimental::matrix::BatchEll<ValueType, IndexType>* const mat)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -128,10 +138,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void pre_diag_scale_system(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
-    matrix::BatchEll<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
+    const experimental::matrix::BatchDense<ValueType>* const left_scale,
+    const experimental::matrix::BatchDense<ValueType>* const right_scale,
+    experimental::matrix::BatchEll<ValueType, IndexType>* const a,
+    experimental::matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM);
@@ -144,36 +154,38 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::BatchEll<ValueType, IndexType>* source,
-                      matrix::BatchDense<ValueType>* result)
-    GKO_NOT_IMPLEMENTED;
+void convert_to_dense(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* source,
+    experimental::matrix::BatchDense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::BatchEll<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+void calculate_total_cols(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* source,
+    size_type* result, size_type stride_factor,
+    size_type slice_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
-                             matrix::BatchEll<ValueType, IndexType>* trans,
-                             const matrix::BatchEll<ValueType, IndexType>* orig,
-                             UnaryOperator op) GKO_NOT_IMPLEMENTED;
+void transpose_and_transform(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    experimental::matrix::BatchEll<ValueType, IndexType>* trans,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* orig,
+    UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::BatchEll<ValueType, IndexType>* orig,
-               matrix::BatchEll<ValueType, IndexType>* trans)
+               const experimental::matrix::BatchEll<ValueType, IndexType>* orig,
+               experimental::matrix::BatchEll<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -181,9 +193,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::BatchEll<ValueType, IndexType>* orig,
-                    matrix::BatchEll<ValueType, IndexType>* trans)
+void conj_transpose(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* orig,
+    experimental::matrix::BatchEll<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -193,7 +206,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchEll<ValueType, IndexType>* source,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* source,
     size_type* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -203,7 +216,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchEll<ValueType, IndexType>* source,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* source,
     array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -212,8 +225,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::BatchEll<ValueType, IndexType>* to_sort)
-    GKO_NOT_IMPLEMENTED;
+                          experimental::matrix::BatchEll<ValueType, IndexType>*
+                              to_sort) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SORT_BY_COLUMN_INDEX);
@@ -222,7 +235,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchEll<ValueType, IndexType>* to_check,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* to_check,
     bool* is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -232,8 +245,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void convert_to_batch_dense(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchEll<ValueType, IndexType>* const src,
-    matrix::BatchDense<ValueType>* const dest)
+    const experimental::matrix::BatchEll<ValueType, IndexType>* const src,
+    experimental::matrix::BatchDense<ValueType>* const dest)
 {
     const size_type nbatches = src->get_num_batch_entries();
     const int num_rows = src->get_size().at(0)[0];
@@ -260,7 +273,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchEll<ValueType, IndexType>* const mtx,
+    const experimental::matrix::BatchEll<ValueType, IndexType>* const mtx,
     bool& has_all_diags)
 {
     if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
@@ -278,10 +291,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::BatchDense<ValueType>* const a,
-                         const matrix::BatchDense<ValueType>* const b,
-                         matrix::BatchEll<ValueType, IndexType>* const mtx)
+void add_scaled_identity(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* const a,
+    const experimental::matrix::BatchDense<ValueType>* const b,
+    experimental::matrix::BatchEll<ValueType, IndexType>* const mtx)
 {
     if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     const auto batch_size = mtx->get_num_batch_entries();
@@ -295,10 +309,10 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
             static_cast<int>(mtx->get_num_stored_elements_per_row().at(batch));
         const auto stride = static_cast<int>(mtx->get_stride().at(batch));
         const auto values = mtx->get_values() + batch * nnz;
-        const auto aptr =
-            batch::batch_entry_ptr(a->get_const_values(), a_stride, 1, batch);
-        const auto bptr =
-            batch::batch_entry_ptr(b->get_const_values(), b_stride, 1, batch);
+        const auto aptr = experimental::matrix::batch::batch_entry_ptr(
+            a->get_const_values(), a_stride, 1, batch);
+        const auto bptr = experimental::matrix::batch::batch_entry_ptr(
+            b->get_const_values(), b_stride, 1, batch);
         add_scaled_identity(nrows, stride, max_nnz_per_row, col_idxs, values,
                             aptr[0], bptr[0]);
     }

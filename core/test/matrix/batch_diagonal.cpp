@@ -52,12 +52,12 @@ template <typename T>
 class BatchDiagonal : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::BatchDiagonal<value_type>;
+    using Mtx = gko::experimental::matrix::BatchDiagonal<value_type>;
     using DiagonalMtx = gko::matrix::Diagonal<value_type>;
     using size_type = gko::size_type;
     BatchDiagonal()
         : exec(gko::ReferenceExecutor::create()),
-          u_mtx(gko::batch_diagonal_initialize(
+          u_mtx(gko::experimental::batch_diagonal_initialize(
               {I<T>({-1.0, 2.0, 3.0}), I<T>({1.0, 2.5, -3.0})}, exec)),
           nu_mtx(generate_nonuniform_batch_diag_matrix())
     {}
@@ -77,7 +77,7 @@ protected:
         valarr[4] = 5.5;
         valarr[5] = -2.0;
         valarr[6] = -2.2;
-        const gko::batch_dim<2> bsize(sizes);
+        const gko::experimental::batch_dim<2> bsize(sizes);
         return Mtx::create(exec, bsize, std::move(vals));
     }
 
@@ -151,14 +151,16 @@ TYPED_TEST_SUITE(BatchDiagonal, gko::test::ValueTypes);
 
 TYPED_TEST(BatchDiagonal, CanBeEmpty)
 {
-    auto empty = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto empty =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
     this->assert_empty(empty.get());
 }
 
 
 TYPED_TEST(BatchDiagonal, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto empty =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
@@ -166,7 +168,7 @@ TYPED_TEST(BatchDiagonal, ReturnsNullValuesArrayWhenEmpty)
 TYPED_TEST(BatchDiagonal, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(
+    auto m = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{3, 4}, gko::dim<2>{2, 3}});
 
@@ -191,7 +193,7 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromExistingData)
        5.0, 6.0, -3.0};
     // clang-format on
 
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(
+    auto m = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{4, 2}, gko::dim<2>{4, 5}},
         gko::array<value_type>::view(this->exec, 12, data));
@@ -221,14 +223,14 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromBatchDiagonalMatrices)
     m2vals[0] = 1.0;
     m2vals[1] = -2.5;
 
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(
+    auto m = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
         this->exec, std::vector<DiagonalMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::matrix::BatchDiagonal<TypeParam>::create(
+    auto m_ref = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
         this->exec,
         std::vector<DiagonalMtx*>{mat1.get(), mat2.get(), mat1.get(),
                                   mat2.get(), mat1.get(), mat2.get()});
-    auto m2 =
-        gko::matrix::BatchDiagonal<TypeParam>::create(this->exec, 3, m.get());
+    auto m2 = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
+        this->exec, 3, m.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 0.0);
 }
@@ -292,7 +294,7 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromDiagonalMatrices)
     using size_type = gko::size_type;
     auto diags = this->get_unbatched_uniform_mtx();
 
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(
+    auto m = gko::experimental::matrix::BatchDiagonal<TypeParam>::create(
         this->exec, std::vector<DiagonalMtx*>{diags[0].get(), diags[1].get()});
 
     this->assert_equal_to_original_uniform_mtx(m.get());
@@ -324,8 +326,8 @@ TYPED_TEST(BatchDiagonal, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
 
-    auto m = gko::batch_diagonal_initialize<TypeParam>({{1.0, 2.0}, {1.0, 3.0}},
-                                                       this->exec);
+    auto m = gko::experimental::batch_diagonal_initialize<TypeParam>(
+        {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 2));
@@ -342,7 +344,7 @@ TYPED_TEST(BatchDiagonal, NonUniformCanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
 
-    auto m = gko::batch_diagonal_initialize<value_type>(
+    auto m = gko::experimental::batch_diagonal_initialize<value_type>(
         {{1.0, 2.0, 3.1}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
@@ -361,7 +363,7 @@ TYPED_TEST(BatchDiagonal, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
 
-    auto m = gko::batch_diagonal_initialize<value_type>(
+    auto m = gko::experimental::batch_diagonal_initialize<value_type>(
         2, I<value_type>({1.0, 2.0}), this->exec);
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
@@ -377,7 +379,8 @@ TYPED_TEST(BatchDiagonal, CanBeListConstructedByCopies)
 
 TYPED_TEST(BatchDiagonal, CanBeCopied)
 {
-    auto mtx_copy = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto mtx_copy =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
 
     mtx_copy->copy_from(this->u_mtx.get());
 
@@ -390,7 +393,8 @@ TYPED_TEST(BatchDiagonal, CanBeCopied)
 
 TYPED_TEST(BatchDiagonal, CanBeMoved)
 {
-    auto mtx_copy = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto mtx_copy =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
     mtx_copy->copy_from(std::move(this->u_mtx));
     this->assert_equal_to_original_uniform_mtx(mtx_copy.get());
     ASSERT_FALSE(this->u_mtx);
@@ -415,7 +419,8 @@ TYPED_TEST(BatchDiagonal, CanBeCleared)
 TYPED_TEST(BatchDiagonal, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto m =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
 
     // clang-format off
     m->read({gko::matrix_data<TypeParam>{{2, 3},
@@ -490,7 +495,8 @@ TYPED_TEST(BatchDiagonal, GeneratesCorrectNonUniformMatrixData)
 TYPED_TEST(BatchDiagonal, CanBeReadFromMatrixAssemblyData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::BatchDiagonal<TypeParam>::create(this->exec);
+    auto m =
+        gko::experimental::matrix::BatchDiagonal<TypeParam>::create(this->exec);
     gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 3});
     data1.set_value(0, 0, 1.0);
     data1.set_value(0, 1, 3.0);

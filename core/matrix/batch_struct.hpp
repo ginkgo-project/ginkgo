@@ -38,7 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+
 namespace gko {
+namespace experimental {
+namespace matrix {
 
 
 namespace batch_ell {
@@ -71,13 +74,13 @@ struct UniformBatch {
     using index_type = int;
     using entry_type = BatchEntry<ValueType>;
 
-    ValueType* values;    ///< Concatenated values array of all matrices
-    const int* col_idxs;  ///< (common) column indices
-    size_type num_batch;  ///< Number of matrices in the batch
-    size_type num_stored_elems_per_row;  ///< Number of matrices in the batch
-    size_type stride;                    ///< Number of matrices in the batch
-    int num_rows;  ///< (common) number of rows in each matrix
-    int num_nnz;   ///< (common) number of nonzeros in each matrix
+    ValueType* values;    // Concatenated values array of all matrices
+    const int* col_idxs;  // (common) column indices
+    size_type num_batch;  // Number of matrices in the batch
+    size_type num_stored_elems_per_row;  // Number of matrices in the batch
+    size_type stride;                    // Number of matrices in the batch
+    int num_rows;  // (common) number of rows in each matrix
+    int num_nnz;   // (common) number of nonzeros in each matrix
 
     size_type get_entry_storage() const
     {
@@ -118,12 +121,12 @@ struct UniformBatch {
     using index_type = int;
     using entry_type = BatchEntry<ValueType>;
 
-    ValueType* values;    ///< Concatenated values array of all matrices
-    const int* col_idxs;  ///< (common) column indices
-    const int* row_ptrs;  ///< (common) row pointers
-    size_type num_batch;  ///< Number of matrices in the batch
-    int num_rows;         ///< (common) number of rows in each matrix
-    int num_nnz;          ///< (common) number of nonzeros in each matrix
+    ValueType* values;    // Concatenated values array of all matrices
+    const int* col_idxs;  // (common) column indices
+    const int* row_ptrs;  // (common) row pointers
+    size_type num_batch;  // Number of matrices in the batch
+    int num_rows;         // (common) number of rows in each matrix
+    int num_nnz;          // (common) number of nonzeros in each matrix
 
     size_type get_entry_storage() const
     {
@@ -161,13 +164,13 @@ struct UniformBatch {
     using value_type = ValueType;
     using entry_type = BatchEntry<ValueType>;
 
-    ValueType* values;    ///< Concatenated values of all matrices in the batch
-    size_type num_batch;  ///< Number of matrices in the batch
-    size_type stride;     ///< Common stride of each dense matrix
-    int num_rows;         ///< Common number of rows in each matrix
-    int num_rhs;          ///< Common number of columns of each matrix
-    int num_nnz;          ///< Common number of non-zeros of each matrix, ie.,
-                          ///< the number or rows times the number of columns
+    ValueType* values;    // Concatenated values of all matrices in the batch
+    size_type num_batch;  // Number of matrices in the batch
+    size_type stride;     // Common stride of each dense matrix
+    int num_rows;         // Common number of rows in each matrix
+    int num_rhs;          // Common number of columns of each matrix
+    int num_nnz;          // Common number of non-zeros of each matrix, ie.,
+                          // the number or rows times the number of columns
 
     size_type get_entry_storage() const { return num_nnz * sizeof(value_type); }
 };
@@ -180,32 +183,32 @@ namespace batch {
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_dense::BatchEntry<const ValueType>
-to_const(const gko::batch_dense::BatchEntry<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::BatchEntry<const ValueType> to_const(
+    const batch_dense::BatchEntry<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_dense::UniformBatch<const ValueType>
-to_const(const gko::batch_dense::UniformBatch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::UniformBatch<const ValueType> to_const(
+    const batch_dense::UniformBatch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch, ub.stride, ub.num_rows, ub.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_csr::BatchEntry<const ValueType> to_const(
-    const gko::batch_csr::BatchEntry<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE batch_csr::BatchEntry<const ValueType> to_const(
+    const batch_csr::BatchEntry<ValueType>& b)
 {
     return {b.values, b.col_idxs, b.row_ptrs, b.num_rows, b.num_nnz};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_csr::UniformBatch<const ValueType>
-to_const(const gko::batch_csr::UniformBatch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE batch_csr::UniformBatch<const ValueType> to_const(
+    const batch_csr::UniformBatch<ValueType>& ub)
 {
     return {ub.values,    ub.col_idxs, ub.row_ptrs,
             ub.num_batch, ub.num_rows, ub.num_nnz};
@@ -213,8 +216,8 @@ to_const(const gko::batch_csr::UniformBatch<ValueType>& ub)
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_ell::BatchEntry<const ValueType> to_const(
-    const gko::batch_ell::BatchEntry<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE batch_ell::BatchEntry<const ValueType> to_const(
+    const batch_ell::BatchEntry<ValueType>& b)
 {
     return {b.values, b.col_idxs, b.num_stored_elems_per_row,
             b.stride, b.num_rows, b.num_nnz};
@@ -222,8 +225,8 @@ GKO_ATTRIBUTES GKO_INLINE gko::batch_ell::BatchEntry<const ValueType> to_const(
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_ell::UniformBatch<const ValueType>
-to_const(const gko::batch_ell::UniformBatch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE batch_ell::UniformBatch<const ValueType> to_const(
+    const batch_ell::UniformBatch<ValueType>& ub)
 {
     return {ub.values, ub.col_idxs, ub.num_batch, ub.num_stored_elems_per_row,
             ub.stride, ub.num_rows, ub.num_nnz};
@@ -309,6 +312,8 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::BatchEntry<ValueType> batch_entry(
 }  // namespace batch
 
 
+}  // namespace matrix
+}  // namespace experimental
 }  // namespace gko
 
 #endif  // GKO_CORE_MATRIX_BATCH_STRUCT_HPP_

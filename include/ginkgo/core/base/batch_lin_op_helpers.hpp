@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 
 
 /**
@@ -154,46 +155,47 @@ using EnableDefaultBatchLinOpFactory =
  *
  * @ingroup BatchLinOp
  */
-#define GKO_ENABLE_BATCH_LIN_OP_FACTORY(_batch_lin_op, _parameters_name,       \
-                                        _factory_name)                         \
-public:                                                                        \
-    const _parameters_name##_type& get_##_parameters_name() const              \
-    {                                                                          \
-        return _parameters_name##_;                                            \
-    }                                                                          \
-                                                                               \
-    class _factory_name                                                        \
-        : public ::gko::EnableDefaultBatchLinOpFactory<                        \
-              _factory_name, _batch_lin_op, _parameters_name##_type> {         \
-        friend class ::gko::EnablePolymorphicObject<_factory_name,             \
-                                                    ::gko::BatchLinOpFactory>; \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
-                                                   _factory_name>;             \
-        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
-            : ::gko::EnableDefaultBatchLinOpFactory<                           \
-                  _factory_name, _batch_lin_op, _parameters_name##_type>(      \
-                  std::move(exec))                                             \
-        {}                                                                     \
-        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
-                               const _parameters_name##_type& parameters)      \
-            : ::gko::EnableDefaultBatchLinOpFactory<                           \
-                  _factory_name, _batch_lin_op, _parameters_name##_type>(      \
-                  std::move(exec), parameters)                                 \
-        {}                                                                     \
-    };                                                                         \
-    friend ::gko::EnableDefaultBatchLinOpFactory<_factory_name, _batch_lin_op, \
-                                                 _parameters_name##_type>;     \
-                                                                               \
-                                                                               \
-private:                                                                       \
-    _parameters_name##_type _parameters_name##_;                               \
-                                                                               \
-public:                                                                        \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_ENABLE_BATCH_LIN_OP_FACTORY(_batch_lin_op, _parameters_name,     \
+                                        _factory_name)                       \
+public:                                                                      \
+    const _parameters_name##_type& get_##_parameters_name() const            \
+    {                                                                        \
+        return _parameters_name##_;                                          \
+    }                                                                        \
+                                                                             \
+    class _factory_name                                                      \
+        : public ::gko::experimental::EnableDefaultBatchLinOpFactory<        \
+              _factory_name, _batch_lin_op, _parameters_name##_type> {       \
+        friend class ::gko::EnablePolymorphicObject<                         \
+            _factory_name, ::gko::experimental::BatchLinOpFactory>;          \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
+                                                   _factory_name>;           \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
+            : ::gko::experimental::EnableDefaultBatchLinOpFactory<           \
+                  _factory_name, _batch_lin_op, _parameters_name##_type>(    \
+                  std::move(exec))                                           \
+        {}                                                                   \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
+                               const _parameters_name##_type& parameters)    \
+            : ::gko::experimental::EnableDefaultBatchLinOpFactory<           \
+                  _factory_name, _batch_lin_op, _parameters_name##_type>(    \
+                  std::move(exec), parameters)                               \
+        {}                                                                   \
+    };                                                                       \
+    friend ::gko::experimental::EnableDefaultBatchLinOpFactory<              \
+        _factory_name, _batch_lin_op, _parameters_name##_type>;              \
+                                                                             \
+                                                                             \
+private:                                                                     \
+    _parameters_name##_type _parameters_name##_;                             \
+                                                                             \
+public:                                                                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 
+}  // namespace experimental
 }  // namespace gko
 
 

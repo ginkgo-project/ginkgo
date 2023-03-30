@@ -45,8 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 namespace batch_csr {
+namespace {
 
 
 GKO_REGISTER_OPERATION(spmv, batch_csr::spmv);
@@ -69,6 +71,7 @@ GKO_REGISTER_OPERATION(check_diagonal_entries_exist,
 GKO_REGISTER_OPERATION(add_scaled_identity, batch_csr::add_scaled_identity);
 
 
+}  // namespace
 }  // namespace batch_csr
 
 
@@ -264,4 +267,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
 
 
 }  // namespace matrix
+}  // namespace experimental
 }  // namespace gko

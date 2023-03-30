@@ -147,8 +147,8 @@ TEST_F(MatricesNear, CanPassInitializerList)
 
 class BatchMatricesNear : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::BatchDense<>;
-    using Sparse = gko::matrix::BatchCsr<>;
+    using Mtx = gko::experimental::matrix::BatchDense<>;
+    using Sparse = gko::experimental::matrix::BatchCsr<>;
 
     template <typename Type, std::size_t size>
     gko::array<Type> make_view(std::array<Type, size>& array)
@@ -158,16 +158,17 @@ protected:
 
     BatchMatricesNear()
         : exec(gko::ReferenceExecutor::create()),
-          mtx1(gko::batch_initialize<Mtx>(
+          mtx1(gko::experimental::batch_initialize<Mtx>(
               num_batch, {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
-          mtx2(gko::batch_initialize<Mtx>(
+          mtx2(gko::experimental::batch_initialize<Mtx>(
               num_batch, {{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
-          mtx3(gko::batch_initialize<Mtx>(
+          mtx3(gko::experimental::batch_initialize<Mtx>(
               num_batch, {{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec)),
-          mtx3b(gko::batch_initialize<Mtx>({{{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}},
-                                            {{1.0, 2.0, 3.0}, {0.0, 4.2, 0.0}}},
-                                           exec)),
-          mtx4(gko::batch_initialize<Mtx>(
+          mtx3b(gko::experimental::batch_initialize<Mtx>(
+              {{{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}},
+               {{1.0, 2.0, 3.0}, {0.0, 4.2, 0.0}}},
+              exec)),
+          mtx4(gko::experimental::batch_initialize<Mtx>(
               num_batch, {{1.0, 2.0, 3.0}, {4.0, 0.0, 0.0}}, exec)),
           mtx1_vals({1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0}),
           mtx2_vals({1.0, 2.0, 3.0, 4.0, 4.0, 1.0, 2.0, 3.0, 4.0, 4.0}),

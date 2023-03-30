@@ -69,9 +69,10 @@ constexpr int sm_multiplier = 4;
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::BatchDense<ValueType>* a,
-                  const matrix::BatchDense<ValueType>* b,
-                  matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                  const experimental::matrix::BatchDense<ValueType>* a,
+                  const experimental::matrix::BatchDense<ValueType>* b,
+                  experimental::matrix::BatchDense<ValueType>* c)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
@@ -79,38 +80,41 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
-           const matrix::BatchDense<ValueType>* alpha,
-           const matrix::BatchDense<ValueType>* a,
-           const matrix::BatchDense<ValueType>* b,
-           const matrix::BatchDense<ValueType>* beta,
-           matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           const experimental::matrix::BatchDense<ValueType>* alpha,
+           const experimental::matrix::BatchDense<ValueType>* a,
+           const experimental::matrix::BatchDense<ValueType>* b,
+           const experimental::matrix::BatchDense<ValueType>* beta,
+           experimental::matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
 void scale(std::shared_ptr<const HipExecutor> exec,
-           const matrix::BatchDense<ValueType>* const alpha,
-           matrix::BatchDense<ValueType>* const x) GKO_NOT_IMPLEMENTED;
+           const experimental::matrix::BatchDense<ValueType>* const alpha,
+           experimental::matrix::BatchDense<ValueType>* const x)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const HipExecutor> exec,
-                const matrix::BatchDense<ValueType>* const alpha,
-                const matrix::BatchDense<ValueType>* const x,
-                matrix::BatchDense<ValueType>* const y) GKO_NOT_IMPLEMENTED;
+                const experimental::matrix::BatchDense<ValueType>* const alpha,
+                const experimental::matrix::BatchDense<ValueType>* const x,
+                experimental::matrix::BatchDense<ValueType>* const y)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
-void convergence_add_scaled(std::shared_ptr<const HipExecutor> exec,
-                            const matrix::BatchDense<ValueType>* const alpha,
-                            const matrix::BatchDense<ValueType>* const x,
-                            matrix::BatchDense<ValueType>* const y,
-                            const uint32& converged) GKO_NOT_IMPLEMENTED;
+void convergence_add_scaled(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* const alpha,
+    const experimental::matrix::BatchDense<ValueType>* const x,
+    experimental::matrix::BatchDense<ValueType>* const y,
+    const uint32& converged) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL);
@@ -118,9 +122,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void add_scaled_diag(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::BatchDense<ValueType>* alpha,
+                     const experimental::matrix::BatchDense<ValueType>* alpha,
                      const matrix::Diagonal<ValueType>* x,
-                     matrix::BatchDense<ValueType>* y) GKO_NOT_IMPLEMENTED;
+                     experimental::matrix::BatchDense<ValueType>* y)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL);
@@ -128,20 +133,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::BatchDense<ValueType>* x,
-                 const matrix::BatchDense<ValueType>* y,
-                 matrix::BatchDense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+                 const experimental::matrix::BatchDense<ValueType>* x,
+                 const experimental::matrix::BatchDense<ValueType>* y,
+                 experimental::matrix::BatchDense<ValueType>* result)
+    GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
-void convergence_compute_dot(std::shared_ptr<const HipExecutor> exec,
-                             const matrix::BatchDense<ValueType>* x,
-                             const matrix::BatchDense<ValueType>* y,
-                             matrix::BatchDense<ValueType>* result,
-                             const uint32& converged) GKO_NOT_IMPLEMENTED;
+void convergence_compute_dot(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* x,
+    const experimental::matrix::BatchDense<ValueType>* y,
+    experimental::matrix::BatchDense<ValueType>* result,
+    const uint32& converged) GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -149,9 +156,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::BatchDense<ValueType>* const x,
-                   matrix::BatchDense<remove_complex<ValueType>>* const result)
+void compute_norm2(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* const x,
+    experimental::matrix::BatchDense<remove_complex<ValueType>>* const result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -161,8 +169,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void convergence_compute_norm2(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::BatchDense<ValueType>* const x,
-    matrix::BatchDense<remove_complex<ValueType>>* const result,
+    const experimental::matrix::BatchDense<ValueType>* const x,
+    experimental::matrix::BatchDense<remove_complex<ValueType>>* const result,
     const uint32& converged) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -170,9 +178,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::BatchDense<ValueType>* source,
-                          matrix::BatchCsr<ValueType, IndexType>* other)
+void convert_to_batch_csr(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* source,
+    experimental::matrix::BatchCsr<ValueType, IndexType>* other)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -181,7 +190,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::BatchDense<ValueType>* source,
+                    const experimental::matrix::BatchDense<ValueType>* source,
                     size_type* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -189,28 +198,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
-                               const matrix::BatchDense<ValueType>* source,
-                               size_type* result) GKO_NOT_IMPLEMENTED;
+void calculate_max_nnz_per_row(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* source,
+    size_type* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 template <typename ValueType>
-void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
-                                const matrix::BatchDense<ValueType>* source,
-                                array<size_type>* result) GKO_NOT_IMPLEMENTED;
+void calculate_nonzeros_per_row(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* source,
+    array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType>
-void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
-                          const matrix::BatchDense<ValueType>* source,
-                          size_type* result, const size_type* stride_factor,
-                          const size_type* slice_size) GKO_NOT_IMPLEMENTED;
+void calculate_total_cols(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* source,
+    size_type* result, const size_type* stride_factor,
+    const size_type* slice_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
@@ -218,16 +230,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               const matrix::BatchDense<ValueType>* const orig,
-               matrix::BatchDense<ValueType>* const trans) GKO_NOT_IMPLEMENTED;
+               const experimental::matrix::BatchDense<ValueType>* const orig,
+               experimental::matrix::BatchDense<ValueType>* const trans)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::BatchDense<ValueType>* orig,
-                    matrix::BatchDense<ValueType>* trans) GKO_NOT_IMPLEMENTED;
+                    const experimental::matrix::BatchDense<ValueType>* orig,
+                    experimental::matrix::BatchDense<ValueType>* trans)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
@@ -235,16 +249,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::BatchDense<ValueType>* x,
-          matrix::BatchDense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+          const experimental::matrix::BatchDense<ValueType>* x,
+          experimental::matrix::BatchDense<ValueType>* result)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
 
 
 template <typename ValueType>
 void convergence_copy(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::BatchDense<ValueType>* x,
-                      matrix::BatchDense<ValueType>* result,
+                      const experimental::matrix::BatchDense<ValueType>* x,
+                      experimental::matrix::BatchDense<ValueType>* result,
                       const uint32& converged) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -252,21 +267,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void batch_scale(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::BatchDiagonal<ValueType>* const left_scale,
-                 const matrix::BatchDiagonal<ValueType>* const rght_scale,
-                 matrix::BatchDense<ValueType>* const vec_to_scale)
+void batch_scale(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDiagonal<ValueType>* const left_scale,
+    const experimental::matrix::BatchDiagonal<ValueType>* const rght_scale,
+    experimental::matrix::BatchDense<ValueType>* const vec_to_scale)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
 
 
 template <typename ValueType>
-void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
-                         const matrix::BatchDense<ValueType>* const a,
-                         const matrix::BatchDense<ValueType>* const b,
-                         matrix::BatchDense<ValueType>* const mtx)
-    GKO_NOT_IMPLEMENTED;
+void add_scaled_identity(
+    std::shared_ptr<const HipExecutor> exec,
+    const experimental::matrix::BatchDense<ValueType>* const a,
+    const experimental::matrix::BatchDense<ValueType>* const b,
+    experimental::matrix::BatchDense<ValueType>* const mtx) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);

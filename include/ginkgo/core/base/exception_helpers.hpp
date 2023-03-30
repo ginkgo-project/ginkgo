@@ -166,13 +166,17 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 template <typename T>
-inline batch_dim<2> get_batch_size(const T& op)
+inline experimental::batch_dim<2> get_batch_size(const T& op)
 {
     return op->get_size();
 }
 
 
-inline batch_dim<2> get_batch_size(const batch_dim<2>& size) { return size; }
+inline experimental::batch_dim<2> get_batch_size(
+    const experimental::batch_dim<2>& size)
+{
+    return size;
+}
 
 
 template <typename T>
@@ -182,8 +186,9 @@ inline size_type get_num_batch_entries(const T& obj)
 }
 
 
-inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
-                                                 const batch_dim<2>& size2)
+inline std::tuple<bool, int> compare_batch_inner(
+    const experimental::batch_dim<2>& size1,
+    const experimental::batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -204,8 +209,9 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2>& size1,
-                                                 const batch_dim<2>& size2)
+inline std::tuple<bool, int> compare_batch_outer(
+    const experimental::batch_dim<2>& size1,
+    const experimental::batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -228,8 +234,9 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2>& size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2>& size1,
-                                                const batch_dim<2>& size2)
+inline std::tuple<bool, int> compare_batch_rows(
+    const experimental::batch_dim<2>& size1,
+    const experimental::batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -252,8 +259,9 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2>& size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2>& size1,
-                                                const batch_dim<2>& size2)
+inline std::tuple<bool, int> compare_batch_cols(
+    const experimental::batch_dim<2>& size1,
+    const experimental::batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -276,7 +284,8 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2>& size1,
 }
 
 
-inline std::tuple<bool, int> check_batch_square(const batch_dim<>& size)
+inline std::tuple<bool, int> check_batch_square(
+    const experimental::batch_dim<>& size)
 {
     if (size.stores_equal_sizes()) {
         if (size.at(0)[0] != size.at(0)[1]) {
@@ -296,8 +305,9 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim<>& size)
 
 
 inline std::tuple<bool, int, char> check_batch_twosided_transformable(
-    const batch_dim<>& mat_size, const batch_dim<>& left_size,
-    const batch_dim<>& right_size)
+    const experimental::batch_dim<>& mat_size,
+    const experimental::batch_dim<>& left_size,
+    const experimental::batch_dim<>& right_size)
 {
     if (mat_size.stores_equal_sizes() && left_size.stores_equal_sizes() &&
         right_size.stores_equal_sizes()) {
@@ -318,7 +328,7 @@ inline std::tuple<bool, int, char> check_batch_twosided_transformable(
 
 
 inline std::tuple<bool, size_type> check_batch_single_column(
-    const batch_dim<2>& mat_size)
+    const experimental::batch_dim<2>& mat_size)
 {
     if (mat_size.stores_equal_sizes()) {
         if (mat_size.at(0)[1] == 1) {
@@ -633,8 +643,8 @@ inline std::tuple<bool, size_type> check_batch_single_column(
 #define GKO_ASSERT_IS_BATCH_SCALAR(_op)                                      \
     {                                                                        \
         auto op_sz = gko::detail::get_batch_size(_op);                       \
-        auto scalar_sz = gko::batch_dim<>(op_sz.get_num_batch_entries(),     \
-                                          gko::dim<2>(1, 1));                \
+        auto scalar_sz = gko::experimental::batch_dim<>(                     \
+            op_sz.get_num_batch_entries(), gko::dim<2>(1, 1));               \
         auto comprows = gko::detail::compare_batch_rows(op_sz, scalar_sz);   \
         if (!std::get<0>(comprows)) {                                        \
             const int bidx = std::get<1>(comprows);                          \

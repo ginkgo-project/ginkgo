@@ -61,16 +61,18 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::BatchEll<value_type, index_type>;
+    using Mtx = gko::experimental::matrix::BatchEll<value_type, index_type>;
     using EllMtx = gko::matrix::Ell<value_type, index_type>;
-    using Vec = gko::matrix::BatchDense<value_type>;
+    using Vec = gko::experimental::matrix::BatchDense<value_type>;
 
     BatchEll()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}},
-                          gko::batch_stride{2, 2})),
-          mtx2(Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
-                           gko::batch_stride{2, 2}))
+          mtx(Mtx::create(exec,
+                          gko::experimental::batch_dim<2>{2, gko::dim<2>{2, 3}},
+                          gko::experimental::batch_stride{2, 2})),
+          mtx2(Mtx::create(
+              exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 3}},
+              gko::experimental::batch_stride{2, 2}))
     {
         this->create_mtx(mtx.get());
         this->create_mtx2(mtx2.get());
@@ -186,11 +188,11 @@ TYPED_TEST(BatchEll, AppliesToDenseVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto x = gko::batch_initialize<Vec>({{2.0, 1.0, 4.0}, {1.0, -1.0, 3.0}},
-                                        this->exec);
-    auto y =
-        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{2, 1}, gko::dim<2>{2, 1}}));
+    auto x = gko::experimental::batch_initialize<Vec>(
+        {{2.0, 1.0, 4.0}, {1.0, -1.0, 3.0}}, this->exec);
+    auto y = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{2, 1}, gko::dim<2>{2, 1}}));
 
     this->mtx->apply(x.get(), y.get());
 
@@ -205,12 +207,13 @@ TYPED_TEST(BatchEll, AppliesToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto x = gko::batch_initialize<Vec>(
+    auto x = gko::experimental::batch_initialize<Vec>(
         {{I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}},
          {I<T>{1.0, 3.0}, I<T>{-1.0, -1.5}, I<T>{3.0, 2.5}}},
         this->exec);
-    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
+    auto y = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{2}, gko::dim<2>{2}}));
 
     this->mtx->apply(x.get(), y.get());
 
@@ -229,11 +232,14 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Vec>({{-1.0}, {1.0}}, this->exec);
-    auto beta = gko::batch_initialize<Vec>({{2.0}, {2.0}}, this->exec);
-    auto x = gko::batch_initialize<Vec>({{2.0, 1.0, 4.0}, {-2.0, 1.0, 4.0}},
-                                        this->exec);
-    auto y = gko::batch_initialize<Vec>({{1.0, 2.0}, {1.0, -2.0}}, this->exec);
+    auto alpha =
+        gko::experimental::batch_initialize<Vec>({{-1.0}, {1.0}}, this->exec);
+    auto beta =
+        gko::experimental::batch_initialize<Vec>({{2.0}, {2.0}}, this->exec);
+    auto x = gko::experimental::batch_initialize<Vec>(
+        {{2.0, 1.0, 4.0}, {-2.0, 1.0, 4.0}}, this->exec);
+    auto y = gko::experimental::batch_initialize<Vec>({{1.0, 2.0}, {1.0, -2.0}},
+                                                      this->exec);
     auto umats = this->mtx->unbatch();
     auto umtx0 = umats[0].get();
     auto umtx1 = umats[1].get();
@@ -265,13 +271,15 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Vec>({{1.0}, {-1.0}}, this->exec);
-    auto beta = gko::batch_initialize<Vec>({{2.0}, {-2.0}}, this->exec);
-    auto x = gko::batch_initialize<Vec>(
+    auto alpha =
+        gko::experimental::batch_initialize<Vec>({{1.0}, {-1.0}}, this->exec);
+    auto beta =
+        gko::experimental::batch_initialize<Vec>({{2.0}, {-2.0}}, this->exec);
+    auto x = gko::experimental::batch_initialize<Vec>(
         {{I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}},
          {I<T>{2.0, 2.0}, I<T>{-1.0, -1.5}, I<T>{4.0, 2.5}}},
         this->exec);
-    auto y = gko::batch_initialize<Vec>(
+    auto y = gko::experimental::batch_initialize<Vec>(
         {{I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, {I<T>{2.0, 1.5}, I<T>{2.0, 1.5}}},
         this->exec);
 
@@ -309,10 +317,12 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseMatrix)
 TYPED_TEST(BatchEll, ApplyFailsOnWrongInnerDimension)
 {
     using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
-    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
+    auto x = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{2}, gko::dim<2>{2}}));
+    auto y = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{2}, gko::dim<2>{2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -321,12 +331,12 @@ TYPED_TEST(BatchEll, ApplyFailsOnWrongInnerDimension)
 TYPED_TEST(BatchEll, ApplyFailsOnWrongNumberOfRows)
 {
     using Vec = typename TestFixture::Vec;
-    auto x =
-        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
-    auto y =
-        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
+    auto x = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
+    auto y = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -335,10 +345,12 @@ TYPED_TEST(BatchEll, ApplyFailsOnWrongNumberOfRows)
 TYPED_TEST(BatchEll, ApplyFailsOnWrongNumberOfCols)
 {
     using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{3}, gko::dim<2>{3}}));
-    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
+    auto x = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{3}, gko::dim<2>{3}}));
+    auto y = Vec::create(
+        this->exec, gko::experimental::batch_dim<2>(std::vector<gko::dim<2>>{
+                        gko::dim<2>{2}, gko::dim<2>{2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -350,7 +362,8 @@ TYPED_TEST(BatchEll, ConvertsToPrecision)
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
     using BatchEll = typename TestFixture::Mtx;
-    using OtherBatchEll = gko::matrix::BatchEll<OtherType, IndexType>;
+    using OtherBatchEll =
+        gko::experimental::matrix::BatchEll<OtherType, IndexType>;
     auto tmp = OtherBatchEll::create(this->exec);
     auto res = BatchEll::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
@@ -374,7 +387,8 @@ TYPED_TEST(BatchEll, MovesToPrecision)
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
     using BatchEll = typename TestFixture::Mtx;
-    using OtherBatchEll = gko::matrix::BatchEll<OtherType, IndexType>;
+    using OtherBatchEll =
+        gko::experimental::matrix::BatchEll<OtherType, IndexType>;
     auto tmp = OtherBatchEll::create(this->exec);
     auto res = BatchEll::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
@@ -398,8 +412,9 @@ TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntry)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
-                           gko::batch_stride{2, 4});
+    auto mat = Mtx::create(
+        this->exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 4}},
+        gko::experimental::batch_stride{2, 4});
     // clang-format off
     //     {{2.0, 0.0, -1.0, 0.0},
     //      {0.0, 1.0, -1.5, -2.0},
@@ -443,8 +458,9 @@ TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntryInFirstRow)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
-                           gko::batch_stride{2, 4});
+    auto mat = Mtx::create(
+        this->exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 4}},
+        gko::experimental::batch_stride{2, 4});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
@@ -483,8 +499,9 @@ TYPED_TEST(BatchEll, CanDetectPresenceOfAllDiagonalEntries)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
-                           gko::batch_stride{2, 3});
+    auto mat = Mtx::create(
+        this->exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 4}},
+        gko::experimental::batch_stride{2, 3});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
@@ -520,9 +537,10 @@ TYPED_TEST(BatchEll, AddScaledIdentity)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    using BDense = gko::matrix::BatchDense<T>;
-    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
-                           gko::batch_stride{2, 4});
+    using BDense = gko::experimental::matrix::BatchDense<T>;
+    auto mat = Mtx::create(
+        this->exec, gko::experimental::batch_dim<2>{2, gko::dim<2>{3, 4}},
+        gko::experimental::batch_stride{2, 4});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
@@ -547,10 +565,10 @@ TYPED_TEST(BatchEll, AddScaledIdentity)
                                         vals[23] = 0.5;
         // clang-format on
     }
-    auto beta =
-        gko::batch_initialize<BDense>({I<T>{-1.0}, I<T>{-0.5}}, this->exec);
-    auto alpha =
-        gko::batch_initialize<BDense>({I<T>{2.0}, I<T>{-3.0}}, this->exec);
+    auto beta = gko::experimental::batch_initialize<BDense>(
+        {I<T>{-1.0}, I<T>{-0.5}}, this->exec);
+    auto alpha = gko::experimental::batch_initialize<BDense>(
+        {I<T>{2.0}, I<T>{-3.0}}, this->exec);
     auto sol_mat = Mtx::create(this->exec);
     sol_mat->copy_from(mat.get());
     {

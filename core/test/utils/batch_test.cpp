@@ -49,7 +49,7 @@ namespace {
 
 class BatchGenerator : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::BatchDense<double>;
+    using Mtx = gko::experimental::matrix::BatchDense<double>;
     BatchGenerator()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
@@ -76,7 +76,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    const gko::batch_dim<2> bsize{8, gko::dim<2>(254, 100)};
+    const gko::experimental::batch_dim<2> bsize{8, gko::dim<2>(254, 100)};
     std::unique_ptr<Mtx> mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<double> values_sample;
@@ -134,7 +134,7 @@ TEST_F(BatchGenerator, OutputHasCorrectValuesAverageAndDeviation)
 
 TEST_F(BatchGenerator, OutputHasAllDiagonalEntriesWhenRequested)
 {
-    using Csr = gko::matrix::BatchCsr<double>;
+    using Csr = gko::experimental::matrix::BatchCsr<double>;
     const gko::size_type nbatch = 3, nrows = 10, ncols = 10;
     auto dmtx = gko::test::generate_uniform_batch_random_matrix<Csr>(
         nbatch, nrows, ncols, std::uniform_int_distribution<>(1, 3),

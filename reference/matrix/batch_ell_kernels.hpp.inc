@@ -37,9 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType>
 inline void matvec_kernel(
-    const gko::batch_ell::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const gko::batch_dense::BatchEntry<ValueType>& c)
+    const gko::experimental::matrix::batch_ell::BatchEntry<const ValueType>& a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < b.num_rhs; ++j) {
@@ -64,9 +65,12 @@ inline void matvec_kernel(
  */
 template <typename ValueType>
 inline void advanced_matvec_kernel(
-    const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+    const ValueType alpha,
+    const gko::experimental::matrix::batch_ell::BatchEntry<const ValueType>& a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const ValueType beta,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < c.num_rhs; ++j) {

@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 inline void batch_diag_apply_in_place(
     const ValueType* const diag_vec,
-    const gko::batch_dense::BatchEntry<ValueType>& a)
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
         const ValueType scale = diag_vec[i_row];

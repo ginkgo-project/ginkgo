@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 
 
@@ -94,7 +95,7 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using transposed_type = BatchDiagonal<ValueType>;
-    using unbatch_type = Diagonal<ValueType>;
+    using unbatch_type = gko::matrix::Diagonal<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<BatchDiagonal>;
@@ -313,7 +314,7 @@ private:
      * Extract sizes from the vector of the distinct Diagonal matrices.
      */
     batch_dim<2> get_sizes_from_mtxs(
-        const std::vector<Diagonal<ValueType>*> mtxs) const
+        const std::vector<unbatch_type*> mtxs) const
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
@@ -395,7 +396,7 @@ protected:
      * @param matrices  The matrices that need to be batched.
      */
     BatchDiagonal(std::shared_ptr<const Executor> exec,
-                  const std::vector<Diagonal<ValueType>*>& matrices)
+                  const std::vector<unbatch_type*>& matrices)
         : EnableBatchLinOp<BatchDiagonal>(exec, get_sizes_from_mtxs(matrices)),
           values_(exec, compute_batch_mem(this->get_size()))
     {
@@ -421,9 +422,9 @@ protected:
                   const size_type num_duplications,
                   const BatchDiagonal<value_type>* const input)
         : EnableBatchLinOp<BatchDiagonal>(
-              exec, gko::batch_dim<2>(
-                        input->get_num_batch_entries() * num_duplications,
-                        input->get_size().at(0)))
+              exec,
+              batch_dim<2>(input->get_num_batch_entries() * num_duplications,
+                           input->get_size().at(0)))
     {
         const auto in_batch_entries = input->get_num_batch_entries();
         const bool non_uniform = !input->get_size().stores_equal_sizes();
@@ -467,9 +468,9 @@ protected:
      */
     BatchDiagonal(std::shared_ptr<const Executor> exec,
                   const size_type num_duplications,
-                  const Diagonal<value_type>* const input)
+                  const unbatch_type* const input)
         : EnableBatchLinOp<BatchDiagonal>(
-              exec, gko::batch_dim<2>(num_duplications, input->get_size())),
+              exec, batch_dim<2>(num_duplications, input->get_size())),
           values_(exec, compute_batch_mem(this->get_size()))
     {
         size_type offset = 0;
@@ -498,8 +499,8 @@ protected:
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
-    size_type linearize_index(const size_type batch, const size_type row) const
-        noexcept
+    size_type linearize_index(const size_type batch,
+                              const size_type row) const noexcept
     {
         if (this->get_size().stores_equal_sizes()) {
             return row + batch * std::min(this->get_size().at(0)[0],
@@ -644,6 +645,7 @@ std::unique_ptr<matrix::BatchDiagonal<ValueType>> batch_diagonal_initialize(
 }
 
 
+}  // namespace experimental
 }  // namespace gko
 
 

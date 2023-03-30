@@ -43,25 +43,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL(_type)      \
-    void apply(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::BatchDiagonal<_type>* a,       \
-               const matrix::BatchDense<_type>* b,          \
-               matrix::BatchDense<_type>* x)
+#define GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL(_type)              \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,         \
+               const experimental::matrix::BatchDiagonal<_type>* a, \
+               const experimental::matrix::BatchDense<_type>* b,    \
+               experimental::matrix::BatchDense<_type>* x)
 
-#define GKO_DECLARE_BATCH_DIAGONAL_APPLY_IN_PLACE_KERNEL(_type)      \
-    void apply_in_place(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::BatchDiagonal<_type>* a,       \
-                        matrix::BatchDense<_type>* b)
+#define GKO_DECLARE_BATCH_DIAGONAL_APPLY_IN_PLACE_KERNEL(_type)              \
+    void apply_in_place(std::shared_ptr<const DefaultExecutor> exec,         \
+                        const experimental::matrix::BatchDiagonal<_type>* a, \
+                        experimental::matrix::BatchDense<_type>* b)
 
-#define GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL(_type)      \
-    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::BatchDiagonal<_type>* orig,    \
-                        matrix::BatchDiagonal<_type>* trans)
+#define GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL(_type) \
+    void conj_transpose(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,            \
+        const experimental::matrix::BatchDiagonal<_type>* orig, \
+        experimental::matrix::BatchDiagonal<_type>* trans)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
@@ -73,49 +77,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
-namespace omp {
-namespace batch_diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_diagonal
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_diagonal
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_diagonal
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_diagonal
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_diagonal
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_diagonal,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

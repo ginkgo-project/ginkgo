@@ -54,9 +54,9 @@ namespace batch_diagonal {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::BatchDiagonal<ValueType>* const diag,
-           const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x)
+           const experimental::matrix::BatchDiagonal<ValueType>* const diag,
+           const experimental::matrix::BatchDense<ValueType>* const b,
+           experimental::matrix::BatchDense<ValueType>* const x)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -65,9 +65,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply_in_place(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* const diag,
-                    matrix::BatchDense<ValueType>* const b)
+void apply_in_place(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const experimental::matrix::BatchDiagonal<ValueType>* const diag,
+    experimental::matrix::BatchDense<ValueType>* const b)
 {
     GKO_NOT_IMPLEMENTED;
 }

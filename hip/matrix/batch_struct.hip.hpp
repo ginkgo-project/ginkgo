@@ -66,8 +66,9 @@ namespace hip {
  * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_dense::UniformBatch<const hip_type<ValueType>>
-get_batch_struct(const matrix::BatchDense<ValueType>* const op)
+inline experimental::matrix::batch_dense::UniformBatch<
+    const hip_type<ValueType>>
+get_batch_struct(const experimental::matrix::BatchDense<ValueType>* const op)
 {
     return {
         as_hip_type(op->get_const_values()),
@@ -82,8 +83,8 @@ get_batch_struct(const matrix::BatchDense<ValueType>* const op)
  * Generates a uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_dense::UniformBatch<hip_type<ValueType>> get_batch_struct(
-    matrix::BatchDense<ValueType>* const op)
+inline experimental::matrix::batch_dense::UniformBatch<hip_type<ValueType>>
+get_batch_struct(experimental::matrix::BatchDense<ValueType>* const op)
 {
     return {
         as_hip_type(op->get_values()),
@@ -98,8 +99,9 @@ inline gko::batch_dense::UniformBatch<hip_type<ValueType>> get_batch_struct(
  * Generates an immutable uniform batch struct from a batch of CSR matrices.
  */
 template <typename ValueType>
-inline gko::batch_csr::UniformBatch<const hip_type<ValueType>> get_batch_struct(
-    const matrix::BatchCsr<ValueType, int32>* const op)
+inline experimental::matrix::batch_csr::UniformBatch<const hip_type<ValueType>>
+get_batch_struct(
+    const experimental::matrix::BatchCsr<ValueType, int32>* const op)
 {
     return {as_hip_type(op->get_const_values()),
             op->get_const_col_idxs(),
@@ -115,8 +117,8 @@ inline gko::batch_csr::UniformBatch<const hip_type<ValueType>> get_batch_struct(
  * Generates an mutable uniform batch struct from a batch of CSR matrices.
  */
 template <typename ValueType>
-inline gko::batch_csr::UniformBatch<hip_type<ValueType>> get_batch_struct(
-    matrix::BatchCsr<ValueType>* const op)
+inline experimental::matrix::batch_csr::UniformBatch<hip_type<ValueType>>
+get_batch_struct(experimental::matrix::BatchCsr<ValueType>* const op)
 {
     return {as_hip_type(op->get_values()),
             op->get_const_col_idxs(),
@@ -132,8 +134,9 @@ inline gko::batch_csr::UniformBatch<hip_type<ValueType>> get_batch_struct(
  * Generates an immutable uniform batch struct from a batch of CSR matrices.
  */
 template <typename ValueType>
-inline gko::batch_ell::UniformBatch<const hip_type<ValueType>> get_batch_struct(
-    const matrix::BatchEll<ValueType, int32>* const op)
+inline experimental::matrix::batch_ell::UniformBatch<const hip_type<ValueType>>
+get_batch_struct(
+    const experimental::matrix::BatchEll<ValueType, int32>* const op)
 {
     return {as_hip_type(op->get_const_values()),
             op->get_const_col_idxs(),
@@ -150,8 +153,8 @@ inline gko::batch_ell::UniformBatch<const hip_type<ValueType>> get_batch_struct(
  * Generates an mutable uniform batch struct from a batch of CSR matrices.
  */
 template <typename ValueType>
-inline gko::batch_ell::UniformBatch<hip_type<ValueType>> get_batch_struct(
-    matrix::BatchEll<ValueType>* const op)
+inline experimental::matrix::batch_ell::UniformBatch<hip_type<ValueType>>
+get_batch_struct(experimental::matrix::BatchEll<ValueType>* const op)
 {
     return {as_hip_type(op->get_values()),
             op->get_const_col_idxs(),
@@ -169,8 +172,10 @@ inline gko::batch_ell::UniformBatch<hip_type<ValueType>> get_batch_struct(
  * that may be null.
  */
 template <typename ValueType>
-inline gko::batch_dense::UniformBatch<const hip_type<ValueType>>
-maybe_null_batch_struct(const matrix::BatchDense<ValueType>* const op)
+inline experimental::matrix::batch_dense::UniformBatch<
+    const hip_type<ValueType>>
+maybe_null_batch_struct(
+    const experimental::matrix::BatchDense<ValueType>* const op)
 {
     if (op) {
         return {as_hip_type(op->get_const_values()),
@@ -188,8 +193,9 @@ maybe_null_batch_struct(const matrix::BatchDense<ValueType>* const op)
  * that may be null.
  */
 template <typename ValueType>
-inline gko::batch_csr::UniformBatch<const hip_type<ValueType>>
-maybe_null_batch_struct(const matrix::BatchCsr<ValueType>* const op)
+inline experimental::matrix::batch_csr::UniformBatch<const hip_type<ValueType>>
+maybe_null_batch_struct(
+    const experimental::matrix::BatchCsr<ValueType>* const op)
 {
     if (op) {
         return {as_hip_type(op->get_const_values()),

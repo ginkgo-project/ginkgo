@@ -51,8 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace matrix {
 namespace batch_diagonal {
+namespace {
 
 
 GKO_REGISTER_OPERATION(apply, batch_diagonal::apply);
@@ -64,6 +66,7 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_diagonal::conj_transpose);
 GKO_REGISTER_OPERATION(fill, components::fill_array);
 
 
+}  // namespace
 }  // namespace batch_diagonal
 
 
@@ -210,8 +213,8 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDiagonal<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy =
-        BatchDiagonal::create(exec, gko::transpose(this->get_size()));
+    auto trans_cpy = BatchDiagonal::create(
+        exec, gko::experimental::transpose(this->get_size()));
 
     exec->copy(this->get_num_stored_elements(), this->get_const_values(),
                trans_cpy->get_values());
@@ -224,8 +227,8 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDiagonal<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy =
-        BatchDiagonal::create(exec, gko::transpose(this->get_size()));
+    auto trans_cpy = BatchDiagonal::create(
+        exec, gko::experimental::transpose(this->get_size()));
     exec->run(batch_diagonal::make_conj_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
 }
@@ -288,4 +291,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_TRANSFORM);
 }  // namespace matrix
 
 
+}  // namespace experimental
 }  // namespace gko

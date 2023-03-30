@@ -61,9 +61,9 @@ namespace batch_diagonal {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::BatchDiagonal<ValueType>* const diag,
-           const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x)
+           const experimental::matrix::BatchDiagonal<ValueType>* const diag,
+           const experimental::matrix::BatchDense<ValueType>* const b,
+           experimental::matrix::BatchDense<ValueType>* const x)
 {
     const auto b_stride = b->get_stride().at();
     const auto x_stride = x->get_stride().at();
@@ -72,12 +72,12 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     const auto min_dim = std::min(nrows, ncols);
     const auto nrhs = static_cast<int>(x->get_size().at()[1]);
     for (size_type batch = 0; batch < b->get_num_batch_entries(); ++batch) {
-        const auto diag_b = gko::batch::batch_entry_ptr(
+        const auto diag_b = gko::experimental::matrix::batch::batch_entry_ptr(
             diag->get_const_values(), 1, min_dim, batch);
-        const auto b_b = gko::batch::batch_entry_ptr(b->get_const_values(),
-                                                     b_stride, ncols, batch);
-        const auto x_b = gko::batch::batch_entry_ptr(x->get_values(), x_stride,
-                                                     nrows, batch);
+        const auto b_b = gko::experimental::matrix::batch::batch_entry_ptr(
+            b->get_const_values(), b_stride, ncols, batch);
+        const auto x_b = gko::experimental::matrix::batch::batch_entry_ptr(
+            x->get_values(), x_stride, nrows, batch);
         batch_diag_apply(nrows, ncols, diag_b, nrhs, b_stride, b_b, x_stride,
                          x_b);
     }
@@ -87,16 +87,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply_in_place(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* const diag,
-                    matrix::BatchDense<ValueType>* const b)
+void apply_in_place(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const experimental::matrix::BatchDiagonal<ValueType>* const diag,
+    experimental::matrix::BatchDense<ValueType>* const b)
 {
     const auto v_ub = host::get_batch_struct(b);
     for (size_type batch = 0; batch < b->get_num_batch_entries(); ++batch) {
-        const auto sc_b = gko::batch::batch_entry_ptr(
+        const auto sc_b = gko::experimental::matrix::batch::batch_entry_ptr(
             diag->get_const_values(), 1,
             static_cast<int>(diag->get_size().at(0)[0]), batch);
-        const auto v_b = gko::batch::batch_entry(v_ub, batch);
+        const auto v_b =
+            gko::experimental::matrix::batch::batch_entry(v_ub, batch);
         batch_diag_apply_in_place(sc_b, v_b);
     }
 }
@@ -107,8 +109,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* orig,
-                    matrix::BatchDiagonal<ValueType>* trans)
+                    const experimental::matrix::BatchDiagonal<ValueType>* orig,
+                    experimental::matrix::BatchDiagonal<ValueType>* trans)
 {
     const int mindim = static_cast<int>(
         std::min(orig->get_size().at()[0], orig->get_size().at()[1]));

@@ -245,6 +245,46 @@ private:
 
 
 /**
+ * Checks if two dim objects are different.
+ *
+ * @tparam Dimensionality  number of dimensions of the dim objects
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
+ * @param x  first object
+ * @param y  second object
+ *
+ * @return `!(x == y)`
+ */
+template <size_type Dimensionality, typename DimensionType>
+constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
+    const dim<Dimensionality, DimensionType>& x,
+    const dim<Dimensionality, DimensionType>& y)
+{
+    return !(x == y);
+}
+
+
+/**
+ * Returns a dim<2> object with its dimensions swapped.
+ *
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
+ * @param dimensions original object
+ *
+ * @return a dim<2> object with its dimensions swapped
+ */
+template <typename DimensionType>
+constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
+    const dim<2, DimensionType>& dimensions) noexcept
+{
+    return {dimensions[1], dimensions[0]};
+}
+
+
+namespace experimental {
+
+
+/**
  * A type representing the dimensions of a multidimensional batch object.
  *
  * @tparam Dimensionality  number of dimensions of the object
@@ -383,43 +423,6 @@ private:
 
 
 /**
- * Checks if two dim objects are different.
- *
- * @tparam Dimensionality  number of dimensions of the dim objects
- * @tparam DimensionType  datatype used to represent each dimension
- *
- * @param x  first object
- * @param y  second object
- *
- * @return `!(x == y)`
- */
-template <size_type Dimensionality, typename DimensionType>
-constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-    const dim<Dimensionality, DimensionType>& x,
-    const dim<Dimensionality, DimensionType>& y)
-{
-    return !(x == y);
-}
-
-
-/**
- * Returns a dim<2> object with its dimensions swapped.
- *
- * @tparam DimensionType  datatype used to represent each dimension
- *
- * @param dimensions original object
- *
- * @return a dim<2> object with its dimensions swapped
- */
-template <typename DimensionType>
-constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
-    const dim<2, DimensionType>& dimensions) noexcept
-{
-    return {dimensions[1], dimensions[0]};
-}
-
-
-/**
  * Checks if two batch dim objects are different.
  *
  * @tparam Dimensionality  number of dimensions of the dim objects
@@ -467,6 +470,7 @@ inline batch_dim<2, DimensionType> transpose(
 }
 
 
+}  // namespace experimental
 }  // namespace gko
 
 

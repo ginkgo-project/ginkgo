@@ -52,8 +52,8 @@ namespace batch_diagonal {
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* orig,
-                    matrix::BatchDiagonal<ValueType>* trans)
+                    const experimental::matrix::BatchDiagonal<ValueType>* orig,
+                    experimental::matrix::BatchDiagonal<ValueType>* trans)
 {
     const size_type mindim =
         std::min(orig->get_size().at()[0], orig->get_size().at()[1]);

@@ -89,8 +89,8 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-    using matrix_type = matrix::Csr<value_type, index_type>;
-    using permutation_type = matrix::Permutation<index_type>;
+    using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using permutation_type = gko::matrix::Permutation<index_type>;
 
     struct parameters_type
         : public enable_parameters_type<

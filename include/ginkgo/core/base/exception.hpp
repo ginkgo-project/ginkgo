@@ -150,6 +150,7 @@ public:
     {}
 };
 
+
 /**
  * NotCompiled is thrown when attempting to call an operation which is a part of
  * a module that was not compiled on the system.

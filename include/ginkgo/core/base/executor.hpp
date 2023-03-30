@@ -544,6 +544,69 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
 
 
 /**
+ * A copy of GKO_REGISTER_OPERATION to register operations in the experimental
+ * namespace.
+ *
+ * @see GKO_REGISTER_OPERATION
+ */
+#define GKO_REGISTER_EXPERIMENTAL_OPERATION(_name, _kernel)                    \
+    template <typename... Args>                                                \
+    auto make_##_name(Args&&... args)                                          \
+    {                                                                          \
+        return ::gko::detail::make_register_operation(                         \
+            #_kernel, [&args...](auto exec) {                                  \
+                using exec_type = decltype(exec);                              \
+                if (std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
+                        value) {                                               \
+                    ::gko::experimental::kernels::reference::_kernel(          \
+                        std::dynamic_pointer_cast<                             \
+                            const ::gko::ReferenceExecutor>(exec),             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::OmpExecutor>>::    \
+                               value) {                                        \
+                    ::gko::experimental::kernels::omp::_kernel(                \
+                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::CudaExecutor>>::   \
+                               value) {                                        \
+                    ::gko::experimental::kernels::cuda::_kernel(               \
+                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::HipExecutor>>::    \
+                               value) {                                        \
+                    ::gko::experimental::kernels::hip::_kernel(                \
+                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::DpcppExecutor>>::  \
+                               value) {                                        \
+                    ::gko::experimental::kernels::dpcpp::_kernel(              \
+                        std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else {                                                       \
+                    GKO_NOT_IMPLEMENTED;                                       \
+                }                                                              \
+            });                                                                \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+/**
  * Binds a host-side kernel (independent of executor type) to an Operation.
  *
  * It also defines a helper function which creates the associated operation.

@@ -197,7 +197,7 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
         va[lrstart] = -1.0;
         va[lrstart + 1] = 2.0;
     }
-    using Csr = matrix::BatchCsr<ValueType, IndexType>;
+    using Csr = experimental::matrix::BatchCsr<ValueType, IndexType>;
     auto csr = Csr::create(
         exec, nbatch,
         gko::dim<2>{static_cast<size_t>(nrows), static_cast<size_t>(nrows)},
@@ -212,8 +212,8 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
 
 template <typename ValueType>
 struct BatchSystem {
-    using vec_type = matrix::BatchDense<ValueType>;
-    std::unique_ptr<BatchLinOp> A;
+    using vec_type = experimental::matrix::BatchDense<ValueType>;
+    std::unique_ptr<experimental::BatchLinOp> A;
     std::unique_ptr<vec_type> b;
 };
 
@@ -294,10 +294,10 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
         }
     }
 
-    auto vec_size = batch_dim<>(nsystems, dim<2>(nrows, 1));
-    auto vec_stride = batch_stride(nsystems, 1);
-    auto mat_size = batch_dim<>(nsystems, dim<2>(nrows, nrows));
-    using Csr = matrix::BatchCsr<value_type, index_type>;
+    auto vec_size = experimental::batch_dim<2>(nsystems, dim<2>(nrows, 1));
+    auto vec_stride = experimental::batch_stride(nsystems, 1);
+    auto mat_size = experimental::batch_dim<2>(nsystems, dim<2>(nrows, nrows));
+    using Csr = experimental::matrix::BatchCsr<value_type, index_type>;
     auto mcsr = Csr::create(exec, mat_size, h_allvalues, h_colidxs, h_rowptrs);
     std::vector<matrix_data<value_type, index_type>> mdata;
     mcsr->write(mdata);

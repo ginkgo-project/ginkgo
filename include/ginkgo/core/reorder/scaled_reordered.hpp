@@ -111,13 +111,13 @@ public:
         /**
          * The row scaling that is to be applied to the system matrix.
          */
-        std::shared_ptr<const matrix::Diagonal<value_type>>
+        std::shared_ptr<const gko::matrix::Diagonal<value_type>>
             GKO_FACTORY_PARAMETER_SCALAR(row_scaling, nullptr);
 
         /**
          * The column scaling that is to be applied to the system matrix.
          */
-        std::shared_ptr<const matrix::Diagonal<value_type>>
+        std::shared_ptr<const gko::matrix::Diagonal<value_type>>
             GKO_FACTORY_PARAMETER_SCALAR(col_scaling, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ScaledReordered, parameters, Factory);
@@ -201,12 +201,12 @@ protected:
         if (cache_.inner_b == nullptr ||
             cache_.inner_b->get_size() != b->get_size()) {
             const auto size = b->get_size();
-            cache_.inner_b =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.inner_x =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
+            cache_.inner_b = gko::matrix::Dense<value_type>::create(
+                this->get_executor(), size);
+            cache_.inner_x = gko::matrix::Dense<value_type>::create(
+                this->get_executor(), size);
+            cache_.intermediate = gko::matrix::Dense<value_type>::create(
+                this->get_executor(), size);
         }
         cache_.inner_b->copy_from(b);
         if (inner_operator_->apply_uses_initial_guess()) {
@@ -217,8 +217,8 @@ protected:
 private:
     std::shared_ptr<LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> inner_operator_{};
-    std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
-    std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};
+    std::shared_ptr<const gko::matrix::Diagonal<value_type>> row_scaling_{};
+    std::shared_ptr<const gko::matrix::Diagonal<value_type>> col_scaling_{};
     array<index_type> permutation_array_{};
 
     /**
@@ -244,9 +244,9 @@ private:
 
         cache_struct& operator=(cache_struct&&) { return *this; }
 
-        std::unique_ptr<matrix::Dense<value_type>> inner_b{};
-        std::unique_ptr<matrix::Dense<value_type>> inner_x{};
-        std::unique_ptr<matrix::Dense<value_type>> intermediate{};
+        std::unique_ptr<gko::matrix::Dense<value_type>> inner_b{};
+        std::unique_ptr<gko::matrix::Dense<value_type>> inner_x{};
+        std::unique_ptr<gko::matrix::Dense<value_type>> intermediate{};
     } cache_;
 };
 

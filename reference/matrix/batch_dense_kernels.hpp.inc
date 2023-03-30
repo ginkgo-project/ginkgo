@@ -32,9 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 inline void matvec_kernel(
-    const gko::batch_dense::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const gko::batch_dense::BatchEntry<ValueType>& c)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < c.num_rows; ++row) {
         for (int col = 0; col < c.num_rhs; ++col) {
@@ -57,9 +59,12 @@ inline void matvec_kernel(
 template <typename ValueType>
 inline void advanced_matvec_kernel(
     const ValueType alpha,
-    const gko::batch_dense::BatchEntry<const ValueType>& a,
-    const gko::batch_dense::BatchEntry<const ValueType>& b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        a,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        b,
+    const ValueType beta,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& c)
 {
     if (beta != gko::zero<ValueType>()) {
         for (int row = 0; row < c.num_rows; ++row) {
@@ -88,8 +93,10 @@ inline void advanced_matvec_kernel(
 
 
 template <typename ValueType>
-inline void scale(const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-                  const gko::batch_dense::BatchEntry<ValueType>& x)
+inline void scale(
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        alpha,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& x)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -109,9 +116,11 @@ inline void scale(const gko::batch_dense::BatchEntry<const ValueType>& alpha,
 
 template <typename ValueType>
 inline void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<ValueType>& y)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        alpha,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& y)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -133,8 +142,10 @@ inline void add_scaled(
 
 template <typename ValueType>
 inline void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>& result)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<
+        gko::remove_complex<ValueType>>& result)
 {
     for (int j = 0; j < x.num_rhs; ++j) {
         result.values[j] = gko::zero<gko::remove_complex<ValueType>>();
@@ -158,8 +169,9 @@ inline void compute_norm2(
  */
 template <typename ValueType>
 inline void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& diag_vec,
-    const gko::batch_dense::BatchEntry<ValueType>& a)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        diag_vec,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
         const ValueType scale = diag_vec.values[i_row];
@@ -190,8 +202,10 @@ inline void batch_scale(const int nrows, const int ncols,
  * and stride set.
  */
 template <typename ValueType>
-inline void copy(const gko::batch_dense::BatchEntry<const ValueType>& in,
-                 const gko::batch_dense::BatchEntry<ValueType>& out)
+inline void copy(
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        in,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& out)
 {
     for (int iz = 0; iz < in.num_rows * in.num_rhs; iz++) {
         const int i = iz / in.num_rhs;
@@ -203,9 +217,11 @@ inline void copy(const gko::batch_dense::BatchEntry<const ValueType>& in,
 
 template <typename ValueType>
 inline void compute_dot_product(
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<const ValueType>& y,
-    const gko::batch_dense::BatchEntry<ValueType>& result)
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        y,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& result)
 {
     for (int c = 0; c < result.num_rhs; c++) {
         result.values[c] = gko::zero<ValueType>();
@@ -222,8 +238,10 @@ inline void compute_dot_product(
 
 template <typename ValueType>
 inline void copy(
-    const gko::batch_dense::BatchEntry<const ValueType>& source_entry,
-    const gko::batch_dense::BatchEntry<ValueType>& destination_entry,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        source_entry,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>&
+        destination_entry,
     const gko::uint32& converged)
 {
     for (int r = 0; r < source_entry.num_rows; r++) {
@@ -243,9 +261,11 @@ inline void copy(
 
 template <typename ValueType>
 inline void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<ValueType>& y,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        alpha,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& y,
     const gko::uint32& converged)
 {
     if (alpha.num_rhs == 1) {
@@ -281,8 +301,10 @@ inline void add_scaled(
 
 template <typename ValueType>
 inline void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>& result,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<
+        gko::remove_complex<ValueType>>& result,
     const gko::uint32& converged)
 {
     for (int j = 0; j < x.num_rhs; ++j) {
@@ -319,9 +341,11 @@ inline void compute_norm2(
 
 template <typename ValueType>
 inline void compute_dot_product(
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<const ValueType>& y,
-    const gko::batch_dense::BatchEntry<ValueType>& result,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        x,
+    const gko::experimental::matrix::batch_dense::BatchEntry<const ValueType>&
+        y,
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& result,
     const gko::uint32& converged)
 {
     for (int c = 0; c < result.num_rhs; c++) {
@@ -352,7 +376,7 @@ inline void compute_dot_product(
 template <typename ValueType>
 inline void add_scaled_identity(
     const ValueType& a, const ValueType& b,
-    const gko::batch_dense::BatchEntry<ValueType>& mat)
+    const gko::experimental::matrix::batch_dense::BatchEntry<ValueType>& mat)
 {
     for (int i = 0; i < mat.num_rows; i++) {
         for (int j = 0; j < mat.num_rhs; j++) {

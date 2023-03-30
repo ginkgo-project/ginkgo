@@ -53,12 +53,17 @@ template <typename ValueType>
 class array;
 class Executor;
 class LinOp;
-class BatchLinOp;
 class LinOpFactory;
-class BatchLinOpFactory;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
+
+
+namespace experimental {
+class BatchLinOp;
+class BatchLinOpFactory;
+}  // namespace experimental
+
 
 /**
  * @brief The Stopping criterion namespace.
@@ -358,8 +363,9 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(19, batch_linop_apply_started,
-                              const BatchLinOp* A, const BatchLinOp* b,
-                              const BatchLinOp* x)
+                              const experimental::BatchLinOp* A,
+                              const experimental::BatchLinOp* b,
+                              const experimental::BatchLinOp* x)
 
     /**
      * BatchLinOp's apply completed event.
@@ -369,8 +375,9 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(20, batch_linop_apply_completed,
-                              const BatchLinOp* A, const BatchLinOp* b,
-                              const BatchLinOp* x)
+                              const experimental::BatchLinOp* A,
+                              const experimental::BatchLinOp* b,
+                              const experimental::BatchLinOp* x)
 
     /**
      * BatchLinOp's advanced apply started event.
@@ -382,9 +389,11 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(21, batch_linop_advanced_apply_started,
-                              const BatchLinOp* A, const BatchLinOp* alpha,
-                              const BatchLinOp* b, const BatchLinOp* beta,
-                              const BatchLinOp* x)
+                              const experimental::BatchLinOp* A,
+                              const experimental::BatchLinOp* alpha,
+                              const experimental::BatchLinOp* b,
+                              const experimental::BatchLinOp* beta,
+                              const experimental::BatchLinOp* x)
 
     /**
      * BatchLinOp's advanced apply completed event.
@@ -396,9 +405,11 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(22, batch_linop_advanced_apply_completed,
-                              const BatchLinOp* A, const BatchLinOp* alpha,
-                              const BatchLinOp* b, const BatchLinOp* beta,
-                              const BatchLinOp* x)
+                              const experimental::BatchLinOp* A,
+                              const experimental::BatchLinOp* alpha,
+                              const experimental::BatchLinOp* b,
+                              const experimental::BatchLinOp* beta,
+                              const experimental::BatchLinOp* x)
 
     /**
      * BatchLinOp Factory's generate started event.
@@ -408,8 +419,8 @@ public:                                                              \
      * (usually a system matrix)
      */
     GKO_LOGGER_REGISTER_EVENT(23, batch_linop_factory_generate_started,
-                              const BatchLinOpFactory* factory,
-                              const BatchLinOp* input)
+                              const experimental::BatchLinOpFactory* factory,
+                              const experimental::BatchLinOp* input)
 
     /**
      * BatchLinOp Factory's generate completed event.
@@ -420,8 +431,9 @@ public:                                                              \
      * @param output  the generated BatchLinOp object
      */
     GKO_LOGGER_REGISTER_EVENT(24, batch_linop_factory_generate_completed,
-                              const BatchLinOpFactory* factory,
-                              const BatchLinOp* input, const BatchLinOp* output)
+                              const experimental::BatchLinOpFactory* factory,
+                              const experimental::BatchLinOp* input,
+                              const experimental::BatchLinOp* output)
 
     /**
      * stop::Criterion's check started event.
@@ -545,7 +557,7 @@ protected:
      *             which stores the final residual norms.
      */
     GKO_LOGGER_REGISTER_EVENT(28, batch_solver_completed, const array<int>& its,
-                              const BatchLinOp* res_norms)
+                              const experimental::BatchLinOp* res_norms)
 
 public:
     /**
