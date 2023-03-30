@@ -186,107 +186,47 @@ std::array<gko::size_type, 2> add_overlap(const std::array<int, 2>& dims,
 
 std::vector<shared_idx_t> setup_shared_idxs(
     const gko::experimental::mpi::communicator& comm,
-    const std::array<int, 2> dims, const std::array<int, 2> coords,
-    gko::size_type num_interior_elements, gko::size_type num_elements_y,
-    gko::size_type num_elements_x, int overlap_size)
+    gko::size_type num_elements_y, gko::size_type num_elements_x,
+    int overlap_size)
 {
     auto exec = gko::ReferenceExecutor::create();
 
     auto this_rank = comm.rank();
+    auto share_left_bdry = this_rank > 0;
+    auto share_right_bdry = this_rank < comm.size() - 1;
 
-    std::array<std::array<bool, 2>, 2> on_bdry = {
-        {{coords[0] == 0, coords[0] == dims[0] - 1},
-         {coords[1] == 0, coords[1] == dims[1] - 1}}};
-
-
-    auto target_rank = [=](int dx, int dy) {
-        return coords[0] + dx + dims[0] * (coords[1] + dy);
-    };
-
-    auto relative_id = [=](int dx, int dy) { return dx + 3 * dy + 4; };
-
-    std::array<std::array<gko::size_type, 2>, 9> neighbor_num_elements{};
-    std::array<gko::size_type, 9> neighbor_num_elements_y{};
-
-    std::array<gko::size_type, 2> num_elements{num_elements_x, num_elements_y};
-
-
-    std::vector<gko::experimental::mpi::request> reqs;
-    if (!on_bdry[0][0]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(-1, 0),
-                    relative_id(1, 0));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(-1, 0)].data(),
-                        2, target_rank(-1, 0), relative_id(-1, 0)));
+    gko::experimental::mpi::request req_l;
+    gko::experimental::mpi::request req_r;
+    gko::size_type left_neighbor_nex;
+    gko::size_type right_neighbor_nex;
+    if (share_left_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank - 1, this_rank - 1);
+        req_l =
+            comm.i_recv(exec, &left_neighbor_nex, 1, this_rank - 1, this_rank);
     }
-    if (!on_bdry[0][1]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(1, 0),
-                    relative_id(-1, 0));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(1, 0)].data(),
-                        2, target_rank(1, 0), relative_id(1, 0)));
+    if (share_right_bdry) {
+        comm.i_send(exec, &num_elements_x, 1, this_rank + 1, this_rank + 1);
+        req_r =
+            comm.i_recv(exec, &right_neighbor_nex, 1, this_rank + 1, this_rank);
     }
-    if (!on_bdry[1][0]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(0, -1),
-                    relative_id(0, 1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(0, -1)].data(),
-                        2, target_rank(0, -1), relative_id(0, -1)));
-    }
-    if (!on_bdry[1][1]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(0, 1),
-                    relative_id(0, -1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(0, 1)].data(),
-                        2, target_rank(0, 1), relative_id(0, 1)));
-    }
-    // diagonal neighbors
-    if (!on_bdry[0][0] && !on_bdry[1][0]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(-1, -1),
-                    relative_id(1, 1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(-1, -1)].data(),
-                        2, target_rank(-1, -1), relative_id(-1, -1)));
-    }
-    if (!on_bdry[0][1] && !on_bdry[1][0]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(1, -1),
-                    relative_id(-1, 1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(1, -1)].data(),
-                        2, target_rank(-1, 0), relative_id(1, -1)));
-    }
-    if (!on_bdry[0][0] && !on_bdry[1][1]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(-1, 1),
-                    relative_id(1, -1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(-1, 1)].data(),
-                        2, target_rank(-1, 1), relative_id(-1, 1)));
-    }
-    if (!on_bdry[0][1] && !on_bdry[1][1]) {
-        comm.i_send(exec, num_elements.data(), 2, target_rank(1, 1),
-                    relative_id(-1, -1));
-        reqs.emplace_back(
-            comm.i_recv(exec, neighbor_num_elements[relative_id(1, 1)].data(),
-                        2, target_rank(1, 1), relative_id(1, 1)));
-    }
+    req_l.wait();
+    req_r.wait();
 
-
-    std::vector<shared_idx_t> shared_idxs;
+    std::vector<shared_idx_t> shared_idxs(
+        share_right_bdry * (overlap_size + 1) * (num_elements_y + 1) +
+        share_left_bdry * overlap_size * (num_elements_y + 1));
     auto utr_map = create_utr_map<int>(num_elements_y + 1, num_elements_x + 1);
     auto ltr_map = create_ltr_map<int>(num_elements_y + 1, num_elements_x + 1);
     // TODO: should remove physical boundary idxs
-    auto fixed_x_map = [&](const auto x, const auto offset, auto&& map) {
-        return [=](const auto y) { return map(y + offset, x); };
+    auto fixed_x_map = [&](const auto x, auto&& map) {
+        return [=](const auto y) { return map(y, x); };
     };
-    auto fixed_y_map = [&](const auto y, const auto offset, auto&& map) {
-        return [=](const auto x) { return map(y, x + offset); };
-    };
-    auto setup_idxs = [num_interior_elements](
+    auto setup_idxs = [num_elements_y](
                           auto&& partial_map_local, auto&& partial_map_remote,
                           int remote_rank,
                           const std::vector<int> element_local_bdry_idx,
                           std::vector<shared_idx_t>& idxs) {
-        for (int iy = 0; iy < num_interior_elements; ++iy) {
+        for (int iy = 0; iy < num_elements_y; ++iy) {
             auto local_map = partial_map_local(iy);
             auto remote_map = partial_map_remote(iy);
             if (iy == 0) {
@@ -300,44 +240,29 @@ std::vector<shared_idx_t> setup_shared_idxs(
         }
     };
 
-    if (!on_bdry[0][0]) {
-        auto neighbor_ne = neighbor_num_elements[relative_id(-1, 0)];
+    if (share_left_bdry) {
         auto neighbor_utr_map =
-            create_utr_map<int>(neighbor_ne[1] + 1, neighbor_ne[0] + 1);
+            create_utr_map<int>(num_elements_y + 1, left_neighbor_nex + 1);
         for (int overlap_idx = 0; overlap_idx < overlap_size; ++overlap_idx) {
             setup_idxs(
-                fixed_x_map(overlap_idx, on_bdry[1][0], utr_map),
-                fixed_x_map(neighbor_ne[0] - 2 * overlap_size + overlap_idx,
-                            on_bdry[1][0], neighbor_utr_map),
+                fixed_x_map(overlap_idx, utr_map),
+                fixed_x_map(left_neighbor_nex - 2 * overlap_size + overlap_idx,
+                            neighbor_utr_map),
                 this_rank - 1, {2, 0}, shared_idxs);
         }
     }
-    if (!on_bdry[0][1]) {
-        auto neighbor_ne = neighbor_num_elements[relative_id(-1, 0)];
+    if (share_right_bdry) {
         auto neighbor_ltr_map =
-            create_ltr_map<int>(neighbor_ne[1] + 1, neighbor_ne[0] + 1);
+            create_ltr_map<int>(num_elements_y + 1, right_neighbor_nex + 1);
 
         // one additional layer to create a partition of unity, currently uses
         // unique ownership
         for (int overlap_idx = 0; overlap_idx < overlap_size + 1;
              ++overlap_idx) {
-            setup_idxs(fixed_x_map(num_elements_x - 1 - overlap_idx,
-                                   on_bdry[1][0], ltr_map),
+            setup_idxs(fixed_x_map(num_elements_x - 1 - overlap_idx, ltr_map),
                        fixed_x_map(2 * overlap_size - 1 - overlap_idx,
-                                   on_bdry[1][0], neighbor_ltr_map),
+                                   neighbor_ltr_map),
                        this_rank + 1, {0, 1}, shared_idxs);
-        }
-    }
-    if (!on_bdry[1][0]) {
-        auto neighbor_ne = neighbor_num_elements[relative_id(0, -1)];
-        auto neighbor_ltr_map =
-            create_ltr_map<int>(neighbor_ne[1] + 1, neighbor_ne[0] + 1);
-        for (int overlap_idx = 0; overlap_idx < overlap_size; ++overlap_idx) {
-            setup_idxs(
-                fixed_y_map(overlap_idx, on_bdry[0][1], ltr_map),
-                fixed_y_map(neighbor_ne[0] - 2 * overlap_size + overlap_idx,
-                            on_bdry[0][1], neighbor_ltr_map),
-                this_rank - 1, {2, 0}, shared_idxs);
         }
     }
     return shared_idxs;
