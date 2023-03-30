@@ -15,11 +15,10 @@ HipTimer::HipTimer(std::shared_ptr<const HipExecutor> exec)
 {}
 
 
-time_point HipTimer::create_time_point()
+void HipTimer::init_time_point(time_point& time)
 {
-    time_point result;
-    result.type_ = time_point::type::hip;
-    GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&result.data_.hip_event));
+    time.type_ = time_point::type::hip;
+    GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&time.data_.hip_event));
 }
 
 
@@ -28,6 +27,13 @@ void HipTimer::record(time_point& time)
     GKO_ASSERT(time.type_ == time_point::type::hip);
     GKO_ASSERT_NO_HIP_ERRORS(
         hipEventRecord(time.data_.hip_event, exec_->get_stream()));
+}
+
+
+void HipTimer::wait(const time_point& time)
+{
+    GKO_ASSERT(time.type_ == time_point::type::hip);
+    GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(time.data_.hip_event));
 }
 
 

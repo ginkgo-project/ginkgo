@@ -143,16 +143,22 @@ struct summary {
     summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
     {
         push("total");
+        // preallocate 5 nested levels of timers
+        for (int i = 0; i < 10; i++) {
+            free_list.emplace_back();
+            timer->init_time_point(free_list.back());
+        }
     }
 
     time_point get_current_time_point()
     {
+        gko::time_point time;
         if (free_list.empty()) {
-            auto time = timer->create_time_point();
+            timer->init_time_point(time);
             timer->record(time);
             return time;
         } else {
-            auto time = std::move(free_list.back());
+            time = std::move(free_list.back());
             free_list.pop_back();
             timer->record(time);
             return time;
@@ -170,20 +176,17 @@ struct summary {
             return;
         }
         const auto cpu_now = cpu_clock::now();
-        {
-            // scope the time_point to capture its destruction in overhead
-            auto now = get_current_time_point();
-            std::lock_guard<std::mutex> guard{mutex};
-            auto it = name_map.find(name);
-            if (it == name_map.end()) {
-                const auto new_id = static_cast<int64>(entries.size());
-                it = name_map.emplace_hint(it, name, new_id);
-                entries.emplace_back();
-                entries.back().name = name;
-            }
-            const auto id = it->second;
-            stack.emplace_back(id, std::move(now));
+        std::lock_guard<std::mutex> guard{mutex};
+        auto now = get_current_time_point();
+        auto it = name_map.find(name);
+        if (it == name_map.end()) {
+            const auto new_id = static_cast<int64>(entries.size());
+            it = name_map.emplace_hint(it, name, new_id);
+            entries.emplace_back();
+            entries.back().name = name;
         }
+        const auto id = it->second;
+        stack.emplace_back(id, std::move(now));
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
                 cpu_clock::now() - cpu_now)
@@ -193,31 +196,33 @@ struct summary {
     void pop(const char* name, bool allow_pop_root = false)
     {
         const auto cpu_now = cpu_clock::now();
-        {
-            // scope the time_point to capture its destruction in overhead
-            auto now = get_current_time_point();
-            std::lock_guard<std::mutex> guard{mutex};
-            if (!check_pop_status(*this, name, allow_pop_root)) {
-                return;
-            }
-            const auto id = stack.back().first;
-            auto partial_entry = std::move(stack.back());
-            stack.pop_back();
-            auto& entry = entries[id];
-            const auto elapsed_ns =
-                timer->difference(partial_entry.second, now);
-            release_time_point(std::move(partial_entry.second));
-            release_time_point(std::move(now));
-            entry.count++;
-            entry.inclusive_ns += elapsed_ns;
-            entry.exclusive_ns += elapsed_ns;
-            if (!stack.empty()) {
-                entries[stack.back().first].exclusive_ns -= elapsed_ns;
-            }
+        std::lock_guard<std::mutex> guard{mutex};
+        auto now = get_current_time_point();
+        if (!check_pop_status(*this, name, allow_pop_root)) {
+            return;
         }
+        const auto id = stack.back().first;
+        auto partial_entry = std::move(stack.back());
+        stack.pop_back();
+        auto& entry = entries[id];
+        const auto cpu_now2 = cpu_clock::now();
+        // we need to exclude the wait for the timer from the overhead
+        // measurement
+        timer->wait(now);
+        const auto cpu_now3 = cpu_clock::now();
+        const auto elapsed_ns = timer->difference(partial_entry.second, now);
+        release_time_point(std::move(partial_entry.second));
+        release_time_point(std::move(now));
+        entry.count++;
+        entry.inclusive_ns += elapsed_ns;
+        entry.exclusive_ns += elapsed_ns;
+        if (!stack.empty()) {
+            entries[stack.back().first].exclusive_ns -= elapsed_ns;
+        }
+        const auto cpu_now4 = cpu_clock::now();
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                cpu_clock::now() - cpu_now)
+                (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now))
                 .count();
     }
 
@@ -277,12 +282,13 @@ struct nested_summary {
 
     time_point get_current_time_point()
     {
+        gko::time_point time;
         if (free_list.empty()) {
-            auto time = timer->create_time_point();
+            timer->init_time_point(time);
             timer->record(time);
             return time;
         } else {
-            auto time = std::move(free_list.back());
+            time = std::move(free_list.back());
             free_list.pop_back();
             timer->record(time);
             return time;
@@ -331,14 +337,11 @@ struct nested_summary {
             return;
         }
         const auto cpu_now = cpu_clock::now();
-        {
-            // scope the time_point to capture its destruction in overhead
-            auto now = get_current_time_point();
-            std::lock_guard<std::mutex> guard{mutex};
-            const auto name_id = get_or_add_name_id(name);
-            const auto node_id = get_or_add_node_id(name_id);
-            stack.emplace_back(name_id, node_id, std::move(now));
-        }
+        std::lock_guard<std::mutex> guard{mutex};
+        auto now = get_current_time_point();
+        const auto name_id = get_or_add_name_id(name);
+        const auto node_id = get_or_add_node_id(name_id);
+        stack.emplace_back(name_id, node_id, std::move(now));
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
                 cpu_clock::now() - cpu_now)
@@ -348,28 +351,29 @@ struct nested_summary {
     void pop(const char* name, bool allow_pop_root = false)
     {
         const auto cpu_now = cpu_clock::now();
-        {
-            // scope the time_point to capture its destruction in overhead
-            auto now = get_current_time_point();
-            std::lock_guard<std::mutex> guard{mutex};
-            if (!check_pop_status(*this, name, allow_pop_root)) {
-                return;
-            }
-            auto partial_entry = std::move(stack.back());
-            const auto name_id = partial_entry.name_id;
-            stack.pop_back();
-            const auto node_id =
-                node_map.at(std::make_pair(name_id, get_parent_id()));
-            auto& node = nodes[node_id];
-            const auto elapsed_ns = timer->difference(partial_entry.start, now);
-            release_time_point(std::move(partial_entry.start));
-            release_time_point(std::move(now));
-            node.count++;
-            node.elapsed_ns += elapsed_ns;
+        std::lock_guard<std::mutex> guard{mutex};
+        auto now = get_current_time_point();
+        if (!check_pop_status(*this, name, allow_pop_root)) {
+            return;
         }
+        auto partial_entry = std::move(stack.back());
+        const auto name_id = partial_entry.name_id;
+        stack.pop_back();
+        const auto node_id =
+            node_map.at(std::make_pair(name_id, get_parent_id()));
+        auto& node = nodes[node_id];
+        const auto cpu_now2 = cpu_clock::now();
+        timer->wait(now);
+        const auto cpu_now3 = cpu_clock::now();
+        const auto elapsed_ns = timer->difference(partial_entry.start, now);
+        release_time_point(std::move(partial_entry.start));
+        release_time_point(std::move(now));
+        node.count++;
+        node.elapsed_ns += elapsed_ns;
+        const auto cpu_now4 = cpu_clock::now();
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                cpu_clock::now() - cpu_now)
+                (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now))
                 .count();
     }
 

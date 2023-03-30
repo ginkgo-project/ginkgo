@@ -45,11 +45,9 @@ time_point& time_point::operator=(time_point&& other)
 }
 
 
-time_point CpuTimer::create_time_point()
+void CpuTimer::init_time_point(time_point& time)
 {
-    time_point result;
-    result.type_ = time_point::type::cpu;
-    return result;
+    time.type_ = time_point::type::cpu;
 }
 
 
@@ -58,6 +56,9 @@ void CpuTimer::record(time_point& time)
     GKO_ASSERT(time.type_ == time_point::type::cpu);
     time.data_.chrono = std::chrono::steady_clock::now();
 }
+
+
+void CpuTimer::wait(const time_point& time) {}
 
 
 int64 CpuTimer::difference(const time_point& start, const time_point& stop)

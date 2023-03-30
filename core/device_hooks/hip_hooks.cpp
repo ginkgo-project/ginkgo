@@ -171,10 +171,13 @@ HipTimer::HipTimer(std::shared_ptr<const HipExecutor> exec)
     GKO_NOT_COMPILED(hip);
 
 
-time_point HipTimer::create_time_point() GKO_NOT_COMPILED(hip);
+void HipTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(hip);
 
 
 void HipTimer::record(time_point&) GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::wait(const time_point& time) GKO_NOT_COMPILED(hip);
 
 
 int64 HipTimer::difference(const time_point& start, const time_point& stop)

@@ -46,6 +46,8 @@ class time_point {
 public:
     ~time_point();
 
+    time_point();
+
     time_point(time_point&&);
 
     time_point& operator=(time_point&&);
@@ -73,8 +75,6 @@ private:
         dpcpp,
     };
 
-    time_point();
-
     type type_;
     union {
         CUevent_st* cuda_event;
@@ -90,12 +90,17 @@ public:
     /**
      * Creates a new time_point instance for this timer.
      */
-    virtual time_point create_time_point() = 0;
+    virtual void init_time_point(time_point& time) = 0;
 
     /**
      * Records a time point at the current time.
      */
     virtual void record(time_point& time) = 0;
+
+    /**
+     * Waits until the device reached the given time point.
+     */
+    virtual void wait(const time_point& time) = 0;
 
     /**
      * Computes the difference between the two time points.
@@ -113,9 +118,11 @@ public:
 
 class CpuTimer : public Timer {
 public:
-    time_point create_time_point() override;
+    void init_time_point(time_point& time) override;
 
     void record(time_point& time) override;
+
+    void wait(const time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 };
@@ -123,9 +130,11 @@ public:
 
 class CudaTimer : public Timer {
 public:
-    time_point create_time_point() override;
+    void init_time_point(time_point& time) override;
 
     void record(time_point& time) override;
+
+    void wait(const time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
@@ -138,9 +147,11 @@ private:
 
 class HipTimer : public Timer {
 public:
-    time_point create_time_point() override;
+    void init_time_point(time_point& time) override;
 
     void record(time_point& time) override;
+
+    void wait(const time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
@@ -153,9 +164,11 @@ private:
 
 class DpcppTimer : public Timer {
 public:
-    time_point create_time_point() override;
+    void init_time_point(time_point& time) override;
 
     void record(time_point& time) override;
+
+    void wait(const time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
