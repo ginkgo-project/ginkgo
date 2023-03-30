@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
@@ -50,6 +51,23 @@ version version_info::get_dpcpp_version() noexcept
     // placeholder modules.
     return {GKO_VERSION_STR, "not compiled"};
 }
+
+
+void* DpcppAllocator::allocate_impl(sycl::queue* queue, size_type size) const
+    GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
+    GKO_NOT_COMPILED(dpcpp);
+
+
+void* DpcppUnifiedAllocator::allocate_impl(sycl::queue* queue,
+                                           size_type size) const
+    GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppUnifiedAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
+    GKO_NOT_COMPILED(dpcpp);
 
 
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(

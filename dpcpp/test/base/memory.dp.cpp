@@ -30,38 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/memory.hpp>
+
+
+#include <memory>
+#include <type_traits>
+
+
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
-namespace gko {
+#include "dpcpp/test/utils.hpp"
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+namespace {
+
+
+class Memory : public ::testing::Test {
+protected:
+    Memory()
+        : exec{gko::DpcppExecutor::create(0, gko::OmpExecutor::create())},
+          host_exec_with_unified{gko::OmpExecutor::create(
+              std::make_shared<gko::DpcppUnifiedAllocator>(exec->get_queue()))},
+          exec_with_unified{gko::DpcppExecutor::create(
+              exec->get_queue(), host_exec_with_unified,
+              std::make_shared<gko::DpcppUnifiedAllocator>(exec->get_queue()))}
+    {}
+
+    std::shared_ptr<gko::DpcppExecutor> exec;
+    std::shared_ptr<gko::OmpExecutor> host_exec_with_unified;
+    std::shared_ptr<gko::DpcppExecutor> exec_with_unified;
+};
+
+
+TEST_F(Memory, DeviceAllocationWorks)
 {
-    return master_;
+    gko::array<int> data{exec, {1, 2}};
+
+    GKO_ASSERT_ARRAY_EQ(data, I<int>({1, 2}));
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+TEST_F(Memory, UnifiedDeviceAllocationWorks)
 {
-    return master_;
+    gko::array<int> data{exec_with_unified, {1, 2}};
+    exec->synchronize();
+
+    ASSERT_EQ(data.get_const_data()[0], 1);
+    ASSERT_EQ(data.get_const_data()[1], 2);
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
+TEST_F(Memory, HostUnifiedAllocationWorks)
 {
-    return this->get_device_id() == dest_exec->get_device_id();
+    gko::array<int> data{host_exec_with_unified, {1, 2}};
+
+    ASSERT_EQ(data.get_const_data()[0], 1);
+    ASSERT_EQ(data.get_const_data()[1], 2);
 }
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
-}  // namespace gko
+}  // namespace

@@ -39,18 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cuda_runtime.h>
-#ifdef GKO_LEGACY_NVTX
-#include <nvToolsExt.h>
-#else
-#include <nvtx3/nvToolsExt.h>
-#endif
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/log/profiler_hook.hpp>
+#include <ginkgo/core/base/memory.hpp>
 
 
 #include "cuda/base/config.hpp"
@@ -65,25 +60,38 @@ namespace gko {
 #include "common/cuda_hip/base/executor.hpp.inc"
 
 
+std::unique_ptr<CudaAllocatorBase> allocator_from_mode(int device_id,
+                                                       allocation_mode mode)
+{
+    switch (mode) {
+    case allocation_mode::device:
+        return std::make_unique<CudaAllocator>();
+    case allocation_mode::unified_global:
+        return std::make_unique<CudaUnifiedAllocator>(device_id);
+    case allocation_mode::unified_host:
+        return std::make_unique<CudaUnifiedAllocator>(device_id);
+    default:
+        GKO_NOT_SUPPORTED(mode);
+    }
+}
+
+
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, cudaStream_t stream)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master), device_reset, alloc_mode,
-                         stream),
-        [device_id](CudaExecutor* exec) {
-            auto device_reset = exec->get_device_reset();
-            std::lock_guard<std::mutex> guard(
-                nvidia_device::get_mutex(device_id));
-            delete exec;
-            auto& num_execs = nvidia_device::get_num_execs(device_id);
-            num_execs--;
-            if (!num_execs && device_reset) {
-                detail::cuda_scoped_device_id_guard g(device_id);
-                cudaDeviceReset();
-            }
-        });
+        new CudaExecutor(device_id, std::move(master),
+                         allocator_from_mode(device_id, alloc_mode), stream));
+}
+
+
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master,
+    std::shared_ptr<CudaAllocatorBase> alloc, cudaStream_t stream)
+{
+    return std::shared_ptr<CudaExecutor>(new CudaExecutor(
+        device_id, std::move(master), std::move(alloc), stream));
 }
 
 
@@ -123,41 +131,14 @@ void OmpExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 void CudaExecutor::raw_free(void* ptr) const noexcept
 {
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    auto error_code = cudaFree(ptr);
-    if (error_code != cudaSuccess) {
-#if GKO_VERBOSE_LEVEL >= 1
-        // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable CUDA error on device "
-                  << this->get_device_id() << " in " << __func__ << ": "
-                  << cudaGetErrorName(error_code) << ": "
-                  << cudaGetErrorString(error_code) << std::endl
-                  << "Exiting program" << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
-        std::exit(error_code);
-    }
+    alloc_->deallocate(ptr);
 }
 
 
 void* CudaExecutor::raw_alloc(size_type num_bytes) const
 {
-    void* dev_ptr = nullptr;
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    int error_code = 0;
-    if (this->alloc_mode_ == allocation_mode::unified_host) {
-        error_code = cudaMallocManaged(&dev_ptr, num_bytes, cudaMemAttachHost);
-    } else if (this->alloc_mode_ == allocation_mode::unified_global) {
-        error_code =
-            cudaMallocManaged(&dev_ptr, num_bytes, cudaMemAttachGlobal);
-    } else if (this->alloc_mode_ == allocation_mode::device) {
-        error_code = cudaMalloc(&dev_ptr, num_bytes);
-    } else {
-        GKO_NOT_SUPPORTED(this->alloc_mode_);
-    }
-    if (error_code != cudaErrorMemoryAllocation) {
-        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
-    }
-    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
-    return dev_ptr;
+    return alloc_->allocate(num_bytes);
 }
 
 
@@ -298,98 +279,4 @@ void CudaExecutor::init_handles()
 }
 
 
-cuda_stream::cuda_stream(int device_id) : stream_{}, device_id_(device_id)
-{
-    detail::cuda_scoped_device_id_guard g(device_id_);
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
-}
-
-
-cuda_stream::~cuda_stream()
-{
-    if (stream_) {
-        detail::cuda_scoped_device_id_guard g(device_id_);
-        cudaStreamDestroy(stream_);
-    }
-}
-
-
-cuda_stream::cuda_stream(cuda_stream&& other)
-    : stream_{std::exchange(other.stream_, nullptr)},
-      device_id_(std::exchange(other.device_id_, -1))
-{}
-
-
-CUstream_st* cuda_stream::get() const { return stream_; }
-
-
-namespace log {
-
-
-// "GKO" in ASCII to avoid collision with other application's categories
-constexpr static uint32 category_magic_offset = 0x676B6FU;
-
-
-void init_nvtx()
-{
-#define NAMED_CATEGORY(_name)                                             \
-    nvtxNameCategory(static_cast<uint32>(profile_event_category::_name) + \
-                         category_magic_offset,                           \
-                     "gko::" #_name)
-    NAMED_CATEGORY(memory);
-    NAMED_CATEGORY(operation);
-    NAMED_CATEGORY(object);
-    NAMED_CATEGORY(linop);
-    NAMED_CATEGORY(factory);
-    NAMED_CATEGORY(solver);
-    NAMED_CATEGORY(criterion);
-    NAMED_CATEGORY(user);
-    NAMED_CATEGORY(internal);
-#undef NAMED_CATEGORY
-}
-
-
-std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
-    uint32_t color_argb)
-{
-    return [color_argb](const char* name, profile_event_category category) {
-        nvtxEventAttributes_t attr{};
-        attr.version = NVTX_VERSION;
-        attr.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
-        attr.category = static_cast<uint32>(category) + category_magic_offset;
-        attr.colorType = NVTX_COLOR_ARGB;
-        attr.color = color_argb;
-        attr.payloadType = NVTX_PAYLOAD_UNKNOWN;
-        attr.messageType = NVTX_MESSAGE_TYPE_ASCII;
-        attr.message.ascii = name;
-        nvtxRangePushEx(&attr);
-    };
-}
-
-
-void end_nvtx(const char* name, profile_event_category) { nvtxRangePop(); }
-
-
-}  // namespace log
-
-
-namespace kernels {
-namespace cuda {
-
-
-void reset_device(int device_id)
-{
-    gko::detail::cuda_scoped_device_id_guard guard{device_id};
-    cudaDeviceReset();
-}
-
-
-void destroy_event(CUevent_st* event)
-{
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
-}
-
-
-}  // namespace cuda
-}  // namespace kernels
 }  // namespace gko

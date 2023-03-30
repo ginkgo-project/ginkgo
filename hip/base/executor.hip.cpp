@@ -37,15 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
-#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
-#include <roctx.h>
-#endif
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 #include "hip/base/config.hip.hpp"
@@ -60,32 +56,22 @@ namespace gko {
 #include "common/cuda_hip/base/executor.hpp.inc"
 
 
-#if (GINKGO_HIP_PLATFORM_NVCC == 1)
-using hip_device_class = nvidia_device;
-#else
-using hip_device_class = amd_device;
-#endif
-
-
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, hipStream_t stream)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master), device_reset, alloc_mode,
-                        stream),
-        [device_id](HipExecutor* exec) {
-            auto device_reset = exec->get_device_reset();
-            std::lock_guard<std::mutex> guard(
-                hip_device_class::get_mutex(device_id));
-            delete exec;
-            auto& num_execs = hip_device_class::get_num_execs(device_id);
-            num_execs--;
-            if (!num_execs && device_reset) {
-                detail::hip_scoped_device_id_guard g(device_id);
-                hipDeviceReset();
-            }
-        });
+        new HipExecutor(device_id, std::move(master),
+                        std::make_shared<HipAllocator>(), stream));
+}
+
+
+std::shared_ptr<HipExecutor> HipExecutor::create(
+    int device_id, std::shared_ptr<Executor> master,
+    std::shared_ptr<HipAllocatorBase> alloc, hipStream_t stream)
+{
+    return std::shared_ptr<HipExecutor>(new HipExecutor(
+        device_id, std::move(master), std::move(alloc), stream));
 }
 
 
@@ -125,42 +111,14 @@ void OmpExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
 void HipExecutor::raw_free(void* ptr) const noexcept
 {
     detail::hip_scoped_device_id_guard g(this->get_device_id());
-    auto error_code = hipFree(ptr);
-    if (error_code != hipSuccess) {
-#if GKO_VERBOSE_LEVEL >= 1
-        // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable HIP error on device "
-                  << this->get_device_id() << " in " << __func__ << ": "
-                  << hipGetErrorName(error_code) << ": "
-                  << hipGetErrorString(error_code) << std::endl
-                  << "Exiting program" << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
-        std::exit(error_code);
-    }
+    alloc_->deallocate(ptr);
 }
 
 
 void* HipExecutor::raw_alloc(size_type num_bytes) const
 {
-    void* dev_ptr = nullptr;
     detail::hip_scoped_device_id_guard g(this->get_device_id());
-    int error_code = 0;
-    if (this->alloc_mode_ == allocation_mode::device) {
-        error_code = hipMalloc(&dev_ptr, num_bytes);
-#if !(GKO_HIP_PLATFORM_HCC == 1)
-    } else if (this->alloc_mode_ == allocation_mode::unified_global) {
-        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachGlobal);
-    } else if (this->alloc_mode_ == allocation_mode::unified_host) {
-        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachHost);
-#endif
-    } else {
-        GKO_NOT_SUPPORTED(this->alloc_mode_);
-    }
-    if (error_code != hipErrorMemoryAllocation) {
-        GKO_ASSERT_NO_HIP_ERRORS(error_code);
-    }
-    GKO_ENSURE_ALLOCATED(dev_ptr, "hip", num_bytes);
-    return dev_ptr;
+    return alloc_->allocate(num_bytes);
 }
 
 
@@ -309,73 +267,4 @@ void HipExecutor::init_handles()
 }
 
 
-hip_stream::hip_stream(int device_id) : stream_{}, device_id_(device_id)
-{
-    detail::hip_scoped_device_id_guard g(device_id_);
-    GKO_ASSERT_NO_HIP_ERRORS(hipStreamCreate(&stream_));
-}
-
-
-hip_stream::~hip_stream()
-{
-    if (stream_) {
-        detail::hip_scoped_device_id_guard g(device_id_);
-        hipStreamDestroy(stream_);
-    }
-}
-
-
-hip_stream::hip_stream(hip_stream&& other)
-    : stream_{std::exchange(other.stream_, nullptr)},
-      device_id_{std::exchange(other.device_id_, -1)}
-{}
-
-
-GKO_HIP_STREAM_STRUCT* hip_stream::get() const { return stream_; }
-
-
-namespace log {
-
-
-#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
-
-void begin_roctx(const char* name, profile_event_category)
-{
-    roctxRangePush(name);
-}
-
-void end_roctx(const char*, profile_event_category) { roctxRangePop(); }
-
-#else
-
-void begin_roctx(const char* name, profile_event_category)
-    GKO_NOT_COMPILED(roctx);
-
-void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(roctx);
-
-#endif
-
-
-}  // namespace log
-
-
-namespace kernels {
-namespace hip {
-
-
-void reset_device(int device_id)
-{
-    gko::detail::hip_scoped_device_id_guard guard{device_id};
-    hipDeviceReset();
-}
-
-
-void destroy_event(GKO_HIP_EVENT_STRUCT* event)
-{
-    GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event));
-}
-
-
-}  // namespace hip
-}  // namespace kernels
 }  // namespace gko

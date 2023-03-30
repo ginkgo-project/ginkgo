@@ -230,13 +230,12 @@ void solve_system(const std::string& executor_string,
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {

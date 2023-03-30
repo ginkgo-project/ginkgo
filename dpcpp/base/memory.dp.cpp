@@ -30,37 +30,42 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
+
+
+#include <CL/sycl.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+DpcppAllocatorBase::DpcppAllocatorBase(sycl::queue* queue) : queue_{queue} {}
+
+
+void* DpcppAllocator::allocate_impl(sycl::queue* queue,
+                                    size_type num_bytes) const
 {
-    return master_;
+    return sycl::malloc_device(size, *queue);
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+void DpcppAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
 {
-    return master_;
+    queue->wait_and_throw();
+    sycl::free(ptr, queue->get_context());
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
+void* DpcppUnifiedAllocator::allocate(size_type num_bytes)
 {
-    return this->get_device_id() == dest_exec->get_device_id();
+    return sycl::malloc_shared(size, *queue_);
 }
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
+void DpcppUnifiedAllocator::deallocate(void* ptr)
 {
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
+    queue_->wait_and_throw();
+    sycl::free(ptr, queue_->get_context());
 }
 
 

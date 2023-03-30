@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/stream.hpp>
+
 
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/base/scoped_device_id.hpp"
@@ -103,18 +105,19 @@ protected:
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
 #ifdef GKO_TEST_NONDEFAULT_STREAM
         cuda = gko::CudaExecutor::create(
-            0, omp, false, gko::default_cuda_alloc_mode, stream.get());
+            0, omp, std::make_shared<gko::CudaAllocator>(), stream.get());
         cuda2 = gko::CudaExecutor::create(
-            gko::CudaExecutor::get_num_devices() - 1, omp, false,
-            gko::default_cuda_alloc_mode, other_stream.get());
+            gko::CudaExecutor::get_num_devices() - 1, omp,
+            std::make_shared<gko::CudaAllocator>(), other_stream.get());
         cuda3 = gko::CudaExecutor::create(
-            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+            0, omp, std::make_shared<gko::CudaUnifiedAllocator>(0),
+            stream.get());
 #else
         cuda = gko::CudaExecutor::create(0, omp);
         cuda2 = gko::CudaExecutor::create(
             gko::CudaExecutor::get_num_devices() - 1, omp);
-        cuda3 = gko::CudaExecutor::create(0, omp, false,
-                                          gko::allocation_mode::unified_global);
+        cuda3 = gko::CudaExecutor::create(
+            0, omp, std::make_shared<gko::CudaUnifiedAllocator>(0));
 #endif
     }
 
