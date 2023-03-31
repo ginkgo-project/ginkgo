@@ -212,7 +212,7 @@ TEST(DummyLogged, PropagatesEventsWhenPropagating)
 TEST(DummyLogged, DoesNotPropagateEventsWhenDisabled)
 {
     auto exec = gko::ReferenceExecutor::create();
-    exec->set_log_propagation_mode(gko::log_propagate_mode::never);
+    exec->set_log_propagation_mode(gko::log_propagation_mode::never);
     auto l = std::shared_ptr<DummyLogger>(
         new DummyLogger(true, gko::log::Logger::iteration_complete_mask));
     DummyLoggedClass c{exec};

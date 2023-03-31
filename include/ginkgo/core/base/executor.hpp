@@ -58,7 +58,7 @@ namespace gko {
 
 
 /** How Logger events are propagated to their Executor. */
-enum class log_propagate_mode {
+enum class log_propagation_mode {
     /**
      * Events only get reported at loggers attached to the triggering object.
      * (Except for allocation/free, copy and Operations, since they happen at
@@ -903,9 +903,9 @@ public:
      * executor.
      * @see Logger::needs_propagation()
      */
-    void set_log_propagation_mode(log_propagate_mode mode)
+    void set_log_propagation_mode(log_propagation_mode mode)
     {
-        log_propagate_mode_ = mode;
+        log_propagation_mode_ = mode;
     }
 
     /**
@@ -913,12 +913,12 @@ public:
      * should be logged at propagating loggers attached to this executor, and
      * there is at least one such propagating logger.
      * @see Logger::needs_propagation()
-     * @see Executor::set_log_propagation_mode(log_propagate_mode)
+     * @see Executor::set_log_propagation_mode(log_propagation_mode)
      */
     bool should_propagate_log() const
     {
         return this->propagating_logger_refcount_.load() > 0 &&
-               log_propagate_mode_ == log_propagate_mode::automatic;
+               log_propagation_mode_ == log_propagation_mode::automatic;
     }
 
     /**
@@ -1153,7 +1153,7 @@ protected:
 
     exec_info exec_info_;
 
-    log_propagate_mode log_propagate_mode_{log_propagate_mode::automatic};
+    log_propagation_mode log_propagation_mode_{log_propagation_mode::automatic};
 
     std::atomic<int> propagating_logger_refcount_{};
 
