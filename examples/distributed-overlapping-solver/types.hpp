@@ -68,6 +68,7 @@ struct shared_idx_t {
     int remote_rank;
     // can be used in non-overlapping case for interface DOFs to denote keep
     // these DOFs in local view
+    // TODO remove and replace by operation
     int owning_rank;
 };
 

@@ -76,8 +76,8 @@ void test_non_ovlp_apply(gko::experimental::mpi::communicator comm)
 
     global->apply(global_x, global_y);
     locals[rank]->apply(local_xs[rank], local_y);
-    gko::overlapping_vec{exec, comm, gko::make_dense_view(local_y), comm_info}
-        .make_consistent(gko::overlapping_vec::operation::add);
+    gko::local_vector{exec, comm, gko::make_dense_view(local_y), comm_info}
+        .make_consistent(gko::local_vector::operation::add);
 
     std::array<std::vector<int>, 2> local_to_global = {
         std::vector<int>{0, 1, 3, 4}, std::vector<int>{2, 3, 4}};

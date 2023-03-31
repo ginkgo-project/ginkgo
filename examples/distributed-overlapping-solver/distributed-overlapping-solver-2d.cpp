@@ -190,15 +190,15 @@ int main(int argc, char* argv[])
     gko::array<shared_idx_t> shared_idxs{exec, tmp_shared_idxs.begin(),
                                          tmp_shared_idxs.end()};
 
-    gko::comm_info_t comm_info{comm, shared_idxs};
+    auto comm_info = std::make_shared<gko::comm_info_t>(
+        comm, shared_idxs, gko::comm_transform::set);
 
-    auto ovlp_A = std::make_shared<gko::overlapping_operator>(
-        exec, comm, A, comm_info, gko::overlapping_vec::operation::copy);
+    auto ovlp_A = std::make_shared<gko::overlapping_operator>(exec, comm, A);
 
-    auto ovlp_x = std::make_shared<gko::overlapping_vec>(
-        exec, comm, std::move(x), comm_info);
-    auto ovlp_b = std::make_shared<gko::overlapping_vec>(
-        exec, comm, std::move(b), comm_info);
+    auto ovlp_x = std::make_shared<gko::local_vector>(exec, comm, std::move(x),
+                                                      comm_info);
+    auto ovlp_b = std::make_shared<gko::local_vector>(exec, comm, std::move(b),
+                                                      comm_info);
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
@@ -220,11 +220,10 @@ int main(int argc, char* argv[])
                                      .with_max_block_size(1u)
                                      .on(exec))
             .on(exec)
-            ->generate(ovlp_A->local_op),
-        comm_info, gko::overlapping_vec::operation::copy);
+            ->generate(ovlp_A->local_op));
 
     auto monitor =
-        cg<gko::overlapping_vec>(ovlp_A, pre, ovlp_b, ovlp_x, num_iters, 1e-5);
+        cg<gko::local_vector>(ovlp_A, pre, ovlp_b, ovlp_x, num_iters, 1e-5);
 
     // Take timings.
     comm.synchronize();

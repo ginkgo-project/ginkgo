@@ -119,14 +119,8 @@ struct add {
 namespace gko {
 
 
-struct neighborhood_descriptor {
-    neighborhood_descriptor() {}
-
-    std::vector<int> send_sizes;
-    std::vector<int> send_offsets;
-    std::vector<int> recv_sizes;
-    std::vector<int> recv_offsets;
-};
+// ideally this should be a binary user function
+enum class comm_transform { set, add };
 
 
 /**
@@ -149,121 +143,301 @@ struct comm_info_t {
      * @param shared_idxs
      */
     comm_info_t(experimental::mpi::communicator comm,
-                const array<shared_idx_t>& shared_idxs)
-        : send_sizes(comm.size()),
-          send_offsets(comm.size() + 1),
-          recv_sizes(comm.size()),
-          recv_offsets(comm.size() + 1),
-          recv_idxs(shared_idxs.get_executor(), shared_idxs.get_num_elems()),
-          send_idxs(shared_idxs.get_executor()),
-          multiplicity{gko::array<LocalIndexType>{shared_idxs.get_executor()},
-                       gko::array<ValueType>{shared_idxs.get_executor()}}
+                const array<shared_idx_t>& shared_idxs, comm_transform op)
+        : all_to_all{comm, shared_idxs},
+          multiplicity{op == comm_transform::set ? multiplicity_t{}
+                                                 : multiplicity_t{shared_idxs}},
+          op(op)
+    {}
+
+    template <typename SendType, typename RecvType>
+    void communicate(gko::experimental::mpi::communicator comm,
+                     const matrix::Dense<SendType>* send,
+                     matrix::Dense<RecvType>* recv) const
     {
-        auto exec = shared_idxs.get_executor()->get_master();
-        std::vector<int> remote_idxs(shared_idxs.get_num_elems());
-        std::vector<int> recv_ranks(shared_idxs.get_num_elems());
+        auto send_buffer = vec::create(
+            send->get_executor(), dim<2>(all_to_all.send_offsets.back(), 1));
+        auto recv_buffer = vec::create(
+            recv->get_executor(), dim<2>(all_to_all.recv_offsets.back(), 1));
 
-        std::map<LocalIndexType, ValueType> weight_map;
-
-        // this is basically AOS->SOA but with just counting the remote ranks
-        for (int i = 0; i < shared_idxs.get_num_elems(); ++i) {
-            auto& shared_idx = shared_idxs.get_const_data()[i];
-            recv_sizes[shared_idx.remote_rank]++;
-
-            recv_ranks[i] = shared_idx.remote_rank;
-            recv_idxs.get_data()[i] = shared_idx.local_idx;
-
-            remote_idxs[i] = shared_idx.remote_idx;
-
-            if (shared_idx.owning_rank != comm.rank()) {
-                auto it = weight_map.find(shared_idx.local_idx);
-                if (it == weight_map.end()) {
-                    weight_map[shared_idx.local_idx] = 0.0;
+        if (all_to_all.send_offsets.back() > 0) {
+            send->row_gather(&all_to_all.send_idxs, send_buffer.get());
+            // this assumes that send and recv are on the same executor
+            comm.all_to_all_v(
+                send->get_executor(), send_buffer->get_values(),
+                all_to_all.send_sizes.data(), all_to_all.send_offsets.data(),
+                recv_buffer->get_values(), all_to_all.recv_sizes.data(),
+                all_to_all.recv_offsets.data());
+            if (op == comm_transform::set) {
+                // inverse row_gather
+                // unnecessary if shared_idxs would be stored separately
+                for (int i = 0; i < all_to_all.recv_idxs.get_num_elems(); ++i) {
+                    recv->at(all_to_all.recv_idxs.get_const_data()[i]) =
+                        recv_buffer->at(i);
+                }
+            } else if (op == comm_transform::add) {
+                // inverse row_gather
+                // unnecessary if shared_idxs would be stored separately
+                for (int i = 0; i < all_to_all.recv_idxs.get_num_elems(); ++i) {
+                    recv->at(all_to_all.recv_idxs.get_const_data()[i]) +=
+                        recv_buffer->at(i);
                 }
             } else {
-                auto it = weight_map.find(shared_idx.local_idx);
-                if (it == weight_map.end()) {
-                    weight_map[shared_idx.local_idx] = 1.0;
-                }
-                weight_map[shared_idx.local_idx] += 1.0;
+                GKO_NOT_IMPLEMENTED;
             }
         }
-        multiplicity.idxs.resize_and_reset(weight_map.size());
-        multiplicity.weights.resize_and_reset(weight_map.size());
+    }
+
+
+    struct all_to_all_t {
+        all_to_all_t() = default;
+
+        all_to_all_t(experimental::mpi::communicator comm,
+                     const array<shared_idx_t>& shared_idxs)
+            : send_sizes(comm.size()),
+              send_offsets(comm.size() + 1),
+              recv_sizes(comm.size()),
+              recv_offsets(comm.size() + 1),
+              recv_idxs(shared_idxs.get_executor(),
+                        shared_idxs.get_num_elems()),
+              send_idxs(shared_idxs.get_executor())
         {
-            int i = 0;
-            for (const auto& elem : weight_map) {
-                const auto& idx = elem.first;
-                const auto& weight = elem.second;
-                multiplicity.idxs.get_data()[i] = idx;
-                // need sqrt for norms and scalar products
-                if (weight == 0.0) {
-                    multiplicity.weights.get_data()[i] = 1.0;
-                } else {
-                    multiplicity.weights.get_data()[i] = sqrt(1.0 / weight);
-                }
-                ++i;
+            auto exec = shared_idxs.get_executor()->get_master();
+            std::vector<int> remote_idxs(shared_idxs.get_num_elems());
+            std::vector<int> recv_ranks(shared_idxs.get_num_elems());
+
+            // this is basically AOS->SOA but with just counting the remote
+            // ranks
+            for (int i = 0; i < shared_idxs.get_num_elems(); ++i) {
+                auto& shared_idx = shared_idxs.get_const_data()[i];
+                recv_sizes[shared_idx.remote_rank]++;
+
+                recv_ranks[i] = shared_idx.remote_rank;
+                recv_idxs.get_data()[i] = shared_idx.local_idx;
+
+                remote_idxs[i] = shared_idx.remote_idx;
             }
+            // sort by rank
+            auto sort_it = detail::make_zip_iterator(
+                recv_ranks.data(), recv_idxs.get_data(), remote_idxs.data());
+            std::sort(sort_it, sort_it + shared_idxs.get_num_elems(),
+                      [](const auto a, const auto b) {
+                          return std::get<0>(a) < std::get<0>(b);
+                      });
+
+            std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                             recv_offsets.begin() + 1);
+
+            // exchange recv_idxs to get which indices this rank has to sent to
+            // every other rank
+            comm.all_to_all(exec, recv_sizes.data(), 1, send_sizes.data(), 1);
+            std::partial_sum(send_sizes.begin(), send_sizes.end(),
+                             send_offsets.begin() + 1);
+            send_idxs.resize_and_reset(send_offsets.back());
+
+            comm.all_to_all_v(exec, remote_idxs.data(), recv_sizes.data(),
+                              recv_offsets.data(), send_idxs.get_data(),
+                              send_sizes.data(), send_offsets.data());
         }
-        // sort by rank
-        auto sort_it = detail::make_zip_iterator(
-            recv_ranks.data(), recv_idxs.get_data(), remote_idxs.data());
-        std::sort(sort_it, sort_it + shared_idxs.get_num_elems(),
-                  [](const auto a, const auto b) {
-                      return std::get<0>(a) < std::get<0>(b);
-                  });
 
-        std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
-                         recv_offsets.begin() + 1);
+        // default variable all-to-all data
+        std::vector<int> send_sizes;
+        std::vector<int> send_offsets;
+        std::vector<int> recv_sizes;
+        std::vector<int> recv_offsets;
 
-        // exchange recv_idxs to get which indices this rank has to sent to
-        // every other rank
-        comm.all_to_all(exec, recv_sizes.data(), 1, send_sizes.data(), 1);
-        std::partial_sum(send_sizes.begin(), send_sizes.end(),
-                         send_offsets.begin() + 1);
-        send_idxs.resize_and_reset(send_offsets.back());
+        // DOFs to send. These are dofs that are shared with other ranks,
+        // but this rank owns them.
+        gko::array<LocalIndexType> send_idxs;
+        // DOFs to send. These are dofs that are shared with other ranks,
+        // but other ranks own them. May overlap with send_idxs.
+        gko::array<LocalIndexType> recv_idxs;
+    };
+    all_to_all_t all_to_all;
 
-        comm.all_to_all_v(exec, remote_idxs.data(), recv_sizes.data(),
-                          recv_offsets.data(), send_idxs.get_data(),
-                          send_sizes.data(), send_offsets.data());
-    }
-
-    ValueType get_weight(LocalIndexType idx) const
-    {
-        auto it = std::lower_bound(multiplicity.idxs.get_const_data(),
-                                   multiplicity.idxs.get_const_data() +
-                                       multiplicity.idxs.get_num_elems(),
-                                   idx);
-        auto dist = std::distance(multiplicity.idxs.get_const_data(), it);
-        if (dist < multiplicity.idxs.get_num_elems() && *it == idx) {
-            return multiplicity.weights.get_const_data()[dist];
-        } else {
-            return one<ValueType>();
-        }
-    }
-
-    // default variable all-to-all data
-    std::vector<int> send_sizes;
-    std::vector<int> send_offsets;
-    std::vector<int> recv_sizes;
-    std::vector<int> recv_offsets;
-
-    // DOFs to send. These are dofs that are shared with other ranks,
-    // but this rank owns them.
-    gko::array<LocalIndexType> send_idxs;
-    // DOFs to send. These are dofs that are shared with other ranks,
-    // but other ranks own them. May overlap with send_idxs.
-    gko::array<LocalIndexType> recv_idxs;
     // maybe also store multiplicity of each index?
     // could also store explicit zero for non-owned idxs
     // non-owned idxs have explicit zero weight.
     struct multiplicity_t {
         gko::array<LocalIndexType> idxs;
         gko::array<ValueType> weights;
+
+        multiplicity_t() = default;
+
+        multiplicity_t(const array<shared_idx_t>& shared_idxs)
+            : idxs(shared_idxs.get_executor()),
+              weights(shared_idxs.get_executor())
+        {
+            std::map<LocalIndexType, ValueType> weight_map;
+
+            // this is basically AOS->SOA but with just counting the remote
+            // ranks
+            for (int i = 0; i < shared_idxs.get_num_elems(); ++i) {
+                auto& shared_idx = shared_idxs.get_const_data()[i];
+                auto it = weight_map.find(shared_idx.local_idx);
+                if (it == weight_map.end()) {
+                    weight_map[shared_idx.local_idx] = 1.0;
+                }
+                weight_map[shared_idx.local_idx] += 1.0;
+            }
+            idxs.resize_and_reset(weight_map.size());
+            weights.resize_and_reset(weight_map.size());
+            {
+                int i = 0;
+                for (const auto& elem : weight_map) {
+                    const auto& idx = elem.first;
+                    const auto& weight = elem.second;
+                    idxs.get_data()[i] = idx;
+                    // need sqrt for norms and scalar products
+                    weights.get_data()[i] = sqrt(1.0 / weight);
+                    ++i;
+                }
+            }
+        }
+
+        ValueType get_weight(LocalIndexType idx) const
+        {
+            auto it = std::lower_bound(
+                idxs.get_const_data(),
+                idxs.get_const_data() + idxs.get_num_elems(), idx);
+            auto dist = std::distance(idxs.get_const_data(), it);
+            if (dist < idxs.get_num_elems() && *it == idx) {
+                return weights.get_const_data()[dist];
+            } else {
+                return one<ValueType>();
+            }
+        }
     };
     multiplicity_t multiplicity;
+
+    comm_transform op;
 };
 
+
+namespace experimental {
+
+/**
+ * Holds the necessary information for a decomposition of DOFs without relying
+ * on global data. It consists of
+ * - send/recv sizes, offsets, indices
+ * - weights for shared DOFs
+ * - transformation to combine received DOFs with existing DOFs
+ *
+ * It can be constructed from purely local information, i.e. which local DOF
+ * corresponds to which DOF on other processes (in their local numbering).
+ */
+struct comm_info_t {
+    /**
+     * Extracts communication pattern from a list of shared DOFs.
+     */
+    comm_info_t(mpi::communicator comm, const array<shared_idx_t>& shared_idxs,
+                comm_transform op);
+
+    // does the all-to-all communication on the given input and output vectors
+    // could also be made into a two parameter function, by using send=recv
+    template <typename SendType, typename RecvType>
+    void communicate(mpi::communicator comm,
+                     const matrix::Dense<SendType>* send,
+                     matrix::Dense<RecvType>* recv) const;
+
+    // contains all necessary data for an all-to-all_v communication,
+    // and gather/scatter indices
+    struct all_to_all_t {
+        all_to_all_t(mpi::communicator comm,
+                     const array<shared_idx_t>& shared_idxs);
+
+        // default variable all-to-all data
+        std::vector<int> send_sizes;
+        std::vector<int> send_offsets;
+        std::vector<int> recv_sizes;
+        std::vector<int> recv_offsets;
+
+        // DOFs to send. These are dofs that are shared with other ranks,
+        // but this rank owns them.
+        gko::array<LocalIndexType> send_idxs;
+        // DOFs to send. These are dofs that are shared with other ranks,
+        // but other ranks own them. May overlap with send_idxs.
+        gko::array<LocalIndexType> recv_idxs;
+    };
+    all_to_all_t all_to_all;
+
+    // stores the multiplicity of the shared DOFs.
+    // The multiplicity is stored as 1/sqrt(#Owners)
+    // if the DOF is owned by this process, otherwise it's zero
+    struct multiplicity_t {
+        // maybe a better storage scheme using bitmaps would be possible
+        gko::array<LocalIndexType> idxs;
+        gko::array<ValueType> weights;
+
+        // strictly only needs the recv_idxs
+        multiplicity_t(const array<shared_idx_t>& shared_idxs);
+
+        ValueType get_weight(LocalIndexType idx) const;
+    };
+    multiplicity_t multiplicity;
+
+    comm_transform op;
+};
+
+
+/**
+ * Distributed vector that relies only on local information.
+ */
+struct local_vector : public EnableDistributedLinOp<local_vector>,
+                      public distributed::DistributedBase {
+    local_vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+                 std::shared_ptr<comm_info_t> comm_info);
+
+    // Updates shared DOFs with the values from their shared ranks.
+    //
+    // After this call all DOFs have the values of the corresponding global
+    // DOFs. Considering a distributed operator that can be written as A = sum_i
+    // R_i^T D_i A_i R_i, then the corresponding global vectors are u = sum_i
+    // R_i^T D_i u_i. The local vector can then be recovered by u_j = R_j u.
+    // This operation combines these two steps into one as u_j = R_j sum_i R_i^T
+    // D_i u_i, which eliminates the need for a global vector.
+    // TODO: should this rather be part of the operator?
+    // TODO: has to be blocking, but could be made non-blocking by partitioning
+    // the DOFs by owned/non-owned
+    void make_consistent();
+
+    // point-wise operation the same as dense
+
+    // reductions use weights defined in comm_info to
+    // - remove (zero-out) non-owned DOFs
+    // - scale by sqrt(1/#Owned)
+
+    std::unique_ptr<const matrix::Dense<>> get_dense() const;
+    std::unique_ptr<matrix::Dense<>> get_dense();  // returns a view
+private:
+    std::unique_ptr<matrix::Dense<>> data;
+    std::shared_ptr<const comm_info_t> comm_info;
+};
+
+
+struct consistent_op : public EnableLinOp<consistent_op> {
+protected:
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        local_op->apply(as<local_vector>(b)->get_dense(),
+                        as<local_vector>(x)->get_dense());
+        as<local_vector>(x)->make_consistent();
+    }
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {
+        local_op->apply(alpha, as<local_vector>(b)->get_dense(), beta,
+                        as<local_vector>(x)->get_dense());
+        as<local_vector>(x)->make_consistent();
+    }
+
+private:
+    std::unique_ptr<LinOp> local_op;
+};
+
+
+}  // namespace experimental
 
 /**
  * Currently this class is explicitly for overlapping methods. But it should be
@@ -272,16 +446,19 @@ struct comm_info_t {
  * is handled purely locally, also wrt to commmunication (ie only local indices
  * are used in the communication).
  */
-struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
-    overlapping_vec(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<overlapping_vec, vec>(exec), comm(MPI_COMM_NULL)
+struct local_vector : public EnableLinOp<local_vector, vec> {
+    local_vector(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<local_vector, vec>(exec), comm(MPI_COMM_NULL)
     {}
 
-    overlapping_vec(std::shared_ptr<const Executor> exec,
-                    experimental::mpi::communicator comm,
-                    std::unique_ptr<vec> local_vec, comm_info_t comm_info)
-        : EnableLinOp<overlapping_vec, vec>(local_vec->get_executor(),
-                                            local_vec->get_size()),
+    // could also use vector<comm_info_t*> to have DOFs with different
+    // transformations
+    local_vector(std::shared_ptr<const Executor> exec,
+                 experimental::mpi::communicator comm,
+                 std::unique_ptr<vec> local_vec,
+                 std::shared_ptr<comm_info_t> comm_info)
+        : EnableLinOp<local_vector, vec>(local_vec->get_executor(),
+                                         local_vec->get_size()),
           comm(comm),
           comm_info(comm_info)
     {
@@ -290,9 +467,9 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
 
     std::unique_ptr<Dense> create_with_same_config() const override
     {
-        return std::make_unique<overlapping_vec>(
-            this->get_executor(), this->comm, vec::create_with_same_config(),
-            comm_info);
+        return std::make_unique<local_vector>(this->get_executor(), this->comm,
+                                              vec::create_with_same_config(),
+                                              comm_info);
     }
 
 
@@ -305,8 +482,6 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
     {
         GKO_NOT_IMPLEMENTED;
     }
-
-    enum class operation { copy, add, average };
 
     /**
      * Updates non-local dofs from their respective ranks, using
@@ -339,73 +514,12 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
      *
      * Perhaps something more generic to allow for user-defined transformations?
      */
-    void make_consistent(operation op)
-    {
-        auto exec = this->get_executor();
-        auto send_buffer =
-            vec::create(exec, dim<2>(comm_info.send_offsets.back(), 1));
-        auto recv_buffer =
-            vec::create(exec, dim<2>(comm_info.recv_offsets.back(), 1));
-
-        if (op == operation::copy) {
-            if (comm_info.send_offsets.back() > 0) {
-                // can't handle row gather with empty idxs??
-                this->row_gather(&comm_info.send_idxs, send_buffer.get());
-                comm.all_to_all_v(
-                    exec, send_buffer->get_values(),
-                    comm_info.send_sizes.data(), comm_info.send_offsets.data(),
-                    recv_buffer->get_values(), comm_info.recv_sizes.data(),
-                    comm_info.recv_offsets.data());
-                // inverse row_gather
-                // unnecessary if shared_idxs would be stored separately
-                for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
-                    this->at(comm_info.recv_idxs.get_data()[i]) =
-                        recv_buffer->at(i);
-                }
-            }
-        } else if (op == operation::average) {
-            if (comm_info.send_offsets.back() > 0) {
-                // can't handle row gather with empty idxs??
-                this->row_gather(&comm_info.send_idxs, send_buffer.get());
-                comm.all_to_all_v(
-                    exec, send_buffer->get_values(),
-                    comm_info.send_sizes.data(), comm_info.send_offsets.data(),
-                    recv_buffer->get_values(), comm_info.recv_sizes.data(),
-                    comm_info.recv_offsets.data());
-                // inverse row_gather
-                // unnecessary if shared_idxs would be stored separately
-                for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
-                    this->at(comm_info.recv_idxs.get_data()[i]) =
-                        (this->at(comm_info.recv_idxs.get_data()[i]) +
-                         recv_buffer->at(i)) /
-                        2;
-                }
-            }
-        } else if (op == operation::add) {
-            if (comm_info.send_offsets.back() > 0) {
-                // can't handle row gather with empty idxs??
-                this->row_gather(&comm_info.send_idxs, send_buffer.get());
-                comm.all_to_all_v(
-                    exec, send_buffer->get_values(),
-                    comm_info.send_sizes.data(), comm_info.send_offsets.data(),
-                    recv_buffer->get_values(), comm_info.recv_sizes.data(),
-                    comm_info.recv_offsets.data());
-                // inverse row_gather
-                // unnecessary if shared_idxs would be stored separately
-                for (int i = 0; i < comm_info.recv_idxs.get_num_elems(); ++i) {
-                    this->at(comm_info.recv_idxs.get_data()[i]) +=
-                        recv_buffer->at(i);
-                }
-            }
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-    }
+    void make_consistent() { comm_info->communicate(comm, this, this); }
 
     /**
-     * Constraints the overlapping vector to the DOFs owned by this rank. This
-     * can still contain DOFs shared with other ranks, but not exclusively owned
-     * by them.
+     * Scales the local vector by the weights defined in the DOFs distribution.
+     * Non-owned DOFs will be zeroed out, while shared DOFs will be scaled by
+     * 1/sqrt(#Owners).
      */
     std::unique_ptr<vec> extract_local() const
     {
@@ -415,7 +529,8 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
         // copy-if, but in stupid
         // could be row_gather(complement(idx_set))
         for (int j = 0; j < this->get_size()[0]; ++j) {
-            no_ovlp_local->at(j) = this->at(j) * comm_info.get_weight(j);
+            no_ovlp_local->at(j) =
+                this->at(j) * comm_info->multiplicity.get_weight(j);
         }
 
         return no_ovlp_local;
@@ -423,7 +538,7 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
 
     void compute_dot_impl(const LinOp* b, LinOp* result) const override
     {
-        auto ovlp_b = dynamic_cast<const overlapping_vec*>(b);
+        auto ovlp_b = dynamic_cast<const local_vector*>(b);
         auto no_ovlp_b = ovlp_b->extract_local();
         auto no_ovlp_local = this->extract_local();
 
@@ -445,7 +560,7 @@ struct overlapping_vec : public EnableLinOp<overlapping_vec, vec> {
     }
 
     experimental::mpi::communicator comm;
-    comm_info_t comm_info;
+    std::shared_ptr<comm_info_t> comm_info;
 };
 
 
@@ -454,37 +569,28 @@ struct overlapping_operator
       public experimental::EnableDistributedLinOp<overlapping_operator> {
     overlapping_operator(std::shared_ptr<const Executor> exec,
                          experimental::mpi::communicator comm,
-                         std::shared_ptr<LinOp> local_op = nullptr,
-                         comm_info_t comm_info = {},
-                         overlapping_vec::operation shared_mode = {})
+                         std::shared_ptr<LinOp> local_op = nullptr)
         : experimental::distributed::DistributedBase(comm),
           experimental::EnableDistributedLinOp<overlapping_operator>{
               exec, local_op->get_size()},
-          local_op(local_op),
-          comm_info(comm_info),
-          shared_mode(shared_mode)
+          local_op(local_op)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
         local_op->apply(b, x);
-        // exchange data
-        as<overlapping_vec>(x)->make_consistent(shared_mode);
+        as<local_vector>(x)->make_consistent();
     }
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        auto copy_x = x->clone();
-        apply_impl(b, x);
-        as<vec>(x)->scale(alpha);
-        as<vec>(x)->add_scaled(beta, copy_x);
+        local_op->apply(alpha, b, beta, x);
+        as<local_vector>(x)->make_consistent();
     }
 
     bool apply_uses_initial_guess() const override { return true; }
 
     std::shared_ptr<LinOp> local_op;
-    comm_info_t comm_info;
-    overlapping_vec::operation shared_mode;
 };
 
 
