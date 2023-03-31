@@ -107,8 +107,8 @@ class Factorization : public EnableLinOp<Factorization<ValueType, IndexType>> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using matrix_type = matrix::Csr<ValueType, IndexType>;
-    using diag_type = matrix::Diagonal<ValueType>;
+    using matrix_type = gko::matrix::Csr<ValueType, IndexType>;
+    using diag_type = gko::matrix::Diagonal<ValueType>;
     using composition_type = Composition<ValueType>;
 
     /**

@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/complex.h>
 
 
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
 

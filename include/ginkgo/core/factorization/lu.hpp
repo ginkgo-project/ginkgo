@@ -67,8 +67,9 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-    using matrix_type = matrix::Csr<value_type, index_type>;
-    using sparsity_pattern_type = matrix::SparsityCsr<value_type, index_type>;
+    using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using sparsity_pattern_type =
+        gko::matrix::SparsityCsr<value_type, index_type>;
     using factorization_type = Factorization<value_type, index_type>;
 
     struct parameters_type
