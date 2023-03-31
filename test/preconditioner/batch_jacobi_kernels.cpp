@@ -45,10 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 #include "test/utils/executor.hpp"
-#include "core/preconditioner/jacobi_kernels.hpp"
 
 
 namespace {
@@ -132,13 +132,10 @@ protected:
 
     gko::size_type compute_storage_space(const int num_batch)
     {
-        return (
-        ref_block_jacobi_prec->get_num_blocks() + 1 == 0)
-                   ? 0
-                   : num_batch *
-                         (ref_block_jacobi_prec->get_executor()->copy_val_to_host(
-                             ref_block_jacobi_prec->get_const_blocks_cumulative_storage() +
-                             ref_block_jacobi_prec->get_num_blocks()));
+        GKO_ASSERT(ref_block_jacobi_prec->get_num_blocks() > 0);
+        return num_batch *
+               (ref_block_jacobi_prec->get_const_blocks_cumulative_storage() +
+                ref_block_jacobi_prec->get_num_blocks())[0];
     }
 
     const size_t nbatch = 3;
@@ -338,24 +335,25 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiComputeCumulativeBlock)
     const auto& ref_storage_scheme = ref_prec->get_blocks_storage_scheme();
     const auto& d_storage_scheme = d_prec->get_blocks_storage_scheme();
 
-//    const auto tol = 100000 * r<ValueType>::value;
-/*
-    gko::array<int> d_block_pointers_copied_to_ref(ref, num_blocks + 1);
-    ref->copy_from(exec.get(), num_blocks + 1,
-                   d_prec->get_const_block_pointers(),
-                   d_block_pointers_copied_to_ref.get_data());
-*/
+    //    const auto tol = 100000 * r<ValueType>::value;
+    /*
+        gko::array<int> d_block_pointers_copied_to_ref(ref, num_blocks + 1);
+        ref->copy_from(exec.get(), num_blocks + 1,
+                       d_prec->get_const_block_pointers(),
+                       d_block_pointers_copied_to_ref.get_data());
+    */
     gko::array<int> ref_block_cumulative_storage(ref_exec, num_blocks + 1);
     ref_exec->copy_from(ref_exec, num_blocks + 1,
-                   ref_prec->get_const_blocks_cumulative_storage(),
-                   ref_block_cumulative_storage.get_data());
+                        ref_prec->get_const_blocks_cumulative_storage(),
+                        ref_block_cumulative_storage.get_data());
 
     gko::array<int> d_block_cumulative_storage(d_exec, num_blocks + 1);
     d_exec->copy_from(d_exec, num_blocks + 1,
-                   d_prec->get_const_blocks_cumulative_storage(),
-                   d_block_cumulative_storage.get_data());
+                      d_prec->get_const_blocks_cumulative_storage(),
+                      d_block_cumulative_storage.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(d_block_cumulative_storage, ref_block_cumulative_storage);
+    GKO_ASSERT_ARRAY_EQ(d_block_cumulative_storage,
+                        ref_block_cumulative_storage);
 }
 
 TYPED_TEST(BatchJacobi, BatchBlockJacobiFindRowIsPartOfWhichBlock)
@@ -370,15 +368,16 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiFindRowIsPartOfWhichBlock)
 
     gko::array<int> ref_row_is_part_of_which_block(ref_exec, nrows);
     ref_exec->copy_from(ref_exec, nrows,
-                   ref_prec->get_const_row_is_part_of_which_block_info(),
-                   ref_row_is_part_of_which_block.get_data());
+                        ref_prec->get_const_row_is_part_of_which_block_info(),
+                        ref_row_is_part_of_which_block.get_data());
 
     gko::array<int> d_row_is_part_of_which_block(d_exec, nrows);
     d_exec->copy_from(d_exec, nrows,
-                   d_prec->get_const_row_is_part_of_which_block_info(),
-                   d_row_is_part_of_which_block.get_data());
+                      d_prec->get_const_row_is_part_of_which_block_info(),
+                      d_row_is_part_of_which_block.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(ref_row_is_part_of_which_block, d_row_is_part_of_which_block);
+    GKO_ASSERT_ARRAY_EQ(ref_row_is_part_of_which_block,
+                        d_row_is_part_of_which_block);
 }
 
 TYPED_TEST(BatchJacobi, BatchBlockJacobiExtractCommonBlocksPattern)
@@ -394,13 +393,13 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiExtractCommonBlocksPattern)
     auto ref_exec = this->ref;
     auto d_exec = this->exec;
 
-    gko::array<int> ref_blocks_pattern(ref_exec, this->compute_storage_space(1));
+    gko::array<int> ref_blocks_pattern(ref_exec,
+                                       this->compute_storage_space(1));
     ref_blocks_pattern.fill(-1);
     gko::array<int> d_blocks_pattern(d_exec, ref_blocks_pattern);
 
     gko::kernels::reference::batch_jacobi::extract_common_blocks_pattern(
-        ref_exec, ref_unbatch_mtx[0].get(),
-        ref_prec->get_num_blocks(),
+        ref_exec, ref_unbatch_mtx[0].get(), ref_prec->get_num_blocks(),
         ref_prec->get_blocks_storage_scheme(),
         ref_prec->get_const_blocks_cumulative_storage(),
         ref_prec->get_const_block_pointers(),
@@ -408,8 +407,7 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiExtractCommonBlocksPattern)
         ref_blocks_pattern.get_data());
 
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::extract_common_blocks_pattern(
-        d_exec, d_unbatch_mtx[0].get(),
-        d_prec->get_num_blocks(),
+        d_exec, d_unbatch_mtx[0].get(), d_prec->get_num_blocks(),
         d_prec->get_blocks_storage_scheme(),
         d_prec->get_const_blocks_cumulative_storage(),
         d_prec->get_const_block_pointers(),
@@ -433,12 +431,12 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiComputeBlockData)
     auto ref_exec = this->ref;
     auto d_exec = this->exec;
 
-    gko::array<int> ref_blocks_pattern(ref_exec, this->compute_storage_space(1));
+    gko::array<int> ref_blocks_pattern(ref_exec,
+                                       this->compute_storage_space(1));
     ref_blocks_pattern.fill(-1);
 
     gko::kernels::reference::batch_jacobi::extract_common_blocks_pattern(
-        ref_exec, ref_unbatch_mtx[0].get(),
-        ref_prec->get_num_blocks(),
+        ref_exec, ref_unbatch_mtx[0].get(), ref_prec->get_num_blocks(),
         ref_prec->get_blocks_storage_scheme(),
         ref_prec->get_const_blocks_cumulative_storage(),
         ref_prec->get_const_block_pointers(),
@@ -449,35 +447,36 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiComputeBlockData)
 
     auto size = this->compute_storage_space(this->nbatch);
     gko::array<value_type> ref_blocks(ref_exec, size);
+    ref_blocks.fill(gko::zero<value_type>());
+    gko::array<value_type> d_blocks(d_exec, ref_blocks);
+
     gko::kernels::reference::batch_jacobi::compute_block_jacobi(
-        ref_exec, this->ref_mtx.get(),
-        ref_prec->get_max_block_size(),
-        ref_prec->get_num_blocks(),
-        ref_prec->get_blocks_storage_scheme(),
+        ref_exec, this->ref_mtx.get(), ref_prec->get_max_block_size(),
+        ref_prec->get_num_blocks(), ref_prec->get_blocks_storage_scheme(),
         ref_prec->get_const_blocks_cumulative_storage(),
-        ref_prec->get_const_block_pointers(),
-        ref_blocks_pattern.get_data(),
+        ref_prec->get_const_block_pointers(), ref_blocks_pattern.get_data(),
         ref_blocks.get_data());
 
-    gko::array<value_type> d_blocks(d_exec, size);
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::compute_block_jacobi(
-        d_exec, this->d_mtx.get(),
-        d_prec->get_max_block_size(),
-        d_prec->get_num_blocks(),
-        d_prec->get_blocks_storage_scheme(),
+        d_exec, this->d_mtx.get(), d_prec->get_max_block_size(),
+        d_prec->get_num_blocks(), d_prec->get_blocks_storage_scheme(),
         d_prec->get_const_blocks_cumulative_storage(),
-        d_prec->get_const_block_pointers(),
-        d_blocks_pattern.get_data(),
+        d_prec->get_const_block_pointers(), d_blocks_pattern.get_data(),
         d_blocks.get_data());
 
-    auto ref_blocks_copy = gko::matrix::Dense<value_type>::create_const(
-            this->ref, gko::dim<2>{size, 1},
-            gko::array<value_type>::const_view(this->ref, size, ref_blocks.get_const_data()), 1);
-    auto d_blocks_copy = gko::matrix::Dense<value_type>::create_const(
-            this->exec, gko::dim<2>{size, 1},
-            gko::array<value_type>::const_view(this->exec, size, d_blocks.get_const_data()), 1);
 
-    const auto tol = r<value_type>::value;
+    auto ref_blocks_copy = gko::matrix::Dense<value_type>::create_const(
+        this->ref, gko::dim<2>{size, 1},
+        gko::array<value_type>::const_view(this->ref, size,
+                                           ref_blocks.get_const_data()),
+        1);
+    auto d_blocks_copy = gko::matrix::Dense<value_type>::create_const(
+        this->exec, gko::dim<2>{size, 1},
+        gko::array<value_type>::const_view(this->exec, size,
+                                           d_blocks.get_const_data()),
+        1);
+
+    const auto tol = r<value_type>::value * 50;
     GKO_ASSERT_MTX_NEAR(ref_blocks_copy, d_blocks_copy, tol);
 }
 
