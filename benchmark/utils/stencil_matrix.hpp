@@ -98,9 +98,10 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_y, const int position_x) {
-        return static_cast<int>(local_size) * position_x +
-               static_cast<int>(local_size) * dims[0] * position_y;
+    auto global_offset = [&](const IndexType position_y,
+                             const IndexType position_x) {
+        return static_cast<IndexType>(local_size) * position_x +
+               static_cast<IndexType>(local_size) * dims[0] * position_y;
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -127,8 +128,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         }
     };
 
-    auto is_valid_neighbor = [&](const IndexType d_j, const IndexType d_i) {
-        return !restricted || d_i == 0 || d_j == 0;
+    auto is_valid_neighbor = [&](const IndexType dy, const IndexType dx) {
+        return !restricted || dx == 0 || dy == 0;
     };
 
     auto nnz_in_row = [&]() {
@@ -144,13 +145,15 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
-    for (IndexType i = 0; i < discretization_points; ++i) {
-        for (IndexType j = 0; j < discretization_points; ++j) {
-            auto row = flat_idx(i, j);
-            for (IndexType d_i : {-1, 0, 1}) {
-                for (IndexType d_j : {-1, 0, 1}) {
-                    if (is_valid_neighbor(d_i, d_j)) {
-                        auto col = flat_idx(i + d_i, j + d_j);
+    A_data.nonzeros.reserve(nnz_in_row() * local_size);
+
+    for (IndexType iy = 0; iy < discretization_points; ++iy) {
+        for (IndexType ix = 0; ix < discretization_points; ++ix) {
+            auto row = flat_idx(iy, ix);
+            for (IndexType dy : {-1, 0, 1}) {
+                for (IndexType dx : {-1, 0, 1}) {
+                    if (is_valid_neighbor(dy, dx)) {
+                        auto col = flat_idx(iy + dy, ix + dx);
                         if (is_in_box(col,
                                       static_cast<IndexType>(global_size))) {
                             if (col != row) {
@@ -208,11 +211,13 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    auto global_offset = [&](const int position_z, const int position_y,
-                             const int position_x) {
-        return position_x * static_cast<int>(local_size) +
-               position_y * static_cast<int>(local_size) * dims[0] +
-               position_z * static_cast<int>(local_size) * dims[0] * dims[1];
+    auto global_offset = [&](const IndexType position_z,
+                             const IndexType position_y,
+                             const IndexType position_x) {
+        return position_x * static_cast<IndexType>(local_size) +
+               position_y * static_cast<IndexType>(local_size) * dims[0] +
+               position_z * static_cast<IndexType>(local_size) * dims[0] *
+                   dims[1];
     };
 
     auto target_position = [&](const IndexType i, const int position) {
@@ -244,9 +249,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         }
     };
 
-    auto is_valid_neighbor = [&](const IndexType d_i, const IndexType d_j,
-                                 const IndexType d_k) {
-        return !restricted || ((d_i == 0) + (d_j == 0) + (d_k == 0) >= 2);
+    auto is_valid_neighbor = [&](const IndexType dz, const IndexType dy,
+                                 const IndexType dx) {
+        return !restricted || ((dz == 0) + (dy == 0) + (dx == 0) >= 2);
     };
 
     auto nnz_in_row = [&]() {
@@ -264,15 +269,17 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     };
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
-    for (IndexType i = 0; i < discretization_points; ++i) {
-        for (IndexType j = 0; j < discretization_points; ++j) {
-            for (IndexType k = 0; k < discretization_points; ++k) {
-                auto row = flat_idx(i, j, k);
-                for (IndexType d_i : {-1, 0, 1}) {
-                    for (IndexType d_j : {-1, 0, 1}) {
-                        for (IndexType d_k : {-1, 0, 1}) {
-                            if (is_valid_neighbor(d_i, d_j, d_k)) {
-                                auto col = flat_idx(i + d_i, j + d_j, k + d_k);
+    A_data.nonzeros.reserve(nnz_in_row() * local_size);
+
+    for (IndexType iz = 0; iz < discretization_points; ++iz) {
+        for (IndexType iy = 0; iy < discretization_points; ++iy) {
+            for (IndexType ix = 0; ix < discretization_points; ++ix) {
+                auto row = flat_idx(iz, iy, ix);
+                for (IndexType dz : {-1, 0, 1}) {
+                    for (IndexType dy : {-1, 0, 1}) {
+                        for (IndexType dx : {-1, 0, 1}) {
+                            if (is_valid_neighbor(dz, dy, dx)) {
+                                auto col = flat_idx(iz + dz, iy + dy, ix + dx);
                                 if (is_in_box(col, static_cast<IndexType>(
                                                        global_size))) {
                                     if (col != row) {
