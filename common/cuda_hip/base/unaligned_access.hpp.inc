@@ -60,6 +60,25 @@ __device__ void set_value_chunk(void* ptr, size_type start, T value)
 
 
 /**
+ * Copies the value in the m-th byte of ptr.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ * @param value  the value
+ * @param pos    the component of the vector
+ */
+template <typename T>
+__device__ void set_value_chunk(void* ptr, size_type start, size_type pos,
+                                T value)
+{
+    memcpy(static_cast<unsigned char*>(ptr) + start + pos * sizeof(T), &value,
+           sizeof(T));
+}
+
+
+/**
  * Returns the value in the m-th byte of ptr, which is adjusting to T class.
  *
  * @tparam T     the type of value
@@ -85,6 +104,28 @@ __device__ T get_value_chunk(const void* ptr, size_type start)
     // }
     memcpy(&value, static_cast<const unsigned char*>(ptr) + start, sizeof(T));
     return value;
+}
+
+
+/**
+ * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ * @param pos    the component of the vector
+ *
+ * @return the value in the m-th byte of ptr, which is adjusting to T class.
+ */
+template <typename T>
+__device__ T get_value_chunk(const void* ptr, size_type start, size_type pos)
+{
+    T val{};
+    std::memcpy(
+        &val, static_cast<const unsigned char*>(ptr) + start + pos * sizeof(T),
+        sizeof(T));
+    return val;
 }
 
 

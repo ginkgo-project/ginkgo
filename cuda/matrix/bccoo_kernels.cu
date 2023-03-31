@@ -262,7 +262,8 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            //            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
                 as_cuda_type(source->get_const_offsets()),
@@ -322,7 +323,8 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            //            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
                 as_cuda_type(source->get_const_offsets()),
@@ -375,7 +377,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_dense<<<bccoo_grid, bccoo_block>>>(
+            //            kernel::fill_in_dense<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
                 as_cuda_type(source->get_const_offsets()),
