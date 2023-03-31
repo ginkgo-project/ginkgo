@@ -300,21 +300,29 @@ public:
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept { return num_nonzeros_; }
+    // size_type get_num_stored_elements() const noexcept { return
+    // num_nonzeros_; }
+    index_type get_num_stored_elements() const noexcept
+    {
+        return num_nonzeros_;
+    }
 
     /**
      * Returns the block size used in the definition of the matrix.
      *
      * @return the block size used in the definition of the matrix.
      */
-    size_type get_block_size() const noexcept { return block_size_; }
+    // size_type get_block_size() const noexcept { return block_size_; }
+    index_type get_block_size() const noexcept { return block_size_; }
 
     /**
      * Returns the number of blocks used in the definition of the matrix.
      *
      * @return the number of blocks used in the definition of the matrix.
      */
-    size_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
+    // size_type get_num_blocks() const noexcept { return rows_.get_num_elems();
+    // }
+    index_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
 
     /**
      * Returns the number of bytes of chunk vector used in the definition of the
@@ -467,7 +475,8 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    Bccoo(std::shared_ptr<const Executor> exec, size_type block_size,
+    //    Bccoo(std::shared_ptr<const Executor> exec, size_type block_size,
+    Bccoo(std::shared_ptr<const Executor> exec, index_type block_size,
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
@@ -490,7 +499,8 @@ protected:
      * @param compression   compression used in the definition
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type num_nonzeros, size_type block_size, size_type num_bytes,
+          // size_type num_nonzeros, size_type block_size, size_type num_bytes,
+          index_type num_nonzeros, index_type block_size, size_type num_bytes,
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, size),
           rows_(exec,
@@ -534,7 +544,8 @@ protected:
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<uint8> chunk, array<size_type> offsets, array<IndexType> rows,
-          size_type num_nonzeros, size_type block_size)
+          // size_type num_nonzeros, size_type block_size)
+          index_type num_nonzeros, index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           chunk_{exec, std::move(chunk)},
           offsets_{exec, std::move(offsets)},
@@ -572,8 +583,9 @@ protected:
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<uint8> chunk, array<size_type> offsets, array<uint8> types,
-          array<IndexType> cols, array<IndexType> rows, size_type num_nonzeros,
-          size_type block_size)
+          array<IndexType> cols, array<IndexType> rows,
+          // size_type num_nonzeros, size_type block_size)
+          index_type num_nonzeros, index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           chunk_{exec, std::move(chunk)},
           offsets_{exec, std::move(offsets)},
@@ -604,8 +616,10 @@ private:
     array<uint8> types_;
     array<size_type> offsets_;
     array<uint8> chunk_;
-    size_type block_size_;
-    size_type num_nonzeros_;
+    // size_type block_size_;
+    index_type block_size_;
+    // size_type num_nonzeros_;
+    index_type num_nonzeros_;
     bccoo::compression compression_;
 };
 

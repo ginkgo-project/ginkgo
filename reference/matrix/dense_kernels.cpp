@@ -523,7 +523,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     if (result->use_element_compression()) {
         // For element compression objects
-        size_type block_size = result->get_block_size();
+        // size_type block_size = result->get_block_size();
+        IndexType block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
         size_type* offsets_data = result->get_offsets();
         uint8* chunk_data = result->get_chunk();
@@ -538,13 +539,16 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        for (size_type row = 0; row < num_rows; ++row) {
-            for (size_type col = 0; col < num_cols; ++col) {
+        // for (size_type row = 0; row < num_rows; ++row) {
+        for (IndexType row = 0; row < num_rows; ++row) {
+            // for (size_type col = 0; col < num_cols; ++col) {
+            for (IndexType col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Writing (row,col,val) to result
                     matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
                                                        row - idxs.row, idxs);
-                    size_type col_src_res =
+                    // size_type col_src_res =
+                    IndexType col_src_res =
                         matrix::bccoo::put_position_newrow_mat_data(
                             row, col, chunk_data, idxs);
                     matrix::bccoo::put_next_position_value(
@@ -583,8 +587,10 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        for (size_type row = 0; row < num_rows; ++row) {
-            for (size_type col = 0; col < num_cols; ++col) {
+        // for (size_type row = 0; row < num_rows; ++row) {
+        for (IndexType row = 0; row < num_rows; ++row) {
+            // for (size_type col = 0; col < num_cols; ++col) {
+            for (IndexType col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Analyzing the impact of (row,col,val) in the block
                     matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
@@ -598,8 +604,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                         type_blk = matrix::bccoo::write_chunk_blk_type(
                             idxs, blk_idxs, rows_blk, cols_blk, vals_blk,
                             chunk_data);
-                        rows_data[idxs.blk] = blk_idxs.row_frs;
-                        cols_data[idxs.blk] = blk_idxs.col_frs;
+                        rows_data[idxs.blk] = blk_idxs.row_frst;
+                        cols_data[idxs.blk] = blk_idxs.col_frst;
                         types_data[idxs.blk] = type_blk;
                         offsets_data[++idxs.blk] = idxs.shf;
                         idxs.nblk = 0;
@@ -612,8 +618,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             // Writing block on result
             type_blk = matrix::bccoo::write_chunk_blk_type(
                 idxs, blk_idxs, rows_blk, cols_blk, vals_blk, chunk_data);
-            rows_data[idxs.blk] = blk_idxs.row_frs;
-            cols_data[idxs.blk] = blk_idxs.col_frs;
+            rows_data[idxs.blk] = blk_idxs.row_frst;
+            cols_data[idxs.blk] = blk_idxs.col_frst;
             types_data[idxs.blk] = type_blk;
             offsets_data[++idxs.blk] = idxs.shf;
             idxs.nblk = 0;

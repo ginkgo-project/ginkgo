@@ -51,16 +51,12 @@ namespace bccoo {
 /**
  *  Constants used to manage bccoo objects
  */
-// constexpr uint8 type_mask_rows_multiple = 1;
-// constexpr uint8 type_mask_rows_16bits = 2;
-// constexpr uint8 type_mask_cols_8bits = 4;
-// constexpr uint8 type_mask_cols_16bits = 8;
-
 constexpr uint8 type_mask_rows_cols = 15;
 constexpr uint8 type_mask_rows_multiple = 8;
 constexpr uint8 type_mask_rows_16bits = 4;
 constexpr uint8 type_mask_cols_16bits = 2;
 constexpr uint8 type_mask_cols_8bits = 1;
+
 
 /**
  *  Struct to manage bccoo objects
@@ -92,34 +88,27 @@ struct compr_idxs {
  */
 template <typename IndexType>
 struct compr_blk_idxs {
-    IndexType row_frs;  // minimum row index in a block
-    IndexType col_frs;  // minimum column index in a block
-    IndexType row_dif;  // maximum difference between row indices
-                        // in a block
-    IndexType col_dif;  // maximum difference between column indices
-                        // in a block
-    size_type shf_row;  // shift in chunk where the rows vector starts
-    size_type shf_col;  // shift in chunk where the cols vector starts
-    size_type shf_val;  // shift in chunk where the vals vector starts
-    bool mul_row;       // determines if the block includes elements
-                        // of several rows
-    bool row_16bits;    // determines that row_dif is greater than 0xFF
-    bool col_8bits;     // determines that col_dif is lower than 0x100
-    bool col_16bits;    // determines that col_dif is lower than 0x10000
-    uint8 rows_cols;    // combination of previous bool variables
+    IndexType row_frst;  // minimum row index in a block
+    IndexType col_frst;  // minimum column index in a block
+    IndexType row_diff;  // maximum difference between row indices
+                         // in a block
+    IndexType col_diff;  // maximum difference between column indices
+                         // in a block
+    size_type shf_row;   // shift in chunk where the rows vector starts
+    size_type shf_col;   // shift in chunk where the cols vector starts
+    size_type shf_val;   // shift in chunk where the vals vector starts
+    bool mul_row;        // determines if the block includes elements
+                         // of several rows
+    uint8 rows_cols;     // combination of previous bool variables
 
     GKO_ATTRIBUTES compr_blk_idxs()
-        : row_frs(0),
-          col_frs(0),
-          row_dif(0),
-          col_dif(0),
+        : row_frst(0),
+          col_frst(0),
+          row_diff(0),
+          col_diff(0),
           shf_row(0),
           shf_col(0),
           shf_val(0),
-          mul_row(false),
-          row_16bits(false),
-          col_8bits(false),
-          col_16bits(false),
           rows_cols(0)
     {}
 
@@ -128,32 +117,52 @@ struct compr_blk_idxs {
                                   const size_type block_size,
                                   const compr_idxs<IndexType>& idxs,
                                   const uint8 type_blk)
-        : mul_row(type_blk & type_mask_rows_multiple),
-          row_16bits(type_blk & type_mask_rows_16bits),
-          col_8bits(type_blk & type_mask_cols_8bits),
-          col_16bits(type_blk & type_mask_cols_16bits),
-          rows_cols(type_blk & type_mask_rows_cols),
-          row_frs(rows_data[idxs.blk]),
-          col_frs(cols_data[idxs.blk]),
+        : row_frst(rows_data[idxs.blk]),
+          col_frst(cols_data[idxs.blk]),
+          row_diff(0),
+          col_diff(0),
           shf_row(idxs.shf),
           shf_col(idxs.shf),
-          shf_val(idxs.shf)
+          shf_val(idxs.shf),
+          rows_cols(type_blk & type_mask_rows_cols)
     {
         shf_col +=
-            ((mul_row) ? ((row_16bits) ? sizeof(uint16) : 1) * block_size : 0);
-        shf_val = shf_col + block_size * ((col_8bits)
-                                              ? 1
-                                              : (col_16bits) ? sizeof(uint16)
-                                                             : sizeof(uint32));
+            ((rows_cols & type_mask_rows_multiple)
+                 ? ((rows_cols & type_mask_rows_16bits) ? sizeof(uint16) : 1) *
+                       block_size
+                 : 0);
+        shf_val =
+            shf_col + block_size * ((rows_cols & type_mask_cols_8bits)
+                                        ? 1
+                                        : (rows_cols & type_mask_cols_16bits)
+                                              ? sizeof(uint16)
+                                              : sizeof(uint32));
     }
 
-    GKO_ATTRIBUTES bool is_multi_row() { return this->mul_row; }
+    GKO_ATTRIBUTES void set_multi_row()
+    {
+        rows_cols |= type_mask_rows_multiple;
+    }
 
-    GKO_ATTRIBUTES bool is_row_16bits() { return this->row_16bits; }
+    GKO_ATTRIBUTES bool is_multi_row() const
+    {
+        return (rows_cols & type_mask_rows_multiple);
+    }
 
-    GKO_ATTRIBUTES bool is_column_16bits() { return this->col_16bits; }
+    GKO_ATTRIBUTES bool is_row_16bits() const
+    {
+        return (rows_cols & type_mask_rows_16bits);
+    }
 
-    GKO_ATTRIBUTES bool is_column_8bits() { return this->col_8bits; }
+    GKO_ATTRIBUTES bool is_column_16bits() const
+    {
+        return (rows_cols & type_mask_cols_16bits);
+    }
+
+    GKO_ATTRIBUTES bool is_column_8bits() const
+    {
+        return (rows_cols & type_mask_cols_8bits);
+    }
 };
 
 

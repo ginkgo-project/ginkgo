@@ -254,10 +254,11 @@ namespace kernels {
                           const int64* row_desc, const int32* storage,   \
                           IndexType sample_size, IndexType* result)
 
+//                        const size_type block_size,
 #define GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
     void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
                         const matrix::Csr<ValueType, IndexType>* csr, \
-                        const size_type block_size,                   \
+                        const IndexType block_size,                   \
                         const matrix::bccoo::compression compress,    \
                         size_type* mem_size)
 

@@ -173,9 +173,13 @@ void Coo<ValueType, IndexType>::convert_to(
     }
 
     // Block partitioning. If the initial value is 0, the default is chosen
-    size_type block_size = result->get_block_size();
+    // size_type block_size = result->get_block_size();
+    IndexType block_size = result->get_block_size();
     if (block_size == 0) {
-        exec->run(bccoo::make_get_default_block_size(&block_size));
+        // exec->run(bccoo::make_get_default_block_size(&block_size));
+        size_type aux;
+        exec->run(bccoo::make_get_default_block_size(&aux));
+        block_size = aux;
     }
 
     // Computation of nnz

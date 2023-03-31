@@ -111,43 +111,53 @@ namespace {
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-void spmv_kernel(const size_type nnz, const size_type num_blks,
-                 const size_type block_size, const size_type num_lines,
+// void spmv_kernel(const size_type nnz, const size_type num_blks,
+void spmv_kernel(const IndexType nnz, const IndexType num_blks,
+                 // const size_type block_size, const size_type num_lines,
+                 const IndexType block_size, const IndexType num_lines,
                  const uint8* __restrict__ chunk_data,
                  const size_type* __restrict__ offsets_data,
                  const uint8* __restrict__ types_data,
                  const IndexType* __restrict__ cols_data,
                  const IndexType* __restrict__ rows_data,
-                 const ValueType* __restrict__ b, const size_type b_stride,
-                 ValueType* __restrict__ c, const size_type c_stride,
+                 // const ValueType* __restrict__ b, const size_type b_stride,
+                 const ValueType* __restrict__ b, const IndexType b_stride,
+                 // ValueType* __restrict__ c, const size_type c_stride,
+                 ValueType* __restrict__ c, const IndexType c_stride,
                  Closure scale, sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range(1) * subgroup_size;
+    const IndexType jump_in_blk = item_ct1.get_local_range(1) * subgroup_size;
     ValueType temp_val = zero<ValueType>();
     bool new_value = false;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         const auto tile_block = group::tiled_partition<subgroup_size>(
             group::this_thread_block(item_ct1));
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        if (blk_idxs.mul_row) {
-            if (blk_idxs.row_16bits) {
-                if (blk_idxs.col_8bits) {
+        if (blk_idxs.is_multi_row()) {
+            if (blk_idxs.is_row_16bits()) {
+                if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row<uint16, uint8, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
-                } else if (blk_idxs.col_16bits) {
+                } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row<uint16, uint16, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
@@ -159,12 +169,12 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                         scale, item_ct1);
                 }
             } else {
-                if (blk_idxs.col_8bits) {
+                if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row<uint8, uint8, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
-                } else if (blk_idxs.col_16bits) {
+                } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row<uint8, uint16, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
@@ -177,12 +187,12 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
                 }
             }
         } else {
-            if (blk_idxs.col_8bits) {
+            if (blk_idxs.is_column_8bits()) {
                 loop_block_single_row<uint8, IndexType>(
                     chunk_data, block_size_local, b, b_stride, column_id, c,
                     c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
                     item_ct1);
-            } else if (blk_idxs.col_16bits) {
+            } else if (blk_idxs.is_column_16bits()) {
                 loop_block_single_row<uint16, IndexType>(
                     chunk_data, block_size_local, b, b_stride, column_id, c,
                     c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
@@ -199,15 +209,19 @@ void spmv_kernel(const size_type nnz, const size_type num_blks,
 
 
 template <typename ValueType, typename IndexType>
-void abstract_spmv(const size_type nnz, const size_type num_blks,
-                   const size_type block_size, const size_type num_lines,
+// void abstract_spmv(const size_type nnz, const size_type num_blks,
+void abstract_spmv(const IndexType nnz, const IndexType num_blks,
+                   // const size_type block_size, const size_type num_lines,
+                   const IndexType block_size, const IndexType num_lines,
                    const uint8* __restrict__ chk,
                    const size_type* __restrict__ off,
                    const uint8* __restrict__ typ,
                    const IndexType* __restrict__ col,
                    const IndexType* __restrict__ row,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
+                   // const ValueType* __restrict__ b, const size_type b_stride,
+                   const ValueType* __restrict__ b, const IndexType b_stride,
+                   // ValueType* __restrict__ c, const size_type c_stride,
+                   ValueType* __restrict__ c, const IndexType c_stride,
                    sycl::nd_item<3> item_ct1)
 {
     spmv_kernel(
@@ -218,13 +232,18 @@ void abstract_spmv(const size_type nnz, const size_type num_blks,
 
 template <typename ValueType, typename IndexType>
 void abstract_spmv(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const ValueType* __restrict__ alpha,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const ValueType* __restrict__ alpha,
+    const IndexType num_lines, const ValueType* __restrict__ alpha,
     const uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1)
+    // const size_type b_stride, ValueType* __restrict__ c,
+    const IndexType b_stride, ValueType* __restrict__ c,
+    // const size_type c_stride, sycl::nd_item<3> item_ct1)
+    const IndexType c_stride, sycl::nd_item<3> item_ct1)
 {
     ValueType scale_factor = alpha[0];
     spmv_kernel(
@@ -239,8 +258,10 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void fill_in_coo(const size_type nnz, const size_type num_blks,
-                 const size_type block_size, const size_type num_lines,
+// void fill_in_coo(const size_type nnz, const size_type num_blks,
+void fill_in_coo(const IndexType nnz, const IndexType num_blks,
+                 // const size_type block_size, const size_type num_lines,
+                 const IndexType block_size, const IndexType num_lines,
                  const uint8* __restrict__ chunk_data,
                  const size_type* __restrict__ offsets_data,
                  const uint8* __restrict__ types_data,
@@ -250,28 +271,38 @@ void fill_in_coo(const size_type nnz, const size_type num_blks,
                  IndexType* __restrict__ cols_idxs,
                  ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range().get(1) *
+    // subgroup_size;
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        for (size_type pos = start_in_blk; pos < block_size_local;
+        // for (size_type pos = start_in_blk; pos < block_size_local;
+        for (IndexType pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
                 get_block_position_value<IndexType, ValueType>(
                     // pos, chunk_data, blk_idxs, idxs.row, idxs.col, val);
                     pos, chunk_data, blk_idxs, idxs, val);
-                auto index = blk * block_size + pos;
+                // auto index = blk * block_size + pos;
+                IndexType index = blk * block_size + pos;
                 rows_idxs[index] = idxs.row;
                 cols_idxs[index] = idxs.col;
                 values[index] = val;
@@ -284,11 +315,14 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo);
 
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
-                              size_type num_nonzeros,
-                              IndexType* __restrict__ ptrs, size_type length,
+                              // size_type num_nonzeros,
+                              IndexType num_nonzeros,
+                              // IndexType* __restrict__ ptrs, size_type length,
+                              IndexType* __restrict__ ptrs, IndexType length,
                               sycl::nd_item<3> item_ct1)
 {
-    const auto tidx = item_ct1.get_global_id(2);
+    // const auto tidx = item_ct1.get_global_id(2);
+    const IndexType tidx = item_ct1.get_global_id(2);
     if (tidx == 0) {
         ptrs[0] = 0;
         ptrs[length - 1] = num_nonzeros;
@@ -296,7 +330,8 @@ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
 
     if (0 < tidx && tidx < num_nonzeros) {
         if (idxs[tidx - 1] < idxs[tidx]) {
-            for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
+            // for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
+            for (IndexType i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
                 ptrs[i] = tidx;
             }
         }
@@ -308,30 +343,42 @@ GKO_ENABLE_DEFAULT_HOST(convert_row_idxs_to_ptrs, convert_row_idxs_to_ptrs);
 
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void fill_in_dense(const size_type nnz, const size_type num_blks,
-                   const size_type block_size, const size_type num_lines,
+// void fill_in_dense(const size_type nnz, const size_type num_blks,
+void fill_in_dense(const IndexType nnz, const IndexType num_blks,
+                   // const size_type block_size, const size_type num_lines,
+                   const IndexType block_size, const IndexType num_lines,
                    const uint8* __restrict__ chunk_data,
                    const size_type* __restrict__ offsets_data,
                    const uint8* __restrict__ types_data,
                    const IndexType* __restrict__ cols_data,
-                   const IndexType* __restrict__ rows_data, size_type stride,
+                   // const IndexType* __restrict__ rows_data, size_type stride,
+                   const IndexType* __restrict__ rows_data, IndexType stride,
                    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range().get(1) *
+    // subgroup_size;
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        for (size_type pos = start_in_blk; pos < block_size_local;
+        // for (size_type pos = start_in_blk; pos < block_size_local;
+        for (IndexType pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
@@ -348,8 +395,10 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 
 
 template <typename ValueType>
-void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType* __restrict__ result,
+// void initialize_zero_dense(size_type num_rows, size_type num_cols,
+void initialize_zero_dense(IndexType num_rows, IndexType num_cols,
+                           // size_type stride, ValueType* __restrict__ result,
+                           IndexType stride, ValueType* __restrict__ result,
                            sycl::nd_item<3> item_ct1)
 {
     const auto tidx_x = item_ct1.get_global_id(2);
@@ -381,8 +430,10 @@ GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void extract_kernel(const size_type nnz, const size_type num_blks,
-                    const size_type block_size, const size_type num_lines,
+// void extract_kernel(const size_type nnz, const size_type num_blks,
+void extract_kernel(const IndexType nnz, const IndexType num_blks,
+                    // const size_type block_size, const size_type num_lines,
+                    const IndexType block_size, const IndexType num_lines,
                     const uint8* __restrict__ chunk_data,
                     const size_type* __restrict__ offsets_data,
                     const uint8* __restrict__ types_data,
@@ -390,21 +441,30 @@ void extract_kernel(const size_type nnz, const size_type num_blks,
                     const IndexType* __restrict__ rows_data,
                     ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range().get(1) *
+    // subgroup_size;
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        for (size_type pos = start_in_blk; pos < block_size_local;
+        // for (size_type pos = start_in_blk; pos < block_size_local;
+        for (IndexType pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
@@ -438,10 +498,14 @@ GKO_ENABLE_DEFAULT_HOST(extract_kernel, extract_kernel);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
-                             const size_type num_blks,
-                             const size_type block_size,
-                             const size_type num_lines,
+// void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
+void absolute_inplace_kernel(const ValueType oldval, const IndexType nnz,
+                             // const size_type num_blks,
+                             const IndexType num_blks,
+                             // const size_type block_size,
+                             const IndexType block_size,
+                             // const size_type num_lines,
+                             const IndexType num_lines,
                              uint8* __restrict__ chunk_data,
                              const size_type* __restrict__ offsets_data,
                              const uint8* __restrict__ types_data,
@@ -449,21 +513,30 @@ void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
                              const IndexType* __restrict__ rows_data,
                              Closure comp_abs, sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range().get(1) *
+    // subgroup_size;
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        for (size_type pos = start_in_blk; pos < block_size_local;
+        // for (size_type pos = start_in_blk; pos < block_size_local;
+        for (IndexType pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
@@ -478,8 +551,10 @@ void absolute_inplace_kernel(const ValueType oldval, const size_type nnz,
 
 template <typename ValueType, typename IndexType>
 void abstract_absolute_inplace(
-    const ValueType val, const size_type nnz, const size_type num_blks,
-    const size_type block_size, const size_type num_lines,
+    // const ValueType val, const size_type nnz, const size_type num_blks,
+    const ValueType val, const IndexType nnz, const IndexType num_blks,
+    // const size_type block_size, const size_type num_lines,
+    const IndexType block_size, const IndexType num_lines,
     uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, sycl::nd_item<3> item_ct1)
@@ -523,9 +598,12 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-void absolute_kernel(ValueType val, const size_type nnz,
-                     const size_type num_blks, const size_type block_size,
-                     const size_type num_lines,
+// void absolute_kernel(ValueType val, const size_type nnz,
+void absolute_kernel(ValueType val, const IndexType nnz,
+                     // const size_type num_blks, const size_type block_size,
+                     const IndexType num_blks, const IndexType block_size,
+                     // const size_type num_lines,
+                     const IndexType num_lines,
                      const uint8* __restrict__ chunk_data_src,
                      const size_type* __restrict__ offsets_data_src,
                      const uint8* __restrict__ types_data_src,
@@ -538,16 +616,24 @@ void absolute_kernel(ValueType val, const size_type nnz,
                      IndexType* __restrict__ rows_data_res, Closure comp_abs,
                      sycl::nd_item<3> item_ct1)
 {
-    const auto column_id = item_ct1.get_group(1);
-    const auto start_blk = item_ct1.get_group(2);
-    const auto jump_blk = item_ct1.get_group_range(2);
+    // const auto column_id = item_ct1.get_group(1);
+    const IndexType column_id = item_ct1.get_group(1);
+    // const auto start_blk = item_ct1.get_group(2);
+    const IndexType start_blk = item_ct1.get_group(2);
+    // const auto jump_blk = item_ct1.get_group_range(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
 
-    const auto start_in_blk =
+    // const auto start_in_blk =
+    const IndexType start_in_blk =
         item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
-    const auto jump_in_blk = item_ct1.get_local_range().get(1) * subgroup_size;
+    // const auto jump_in_blk = item_ct1.get_local_range().get(1) *
+    // subgroup_size;
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
     offsets_data_res[0] = 0;
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
 
         compr_idxs<IndexType> idxs_src(blk, offsets_data_src[blk]);
@@ -573,7 +659,8 @@ void absolute_kernel(ValueType val, const size_type nnz,
             blk_idxs_res.shf_val +
             block_size_local * sizeof(remove_complex<ValueType>);
 
-        for (size_type pos = start_in_blk; pos < block_size_local;
+        // for (size_type pos = start_in_blk; pos < block_size_local;
+        for (IndexType pos = start_in_blk; pos < block_size_local;
              pos += jump_in_blk) {
             if (pos < block_size_local) {
                 ValueType val;
@@ -590,8 +677,10 @@ void absolute_kernel(ValueType val, const size_type nnz,
 
 template <typename ValueType, typename IndexType>
 void abstract_absolute(
-    ValueType val, const size_type nnz, const size_type num_blks,
-    const size_type block_size, const size_type num_lines,
+    // ValueType val, const size_type nnz, const size_type num_blks,
+    ValueType val, const IndexType nnz, const IndexType num_blks,
+    // const size_type block_size, const size_type num_lines,
+    const IndexType block_size, const IndexType num_lines,
     const uint8* __restrict__ chk_src, const size_type* __restrict__ off_src,
     const uint8* __restrict__ typ_src, const IndexType* __restrict__ col_src,
     const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
@@ -658,20 +747,29 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    const auto nnz = a->get_num_stored_elements();
-    const auto block_size = a->get_block_size();
-    const auto num_blocks_matrix = a->get_num_blocks();
-    const auto b_ncols = b->get_size()[1];
+    // const auto nnz = a->get_num_stored_elements();
+    const IndexType nnz = a->get_num_stored_elements();
+    // const auto block_size = a->get_block_size();
+    const IndexType block_size = a->get_block_size();
+    // const auto num_blocks_matrix = a->get_num_blocks();
+    const IndexType num_blocks_matrix = a->get_num_blocks();
+    // const auto b_ncols = b->get_size()[1];
+    const IndexType b_ncols = b->get_size()[1];
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (a->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                           num_blocks_matrix, block_size, num_lines,
@@ -695,20 +793,29 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* b,
                     matrix::Dense<ValueType>* c)
 {
-    const auto nnz = a->get_num_stored_elements();
-    const auto block_size = a->get_block_size();
-    const auto num_blocks_matrix = a->get_num_blocks();
-    const auto b_ncols = b->get_size()[1];
+    // const auto nnz = a->get_num_stored_elements();
+    const IndexType nnz = a->get_num_stored_elements();
+    // const auto block_size = a->get_block_size();
+    const IndexType block_size = a->get_block_size();
+    // const auto num_blocks_matrix = a->get_num_blocks();
+    const IndexType num_blocks_matrix = a->get_num_blocks();
+    // const auto b_ncols = b->get_size()[1];
+    const IndexType b_ncols = b->get_size()[1];
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (a->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                           num_blocks_matrix, block_size, num_lines,
@@ -728,10 +835,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Bccoo<ValueType, IndexType>* source,
-                    compression commpress_res, const size_type block_size_res,
-                    size_type* mem_size) GKO_NOT_IMPLEMENTED;
+void mem_size_bccoo(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Bccoo<ValueType, IndexType>* source,
+    // compression commpress_res, const size_type block_size_res,
+    compression commpress_res, const IndexType block_size_res,
+    size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
@@ -763,24 +872,35 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
 {
-    const auto nnz = source->get_num_stored_elements();
+    // const auto nnz = source->get_num_stored_elements();
+    const IndexType nnz = source->get_num_stored_elements();
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    // auto row_idxs = result->get_row_idxs();
+    IndexType* row_idxs = result->get_row_idxs();
+    // auto col_idxs = result->get_col_idxs();
+    IndexType* col_idxs = result->get_col_idxs();
+    // auto values = result->get_values();
+    ValueType* values = result->get_values();
 
-    const auto block_size = source->get_block_size();
-    const auto num_blocks_matrix = source->get_num_blocks();
+    // const auto block_size = source->get_block_size();
+    const IndexType block_size = source->get_block_size();
+    // const auto num_blocks_matrix = source->get_num_blocks();
+    const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             fill_in_coo(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                         num_blocks_matrix, block_size, num_lines,
@@ -800,10 +920,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type length)
+                              // const IndexType* idxs, size_type num_nonzeros,
+                              const IndexType* idxs, IndexType num_nonzeros,
+                              // IndexType* ptrs, size_type length)
+                              IndexType* ptrs, IndexType length)
 {
-    const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
+    // const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
+    const IndexType grid_dim = ceildiv(num_nonzeros, default_block_size);
     const dim3 bccoo_grid(grid_dim, 1);
     const dim3 bccoo_block(default_block_size, 1, 1);
 
@@ -817,27 +940,39 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
-    const auto nnz = source->get_num_stored_elements();
-    const auto num_rows = source->get_size()[0];
+    // const auto nnz = source->get_num_stored_elements();
+    const IndexType nnz = source->get_num_stored_elements();
+    // const auto num_rows = source->get_size()[0];
+    const IndexType num_rows = source->get_size()[0];
 
     array<IndexType> row_idxs(exec, nnz);
 
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    // auto row_ptrs = result->get_row_ptrs();
+    IndexType* row_ptrs = result->get_row_ptrs();
+    // auto col_idxs = result->get_col_idxs();
+    IndexType* col_idxs = result->get_col_idxs();
+    // auto values = result->get_values();
+    ValueType* values = result->get_values();
 
-    const auto block_size = source->get_block_size();
-    const auto num_blocks_matrix = source->get_num_blocks();
+    // const auto block_size = source->get_block_size();
+    const IndexType block_size = source->get_block_size();
+    // const auto num_blocks_matrix = source->get_num_blocks();
+    const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             fill_in_coo(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                         num_blocks_matrix, block_size, num_lines,
@@ -863,15 +998,22 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
                       matrix::Dense<ValueType>* result)
 {
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto stride = result->get_stride();
+    // const auto num_rows = result->get_size()[0];
+    const IndexType num_rows = result->get_size()[0];
+    // const auto num_cols = result->get_size()[1];
+    const IndexType num_cols = result->get_size()[1];
+    // const auto stride = result->get_stride();
+    const IndexType stride = result->get_stride();
 
-    const auto nnz = source->get_num_stored_elements();
-    const auto block_size = source->get_block_size();
-    const auto num_blocks_matrix = source->get_num_blocks();
+    // const auto nnz = source->get_num_stored_elements();
+    const IndexType nnz = source->get_num_stored_elements();
+    // const auto block_size = source->get_block_size();
+    const IndexType block_size = source->get_block_size();
+    // const auto num_blocks_matrix = source->get_num_blocks();
+    const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     const dim3 block_size_mat(config::warp_size,
                               config::max_block_size / config::warp_size, 1);
@@ -883,10 +1025,14 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             fill_in_dense(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
@@ -909,19 +1055,27 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    const auto nnz = orig->get_num_stored_elements();
-    const auto block_size = orig->get_block_size();
-    const auto num_blocks_matrix = orig->get_num_blocks();
+    // const auto nnz = orig->get_num_stored_elements();
+    const IndexType nnz = orig->get_num_stored_elements();
+    // const auto block_size = orig->get_block_size();
+    const IndexType block_size = orig->get_block_size();
+    // const auto num_blocks_matrix = orig->get_num_blocks();
+    const IndexType num_blocks_matrix = orig->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (orig->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             extract_kernel(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                            num_blocks_matrix, block_size, num_lines,
@@ -942,19 +1096,27 @@ template <typename ValueType, typename IndexType>
 void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
 {
-    const auto nnz = matrix->get_num_stored_elements();
-    const auto block_size = matrix->get_block_size();
-    const auto num_blocks_matrix = matrix->get_num_blocks();
+    // const auto nnz = matrix->get_num_stored_elements();
+    const IndexType nnz = matrix->get_num_stored_elements();
+    // const auto block_size = matrix->get_block_size();
+    const IndexType block_size = matrix->get_block_size();
+    // const auto num_blocks_matrix = matrix->get_num_blocks();
+    const IndexType num_blocks_matrix = matrix->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (matrix->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             // Use it to help compiler to interpret the template
             ValueType val = {};
 
@@ -979,19 +1141,27 @@ void compute_absolute(
     const matrix::Bccoo<ValueType, IndexType>* source,
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
-    const auto nnz = source->get_num_stored_elements();
-    const auto block_size = source->get_block_size();
-    const auto num_blocks_matrix = source->get_num_blocks();
+    // const auto nnz = source->get_num_stored_elements();
+    const IndexType nnz = source->get_num_stored_elements();
+    // const auto block_size = source->get_block_size();
+    const IndexType block_size = source->get_block_size();
+    // const auto num_blocks_matrix = source->get_num_blocks();
+    const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            int num_blocks_grid = std::min(
-                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            // int num_blocks_grid = std::min(
+            IndexType num_blocks_grid = std::min(
+                // num_blocks_matrix, (size_type)ceildiv(nwarps,
+                // warps_in_block));
+                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            // auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             // Use it to help compiler to interpret the template
             ValueType val = {};
 

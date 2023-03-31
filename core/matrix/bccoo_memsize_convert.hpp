@@ -63,7 +63,8 @@ template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_elm_elm(
     std::shared_ptr<const Executor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
-    const size_type block_size_res, size_type* mem_size)
+    // const size_type block_size_res, size_type* mem_size)
+    const IndexType block_size_res, size_type* mem_size)
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
@@ -80,7 +81,8 @@ inline void mem_size_bccoo_elm_elm(
     compr_idxs<IndexType> idxs_res;
     ValueType val_res;
 
-    for (size_type i = 0; i < num_stored_elements; i++) {
+    // for (size_type i = 0; i < num_stored_elements; i++) {
+    for (IndexType i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
         get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
         uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
@@ -88,7 +90,8 @@ inline void mem_size_bccoo_elm_elm(
         get_detect_endblock(block_size_src, idxs_src);
         // Counting bytes to write (row,col,val) on result
         cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
-        size_type col_src_res =
+        // size_type col_src_res =
+        IndexType col_src_res =
             cnt_position_newrow_mat_data(idxs_src.row, idxs_src.col, idxs_res);
         cnt_next_position_value(col_src_res, val_src, idxs_res);
         cnt_detect_endblock(block_size_res, idxs_res);
@@ -106,7 +109,8 @@ template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_elm_blk(
     std::shared_ptr<const Executor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
-    const size_type block_size_res, size_type* mem_size)
+    //    const size_type block_size_res, size_type* mem_size)
+    const IndexType block_size_res, size_type* mem_size)
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
@@ -123,13 +127,16 @@ inline void mem_size_bccoo_elm_blk(
 
     compr_idxs<IndexType> idxs_res;
 
-    for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
-        size_type block_size_local =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_res) {
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size_res, num_stored_elements - i);
         compr_blk_idxs<IndexType> blk_idxs_res;
-        blk_idxs_res.row_frs = idxs_src.row;
-        blk_idxs_res.col_frs = idxs_src.col;
-        for (size_type j = 0; j < block_size_local; j++) {
+        blk_idxs_res.row_frst = idxs_src.row;
+        blk_idxs_res.col_frst = idxs_src.col;
+        // for (size_type j = 0; j < block_size_local; j++) {
+        for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
             uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
@@ -157,7 +164,8 @@ template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_blk_elm(
     std::shared_ptr<const Executor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
-    const size_type block_size_res, size_type* mem_size)
+    // const size_type block_size_res, size_type* mem_size)
+    const IndexType block_size_res, size_type* mem_size)
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
@@ -177,19 +185,23 @@ inline void mem_size_bccoo_blk_elm(
 
     compr_idxs<IndexType> idxs_res;
 
-    for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
-        size_type block_size_local =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_src) {
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size_src, num_stored_elements - i);
         compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
                                                block_size_local, idxs_src,
                                                types_data_src[idxs_src.blk]);
-        for (size_type j = 0; j < block_size_local; j++) {
+        // for (size_type j = 0; j < block_size_local; j++) {
+        for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
                 chunk_data_src, blk_idxs_src, idxs_src, val_src);
             // Counting bytes to write (row,col,val) on result
             cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
-            size_type col_src_res = cnt_position_newrow_mat_data(
+            // size_type col_src_res = cnt_position_newrow_mat_data(
+            IndexType col_src_res = cnt_position_newrow_mat_data(
                 idxs_src.row, idxs_src.col, idxs_res);
             cnt_next_position_value(col_src_res, val_src, idxs_res);
             cnt_detect_endblock(block_size_res, idxs_res);
@@ -210,7 +222,8 @@ template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_blk_blk(
     std::shared_ptr<const Executor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
-    const size_type block_size_res, size_type* mem_size)
+    // const size_type block_size_res, size_type* mem_size)
+    const IndexType block_size_res, size_type* mem_size)
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
@@ -238,17 +251,22 @@ inline void mem_size_bccoo_blk_blk(
     compr_blk_idxs<IndexType> blk_idxs_res;
     ValueType val_res;
 
-    size_type i_res = 0;
-    size_type block_size_local_res =
+    // size_type i_res = 0;
+    IndexType i_res = 0;
+    // size_type block_size_local_res =
+    IndexType block_size_local_res =
         std::min(block_size_res, num_stored_elements - i_res);
 
-    for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
-        size_type block_size_local_src =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_src) {
+        // size_type block_size_local_src =
+        IndexType block_size_local_src =
             std::min(block_size_src, num_stored_elements - i);
         compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
                                                block_size_local_src, idxs_src,
                                                types_data_src[idxs_src.blk]);
-        for (size_type j = 0; j < block_size_local_src; j++) {
+        // for (size_type j = 0; j < block_size_local_src; j++) {
+        for (IndexType j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
                 chunk_data_src, blk_idxs_src, idxs_src, val_src);
@@ -355,7 +373,8 @@ void convert_to_bccoo_elm_elm(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i++) {
+    // for (size_type i = 0; i < num_stored_elements; i++) {
+    for (IndexType i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
         get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
         uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
@@ -365,7 +384,8 @@ void convert_to_bccoo_elm_elm(
         val_res = finalize_op(val_src);
         put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
                             idxs_res);
-        size_type col_src_res = put_position_newrow_mat_data(
+        // size_type col_src_res = put_position_newrow_mat_data(
+        IndexType col_src_res = put_position_newrow_mat_data(
             idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
         put_next_position_value(chunk_data_res, col_src_res, val_res, idxs_res);
         put_detect_endblock(offsets_data_res, block_size_res, idxs_res);
@@ -417,15 +437,18 @@ void convert_to_bccoo_elm_blk(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
-        size_type block_size_local =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_res) {
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size_res, num_stored_elements - i);
         compr_blk_idxs<IndexType> blk_idxs_res;
         uint8 type_blk = {};
 
-        blk_idxs_res.row_frs = idxs_src.row;
-        blk_idxs_res.col_frs = idxs_src.col;
-        for (size_type j = 0; j < block_size_local; j++) {
+        blk_idxs_res.row_frst = idxs_src.row;
+        blk_idxs_res.col_frst = idxs_src.col;
+        // for (size_type j = 0; j < block_size_local; j++) {
+        for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
             uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
@@ -443,8 +466,8 @@ void convert_to_bccoo_elm_blk(
         idxs_res.nblk = block_size_local;
         type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res, rows_blk,
                                         cols_blk, vals_blk, chunk_data_res);
-        rows_data_res[idxs_res.blk] = blk_idxs_res.row_frs;
-        cols_data_res[idxs_res.blk] = blk_idxs_res.col_frs;
+        rows_data_res[idxs_res.blk] = blk_idxs_res.row_frst;
+        cols_data_res[idxs_res.blk] = blk_idxs_res.col_frst;
         types_data_res[idxs_res.blk] = type_blk;
         offsets_data_res[++idxs_res.blk] = idxs_res.shf;
     }
@@ -470,9 +493,11 @@ void convert_to_bccoo_blk_elm(
     auto* cols_data_src = source->get_const_cols();
     auto* types_data_src = source->get_const_types();
 
-    size_type block_size_src = source->get_block_size();
+    // size_type block_size_src = source->get_block_size();
+    IndexType block_size_src = source->get_block_size();
     size_type num_bytes_src = source->get_num_bytes();
-    size_type num_stored_elements = source->get_num_stored_elements();
+    // size_type num_stored_elements = source->get_num_stored_elements();
+    IndexType num_stored_elements = source->get_num_stored_elements();
 
     compr_idxs<IndexType> idxs_src;
     ValueType_src val_src;
@@ -488,14 +513,17 @@ void convert_to_bccoo_blk_elm(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
-        size_type block_size_local =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_src) {
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size_src, num_stored_elements - i);
 
         compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
                                                block_size_local, idxs_src,
                                                types_data_src[idxs_src.blk]);
-        for (size_type j = 0; j < block_size_local; j++) {
+        // for (size_type j = 0; j < block_size_local; j++) {
+        for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
                 chunk_data_src, blk_idxs_src, idxs_src, val_src);
@@ -503,7 +531,8 @@ void convert_to_bccoo_blk_elm(
             val_res = val_src;
             put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
                                 idxs_res);
-            size_type col_src_res = put_position_newrow_mat_data(
+            // size_type col_src_res = put_position_newrow_mat_data(
+            IndexType col_src_res = put_position_newrow_mat_data(
                 idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
             put_next_position_value(chunk_data_res, col_src_res, val_res,
                                     idxs_res);
@@ -561,22 +590,27 @@ void convert_to_bccoo_blk_blk(
     array<ValueType_res> vals_blk_res(exec, block_size_res);
 
     uint8 type_blk = {};
-    size_type i_res = 0;
-    size_type block_size_local_res =
+    // size_type i_res = 0;
+    IndexType i_res = 0;
+    // size_type block_size_local_res =
+    IndexType block_size_local_res =
         std::min(block_size_res, num_stored_elements - i_res);
 
-    blk_idxs_res.row_frs = idxs_src.row;
-    blk_idxs_res.col_frs = idxs_src.col;
+    blk_idxs_res.row_frst = idxs_src.row;
+    blk_idxs_res.col_frst = idxs_src.col;
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
-        size_type block_size_local_src =
+    // for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+    for (IndexType i = 0; i < num_stored_elements; i += block_size_src) {
+        // size_type block_size_local_src =
+        IndexType block_size_local_src =
             std::min(block_size_src, num_stored_elements - i);
         compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
                                                block_size_local_src, idxs_src,
                                                types_data_src[idxs_src.blk]);
-        for (size_type j = 0; j < block_size_local_src; j++) {
+        // for (size_type j = 0; j < block_size_local_src; j++) {
+        for (IndexType j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
                 chunk_data_src, blk_idxs_src, idxs_src, val_src);
@@ -594,8 +628,8 @@ void convert_to_bccoo_blk_blk(
                 type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res,
                                                 rows_blk_res, cols_blk_res,
                                                 vals_blk_res, chunk_data_res);
-                rows_data_res[idxs_res.blk] = blk_idxs_res.row_frs;
-                cols_data_res[idxs_res.blk] = blk_idxs_res.col_frs;
+                rows_data_res[idxs_res.blk] = blk_idxs_res.row_frst;
+                cols_data_res[idxs_res.blk] = blk_idxs_res.col_frst;
                 types_data_res[idxs_res.blk] = type_blk;
                 offsets_data_res[++idxs_res.blk] = idxs_res.shf;
                 i_res += block_size_local_res;

@@ -76,7 +76,7 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.col =
-            blk_idxs.col_frs +
+            blk_idxs.col_frst +
             get_value_chunk<IndexTypeCol>(
                 chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
         val = get_value_chunk<ValueType>(
@@ -86,9 +86,9 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
     }
     if (tile_block.any(new_value)) {
         bool is_first_in_segment = segment_scan<subgroup_size>(
-            tile_block, blk_idxs.row_frs, &temp_val);
+            tile_block, blk_idxs.row_frst, &temp_val);
         if (is_first_in_segment) {
-            atomic_add(&(c[blk_idxs.row_frs * c_stride + column_id]),
+            atomic_add(&(c[blk_idxs.row_frst * c_stride + column_id]),
                        scale(temp_val));
         }
     }
@@ -106,27 +106,27 @@ inline GKO_ATTRIBUTES void loop_block_multi_row(
     compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
     const size_type jump_in_blk, Closure scale, sycl::nd_item<3> item_ct1)
 {
-    auto next_row = blk_idxs.row_frs;
-    auto last_row = blk_idxs.row_frs;
+    auto next_row = blk_idxs.row_frst;
+    auto last_row = blk_idxs.row_frst;
     ValueType temp_val = zero<ValueType>();
     ValueType val;
     bool new_value = false;
     const auto tile_block = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
 
-    last_row = blk_idxs.row_frs +
+    last_row = blk_idxs.row_frst +
                get_value_chunk<IndexTypeRow>(
                    chunk_data, blk_idxs.shf_row + (block_size_local - 1) *
                                                       sizeof(IndexTypeRow));
     next_row =
-        blk_idxs.row_frs +
+        blk_idxs.row_frst +
         get_value_chunk<IndexTypeRow>(
             chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));
     for (size_type pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.row = next_row;
         idxs.col =
-            blk_idxs.col_frs +
+            blk_idxs.col_frst +
             get_value_chunk<IndexTypeCol>(
                 chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
         val = get_value_chunk<ValueType>(
@@ -135,7 +135,7 @@ inline GKO_ATTRIBUTES void loop_block_multi_row(
         new_value = true;
         next_row = ((pos + jump_in_blk) >= block_size_local)
                        ? last_row
-                       : blk_idxs.row_frs +
+                       : blk_idxs.row_frst +
                              get_value_chunk<IndexTypeRow>(
                                  chunk_data,
                                  blk_idxs.shf_row + (pos + jump_in_blk) *
@@ -169,18 +169,18 @@ inline GKO_ATTRIBUTES void get_block_position_value(
     const size_type pos, const uint8* chunk_data, compr_blk_idxs& blk_idxs,
     size_type& row, size_type& col, ValueType& val)
 {
-    row = blk_idxs.row_frs;
-    col = blk_idxs.col_frs;
-    if (blk_idxs.mul_row) {
-        if (blk_idxs.row_16bits) {
+    row = blk_idxs.row_frst;
+    col = blk_idxs.col_frst;
+    if (blk_idxs.is_multi_row()) {
+        if (blk_idxs.is_row_16bits()) {
             row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
         } else {
             row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
         }
     }
-    if (blk_idxs.col_8bits) {
+    if (blk_idxs.is_column_8bits()) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
-    } else if (blk_idxs.col_16bits) {
+    } else if (blk_idxs.is_column_16bits()) {
         col += get_value_chunk<uint16>(chunk_data,
                                        blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
@@ -199,10 +199,10 @@ inline GKO_ATTRIBUTES void get_block_position_value(const size_type pos,
                                                     compr_idxs<IndexType>& idxs,
                                                     ValueType& val)
 {
-    idxs.row = blk_idxs.row_frs;
-    idxs.col = blk_idxs.col_frs;
-    if (blk_idxs.mul_row) {
-        if (blk_idxs.row_16bits) {
+    idxs.row = blk_idxs.row_frst;
+    idxs.col = blk_idxs.col_frst;
+    if (blk_idxs.is_multi_row()) {
+        if (blk_idxs.is_row_16bits()) {
             idxs.row +=
                 get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
         } else {
@@ -210,9 +210,9 @@ inline GKO_ATTRIBUTES void get_block_position_value(const size_type pos,
                 get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
         }
     }
-    if (blk_idxs.col_8bits) {
+    if (blk_idxs.is_column_8bits()) {
         idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
-    } else if (blk_idxs.col_16bits) {
+    } else if (blk_idxs.is_column_16bits()) {
         idxs.col += get_value_chunk<uint16>(
             chunk_data, blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
@@ -229,18 +229,18 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, uint8* chunk_data, compr_blk_idxs& blk_idxs,
     size_type& row, size_type& col, ValueType& val, Closure finalize_op)
 {
-    row = blk_idxs.row_frs;
-    col = blk_idxs.col_frs;
-    if (blk_idxs.mul_row) {
-        if (blk_idxs.row_16bits) {
+    row = blk_idxs.row_frst;
+    col = blk_idxs.col_frst;
+    if (blk_idxs.is_multi_row()) {
+        if (blk_idxs.is_row_16bits()) {
             row += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
         } else {
             row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
         }
     }
-    if (blk_idxs.col_8bits) {
+    if (blk_idxs.is_column_8bits()) {
         col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
-    } else if (blk_idxs.col_16bits) {
+    } else if (blk_idxs.is_column_16bits()) {
         col += get_value_chunk<uint16>(chunk_data,
                                        blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
@@ -260,10 +260,10 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     const size_type pos, uint8* chunk_data, compr_blk_idxs& blk_idxs,
     compr_idxs<IndexType>& idxs, ValueType& val, Closure finalize_op)
 {
-    idxs.row = blk_idxs.row_frs;
-    idxs.col = blk_idxs.col_frs;
-    if (blk_idxs.mul_row) {
-        if (blk_idxs.row_16bits) {
+    idxs.row = blk_idxs.row_frst;
+    idxs.col = blk_idxs.col_frst;
+    if (blk_idxs.is_multi_row()) {
+        if (blk_idxs.is_row_16bits()) {
             idxs.row +=
                 get_value_chunk<uint16>(chunk_data, blk_idxs.shf_row + pos);
         } else {
@@ -271,9 +271,9 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
                 get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
         }
     }
-    if (blk_idxs.col_8bits) {
+    if (blk_idxs.is_column_8bits()) {
         idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
-    } else if (blk_idxs.col_16bits) {
+    } else if (blk_idxs.is_column_16bits()) {
         idxs.col += get_value_chunk<uint16>(
             chunk_data, blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
@@ -295,43 +295,43 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     compr_blk_idxs& blk_idxs_res, size_type& row, size_type& col,
     ValueTypeSrc& val, Closure finalize_op)
 {
-    row = blk_idxs_src.row_frs;
-    col = blk_idxs_src.col_frs;
-    if (blk_idxs_src.mul_row) {
-        if (blk_idxs_src.row_16bits) {
-            auto row_dif = get_value_chunk<uint16>(chunk_data_src,
+    row = blk_idxs_src.row_frst;
+    col = blk_idxs_src.col_frst;
+    if (blk_idxs_src.is_multi_row()) {
+        if (blk_idxs_src.is_row_16bits()) {
+            auto row_diff = get_value_chunk<uint16>(chunk_data_src,
                                                    blk_idxs_src.shf_row + pos);
             set_value_chunk<uint16>(chunk_data_res, blk_idxs_res.shf_row + pos,
-                                    row_dif);
-            row += row_dif;
+                                    row_diff);
+            row += row_diff;
         } else {
-            auto row_dif = get_value_chunk<uint8>(chunk_data_src,
+            auto row_diff = get_value_chunk<uint8>(chunk_data_src,
                                                   blk_idxs_src.shf_row + pos);
             set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_row + pos,
-                                   row_dif);
-            row += row_dif;
+                                   row_diff);
+            row += row_diff;
         }
     }
-    if (blk_idxs_src.col_8bits) {
-        auto col_dif =
+    if (blk_idxs_src.is_column_8bits()) {
+        auto col_diff =
             get_value_chunk<uint8>(chunk_data_src, blk_idxs_src.shf_col + pos);
         set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_col + pos,
-                               col_dif);
-        col += col_dif;
-    } else if (blk_idxs_src.col_16bits) {
-        auto col_dif = get_value_chunk<uint16>(
+                               col_diff);
+        col += col_diff;
+    } else if (blk_idxs_src.is_column_16bits()) {
+        auto col_diff = get_value_chunk<uint16>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint16));
         set_value_chunk<uint16>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint16),
-                                col_dif);
-        col += col_dif;
+                                col_diff);
+        col += col_diff;
     } else {
-        auto col_dif = get_value_chunk<uint32>(
+        auto col_diff = get_value_chunk<uint32>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint32));
         set_value_chunk<uint32>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint32),
-                                col_dif);
-        col += col_dif;
+                                col_diff);
+        col += col_diff;
     }
     val = get_value_chunk<ValueTypeSrc>(
         chunk_data_src, blk_idxs_src.shf_val + pos * sizeof(ValueTypeSrc));
@@ -349,43 +349,43 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
         compr_blk_idxs& blk_idxs_res, compr_idxs<IndexType>& idxs,
         ValueTypeSrc& val, Closure finalize_op)
 {
-    idxs.row = blk_idxs_src.row_frs;
-    idxs.col = blk_idxs_src.col_frs;
-    if (blk_idxs_src.mul_row) {
-        if (blk_idxs_src.row_16bits) {
-            auto row_dif = get_value_chunk<uint16>(chunk_data_src,
-                                                   blk_idxs_src.shf_row + pos);
+    idxs.row = blk_idxs_src.row_frst;
+    idxs.col = blk_idxs_src.col_frst;
+    if (blk_idxs_src.is_multi_row()) {
+        if (blk_idxs_src.is_row_16bits()) {
+            auto row_diff = get_value_chunk<uint16>(chunk_data_src,
+                                                    blk_idxs_src.shf_row + pos);
             set_value_chunk<uint16>(chunk_data_res, blk_idxs_res.shf_row + pos,
-                                    row_dif);
-            idxs.row += row_dif;
+                                    row_diff);
+            idxs.row += row_diff;
         } else {
-            auto row_dif = get_value_chunk<uint8>(chunk_data_src,
-                                                  blk_idxs_src.shf_row + pos);
+            auto row_diff = get_value_chunk<uint8>(chunk_data_src,
+                                                   blk_idxs_src.shf_row + pos);
             set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_row + pos,
-                                   row_dif);
-            idxs.row += row_dif;
+                                   row_diff);
+            idxs.row += row_diff;
         }
     }
-    if (blk_idxs_src.col_8bits) {
-        auto col_dif =
+    if (blk_idxs_src.is_column_8bits()) {
+        auto col_diff =
             get_value_chunk<uint8>(chunk_data_src, blk_idxs_src.shf_col + pos);
         set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_col + pos,
-                               col_dif);
-        idxs.col += col_dif;
-    } else if (blk_idxs_src.col_16bits) {
-        auto col_dif = get_value_chunk<uint16>(
+                               col_diff);
+        idxs.col += col_diff;
+    } else if (blk_idxs_src.is_column_16bits()) {
+        auto col_diff = get_value_chunk<uint16>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint16));
         set_value_chunk<uint16>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint16),
-                                col_dif);
-        idxs.col += col_dif;
+                                col_diff);
+        idxs.col += col_diff;
     } else {
-        auto col_dif = get_value_chunk<uint32>(
+        auto col_diff = get_value_chunk<uint32>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint32));
         set_value_chunk<uint32>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint32),
-                                col_dif);
-        idxs.col += col_dif;
+                                col_diff);
+        idxs.col += col_diff;
     }
     val = get_value_chunk<ValueTypeSrc>(
         chunk_data_src, blk_idxs_src.shf_val + pos * sizeof(ValueTypeSrc));

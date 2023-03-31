@@ -66,7 +66,8 @@ namespace bccoo {
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline void loop_block_single_row(const uint8* chunk_data,
-                                  size_type block_size_local,
+                                  // size_type block_size_local,
+                                  IndexType block_size_local,
                                   const matrix::Dense<ValueType>* b,
                                   matrix::Dense<ValueType>* c,
                                   compr_idxs<IndexType>& idxs,
@@ -74,23 +75,26 @@ inline void loop_block_single_row(const uint8* chunk_data,
                                   ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row = blk_idxs.row_frs;
+    auto row = blk_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
-    for (size_type i = 0; i < block_size_local; i++) {
-        idxs.col = blk_idxs.col_frs +
+    // for (size_type i = 0; i < block_size_local; i++) {
+    for (IndexType i = 0; i < block_size_local; i++) {
+        idxs.col = blk_idxs.col_frst +
                    get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
         blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
         new_elm = true;
     }
     if (new_elm) {
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             atomic_add(c->at(row, j), sumV[j]);
             sumV[j] = zero<ValueType>();
         }
@@ -100,29 +104,33 @@ inline void loop_block_single_row(const uint8* chunk_data,
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline void loop_block_single_row(
-    const uint8* chunk_data, size_type block_size_local,
+    // const uint8* chunk_data, size_type block_size_local,
+    const uint8* chunk_data, IndexType block_size_local,
     const ValueType alpha_val, const matrix::Dense<ValueType>* b,
     matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
     compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row = blk_idxs.row_frs;
+    auto row = blk_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
-    for (size_type i = 0; i < block_size_local; i++) {
-        idxs.col = blk_idxs.col_frs +
+    // for (size_type i = 0; i < block_size_local; i++) {
+    for (IndexType i = 0; i < block_size_local; i++) {
+        idxs.col = blk_idxs.col_frst +
                    get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
         blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
         blk_idxs.shf_val += sizeof(ValueType);
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
         new_elm = true;
     }
     if (new_elm) {
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             atomic_add(c->at(row, j), alpha_val * sumV[j]);
             sumV[j] = zero<ValueType>();
         }
@@ -133,7 +141,8 @@ inline void loop_block_single_row(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 inline void loop_block_multi_row(const uint8* chunk_data,
-                                 size_type block_size_local,
+                                 // size_type block_size_local,
+                                 IndexType block_size_local,
                                  const matrix::Dense<ValueType>* b,
                                  matrix::Dense<ValueType>* c,
                                  compr_idxs<IndexType>& idxs,
@@ -141,15 +150,16 @@ inline void loop_block_multi_row(const uint8* chunk_data,
                                  ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row_old = blk_idxs.row_frs;
+    auto row_old = blk_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
-    for (size_type i = 0; i < block_size_local; i++) {
-        idxs.row = blk_idxs.row_frs +
+    // for (size_type i = 0; i < block_size_local; i++) {
+    for (IndexType i = 0; i < block_size_local; i++) {
+        idxs.row = blk_idxs.row_frst +
                    get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row);
         blk_idxs.shf_row += sizeof(IndexTypeRow);
-        idxs.col = blk_idxs.col_frs +
+        idxs.col = blk_idxs.col_frst +
                    get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
         blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
@@ -157,13 +167,15 @@ inline void loop_block_multi_row(const uint8* chunk_data,
         if (row_old != idxs.row) {
             // When a new row ia achieved, the computed values
             // have to be accumulated to c
-            for (size_type j = 0; j < num_cols; j++) {
+            // for (size_type j = 0; j < num_cols; j++) {
+            for (IndexType j = 0; j < num_cols; j++) {
                 atomic_add(c->at(row_old, j), sumV[j]);
                 sumV[j] = zero<ValueType>();
             }
             new_elm = false;
         }
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
         new_elm = true;
@@ -172,7 +184,8 @@ inline void loop_block_multi_row(const uint8* chunk_data,
     if (new_elm) {
         // If some values are processed and not accumulated,
         // the computed values have to be accumulated to c
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             atomic_add(c->at(row_old, j), sumV[j]);
             sumV[j] = zero<ValueType>();
         }
@@ -183,21 +196,23 @@ inline void loop_block_multi_row(const uint8* chunk_data,
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 inline void loop_block_multi_row(
-    const uint8* chunk_data, size_type block_size_local,
+    // const uint8* chunk_data, size_type block_size_local,
+    const uint8* chunk_data, IndexType block_size_local,
     const ValueType alpha_val, const matrix::Dense<ValueType>* b,
     matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
     compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row_old = blk_idxs.row_frs;
+    auto row_old = blk_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
-    for (size_type i = 0; i < block_size_local; i++) {
-        idxs.row = blk_idxs.row_frs +
+    // for (size_type i = 0; i < block_size_local; i++) {
+    for (IndexType i = 0; i < block_size_local; i++) {
+        idxs.row = blk_idxs.row_frst +
                    get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row);
         blk_idxs.shf_row += sizeof(IndexTypeRow);
-        idxs.col = blk_idxs.col_frs +
+        idxs.col = blk_idxs.col_frst +
                    get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col);
         blk_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
@@ -205,13 +220,15 @@ inline void loop_block_multi_row(
         if (row_old != idxs.row) {
             // When a new row ia achieved, the computed values
             // have to be accumulated to c
-            for (size_type j = 0; j < num_cols; j++) {
+            // for (size_type j = 0; j < num_cols; j++) {
+            for (IndexType j = 0; j < num_cols; j++) {
                 atomic_add(c->at(row_old, j), alpha_val * sumV[j]);
                 sumV[j] = zero<ValueType>();
             }
             new_elm = false;
         }
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
         new_elm = true;
@@ -220,7 +237,8 @@ inline void loop_block_multi_row(
     if (new_elm) {
         // If some values are processed and not accumulated,
         // the computed values have to be accumulated to c
-        for (size_type j = 0; j < num_cols; j++) {
+        // for (size_type j = 0; j < num_cols; j++) {
+        for (IndexType j = 0; j < num_cols; j++) {
             atomic_add(c->at(row_old, j), alpha_val * sumV[j]);
             sumV[j] = zero<ValueType>();
         }

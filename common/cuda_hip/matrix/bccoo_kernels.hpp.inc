@@ -58,24 +58,33 @@ namespace kernel {
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
-__device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
-                            const size_type block_size,
-                            const size_type num_lines,
-                            const uint8* __restrict__ chunk_data,
-                            const size_type* __restrict__ offsets_data,
-                            const uint8* __restrict__ types_data,
-                            const IndexType* __restrict__ cols_data,
-                            const IndexType* __restrict__ rows_data,
-                            const ValueType* __restrict__ b,
-                            const size_type b_stride, ValueType* __restrict__ c,
-                            const size_type c_stride, Closure scale)
+// __device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
+__device__ void spmv_kernel(
+    const IndexType nnz, const IndexType num_blks,
+    // const size_type block_size,
+    const IndexType block_size,
+    // const size_type num_lines,
+    const IndexType num_lines, const uint8* __restrict__ chunk_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, const ValueType* __restrict__ b,
+    // const size_type b_stride, ValueType* __restrict__ c,
+    const IndexType b_stride, ValueType* __restrict__ c,
+    // const size_type c_stride, Closure scale)
+    const IndexType c_stride, Closure scale)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
 
     ValueType temp_val = zero<ValueType>();
 
@@ -83,7 +92,8 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
         const auto tile_block =
             group::tiled_partition<subwarp_size>(group::this_thread_block());
 
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
@@ -145,12 +155,17 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_blks,
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chk,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chk,
+    const IndexType num_lines, const uint8* __restrict__ chk,
     const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride)
+    // const ValueType* __restrict__ b, const size_type b_stride,
+    const ValueType* __restrict__ b, const IndexType b_stride,
+    // ValueType* __restrict__ c, const size_type c_stride)
+    ValueType* __restrict__ c, const IndexType c_stride)
 {
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
                 b, b_stride, c, c_stride, [](const ValueType& x) { return x; });
@@ -159,13 +174,18 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const ValueType* __restrict__ alpha,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const ValueType* __restrict__ alpha,
+    const IndexType num_lines, const ValueType* __restrict__ alpha,
     const uint8* __restrict__ chk, const size_type* __restrict__ off,
     const uint8* __restrict__ typ, const IndexType* __restrict__ col,
     const IndexType* __restrict__ row, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride)
+    // const size_type b_stride, ValueType* __restrict__ c,
+    const IndexType b_stride, ValueType* __restrict__ c,
+    // const size_type c_stride)
+    const IndexType c_stride)
 {
     ValueType scale_factor = alpha[0];
     spmv_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
@@ -195,9 +215,12 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
-__device__ void extract_kernel(const size_type nnz, const size_type num_blks,
-                               const size_type block_size,
-                               const size_type num_lines,
+// __device__ void extract_kernel(const size_type nnz, const size_type num_blks,
+__device__ void extract_kernel(const IndexType nnz, const IndexType num_blks,
+                               // const size_type block_size,
+                               const IndexType block_size,
+                               // const size_type num_lines,
+                               const IndexType num_lines,
                                const uint8* __restrict__ chunk_data,
                                const size_type* __restrict__ offsets_data,
                                const uint8* __restrict__ types_data,
@@ -205,14 +228,21 @@ __device__ void extract_kernel(const size_type nnz, const size_type num_blks,
                                const IndexType* __restrict__ rows_data,
                                ValueType* __restrict__ diag)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
+
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
@@ -279,8 +309,11 @@ __device__ void extract_kernel(const size_type nnz, const size_type num_blks,
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chk,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chk,
+    const IndexType num_lines, const uint8* __restrict__ chk,
     const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
     ValueType* __restrict__ diag)
@@ -312,22 +345,31 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 __device__ void absolute_inplace_kernel(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, uint8* __restrict__ chunk_data,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, uint8* __restrict__ chunk_data,
+    const IndexType num_lines, uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
     const IndexType* __restrict__ rows_data, Closure comp_abs)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
 
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
@@ -399,26 +441,27 @@ __device__ void absolute_inplace_kernel(
 
 /*
                 if (blk_idxs.is_multi_row()) {
-                        if (blk_idxs.is_row_16bits()) {
+                                if (blk_idxs.is_row_16bits()) {
                                                 if (blk_idxs.is_column_8bits())
    { } else if (blk_idxs.is_column_16bits()) { } else {
-                                                                }
-                        } else {
-                                                if (blk_idxs.is_column_8bits())
-   { } else if (blk_idxs.is_column_16bits()) { } else {
-                                                                }
-                        }
-                } else {
-                                if (blk_idxs.is_column_8bits()) {
-                                } else if (blk_idxs.is_column_16bits()) {
+                                                }
                                 } else {
-                                }
+                                                if (blk_idxs.is_column_8bits())
+   { } else if (blk_idxs.is_column_16bits()) { } else {
+                                                }
+                } else {
+                                                if (blk_idxs.is_column_8bits())
+   { } else if (blk_idxs.is_column_16bits()) { } else {
+                                                }
                 }
 */
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, uint8* __restrict__ chk,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, uint8* __restrict__ chk,
+    const IndexType num_lines, uint8* __restrict__ chk,
     const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row)
 {
@@ -463,8 +506,11 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 __device__ void absolute_kernel(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chunk_data_src,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chunk_data_src,
+    const IndexType num_lines, const uint8* __restrict__ chunk_data_src,
     const size_type* __restrict__ offsets_data_src,
     const uint8* __restrict__ types_data_src,
     const IndexType* __restrict__ cols_data_src,
@@ -474,16 +520,22 @@ __device__ void absolute_kernel(
     uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
     IndexType* __restrict__ rows_data_res, Closure comp_abs)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
 
     offsets_data_res[0] = 0;
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
 
         compr_idxs<IndexType> idxs_src(blk, offsets_data_src[blk]);
@@ -593,8 +645,11 @@ __device__ void absolute_kernel(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chk_src,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chk_src,
+    const IndexType num_lines, const uint8* __restrict__ chk_src,
     const size_type* __restrict__ off_src, const uint8* __restrict__ typ_src,
     const IndexType* __restrict__ col_src,
     const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
@@ -629,22 +684,32 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __device__ void fill_in_coo_kernel(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chunk_data,
+    const IndexType num_lines, const uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
     const IndexType* __restrict__ rows_data, IndexType* __restrict__ rows_idxs,
     IndexType* __restrict__ cols_idxs, ValueType* __restrict__ values)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
+
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
@@ -707,8 +772,11 @@ __device__ void fill_in_coo_kernel(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chk,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chk,
+    const IndexType num_lines, const uint8* __restrict__ chk,
     const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
     IndexType* __restrict__ row_idx, IndexType* __restrict__ col_idx,
@@ -740,22 +808,33 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __device__ void fill_in_dense_kernel(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chunk_data,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chunk_data,
+    const IndexType num_lines, const uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, size_type stride,
+    // const IndexType* __restrict__ rows_data, size_type stride,
+    const IndexType* __restrict__ rows_data, IndexType stride,
     ValueType* __restrict__ result)
 {
-    const auto column_id = blockIdx.y;
-    const auto start_blk = blockIdx.x;
-    const auto jump_blk = gridDim.x;
+    // const auto column_id = blockIdx.y;
+    const IndexType column_id = blockIdx.y;
+    // const auto start_blk = blockIdx.x;
+    const IndexType start_blk = blockIdx.x;
+    // const auto jump_blk = gridDim.x;
+    const IndexType jump_blk = gridDim.x;
 
-    const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
-    const auto jump_in_blk = blockDim.y * subwarp_size;
+    // const auto start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
+    // const auto jump_in_blk = blockDim.y * subwarp_size;
+    const IndexType jump_in_blk = blockDim.y * subwarp_size;
+
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
-        size_type block_size_local =
+        // size_type block_size_local =
+        IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
@@ -812,11 +891,15 @@ __device__ void fill_in_dense_kernel(
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
-    const size_type nnz, const size_type num_blks, const size_type block_size,
-    const size_type num_lines, const uint8* __restrict__ chk,
+    // const size_type nnz, const size_type num_blks, const size_type
+    // block_size,
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    // const size_type num_lines, const uint8* __restrict__ chk,
+    const IndexType num_lines, const uint8* __restrict__ chk,
     const size_type* __restrict__ off, const uint8* __restrict__ typ,
     const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    size_type stride, ValueType* __restrict__ result)
+    // size_type stride, ValueType* __restrict__ result)
+    IndexType stride, ValueType* __restrict__ result)
 {
     fill_in_dense_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ,
                          col, row, stride, result);
@@ -831,8 +914,10 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
-    const IndexType* __restrict__ idxs, size_type num_nonzeros,
-    IndexType* __restrict__ ptrs, size_type length)
+    // const IndexType* __restrict__ idxs, size_type num_nonzeros,
+    const IndexType* __restrict__ idxs, IndexType num_nonzeros,
+    // IndexType* __restrict__ ptrs, size_type length)
+    IndexType* __restrict__ ptrs, IndexType length)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -854,6 +939,7 @@ __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
 template <typename ValueType>
 __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
     size_type num_rows, size_type num_cols, size_type stride,
+    // IndexType num_rows, IndexType num_cols, IndexType stride,
     ValueType* __restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
