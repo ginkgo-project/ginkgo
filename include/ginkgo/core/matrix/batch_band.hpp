@@ -138,6 +138,12 @@ public:
 
     void read(const std::vector<mat_data32>& data) override;
 
+    void read(const std::vector<mat_data>& data, const batch_stride& KLs,
+              const batch_stride& KUs);
+
+    void read(const std::vector<mat_data32>& data, const batch_stride& KLs,
+              const batch_stride& KUs);
+
     void write(std::vector<mat_data>& data) const override;
 
     void write(std::vector<mat_data32>& data) const override;
@@ -146,7 +152,7 @@ public:
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
-    bool check_if_element_is_part_of_the_band(
+    bool check_if_element_is_part_of_the_band_for_dense_layout_indices(
         size_type batch, size_type dense_row,
         size_type dense_col) const noexcept
     {
@@ -162,16 +168,15 @@ public:
         }
     }
 
-    size_type get_linear_index_wrt_band_arr(size_type batch,
-                                            size_type dense_row,
-                                            size_type dense_col) const
+    size_type get_linear_index_wrt_band_arr_for_dense_layout_indices(
+        size_type batch, size_type dense_row, size_type dense_col) const
     {
         const auto n = this->get_size().at(batch)[0];
         const auto kl = KL_.at(batch);
         const auto ku = KU_.at(batch);
 
-        if (!check_if_element_is_part_of_the_band(batch, dense_row,
-                                                  dense_col)) {
+        if (!check_if_element_is_part_of_the_band_for_dense_layout_indices(
+                batch, dense_row, dense_col)) {
             throw std::runtime_error(
                 "Requested element is not a part of the band!");
         }
@@ -193,24 +198,58 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    value_type& at(size_type batch, size_type row_in_dense_layout,
-                   size_type col_in_dense_layout)
+    value_type& at_in_reference_to_dense_layout(size_type batch,
+                                                size_type row_in_dense_layout,
+                                                size_type col_in_dense_layout)
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
-        return band_array_col_major_.get_data()[get_linear_index_wrt_band_arr(
-            batch, row_in_dense_layout, col_in_dense_layout)];
+        return band_array_col_major_
+            .get_data()[get_linear_index_wrt_band_arr_for_dense_layout_indices(
+                batch, row_in_dense_layout, col_in_dense_layout)];
     }
 
     /**
      * @copydoc BatchBand::at(size_type, size_type, size_type)
      */
-    value_type at(size_type batch, size_type row_in_dense_layout,
-                  size_type col_in_dense_layout) const
+    value_type at_in_reference_to_dense_layout(
+        size_type batch, size_type row_in_dense_layout,
+        size_type col_in_dense_layout) const
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return band_array_col_major_.get_const_data()
+            [get_linear_index_wrt_band_arr_for_dense_layout_indices(
+                batch, row_in_dense_layout, col_in_dense_layout)];
+    }
+
+    size_type get_linear_index_wrt_band_arr_for_band_layout_indices(
+        size_type batch, size_type band_row, size_type band_col) const
+    {
+        const auto n = this->get_size().at(batch)[0];
+        const auto kl = KL_.at(batch);
+        const auto ku = KU_.at(batch);
+
+        return num_elems_per_batch_cumul_.get_const_data()[batch] + band_row +
+               band_col * (2 * kl + ku + 1);
+    }
+
+    value_type& at_in_reference_to_band_layout(size_type batch,
+                                               size_type row_in_band_layout,
+                                               size_type col_in_band_layout)
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
         return band_array_col_major_
-            .get_const_data()[get_linear_index_wrt_band_arr(
-                batch, row_in_dense_layout, col_in_dense_layout)];
+            .get_data()[get_linear_index_wrt_band_arr_for_band_layout_indices(
+                batch, row_in_band_layout, col_in_band_layout)];
+    }
+
+    value_type at_in_reference_to_band_layout(
+        size_type batch, size_type row_in_band_layout,
+        size_type col_in_band_layout) const
+    {
+        GKO_ASSERT(batch < this->get_num_batch_entries());
+        return band_array_col_major_.get_const_data()
+            [get_linear_index_wrt_band_arr_for_band_layout_indices(
+                batch, row_in_band_layout, col_in_band_layout)];
     }
 
     /**
@@ -358,6 +397,35 @@ private:
         return num_elems;
     }
 
+    void validate_KL_and_KU() const
+    {
+        GKO_ASSERT(this->KL_.get_num_batch_entries() ==
+                   this->get_num_batch_entries());
+        GKO_ASSERT(this->KU_.get_num_batch_entries() ==
+                   this->get_num_batch_entries());
+
+        if (this->get_size().stores_equal_sizes() &&
+            this->KL_.stores_equal_strides() &&
+            this->KU_.stores_equal_strides() &&
+            this->get_num_batch_entries() >= 1) {
+            const auto nrows = this->get_size().at(0)[0];
+            const auto kl = this->KL_.at(0);
+            const auto ku = this->KU_.at(0);
+            GKO_ASSERT(kl >= 0 && ku >= 0 && kl <= nrows - 1 &&
+                       ku <= nrows - 1);
+        } else {
+            for (size_type batch_entry_idx = 0;
+                 batch_entry_idx < this->get_num_batch_entries();
+                 batch_entry_idx++) {
+                const auto nrows = this->get_size().at(batch_entry_idx)[0];
+                const auto kl = this->KL_.at(batch_entry_idx);
+                const auto ku = this->KU_.at(batch_entry_idx);
+                GKO_ASSERT(kl >= 0 && ku >= 0 && kl <= nrows - 1 &&
+                           ku <= nrows - 1);
+            }
+        }
+    }
+
 protected:
     /**
      * Creates an uninitialized BatchBand matrix of the specified size, KL and
@@ -379,6 +447,7 @@ protected:
           KU_(KU)
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+        validate_KL_and_KU();
 
         num_elems_per_batch_cumul_ =
             compute_num_elems_per_batch_cumul(exec, this->get_size(), KL, KU);
@@ -394,7 +463,9 @@ protected:
      * @param size  sizes of the batch matrices in a batch_dim object
      * @param KL
      * @param KU
-     * @param band_arr_col_major band stored in dense column major array
+     * @param band_arr_col_major band stored in dense column major array.
+     * Please note that a dense band array in any format other than the one
+     * documented with this class will lead to undefined behviour.
      *
      * @note If 'band_arr_col_major' is not
      * an rvalue, not an array of ValueType or is on the wrong executor, an
@@ -417,6 +488,7 @@ protected:
                                                 this->get_size(), KL, KU))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+        validate_KL_and_KU();
 
         auto num_elems =
             num_elems_per_batch_cumul_

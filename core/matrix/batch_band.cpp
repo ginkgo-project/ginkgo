@@ -102,69 +102,112 @@ void BatchBand<ValueType>::move_to(BatchDense<ValueType>* const result)
 namespace {
 
 template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType* mtx,
-                      const std::vector<MatrixData>& data) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-//    auto batch_sizes = std::vector<dim<2>>(data.size());
-//    size_type ind = 0;
-//    for (const auto& b : data) {
-//        batch_sizes[ind] = b.size;
-//        ++ind;
-//    }
-//    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
-//                                  batch_dim<2>(batch_sizes));
-//
-//    for (size_type batch_entry_idx = 0; batch_entry_idx < data.size();
-//         batch_entry_idx++) {
-//        assert(data[batch_entry_idx].size[0] ==
-//        data[batch_entry_idx].size[1]);
-//
-//        const auto size = data[batch_entry_idx].size[0];
-//
-//        size_type ind = 0;
-//
-//        for (size_type i = 0; i < size; i++) {
-//            tmp->get_sub_diagonal(batch_entry_idx)[i] =
-//                zero<typename MatrixType::value_type>();
-//
-//            tmp->get_main_diagonal(batch_entry_idx)[i] =
-//                zero<typename MatrixType::value_type>();
-//
-//            tmp->get_super_diagonal(batch_entry_idx)[i] =
-//                zero<typename MatrixType::value_type>();
-//        }
-//
-//        while (ind < data[batch_entry_idx].nonzeros.size()) {
-//            const auto row = data[batch_entry_idx].nonzeros[ind].row;
-//            const auto col = data[batch_entry_idx].nonzeros[ind].column;
-//            const auto val = data[batch_entry_idx].nonzeros[ind].value;
-//
-//            auto pos = 0;
-//
-//            if (row == col)  // main diagonal
-//            {
-//                tmp->get_main_diagonal(batch_entry_idx)[row] = val;
-//
-//            } else if (row + 1 == col)  // super-diagonal
-//            {
-//                tmp->get_super_diagonal(batch_entry_idx)[row] = val;
-//
-//            } else if (row == col + 1)  // sub-diagonal
-//            {
-//                tmp->get_sub_diagonal(batch_entry_idx)[row] = val;
-//
-//            } else {
-//                throw std::runtime_error("Matrix is not tridiagonal!");
-//            }
-//
-//            ++ind;
-//        }
-//    }
-//
-//    tmp->move_to(mtx);
-//}
+inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data,
+                      const batch_stride& KLs, const batch_stride& KUs)
+{
+    using ValueType = typename MatrixType::value_type;
+    auto batch_sizes = std::vector<dim<2>>(data.size());
+    size_type ind = 0;
+    for (const auto& b : data) {
+        batch_sizes[ind] = b.size;
+        ++ind;
+    }
+
+    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
+                                  batch_dim<2>(batch_sizes), batch_stride(KLs),
+                                  batch_stride(KUs));
+
+    for (size_type batch_entry_idx = 0; batch_entry_idx < data.size();
+         batch_entry_idx++) {
+        assert(data[batch_entry_idx].size[0] == data[batch_entry_idx].size[1]);
+        const auto size = data[batch_entry_idx].size[0];
+        const auto KL = KLs.at(batch_entry_idx);
+        const auto KU = KUs.at(batch_entry_idx);
+
+        for (size_type i = 0; i < size * (2 * KL + KU + 1); i++) {
+            tmp->get_band_array(batch_entry_idx)[i] = gko::nan<ValueType>();
+        }
+
+        // initialize the band region with zeroes
+        // Think of band in the dense A layout and access the corresponding
+        // elements in the band array
+        for (size_type dense_col = 0; dense_col < size; dense_col++) {
+            for (size_type dense_row = std::max(size_type{0}, dense_col - KU);
+                 dense_row = std::min(size_type{size - 1}, dense_col + KL);
+                 dense_row++) {
+                tmp->at_in_reference_to_dense_layout(
+                    batch_entry_idx, dense_row, dense_col) = zero<ValueType>();
+            }
+        }
+
+        size_type ind = 0;
+        while (ind < data[batch_entry_idx].nonzeros.size()) {
+            const auto row = data[batch_entry_idx].nonzeros[ind].row;
+            const auto col = data[batch_entry_idx].nonzeros[ind].column;
+            const auto val = data[batch_entry_idx].nonzeros[ind].value;
+
+            tmp->at_in_reference_to_dense_layout(batch_entry_idx, row, col) =
+                val;
+
+            ++ind;
+        }
+    }
+
+    tmp->move_to(mtx);
+}
+
+
+template <typename MatrixData>
+std::pair<size_type, size_type> infer_KL_and_KU(const MatrixData& data)
+{
+    typename MatrixData::index_type current_row = 0;
+    size_type kl_acc_to_curr_row = 0;
+    size_type ku_acc_to_curr_row = 0;
+    size_type KL = 0;
+    size_type KU = 0;
+
+    kl_acc_to_curr_row = data.nonzeros[0].row - data.nonzeros[0].column;
+    KL = kl_acc_to_curr_row;
+    const auto nnz = data.nonzeros.size();
+    for (size_type i = 0; i < nnz; i++) {
+        const auto& elem = data.nonzeros[i];
+
+        if (elem.row != current_row) {
+            // first element of the next row
+            current_row = elem.row;
+            kl_acc_to_curr_row = elem.row - elem.column;
+            KL = std::max(kl_acc_to_curr_row, KL);
+            // last element of the current row
+            const auto& prev_ele = data.nonzeros[i - 1];
+            ku_acc_to_curr_row = prev_ele.column - prev_ele.row;
+            KU = std::max(ku_acc_to_curr_row, KU);
+        }
+    }
+
+    ku_acc_to_curr_row =
+        data.nonzeros[nnz - 1].column - data.nonzeros[nnz - 1].row;
+    KU = std::max(ku_acc_to_curr_row, KU);
+
+    return std::pair<size_type, size_type>(KL, KU);
+}
+
+
+template <typename MatrixType, typename MatrixData>
+inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
+{
+    auto KLs = std::vector<size_type>(data.size());
+    auto KUs = std::vector<size_type>(data.size());
+
+    for (size_type batch_entry_idx = 0; batch_entry_idx < data.size();
+         batch_entry_idx++) {
+        auto KL_KU_pair = infer_KL_and_KU(data[batch_entry_idx]);
+        KLs[batch_entry_idx] = KL_KU_pair.first;
+        KUs[batch_entry_idx] = KL_KU_pair.second;
+    }
+
+    read_impl(mtx, data, KLs, KUs);
+}
+
 
 }  // namespace
 
@@ -179,6 +222,22 @@ template <typename ValueType>
 void BatchBand<ValueType>::read(const std::vector<mat_data32>& data)
 {
     read_impl(this, data);
+}
+
+template <typename ValueType>
+void BatchBand<ValueType>::read(const std::vector<mat_data>& data,
+                                const batch_stride& KLs,
+                                const batch_stride& KUs)
+{
+    read_impl(this, data, KLs, KUs);
+}
+
+template <typename ValueType>
+void BatchBand<ValueType>::read(const std::vector<mat_data32>& data,
+                                const batch_stride& KLs,
+                                const batch_stride& KUs)
+{
+    read_impl(this, data, KLs, KUs);
 }
 
 namespace {
@@ -212,7 +271,8 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
         for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
             for (size_type col = std::max(size_type{0}, row - kl);
                  col <= std::min(size - 1, row + ku); ++col) {
-                auto val = tmp->at(batch_entry_idx, row, col);
+                auto val = tmp->at_in_reference_to_dense_layout(batch_entry_idx,
+                                                                row, col);
                 if (val != zero<typename MatrixType::value_type>()) {
                     data[batch_entry_idx].nonzeros.emplace_back(row, col, val);
                 }
