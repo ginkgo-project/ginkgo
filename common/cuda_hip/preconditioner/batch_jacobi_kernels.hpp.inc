@@ -159,10 +159,8 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
     // Gauss Jordan Elimination with implicit pivoting
     for (int k = 0; k < block_size; k++) {
         // implicit pivoting
-
         const int ipiv = choose_pivot(subwarp_grp, block_size, block_row, perm,
                                       k);  // pivot index
-
         if (subwarp_grp.thread_rank() == ipiv) {
             perm = k;
         }
@@ -173,7 +171,6 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
         if (subwarp_grp.thread_rank() == ipiv) {
             block_row[k] = zero<ValueType>();
         }
-
         const ValueType row_val = block_row[k];
         // GER
         for (int col = 0; col < block_size; col++) {
@@ -182,13 +179,11 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
         }
         // Computations for the threads of the subwarp having local id >=
         // block_size are meaningless.
-
         // scale ipiv th row
         if (subwarp_grp.thread_rank() == ipiv) {
             for (int i = 0; i < block_size; i++) {
                 block_row[i] /= d;
             }
-
             block_row[k] = one<ValueType>() / d;
         }
     }

@@ -82,21 +82,22 @@ __dpct_inline__ int choose_pivot(const int block_size,
                                  const int& perm, int k,
                                  sycl::nd_item<3> item_ct1)
 {
+    using real_type = remove_complex<ValueType>;
     const auto sg = item_ct1.get_sub_group();
     const int sg_size = sg.get_local_range().size();
     const int sg_tid = sg.get_local_id();
 
-    auto my_abs_ele = abs(block_row[k]);
+    real_type my_abs_ele = abs(block_row[k]);
     if (perm > -1) {
-        my_abs_ele = -1;
+        my_abs_ele = static_cast<real_type>(-1);
     }
     if (sg_tid >= block_size) {
-        my_abs_ele = -1;
+        my_abs_ele = static_cast<real_type>(-1);
     }
     sg.barrier();
     int my_piv_idx = sg_tid;
     for (int a = sg_size / 2; a > 0; a /= 2) {
-        const auto abs_ele_other = sg.shuffle_down(my_abs_ele, a);
+        const real_type abs_ele_other = sg.shuffle_down(my_abs_ele, a);
         const int piv_idx_other = sg.shuffle_down(my_piv_idx, a);
         if (my_abs_ele < abs_ele_other) {
             my_abs_ele = abs_ele_other;
@@ -125,7 +126,10 @@ __dpct_inline__ void invert_dense_block(const int block_size,
         if (sg_tid == ipiv) {
             perm = k;
         }
-        const ValueType d = sg.shuffle(block_row[k], ipiv);
+        const ValueType d =
+            (sg.shuffle(block_row[k], ipiv) == zero<ValueType>())
+                ? one<ValueType>()
+                : sg.shuffle(block_row[k], ipiv);
         // scale kth col
         block_row[k] /= -d;
         if (sg_tid == ipiv) {
