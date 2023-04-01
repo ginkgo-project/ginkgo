@@ -156,10 +156,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
     // Getting compression and block_size values from parameters
     bccoo::compression compress_src = this->get_compression();
-    // size_type block_size_src = this->get_block_size();
     IndexType block_size_src = this->get_block_size();
     bccoo::compression compress_res = result->get_compression();
-    // size_type block_size_res = result->get_block_size();
     IndexType block_size_res = result->get_block_size();
 
     // Adapting the compression and block_size values for the result
@@ -258,10 +256,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
     // Getting compression and block_size values from parameters
     bccoo::compression compress_src = this->get_compression();
-    // size_type block_size_src = this->get_block_size();
     IndexType block_size_src = this->get_block_size();
     bccoo::compression compress_res = result->get_compression();
-    // size_type block_size_res = result->get_block_size();
     IndexType block_size_res = result->get_block_size();
 
     // Adapting the compression and block_size values for the result
@@ -455,7 +451,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     auto exec_master = exec->get_master();
 
     // Computation of nnz
-    // size_type nnz = 0;
     IndexType nnz = 0;
     for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
@@ -468,7 +463,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     }
 
     // Block partitioning. If the initial value is 0, the default is chosen
-    // size_type block_size = this->get_block_size();
     IndexType block_size = this->get_block_size();
     if (block_size == 0) {
         // exec->run(bccoo::make_get_default_block_size(&block_size));
@@ -476,7 +470,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         exec->run(bccoo::make_get_default_block_size(&aux));
         block_size = aux;
     }
-    // size_type num_blocks = ceildiv(nnz, block_size);
     IndexType num_blocks = ceildiv(nnz, block_size);
 
     if (compress == bccoo::compression::element) {
@@ -489,13 +482,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         size_type* offsets_data = offsets.get_data();
         bccoo::compr_idxs<IndexType> idxs;
         offsets_data[0] = 0;
-        // size_type num = 0;
         IndexType num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
                 bccoo::put_detect_newblock(rows_data, elem.row - idxs.row,
                                            idxs);
-                // size_type col_src_res = bccoo::cnt_position_newrow_mat_data(
                 IndexType col_src_res = bccoo::cnt_position_newrow_mat_data(
                     elem.row, elem.column, idxs);
                 bccoo::cnt_next_position_value(col_src_res, elem.value, idxs);
@@ -516,7 +507,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             if (elem.value != zero<ValueType>()) {
                 bccoo::put_detect_newblock(rows_data, elem.row - idxs.row,
                                            idxs);
-                // size_type col_src_res = bccoo::put_position_newrow_mat_data(
                 IndexType col_src_res = bccoo::put_position_newrow_mat_data(
                     elem.row, elem.column, chunk_data, idxs);
                 bccoo::put_next_position_value(chunk_data, col_src_res,
@@ -548,7 +538,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Computation of mem_size (idxs.shf)
         bccoo::compr_idxs<IndexType> idxs;
         bccoo::compr_blk_idxs<IndexType> blk_idxs;
-        // size_type num = 0;
         IndexType num = 0;
         for (const auto& elem : data.nonzeros) {
             if (elem.value != zero<ValueType>()) {
@@ -656,9 +645,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     const size_type* offsets_data = tmp->get_const_offsets();
     const uint8* chunk_data = tmp->get_const_chunk();
 
-    // const size_type num_stored_elements = tmp->get_num_stored_elements();
     const IndexType num_stored_elements = tmp->get_num_stored_elements();
-    // const size_type block_size = tmp->get_block_size();
     const IndexType block_size = tmp->get_block_size();
 
     // Creation of the data vector
@@ -668,7 +655,6 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
         if (tmp->use_element_compression()) {
             bccoo::compr_idxs<IndexType> idxs;
             ValueType val;
-            // for (size_type i = 0; i < num_stored_elements; i++) {
             for (IndexType i = 0; i < num_stored_elements; i++) {
                 bccoo::get_detect_newblock(rows_data, offsets_data, idxs);
                 uint8 ind = bccoo::get_position_newrow(chunk_data, idxs);
@@ -681,15 +667,12 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
         } else {
             bccoo::compr_idxs<IndexType> idxs;
             ValueType val;
-            // for (size_type i = 0; i < num_stored_elements; i += block_size) {
             for (IndexType i = 0; i < num_stored_elements; i += block_size) {
-                // size_type block_size_local =
                 IndexType block_size_local =
                     std::min(block_size, num_stored_elements - i);
                 bccoo::compr_blk_idxs<IndexType> blk_idxs(
                     rows_data, cols_data, block_size_local, idxs,
                     types_data[idxs.blk]);
-                // for (size_type j = 0; j < block_size_local; j++) {
                 for (IndexType j = 0; j < block_size_local; j++) {
                     // Reading (row,col,val) from source
                     bccoo::get_block_position_value<IndexType, ValueType>(
@@ -768,7 +751,6 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    // size_type block_size = this->get_block_size();
     IndexType block_size = this->get_block_size();
     bccoo::compression compress = this->get_compression();
 
@@ -777,15 +759,11 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
         return abs_bccoo;
     } else {
         // Getting information from the original object
-        // size_type num_nonzeros = this->get_num_stored_elements();
         IndexType num_nonzeros = this->get_num_stored_elements();
-        // size_type num_bytes = this->get_num_bytes();
-        IndexType num_bytes = this->get_num_bytes();
+        size_type num_bytes = this->get_num_bytes();
 
         // The size of chunk related to the new object is computed from
         // the size of original object
-        // num_bytes += (sizeof(remove_complex<ValueType>) * block_size) -
-        // (sizeof(ValueType) * block_size);
         num_bytes += (sizeof(remove_complex<ValueType>) * num_nonzeros) -
                      (sizeof(ValueType) * num_nonzeros);
         auto abs_bccoo =

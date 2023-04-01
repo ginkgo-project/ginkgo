@@ -880,8 +880,6 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
         col = i % 3 + i / 3;
         type =
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2))
-                // ? 5
-                // : 4;
                 ? (gko::matrix::bccoo::type_mask_cols_8bits |
                    gko::matrix::bccoo::type_mask_rows_multiple)
                 : gko::matrix::bccoo::type_mask_cols_8bits;

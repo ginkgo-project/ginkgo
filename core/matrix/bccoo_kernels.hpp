@@ -51,9 +51,11 @@ namespace gko {
 namespace kernels {
 
 
+// #define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType)
 #define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL()                          \
     void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec, \
                                 size_type* block_size)
+// IndexType* block_size)
 
 #define GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL()                          \
     void get_default_compression(std::shared_ptr<const DefaultExecutor> exec, \
@@ -89,7 +91,6 @@ namespace kernels {
                         const matrix::Bccoo<ValueType, IndexType>* source, \
                         matrix::bccoo::compression compress_res,           \
                         const IndexType block_size_res, size_type* mem_size)
-//                        const size_type block_size_res, size_type* mem_size)
 
 #define GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
     void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,       \
@@ -134,6 +135,8 @@ namespace kernels {
         const matrix::Bccoo<ValueType, IndexType>* source,              \
         remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 
+//     template <typename IndexType>
+//     GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType);
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
     GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                              \
     GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL();                             \

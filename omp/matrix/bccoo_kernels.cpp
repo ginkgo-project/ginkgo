@@ -68,7 +68,9 @@ namespace bccoo {
 using namespace matrix::bccoo;
 
 
+// template <typename IndexType>
 void get_default_block_size(std::shared_ptr<const OmpExecutor> exec,
+                            // IndexType* block_size)
                             size_type* block_size)
 {
     *block_size = 32;
@@ -88,7 +90,6 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
 #pragma omp parallel for
-    // for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
     for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) = zero<ValueType>();
     }
@@ -107,10 +108,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    // auto beta_val = beta->at(0, 0);
     ValueType beta_val = beta->at(0, 0);
 #pragma omp parallel for
-    // for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
     for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) *= beta_val;
     }
@@ -127,35 +126,26 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    // auto num_blks = a->get_num_blocks();
     IndexType num_blks = a->get_num_blocks();
     if (a->use_element_compression()) {
         // For element compression objects
 #pragma omp parallel default(shared)
         {
-            // auto num_cols = b->get_size()[1];
             IndexType num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
-            // for (size_type blk = 0; blk < num_blks; blk++) {
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                // auto* rows_data = a->get_const_rows();
                 const IndexType* rows_data = a->get_const_rows();
-                // auto* offsets_data = a->get_const_offsets();
                 const size_type* offsets_data = a->get_const_offsets();
-                // auto* chunk_data = a->get_const_chunk();
                 const uint8* chunk_data = a->get_const_chunk();
-                // auto block_size = a->get_block_size();
                 const IndexType block_size = a->get_block_size();
                 bool new_elm = false;
-                // size_type row_old = 0;
                 IndexType row_old = 0;
                 ValueType val;
 
                 ValueType* sumV = sumV_array.get_data();
                 // The auxiliary vector is initialized to zero
-                // for (size_type j = 0; j < num_cols; j++) {
                 for (IndexType j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -169,14 +159,12 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     if (row_old != idxs.row) {
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
-                        // for (size_type j = 0; j < num_cols; j++) {
                         for (IndexType j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
                         }
                         new_elm = false;
                     }
-                    // for (size_type j = 0; j < num_cols; j++) {
                     for (IndexType j = 0; j < num_cols; j++) {
                         sumV[j] += val * b->at(idxs.col, j);
                     }
@@ -185,7 +173,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 if (new_elm) {
                     // If some values are processed and not accumulated,
                     // the computed values have to be accumulated to c
-                    // for (size_type j = 0; j < num_cols; j++) {
                     for (IndexType j = 0; j < num_cols; j++) {
                         atomic_add(c->at(idxs.row, j), sumV[j]);
                     }
@@ -196,38 +183,27 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
         // For block compression objects
 #pragma omp parallel default(shared)
         {
-            // auto num_cols = b->get_size()[1];
             IndexType num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
-            // for (size_type blk = 0; blk < num_blks; blk++) {
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                // auto* rows_data = a->get_const_rows();
                 const IndexType* rows_data = a->get_const_rows();
-                // auto* cols_data = a->get_const_cols();
                 const IndexType* cols_data = a->get_const_cols();
-                // auto* types_data = a->get_const_types();
                 const uint8* types_data = a->get_const_types();
-                // auto* offsets_data = a->get_const_offsets();
                 const size_type* offsets_data = a->get_const_offsets();
-                // auto* chunk_data = a->get_const_chunk();
                 const uint8* chunk_data = a->get_const_chunk();
 
-                // auto block_size = a->get_block_size();
                 const IndexType block_size = a->get_block_size();
-                // auto num_stored_elements = a->get_num_stored_elements();
                 const IndexType num_stored_elements =
                     a->get_num_stored_elements();
 
                 ValueType* sumV = sumV_array.get_data();
                 // The auxiliary vector is initialized to zero
-                // for (size_type j = 0; j < num_cols; j++) {
                 for (IndexType j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
 
-                // auto block_size_local = std::min(
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
                 const uint8 type_blk = types_data[blk];
@@ -295,40 +271,29 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* b,
                     matrix::Dense<ValueType>* c)
 {
-    // auto num_blks = a->get_num_blocks();
     const IndexType num_blks = a->get_num_blocks();
 
     if (a->use_element_compression()) {
         // For element compression objects
 #pragma omp parallel default(shared)
         {
-            // auto num_cols = b->get_size()[1];
             const IndexType num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
-            // for (size_type blk = 0; blk < num_blks; blk++) {
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                // auto* rows_data = a->get_const_rows();
                 const IndexType* rows_data = a->get_const_rows();
-                // auto* offsets_data = a->get_const_offsets();
                 const size_type* offsets_data = a->get_const_offsets();
-                // auto* chunk_data = a->get_const_chunk();
                 const uint8* chunk_data = a->get_const_chunk();
-                // auto num_cols = b->get_size()[1];
                 const IndexType num_cols = b->get_size()[1];
-                // auto block_size = a->get_block_size();
                 const IndexType block_size = a->get_block_size();
                 bool new_elm = false;
-                // auto alpha_val = alpha->at(0, 0);
-                ValueType alpha_val = alpha->at(0, 0);
-                // size_type row_old = 0;
+                const ValueType alpha_val = alpha->at(0, 0);
                 IndexType row_old = 0;
                 ValueType val;
 
                 ValueType* sumV = sumV_array.get_data();
                 // The auxiliary vector is initialized to zero
-                // for (size_type j = 0; j < num_cols; j++) {
                 for (IndexType j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -342,14 +307,12 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     if (row_old != idxs.row) {
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
-                        // for (size_type j = 0; j < num_cols; j++) {
                         for (IndexType j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
                         }
                         new_elm = false;
                     }
-                    // for (size_type j = 0; j < num_cols; j++) {
                     for (IndexType j = 0; j < num_cols; j++) {
                         sumV[j] += alpha_val * val * b->at(idxs.col, j);
                     }
@@ -358,7 +321,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 if (new_elm) {
                     // If some values are processed and not accumulated,
                     // the computed values have to be accumulated to c
-                    // for (size_type j = 0; j < num_cols; j++) {
                     for (IndexType j = 0; j < num_cols; j++) {
                         atomic_add(c->at(idxs.row, j), sumV[j]);
                     }
@@ -368,40 +330,28 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     } else {
 #pragma omp parallel default(shared)
         {
-            // auto num_cols = b->get_size()[1];
             const IndexType num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
-            // for (size_type blk = 0; blk < num_blks; blk++) {
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                // auto* rows_data = a->get_const_rows();
                 const IndexType* rows_data = a->get_const_rows();
-                // auto* cols_data = a->get_const_cols();
                 const IndexType* cols_data = a->get_const_cols();
-                // auto* types_data = a->get_const_types();
                 const uint8* types_data = a->get_const_types();
-                // auto* offsets_data = a->get_const_offsets();
                 const size_type* offsets_data = a->get_const_offsets();
-                // auto* chunk_data = a->get_const_chunk();
                 const uint8* chunk_data = a->get_const_chunk();
 
-                // auto block_size = a->get_block_size();
                 const IndexType block_size = a->get_block_size();
-                // auto num_stored_elements = a->get_num_stored_elements();
                 const IndexType num_stored_elements =
                     a->get_num_stored_elements();
-                // auto alpha_val = alpha->at(0, 0);
                 const ValueType alpha_val = alpha->at(0, 0);
 
                 ValueType* sumV = sumV_array.get_data();
                 // The auxiliary vector is initialized to zero
-                // for (size_type j = 0; j < num_cols; j++) {
                 for (IndexType j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
 
-                // auto block_size_local = std::min(
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
                 const uint8 type_blk = types_data[blk];
@@ -466,7 +416,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    // compression compress_res, const size_type block_size_res,
                     compression compress_res, const IndexType block_size_res,
                     size_type* mem_size)
 {
@@ -505,9 +454,7 @@ void convert_to_next_precision(
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
 {
-    // auto num_blk_src = source->get_num_blocks();
     const IndexType num_blk_src = source->get_num_blocks();
-    // auto num_stored_elements_src = source->get_num_stored_elements();
     const IndexType num_stored_elements_src = source->get_num_stored_elements();
 
     // If the block_size or the compression are different in source
@@ -536,19 +483,12 @@ void convert_to_next_precision(
             // First, the non chunk vectors are copied
             // Each block is computed separately
 #pragma omp parallel for default(shared)
-            // for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                // auto* rows_data_src = source->get_const_rows();
                 const IndexType* rows_data_src = source->get_const_rows();
-                // auto* offsets_data_src = source->get_const_offsets();
                 const size_type* offsets_data_src = source->get_const_offsets();
-                // auto* rows_data_res = result->get_rows();
                 IndexType* rows_data_res = result->get_rows();
-                // auto* offsets_data_res = result->get_offsets();
                 size_type* offsets_data_res = result->get_offsets();
-                // auto block_size_src = source->get_block_size();
                 const IndexType block_size_src = source->get_block_size();
-                // auto block_size_local =
                 const IndexType block_size_local =
                     std::min(block_size_src, num_stored_elements_src -
                                                  blk_src * block_size_src);
@@ -562,18 +502,12 @@ void convert_to_next_precision(
             // Finally, the chunk vector is copied
             // Each block is computed separately
 #pragma omp parallel for default(shared)
-            // for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                // auto* rows_data_src = source->get_const_rows();
                 const IndexType* rows_data_src = source->get_const_rows();
-                // auto* offsets_data_src = source->get_const_offsets();
                 const size_type* offsets_data_src = source->get_const_offsets();
-                // auto* chunk_data_src = source->get_const_chunk();
                 const uint8* chunk_data_src = source->get_const_chunk();
-                // size_type block_size_src = source->get_block_size();
                 const IndexType block_size_src = source->get_block_size();
-                // size_type num_bytes_src = source->get_num_bytes();
-                const IndexType num_bytes_src = source->get_num_bytes();
+                const size_type num_bytes_src = source->get_num_bytes();
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
                                                offsets_data_src[blk_src],
@@ -587,8 +521,7 @@ void convert_to_next_precision(
                 uint8* chunk_data_res = result->get_chunk();
                 // size_type block_size_res = result->get_block_size();
                 const IndexType block_size_res = result->get_block_size();
-                // size_type num_bytes_res = result->get_num_bytes();
-                const IndexType num_bytes_res = result->get_num_bytes();
+                const size_type num_bytes_res = result->get_num_bytes();
                 // size_type blk_res = blk_src;
                 const IndexType blk_res = blk_src;
                 next_precision<ValueType> val_res;
@@ -662,8 +595,7 @@ void convert_to_next_precision(
                 const uint8* chunk_data_src = source->get_const_chunk();
                 // size_type block_size_src = source->get_block_size();
                 const IndexType block_size_src = source->get_block_size();
-                // size_type num_bytes_src = source->get_num_bytes();
-                const IndexType num_bytes_src = source->get_num_bytes();
+                const size_type num_bytes_src = source->get_num_bytes();
                 // auto block_size_local_src =
                 const IndexType block_size_local_src =
                     std::min(block_size_src, num_stored_elements_src -
@@ -687,8 +619,7 @@ void convert_to_next_precision(
                 uint8* chunk_data_res = result->get_chunk();
                 // size_type block_size_res = result->get_block_size();
                 const IndexType block_size_res = result->get_block_size();
-                // size_type num_bytes_res = result->get_num_bytes();
-                const IndexType num_bytes_res = result->get_num_bytes();
+                const size_type num_bytes_res = result->get_num_bytes();
                 // auto block_size_local_res = block_size_local_src;
                 const IndexType block_size_local_res = block_size_local_src;
                 next_precision<ValueType> val_res;
@@ -780,8 +711,7 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
 
             // auto block_size = source->get_block_size();
             const IndexType block_size = source->get_block_size();
-            // auto num_bytes = source->get_num_bytes();
-            const IndexType num_bytes = source->get_num_bytes();
+            const size_type num_bytes = source->get_num_bytes();
             // auto num_stored_elements = source->get_num_stored_elements();
             const IndexType num_stored_elements =
                 source->get_num_stored_elements();
@@ -884,8 +814,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
             // auto block_size = source->get_block_size();
             const IndexType block_size = source->get_block_size();
-            // auto num_bytes = source->get_num_bytes();
-            const IndexType num_bytes = source->get_num_bytes();
+            const size_type num_bytes = source->get_num_bytes();
             // auto num_stored_elements = source->get_num_stored_elements();
             const IndexType num_stored_elements =
                 source->get_num_stored_elements();
@@ -982,8 +911,7 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
             // auto block_size = source->get_block_size();
             const IndexType block_size = source->get_block_size();
-            // auto num_bytes = source->get_num_bytes();
-            const IndexType num_bytes = source->get_num_bytes();
+            const size_type num_bytes = source->get_num_bytes();
             // auto num_stored_elements = source->get_num_stored_elements();
             const IndexType num_stored_elements =
                 source->get_num_stored_elements();
@@ -1074,8 +1002,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
             // auto block_size = orig->get_block_size();
             const IndexType block_size = orig->get_block_size();
-            // auto num_bytes = orig->get_num_bytes();
-            const IndexType num_bytes = orig->get_num_bytes();
+            const size_type num_bytes = orig->get_num_bytes();
             // auto num_stored_elements = orig->get_num_stored_elements();
             const IndexType num_stored_elements =
                 orig->get_num_stored_elements();
@@ -1155,8 +1082,7 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
 
             // auto block_size = matrix->get_block_size();
             const IndexType block_size = matrix->get_block_size();
-            // auto num_bytes = matrix->get_num_bytes();
-            const IndexType num_bytes = matrix->get_num_bytes();
+            const size_type num_bytes = matrix->get_num_bytes();
             // auto num_stored_elements = matrix->get_num_stored_elements();
             const IndexType num_stored_elements =
                 matrix->get_num_stored_elements();
@@ -1244,8 +1170,7 @@ void compute_absolute(
                 const uint8* chunk_data_src = source->get_const_chunk();
                 // size_type block_size_src = source->get_block_size();
                 const IndexType block_size_src = source->get_block_size();
-                // size_type num_bytes_src = source->get_num_bytes();
-                const IndexType num_bytes_src = source->get_num_bytes();
+                const size_type num_bytes_src = source->get_num_bytes();
                 compr_idxs<IndexType> idxs_src(
                     blk_src, offsets_data_src[blk_src], rows_data_src[blk_src]);
                 ValueType val_src;
@@ -1258,8 +1183,7 @@ void compute_absolute(
                 uint8* chunk_data_res = result->get_chunk();
                 // size_type block_size_res = result->get_block_size();
                 const IndexType block_size_res = result->get_block_size();
-                // size_type num_bytes_res = result->get_num_bytes();
-                const IndexType num_bytes_res = result->get_num_bytes();
+                const size_type num_bytes_res = result->get_num_bytes();
                 compr_idxs<IndexType> idxs_res(
                     blk_src, offsets_data_res[blk_src], rows_data_res[blk_src]);
                 remove_complex<ValueType> val_res;
@@ -1333,8 +1257,7 @@ void compute_absolute(
                 const uint8* chunk_data_src = source->get_const_chunk();
                 // size_type block_size_src = source->get_block_size();
                 IndexType block_size_src = source->get_block_size();
-                // size_type num_bytes_src = source->get_num_bytes();
-                const IndexType num_bytes_src = source->get_num_bytes();
+                const size_type num_bytes_src = source->get_num_bytes();
                 const IndexType block_size_local_src =
                     std::min(block_size_src, num_stored_elements_src -
                                                  blk_src * block_size_src);
@@ -1357,8 +1280,7 @@ void compute_absolute(
                 uint8* chunk_data_res = result->get_chunk();
                 // size_type block_size_res = result->get_block_size();
                 const IndexType block_size_res = result->get_block_size();
-                // size_type num_bytes_res = result->get_num_bytes();
-                const IndexType num_bytes_res = result->get_num_bytes();
+                const size_type num_bytes_res = result->get_num_bytes();
                 // auto block_size_local_res = block_size_local_src;
                 const IndexType block_size_local_res = block_size_local_src;
                 remove_complex<ValueType> val_res;

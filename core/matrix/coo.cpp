@@ -173,7 +173,6 @@ void Coo<ValueType, IndexType>::convert_to(
     }
 
     // Block partitioning. If the initial value is 0, the default is chosen
-    // size_type block_size = result->get_block_size();
     IndexType block_size = result->get_block_size();
     if (block_size == 0) {
         // exec->run(bccoo::make_get_default_block_size(&block_size));
@@ -183,7 +182,7 @@ void Coo<ValueType, IndexType>::convert_to(
     }
 
     // Computation of nnz
-    auto num_stored_elements = this->get_num_stored_elements();
+    IndexType num_stored_elements = this->get_num_stored_elements();
 
     // Creating the result
     size_type mem_size{};

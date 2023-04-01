@@ -568,7 +568,6 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
-                    // const size_type block_size,
                     const IndexType block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;

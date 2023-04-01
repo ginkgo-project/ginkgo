@@ -364,7 +364,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
-                    // const size_type block_size,
                     const IndexType block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size)
@@ -374,23 +373,16 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const IndexType* row_ptrs = csr->get_const_row_ptrs();
         const IndexType* col_idxs = csr->get_const_col_idxs();
         const ValueType* values = csr->get_const_values();
-        // const size_type num_rows = csr->get_size()[0];
         const IndexType num_rows = csr->get_size()[0];
-        // const size_type num_stored_elements = csr->get_num_stored_elements();
         const IndexType num_stored_elements = csr->get_num_stored_elements();
         matrix::bccoo::compr_idxs<IndexType> idxs;
-        // for (size_type i = 0; i < num_rows; i++) {
         for (IndexType i = 0; i < num_rows; i++) {
-            // for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
                 // Counting bytes to write (row,col,val) on result
-                // const size_type row = i;
                 const IndexType row = i;
-                // const size_type col = col_idxs[j];
                 const IndexType col = col_idxs[j];
                 const ValueType val = values[j];
                 matrix::bccoo::cnt_detect_newblock(row - idxs.row, idxs);
-                // size_type col_src_res =
                 IndexType col_src_res =
                     matrix::bccoo::cnt_position_newrow_mat_data(row, col, idxs);
                 matrix::bccoo::cnt_next_position_value(col_src_res, val, idxs);
@@ -409,13 +401,9 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_stored_elements = 0;
         matrix::bccoo::compr_idxs<IndexType> idxs;
         matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
-        // for (size_type i = 0; i < num_rows; i++) {
         for (IndexType i = 0; i < num_rows; i++) {
-            // for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
-                // const size_type row = i;
                 const IndexType row = i;
-                // const size_type col = col_idxs[j];
                 const IndexType col = col_idxs[j];
                 const ValueType val = values[j];
                 matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
@@ -454,7 +442,6 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     if (result->use_element_compression()) {
         // For element compression objects
-        // size_type block_size = result->get_block_size();
         IndexType block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
         size_type* offsets_data = result->get_offsets();
@@ -463,28 +450,20 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const IndexType* row_ptrs = source->get_const_row_ptrs();
         const IndexType* col_idxs = source->get_const_col_idxs();
         const ValueType* values = source->get_const_values();
-        // const size_type num_rows = source->get_size()[0];
         const IndexType num_rows = source->get_size()[0];
-        // const size_type num_stored_elements =
-        // source->get_num_stored_elements();
         const IndexType num_stored_elements = source->get_num_stored_elements();
         matrix::bccoo::compr_idxs<IndexType> idxs;
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        // for (size_type i = 0; i < num_rows; i++) {
         for (IndexType i = 0; i < num_rows; i++) {
-            // for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
-                // const size_type row = i;
                 const IndexType row = i;
-                // const size_type col = col_idxs[j];
                 const IndexType col = col_idxs[j];
                 const ValueType val = values[j];
                 // Writing (row,col,val) to result
                 matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
                                                    row - idxs.row, idxs);
-                // size_type col_src_res =
                 IndexType col_src_res =
                     matrix::bccoo::put_position_newrow_mat_data(
                         row, col, chunk_data, idxs);
@@ -526,13 +505,9 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        // for (size_type i = 0; i < num_rows; i++) {
         for (IndexType i = 0; i < num_rows; i++) {
-            // for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
-                // const size_type row = i;
                 const IndexType row = i;
-                // const size_type col = col_idxs[j];
                 const IndexType col = col_idxs[j];
                 const ValueType val = values[j];
                 // Analyzing the impact of (row,col,val) in the block

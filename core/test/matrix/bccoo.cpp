@@ -95,7 +95,7 @@ protected:
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
 
-        gko::size_type block_size = m->get_block_size();
+        index_type block_size = m->get_block_size();
 
         index_type row = {};
         gko::size_type offset = {};
@@ -157,7 +157,7 @@ protected:
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
 
-        gko::size_type block_size = m->get_block_size();
+        index_type block_size = m->get_block_size();
 
         index_type row = {};
         index_type col = {};
@@ -415,7 +415,7 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     using index_type = typename TestFixture::index_type;
     // Declare the variables
     const index_type block_size = 10;
-    const index_type num_bytes = 6 + 4 * sizeof(value_type);
+    const gko::size_type num_bytes = 6 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
     gko::size_type offsets[] = {0, num_bytes};
@@ -456,7 +456,7 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     using index_type = typename TestFixture::index_type;
     // Declare the variables
     const index_type block_size = 10;
-    const index_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
+    const gko::size_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 chunk[num_bytes] = {};
     gko::size_type offsets[] = {0, num_bytes};

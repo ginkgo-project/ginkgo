@@ -106,15 +106,12 @@ constexpr int cst_max_size_medium_row = 0xFFFF;
 
 
 template <typename IndexType>
-// inline void cnt_next_position(const size_type col_src_res,
 inline void cnt_next_position(const IndexType col_src_res,
                               compr_idxs<IndexType>& idxs)
 
 {
-    // if (col_src_res < 0xFD) {
     if (col_src_res <= cst_max_size_small_row) {
         idxs.shf++;
-        // } else if (col_src_res < 0xFFFF) {
     } else if (col_src_res <= cst_max_size_medium_row) {
         idxs.shf += sizeof(uint16) + 1;
     } else {
@@ -125,7 +122,6 @@ inline void cnt_next_position(const IndexType col_src_res,
 
 
 template <typename IndexType, typename ValueType>
-// inline void cnt_next_position_value(const size_type col_src_res,
 inline void cnt_next_position_value(const IndexType col_src_res,
                                     const ValueType val,
                                     compr_idxs<IndexType>& idxs)
@@ -140,20 +136,14 @@ template <typename IndexType>
 inline void get_next_position(const uint8* chunk_data, const uint8 ind,
                               compr_idxs<IndexType>& idxs)
 {
-    // if (ind < 0xFD) {
     if (ind < cst_mark_size_medium_row) {
         idxs.col += ind;
         idxs.shf++;
-        // } else if (ind == 0xFD) {
     } else if (ind == cst_mark_size_medium_row) {
         idxs.shf++;
-        // idxs.col += get_value_chunk<uint16>(chunk_data, idxs.shf);
-        // idxs.shf += sizeof(uint16);
         idxs.col += get_value_chunk_and_increment<uint16>(chunk_data, idxs.shf);
     } else {
         idxs.shf++;
-        // idxs.col += get_value_chunk<uint32>(chunk_data, idxs.shf);
-        // idxs.shf += sizeof(uint32);
         idxs.col += get_value_chunk_and_increment<uint32>(chunk_data, idxs.shf);
     }
 }
@@ -164,8 +154,6 @@ inline void get_next_position_value(const uint8* chunk_data, const uint8 ind,
                                     compr_idxs<IndexType>& idxs, ValueType& val)
 {
     get_next_position(chunk_data, ind, idxs);
-    // val = get_value_chunk<ValueType>(chunk_data, idxs.shf);
-    // idxs.shf += sizeof(ValueType);
     val = get_value_chunk_and_increment<ValueType>(chunk_data, idxs.shf);
     idxs.nblk++;
 }
@@ -179,43 +167,27 @@ inline void get_next_position_value_put(uint8* chunk_data, const uint8 ind,
     get_next_position(chunk_data, ind, idxs);
     val = get_value_chunk<ValueType>(chunk_data, idxs.shf);
     val = finalize_op(val);
-    // set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
-    // idxs.shf += sizeof(ValueType);
     set_value_chunk_and_increment<ValueType>(chunk_data, idxs.shf, val);
     idxs.nblk++;
 }
 
 
 template <typename IndexType>
-// inline void put_next_position(uint8* chunk_data, const size_type col_src_res,
 inline void put_next_position(uint8* chunk_data, const IndexType col_src_res,
                               compr_idxs<IndexType>& idxs)
 {
-    // if (col_src_res < 0xFD) {
     if (col_src_res <= cst_max_size_small_row) {
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, col_src_res);
-        // idxs.shf++;
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf, col_src_res);
         idxs.col += col_src_res;
-        // } else if (col_src_res < 0xFFFF) {
     } else if (col_src_res <= cst_max_size_medium_row) {
-        // set_value_chunk<uint8>(chunk_data, idxs.shf,
-        // cst_mark_size_medium_row); idxs.shf++;
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_size_medium_row);
-        // set_value_chunk<uint16>(chunk_data, idxs.shf, col_src_res);
-        // idxs.shf += sizeof(uint16);
         set_value_chunk_and_increment<uint16>(chunk_data, idxs.shf,
                                               col_src_res);
         idxs.col += col_src_res;
     } else {
-        //        set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFE);
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, cst_mark_size_big_row);
-        // idxs.shf++;
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_size_big_row);
-        // set_value_chunk<uint32>(chunk_data, idxs.shf, col_src_res);
-        // idxs.shf += sizeof(uint32);
         set_value_chunk_and_increment<uint32>(chunk_data, idxs.shf,
                                               col_src_res);
         idxs.col += col_src_res;
@@ -225,14 +197,11 @@ inline void put_next_position(uint8* chunk_data, const IndexType col_src_res,
 
 template <typename IndexType, typename ValueType>
 inline void put_next_position_value(uint8* chunk_data,
-                                    // const size_type col_src_res,
                                     const IndexType col_src_res,
                                     const ValueType val,
                                     compr_idxs<IndexType>& idxs)
 {
     put_next_position(chunk_data, col_src_res, idxs);
-    // set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
-    // idxs.shf += sizeof(ValueType);
     set_value_chunk_and_increment<ValueType>(chunk_data, idxs.shf, val);
     idxs.nblk++;
 }
@@ -253,7 +222,6 @@ inline void get_detect_newblock(const IndexType* rows_data,
 
 template <typename IndexType>
 inline void put_detect_newblock(IndexType* rows_data,
-                                // const size_type row_src_res,
                                 const IndexType row_src_res,
                                 compr_idxs<IndexType>& idxs)
 {
@@ -277,9 +245,6 @@ inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
     } else if (row_src_res != 0) {  // new row
         idxs.row += row_src_res;
         idxs.col = 0;
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFF);
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, cst_mark_end_row);
-        // idxs.shf++;
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_end_row);
     }
@@ -287,7 +252,6 @@ inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
 
 
 template <typename IndexType>
-// inline void cnt_detect_newblock(const size_type row_src_res,
 inline void cnt_detect_newblock(const IndexType row_src_res,
                                 compr_idxs<IndexType>& idxs)
 {
@@ -320,9 +284,7 @@ inline void get_detect_newblock_csr(const IndexType* rows_data,
 
 
 template <typename IndexType>
-// inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
 inline IndexType cnt_position_newrow_mat_data(const IndexType row_mat_data,
-                                              // const size_type col_mat_data,
                                               const IndexType col_mat_data,
                                               compr_idxs<IndexType>& idxs)
 {
@@ -340,7 +302,6 @@ inline uint8 get_position_newrow(const uint8* chunk_data,
                                  compr_idxs<IndexType>& idxs)
 {
     uint8 ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
-    // while (ind == 0xFF) {
     while (ind == cst_mark_end_row) {
         idxs.row++;
         idxs.shf++;
@@ -353,12 +314,10 @@ inline uint8 get_position_newrow(const uint8* chunk_data,
 
 template <typename IndexType>
 inline uint8 get_position_newrow_csr(const uint8* chunk_data,
-                                     // IndexType* row_ptrs, size_type pos,
                                      IndexType* row_ptrs, IndexType pos,
                                      compr_idxs<IndexType>& idxs)
 {
     uint8 ind = get_value_chunk<uint8>(chunk_data, idxs.shf);
-    // while (ind == 0xFF) {
     while (ind == cst_mark_end_row) {
         idxs.row++;
         idxs.col = 0;
@@ -378,7 +337,6 @@ inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
                                      compr_idxs<IndexType>& idxs_res)
 {
     uint8 ind_src = get_value_chunk<uint8>(chunk_data_src, idxs_src.shf);
-    // while (ind_src == 0xFF) {
     while (ind_src == cst_mark_end_row) {
         idxs_src.row++;
         idxs_src.col = 0;
@@ -389,9 +347,6 @@ inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
         if (idxs_res.nblk == 0) {
             rows_data_res[idxs_res.blk] = idxs_res.row;
         } else {
-            // set_value_chunk<uint8>(chunk_data_res, idxs_res.shf, 0xFF);
-            // set_value_chunk<uint8>(chunk_data_res, idxs_res.shf,
-            // cst_mark_end_row); idxs_res.shf++;
             set_value_chunk_and_increment<uint8>(chunk_data_res, idxs_res.shf,
                                                  cst_mark_end_row);
         }
@@ -401,9 +356,7 @@ inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
 
 
 template <typename IndexType>
-// inline size_type put_position_newrow_mat_data(const size_type row_mat_data,
 inline size_type put_position_newrow_mat_data(const IndexType row_mat_data,
-                                              // const size_type col_mat_data,
                                               const IndexType col_mat_data,
                                               uint8* chunk_data,
                                               compr_idxs<IndexType>& idxs)
@@ -411,9 +364,6 @@ inline size_type put_position_newrow_mat_data(const IndexType row_mat_data,
     while (row_mat_data != idxs.row) {
         idxs.row++;
         idxs.col = 0;
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, 0xFF);
-        // set_value_chunk<uint8>(chunk_data, idxs.shf, cst_mark_end_row);
-        // idxs.shf++;
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_end_row);
     }
@@ -422,7 +372,6 @@ inline size_type put_position_newrow_mat_data(const IndexType row_mat_data,
 
 
 template <typename IndexType>
-// inline void get_detect_endblock(const size_type block_size,
 inline void get_detect_endblock(const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
 {
@@ -435,7 +384,6 @@ inline void get_detect_endblock(const IndexType block_size,
 
 template <typename IndexType>
 inline void put_detect_endblock(size_type* offsets_data,
-                                // const size_type block_size,
                                 const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
 {
@@ -448,7 +396,6 @@ inline void put_detect_endblock(size_type* offsets_data,
 
 
 template <typename IndexType>
-// inline void cnt_detect_endblock(const size_type block_size,
 inline void cnt_detect_endblock(const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
 {
@@ -475,7 +422,6 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
         blk_idxs.col_frst = col;
     }
     if (row != blk_idxs.row_frst) {
-        // blk_idxs.mul_row = true;
         blk_idxs.set_multi_row();
         if (row > (blk_idxs.row_frst + blk_idxs.row_diff)) {
             blk_idxs.row_diff = row - blk_idxs.row_frst;
@@ -491,24 +437,18 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
 
 
 template <typename IndexType, typename ValueType>
-// inline void cnt_block_indices(const size_type block_size,
 inline void cnt_block_indices(const IndexType block_size,
                               const compr_blk_idxs<IndexType>& blk_idxs,
                               compr_idxs<IndexType>& idxs)
 {
     if (blk_idxs.row_diff > 0) {
-        idxs.shf +=
-            // ((blk_idxs.row_diff > 0xFF) ? sizeof(uint16) : 1) * block_size;
-            ((blk_idxs.row_diff > cst_max_size_small_idxs_row)
-                 ? sizeof(uint16)
-                 : sizeof(uint8)) *
-            block_size;
+        idxs.shf += ((blk_idxs.row_diff > cst_max_size_small_idxs_row)
+                         ? sizeof(uint16)
+                         : sizeof(uint8)) *
+                    block_size;
     }
-    // if (blk_idxs.col_diff <= 0xFF) {
     if (blk_idxs.col_diff <= cst_max_size_small_row) {
-        // idxs.shf += block_size;
         idxs.shf += block_size * sizeof(uint8);
-        // } else if (blk_idxs.col_diff <= 0xFFFF) {
     } else if (blk_idxs.col_diff <= cst_max_size_medium_row) {
         idxs.shf += block_size * sizeof(uint16);
     } else {
@@ -528,37 +468,23 @@ inline void get_block_position_value(const uint8* chunk_data,
     idxs.col = blk_idxs.col_frst;
     if (blk_idxs.is_multi_row()) {
         if (blk_idxs.is_row_16bits()) {
-            // idxs.row += get_value_chunk<uint16>(chunk_data,
-            // blk_idxs.shf_row); blk_idxs.shf_row += sizeof(uint16);
             idxs.row += get_value_chunk_and_increment<uint16>(chunk_data,
                                                               blk_idxs.shf_row);
         } else {
-            // idxs.row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
-            // // blk_idxs.shf_row++;
-            // blk_idxs.shf_row += sizeof(uint8);
             idxs.row += get_value_chunk_and_increment<uint8>(chunk_data,
                                                              blk_idxs.shf_row);
         }
     }
     if (blk_idxs.is_column_8bits()) {
-        // idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
-        // // blk_idxs.shf_col++;
-        // blk_idxs.shf_col += sizeof(uint8);
         idxs.col +=
             get_value_chunk_and_increment<uint8>(chunk_data, blk_idxs.shf_col);
     } else if (blk_idxs.is_column_16bits()) {
-        // idxs.col += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_col);
-        // blk_idxs.shf_col += sizeof(uint16);
         idxs.col +=
             get_value_chunk_and_increment<uint16>(chunk_data, blk_idxs.shf_col);
     } else {
-        // idxs.col += get_value_chunk<uint32>(chunk_data, blk_idxs.shf_col);
-        // blk_idxs.shf_col += sizeof(uint32);
         idxs.col +=
             get_value_chunk_and_increment<uint32>(chunk_data, blk_idxs.shf_col);
     }
-    // val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
-    // blk_idxs.shf_val += sizeof(ValueType);
     val =
         get_value_chunk_and_increment<ValueType>(chunk_data, blk_idxs.shf_val);
 }
@@ -574,39 +500,25 @@ inline void get_block_position_value_put(uint8* chunk_data,
     idxs.col = blk_idxs.col_frst;
     if (blk_idxs.is_multi_row()) {
         if (blk_idxs.is_row_16bits()) {
-            // idxs.row += get_value_chunk<uint16>(chunk_data,
-            // blk_idxs.shf_row); blk_idxs.shf_row += sizeof(uint16);
             idxs.row += get_value_chunk_and_increment<uint16>(chunk_data,
                                                               blk_idxs.shf_row);
         } else {
-            // idxs.row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row);
-            // // blk_idxs.shf_row++;
-            // blk_idxs.shf_row += sizeof(uint8);
             idxs.row += get_value_chunk_and_increment<uint8>(chunk_data,
                                                              blk_idxs.shf_row);
         }
     }
     if (blk_idxs.is_column_8bits()) {
-        // idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col);
-        // // blk_idxs.shf_col++;
-        // blk_idxs.shf_col += sizeof(uint8);
         idxs.col +=
             get_value_chunk_and_increment<uint8>(chunk_data, blk_idxs.shf_col);
     } else if (blk_idxs.is_column_16bits()) {
-        // idxs.col += get_value_chunk<uint16>(chunk_data, blk_idxs.shf_col);
-        // blk_idxs.shf_col += sizeof(uint16);
         idxs.col +=
             get_value_chunk_and_increment<uint16>(chunk_data, blk_idxs.shf_col);
     } else {
-        // idxs.col += get_value_chunk<uint32>(chunk_data, blk_idxs.shf_col);
-        // blk_idxs.shf_col += sizeof(uint32);
         idxs.col +=
             get_value_chunk_and_increment<uint32>(chunk_data, blk_idxs.shf_col);
     }
     val = get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val);
     val = finalize_op(val);
-    // set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, val);
-    // blk_idxs.shf_val += sizeof(ValueType);
     set_value_chunk_and_increment<ValueType>(chunk_data, blk_idxs.shf_val, val);
 }
 
@@ -623,70 +535,47 @@ inline uint8 write_chunk_blk_type(compr_idxs<IndexType>& idxs,
 
     // Counting bytes to write block on result
     if (blk_idxs.is_multi_row()) {
-        // if (blk_idxs.row_diff > 0xFF) {
         if (blk_idxs.row_diff > cst_max_size_small_idxs_row) {
-            // for (size_type j = 0; j < idxs.nblk; j++) {
             for (IndexType j = 0; j < idxs.nblk; j++) {
                 uint16 row_diff =
                     rows_blk.get_const_data()[j] - blk_idxs.row_frst;
-                // set_value_chunk<uint16>(chunk_data, idxs.shf, row_diff);
-                // idxs.shf += sizeof(uint16);
                 set_value_chunk_and_increment<uint16>(chunk_data, idxs.shf,
                                                       row_diff);
             }
             type_blk |= type_mask_rows_16bits;
         } else {
-            // for (size_type j = 0; j < idxs.nblk; j++) {
             for (IndexType j = 0; j < idxs.nblk; j++) {
                 uint8 row_diff =
                     rows_blk.get_const_data()[j] - blk_idxs.row_frst;
-                // set_value_chunk<uint8>(chunk_data, idxs.shf, row_diff);
-                // // idxs.shf++;
-                // idxs.shf += sizeof(uint8);
                 set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                                      row_diff);
             }
         }
         type_blk |= type_mask_rows_multiple;
     }
-    // if (blk_idxs.col_diff <= 0xFF) {
     if (blk_idxs.col_diff <= cst_max_size_small_row) {
-        // for (size_type j = 0; j < idxs.nblk; j++) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint8 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
-            // set_value_chunk<uint8>(chunk_data, idxs.shf, col_diff);
-            // // idxs.shf++;
-            // idxs.shf += sizeof(uint8);
             set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                                  col_diff);
         }
         type_blk |= type_mask_cols_8bits;
-        // } else if (blk_idxs.col_diff <= 0xFFFF) {
     } else if (blk_idxs.col_diff <= cst_max_size_medium_row) {
-        // for (size_type j = 0; j < idxs.nblk; j++) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint16 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
-            // set_value_chunk<uint16>(chunk_data, idxs.shf, col_diff);
-            // idxs.shf += sizeof(uint16);
             set_value_chunk_and_increment<uint16>(chunk_data, idxs.shf,
                                                   col_diff);
         }
         type_blk |= type_mask_cols_16bits;
     } else {
-        // for (size_type j = 0; j < idxs.nblk; j++) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint32 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
-            // set_value_chunk<uint32>(chunk_data, idxs.shf, col_diff);
-            // idxs.shf += sizeof(uint32);
             set_value_chunk_and_increment<uint32>(chunk_data, idxs.shf,
                                                   col_diff);
         }
     }
-    // for (size_type j = 0; j < idxs.nblk; j++) {
     for (IndexType j = 0; j < idxs.nblk; j++) {
         ValueType val = vals_blk.get_const_data()[j];
-        // set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
-        // idxs.shf += sizeof(ValueType);
         set_value_chunk_and_increment<ValueType>(chunk_data, idxs.shf, val);
     }
 
@@ -698,12 +587,10 @@ template <typename IndexType, typename ValueType_src, typename ValueType_res,
           typename Callable>
 inline void write_chunk_blk(compr_idxs<IndexType>& idxs_src,
                             const compr_blk_idxs<IndexType>& blk_idxs_src,
-                            // const size_type block_size_local_src,
                             const IndexType block_size_local_src,
                             const uint8* chunk_data_src,
                             compr_idxs<IndexType>& idxs_res,
                             const compr_blk_idxs<IndexType>& blk_idxs_res,
-                            // const size_type block_size_local_res,
                             const IndexType block_size_local_res,
                             uint8* chunk_data_res, Callable finalize_op)
 {
@@ -711,69 +598,35 @@ inline void write_chunk_blk(compr_idxs<IndexType>& idxs_src,
     ValueType_res val_res;
     if (blk_idxs_src.is_multi_row()) {
         if (blk_idxs_src.is_row_16bits()) {
-            // const uint16* rows_blk_src =
-            // reinterpret_cast<const uint16*>(chunk_data_src + idxs_src.shf);
-            // uint16* rows_blk_res =
-            // reinterpret_cast<uint16*>(chunk_data_res + idxs_res.shf);
-            // get_set_value_chunk<uint16>(chunk_data_res, idxs_res.shf,
             get_set_value_chunk_and_increment<uint16>(
                 chunk_data_res, idxs_res.shf, chunk_data_src, idxs_src.shf,
                 block_size_local_src);
-            // idxs_src.shf += block_size_local_src * sizeof(uint16);
-            // idxs_res.shf += block_size_local_res * sizeof(uint16);
         } else {
-            // const uint8* rows_blk_src =
-            // reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
-            // uint8* rows_blk_res =
-            // reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
-            // get_set_value_chunk<uint8>(chunk_data_res, idxs_res.shf,
             get_set_value_chunk_and_increment<uint8>(
                 chunk_data_res, idxs_res.shf, chunk_data_src, idxs_src.shf,
                 block_size_local_src);
-            // idxs_src.shf += block_size_local_src * sizeof(uint8);
-            // idxs_res.shf += block_size_local_res * sizeof(uint8);
         }
     }
     if (blk_idxs_src.is_column_8bits()) {
-        // const uint8* cols_blk_src =
-        // reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
-        // uint8* cols_blk_res =
-        // reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
-        // get_set_value_chunk<uint8>(chunk_data_res, idxs_res.shf,
         get_set_value_chunk_and_increment<uint8>(chunk_data_res, idxs_res.shf,
                                                  chunk_data_src, idxs_src.shf,
                                                  block_size_local_src);
-        // // idxs_src.shf += block_size_local_src;
-        // idxs_src.shf += block_size_local_src * sizeof(uint8);
-        // // idxs_res.shf += block_size_local_res;
-        // idxs_res.shf += block_size_local_res * sizeof(uint8);
     } else if (blk_idxs_src.is_column_16bits()) {
-        // get_set_value_chunk<uint16>(chunk_data_res, idxs_res.shf,
         get_set_value_chunk_and_increment<uint16>(chunk_data_res, idxs_res.shf,
                                                   chunk_data_src, idxs_src.shf,
                                                   block_size_local_src);
-        // idxs_src.shf += block_size_local_src * sizeof(uint16);
-        // idxs_res.shf += block_size_local_res * sizeof(uint16);
     } else {
-        // get_set_value_chunk<uint32>(chunk_data_res, idxs_res.shf,
         get_set_value_chunk_and_increment<uint32>(chunk_data_res, idxs_res.shf,
                                                   chunk_data_src, idxs_src.shf,
                                                   block_size_local_src);
-        // idxs_src.shf += block_size_local_src * sizeof(uint32);
-        // idxs_res.shf += block_size_local_res * sizeof(uint32);
     }
     if (true) {
-        // for (size_type i = 0; i < block_size_local_res; i++) {
         for (IndexType i = 0; i < block_size_local_res; i++) {
             val_src = get_value_chunk_and_increment<ValueType_src>(
                 chunk_data_src, idxs_src.shf);
-            // get_value_chunk<ValueType_src>(chunk_data_src, idxs_src.shf);
-            // idxs_src.shf += sizeof(ValueType_src);
             val_res = finalize_op(val_src);
-            // set_value_chunk<ValueType_res>(chunk_data_res, idxs_res.shf,
             set_value_chunk_and_increment<ValueType_res>(chunk_data_res,
                                                          idxs_res.shf, val_res);
-            // idxs_res.shf += sizeof(ValueType_res);
         }
     }
 }

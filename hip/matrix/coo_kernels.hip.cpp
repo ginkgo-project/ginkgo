@@ -82,7 +82,7 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Coo<ValueType, IndexType>* coo,
-                    const size_type block_size,
+                    const IndexType block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 

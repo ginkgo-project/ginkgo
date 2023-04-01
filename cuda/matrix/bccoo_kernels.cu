@@ -87,7 +87,9 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 #include "common/cuda_hip/matrix/bccoo_kernels.hpp.inc"
 
 
+// template <typename IndexType>
 void get_default_block_size(std::shared_ptr<const CudaExecutor> exec,
+                            // IndexType* block_size)
                             size_type* block_size)
 {
     *block_size = 32;
@@ -134,28 +136,19 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    // const auto nnz = a->get_num_stored_elements();
     const IndexType nnz = a->get_num_stored_elements();
-    // const auto block_size = a->get_block_size();
     const IndexType block_size = a->get_block_size();
-    // const auto num_blocks_matrix = a->get_num_blocks();
     const IndexType num_blocks_matrix = a->get_num_blocks();
-    // const auto b_ncols = b->get_size()[1];
     const IndexType b_ncols = b->get_size()[1];
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // If there is work to compute
         if (a->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
@@ -183,12 +176,6 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Dense<ValueType>* b,
                     matrix::Dense<ValueType>* c)
 {
-    // const auto nnz = a->get_num_stored_elements();
-    // const auto block_size = a->get_block_size();
-    // const auto num_blocks_matrix = a->get_num_blocks();
-    // const auto b_ncols = b->get_size()[1];
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nnz = a->get_num_stored_elements();
     const IndexType block_size = a->get_block_size();
     const IndexType num_blocks_matrix = a->get_num_blocks();
@@ -199,13 +186,9 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (a->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
@@ -231,7 +214,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    // compression compress_res, const size_type block_size_res,
                     compression compress_res, const IndexType block_size_res,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
@@ -263,20 +245,12 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
 {
-    // const auto nnz = source->get_num_stored_elements();
     const IndexType nnz = source->get_num_stored_elements();
 
-    // auto row_idxs = result->get_row_idxs();
     IndexType* row_idxs = result->get_row_idxs();
-    // auto col_idxs = result->get_col_idxs();
     IndexType* col_idxs = result->get_col_idxs();
-    // auto values = result->get_values();
     ValueType* values = result->get_values();
 
-    // const auto block_size = source->get_block_size();
-    // const auto num_blocks_matrix = source->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType block_size = source->get_block_size();
     const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
@@ -285,16 +259,11 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            // kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
@@ -318,12 +287,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 inline void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                                      const IndexType* idxs,
-                                     // size_type num_nonzeros, IndexType* ptrs,
                                      IndexType num_nonzeros, IndexType* ptrs,
-                                     // size_type length)
                                      IndexType length)
 {
-    // const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
     const IndexType grid_dim = ceildiv(num_nonzeros, default_block_size);
 
     kernel::convert_row_idxs_to_ptrs<<<grid_dim, default_block_size>>>(
@@ -336,24 +302,15 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
-    // const auto nnz = source->get_num_stored_elements();
     const IndexType nnz = source->get_num_stored_elements();
-    // const auto num_rows = source->get_size()[0];
     const IndexType num_rows = source->get_size()[0];
 
     array<IndexType> row_idxs(exec, nnz);
 
-    // auto row_ptrs = result->get_row_ptrs();
     IndexType* row_ptrs = result->get_row_ptrs();
-    // auto col_idxs = result->get_col_idxs();
     IndexType* col_idxs = result->get_col_idxs();
-    // auto values = result->get_values();
     ValueType* values = result->get_values();
 
-    // const auto block_size = source->get_block_size();
-    // const auto num_blocks_matrix = source->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType block_size = source->get_block_size();
     const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
@@ -362,16 +319,11 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            // kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
@@ -400,18 +352,10 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
                       matrix::Dense<ValueType>* result)
 {
-    // const auto num_rows = result->get_size()[0];
     const IndexType num_rows = result->get_size()[0];
-    // const auto num_cols = result->get_size()[1];
     const IndexType num_cols = result->get_size()[1];
-    // const auto stride = result->get_stride();
     const IndexType stride = result->get_stride();
 
-    // const auto nnz = source->get_num_stored_elements();
-    // const auto block_size = source->get_block_size();
-    // const auto num_blocks_matrix = source->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nnz = source->get_num_stored_elements();
     const IndexType block_size = source->get_block_size();
     const IndexType num_blocks_matrix = source->get_num_blocks();
@@ -428,16 +372,11 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            // kernel::fill_in_dense<<<bccoo_grid, bccoo_block>>>(
             kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(source->get_const_chunk()),
@@ -461,11 +400,6 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    // const auto nnz = orig->get_num_stored_elements();
-    // const auto block_size = orig->get_block_size();
-    // const auto num_blocks_matrix = orig->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nnz = orig->get_num_stored_elements();
     const IndexType block_size = orig->get_block_size();
     const IndexType num_blocks_matrix = orig->get_num_blocks();
@@ -475,13 +409,9 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (orig->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
@@ -506,11 +436,6 @@ template <typename ValueType, typename IndexType>
 void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
 {
-    // const auto nnz = matrix->get_num_stored_elements();
-    // const auto block_size = matrix->get_block_size();
-    // const auto num_blocks_matrix = matrix->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nnz = matrix->get_num_stored_elements();
     const IndexType block_size = matrix->get_block_size();
     const IndexType num_blocks_matrix = matrix->get_num_blocks();
@@ -520,13 +445,9 @@ void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         // If there is work to compute
         if (matrix->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             kernel::abstract_absolute_inplace<cuda_type<ValueType>,
@@ -554,11 +475,6 @@ void compute_absolute(
     const matrix::Bccoo<ValueType, IndexType>* source,
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
-    // const auto nnz = source->get_num_stored_elements();
-    // const auto block_size = source->get_block_size();
-    // const auto num_blocks_matrix = source->get_num_blocks();
-    // const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
-    // const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const IndexType nnz = source->get_num_stored_elements();
     const IndexType block_size = source->get_block_size();
     const IndexType num_blocks_matrix = source->get_num_blocks();
@@ -568,13 +484,9 @@ void compute_absolute(
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
-            // int num_blocks_grid = std::min(
             IndexType num_blocks_grid = std::min(
-                // num_blocks_matrix, (size_type)ceildiv(nwarps,
-                // warps_in_block));
                 num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
             const dim3 bccoo_grid(num_blocks_grid, 1);
-            // auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
             kernel::abstract_absolute<cuda_type<ValueType>,
