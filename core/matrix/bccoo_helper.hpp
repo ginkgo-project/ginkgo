@@ -85,20 +85,6 @@ constexpr int cst_max_size_medium_row = 0xFFFF;
 
 #endif
 
-/*
-
-constexpr uint8 cst_mark_end_row = 0xFF;
-constexpr uint8 cst_mark_size_big_row = 0x7E;
-constexpr uint8 cst_mark_size_medium_row = 0x7D;
-
-constexpr uint8 cst_mark_value_lut = 0x80;
-constexpr uint8 cst_mark_column_lut = 0x7F;
-
-constexpr uint8 cst_max_size_small_idxs_row = 0xFF;
-constexpr uint8 cst_max_size_small_row = 0x7C;
-constexpr int cst_max_size_medium_row = 0xFFFF;
-
-*/
 
 /*
  *  Routines for mananing bccoo objects
