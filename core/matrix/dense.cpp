@@ -170,7 +170,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
 
     // Computation of nnz
     const IndexType num_rows = source->get_size()[0];
-    array<IndexType> row_ptrs{exec, num_rows + 1};
+    array<IndexType> row_ptrs{exec, (size_type)(num_rows + 1)};
     exec->run(dense::make_count_nonzeros_per_row(source, row_ptrs.get_data()));
     exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
     const IndexType num_stored_nonzeros =

@@ -58,7 +58,7 @@ namespace bccoo {
 template <typename IndexTypeCol, typename IndexType,
           int subgroup_size = config::warp_size, typename ValueType,
           typename Closure>
-inline GKO_ATTRIBUTES void loop_block_single_row(
+inline GKO_ATTRIBUTES void loop_block_single_row_spmv(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
@@ -98,7 +98,7 @@ inline GKO_ATTRIBUTES void loop_block_single_row(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           int subgroup_size = config::warp_size, typename ValueType,
           typename Closure>
-inline GKO_ATTRIBUTES void loop_block_multi_row(
+inline GKO_ATTRIBUTES void loop_block_multi_row_spmv(
     const uint8* __restrict__ chunk_data, size_type block_size_local,
     const ValueType* __restrict__ b, const size_type b_stride,
     const size_type column_id, ValueType* __restrict__ c,
@@ -163,11 +163,239 @@ inline GKO_ATTRIBUTES void loop_block_multi_row(
     }
 }
 
-/*
-template <typename ValueType>
+
+template <typename IndexTypeCol, typename IndexType, typename ValueType>
+inline void loop_block_single_row_extract(const uint8* chunk_data,
+                                          compr_blk_idxs<IndexType>& blk_idxs,
+                                          IndexType start_in_blk,
+                                          IndexType jump_in_blk,
+                                          IndexType block_size_local,
+                                          ValueType* __restrict__ diag)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row = blk_idxs.row_frst;
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        if (row == col) {
+            diag[col] =
+                get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        }
+    }
+}
+
+
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType>
+inline void loop_block_multi_row_extract(const uint8* chunk_data,
+                                         compr_blk_idxs<IndexType>& blk_idxs,
+                                         IndexType start_in_blk,
+                                         IndexType jump_in_blk,
+                                         IndexType block_size_local,
+                                         ValueType* __restrict__ diag)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row =
+            blk_idxs.row_frst +
+            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        if (row == col) {
+            diag[col] =
+                get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        }
+    }
+}
+
+
+template <typename IndexTypeCol, typename IndexType, typename ValueType,
+          typename Closure>
+inline void loop_block_single_row_absolute(uint8* chunk_data,
+                                           compr_blk_idxs<IndexType>& blk_idxs,
+                                           IndexType start_in_blk,
+                                           IndexType jump_in_blk,
+                                           IndexType block_size_local,
+                                           Closure finalize_op)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        auto new_val = finalize_op(val);
+        set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos, new_val);
+    }
+}
+
+
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType, typename Closure>
+inline void loop_block_multi_row_absolute(uint8* chunk_data,
+                                          compr_blk_idxs<IndexType>& blk_idxs,
+                                          IndexType start_in_blk,
+                                          IndexType jump_in_blk,
+                                          IndexType block_size_local,
+                                          Closure finalize_op)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        auto new_val = finalize_op(val);
+        set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos, new_val);
+    }
+}
+
+
+template <typename IndexTypeCol, typename IndexType, typename ValueTypeSrc,
+          typename ValueTypeRes, typename Closure>
+inline void loop_block_single_row_absolute(
+    const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
+    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
+    uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
+    Closure finalize_op)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexTypeCol col_diff = get_value_chunk<IndexTypeCol>(
+            chunk_data_src, blk_idxs_src.shf_col, pos);
+        set_value_chunk<IndexTypeCol>(chunk_data_res, blk_idxs_res.shf_col, pos,
+                                      col_diff);
+        ValueTypeSrc val = get_value_chunk<ValueTypeSrc>(
+            chunk_data_src, blk_idxs_src.shf_val, pos);
+        ValueTypeRes new_val = finalize_op(val);
+        set_value_chunk<ValueTypeRes>(chunk_data_res, blk_idxs_res.shf_val, pos,
+                                      new_val);
+    }
+}
+
+
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueTypeSrc, typename ValueTypeRes, typename Closure>
+inline void loop_block_multi_row_absolute(
+    const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
+    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
+    uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
+    Closure finalize_op)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexTypeRow row_diff = get_value_chunk<IndexTypeRow>(
+            chunk_data_src, blk_idxs_src.shf_row, pos);
+        set_value_chunk<IndexTypeRow>(chunk_data_res, blk_idxs_res.shf_row, pos,
+                                      row_diff);
+        IndexTypeCol col_diff = get_value_chunk<IndexTypeCol>(
+            chunk_data_src, blk_idxs_src.shf_col, pos);
+        set_value_chunk<IndexTypeCol>(chunk_data_res, blk_idxs_res.shf_col, pos,
+                                      col_diff);
+        ValueTypeSrc val = get_value_chunk<ValueTypeSrc>(
+            chunk_data_src, blk_idxs_src.shf_val, pos);
+        ValueTypeRes new_val = finalize_op(val);
+        set_value_chunk<ValueTypeRes>(chunk_data_res, blk_idxs_res.shf_val, pos,
+                                      new_val);
+    }
+}
+
+
+template <typename IndexTypeCol, typename IndexType, typename ValueType>
+inline void loop_block_single_row_fill_in_coo(
+    const uint8* chunk_data, const IndexType blk,
+    compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
+    IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
+    IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
+    ValueType* __restrict__ values)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row = blk_idxs.row_frst;
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        auto index = blk * block_size + pos;
+        rows_idxs[index] = row;
+        cols_idxs[index] = col;
+        values[index] = val;
+    }
+}
+
+
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType>
+inline void loop_block_multi_row_fill_in_coo(
+    const uint8* chunk_data, const IndexType blk,
+    compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
+    IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
+    IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
+    ValueType* __restrict__ values)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row =
+            blk_idxs.row_frst +
+            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        auto index = blk * block_size + pos;
+        rows_idxs[index] = row;
+        cols_idxs[index] = col;
+        values[index] = val;
+    }
+}
+
+
+template <typename IndexTypeCol, typename IndexType, typename ValueType>
+inline void loop_block_single_row_fill_in_dense(
+    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
+    IndexType stride, ValueType* __restrict__ result)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row = blk_idxs.row_frst;
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        result[row * stride + col] = val;
+    }
+}
+
+
+template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
+          typename ValueType>
+inline void loop_block_multi_row_fill_in_dense(
+    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
+    IndexType stride, ValueType* __restrict__ result)
+{
+    for (IndexType pos = start_in_blk; pos < block_size_local;
+         pos += jump_in_blk) {
+        IndexType row =
+            blk_idxs.row_frst +
+            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+        IndexType col =
+            blk_idxs.col_frst +
+            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+        ValueType val =
+            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        result[row * stride + col] = val;
+    }
+}
+
+
+template <typename IndexType, typename ValueType>
 inline GKO_ATTRIBUTES void get_block_position_value(
-    const size_type pos, const uint8* chunk_data, compr_blk_idxs& blk_idxs,
-    size_type& row, size_type& col, ValueType& val)
+    const IndexType pos, const uint8* chunk_data,
+    compr_blk_idxs<IndexType>& blk_idxs, IndexType& row, IndexType& col,
+    ValueType& val)
 {
     row = blk_idxs.row_frst;
     col = blk_idxs.col_frst;
@@ -190,14 +418,13 @@ inline GKO_ATTRIBUTES void get_block_position_value(
     val = get_value_chunk<ValueType>(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
 }
-*/
+
 
 template <typename IndexType, typename ValueType>
-inline GKO_ATTRIBUTES void get_block_position_value(const size_type pos,
-                                                    const uint8* chunk_data,
-                                                    compr_blk_idxs& blk_idxs,
-                                                    compr_idxs<IndexType>& idxs,
-                                                    ValueType& val)
+inline GKO_ATTRIBUTES void get_block_position_value(
+    const size_type pos, const uint8* chunk_data,
+    compr_blk_idxs<IndexType>& blk_idxs, compr_idxs<IndexType>& idxs,
+    ValueType& val)
 {
     idxs.row = blk_idxs.row_frst;
     idxs.col = blk_idxs.col_frst;
@@ -254,10 +481,10 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType), new_val);
 }
 */
-
+/*
 template <typename IndexType, typename ValueType, typename Closure>
 inline GKO_ATTRIBUTES void get_block_position_value_put(
-    const size_type pos, uint8* chunk_data, compr_blk_idxs& blk_idxs,
+    const size_type pos, uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
     compr_idxs<IndexType>& idxs, ValueType& val, Closure finalize_op)
 {
     idxs.row = blk_idxs.row_frst;
@@ -286,7 +513,7 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
     set_value_chunk<ValueType>(
         chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType), new_val);
 }
-
+*/
 /*
 template <typename ValueTypeSrc, typename ValueTypeRes, typename Closure>
 inline GKO_ATTRIBUTES void get_block_position_value_put(
@@ -340,30 +567,31 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
         chunk_data_res, blk_idxs_res.shf_val + pos * sizeof(ValueTypeRes),
         new_val);
 }
-**/ /
-
-    template <typename ValueTypeSrc, typename ValueTypeRes, typename Closure>
-    inline GKO_ATTRIBUTES void get_block_position_value_put(
-        const size_type pos, const uint8* chunk_data_src,
-        compr_blk_idxs& blk_idxs_src, uint8* chunk_data_res,
-        compr_blk_idxs& blk_idxs_res, compr_idxs<IndexType>& idxs,
-        ValueTypeSrc& val, Closure finalize_op)
+**/
+/*
+template <typename IndexType, typename ValueTypeSrc, typename ValueTypeRes,
+                                        typename Closure>
+inline GKO_ATTRIBUTES void get_block_position_value_put(
+    const size_type pos, const uint8* chunk_data_src,
+    compr_blk_idxs<IndexType>& blk_idxs_src, uint8* chunk_data_res,
+    compr_blk_idxs<IndexType>& blk_idxs_res, compr_idxs<IndexType>& idxs_src,
+    ValueTypeSrc& val, Closure finalize_op)
 {
-    idxs.row = blk_idxs_src.row_frst;
-    idxs.col = blk_idxs_src.col_frst;
+    idxs_src.row = blk_idxs_src.row_frst;
+    idxs_src.col = blk_idxs_src.col_frst;
     if (blk_idxs_src.is_multi_row()) {
         if (blk_idxs_src.is_row_16bits()) {
             auto row_diff = get_value_chunk<uint16>(chunk_data_src,
                                                     blk_idxs_src.shf_row + pos);
             set_value_chunk<uint16>(chunk_data_res, blk_idxs_res.shf_row + pos,
                                     row_diff);
-            idxs.row += row_diff;
+            idxs_src.row += row_diff;
         } else {
             auto row_diff = get_value_chunk<uint8>(chunk_data_src,
                                                    blk_idxs_src.shf_row + pos);
             set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_row + pos,
                                    row_diff);
-            idxs.row += row_diff;
+            idxs_src.row += row_diff;
         }
     }
     if (blk_idxs_src.is_column_8bits()) {
@@ -371,21 +599,21 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
             get_value_chunk<uint8>(chunk_data_src, blk_idxs_src.shf_col + pos);
         set_value_chunk<uint8>(chunk_data_res, blk_idxs_res.shf_col + pos,
                                col_diff);
-        idxs.col += col_diff;
+        idxs_src.col += col_diff;
     } else if (blk_idxs_src.is_column_16bits()) {
         auto col_diff = get_value_chunk<uint16>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint16));
         set_value_chunk<uint16>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint16),
                                 col_diff);
-        idxs.col += col_diff;
+        idxs_src.col += col_diff;
     } else {
         auto col_diff = get_value_chunk<uint32>(
             chunk_data_src, blk_idxs_src.shf_col + pos * sizeof(uint32));
         set_value_chunk<uint32>(chunk_data_res,
                                 blk_idxs_res.shf_col + pos * sizeof(uint32),
                                 col_diff);
-        idxs.col += col_diff;
+        idxs_src.col += col_diff;
     }
     val = get_value_chunk<ValueTypeSrc>(
         chunk_data_src, blk_idxs_src.shf_val + pos * sizeof(ValueTypeSrc));
@@ -394,7 +622,7 @@ inline GKO_ATTRIBUTES void get_block_position_value_put(
         chunk_data_res, blk_idxs_res.shf_val + pos * sizeof(ValueTypeRes),
         new_val);
 }
-
+*/
 
 }  // namespace bccoo
 }  // namespace dpcpp

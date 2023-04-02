@@ -84,7 +84,7 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
-namespace {
+namespace kernel {
 
 
 /**
@@ -143,34 +143,34 @@ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
         if (blk_idxs.is_multi_row()) {
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row<uint16, uint8, IndexType>(
+                    loop_block_multi_row_spmv<uint16, uint8, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
                 } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row<uint16, uint16, IndexType>(
+                    loop_block_multi_row_spmv<uint16, uint16, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
                 } else {
-                    loop_block_multi_row<uint16, uint32, IndexType>(
+                    loop_block_multi_row_spmv<uint16, uint32, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
                 }
             } else {
                 if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row<uint8, uint8, IndexType>(
+                    loop_block_multi_row_spmv<uint8, uint8, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
                 } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row<uint8, uint16, IndexType>(
+                    loop_block_multi_row_spmv<uint8, uint16, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
                 } else {
-                    loop_block_multi_row<uint8, uint32, IndexType>(
+                    loop_block_multi_row_spmv<uint8, uint32, IndexType>(
                         chunk_data, block_size_local, b, b_stride, column_id, c,
                         c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
                         scale, item_ct1);
@@ -178,17 +178,17 @@ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
             }
         } else {
             if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row<uint8, IndexType>(
+                loop_block_single_row_spmv<uint8, IndexType>(
                     chunk_data, block_size_local, b, b_stride, column_id, c,
                     c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
                     item_ct1);
             } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row<uint16, IndexType>(
+                loop_block_single_row_spmv<uint16, IndexType>(
                     chunk_data, block_size_local, b, b_stride, column_id, c,
                     c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
                     item_ct1);
             } else {
-                loop_block_single_row<uint32, IndexType>(
+                loop_block_single_row_spmv<uint32, IndexType>(
                     chunk_data, block_size_local, b, b_stride, column_id, c,
                     c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
                     item_ct1);
@@ -237,6 +237,639 @@ void abstract_spmv(
 GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
 
 
+/**
+ * The device function of BCCOO extract_kernel
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_blks  the number of blocks in the matrix
+ * @param block_size  the number of nonzeros in each block
+ * @param num_lines  the maximum round of each warp
+ * @param chunk_data  the array where the data are
+ * @param offsets_data  the array where the offset of each block is
+ * @param types_data  the array where the type of each block is
+ * @param cols_data  the array where the initial column of each block is
+ * @param rows_data  the array where the initial row of each block is
+ * @param diag  the output dense vector
+ *
+ * @tparam subgroup_size   size of the subgroup
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
+void extract_kernel(const IndexType nnz, const IndexType num_blks,
+                    const IndexType block_size, const IndexType num_lines,
+                    const uint8* __restrict__ chunk_data,
+                    const size_type* __restrict__ offsets_data,
+                    const uint8* __restrict__ types_data,
+                    const IndexType* __restrict__ cols_data,
+                    const IndexType* __restrict__ rows_data,
+                    ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
+{
+    const IndexType column_id = item_ct1.get_group(1);
+    const IndexType start_blk = item_ct1.get_group(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
+
+    const IndexType start_in_blk =
+        item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
+
+    for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
+        IndexType block_size_local =
+            std::min(block_size, nnz - block_size * blk);
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(
+            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        if (blk_idxs.is_multi_row()) {
+            if (blk_idxs.is_row_16bits()) {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_extract<uint16, uint8>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_extract<uint16, uint16>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                } else {
+                    loop_block_multi_row_extract<uint16, uint32>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                }
+            } else {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_extract<uint8, uint8>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_extract<uint8, uint16>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                } else {
+                    loop_block_multi_row_extract<uint8, uint32>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, diag);
+                }
+            }
+        } else {
+            if (blk_idxs.is_column_8bits()) {
+                loop_block_single_row_extract<uint8>(chunk_data, blk_idxs,
+                                                     start_in_blk, jump_in_blk,
+                                                     block_size_local, diag);
+            } else if (blk_idxs.is_column_16bits()) {
+                loop_block_single_row_extract<uint16>(chunk_data, blk_idxs,
+                                                      start_in_blk, jump_in_blk,
+                                                      block_size_local, diag);
+            } else {
+                loop_block_single_row_extract<uint32>(chunk_data, blk_idxs,
+                                                      start_in_blk, jump_in_blk,
+                                                      block_size_local, diag);
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void abstract_extract(const IndexType nnz, const IndexType num_blks,
+                      const IndexType block_size, const IndexType num_lines,
+                      const uint8* __restrict__ chk,
+                      const size_type* __restrict__ off,
+                      const uint8* __restrict__ typ,
+                      const IndexType* __restrict__ col,
+                      const IndexType* __restrict__ row,
+                      ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
+{
+    extract_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
+                   row, diag, item_ct1);
+}
+
+GKO_ENABLE_DEFAULT_HOST(abstract_extract, abstract_extract);
+
+
+/**
+ * The device function of BCCOO compute_absolute_inplace
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_blks  the number of blocks in the matrix
+ * @param block_size  the number of nonzeros in each block
+ * @param num_lines  the maximum round of each warp
+ * @param chunk_data  the array where the data are
+ * @param offsets_data  the array where the offset of each block is
+ * @param types_data  the array where the type of each block is
+ * @param cols_data  the array where the initial column of each block is
+ * @param rows_data  the array where the initial row of each block is
+ * @param comp_abs  the function to apply to obtain the solution
+ *
+ * @tparam subgroup_size   size of the subgroup
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ * @tparam Closure  type of the function used to write the result
+ */
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType, typename Closure>
+void absolute_inplace_kernel(const IndexType nnz, const IndexType num_blks,
+                             const IndexType block_size,
+                             const IndexType num_lines,
+                             uint8* __restrict__ chunk_data,
+                             const size_type* __restrict__ offsets_data,
+                             const uint8* __restrict__ types_data,
+                             const IndexType* __restrict__ cols_data,
+                             const IndexType* __restrict__ rows_data,
+                             Closure comp_abs, sycl::nd_item<3> item_ct1)
+
+{
+    const IndexType column_id = item_ct1.get_group(1);
+    const IndexType start_blk = item_ct1.get_group(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
+
+    const IndexType start_in_blk =
+        item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
+
+    for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
+        IndexType block_size_local =
+            std::min(block_size, nnz - block_size * blk);
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(
+            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        if (blk_idxs.is_multi_row()) {
+            if (blk_idxs.is_row_16bits()) {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_absolute<uint16, uint8, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_absolute<uint16, uint16, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                } else {
+                    loop_block_multi_row_absolute<uint16, uint32, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                }
+            } else {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_absolute<uint8, uint8, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_absolute<uint8, uint16, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                } else {
+                    loop_block_multi_row_absolute<uint8, uint32, IndexType,
+                                                  ValueType>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, comp_abs);
+                }
+            }
+        } else {
+            if (blk_idxs.is_column_8bits()) {
+                loop_block_single_row_absolute<uint8, IndexType, ValueType>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, comp_abs);
+            } else if (blk_idxs.is_column_16bits()) {
+                loop_block_single_row_absolute<uint16, IndexType, ValueType>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, comp_abs);
+            } else {
+                loop_block_single_row_absolute<uint32, IndexType, ValueType>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, comp_abs);
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void abstract_absolute_inplace(
+    const ValueType val, const IndexType nnz, const IndexType num_blks,
+    const IndexType block_size, const IndexType num_lines,
+    uint8* __restrict__ chk, const size_type* __restrict__ off,
+    const uint8* __restrict__ typ, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, sycl::nd_item<3> item_ct1)
+{
+    absolute_inplace_kernel<config::warp_size, ValueType, IndexType>(
+        nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
+        [](ValueType x) { return abs(x); }, item_ct1);
+}
+
+GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
+
+
+/**
+ * The device function of BCCOO compute_absolute
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_blks  the number of blocks in the matrix
+ * @param block_size  the number of nonzeros in each block
+ * @param num_lines  the maximum round of each warp
+ * @param chunk_data_src  the array where the data of source are
+ * @param offsets_data_src  the array where the offset of each block of source
+ * is
+ * @param types_data_src  the array where the sorce type of each block of source
+ * is
+ * @param cols_data_src  the array where the initial column of each block of
+ * source is
+ * @param rows_data_src  the array where the initial row of each block of source
+ * is
+ * @param chunk_data_res  the array where the data of result are
+ * @param offsets_data_res  the array where the offset of each block of result
+ * is
+ * @param types_data_res  the array where the sorce type of each block of result
+ * is
+ * @param cols_data_res  the array where the initial column of each block of
+ * result is
+ * @param rows_data_res  the array where the initial row of each block of result
+ * is
+ * @param comp_abs  the function to apply to obtain the solution
+ *
+ * @tparam subgroup_size   size of the subgroup
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ * @tparam Closure  type of the function used to write the result
+ */
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType, typename Closure>
+void absolute_kernel(const IndexType nnz, const IndexType num_blks,
+                     const IndexType block_size, const IndexType num_lines,
+                     const uint8* __restrict__ chunk_data_src,
+                     const size_type* __restrict__ offsets_data_src,
+                     const uint8* __restrict__ types_data_src,
+                     const IndexType* __restrict__ cols_data_src,
+                     const IndexType* __restrict__ rows_data_src,
+                     uint8* __restrict__ chunk_data_res,
+                     size_type* __restrict__ offsets_data_res,
+                     uint8* __restrict__ types_data_res,
+                     IndexType* __restrict__ cols_data_res,
+                     IndexType* __restrict__ rows_data_res, Closure comp_abs,
+                     sycl::nd_item<3> item_ct1)
+{
+    const IndexType column_id = item_ct1.get_group(1);
+    const IndexType start_blk = item_ct1.get_group(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
+
+    const IndexType start_in_blk =
+        item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
+
+    offsets_data_res[0] = 0;
+    for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
+        IndexType block_size_local =
+            std::min(block_size, nnz - block_size * blk);
+
+        compr_idxs<IndexType> idxs_src(blk, offsets_data_src[blk]);
+        compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
+                                               block_size_local, idxs_src,
+                                               types_data_src[blk]);
+
+        rows_data_res[blk] = rows_data_src[blk];
+        cols_data_res[blk] = cols_data_src[blk];
+        types_data_res[blk] = types_data_src[blk];
+        offsets_data_res[blk] =
+            offsets_data_src[blk] -
+            ((blk == 0)
+                 ? 0
+                 : (blk - 1) * block_size *
+                       (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
+
+        compr_idxs<IndexType> idxs_res(blk, offsets_data_res[blk]);
+        compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
+                                               block_size_local, idxs_res,
+                                               types_data_res[blk]);
+        offsets_data_res[blk + 1] =
+            blk_idxs_res.shf_val +
+            block_size_local * sizeof(remove_complex<ValueType>);
+
+        if (blk_idxs_src.is_multi_row()) {
+            if (blk_idxs_src.is_row_16bits()) {
+                if (blk_idxs_src.is_column_8bits()) {
+                    loop_block_multi_row_absolute<uint16, uint8, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                } else if (blk_idxs_src.is_column_16bits()) {
+                    loop_block_multi_row_absolute<uint16, uint16, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                } else {
+                    loop_block_multi_row_absolute<uint16, uint32, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                }
+            } else {
+                if (blk_idxs_src.is_column_8bits()) {
+                    loop_block_multi_row_absolute<uint8, uint8, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                } else if (blk_idxs_src.is_column_16bits()) {
+                    loop_block_multi_row_absolute<uint8, uint16, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                } else {
+                    loop_block_multi_row_absolute<uint8, uint32, IndexType,
+                                                  ValueType,
+                                                  remove_complex<ValueType>>(
+                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                        block_size_local, chunk_data_res, blk_idxs_res,
+                        comp_abs);
+                }
+            }
+        } else {
+            if (blk_idxs_src.is_column_8bits()) {
+                loop_block_single_row_absolute<uint8, IndexType, ValueType,
+                                               remove_complex<ValueType>>(
+                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+            } else if (blk_idxs_src.is_column_16bits()) {
+                loop_block_single_row_absolute<uint16, IndexType, ValueType,
+                                               remove_complex<ValueType>>(
+                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+            } else {
+                loop_block_single_row_absolute<uint32, IndexType, ValueType,
+                                               remove_complex<ValueType>>(
+                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
+                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void abstract_absolute(
+    const ValueType val, const IndexType nnz, const IndexType num_blks,
+    const IndexType block_size, const IndexType num_lines,
+    const uint8* __restrict__ chk_src, const size_type* __restrict__ off_src,
+    const uint8* __restrict__ typ_src, const IndexType* __restrict__ col_src,
+    const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
+    size_type* __restrict__ off_res, uint8* __restrict__ typ_res,
+    IndexType* __restrict__ col_res, IndexType* __restrict__ row_res,
+    sycl::nd_item<3> item_ct1)
+{
+    absolute_kernel<config::warp_size, ValueType, IndexType>(
+        nnz, num_blks, block_size, num_lines, chk_src, off_src, typ_src,
+        col_src, row_src, chk_res, off_res, typ_res, col_res, row_res,
+        [](ValueType x) { return abs(x); }, item_ct1);
+}
+
+GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
+
+
+/**
+ * The device function of BCCOO fill_in_coo_kernel
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_blks  the number of blocks in the matrix
+ * @param block_size  the number of nonzeros in each block
+ * @param num_lines  the maximum round of each warp
+ * @param chunk_data  the array where the data are
+ * @param offsets_data  the array where the offset of each block is
+ * @param types_data  the array where the type of each block is
+ * @param cols_data  the array where the initial column of each block is
+ * @param rows_data  the array where the initial row of each block is
+ * @param diag  the output dense vector
+ *
+ * @tparam subgroup_size   size of the subgroup
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
+void fill_in_coo_kernel(const IndexType nnz, const IndexType num_blks,
+                        const IndexType block_size, const IndexType num_lines,
+                        const uint8* __restrict__ chunk_data,
+                        const size_type* __restrict__ offsets_data,
+                        const uint8* __restrict__ types_data,
+                        const IndexType* __restrict__ cols_data,
+                        const IndexType* __restrict__ rows_data,
+                        IndexType* __restrict__ rows_idxs,
+                        IndexType* __restrict__ cols_idxs,
+                        ValueType* __restrict__ values,
+                        sycl::nd_item<3> item_ct1)
+{
+    const IndexType column_id = item_ct1.get_group(1);
+    const IndexType start_blk = item_ct1.get_group(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
+
+    const IndexType start_in_blk =
+        item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
+
+    for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
+        IndexType block_size_local =
+            std::min(block_size, nnz - block_size * blk);
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(
+            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        if (blk_idxs.is_multi_row()) {
+            if (blk_idxs.is_row_16bits()) {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_fill_in_coo<uint16, uint8>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_fill_in_coo<uint16, uint16>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                } else {
+                    loop_block_multi_row_fill_in_coo<uint16, uint32>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                }
+            } else {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_fill_in_coo<uint8, uint8>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_fill_in_coo<uint8, uint16>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                } else {
+                    loop_block_multi_row_fill_in_coo<uint8, uint32>(
+                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size, block_size_local, rows_idxs, cols_idxs,
+                        values);
+                }
+            }
+        } else {
+            if (blk_idxs.is_column_8bits()) {
+                loop_block_single_row_fill_in_coo<uint8>(
+                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size, block_size_local, rows_idxs, cols_idxs, values);
+            } else if (blk_idxs.is_column_16bits()) {
+                loop_block_single_row_fill_in_coo<uint16>(
+                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size, block_size_local, rows_idxs, cols_idxs, values);
+            } else {
+                loop_block_single_row_fill_in_coo<uint32>(
+                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size, block_size_local, rows_idxs, cols_idxs, values);
+            }
+        }
+    }
+}
+
+
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
+void abstract_fill_in_coo(
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    const IndexType num_lines, const uint8* __restrict__ chk,
+    const size_type* __restrict__ off, const uint8* __restrict__ typ,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    IndexType* __restrict__ row_idx, IndexType* __restrict__ col_idx,
+    ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
+{
+    fill_in_coo_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
+                       row, row_idx, col_idx, values, item_ct1);
+}
+
+GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_coo, abstract_fill_in_coo);
+
+
+/**
+ * The device function of BCCOO fill_in_dense_kernel
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_blks  the number of blocks in the matrix
+ * @param block_size  the number of nonzeros in each block
+ * @param num_lines  the maximum round of each warp
+ * @param chunk_data  the array where the data are
+ * @param offsets_data  the array where the offset of each block is
+ * @param types_data  the array where the type of each block is
+ * @param cols_data  the array where the initial column of each block is
+ * @param rows_data  the array where the initial row of each block is
+ * @param diag  the output dense vector
+ *
+ * @tparam subgroup_size   size of the subgroup
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
+void fill_in_dense_kernel(const IndexType nnz, const IndexType num_blks,
+                          const IndexType block_size, const IndexType num_lines,
+                          const uint8* __restrict__ chunk_data,
+                          const size_type* __restrict__ offsets_data,
+                          const uint8* __restrict__ types_data,
+                          const IndexType* __restrict__ cols_data,
+                          const IndexType* __restrict__ rows_data,
+                          IndexType stride, ValueType* __restrict__ result,
+                          sycl::nd_item<3> item_ct1)
+{
+    const IndexType column_id = item_ct1.get_group(1);
+    const IndexType start_blk = item_ct1.get_group(2);
+    const IndexType jump_blk = item_ct1.get_group_range(2);
+
+    const IndexType start_in_blk =
+        item_ct1.get_local_id(1) * subgroup_size + item_ct1.get_local_id(2);
+    const IndexType jump_in_blk =
+        item_ct1.get_local_range().get(1) * subgroup_size;
+
+    for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
+        IndexType block_size_local =
+            std::min(block_size, nnz - block_size * blk);
+        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(
+            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        if (blk_idxs.is_multi_row()) {
+            if (blk_idxs.is_row_16bits()) {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_fill_in_dense<uint16, uint8>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_fill_in_dense<uint16, uint16>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                } else {
+                    loop_block_multi_row_fill_in_dense<uint16, uint32>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                }
+            } else {
+                if (blk_idxs.is_column_8bits()) {
+                    loop_block_multi_row_fill_in_dense<uint8, uint8>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                } else if (blk_idxs.is_column_16bits()) {
+                    loop_block_multi_row_fill_in_dense<uint8, uint16>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                } else {
+                    loop_block_multi_row_fill_in_dense<uint8, uint32>(
+                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        block_size_local, stride, result);
+                }
+            }
+        } else {
+            if (blk_idxs.is_column_8bits()) {
+                loop_block_single_row_fill_in_dense<uint8>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, stride, result);
+            } else if (blk_idxs.is_column_16bits()) {
+                loop_block_single_row_fill_in_dense<uint16>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, stride, result);
+            } else {
+                loop_block_single_row_fill_in_dense<uint32>(
+                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    block_size_local, stride, result);
+            }
+        }
+    }
+}
+
+
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
+void abstract_fill_in_dense(
+    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
+    const IndexType num_lines, const uint8* __restrict__ chk,
+    const size_type* __restrict__ off, const uint8* __restrict__ typ,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    IndexType stride, ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
+{
+    fill_in_dense_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ,
+                         col, row, stride, result, item_ct1);
+}
+
+GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_dense, abstract_fill_in_dense);
+
+
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void fill_in_coo(const IndexType nnz, const IndexType num_blks,
@@ -281,6 +914,7 @@ void fill_in_coo(const IndexType nnz, const IndexType num_blks,
 }
 
 GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo);
+*/
 
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
@@ -305,7 +939,7 @@ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
 
 GKO_ENABLE_DEFAULT_HOST(convert_row_idxs_to_ptrs, convert_row_idxs_to_ptrs);
 
-
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void fill_in_dense(const IndexType nnz, const IndexType num_blks,
@@ -345,9 +979,9 @@ void fill_in_dense(const IndexType nnz, const IndexType num_blks,
 }
 
 GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
+*/
 
-
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void initialize_zero_dense(IndexType num_rows, IndexType num_cols,
                            IndexType stride, ValueType* __restrict__ result,
                            sycl::nd_item<3> item_ct1)
@@ -379,6 +1013,7 @@ GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void extract_kernel(const IndexType nnz, const IndexType num_blks,
@@ -418,7 +1053,7 @@ void extract_kernel(const IndexType nnz, const IndexType num_blks,
 }
 
 GKO_ENABLE_DEFAULT_HOST(extract_kernel, extract_kernel);
-
+*/
 
 /**
  * The device function of BCCOO compute_absolute_inplace
@@ -436,6 +1071,7 @@ GKO_ENABLE_DEFAULT_HOST(extract_kernel, extract_kernel);
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 void absolute_inplace_kernel(const ValueType oldval, const IndexType nnz,
@@ -491,7 +1127,7 @@ void abstract_absolute_inplace(
 }
 
 GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
-
+*/
 
 /**
  * The device function of BCCOO compute_absolute
@@ -522,6 +1158,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 void absolute_kernel(ValueType val, const IndexType nnz,
@@ -582,7 +1219,7 @@ void absolute_kernel(ValueType val, const IndexType nnz,
                 get_block_position_value_put<
                     IndexType, ValueType, remove_complex<ValueType>, Closure>(
                     pos, chunk_data_src, blk_idxs_src, chunk_data_res,
-                    blk_idxs_res, val, comp_abs);
+                    blk_idxs_res, idxs_src, val, comp_abs);
             }
         }
     }
@@ -607,9 +1244,9 @@ void abstract_absolute(
 }
 
 GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
+*/
 
-
-}  // namespace
+}  // namespace kernel
 
 
 template <typename IndexType>
@@ -677,12 +1314,13 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                          num_blocks_matrix, block_size, num_lines,
-                          a->get_const_chunk(), a->get_const_offsets(),
-                          a->get_const_types(), a->get_const_cols(),
-                          a->get_const_rows(), b->get_const_values(),
-                          b->get_stride(), c->get_values(), c->get_stride());
+            kernel::abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(),
+                                  nnz, num_blocks_matrix, block_size, num_lines,
+                                  a->get_const_chunk(), a->get_const_offsets(),
+                                  a->get_const_types(), a->get_const_cols(),
+                                  a->get_const_rows(), b->get_const_values(),
+                                  (IndexType)b->get_stride(), c->get_values(),
+                                  (IndexType)c->get_stride());
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -714,13 +1352,14 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                          num_blocks_matrix, block_size, num_lines,
-                          alpha->get_const_values(), a->get_const_chunk(),
-                          a->get_const_offsets(), a->get_const_types(),
-                          a->get_const_cols(), a->get_const_rows(),
-                          b->get_const_values(), b->get_stride(),
-                          c->get_values(), c->get_stride());
+            kernel::abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(),
+                                  nnz, num_blocks_matrix, block_size, num_lines,
+                                  alpha->get_const_values(),
+                                  a->get_const_chunk(), a->get_const_offsets(),
+                                  a->get_const_types(), a->get_const_cols(),
+                                  a->get_const_rows(), b->get_const_values(),
+                                  (IndexType)b->get_stride(), c->get_values(),
+                                  (IndexType)c->get_stride());
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -786,12 +1425,13 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            fill_in_coo(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                        num_blocks_matrix, block_size, num_lines,
-                        source->get_const_chunk(), source->get_const_offsets(),
-                        source->get_const_types(), source->get_const_cols(),
-                        source->get_const_rows(), result->get_row_idxs(),
-                        result->get_col_idxs(), result->get_values());
+            kernel::abstract_fill_in_coo(
+                bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
+                num_blocks_matrix, block_size, num_lines,
+                source->get_const_chunk(), source->get_const_offsets(),
+                source->get_const_types(), source->get_const_cols(),
+                source->get_const_rows(), result->get_row_idxs(),
+                result->get_col_idxs(), result->get_values());
         } else {
             GKO_NOT_SUPPORTED(source);
         }
@@ -811,8 +1451,9 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 bccoo_grid(grid_dim, 1);
     const dim3 bccoo_block(default_block_size, 1, 1);
 
-    convert_row_idxs_to_ptrs(bccoo_grid, bccoo_block, 0, exec->get_queue(),
-                             (idxs), num_nonzeros, (ptrs), length);
+    kernel::convert_row_idxs_to_ptrs(bccoo_grid, bccoo_block, 0,
+                                     exec->get_queue(), idxs, num_nonzeros,
+                                     ptrs, length);
 }
 
 
@@ -843,12 +1484,13 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            fill_in_coo(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                        num_blocks_matrix, block_size, num_lines,
-                        source->get_const_chunk(), source->get_const_offsets(),
-                        source->get_const_types(), source->get_const_cols(),
-                        source->get_const_rows(), row_idxs.get_data(),
-                        result->get_col_idxs(), result->get_values());
+            kernel::abstract_fill_in_coo(
+                bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
+                num_blocks_matrix, block_size, num_lines,
+                source->get_const_chunk(), source->get_const_offsets(),
+                source->get_const_types(), source->get_const_cols(),
+                source->get_const_rows(), row_idxs.get_data(),
+                result->get_col_idxs(), result->get_values());
 
             convert_row_idxs_to_ptrs(exec, row_idxs.get_data(), nnz, row_ptrs,
                                      num_rows + 1);
@@ -881,8 +1523,9 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                               config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(num_cols, block_size_mat.x),
                              ceildiv(num_rows, block_size_mat.y), 1);
-    initialize_zero_dense(init_grid_dim, block_size_mat, 0, exec->get_queue(),
-                          num_rows, num_cols, stride, (result->get_values()));
+    kernel::initialize_zero_dense(init_grid_dim, block_size_mat, 0,
+                                  exec->get_queue(), num_rows, num_cols, stride,
+                                  (result->get_values()));
 
     if (nwarps > 0) {
         // If there is work to compute
@@ -892,7 +1535,7 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            fill_in_dense(
+            kernel::abstract_fill_in_dense(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
                 source->get_const_chunk(), source->get_const_offsets(),
@@ -927,11 +1570,12 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            extract_kernel(bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                           num_blocks_matrix, block_size, num_lines,
-                           orig->get_const_chunk(), orig->get_const_offsets(),
-                           orig->get_const_types(), orig->get_const_cols(),
-                           orig->get_const_rows(), diag->get_values());
+            kernel::abstract_extract(
+                bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
+                num_blocks_matrix, block_size, num_lines,
+                orig->get_const_chunk(), orig->get_const_offsets(),
+                orig->get_const_types(), orig->get_const_cols(),
+                orig->get_const_rows(), diag->get_values());
         } else {
             GKO_NOT_SUPPORTED(orig);
         }
@@ -962,7 +1606,7 @@ void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,
             // Use it to help compiler to interpret the template
             ValueType val = {};
 
-            abstract_absolute_inplace(
+            kernel::abstract_absolute_inplace(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), val, nnz,
                 num_blocks_matrix, block_size, num_lines, matrix->get_chunk(),
                 matrix->get_const_offsets(), matrix->get_const_types(),
@@ -999,7 +1643,7 @@ void compute_absolute(
             // Use it to help compiler to interpret the template
             ValueType val = {};
 
-            abstract_absolute(
+            kernel::abstract_absolute(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), val, nnz,
                 num_blocks_matrix, block_size, num_lines,
                 source->get_const_chunk(), source->get_const_offsets(),

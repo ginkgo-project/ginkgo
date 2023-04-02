@@ -162,8 +162,8 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
                 as_hip_type(a->get_const_rows()),
-                as_hip_type(b->get_const_values()), b->get_stride(),
-                as_hip_type(c->get_values()), c->get_stride());
+                as_hip_type(b->get_const_values()), (IndexType)b->get_stride(),
+                as_hip_type(c->get_values()), (IndexType)c->get_stride());
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -204,8 +204,8 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
                 as_hip_type(a->get_const_rows()),
-                as_hip_type(b->get_const_values()), b->get_stride(),
-                as_hip_type(c->get_values()), c->get_stride());
+                as_hip_type(b->get_const_values()), (IndexType)b->get_stride(),
+                as_hip_type(c->get_values()), (IndexType)c->get_stride());
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -219,7 +219,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    compression commpress_res, const IndexType block_size_res,
+                    compression compress_res, const IndexType block_size_res,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -269,7 +269,7 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_chunk()),
                 as_hip_type(source->get_const_offsets()),
@@ -290,9 +290,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const HipExecutor> exec,
-                              const IndexType* idxs, IndexType num_nonzeros,
-                              IndexType* ptrs, IndexType length)
+inline void convert_row_idxs_to_ptrs(std::shared_ptr<const HipExecutor> exec,
+                                     const IndexType* idxs,
+                                     IndexType num_nonzeros, IndexType* ptrs,
+                                     IndexType length)
 {
     const IndexType grid_dim = ceildiv(num_nonzeros, default_block_size);
 
@@ -316,7 +317,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
     ValueType* values = result->get_values();
 
     const IndexType block_size = source->get_block_size();
-    const auto num_blocks_matrix = source->get_num_blocks();
+    const IndexType num_blocks_matrix = source->get_num_blocks();
     const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
     const IndexType nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
@@ -328,7 +329,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_chunk()),
                 as_hip_type(source->get_const_offsets()),
@@ -381,7 +382,7 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::fill_in_dense<<<bccoo_grid, bccoo_block>>>(
+            kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_chunk()),
                 as_hip_type(source->get_const_offsets()),

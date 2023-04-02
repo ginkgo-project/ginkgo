@@ -41,17 +41,11 @@ template <typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
 inline __device__ void loop_block_single_row_spmv(
-    // const uint8* __restrict__ chunk_data, size_type block_size_local,
     const uint8* __restrict__ chunk_data, IndexType block_size_local,
-    // const ValueType* __restrict__ b, const size_type b_stride,
     const ValueType* __restrict__ b, const IndexType b_stride,
-    // const size_type column_id, ValueType* __restrict__ c,
     const IndexType column_id, ValueType* __restrict__ c,
-    // const size_type c_stride, compr_idxs<IndexType>& idxs,
     const IndexType c_stride, compr_idxs<IndexType>& idxs,
-    // compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
     compr_blk_idxs<IndexType>& blk_idxs, const IndexType start_in_blk,
-    // const size_type jump_in_blk, Closure scale)
     const IndexType jump_in_blk, Closure scale)
 {
     ValueType temp_val = zero<ValueType>();
@@ -61,7 +55,6 @@ inline __device__ void loop_block_single_row_spmv(
         group::tiled_partition<subwarp_size>(group::this_thread_block());
 
 
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.col =
@@ -89,17 +82,11 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
 inline __device__ void loop_block_multi_row_spmv(
-    // const uint8* __restrict__ chunk_data, size_type block_size_local,
     const uint8* __restrict__ chunk_data, IndexType block_size_local,
-    // const ValueType* __restrict__ b, const size_type b_stride,
     const ValueType* __restrict__ b, const IndexType b_stride,
-    // const size_type column_id, ValueType* __restrict__ c,
     const IndexType column_id, ValueType* __restrict__ c,
-    // const size_type c_stride, compr_idxs<IndexType>& idxs,
     const IndexType c_stride, compr_idxs<IndexType>& idxs,
-    // compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
     compr_blk_idxs<IndexType>& blk_idxs, const IndexType start_in_blk,
-    // const size_type jump_in_blk, Closure scale)
     const IndexType jump_in_blk, Closure scale)
 {
     auto next_row = blk_idxs.row_frst;
@@ -118,7 +105,6 @@ inline __device__ void loop_block_multi_row_spmv(
         blk_idxs.row_frst +
         get_value_chunk<IndexTypeRow>(
             chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.row = next_row;
@@ -166,12 +152,9 @@ inline __device__ void loop_block_multi_row_spmv(
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline __device__ void loop_block_single_row_extract(
     const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     ValueType* __restrict__ diag)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
@@ -190,12 +173,9 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 inline __device__ void loop_block_multi_row_extract(
     const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     ValueType* __restrict__ diag)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
@@ -216,18 +196,11 @@ template <typename IndexTypeCol, typename IndexType, typename ValueType,
           typename Closure>
 inline __device__ void loop_block_single_row_absolute(
     uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     Closure finalize_op)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        // IndexType row = blk_idxs.row_frst;
-        // IndexType col = blk_idxs.col_frst +
-        // 			get_value_chunk<IndexTypeCol>(chunk_data,
-        // blk_idxs.shf_col, pos);
         ValueType val =
             get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
         auto new_val = finalize_op(val);
@@ -240,20 +213,11 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType, typename Closure>
 inline __device__ void loop_block_multi_row_absolute(
     uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     Closure finalize_op)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        // IndexType row = blk_idxs.row_frst +
-        // 			get_value_chunk<IndexTypeRow>(chunk_data,
-        // blk_idxs.shf_row, pos);
-        // IndexType col = blk_idxs.col_frst +
-        // 			get_value_chunk<IndexTypeCol>(chunk_data,
-        // blk_idxs.shf_col, pos);
         ValueType val =
             get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
         auto new_val = finalize_op(val);
@@ -266,13 +230,10 @@ template <typename IndexTypeCol, typename IndexType, typename ValueTypeSrc,
           typename ValueTypeRes, typename Closure>
 inline __device__ void loop_block_single_row_absolute(
     const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
     Closure finalize_op)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexTypeCol col_diff = get_value_chunk<IndexTypeCol>(
@@ -292,13 +253,10 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueTypeSrc, typename ValueTypeRes, typename Closure>
 inline __device__ void loop_block_multi_row_absolute(
     const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
     Closure finalize_op)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexTypeRow row_diff = get_value_chunk<IndexTypeRow>(
@@ -320,16 +278,12 @@ inline __device__ void loop_block_multi_row_absolute(
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline __device__ void loop_block_single_row_fill_in_coo(
-    // const uint8* chunk_data, const size_type blk,
     const uint8* chunk_data, const IndexType blk,
-    // compr_blk_idxs<IndexType>& blk_idxs, size_type start_in_blk,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
-    // size_type jump_in_blk, size_type block_size, size_type block_size_local,
     IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
     IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
     ValueType* __restrict__ values)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
@@ -349,16 +303,12 @@ inline __device__ void loop_block_single_row_fill_in_coo(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 inline __device__ void loop_block_multi_row_fill_in_coo(
-    // const uint8* chunk_data, const size_type blk,
     const uint8* chunk_data, const IndexType blk,
-    // compr_blk_idxs<IndexType>& blk_idxs, size_type start_in_blk,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
-    // size_type jump_in_blk, size_type block_size, size_type block_size_local,
     IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
     IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
     ValueType* __restrict__ values)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
@@ -380,13 +330,9 @@ inline __device__ void loop_block_multi_row_fill_in_coo(
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 inline __device__ void loop_block_single_row_fill_in_dense(
     const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    // size_type stride, ValueType* __restrict__ result)
     IndexType stride, ValueType* __restrict__ result)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
@@ -404,13 +350,9 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 inline __device__ void loop_block_multi_row_fill_in_dense(
     const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    // size_type start_in_blk, size_type jump_in_blk, size_type
-    // block_size_local,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    // size_type stride, ValueType* __restrict__ result)
     IndexType stride, ValueType* __restrict__ result)
 {
-    // for (size_type pos = start_in_blk; pos < block_size_local;
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
@@ -428,9 +370,7 @@ inline __device__ void loop_block_multi_row_fill_in_dense(
 
 template <typename IndexType, typename ValueType>
 inline __device__ void get_block_position_value(
-    // const size_type pos, const uint8* chunk_data,
     const IndexType pos, const uint8* chunk_data,
-    // compr_blk_idxs<IndexType>& blk_idxs, size_type& row, size_type& col,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType& row, IndexType& col,
     ValueType& val)
 {
@@ -460,7 +400,6 @@ inline __device__ void get_block_position_value(
 
 template <typename IndexType, typename ValueType>
 inline __device__ void get_block_position_value(
-    // const size_type pos, const uint8* chunk_data,
     const IndexType pos, const uint8* chunk_data,
     compr_blk_idxs<IndexType>& blk_idxs, compr_idxs<IndexType>& idxs,
     ValueType& val)
