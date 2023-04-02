@@ -284,10 +284,7 @@ void Csr<ValueType, IndexType>::convert_to(
     // Block partitioning. If the initial value is 0, the default is chosen
     IndexType block_size = result->get_block_size();
     if (block_size == 0) {
-        // exec->run(bccoo::make_get_default_block_size(&block_size));
-        size_type aux;
-        exec->run(bccoo::make_get_default_block_size(&aux));
-        block_size = aux;
+        exec->run(bccoo::make_get_default_block_size(&block_size));
     }
 
     // Computation of nnz

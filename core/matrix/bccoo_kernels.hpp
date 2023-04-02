@@ -51,11 +51,9 @@ namespace gko {
 namespace kernels {
 
 
-// #define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType)
-#define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL()                          \
+#define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType)                 \
     void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec, \
-                                size_type* block_size)
-// IndexType* block_size)
+                                IndexType* block_size)
 
 #define GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL()                          \
     void get_default_compression(std::shared_ptr<const DefaultExecutor> exec, \
@@ -135,10 +133,9 @@ namespace kernels {
         const matrix::Bccoo<ValueType, IndexType>* source,              \
         remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 
-//     template <typename IndexType>
-//     GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType);
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
-    GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                              \
+    template <typename IndexType>                                             \
+    GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL(IndexType);                     \
     GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL();                             \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType);                      \

@@ -165,8 +165,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
         (block_size_res == 0)) {
         // For non initialized result objects, the compression and
         // block_size values are copied from "this"
-        block_size_res = block_size_src;
         compress_res = compress_src;
+        block_size_res = block_size_src;
     } else {
         // For partial non initialized result objects, compression or
         // block_size defaults are used
@@ -174,10 +174,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
             exec->run(bccoo::make_get_default_compression(&compress_res));
         }
         if (block_size_res == 0) {
-            // exec->run(bccoo::make_get_default_block_size(&block_size_res));
-            size_type aux;
-            exec->run(bccoo::make_get_default_block_size(&aux));
-            block_size_res = aux;
+            exec->run(bccoo::make_get_default_block_size(&block_size_res));
         }
     }
 
@@ -265,8 +262,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
         (block_size_res == 0)) {
         // For non initialized result objects, the compression and
         // block_size values are copied from "this"
-        block_size_res = block_size_src;
         compress_res = compress_src;
+        block_size_res = block_size_src;
     } else {
         // For partial non initialized result objects, compression or
         // block_size defaults are used
@@ -274,10 +271,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
             exec->run(bccoo::make_get_default_compression(&compress_res));
         }
         if (block_size_res == 0) {
-            // exec->run(bccoo::make_get_default_block_size(&block_size_res));
-            size_type aux;
-            exec->run(bccoo::make_get_default_block_size(&aux));
-            block_size_res = aux;
+            exec->run(bccoo::make_get_default_block_size(&block_size_res));
         }
     }
 
@@ -465,10 +459,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     // Block partitioning. If the initial value is 0, the default is chosen
     IndexType block_size = this->get_block_size();
     if (block_size == 0) {
-        // exec->run(bccoo::make_get_default_block_size(&block_size));
-        size_type aux;
-        exec->run(bccoo::make_get_default_block_size(&aux));
-        block_size = aux;
+        exec->run(bccoo::make_get_default_block_size(&block_size));
     }
     IndexType num_blocks = ceildiv(nnz, block_size);
 

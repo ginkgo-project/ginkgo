@@ -612,13 +612,14 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
 }  // namespace
 
 
-// template <typename IndexType>
+template <typename IndexType>
 void get_default_block_size(std::shared_ptr<const DpcppExecutor> exec,
-                            // IndexType* block_size)
-                            size_type* block_size)
+                            IndexType* block_size)
 {
     *block_size = 32;
 }
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 
 
 void get_default_compression(std::shared_ptr<const DpcppExecutor> exec,
