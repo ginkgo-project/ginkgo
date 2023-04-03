@@ -22,11 +22,12 @@ enum class sharing_mode { set, add };
  *
  * Alternatively, this could be a SOA.
  */
+template <typename LocalIndexType>
 struct shared_idx {
     // index within this rank
-    int local_idx;
+    LocalIndexType local_idx;
     // the index within the local indices of the remote_rank
-    int remote_idx;
+    LocalIndexType remote_idx;
     // rank that shares the local DOF
     int remote_rank;
 };
@@ -47,7 +48,8 @@ struct sharing_info {
     /**
      * Extracts communication pattern from a list of shared DOFs.
      */
-    sharing_info(mpi::communicator comm, const array<shared_idx>& shared_idxs,
+    sharing_info(mpi::communicator comm,
+                 const array<shared_idx<LocalIndexType>>& shared_idxs,
                  sharing_mode mode);
 
     /**
