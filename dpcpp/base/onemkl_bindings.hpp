@@ -125,6 +125,7 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 #undef GKO_BIND_DOT
 
 
+using oneapi::mkl::lapack::exception;
 using oneapi::mkl::lapack::getrf_batch_scratchpad_size;
 using oneapi::mkl::lapack::getrs_batch_scratchpad_size;
 using oneapi::mkl::transpose::nontrans;

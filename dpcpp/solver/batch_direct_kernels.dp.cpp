@@ -50,35 +50,29 @@ namespace batch_direct {
 #include "dpcpp/solver/batch_direct_kernels.hpp.inc"
 
 
-// #ifndef NDEBUG
-/*
-namespace {
-
-void check_batch(std::shared_ptr<const DpcppExecutor> exec, const int nbatch,
-                 const int* const info, const bool factorization)
+void check_exception(onemkl::exception const& e,
+                     const std::int64_t scratchpad_size)
 {
-    auto host_exec = exec->get_master();
-    int* const h_info = host_exec->alloc<int>(nbatch);
-    host_exec->copy_from(exec.get(), nbatch, info, h_info);
-    for (int i = 0; i < nbatch; i++) {
-        if (info[i] < 0 && factorization) {
-            std::cerr << "Cublas batch factorization was given an invalid "
-                      << "argument at the " << -1 * info[i] << "th position.\n";
-        } else if (info[i] < 0 && !factorization) {
-            std::cerr << "Cublas batch triangular solve was given an invalid "
-                      << "argument at the " << -1 * info[i] << "th position.\n";
-        } else if (info[i] > 0 && factorization) {
-            std::cerr << "Cublas batch factorization: The " << info[i]
-                      << "th matrix was singular.\n";
-        }
+    int info_code = e.info();
+    int detail_code = e.detail();
+    if (info_code < 0)
+        std::cout << "The " << info_code
+                  << "-th parameter had an illegal value." << std::endl;
+    else {
+        if (info_code == scratchpad_size && detail_code != 0)
+            std::cout << "The passed scratchpad size , " << scratchpad_size
+                      << ", is insufficient. The size should be at least "
+                      << detail_code << "." << std::endl;
+        else if (info_code != 0 && detail_code == 0)
+            std::cout << "There were some errors for some of the problems in "
+                         "the supplied batch. "
+                      << info_code << " calculations are failed in each batch."
+                      << std::endl;
+        else
+            std::cout << "Some U_i are exactly singular!" << std::endl;
     }
-    host_exec->free(h_info);
 }
 
-}  // namespace
-
-#endif
-*/
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
@@ -90,67 +84,59 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
     const int nbatch = static_cast<int>(num_batches);
     const int nrows = a_t->get_size().at()[0];
     const int ncols = a_t->get_size().at()[1];
-    const int a_stride = a_t->get_stride().at();
-    const int pivot_stride = nrows;  // TODO
-    const int lda = static_cast<int>(a_stride);
-    const int b_stride = b_t->get_stride().at();
-    const int nrhs = static_cast<int>(b_t->get_size().at()[0]);
-    const int ldb = static_cast<int>(b_stride);
+
+    const int nrhs = b_t->get_size().at()[1];
+    // For getrf_batch and getrs_batch
+    const int a_stride = nrows * ncols;
+    const int lda = nrows;
+    const int b_stride = nrows * nrhs;
+    const int ldb = nrows;
 
     std::int64_t* pivot_array = exec->alloc<std::int64_t>(nbatch * nrows);
+    const int pivot_stride = nrows;
     auto a_t_values = a_t->get_values();
     auto b_t_values = b_t->get_values();
 
     auto queue = exec->get_queue();
-    auto group_size =
-        queue->get_device().get_info<sycl::info::device::max_work_group_size>();
 
-    const dim3 block(group_size);  // TODO: make the kernel launch withing
-                                   // enforcing group_size
-    const dim3 grid(nbatch);
-
+    std::int64_t scratchpad_size;
     try {
-        std::int64_t scratchpad_size =
-            onemkl::getrf_batch_scratchpad_size<ValueType>(
-                *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
+        scratchpad_size = onemkl::getrf_batch_scratchpad_size<ValueType>(
+            *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
+
         ValueType* const getrf_scratchpad =
             exec->alloc<ValueType>(scratchpad_size);
         onemkl::getrf_batch(*queue, nrows, ncols, a_t_values, lda, a_stride,
                             pivot_array, pivot_stride, nbatch, getrf_scratchpad,
-                            scratchpad_size);
-        queue->wait();
+                            scratchpad_size)
+            .wait();
         exec->free(getrf_scratchpad);
-    } catch (sycl::exception const& e) {
-        std::cout
-            << "\t\tCaught synchronous SYCL exception during Batch-GETRF:\n"
-            << e.what() << std::endl;
-    }  // TODO: implement  "equivalent" check_batch, i.e. check the info code
-       // returned from the onemkl batch-getrf
-
-       // #ifndef NDEBUG
-    //     check_batch(exec, nbatch, info_array, true);
-    // #endif
+    } catch (onemkl::exception const& e) {
+        std::cout << "Unexpected exception caught during synchronous call to "
+                     "LAPACK API - Getrf_batch:\nDetail:"
+                  << std::endl;
+        check_exception(e, scratchpad_size);
+    }
 
     try {
-        std::int64_t getrs_scratchpad_size =
-            onemkl::getrs_batch_scratchpad_size<ValueType>(
-                *queue, onemkl::nontrans, nrows, nrhs, lda, a_stride,
-                pivot_stride, ldb, b_stride, nbatch);
-        queue->wait();
+        scratchpad_size = onemkl::getrs_batch_scratchpad_size<ValueType>(
+            *queue, onemkl::nontrans, nrows, nrhs, lda, a_stride, pivot_stride,
+            ldb, b_stride, nbatch);
 
         ValueType* const getrs_scratchpad =
-            exec->alloc<ValueType>(getrs_scratchpad_size);
+            exec->alloc<ValueType>(scratchpad_size);
         onemkl::getrs_batch(*queue, onemkl::nontrans, nrows, nrhs, a_t_values,
                             lda, a_stride, pivot_array, pivot_stride,
                             b_t_values, ldb, b_stride, nbatch, getrs_scratchpad,
-                            getrs_scratchpad_size);
+                            scratchpad_size)
+            .wait();
         exec->free(getrs_scratchpad);
-    } catch (sycl::exception const& e) {
-        std::cout
-            << "\t\tCaught synchronous SYCL exception during Batch-GETRF:\n"
-            << e.what() << std::endl;
+    } catch (onemkl::exception const& e) {
+        std::cout << "Unexpected exception caught during synchronous call to "
+                     "LAPACK API - Getrs_batch:\nDetail:"
+                  << std::endl;
+        check_exception(e, scratchpad_size);
     }
-
     exec->free(pivot_array);
 }
 
