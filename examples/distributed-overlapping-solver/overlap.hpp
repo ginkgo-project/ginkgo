@@ -145,8 +145,7 @@ struct comm_info_t {
     comm_info_t(experimental::mpi::communicator comm,
                 const array<shared_idx_t>& shared_idxs, comm_transform op)
         : all_to_all{comm, shared_idxs},
-          multiplicity{op == comm_transform::set ? multiplicity_t{}
-                                                 : multiplicity_t{shared_idxs}},
+          multiplicity{multiplicity_t{shared_idxs, op}},
           op(op)
     {}
 
@@ -264,7 +263,8 @@ struct comm_info_t {
 
         multiplicity_t() = default;
 
-        multiplicity_t(const array<shared_idx_t>& shared_idxs)
+        multiplicity_t(const array<shared_idx_t>& shared_idxs,
+                       comm_transform mode)
             : idxs(shared_idxs.get_executor()),
               weights(shared_idxs.get_executor())
         {
@@ -282,7 +282,9 @@ struct comm_info_t {
             }
             idxs.resize_and_reset(weight_map.size());
             weights.resize_and_reset(weight_map.size());
-            {
+            if (mode == comm_transform::set) {
+                weights.fill(0.0);
+            } else {
                 int i = 0;
                 for (const auto& elem : weight_map) {
                     const auto& idx = elem.first;
