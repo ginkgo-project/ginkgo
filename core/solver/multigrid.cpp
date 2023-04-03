@@ -365,8 +365,11 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     if (level != 0) {
         // allocate the previous level
         g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        // e always use double
+        e_list.emplace_back(
+            matrix::Dense<double>::create(exec, dim<2>{current_nrows, nrhs}));
+        next_one_list.emplace_back(
+            initialize<matrix::Dense<double>>({one<double>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
@@ -570,8 +573,9 @@ void Multigrid::generate()
                         parameters_.smoother_relax);
                 }
                 if (!parameters_.post_uses_pre) {
-                    handle_list<value_type>(
-                        index, matrix, parameters_.post_smoother,
+                    // always using double in the post_smoother
+                    handle_list<double>(
+                        index, working_matrix, parameters_.post_smoother,
                         post_smoother_list_, parameters_.smoother_iters,
                         parameters_.smoother_relax);
                 }

@@ -261,6 +261,15 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
+    auto post_smoother_gen = gko::share(
+        ir::build()
+            .with_solver(
+                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
+                    exec))
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec));
     auto smoother_gen2 = gko::share(
         ir2::build()
             .with_solver(
@@ -353,7 +362,9 @@ int main(int argc, char* argv[])
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
                 .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
-                .with_post_uses_pre(true)
+                .with_post_uses_pre(false)
+                .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                                    post_smoother_gen)
                 .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
@@ -440,7 +451,9 @@ int main(int argc, char* argv[])
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
                 .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
-                .with_post_uses_pre(true)
+                .with_post_uses_pre(false)
+                .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                                    post_smoother_gen)
                 .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
                 .with_level_selector([=](const gko::size_type level,
                                          const gko::LinOp*) -> gko::size_type {
