@@ -51,9 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 class BatchGmres : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
@@ -295,6 +292,3 @@ TEST_F(BatchGmres, CanSolveCsrWithoutScaling)
     gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
                                        batchgmres_factory.get(), 10);
 }
-
-
-#endif
