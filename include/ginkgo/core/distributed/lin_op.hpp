@@ -109,6 +109,30 @@ protected:
 };
 
 
+class ConsistentOp : public EnableLinOp<ConsistentOp> {
+protected:
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        // need to run both statements through precision dispatch
+        local_op->apply_impl(as<LocalVector>(b)->get_dense(),
+                             as<LocalVector>(x)->get_dense());
+        as<LocalVector>(x)->make_consistent();
+    }
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {
+        // need to run both statements through precision dispatch
+        local_op->apply(alpha, as<LocalVector>(b)->get_dense(), beta,
+                        as<LocalVector>(x)->get_dense());
+        as<LocalVector>(x)->make_consistent();
+    }
+
+private:
+    std::unique_ptr<LinOp> local_op;
+};
+
+
 }  // namespace experimental
 }  // namespace gko
 
