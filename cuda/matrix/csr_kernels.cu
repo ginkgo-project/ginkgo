@@ -55,6 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "accessor/cuda_helper.hpp"
+#include "accessor/reduced_row_major.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -118,61 +121,84 @@ namespace host_kernel {
 namespace {
 
 
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename MatrixValueType,
+          typename InputValueType, typename OutputValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
                      std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Dense<ValueType>* b,
-                     matrix::Dense<ValueType>* c,
-                     const matrix::Dense<ValueType>* alpha = nullptr,
-                     const matrix::Dense<ValueType>* beta = nullptr)
+                     const matrix::Csr<MatrixValueType, IndexType>* a,
+                     const matrix::Dense<InputValueType>* b,
+                     matrix::Dense<OutputValueType>* c,
+                     const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                     const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using matrix_accessor =
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+    using input_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+    using output_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
     const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
     const auto grid = grid_num;
     const auto block = spmv_block_size;
+    // TODO: workspace?
     array<IndexType> row_out(exec, grid_num);
-    array<ValueType> val_out(exec, grid_num);
+    // TODO: should we store the value in arithmetic_type or output_type?
+    array<arithmetic_type> val_out(exec, grid_num);
+
+    const auto a_vals = gko::acc::range<matrix_accessor>(
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(a->get_num_stored_elements())}},
+        a->get_const_values());
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
+        const auto b_vals = gko::acc::range<input_accessor>(
+            std::array<acc::size_type, 2>{
+                {static_cast<acc::size_type>(b->get_size()[0]),
+                 static_cast<acc::size_type>(1)}},
+            b->get_const_values() + column_id,
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(b->get_stride())}});
+        auto c_vals = gko::acc::range<output_accessor>(
+            std::array<acc::size_type, 2>{
+                {static_cast<acc::size_type>(c->get_size()[0]),
+                 static_cast<acc::size_type>(1)}},
+            c->get_values() + column_id,
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(c->get_stride())}});
         if (alpha == nullptr && beta == nullptr) {
-            const auto b_vals = b->get_const_values() + column_id;
-            auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(a->get_const_values()),
-                        a->get_const_col_idxs(),
+                        acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        as_device_type(b_vals), b->get_stride(),
-                        as_device_type(c_vals), c->get_stride(),
+                        acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
             kernel::
                 abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
                     grid_num, as_device_type(val_out.get_data()),
-                    as_device_type(row_out.get_data()), as_device_type(c_vals),
-                    c->get_stride());
+                    as_device_type(row_out.get_data()),
+                    acc::as_cuda_range(c_vals));
 
         } else if (alpha != nullptr && beta != nullptr) {
-            const auto b_vals = b->get_const_values() + column_id;
-            auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
                         as_device_type(alpha->get_const_values()),
-                        as_device_type(a->get_const_values()),
-                        a->get_const_col_idxs(),
+                        acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        as_device_type(b_vals), b->get_stride(),
+                        acc::as_cuda_range(b_vals),
                         as_device_type(beta->get_const_values()),
-                        as_device_type(c_vals), c->get_stride(),
+                        acc::as_cuda_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
@@ -181,7 +207,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
                     as_device_type(alpha->get_const_values()),
-                    as_device_type(c_vals), c->get_stride());
+                    acc::as_cuda_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -230,15 +256,25 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c,
-                    const matrix::Dense<ValueType>* alpha = nullptr,
-                    const matrix::Dense<ValueType>* beta = nullptr)
+                    const matrix::Csr<MatrixValueType, IndexType>* a,
+                    const matrix::Dense<InputValueType>* b,
+                    matrix::Dense<OutputValueType>* c,
+                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                    const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using matrix_accessor =
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+    using input_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+    using output_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
+
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() *
                         classical_oversubscription;
@@ -248,27 +284,43 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     const dim3 grid(gridx, b->get_size()[1]);
     const auto block = spmv_block_size;
 
+    const auto a_vals = gko::acc::range<matrix_accessor>(
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(a->get_num_stored_elements())}},
+        a->get_const_values());
+    const auto b_vals = gko::acc::range<input_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
+    auto c_vals = gko::acc::range<output_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(c->get_size()[0]),
+             static_cast<acc::size_type>(c->get_size()[1])}},
+        c->get_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(c->get_stride())}});
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], as_device_type(a->get_const_values()),
+                    a->get_size()[0], acc::as_cuda_range(a_vals),
                     a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    as_device_type(b->get_const_values()), b->get_stride(),
-                    as_device_type(c->get_values()), c->get_stride());
+                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
                     a->get_size()[0], as_device_type(alpha->get_const_values()),
-                    as_device_type(a->get_const_values()),
-                    a->get_const_col_idxs(),
+                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    as_device_type(b->get_const_values()), b->get_stride(),
+                    acc::as_cuda_range(b_vals),
                     as_device_type(beta->get_const_values()),
-                    as_device_type(c->get_values()), c->get_stride());
+                    acc::as_cuda_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -278,47 +330,71 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* a,
-                       const matrix::Dense<ValueType>* b,
-                       matrix::Dense<ValueType>* c,
-                       const matrix::Dense<ValueType>* alpha = nullptr,
-                       const matrix::Dense<ValueType>* beta = nullptr)
+                       const matrix::Csr<MatrixValueType, IndexType>* a,
+                       const matrix::Dense<InputValueType>* b,
+                       matrix::Dense<OutputValueType>* c,
+                       const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                       const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using matrix_accessor =
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+    using input_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+    using output_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
+
     if (beta) {
         dense::scale(exec, beta, c);
     } else {
-        dense::fill(exec, c, zero<ValueType>());
+        dense::fill(exec, c, zero<OutputValueType>());
     }
     const IndexType nwarps = a->get_num_srow_elements();
     if (nwarps > 0) {
         const dim3 csr_block(config::warp_size, warps_in_block, 1);
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
+        const auto a_vals = gko::acc::range<matrix_accessor>(
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(a->get_num_stored_elements())}},
+            a->get_const_values());
+        const auto b_vals = gko::acc::range<input_accessor>(
+            std::array<acc::size_type, 2>{
+                {static_cast<acc::size_type>(b->get_size()[0]),
+                 static_cast<acc::size_type>(b->get_size()[1])}},
+            b->get_const_values(),
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(b->get_stride())}});
+        auto c_vals = gko::acc::range<output_accessor>(
+            std::array<acc::size_type, 2>{
+                {static_cast<acc::size_type>(c->get_size()[0]),
+                 static_cast<acc::size_type>(c->get_size()[1])}},
+            c->get_values(),
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(c->get_stride())}});
         if (alpha) {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_device_type(alpha->get_const_values()),
-                    as_device_type(a->get_const_values()),
-                    a->get_const_col_idxs(),
+                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    as_device_type(b->get_const_values()), b->get_stride(),
-                    as_device_type(c->get_values()), c->get_stride());
+                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
-                    as_device_type(a->get_const_values()),
-                    a->get_const_col_idxs(),
+                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    as_device_type(b->get_const_values()), b->get_stride(),
-                    as_device_type(c->get_values()), c->get_stride());
+                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
             }
         }
     }
@@ -414,6 +490,22 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType,
+          typename = std::enable_if_t<
+              !std::is_same<MatrixValueType, InputValueType>::value ||
+              !std::is_same<MatrixValueType, OutputValueType>::value>>
+bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+                        const matrix::Csr<MatrixValueType, IndexType>* a,
+                        const matrix::Dense<InputValueType>* b,
+                        matrix::Dense<OutputValueType>* c,
+                        const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                        const matrix::Dense<OutputValueType>* beta = nullptr)
+{
+    // TODO: support sparselib mixed
+    return false;
+}
+
 template <typename ValueType, typename IndexType>
 bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* a,
@@ -439,18 +531,23 @@ bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 }  // namespace host_kernel
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
         host_kernel::load_balance_spmv(exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
+        using arithmetic_type =
+            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
-            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+            host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
+                exec);
         host_kernel::select_merge_path_spmv(
             compiled_kernels(),
             [&items_per_thread](int compiled_info) {
@@ -465,7 +562,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
             if (auto strategy =
                     std::dynamic_pointer_cast<const typename Tcsr::classical>(
                         a->get_strategy())) {
@@ -490,24 +587,29 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Csr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
         host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
+        using arithmetic_type =
+            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
-            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+            host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
+                exec);
         host_kernel::select_merge_path_spmv(
             compiled_kernels(),
             [&items_per_thread](int compiled_info) {
@@ -524,7 +626,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
             if (auto strategy =
                     std::dynamic_pointer_cast<const typename Tcsr::classical>(
                         a->get_strategy())) {
@@ -550,7 +652,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
