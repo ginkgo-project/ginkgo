@@ -340,6 +340,22 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 
 
+template <typename IndexType>
+void gather_index(std::shared_ptr<const DefaultExecutor> exec,
+                  size_type num_res, const IndexType* orig,
+                  const IndexType* gather_map, IndexType* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto tidx, auto orig, auto gather_map, auto result) {
+            result[tidx] = orig[gather_map[tidx]];
+        },
+        num_res, orig, gather_map, result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
+
+
 }  // namespace pgm
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

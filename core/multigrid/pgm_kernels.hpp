@@ -113,6 +113,11 @@ namespace pgm {
                             const IndexType* col_idxs, const ValueType* vals, \
                             matrix::Coo<ValueType, IndexType>* coarse_coo)
 
+#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
+    void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
+                      size_type num_res, const IndexType* orig,    \
+                      const IndexType* gather_map, IndexType* result)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename IndexType>                                  \
@@ -136,7 +141,9 @@ namespace pgm {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_PGM_SORT_ROW_MAJOR(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)
+    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
 
 
 }  // namespace pgm

@@ -348,6 +348,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 
 
+template <typename IndexType>
+void gather_index(std::shared_ptr<const DefaultExecutor> exec,
+                  size_type num_res, const IndexType* orig,
+                  const IndexType* gather_map, IndexType* result)
+{
+    for (size_type i = 0; i < num_res; ++i) {
+        result[i] = orig[gather_map[i]];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
+
+
 }  // namespace pgm
 }  // namespace reference
 }  // namespace kernels

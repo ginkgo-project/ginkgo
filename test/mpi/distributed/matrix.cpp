@@ -186,6 +186,117 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 }
 
 
+TYPED_TEST(MatrixCreation, BuildOnlyLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using Partition = typename TestFixture::Partition;
+    using local_index_type = typename TestFixture::local_index_type;
+    using matrix_data = gko::matrix_data<value_type, local_index_type>;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    I<I<value_type>> res_local[] = {
+        {{1, 2}, {0, 3}}, {{0, 1}, {-1, 0}}, {{1, 0}, {0, 1}}};
+    auto rank = this->comm.rank();
+    gko::dim<2> size(2, 2);
+    std::array<matrix_data, 3> dist_input{
+        {{size, {{0, 0, 1}, {0, 1, 2}, {1, 1, 3}}},
+         {size, {{0, 1, 1}, {1, 0, -1}}},
+         {size, {{0, 0, 1}, {1, 1, 1}}}}};
+
+    auto local = gko::share(csr::create(this->exec));
+    local->read(dist_input[rank]);
+    auto mat =
+        dist_mtx_type::create(this->exec, this->comm, gko::dim<2>{6, 6}, local);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+                        0);
+
+    auto x = dist_vec_type::create(this->ref, this->comm);
+    auto y = dist_vec_type::create(this->ref, this->comm);
+    auto vec_md = gko::matrix_data<value_type, global_index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}, {6}}};
+    auto part = Partition::build_from_mapping(
+        this->exec,
+        gko::array<gko::experimental::distributed::comm_index_type>(
+            this->exec,
+            I<gko::experimental::distributed::comm_index_type>{1, 1, 2, 0, 0,
+                                                               2}),
+        3);
+    I<I<value_type>> result[3] = {{{14}, {15}}, {{2}, {-1}}, {{3}, {6}}};
+    x->read_distributed(vec_md, part);
+    y->read_distributed(vec_md, part);
+
+    mat->apply(x, y);
+
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
+}
+
+
+TYPED_TEST(MatrixCreation, BuildFromExistedData)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using Partition = typename TestFixture::Partition;
+    using local_index_type = typename TestFixture::local_index_type;
+    using matrix_data = gko::matrix_data<value_type, local_index_type>;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using comm_index_type = gko::experimental::distributed::comm_index_type;
+    auto rank = this->comm.rank();
+    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    std::array<gko::dim<2>, 3> size_local{{{2, 2}, {2, 2}, {1, 1}}};
+    std::array<matrix_data, 3> dist_input_local{{{size_local[0], {{0, 0, 2}}},
+                                                 {size_local[1], {{0, 1, 5}}},
+                                                 {size_local[2], {{}}}}};
+    I<I<value_type>> res_non_local[] = {
+        {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
+    std::array<gko::dim<2>, 3> size_non_local{{{2, 2}, {2, 3}, {1, 2}}};
+    std::array<matrix_data, 3> dist_input_non_local{
+        {{size_non_local[0], {{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
+         {size_non_local[1], {{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
+         {size_non_local[2], {{0, 0, 10}, {0, 1, 9}}}}};
+    std::array<std::vector<comm_index_type>, 3> recv_sizes{
+        {{0, 1, 1}, {2, 0, 1}, {1, 1, 0}}};
+    std::array<std::vector<comm_index_type>, 3> recv_offsets{
+        {{0, 0, 1, 2}, {0, 2, 2, 3}, {0, 1, 2, 2}}};
+    std::array<gko::array<local_index_type>, 3> recv_gather_index{
+        {{this->exec, {1, 0}}, {this->exec, {0, 1, 0}}, {this->exec, {1, 0}}}};
+
+    auto local = gko::share(csr::create(this->exec));
+    local->read(dist_input_local[rank]);
+    auto non_local = gko::share(csr::create(this->exec));
+    non_local->read(dist_input_non_local[rank]);
+    auto mat = dist_mtx_type::create(
+        this->exec, this->comm, gko::dim<2>{5, 5}, local, non_local,
+        recv_sizes[rank], recv_offsets[rank], recv_gather_index[rank]);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+                        0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_non_local_matrix()),
+                        res_non_local[rank], 0);
+
+    auto vec_md = gko::matrix_data<value_type, global_index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
+    auto row_part = Partition::build_from_contiguous(
+        this->exec, gko::array<global_index_type>(
+                        this->exec, I<global_index_type>{0, 2, 4, 5}));
+    auto col_part = Partition::build_from_mapping(
+        this->exec,
+        gko::array<comm_index_type>(this->exec,
+                                    I<comm_index_type>{1, 1, 2, 0, 0}),
+        3);
+    auto x = dist_vec_type::create(this->ref, this->comm);
+    auto y = dist_vec_type::create(this->ref, this->comm);
+    x->read_distributed(vec_md, col_part);
+    y->read_distributed(vec_md, row_part);
+
+    mat->apply(x, y);
+
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
+}
+
 #endif
 
 
