@@ -91,16 +91,6 @@ public:
         const auto nrhs = b.num_rhs;
 
         const int shared_gap = ((nrows - 1) / 8 + 1) * 8;
-        //        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
-        /*
-                const int shmem_per_blk =
-                    get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                                  BatchMatrixType,
-           value_type>(exec_, 0); const int block_size =
-                    get_num_threads_per_block<StopType, PrecType, LogType,
-                                              BatchMatrixType,
-           value_type>(exec_, a.num_rows);
-                                                                           */
         auto device = exec_->get_queue()->get_device();
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();

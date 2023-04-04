@@ -50,9 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if (!defined GKO_COMPILING_HIP)
-
-
 namespace {
 
 
@@ -272,6 +269,3 @@ TEST_F(BatchIdr, SolvesSystemWithJacobiPreconditioner)
 
 
 }  // namespace
-
-
-#endif

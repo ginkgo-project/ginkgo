@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
-
+#include "oneapi/mkl/rng/device.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -124,20 +124,15 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 
 #undef GKO_BIND_DOT
 
-
+// LAPACK binds
 using oneapi::mkl::lapack::exception;
+using oneapi::mkl::lapack::getrf_batch;
 using oneapi::mkl::lapack::getrf_batch_scratchpad_size;
+using oneapi::mkl::lapack::getrs_batch;
 using oneapi::mkl::lapack::getrs_batch_scratchpad_size;
 using oneapi::mkl::transpose::nontrans;
 
-// TODO: is there any reasons that we need these macro bindings insteads of
-// using "using" keyword to put those oneMKL rountine into our dpcpp::onemkl::
-// namespace and use it directly? * Check the two lines below and
-// batch_direct_kernels.dp.cpp
-using oneapi::mkl::lapack::getrf_batch;
-using oneapi::mkl::lapack::getrs_batch;
-
-
+/*
 #define GKO_BIND_ONEMKL_BATCH_GETRF(T, FuncName)                               \
     inline void batch_getrf(sycl::queue& queue, std::int64_t m,                \
                             std::int64_t n, T* a, std::int64_t lda,            \
@@ -190,7 +185,12 @@ template <typename ValueType>
 GKO_BIND_ONEMKL_BATCH_GETRS(ValueType, detail::not_implemented);
 
 #undef GKO_BIND_ONEMKL_BATCH_GETRS
+*/
 
+// RNG binds
+using oneapi::mkl::rng::device::generate;
+using oneapi::mkl::rng::device::philox4x32x10;
+using oneapi::mkl::rng::device::uniform;
 
 }  // namespace onemkl
 }  // namespace dpcpp
