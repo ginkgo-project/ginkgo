@@ -113,8 +113,8 @@ public:
         size_type slm_size =
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
-        size_type shmem_per_blk = slm_size -  // 3 * sizeof(ValueType) -
-                                  3 * sizeof(real_type);  // for shared-norms
+        size_type shmem_per_blk =
+            slm_size - 3 * sizeof(real_type);  // for shared-norms
 
         if (shmem_per_blk < 0) shmem_per_blk = 0;
         assert(block_size >= 2 * config::warp_size);
@@ -132,12 +132,13 @@ public:
                                                               value_type>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs, restart);
         const size_t shared_size =
-            sconf.n_shared * shared_gap * sizeof(value_type) +
-            (sconf.rot_shared ? rot_size : 0) +
-            (sconf.prec_shared ? prec_size : 0) +
-            (sconf.subspace_shared ? subspace_size : 0) +
-            (sconf.hess_shared ? hess_size : 0);
-        // TODO: assert shared_size
+            sconf.n_shared * shared_gap +
+            ((sconf.rot_shared ? rot_size : 0) +
+             (sconf.prec_shared ? prec_size : 0) +
+             (sconf.subspace_shared ? subspace_size : 0) +
+             (sconf.hess_shared ? hess_size : 0)) /
+                sizeof(value_type);
+        GKO_ASSERT(shared_size * sizeof(value_type) <= shmem_per_blk);
         auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
@@ -149,6 +150,10 @@ public:
         auto res_tol = opts_.residual_tol;
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
+            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_values(sycl::range<1>(shared_size), cgh);
+
             cgh.parallel_for(
                 sycl_nd_range(grid, block),
                 [=](sycl::nd_item<3> item_ct1)
@@ -163,19 +168,21 @@ public:
                         ValueType* const x_global_entry =
                             gko::batch::batch_entry_ptr(x_values, 1, nrows,
                                                         batch_id);
+                        ValueType* const slm_values_ptr =
+                            slm_values.get_pointer();
 
                         if (sconf.gmem_stride_bytes == 0) {
                             small_apply_kernel<StopType>(
                                 sconf, max_iters, res_tol, restart, logger,
                                 prec, a_global_entry, b_global_entry,
-                                x_global_entry, nrows, a.num_nnz, shared_size,
-                                item_ct1);
+                                x_global_entry, nrows, a.num_nnz,
+                                slm_values_ptr, item_ct1);
                         } else {
                             apply_kernel<StopType>(
                                 sconf, max_iters, res_tol, restart, logger,
                                 prec, a_global_entry, b_global_entry,
-                                x_global_entry, nrows, a.num_nnz, shared_size,
-                                item_ct1, workspace_data);
+                                x_global_entry, nrows, a.num_nnz,
+                                slm_values_ptr, item_ct1, workspace_data);
                         }
                     });
         });

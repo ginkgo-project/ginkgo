@@ -301,7 +301,7 @@ __dpct_inline__ void apply_kernel(
     PrecType prec_shared, const BatchMatrixType a_global_entry,
     const ValueType* const __restrict__ b_global_entry,
     ValueType* const __restrict__ x_global_entry, const int nrows,
-    const int nnz, int shared_size, sycl::nd_item<3> item_ct1,
+    const int nnz, ValueType* local_mem_sh, sycl::nd_item<3> item_ct1,
     ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -312,10 +312,6 @@ __dpct_inline__ void apply_kernel(
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
     const auto ibatch = item_ct1.get_group_linear_id();
-
-    using tile_t = ValueType[shared_size];
-    tile_t& local_mem_sh =
-        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(group);
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
@@ -554,7 +550,7 @@ __dpct_inline__ void small_apply_kernel(
     PrecType prec_shared, const BatchMatrixType a_global_entry,
     const ValueType* const __restrict__ b_global_entry,
     ValueType* const __restrict__ x_global_entry, const int nrows,
-    const int nnz, int shared_size, sycl::nd_item<3> item_ct1,
+    const int nnz, ValueType* local_mem_sh, sycl::nd_item<3> item_ct1,
     ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -565,10 +561,6 @@ __dpct_inline__ void small_apply_kernel(
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
     const auto ibatch = item_ct1.get_group_linear_id();
-
-    using tile_t = ValueType[shared_size];
-    tile_t& local_mem_sh =
-        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(group);
 
     ValueType* const prec_work_sh = local_mem_sh;
 
