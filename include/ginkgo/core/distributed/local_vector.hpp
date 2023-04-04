@@ -27,7 +27,7 @@ class LocalVector : public EnableDistributedLinOp<LocalVector<ValueType>>,
      *
      * After this call all DOFs have the values of the corresponding global
      * DOFs. Considering a distributed operator that can be written as A = sum_i
-     * R_i^T D_i A_i R_i, then the corresponding global vectors are u = sum_i
+     * R_i^T A_i R_i, then the corresponding global vectors are u = sum_i
      * R_i^T D_i u_i. The local vector can then be recovered by u_j = R_j u.
      * This operation combines these two steps into one as u_j = R_j sum_i R_i^T
      * D_i u_i, which eliminates the need for a global vector.

@@ -14,7 +14,16 @@ namespace distributed {
  * But that requires being able to pass this through to kernels, which we don't
  * support atm.
  */
-enum class sharing_mode { set, add };
+enum class sharing_mode {
+    // Replace local DOFs with the incoming values from remote processors. This
+    // is a partition of unity.
+    set,
+    // Add the incoming values from remote processors to the local DOFs. This is
+    // not a partition of unity.
+    add,
+    // Perform a partition of unity with the provided weights.
+    weighted
+};
 
 
 /**
@@ -40,6 +49,13 @@ struct shared_idx {
  * - weights for shared DOFs
  * - transformation to combine received DOFs with existing DOFs
  *
+ * The communicate step will perform the operation
+ * ```
+ * u_i = D_i R_i sum_j R_j^T v_j
+ * ```
+ * which combines the gather and scatter step for a gobal vector defined by a
+ * partition of unity `u = sum_i R_i^T D_i R_i u`.
+ *
  * It can be constructed from purely local information, i.e. which local DOF
  * corresponds to which DOF on other processes (in their local numbering).
  */
@@ -50,7 +66,21 @@ struct sharing_info {
      */
     sharing_info(mpi::communicator comm,
                  const array<shared_idx<LocalIndexType>>& shared_idxs,
-                 sharing_mode mode);
+                 std::integral_constant<sharing_mode, sharing_mode::add> tag);
+    sharing_info(mpi::communicator comm,
+                 const array<shared_idx<LocalIndexType>>& shared_idxs,
+                 std::integral_constant<sharing_mode, sharing_mode::set> tag);
+
+    /**
+     * Extracts communication pattern from a list of shared DOFs
+     */
+    sharing_info(mpi::communicator comm,
+                 const array<shared_idx<LocalIndexType>>& shared_idxs,
+                 const array<ValueType>& weights);
+
+    static std::unique_ptr<sharing_info> create_from_send_info(
+        mpi::communicator comm, const std::vector<int> send_sizes,
+        const array<LocalIndexType> send_idxs);
 
     /**
      * Does the all-to-all communication on the given input and output vectors.
@@ -67,7 +97,7 @@ struct sharing_info {
      * Returns the weight for a receiving DOF. If idx is not received then
      * it returns 1.0.
      */
-    ValueType get_weight(LocalIndexType idx) const;
+    ValueType get_multiplicity(LocalIndexType idx) const;
 
     /**
      * contains all necessary data for an all-to-all_v communication,
@@ -75,7 +105,7 @@ struct sharing_info {
      */
     struct all_to_all_t {
         all_to_all_t(mpi::communicator comm,
-                     const array<shared_idx>& shared_idxs);
+                     const array<shared_idx<LocalIndexType>>& shared_idxs);
 
         // default variable all-to-all data
         std::vector<int> send_sizes;
@@ -112,7 +142,8 @@ struct sharing_info {
         /**
          * strictly only needs the recv_idxs
          */
-        multiplicity_t(const array<shared_idx>& shared_idxs, sharing_mode mode);
+        multiplicity_t(const array<shared_idx<LocalIndexType>>& shared_idxs,
+                       sharing_mode mode);
     };
     multiplicity_t multiplicity;
 
