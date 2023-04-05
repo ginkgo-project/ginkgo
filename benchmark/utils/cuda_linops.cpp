@@ -800,8 +800,7 @@ private:
 
 #if GKO_BENCHMARK_USE_HALF_PRECISION
 STUB_CREATE_SPARSELIB_LINOP(cusparse_csrex);
-IMPL_CREATE_SPARSELIB_LINOP(cusparse_csr,
-                            detail::CusparseGenericCsr<etype, itype>);
+STUB_CREATE_SPARSELIB_LINOP(cusparse_csr);
 STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmp);
 STUB_CREATE_SPARSELIB_LINOP(cusparse_csrmm);
 STUB_CREATE_SPARSELIB_LINOP(cusparse_gcsr);

@@ -73,7 +73,7 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted_ref;
 
-    std::normal_distribution<gko::remove_complex<T>> distb;
+    std::normal_distribution<> distb;
     std::default_random_engine engine;
 
     value_type get_random_value()
