@@ -159,14 +159,7 @@ void handle_list(
             smoother.emplace_back(nullptr);
         } else {
             auto solver = item->generate(matrix);
-            if (solver->apply_uses_initial_guess() == true) {
-                smoother.emplace_back(give(solver));
-            } else {
-                auto ir = build_smoother<ValueType>(
-                    give(solver), iteration,
-                    casting<ValueType>(relaxation_factor));
-                smoother.emplace_back(give(ir->generate(matrix)));
-            }
+            smoother.emplace_back(give(solver));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
