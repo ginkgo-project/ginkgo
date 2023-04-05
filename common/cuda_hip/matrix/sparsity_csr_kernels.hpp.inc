@@ -121,19 +121,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
-    bool* is_sorted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
+void fallback_sort(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::SparsityCsr<ValueType, IndexType>* to_sort)
+{
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto col_idxs = to_sort->get_col_idxs();
+    const auto nnz = to_sort->get_num_nonzeros();
+    const auto num_rows = to_sort->get_size()[0];
+    array<IndexType> row_idx_array(exec, nnz);
+    const auto row_idxs = row_idx_array.get_data();
+    components::convert_ptrs_to_idxs(exec, row_ptrs, num_rows, row_idxs);
+    // two sorts by integer keys hopefully enable Thrust to use cub's RadixSort
+    thrust::sort_by_key(thrust_policy(exec), col_idxs, col_idxs + nnz,
+                        row_idxs);
+    thrust::stable_sort_by_key(thrust_policy(exec), row_idxs, row_idxs + nnz,
+                               col_idxs);
+}
