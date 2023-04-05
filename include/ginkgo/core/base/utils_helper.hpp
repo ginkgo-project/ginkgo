@@ -293,11 +293,12 @@ inline typename std::remove_reference<OwningPointer>::type&& give(
  * @note This is the overload for owning (smart) pointers, that behaves the
  *       same as calling .get() on the smart pointer.
  */
+// TODO FIXME
+//[[deprecated("no longer necessary, just pass the object without lend")]]
 template <typename Pointer>
-[[deprecated("no longer necessary, just pass the object without lend")]] inline
-    typename std::enable_if<detail::have_ownership_s<Pointer>::value,
-                            detail::pointee<Pointer>*>::type
-    lend(const Pointer& p)
+inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
+                               detail::pointee<Pointer>*>::type
+lend(const Pointer& p)
 {
     return p.get();
 }
@@ -313,10 +314,11 @@ template <typename Pointer>
  *       returns `p`.
  */
 template <typename Pointer>
-[[deprecated("no longer necessary, just pass the object without lend")]] inline
-    typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
-                            detail::pointee<Pointer>*>::type
-    lend(const Pointer& p)
+// TODO FIXME
+//[[deprecated("no longer necessary, just pass the object without lend")]]
+inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
+                               detail::pointee<Pointer>*>::type
+lend(const Pointer& p)
 {
     return p;
 }
