@@ -42,6 +42,16 @@ struct shared_idx {
 };
 
 
+enum class partition_mode {
+    none,
+    // partition recv DOFs, i.e. shared DOFs
+    recv,
+    // partition send DOFs, i.e. owned but shared with other processors
+    send,
+    // partition by first send, then recv DOFs
+    both
+};
+
 /**
  * Holds the necessary information for a decomposition of DOFs without relying
  * on global data. It consists of
@@ -63,24 +73,31 @@ template <typename ValueType, typename LocalIndexType>
 struct sharing_info {
     /**
      * Extracts communication pattern from a list of shared DOFs.
+     *
+     * If `mode == weighted`, then the weights will be deduced as 1/#Owner.
      */
     sharing_info(mpi::communicator comm,
                  const array<shared_idx<LocalIndexType>>& shared_idxs,
-                 std::integral_constant<sharing_mode, sharing_mode::add> tag);
-    sharing_info(mpi::communicator comm,
-                 const array<shared_idx<LocalIndexType>>& shared_idxs,
-                 std::integral_constant<sharing_mode, sharing_mode::set> tag);
+                 sharing_mode mode);
 
     /**
-     * Extracts communication pattern from a list of shared DOFs
+     * Extracts communication pattern from a list of shared DOFs and use `mode
+     * == weighted` with the specified weights.
      */
     sharing_info(mpi::communicator comm,
                  const array<shared_idx<LocalIndexType>>& shared_idxs,
                  const array<ValueType>& weights);
 
+    /**
+     * Inspired from deal.ii
+     */
     static std::unique_ptr<sharing_info> create_from_send_info(
         mpi::communicator comm, const std::vector<int> send_sizes,
-        const array<LocalIndexType> send_idxs);
+        const array<LocalIndexType> send_idxs, sharing_mode mode);
+
+    static std::unique_ptr<sharing_info> create_from_recv_info(
+        mpi::communicator comm, const std::vector<int> recv_sizes,
+        const array<LocalIndexType> recv_idxs, sharing_mode mode);
 
     /**
      * Does the all-to-all communication on the given input and output vectors.
@@ -88,14 +105,14 @@ struct sharing_info {
      * buffers accordingly. Could also be made into a two parameter function, by
      * using send=recv
      */
-    template <typename SendType, typename RecvType>
     void communicate(mpi::communicator comm,
-                     const matrix::Dense<SendType>* send,
-                     matrix::Dense<RecvType>* recv) const;
+                     const matrix::Dense<ValueType>* send,
+                     matrix::Dense<ValueType>* recv) const;
 
     /**
      * Returns the weight for a receiving DOF. If idx is not received then
-     * it returns 1.0.
+     * it returns 1.0, because this processor is its exclusive owner. Otherwise
+     * it's 1/sqrt(#Owners)
      */
     ValueType get_multiplicity(LocalIndexType idx) const;
 
@@ -105,7 +122,8 @@ struct sharing_info {
      */
     struct all_to_all_t {
         all_to_all_t(mpi::communicator comm,
-                     const array<shared_idx<LocalIndexType>>& shared_idxs);
+                     const array<shared_idx<LocalIndexType>>& shared_idxs,
+                     partition_mode mode);
 
         // default variable all-to-all data
         std::vector<int> send_sizes;
@@ -116,13 +134,20 @@ struct sharing_info {
         /**
          * DOFs to send. These are dofs that are shared with other ranks,
          * but this rank owns them.
+         * Empty if mode == send or mode == both
          */
         gko::array<LocalIndexType> send_idxs;
         /**
-         * DOFs to send. These are dofs that are shared with other ranks,
+         * DOFs to recv. These are dofs that are shared with other ranks,
          * but other ranks own them. May overlap with send_idxs.
+         * Empty if mode == recv or mode == both
          */
         gko::array<LocalIndexType> recv_idxs;
+        /**
+         * If true, the message buffers are be partitioned by first exclusively
+         * owned DOFs and then shared DOFs.
+         */
+        bool partitioned_storage;
     };
     all_to_all_t all_to_all;
 
@@ -147,7 +172,18 @@ struct sharing_info {
     };
     multiplicity_t multiplicity;
 
+    gko::matrix::Diagonal<ValueType> weights;
+
     sharing_mode mode;
+};
+
+
+template <typename ValueType, typename LocalIndexType>
+struct partitioned_sharing_info {
+    partitioned_sharing_info(
+        mpi::communicator comm,
+        const array<shared_idx<LocalIndexType>>& shared_idxs,
+        sharing_mode mode);
 };
 
 
