@@ -132,9 +132,10 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data,
         // Think of band in the dense A layout and access the corresponding
         // elements in the band array
         for (size_type dense_col = 0; dense_col < size; dense_col++) {
-            for (size_type dense_row = std::max(size_type{0}, dense_col - KU);
-                 dense_row = std::min(size_type{size - 1}, dense_col + KL);
-                 dense_row++) {
+            for (size_type dense_row =
+                     std::max(int{0}, static_cast<int>(dense_col) -
+                                          static_cast<int>(KU));
+                 dense_row <= std::min(size - 1, dense_col + KL); dense_row++) {
                 tmp->at_in_reference_to_dense_layout(
                     batch_entry_idx, dense_row, dense_col) = zero<ValueType>();
             }
@@ -161,10 +162,10 @@ template <typename MatrixData>
 std::pair<size_type, size_type> infer_KL_and_KU(const MatrixData& data)
 {
     typename MatrixData::index_type current_row = 0;
-    size_type kl_acc_to_curr_row = 0;
-    size_type ku_acc_to_curr_row = 0;
-    size_type KL = 0;
-    size_type KU = 0;
+    int kl_acc_to_curr_row = 0;
+    int ku_acc_to_curr_row = 0;
+    int KL = 0;
+    int KU = 0;
 
     kl_acc_to_curr_row = data.nonzeros[0].row - data.nonzeros[0].column;
     KL = kl_acc_to_curr_row;
@@ -269,7 +270,8 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
         const auto ku = tmp->get_num_upper_diagonals().at(batch_entry_idx);
 
         for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
-            for (size_type col = std::max(size_type{0}, row - kl);
+            for (size_type col = static_cast<size_type>(std::max(
+                     int{0}, static_cast<int>(row) - static_cast<int>(kl)));
                  col <= std::min(size - 1, row + ku); ++col) {
                 auto val = tmp->at_in_reference_to_dense_layout(batch_entry_idx,
                                                                 row, col);

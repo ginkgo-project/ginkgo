@@ -103,6 +103,8 @@ public:
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
+    // TO ADD: Conversion from batch dense, csr and ell to batch band???
+
     /**
      * Creates a BatchBand matrix with the configuration of another
      * BatchBand matrix.
@@ -160,7 +162,9 @@ public:
         const auto kl = KL_.at(batch);
         const auto ku = KU_.at(batch);
 
-        if (dense_row >= std::max(size_type{0}, dense_col - ku) ||
+        if (dense_row >= static_cast<size_type>(
+                             std::max(int{0}, static_cast<int>(dense_col) -
+                                                  static_cast<int>(ku))) ||
             dense_row <= std::min(n - 1, dense_col + kl)) {
             return true;
         } else {
@@ -518,10 +522,14 @@ protected:
               input->get_num_lower_diagonals().at(0))},
           KU_{gko::batch_stride(
               input->get_num_batch_entries() * num_duplications,
-              input->get_num_upper_diagonals().at(0))},
-          band_array_col_major_(exec,
-                                compute_batch_mem(this->get_size(), KL_, KU_))
+              input->get_num_upper_diagonals().at(0))}
+    //   band_array_col_major_(exec,
+    //                         compute_batch_mem(this->get_size(), KL_, KU_))
+    //                         //Results in seg. fault??
     {
+        band_array_col_major_ = gko::array<value_type>(
+            exec, compute_batch_mem(this->get_size(), KL_, KU_));
+
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
 
         num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(

@@ -47,650 +47,825 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// template <typename T>
-// class BatchTridiagonal : public ::testing::Test {
-// protected:
-//     using value_type = T;
-//     using size_type = gko::size_type;
+template <typename T>
+class BatchBand : public ::testing::Test {
+protected:
+    using value_type = T;
+    using size_type = gko::size_type;
 
-//     /*
-//     BatchTridiagonal matrix:
+    /*
+    BatchBand matrix:
 
-//     2  3  0  0
-//     4  1  5  0
-//     0  5  9  8
-//     0  0  8  4
+    2  3  11  0
+    4  1  7   13
+    0  0  9   8
+    0  0  8   4
 
-//     9  8  0  0  0
-//     4  3  5  0  0
-//     0  7  1  4  0
-//     0  0  8  2  1
-//     0  0  0  6  3
+    9   8    0   0   0
+    0   3    5   0   0
+    12  7    1   4   0
+    2   15   8   2   1
+    0   4   19   6   3
 
-//     */
+    */
 
-//     BatchTridiagonal() : exec(gko::ReferenceExecutor::create())
-//     {
-//         mtx = gko::matrix::BatchTridiagonal<value_type>::create(
-//             exec,
-//             std::vector<gko::dim<2>>{gko::dim<2>{4, 4}, gko::dim<2>{5, 5}});
+    BatchBand() : exec(gko::ReferenceExecutor::create())
+    {
+        mtx = gko::matrix::BatchBand<value_type>::create(
+            exec,
+            std::vector<gko::dim<2>>{gko::dim<2>{4, 4}, gko::dim<2>{5, 5}},
+            std::vector<gko::size_type>{1, 3},
+            std::vector<gko::size_type>{2, 1});
 
-//         value_type* subdiag = mtx->get_sub_diagonal();
-//         value_type* maindiag = mtx->get_main_diagonal();
-//         value_type* superdiag = mtx->get_super_diagonal();
+        //clang-format off
+        mtx->at_in_reference_to_dense_layout(0, 0, 0) = 2.0;
+        mtx->at_in_reference_to_dense_layout(0, 1, 0) = 4.0;
+        mtx->at_in_reference_to_dense_layout(0, 0, 1) = 3.0;
+        mtx->at_in_reference_to_dense_layout(0, 1, 1) = 1.0;
+        mtx->at_in_reference_to_dense_layout(0, 2, 1) = 0.0;
+        mtx->at_in_reference_to_dense_layout(0, 0, 2) = 11.0;
+        mtx->at_in_reference_to_dense_layout(0, 1, 2) = 7.0;
+        mtx->at_in_reference_to_dense_layout(0, 2, 2) = 9.0;
+        mtx->at_in_reference_to_dense_layout(0, 3, 2) = 8.0;
+        mtx->at_in_reference_to_dense_layout(0, 1, 3) = 13.0;
+        mtx->at_in_reference_to_dense_layout(0, 2, 3) = 8.0;
+        mtx->at_in_reference_to_dense_layout(0, 3, 3) = 4.0;
 
-//         //clang-format off
-//         subdiag[0] = 0.0;
-//         subdiag[1] = 4.0;
-//         subdiag[2] = 5.0;
-//         subdiag[3] = 8.0;
-//         subdiag[4] = 0.0;
-//         subdiag[5] = 4.0;
-//         subdiag[6] = 7.0;
-//         subdiag[7] = 8.0;
-//         subdiag[8] = 6.0;
+        mtx->at_in_reference_to_dense_layout(1, 0, 0) = 9.0;
+        mtx->at_in_reference_to_dense_layout(1, 1, 0) = 0.0;
+        mtx->at_in_reference_to_dense_layout(1, 2, 0) = 12.0;
+        mtx->at_in_reference_to_dense_layout(1, 3, 0) = 2.0;
+        mtx->at_in_reference_to_dense_layout(1, 0, 1) = 8.0;
+        mtx->at_in_reference_to_dense_layout(1, 1, 1) = 3.0;
+        mtx->at_in_reference_to_dense_layout(1, 2, 1) = 7.0;
+        mtx->at_in_reference_to_dense_layout(1, 3, 1) = 15.0;
+        mtx->at_in_reference_to_dense_layout(1, 4, 1) = 4.0;
+        mtx->at_in_reference_to_dense_layout(1, 1, 2) = 5.0;
+        mtx->at_in_reference_to_dense_layout(1, 2, 2) = 1.0;
+        mtx->at_in_reference_to_dense_layout(1, 3, 2) = 8.0;
+        mtx->at_in_reference_to_dense_layout(1, 4, 2) = 19.0;
+        mtx->at_in_reference_to_dense_layout(1, 2, 3) = 4.0;
+        mtx->at_in_reference_to_dense_layout(1, 3, 3) = 2.0;
+        mtx->at_in_reference_to_dense_layout(1, 4, 3) = 6.0;
+        mtx->at_in_reference_to_dense_layout(1, 3, 4) = 1.0;
+        mtx->at_in_reference_to_dense_layout(1, 4, 4) = 3.0;
 
-//         maindiag[0] = 2.0;
-//         maindiag[1] = 1.0;
-//         maindiag[2] = 9.0;
-//         maindiag[3] = 4.0;
-//         maindiag[4] = 9.0;
-//         maindiag[5] = 3.0;
-//         maindiag[6] = 1.0;
-//         maindiag[7] = 2.0;
-//         maindiag[8] = 3.0;
-
-//         superdiag[0] = 3.0;
-//         superdiag[1] = 5.0;
-//         superdiag[2] = 8.0;
-//         superdiag[3] = 0.0;
-//         superdiag[4] = 8.0;
-//         superdiag[5] = 5.0;
-//         superdiag[6] = 4.0;
-//         superdiag[7] = 1.0;
-//         superdiag[8] = 0.0;
-
-//         //clang-format on
-//     }
-
-
-//     static void assert_equal_to_original_mtx(
-//         gko::matrix::BatchTridiagonal<value_type>* m)
-//     {
-//         ASSERT_EQ(m->get_num_batch_entries(), 2);
-//         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
-//         ASSERT_EQ(m->get_size().at(1), gko::dim<2>(5, 5));
-
-//         ASSERT_EQ(m->get_num_stored_elements(), (3 * 4) + (3 * 5));
-//         ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 4);
-//         ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 5);
-
-//         ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{4.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{5.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(0)[3], value_type{8.0});
-
-//         EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{1.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(0)[3], value_type{4.0});
-
-//         EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{3.0});
-//         EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{5.0});
-//         EXPECT_EQ(m->get_const_super_diagonal(0)[2], value_type{8.0});
-//         ASSERT_EQ(m->get_const_super_diagonal(0)[3], value_type{0.0});
-
-//         ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{4.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(1)[2], value_type{7.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(1)[3], value_type{8.0});
-//         EXPECT_EQ(m->get_const_sub_diagonal(1)[4], value_type{6.0});
-
-//         EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{9.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{3.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(1)[2], value_type{1.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(1)[3], value_type{2.0});
-//         EXPECT_EQ(m->get_const_main_diagonal(1)[4], value_type{3.0});
-
-//         EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{8.0});
-//         EXPECT_EQ(m->get_const_super_diagonal(1)[1], value_type{5.0});
-//         EXPECT_EQ(m->get_const_super_diagonal(1)[2], value_type{4.0});
-//         EXPECT_EQ(m->get_const_super_diagonal(1)[3], value_type{1.0});
-//         ASSERT_EQ(m->get_const_super_diagonal(1)[4], value_type{0.0});
-//     }
-
-//     static void assert_empty(gko::matrix::BatchTridiagonal<value_type>* m)
-//     {
-//         ASSERT_EQ(m->get_num_batch_entries(), 0);
-//         ASSERT_EQ(m->get_num_stored_elements(), 0);
-//     }
-
-//     std::shared_ptr<const gko::Executor> exec;
-//     std::unique_ptr<gko::matrix::BatchTridiagonal<value_type>> mtx;
-// };
-
-// TYPED_TEST_SUITE(BatchTridiagonal, gko::test::ValueTypes);
+        //clang-format on
+    }
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeEmpty)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    auto empty =
-// gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //    this->assert_empty(empty.get());
-// //}
+    static void assert_equal_to_original_mtx(
+        gko::matrix::BatchBand<value_type>* m)
+    {
+        ASSERT_EQ(m->get_num_batch_entries(), 2);
+
+        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+        ASSERT_EQ(m->get_size().at(1), gko::dim<2>(5, 5));
+
+        ASSERT_EQ(m->get_num_lower_diagonals().at(0), 1);
+        ASSERT_EQ(m->get_num_lower_diagonals().at(1), 3);
+        ASSERT_EQ(m->get_num_upper_diagonals().at(0), 2);
+        ASSERT_EQ(m->get_num_upper_diagonals().at(1), 1);
+
+        ASSERT_EQ(m->get_num_stored_elements(),
+                  (4 * (2 * 1 + 2 + 1)) + (5 * (2 * 3 + 1 + 1)));
+        ASSERT_EQ(m->get_num_stored_elements(0), (4 * (2 * 1 + 2 + 1)));
+        ASSERT_EQ(m->get_num_stored_elements(1), (5 * (2 * 3 + 1 + 1)));
+
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{2.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{4.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{3.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{1.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{0.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 2),
+                  value_type{11.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{7.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{9.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{8.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 3),
+                  value_type{13.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{8.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{4.0});
+
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{9.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{0.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 0),
+                  value_type{12.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 0), value_type{2.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{8.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{3.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{7.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 1),
+                  value_type{15.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 4, 1), value_type{4.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{5.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{1.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 2), value_type{8.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 4, 2),
+                  value_type{19.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 3), value_type{4.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 3), value_type{2.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 4, 3), value_type{6.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 4), value_type{1.0});
+        EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 4, 4), value_type{3.0});
+    }
+
+    static void assert_empty(gko::matrix::BatchBand<value_type>* m)
+    {
+        ASSERT_EQ(m->get_num_batch_entries(), 0);
+        ASSERT_EQ(m->get_num_stored_elements(), 0);
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<gko::matrix::BatchBand<value_type>> mtx;
+};
+
+TYPED_TEST_SUITE(BatchBand, gko::test::ValueTypes);
 
 
-// TYPED_TEST(BatchTridiagonal, ReturnsNullValuesArrayWhenEmpty)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    auto empty =
-// gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //    ASSERT_EQ(empty->get_const_sub_diagonal(), nullptr);
-// //    ASSERT_EQ(empty->get_const_main_diagonal(), nullptr);
-// //    ASSERT_EQ(empty->get_const_super_diagonal(), nullptr);
-// //}
+TYPED_TEST(BatchBand, CanBeEmpty)
+{
+    auto empty = gko::matrix::BatchBand<TypeParam>::create(this->exec);
+    this->assert_empty(empty.get());
+}
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeConstructedWithSize)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using size_type = gko::size_type;
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
-// //        this->exec,
-// //        std::vector<gko::dim<2>>{gko::dim<2>{3, 3}, gko::dim<2>{4, 4}});
-// //
-// //    ASSERT_EQ(m->get_num_batch_entries(), 2);
-// //    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
-// //    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(4, 4));
-// //    ASSERT_EQ(m->get_num_stored_elements(), 21);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 4);
-// //}
+TYPED_TEST(BatchBand, ReturnsNullValuesArrayWhenEmpty)
+{
+    auto empty = gko::matrix::BatchBand<TypeParam>::create(this->exec);
+
+    ASSERT_EQ(empty->get_const_band_array(), nullptr);
+}
+
+TYPED_TEST(BatchBand, CanBeConstructedWith_Size_KL_LU)
+{
+    using size_type = gko::size_type;
+    auto m = gko::matrix::BatchBand<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{3, 3}, gko::dim<2>{4, 4}},
+        std::vector<size_type>{1, 2}, std::vector<size_type>{2, 3});
+
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(4, 4));
+
+    ASSERT_EQ(m->get_num_lower_diagonals().at(0), 1);
+    ASSERT_EQ(m->get_num_lower_diagonals().at(1), 2);
+    ASSERT_EQ(m->get_num_upper_diagonals().at(0), 2);
+    ASSERT_EQ(m->get_num_upper_diagonals().at(1), 3);
+    ASSERT_EQ(m->get_num_stored_elements(),
+              (3 * (2 * 1 + 2 + 1)) + (4 * (2 * 2 + 3 + 1)));
+    ASSERT_EQ(m->get_num_stored_elements(0), (3 * (2 * 1 + 2 + 1)));
+    ASSERT_EQ(m->get_num_stored_elements(1), (4 * (2 * 2 + 3 + 1)));
+}
+
+TYPED_TEST(BatchBand, KnowsItsSizeAndValues)
+{
+    this->assert_equal_to_original_mtx(this->mtx.get());
+}
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    using size_type = gko::size_type;
-// //
-// //    // clang-format off
-// //    value_type subdiag[] = {
-// //       0.0, -1.0, //first mat sub-diagonal
-// //       0.0, 3.0, 6.0 //second mat sub-diagonal
-// //    };
-// //    // clang-format on
-// //
-// //    // clang-format off
-// //    value_type maindiag[] = {
-// //
-// //       1.0, 3.0, //first mat main-diagonal
-// //       4.0, 5.0, -3.0 //second mat main-diagonal
-// //      };
-// //    // clang-format on
-// //
-// //    // clang-format off
-// //    value_type superdiag[] = {
-// //
-// //       2.0, 0.0, //first mat super-diagonal
-// //      -1.0, 1.0, 0.0 //second mat super-diagonal
-// //
-// //      };
-// //    // clang-format on
-// //
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
-// //        this->exec,
-// //        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
-// //        gko::array<value_type>::view(this->exec, 5, subdiag),
-// //        gko::array<value_type>::view(this->exec, 5, maindiag),
-// //        gko::array<value_type>::view(this->exec, 5, superdiag));
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal(), subdiag);
-// //    ASSERT_EQ(m->get_const_main_diagonal(), maindiag);
-// //    ASSERT_EQ(m->get_const_super_diagonal(), superdiag);
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[0], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[1], value_type{-1.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[2], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[3], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[4], value_type{6.0});
-// //
-// //    ASSERT_EQ(m->get_const_main_diagonal()[0], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[1], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[2], value_type{4.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[3], value_type{5.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[4], value_type{-3.0});
-// //
-// //    ASSERT_EQ(m->get_const_super_diagonal()[0], value_type{2.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[1], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[2], value_type{-1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[3], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[4], value_type{0.0});
-// //}
+TYPED_TEST(BatchBand, CanBeCopied)
+{
+    auto mtx_copy = gko::matrix::BatchBand<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeConstructedFromExistingConstData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    using size_type = gko::size_type;
-// //
-// //    // clang-format off
-// //    value_type subdiag[] = {
-// //       0.0, -1.0, //first mat sub-diagonal
-// //       0.0, 3.0, 6.0 //second mat sub-diagonal
-// //    };
-// //    // clang-format on
-// //
-// //    // clang-format off
-// //    value_type maindiag[] = {
-// //
-// //       1.0, 3.0, //first mat main-diagonal
-// //       4.0, 5.0, -3.0 //second mat main-diagonal
-// //      };
-// //    // clang-format on
-// //
-// //    // clang-format off
-// //    value_type superdiag[] = {
-// //
-// //       2.0, 0.0, //first mat super-diagonal
-// //      -1.0, 1.0, 0.0 //second mat super-diagonal
-// //
-// //      };
-// //    // clang-format on
-// //
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create_const(
-// //        this->exec,
-// //        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{3, 3}},
-// //        gko::array<value_type>::const_view(this->exec, 5, subdiag),
-// //        gko::array<value_type>::const_view(this->exec, 5, maindiag),
-// //        gko::array<value_type>::const_view(this->exec, 5, superdiag));
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal(), subdiag);
-// //    ASSERT_EQ(m->get_const_main_diagonal(), maindiag);
-// //    ASSERT_EQ(m->get_const_super_diagonal(), superdiag);
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[0], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[1], value_type{-1.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[2], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[3], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal()[4], value_type{6.0});
-// //
-// //    ASSERT_EQ(m->get_const_main_diagonal()[0], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[1], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[2], value_type{4.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[3], value_type{5.0});
-// //    ASSERT_EQ(m->get_const_main_diagonal()[4], value_type{-3.0});
-// //
-// //    ASSERT_EQ(m->get_const_super_diagonal()[0], value_type{2.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[1], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[2], value_type{-1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[3], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal()[4], value_type{0.0});
-// //}
+TYPED_TEST(BatchBand, CanBeMoved)
+{
+    auto mtx_copy = gko::matrix::BatchBand<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(std::move(this->mtx));
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-// TYPED_TEST(BatchTridiagonal,
-//            CanBeConstructedFromBatchTridiagonalMatricesByDuplication)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    using size_type = gko::size_type;
-// //
-// //    // clang-format off
-// //    value_type subdiag[] = {
-// //
-// //        0.0, 1.0, 5.0,  // sub-diagonal
-// //        0.0, 3.0, 6.0   // sub-diagonal
-// //    };
-// //
-// //    value_type maindiag[] = {
-// //
-// //        1.0, 7.0, -7.0,  // main-diagonal
-// //        4.0, 5.0, -3.0   // main-diagonal
-// //    };
-// //
-// //    value_type superdiag[] = {
-// //
-// //        -1.0, 3.0, 0.0,  // super-diagonal
-// //        -1.0, 1.0, 0.0   // super-diagonal
-// //
-// //    };
-// //    // clang-format on
-// //
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(
-// //        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
-// //        gko::array<value_type>::view(this->exec, 6, subdiag),
-// //        gko::array<value_type>::view(this->exec, 6, maindiag),
-// //        gko::array<value_type>::view(this->exec, 6, superdiag));
-// //
-// //    auto bat_m_created_by_dupl =
-// //        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec, 2,
-// //                                                         m.get());
-// //    // clang-format off
-// //    value_type subdiag_new[] = {
-// //
-// //       0.0, 1.0, 5.0, //sub-diagonal
-// //       0.0, 3.0, 6.0, //sub-diagonal
-// //       0.0, 1.0, 5.0, //sub-diagonal
-// //       0.0, 3.0, 6.0 //sub-diagonal
-// //
-// //    };
-// //
-// //    value_type maindiag_new[] = {
-// //
-// //       1.0, 7.0, -7.0, //main-diagonal
-// //       4.0, 5.0, -3.0, //main-diagonal
-// //       1.0, 7.0, -7.0, //main-diagonal
-// //       4.0, 5.0, -3.0 //main-diagonal
-// //
-// //    };
-// //
-// //    value_type superdiag_new[] = {
-// //
-// //      -1.0, 3.0, 0.0, //super-diagonal
-// //      -1.0, 1.0, 0.0, //super-diagonal
-// //      -1.0, 3.0, 0.0, //super-diagonal
-// //      -1.0, 1.0, 0.0 //super-diagonal
-// //
-// //    };
-// //    // clang-format on
-// //
-// //    auto m_new = gko::matrix::BatchTridiagonal<TypeParam>::create(
-// //        this->exec, gko::batch_dim<2>(4, gko::dim<2>{3, 3}),
-// //        gko::array<value_type>::view(this->exec, 12, subdiag_new),
-// //        gko::array<value_type>::view(this->exec, 12, maindiag_new),
-// //        gko::array<value_type>::view(this->exec, 12, superdiag_new));
-// //
-// //    GKO_ASSERT_BATCH_MTX_NEAR(bat_m_created_by_dupl.get(), m_new.get(),
-// 1e-14);
-// //}
+TYPED_TEST(BatchBand, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
-// TYPED_TEST(BatchTridiagonal, KnowsItsSizeAndValues)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    this->assert_equal_to_original_mtx(this->mtx.get());
-// //}
+TYPED_TEST(BatchBand, CanBeCleared)
+{
+    this->mtx->clear();
+    this->assert_empty(this->mtx.get());
+}
+
+TYPED_TEST(BatchBand, CanBeConstructedFromExistingData)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    /*
+            General banded matrix A, where N = 6, KL = 2, KU = 1
+
+            A_0 =    1   3    0   0   0   0 
+                     2   9    3   0   0   0
+                     1   8    4  -8   0   0
+                     0   2    7   3   9   0
+                     0   0    8   1   2   3
+                     0   0    0   9   5   6
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeCopied)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    auto mtx_copy =
-// //        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //    mtx_copy->copy_from(this->mtx.get());
-// //    this->assert_equal_to_original_mtx(this->mtx.get());
-// //    this->assert_equal_to_original_mtx(mtx_copy.get());
-// //}
+            Stored as band array AB:
+
+            AB_0 =   *   *    *    +   +   +
+                     *   *    +    +   +   +
+                     *   3    3   -8   9   3
+                     1   9    4    3   2   6
+                     2   8    7    1   5   *
+                     1   2    8    9   *   *
+
+            General banded matrix A, where N = 4, KL = 2, KU = 2
+
+            A_1 =    2  3  5   0
+                     1  9  8   7
+                     5  7  -1  2
+                     0  2  0   9 
+
+            AB_1 =  
+                    *  *   *  *
+                    *  *   *  *
+                    *  *   5  7
+                    *  3   8  2
+                    2  9  -1  9
+                    1  7   0  *
+                    5  2   *  *   
+
+    */
+    
+    value_type band_dense_col_major_arr[] = { 
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 1.0, 2.0, 1.0, //first col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 9.0, 8.0, 2.0,  //second col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 4.0, 7.0, 8.0, //third col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), -8.0, 3.0, 1.0, 9.0,  //fourth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 9.0, 2.0, 5.0,  gko::nan<value_type>(), //fifth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 6.0, gko::nan<value_type>(), gko::nan<value_type>(), //sixth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(),gko::nan<value_type>(), 2.0, 1.0, 5.0 , //first col of 2nd
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 9.0, 7.0, 2.0, //second col of 2nd
+        gko::nan<value_type>(),  gko::nan<value_type>(), 5.0,  8.0, -1.0, 0.0,  gko::nan<value_type>(), //third col of 2nd 
+        gko::nan<value_type>(),  gko::nan<value_type>(), 7.0,  2.0, 9.0,  gko::nan<value_type>(),  gko::nan<value_type>() //fourth col of 2nd
+    };
+
+    // clang-format on
+
+    auto m = gko::matrix::BatchBand<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{6, 6}, gko::dim<2>{4, 4}},
+        std::vector<size_type>{2, 2}, std::vector<size_type>{1, 2},
+        gko::array<value_type>::view(this->exec, 64, band_dense_col_major_arr));
+
+    ASSERT_EQ(m->get_const_band_array(), band_dense_col_major_arr);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{1.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{2.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 2), value_type{8.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{-8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 3), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 3), value_type{9.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 4), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 4), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 4), value_type{5.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 5), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 5), value_type{6.0});
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeMoved)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    auto mtx_copy =
-// //        gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //    mtx_copy->copy_from(std::move(this->mtx));
-// //    this->assert_equal_to_original_mtx(mtx_copy.get());
-// //}
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 0), value_type{5.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 1), value_type{2.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{-1.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 3), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 3), value_type{9.0});
+}
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeCloned)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    auto mtx_clone = this->mtx->clone();
-// //    this->assert_equal_to_original_mtx(
-// //        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-// //}
+TYPED_TEST(BatchBand, CanBeConstructedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    /*
+            General banded matrix A, where N = 6, KL = 2, KU = 1
+
+            A_0 =    1   3    0   0   0   0 
+                     2   9    3   0   0   0
+                     1   8    4  -8   0   0
+                     0   2    7   3   9   0
+                     0   0    8   1   2   3
+                     0   0    0   9   5   6
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeCleared)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    this->mtx->clear();
-// //    this->assert_empty(this->mtx.get());
-// //}
+            band_arr_A_0 =  
+                     *   *    *    +   +   +
+                     *   *    +    +   +   +
+                     *   3    3   -8   9   3
+                     1   9    4    3   2   6
+                     2   8    7    1   5   *
+                     1   2    8    9   *   *
+
+            General banded matrix A, where N = 4, KL = 2, KU = 2
+
+            A_1 =    2  3  5   0
+                     1  9  8   7
+                     5  7  -1  2
+                     0  2  0   9 
+
+            band_arr_A_1 =  
+                    *  *   *  *
+                    *  *   *  *
+                    *  *   5  7
+                    *  3   8  2
+                    2  9  -1  9
+                    1  7   0  *
+                    5  2   *  *   
+
+    */
+    
+    value_type band_dense_col_major_arr[] = { 
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 1.0, 2.0, 1.0, //first col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 9.0, 8.0, 2.0,  //second col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 4.0, 7.0, 8.0, //third col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), -8.0, 3.0, 1.0, 9.0,  //fourth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 9.0, 2.0, 5.0,  gko::nan<value_type>(), //fifth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 6.0, gko::nan<value_type>(), gko::nan<value_type>(), //sixth col of 1st
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(),gko::nan<value_type>(), 2.0, 1.0, 5.0 , //first col of 2nd
+        gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 9.0, 7.0, 2.0, //second col of 2nd
+        gko::nan<value_type>(),  gko::nan<value_type>(), 5.0,  8.0, -1.0, 0.0,  gko::nan<value_type>(), //third col of 2nd 
+        gko::nan<value_type>(),  gko::nan<value_type>(), 7.0,  2.0, 9.0,  gko::nan<value_type>(),  gko::nan<value_type>() //fourth col of 2nd
+    };
+
+    // clang-format on
+
+    auto m = gko::matrix::BatchBand<TypeParam>::create_const(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{6, 6}, gko::dim<2>{4, 4}},
+        std::vector<size_type>{2, 2}, std::vector<size_type>{1, 2},
+        gko::array<value_type>::const_view(this->exec, 64,
+                                           band_dense_col_major_arr));
+
+    ASSERT_EQ(m->get_const_band_array(), band_dense_col_major_arr);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{1.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{2.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 2), value_type{8.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{-8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 3), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 3), value_type{9.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 4), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 4), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 4), value_type{5.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 4, 5), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 5, 5), value_type{6.0});
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //
-// //    /*
-// //
-// //        first matrix:
-// //        2  4  0
-// //        3  6  1
-// //        0  0  9
-// //
-// //        second matrix:
-// //        4  3
-// //        3  7
-// //
-// //    */
-// //
-// //    // clang-format off
-// //    m->read({gko::matrix_data<TypeParam>{{3, 3},
-// //                                         {{0, 0, 2.0},
-// //                                          {0, 1, 4.0},
-// //                                          {1, 0, 3.0},
-// //                                          {1, 1, 6.0},
-// //                                          {1, 2, 1.0},
-// //                                          {2, 2, 9.0}}},
-// //             gko::matrix_data<TypeParam>{{2, 2},
-// //                                         {{0, 0, 4.0},
-// //                                          {0, 1, 3.0},
-// //                                          {1, 0, 3.0},
-// //                                          {1, 1, 7.0}}}});
-// //    // clang-format on
-// //
-// //    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
-// //    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
-// //    ASSERT_EQ(m->get_num_stored_elements(), 15);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 2);
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{3.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{3.0});
-// //
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{6.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{4.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{7.0});
-// //
-// //    EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{4.0});
-// //    EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal(0)[2], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal(1)[1], value_type{0.0});
-// //}
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 0), value_type{5.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 1), value_type{2.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{-1.0});
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 3), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 3, 3), value_type{9.0});
+}
+
+TYPED_TEST(BatchBand, CanBeConstructedFromBatchBandMatricesByDuplication)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+
+    // clang-format off
+    /*
+    
+    A_0 : 
+        3  4  6  0
+        7  9  1  5
+        0  8  2  4
+        0  0  1  9
+
+    band A_0 arr:
+        *  *  *  *
+        *  *  6  5
+        *  4  1  4
+        3  9  2  9
+        7  8  1  * 
+
+    A_1:  
+        5  6  8  0
+        1  2  4  6
+        0  8  1  9
+        0  0  8  9 
+
+    Band A_1 arr:
+        *  *  *  *
+        *  *  8  6
+        *  6  4  9
+        5  2  1  9
+        1  8  8  *  
+    
+    */
+   
+    value_type band_col_major_arr[] = {
+    gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 7.0, //1st col- 1st mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 4.0, 9.0, 8.0, //2nd col- 1st mat
+    gko::nan<value_type>(), 6.0, 1.0, 2.0, 1.0, //3rd col- 1st mat
+    gko::nan<value_type>(), 5.0, 4.0, 9.0, gko::nan<value_type>(), //4th col- 1st mat
+    gko::nan<value_type>(),  gko::nan<value_type>(),  gko::nan<value_type>(), 5.0, 1.0, //1st col - 2nd mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 6.0, 2.0, 8.0, //2nd col- 2nd mat
+    gko::nan<value_type>(), 8.0, 4.0, 1.0, 8.0, //3rd col- 2nd mat
+    gko::nan<value_type>(), 6.0, 9.0, 9.0, gko::nan<value_type>() //4th col - 2nd mat
+    };
+    // clang-format on
 
 
-// TYPED_TEST(BatchTridiagonal, CanBeReadFromMatrixAssemblyData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    /*
-// //
-// //        first matrix:
-// //        2  4  0
-// //        3  6  1
-// //        0  0  9
-// //
-// //        second matrix:
-// //        4  3
-// //        3  7
-// //
-// //    */
-// //    using value_type = typename TestFixture::value_type;
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{3, 3});
-// //    data1.set_value(0, 0, 2.0);
-// //    data1.set_value(0, 1, 4.0);
-// //    data1.set_value(1, 0, 3.0);
-// //    data1.set_value(1, 1, 6.0);
-// //    data1.set_value(1, 2, 1.0);
-// //    data1.set_value(2, 2, 9.0);
-// //    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 2});
-// //    data2.set_value(0, 0, 4.0);
-// //    data2.set_value(0, 1, 3.0);
-// //    data2.set_value(1, 0, 3.0);
-// //    data2.set_value(1, 1, 7.0);
-// //    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1,
-// data2};
-// //
-// //    m->read(data);
-// //
-// //
-// //    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
-// //    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
-// //    ASSERT_EQ(m->get_num_stored_elements(), 15);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(0), 3);
-// //    ASSERT_EQ(m->get_num_stored_elements_per_diagonal(1), 2);
-// //
-// //    ASSERT_EQ(m->get_const_sub_diagonal(0)[0], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(0)[1], value_type{3.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(0)[2], value_type{0.0});
-// //    ASSERT_EQ(m->get_const_sub_diagonal(1)[0], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_sub_diagonal(1)[1], value_type{3.0});
-// //
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[0], value_type{2.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[1], value_type{6.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(0)[2], value_type{9.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(1)[0], value_type{4.0});
-// //    EXPECT_EQ(m->get_const_main_diagonal(1)[1], value_type{7.0});
-// //
-// //    EXPECT_EQ(m->get_const_super_diagonal(0)[0], value_type{4.0});
-// //    EXPECT_EQ(m->get_const_super_diagonal(0)[1], value_type{1.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal(0)[2], value_type{0.0});
-// //    EXPECT_EQ(m->get_const_super_diagonal(1)[0], value_type{3.0});
-// //    ASSERT_EQ(m->get_const_super_diagonal(1)[1], value_type{0.0});
-// //}
+    auto m = gko::matrix::BatchBand<value_type>::create(
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>{4, 4}),
+        gko::batch_stride(2, 1), gko::batch_stride(2, 2),
+        gko::array<value_type>::view(this->exec, 40, band_col_major_arr));
+
+    auto bat_m_created_by_dupl =
+        gko::matrix::BatchBand<value_type>::create(this->exec, 2, m.get());
+
+    // clang-format off
+    value_type band_col_major_arr_new[] = {
+    gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 7.0, //1st col- 1st mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 4.0, 9.0, 8.0, //2nd col- 1st mat
+    gko::nan<value_type>(), 6.0, 1.0, 2.0, 1.0, //3rd col- 1st mat
+    gko::nan<value_type>(), 5.0, 4.0, 9.0, gko::nan<value_type>(), //4th col- 1st mat
+
+    gko::nan<value_type>(),  gko::nan<value_type>(),  gko::nan<value_type>(), 5.0, 1.0, //1st col - 2nd mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 6.0, 2.0, 8.0, //2nd col- 2nd mat
+    gko::nan<value_type>(), 8.0, 4.0, 1.0, 8.0, //3rd col- 2nd mat
+    gko::nan<value_type>(), 6.0, 9.0, 9.0, gko::nan<value_type>(), //4th col - 2nd mat
+
+    gko::nan<value_type>(), gko::nan<value_type>(), gko::nan<value_type>(), 3.0, 7.0, //1st col- 3rd mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 4.0, 9.0, 8.0, //2nd col- 3rd mat
+    gko::nan<value_type>(), 6.0, 1.0, 2.0, 1.0, //3rd col- 3rd mat
+    gko::nan<value_type>(), 5.0, 4.0, 9.0, gko::nan<value_type>(), //4th col- 3rd mat
+
+    gko::nan<value_type>(),  gko::nan<value_type>(),  gko::nan<value_type>(), 5.0, 1.0, //1st col - 4th mat
+    gko::nan<value_type>(),  gko::nan<value_type>(), 6.0, 2.0, 8.0, //2nd col- 4th mat
+    gko::nan<value_type>(), 8.0, 4.0, 1.0, 8.0, //3rd col- 4th mat
+    gko::nan<value_type>(), 6.0, 9.0, 9.0, gko::nan<value_type>(), //4th col - 4th mat
+
+    };
+    // clang-format on
+
+    auto m_new = gko::matrix::BatchBand<value_type>::create(
+        this->exec, gko::batch_dim<2>(4, gko::dim<2>{4, 4}),
+        gko::batch_stride(4, 1), gko::batch_stride(4, 2),
+        gko::array<value_type>::view(this->exec, 80, band_col_major_arr_new));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(bat_m_created_by_dupl.get(), m_new.get(), 1e-14);
+}
+
+TYPED_TEST(BatchBand, CanBeReadFromMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchBand<value_type>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  0  0
+        3  6  1  8
+        0  0  9  7
+        0  4  5  6
+
+        second matrix:
+        4  3  0
+        3  7  0
+        0  0  8
+
+    */
+
+    // clang-format off
+    m->read({gko::matrix_data<value_type>{{4, 4},
+                                         {{0, 0, 2.0},
+                                          {0, 1, 4.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 6.0},
+                                          {1, 2, 1.0},
+                                          {1, 3, 8.0},
+                                          {2, 2, 9.0},
+                                          {2, 3, 7.0},
+                                          {3, 1, 4.0}, 
+                                          {3, 2, 5.0},
+                                          {3, 3, 6.0}}},
+             gko::matrix_data<TypeParam>{{3, 3},
+                                         {{0, 0, 4.0},
+                                          {0, 1, 3.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 7.0},
+                                          {2, 2, 8.0}}}});
+    // clang-format on
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
+
+    ASSERT_EQ(m->get_num_lower_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+    ASSERT_EQ(m->get_num_upper_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+
+    ASSERT_EQ(m->get_num_stored_elements(), 40);
+    ASSERT_EQ(m->get_num_stored_elements(0), 28);
+    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{6.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 3), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{6.0});
 
 
-// TYPED_TEST(BatchTridiagonal, GeneratesCorrectMatrixData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
-// //    std::vector<gko::matrix_data<TypeParam>> data;
-// //
-// //    this->mtx->write(data);
-// //
-// //    ASSERT_EQ(data[0].size, gko::dim<2>(4, 4));
-// //
-// //    ASSERT_EQ(data[0].nonzeros.size(), 10);
-// //    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{2.0}));
-// //    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{3.0}));
-// //    EXPECT_EQ(data[0].nonzeros[2], tpl(1, 0, value_type{4.0}));
-// //    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 1, value_type{1.0}));
-// //    EXPECT_EQ(data[0].nonzeros[4], tpl(1, 2, value_type{5.0}));
-// //    EXPECT_EQ(data[0].nonzeros[5], tpl(2, 1, value_type{5.0}));
-// //    EXPECT_EQ(data[0].nonzeros[6], tpl(2, 2, value_type{9.0}));
-// //    EXPECT_EQ(data[0].nonzeros[7], tpl(2, 3, value_type{8.0}));
-// //    EXPECT_EQ(data[0].nonzeros[8], tpl(3, 2, value_type{8.0}));
-// //    EXPECT_EQ(data[0].nonzeros[9], tpl(3, 3, value_type{4.0}));
-// //    ASSERT_EQ(data[1].size, gko::dim<2>(5, 5));
-// //    ASSERT_EQ(data[1].nonzeros.size(), 13);
-// //    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{9.0}));
-// //    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{8.0}));
-// //    EXPECT_EQ(data[1].nonzeros[2], tpl(1, 0, value_type{4.0}));
-// //    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 1, value_type{3.0}));
-// //    EXPECT_EQ(data[1].nonzeros[4], tpl(1, 2, value_type{5.0}));
-// //    EXPECT_EQ(data[1].nonzeros[5], tpl(2, 1, value_type{7.0}));
-// //    EXPECT_EQ(data[1].nonzeros[6], tpl(2, 2, value_type{1.0}));
-// //    EXPECT_EQ(data[1].nonzeros[7], tpl(2, 3, value_type{4.0}));
-// //    EXPECT_EQ(data[1].nonzeros[8], tpl(3, 2, value_type{8.0}));
-// //    EXPECT_EQ(data[1].nonzeros[9], tpl(3, 3, value_type{2.0}));
-// //    EXPECT_EQ(data[1].nonzeros[10], tpl(3, 4, value_type{1.0}));
-// //    EXPECT_EQ(data[1].nonzeros[11], tpl(4, 3, value_type{6.0}));
-// //    EXPECT_EQ(data[1].nonzeros[12], tpl(4, 4, value_type{3.0}));
-// //}
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{8.0});
+}
 
-// TYPED_TEST(BatchTridiagonal, ThrowsOnRectangularMatrix)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    ASSERT_THROW(gko::matrix::BatchTridiagonal<TypeParam>::create(
-// //                     this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 5})),
-// //                 gko::DimensionMismatch);
-// //}
 
-// TYPED_TEST(BatchTridiagonal, ThrowsonNonTridiagMatrixData)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_band): change the code imported from
-// matrix/batch_tridiagonal if needed
-// //    using value_type = typename TestFixture::value_type;
-// //    auto m = gko::matrix::BatchTridiagonal<TypeParam>::create(this->exec);
-// //
-// //    /*
-// //
-// //        first matrix:
-// //        2  4  7
-// //        3  6  1
-// //        0  0  9
-// //
-// //        second matrix:
-// //        4  3
-// //        3  7
-// //
-// //    */
-// //
-// //    // clang-format off
-// //
-// //    ASSERT_THROW( m->read(
-// //         {gko::matrix_data<TypeParam>{{3, 3},
-// //                                         {{0, 0, 2.0},
-// //                                          {0, 1, 4.0},
-// //                                          {0, 2, 7.0},
-// //                                          {1, 0, 3.0},
-// //                                          {1, 1, 6.0},
-// //                                          {1, 2, 1.0},
-// //                                          {2, 2, 9.0}}},
-// //             gko::matrix_data<TypeParam>{{2, 2},
-// //                                         {{0, 0, 4.0},
-// //                                          {0, 1, 3.0},
-// //                                          {1, 0, 3.0},
-// //                                          {1, 1, 7.0}}}}) ,
-// std::runtime_error);
-// //
-// //    // clang-format on
-// //}
+TYPED_TEST(BatchBand, CanBeReadFromMatrixAssemblyData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchBand<value_type>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  0  0
+        3  6  1  8
+        0  0  9  7
+        0  4  5  6
+
+        second matrix:
+        4  3  0
+        3  7  0
+        0  0  8
+
+    */
+
+    gko::matrix_assembly_data<value_type> data1(gko::dim<2>{4, 4});
+    data1.set_value(0, 0, 2.0);
+    data1.set_value(0, 1, 4.0);
+    data1.set_value(1, 0, 3.0);
+    data1.set_value(1, 1, 6.0);
+    data1.set_value(1, 2, 1.0);
+    data1.set_value(1, 3, 8.0);
+    data1.set_value(2, 2, 9.0);
+    data1.set_value(2, 3, 7.0);
+    data1.set_value(3, 1, 4.0);
+    data1.set_value(3, 2, 5.0);
+    data1.set_value(3, 3, 6.0);
+
+    gko::matrix_assembly_data<value_type> data2(gko::dim<2>{3, 3});
+    data2.set_value(0, 0, 4.0);
+    data2.set_value(0, 1, 3.0);
+    data2.set_value(1, 0, 3.0);
+    data2.set_value(1, 1, 7.0);
+    data2.set_value(2, 2, 8.0);
+
+    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
+    m->read(data);
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
+
+    ASSERT_EQ(m->get_num_lower_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+    ASSERT_EQ(m->get_num_upper_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+
+    ASSERT_EQ(m->get_num_stored_elements(), 40);
+    ASSERT_EQ(m->get_num_stored_elements(0), 28);
+    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{6.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 3), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{6.0});
+
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{8.0});
+}
+
+TYPED_TEST(BatchBand, CanBeReadFromMatrixDataWhenKLAndKUAreGivenByTheUser)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchBand<value_type>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  0  0
+        3  6  1  8
+        0  0  9  7
+        0  4  5  6
+
+        second matrix:
+        4  3  0
+        3  7  0
+        0  0  8
+
+    */
+
+    // clang-format off
+    m->read({gko::matrix_data<value_type>{{4, 4},
+                                         {{0, 0, 2.0},
+                                          {0, 1, 4.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 6.0},
+                                          {1, 2, 1.0},
+                                          {1, 3, 8.0},
+                                          {2, 2, 9.0},
+                                          {2, 3, 7.0},
+                                          {3, 1, 4.0}, 
+                                          {3, 2, 5.0},
+                                          {3, 3, 6.0}}},
+             gko::matrix_data<TypeParam>{{3, 3},
+                                         {{0, 0, 4.0},
+                                          {0, 1, 3.0},
+                                          {1, 0, 3.0},
+                                          {1, 1, 7.0},
+                                          {2, 2, 8.0}}}}, 
+                                          gko::batch_stride(std::vector<gko::size_type>{2, 1}), 
+                                          gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+    // clang-format on
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
+
+    ASSERT_EQ(m->get_num_lower_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+    ASSERT_EQ(m->get_num_upper_diagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+
+    ASSERT_EQ(m->get_num_stored_elements(), 40);
+    ASSERT_EQ(m->get_num_stored_elements(0), 28);
+    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{6.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 3), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{6.0});
+
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{8.0});
+}
+
+
+TYPED_TEST(BatchBand, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
+    std::vector<gko::matrix_data<value_type>> data;
+
+    this->mtx->write(data);
+
+    ASSERT_EQ(data[0].size, gko::dim<2>(4, 4));
+
+    ASSERT_EQ(data[0].nonzeros.size(), 11);
+    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{2.0}));
+    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data[0].nonzeros[2], tpl(0, 2, value_type{11.0}));
+    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 0, value_type{4.0}));
+    EXPECT_EQ(data[0].nonzeros[4], tpl(1, 1, value_type{1.0}));
+    EXPECT_EQ(data[0].nonzeros[5], tpl(1, 2, value_type{7.0}));
+    EXPECT_EQ(data[0].nonzeros[6], tpl(1, 3, value_type{13.0}));
+    EXPECT_EQ(data[0].nonzeros[7], tpl(2, 2, value_type{9.0}));
+    EXPECT_EQ(data[0].nonzeros[8], tpl(2, 3, value_type{8.0}));
+    EXPECT_EQ(data[0].nonzeros[9], tpl(3, 2, value_type{8.0}));
+    EXPECT_EQ(data[0].nonzeros[10], tpl(3, 3, value_type{4.0}));
+
+    ASSERT_EQ(data[1].size, gko::dim<2>(5, 5));
+    ASSERT_EQ(data[1].nonzeros.size(), 17);
+
+    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{9.0}));
+    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{8.0}));
+
+    EXPECT_EQ(data[1].nonzeros[2], tpl(1, 1, value_type{3.0}));
+    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 2, value_type{5.0}));
+
+    EXPECT_EQ(data[1].nonzeros[4], tpl(2, 0, value_type{12.0}));
+    EXPECT_EQ(data[1].nonzeros[5], tpl(2, 1, value_type{7.0}));
+    EXPECT_EQ(data[1].nonzeros[6], tpl(2, 2, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[7], tpl(2, 3, value_type{4.0}));
+
+    EXPECT_EQ(data[1].nonzeros[8], tpl(3, 0, value_type{2.0}));
+    EXPECT_EQ(data[1].nonzeros[9], tpl(3, 1, value_type{15.0}));
+    EXPECT_EQ(data[1].nonzeros[10], tpl(3, 2, value_type{8.0}));
+    EXPECT_EQ(data[1].nonzeros[11], tpl(3, 3, value_type{2.0}));
+    EXPECT_EQ(data[1].nonzeros[12], tpl(3, 4, value_type{1.0}));
+
+    EXPECT_EQ(data[1].nonzeros[13], tpl(4, 1, value_type{4.0}));
+    EXPECT_EQ(data[1].nonzeros[14], tpl(4, 2, value_type{19.0}));
+    EXPECT_EQ(data[1].nonzeros[15], tpl(4, 3, value_type{6.0}));
+    EXPECT_EQ(data[1].nonzeros[16], tpl(4, 4, value_type{3.0}));
+}
+
+TYPED_TEST(BatchBand, ThrowsOnRectangularMatrix)
+{
+    ASSERT_THROW(gko::matrix::BatchBand<TypeParam>::create(
+                     this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 5}),
+                     gko::batch_stride(2, 2), gko::batch_stride(2, 3)),
+                 gko::DimensionMismatch);
+}
 
 }  // namespace
