@@ -165,23 +165,40 @@ int main(int argc, char* argv[])
     // Read data
     // auto A = share(gko::read<mtx>(std::ifstream(A_file), exec));
     auto f = std::ifstream(A_file);
-    auto A = gko::share(mtx::create(exec, std::make_shared<mtx::classical>()));
+    auto A_host = gko::share(
+        mtx::create(exec->get_master(), std::make_shared<mtx::classical>()));
     auto mat_data =
         gko::read_raw<typename mtx::value_type, typename mtx::index_type>(f);
     // mat_data.remove_zeros();
-    A->read(mat_data);
+    A_host->read(mat_data);
     // scaling
     // auto A = B;
     // auto A = gko::share(mtx::create(exec, B->get_size(), 0,
     //                                 std::make_shared<mtx::classical>()));
-    // auto diag = A->extract_diagonal()->clone(exec->get_master());
-    // ValueType max_diag = 0;
-    // for (int i = 0; i < diag->get_size()[0]; i++) {
-    //     if (std::abs(diag->get_values()[i]) > max_diag) {
-    //         max_diag = std::abs(diag->get_values()[i]);
-    //     }
-    // }
-    // auto scale = gko::initialize<vec>({1 / max_diag}, exec);
+    auto diag = A_host->extract_diagonal()->clone(exec->get_master());
+    ValueType max_diag = 0;
+    for (int i = 0; i < diag->get_size()[0]; i++) {
+        if (std::abs(diag->get_values()[i]) > max_diag) {
+            max_diag = std::abs(diag->get_values()[i]);
+        }
+    }
+    for (int row = 0; row < A_host->get_size()[0]; row++) {
+        for (auto i = A_host->get_row_ptrs()[row];
+             i < A_host->get_row_ptrs()[row + 1]; i++) {
+            auto col = A_host->get_col_idxs()[i];
+            A_host->get_values()[i] /=
+                std::sqrt(std::abs(diag->get_values()[row]));
+            A_host->get_values()[i] /=
+                std::sqrt(std::abs(diag->get_values()[col]));
+        }
+    }
+    auto A = gko::share(A_host->clone(exec));
+    std::cout << "max_diag " << max_diag << " scaling "
+              << 65504 / 1024.0 / max_diag << std::endl;
+    // auto scale_host =
+    //     gko::initialize<vec>({65504 / 1024.0 / max_diag},
+    //     exec->get_master());
+    // auto scale = gko::initialize<vec>({65504 / 1024.0 / max_diag}, exec);
     // A->scale(scale.get());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
@@ -199,6 +216,7 @@ int main(int argc, char* argv[])
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
+    // host_b->scale(scale_host.get());
     x->copy_from(host_x.get());
     b->copy_from(host_b.get());
     // b->scale(scale.get());
@@ -259,7 +277,7 @@ int main(int argc, char* argv[])
                     exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto post_smoother_gen = gko::share(
         ir::build()
@@ -268,7 +286,7 @@ int main(int argc, char* argv[])
                     exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto smoother_gen2 = gko::share(
         ir2::build()
@@ -277,7 +295,7 @@ int main(int argc, char* argv[])
                     exec))
             .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto smoother_gen3 = gko::share(
         ir3::build()
@@ -525,6 +543,8 @@ int main(int argc, char* argv[])
             if ((mixed_mode == 2 && i >= 2) || (mixed_mode == 3 && i >= 1)) {
                 auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
                 num_stored_elements = csr->get_num_stored_elements();
+                std::string file = "matrix_" + std::to_string(i) + ".mtx";
+                write(std::ofstream(file), csr);
             } else if ((mixed_mode == 1 && i >= 1) ||
                        (mixed_mode == 2 && i == 1)) {
                 auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
@@ -548,6 +568,9 @@ int main(int argc, char* argv[])
             int num_stored_elements = 0;
             if (mixed_mode == 2 || mixed_mode == 3) {
                 auto csr = gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
+                std::string file =
+                    "matrix_" + std::to_string(mg_level_list.size()) + ".mtx";
+                write(std::ofstream(file), csr);
                 num_stored_elements = csr->get_num_stored_elements();
             } else if (mixed_mode == 1) {
                 auto csr = gko::as<gko::matrix::Csr<MixedType, IndexType>>(op);
@@ -564,8 +587,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    int warmup = 2;
-    int rep = 5;
+    int warmup = 0;
+    int rep = 1;
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
                               : gko::as<gko::LinOp>(cg_solver);
@@ -575,8 +598,9 @@ int main(int argc, char* argv[])
         run_solver->apply(b, x_run);
     }
 
-    auto prof = gko::share(gko::log::ProfilerHook::create_for_executor(exec));
-    run_solver->add_logger(prof);
+    // auto prof =
+    // gko::share(gko::log::ProfilerHook::create_for_executor(exec));
+    // run_solver->add_logger(prof);
     // Solve system
     std::chrono::nanoseconds time(0);
     for (int i = 0; i < rep; i++) {
@@ -588,7 +612,7 @@ int main(int argc, char* argv[])
         auto toc = std::chrono::steady_clock::now();
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
     }
-    run_solver->remove_logger(prof.get());
+    // run_solver->remove_logger(prof.get());
 
 
     // Calculate residual

@@ -442,6 +442,8 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     bool use_pre = has_property(mode, cycle_mode::first_of_cycle) ||
                    mid_case == multigrid::mid_smooth_type::both ||
                    mid_case == multigrid::mid_smooth_type::pre_smoother;
+    auto norm = gko::matrix::Dense<ValueType>::create(r->get_executor(),
+                                                      gko::dim<2>{1, 1});
     if (use_pre && pre_smoother) {
         if (has_property(mode, cycle_mode::x_is_zero)) {
             if (auto pre_allow_zero_input =
@@ -466,9 +468,31 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // additional residual computation
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
+    as<gko::matrix::Dense<ValueType>>(b)->compute_norm2(norm.get());
+    std::cout << level << " b: "
+              << static_cast<double>(
+                     real(norm->get_executor()->copy_val_to_host(
+                         norm->get_values())));
+    auto x_ = gko::matrix::Dense<ValueType>::create(r->get_executor());
+    x_->copy_from(x);
+    x_->compute_norm2(norm.get());
+    std::cout << " x: "
+              << static_cast<double>(
+                     real(norm->get_executor()->copy_val_to_host(
+                         norm->get_values())));
+    // as<gko::matrix::Dense<ValueType>>(x)->compute_norm2(norm.get());
+    // std::cout << " x: "
+    //           << static_cast<double>(
+    //                  real(norm->get_executor()->copy_val_to_host(
+    //                      norm->get_values())));
     r->copy_from(b);  // n * b
     matrix->apply(neg_one, x, one, r);
-
+    as<gko::matrix::Dense<ValueType>>(r)->compute_norm2(norm.get());
+    std::cout << " r: "
+              << static_cast<double>(
+                     real(norm->get_executor()->copy_val_to_host(
+                         norm->get_values())))
+              << std::endl;
     // first cycle
     mg_level->get_restrict_op()->apply(r, g);
     // next level

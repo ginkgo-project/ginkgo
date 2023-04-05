@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 
+#include <bitset>
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -135,8 +135,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
+                auto norm = gko::matrix::Dense<ValueType>::create(
+                    this->get_executor(), gko::dim<2>{1, 1});
+                auto exec = this->get_executor();
+                auto get_norm = [&](auto vector) {
+                    vector->compute_norm2(norm.get());
+                    return static_cast<double>(
+                        real(exec->copy_val_to_host(norm->get_values())));
+                };
+                std::cout << "Jacobi: x: " << get_norm(dense_x);
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
                     this->blocks_, dense_b, dense_x));
+                std::cout << " update x: " << get_norm(dense_x)
+                          << " b: " << get_norm(dense_b) << std::endl;
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
@@ -153,11 +164,23 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                               const LinOp* b, const LinOp* beta,
                                               LinOp* x) const
 {
+    // std::cout << "Jacobi " << parameters_.max_block_size << std::endl;
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
+                auto norm = gko::matrix::Dense<ValueType>::create(
+                    this->get_executor(), gko::dim<2>{1, 1});
+                auto exec = this->get_executor();
+                auto get_norm = [&](auto vector) {
+                    vector->compute_norm2(norm.get());
+                    return static_cast<double>(
+                        real(exec->copy_val_to_host(norm->get_values())));
+                };
+                std::cout << "Jacobi: x: " << get_norm(dense_x);
                 this->get_executor()->run(jacobi::make_scalar_apply(
                     this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
+                std::cout << " update x: " << get_norm(dense_x)
+                          << " b: " << get_norm(dense_b) << std::endl;
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
@@ -307,6 +330,16 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 }
 
 
+template <typename T>
+std::bitset<sizeof(T) * byte_size> get_bits(T val)
+{
+    auto bits =
+        reinterpret_cast<typename gko::detail::float_traits<T>::bits_type&>(
+            val);
+    return std::bitset<sizeof(T) * byte_size>(bits);
+}
+
+
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                                             bool skip_sorting)
@@ -330,7 +363,24 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
                             diag_vt->get_values());
         this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
+
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
+        std::cout << "before" << std::endl;
+        int t = 0;
+
+
+        for (int i = 0; i < temp.get_num_elems() && t < 20; i++) {
+            auto orig_diag = real(exec->copy_val_to_host(temp.get_data() + i));
+
+            auto diag = double(orig_diag);
+            auto inv_diag =
+                double(real(exec->copy_val_to_host(blocks_.get_data() + i)));
+            if (diag == 0) {
+                std::cout << i << " " << get_bits(orig_diag) << " " << diag
+                          << " " << inv_diag << std::endl;
+                t++;
+            }
+        }
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
