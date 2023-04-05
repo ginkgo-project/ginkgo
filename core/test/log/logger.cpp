@@ -236,29 +236,27 @@ struct DummyMpiLogger : gko::log::Logger {
     {}
 
     void on_mpi_point_to_point_communication_started(
-        gko::log::mpi_mode mode, const char* name, const void* comm,
-        const gko::uintptr& loc, int size, const void* type, int source_rank,
-        int destination_rank, int tag, const void* req) const override
+        const gko::Executor* exec, gko::log::mpi::mode mode, const char* name,
+        const void* comm, gko::log::mpi::pt2pt data) const override
     {
         increase_count(mode);
     }
 
     void on_mpi_point_to_point_communication_completed(
-        gko::log::mpi_mode mode, const char* name, const void* comm,
-        const gko::uintptr& loc, int size, const void* type, int source_rank,
-        int destination_rank, int tag, const void* req) const override
+        const gko::Executor* exec, gko::log::mpi::mode mode, const char* name,
+        const void* comm, gko::log::mpi::pt2pt data) const override
     {
         increase_count(mode);
     }
 
 protected:
-    void increase_count(gko::log::mpi_mode mode) const
+    void increase_count(gko::log::mpi::mode mode) const
     {
-        switch (mode) {
-        case gko::log::mpi_mode::blocking:
+        switch (mode.index()) {
+        case 0:
             blocking_count++;
             break;
-        case gko::log::mpi_mode::non_blocking:
+        case 1:
             non_blocking_count++;
             break;
         }
@@ -268,12 +266,13 @@ protected:
 
 TEST(DummyMpiLogger, CanLogBlockingMpiEvents)
 {
+    auto exec = gko::ReferenceExecutor::create();
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>();
 
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
 
     ASSERT_EQ(l->blocking_count, 1);
 }
@@ -281,12 +280,13 @@ TEST(DummyMpiLogger, CanLogBlockingMpiEvents)
 
 TEST(DummyMpiLogger, CanLogNonBlockingMpiEvents)
 {
+    auto exec = gko::ReferenceExecutor::create();
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>();
 
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::non_blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
 
     ASSERT_EQ(l->non_blocking_count, 1);
 }
@@ -294,15 +294,16 @@ TEST(DummyMpiLogger, CanLogNonBlockingMpiEvents)
 
 TEST(DummyMpiLogger, CanExclusivlyLogBlockingMpiEvents)
 {
+    auto exec = gko::ReferenceExecutor::create();
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>(gko::log::mpi_mode::blocking);
 
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::non_blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
 
     ASSERT_EQ(l->blocking_count, 1);
     ASSERT_EQ(l->non_blocking_count, 0);
@@ -311,15 +312,16 @@ TEST(DummyMpiLogger, CanExclusivlyLogBlockingMpiEvents)
 
 TEST(DummyMpiLogger, CanExclusivlyLogNonBlockingMpiEvents)
 {
+    auto exec = gko::ReferenceExecutor::create();
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>(gko::log::mpi_mode::non_blocking);
 
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::non_blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
 
     ASSERT_EQ(l->blocking_count, 0);
     ASSERT_EQ(l->non_blocking_count, 1);
@@ -328,15 +330,16 @@ TEST(DummyMpiLogger, CanExclusivlyLogNonBlockingMpiEvents)
 
 TEST(DummyMpiLogger, CanLogBlockingAndNonBlockingMpiEventsSimultaneously)
 {
+    auto exec = gko::ReferenceExecutor::create();
     using Logger = gko::log::Logger;
     auto l = std::make_shared<DummyMpiLogger>();
 
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
     l->template on<Logger::mpi_point_to_point_communication_started>(
-        gko::log::mpi_mode::non_blocking, "", nullptr, 0, 0, nullptr, 0, 0, 0,
-        nullptr);
+        exec.get(), gko::log::mpi::non_blocking{}, "", nullptr,
+        gko::log::mpi::pt2pt{});
 
     ASSERT_EQ(l->blocking_count, 1);
     ASSERT_EQ(l->non_blocking_count, 1);
