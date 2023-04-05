@@ -57,6 +57,7 @@ using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
 using bicgstab = gko::solver::BatchBicgstab<value_type>;
 using cg = gko::solver::BatchCg<value_type>;
 using gmres = gko::solver::BatchGmres<value_type>;
+using richardson = gko::solver::BatchRichardson<value_type>;
 
 
 // @sect3{'Application' structures and functions}
@@ -152,6 +153,8 @@ int main(int argc, char* argv[])
         argc >= 6 ? (std::string(argv[5]) == "time") : false;
     const bool print_residuals =
         argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
+    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 20;
+    const int gmres_restart = argc >= 9 ? std::atoi(argv[8]) : 10;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
@@ -207,24 +210,34 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_restart(10)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+            .with_restart(gmres_restart)
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type>::build()
+            //         .with_max_block_size(1u)
+            //         .on(exec))
             .on(exec);
     auto solver_cg =
         cg::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type>::build()
+            //         .with_max_block_size(1u)
+            //         .on(exec))
             .on(exec);
     auto solver_bicgstab =
         bicgstab::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(reduction_factor)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            // .with_preconditioner(
+            //     gko::preconditioner::BatchJacobi<value_type>::build()
+            //         .with_max_block_size(1u)
+            //         .on(exec))
+            .on(exec);
+    auto solver_richardson =
+        richardson::build()
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
@@ -249,6 +262,8 @@ int main(int argc, char* argv[])
         solver = solver_gmres->generate(A);
     } else if (in_solver == "bicgstab") {
         solver = solver_bicgstab->generate(A);
+    } else if (in_solver == "richardson") {
+        solver = solver_richardson->generate(A);
     } else {
         throw "Not implemented";
     }
@@ -264,7 +279,6 @@ int main(int argc, char* argv[])
         solver->apply(lend(b), lend(x_clone));
     }
 
-    int num_reps = 20;
     double apply_time = 0.0;
     for (int i = 0; i < num_reps; ++i) {
         x_clone->copy_from(x.get());
