@@ -168,7 +168,6 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
         }
 
         const ValueType d = subwarp_grp.shfl(block_row[k], ipiv);
-
         // scale kth col
         block_row[k] /= -d;
         if (subwarp_grp.thread_rank() == ipiv) {

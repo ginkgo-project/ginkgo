@@ -146,7 +146,8 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        if (sconf.gmem_stride_bytes == 0) {
+        if (sconf.n_global == 0 && sconf.rot_shared && sconf.prec_shared &&
+            sconf.subspace_shared && sconf.hess_shared) {
             hipLaunchKernelGGL(small_apply_kernel<StopType>, nbatch, block_size,
                                shared_size, 0, sconf, opts_.max_its,
                                opts_.residual_tol, opts_.restart_num, logger,

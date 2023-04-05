@@ -45,7 +45,6 @@ namespace gko {
 namespace kernels {
 namespace batch_gmres {
 
-constexpr int max_restart = 20;
 
 /**
  * Options controlling the batch Gmres solver.
@@ -134,10 +133,7 @@ void set_gmem_stride_bytes(StorageConfig& sconf, const int nrows,
                            const int subspace_storage_bytes,
                            const int hess_storage_bytes)
 {
-    int gmem_stride =
-        local_memory_requirement<value_type>(nrows, nrhs, restart) -
-        sconf.n_shared * multi_vector_size_bytes - rot_storage_bytes -
-        prec_storage_bytes - subspace_storage_bytes - hess_storage_bytes;
+    int gmem_stride = sconf.n_global * multi_vector_size_bytes;
     if (!sconf.rot_shared) {
         gmem_stride += rot_storage_bytes;
     }
@@ -227,7 +223,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
             prec_storage, subspace_storage, hess_storage);
         return sconf;
     }
-    rem_shared -= priority_available * vec_size;
+    rem_shared -= priority_available * vec_size * sizeof(ValueType);
     if (rem_shared >= prec_storage) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
