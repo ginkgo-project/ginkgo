@@ -211,8 +211,8 @@ int main(int argc, char* argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(initres);
 
     // copy b again
     b->copy_from(host_b.get());
@@ -571,8 +571,8 @@ int main(int argc, char* argv[])
                               : gko::as<gko::LinOp>(cg_solver);
     auto x_run = x->clone();
     for (int i = 0; i < warmup; i++) {
-        x_run->copy_from(lend(x));
-        run_solver->apply(lend(b), lend(x_run));
+        x_run->copy_from(x);
+        run_solver->apply(b, x_run);
     }
 
     auto prof = gko::share(gko::log::ProfilerHook::create_for_executor(exec));
@@ -580,10 +580,10 @@ int main(int argc, char* argv[])
     // Solve system
     std::chrono::nanoseconds time(0);
     for (int i = 0; i < rep; i++) {
-        x_run->copy_from(lend(x));
+        x_run->copy_from(x);
         exec->synchronize();
         auto tic = std::chrono::steady_clock::now();
-        run_solver->apply(lend(b), lend(x_run));
+        run_solver->apply(b, x_run);
         exec->synchronize();
         auto toc = std::chrono::steady_clock::now();
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
@@ -593,13 +593,13 @@ int main(int argc, char* argv[])
 
     // Calculate residual
     auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x_run), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    A->apply(one, x_run, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Initial residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(initres));
+    write(std::cout, initres);
     std::cout << "Final residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
 
     std::string prefix =
         (mg_mode == "solver") ? "Multigrid" : "Cg With Multigrid";
