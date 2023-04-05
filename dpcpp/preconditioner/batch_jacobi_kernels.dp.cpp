@@ -89,6 +89,7 @@ void batch_jacobi_apply_helper(
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
+    size_type slm_size = device.get_info<sycl::info::device::local_mem_size>();
 
     const dim3 block(group_size);
     const dim3 grid(nbatch);
@@ -98,8 +99,8 @@ void batch_jacobi_apply_helper(
     if (max_block_size == 1u) {
         const auto shared_size =
             BatchScalarJacobi<ValueType>::dynamic_work_size(
-                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
-            sizeof(ValueType);
+                sys_mat_batch.num_rows, sys_mat_batch.num_nnz);
+        GKO_ASSERT(shared_size * sizeof(ValueType) <= slm_size);
         auto prec_scalar_jacobi = BatchScalarJacobi<ValueType>();
 
         (exec->get_queue())->submit([&](sycl::handler& cgh) {
@@ -117,10 +118,9 @@ void batch_jacobi_apply_helper(
                 });
         });
     } else {
-        const auto shared_size =
-            BatchBlockJacobi<ValueType>::dynamic_work_size(
-                sys_mat_batch.num_rows, sys_mat_batch.num_nnz) *
-            sizeof(ValueType);
+        const auto shared_size = BatchBlockJacobi<ValueType>::dynamic_work_size(
+            sys_mat_batch.num_rows, sys_mat_batch.num_nnz);
+        GKO_ASSERT(shared_size * sizeof(ValueType) <= slm_size);
         auto prec_block_jacobi = BatchBlockJacobi<ValueType>(
             max_block_size, num_blocks, storage_scheme,
             cumulative_block_storage, blocks_array, block_ptrs,
