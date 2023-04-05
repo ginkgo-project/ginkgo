@@ -306,7 +306,7 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
 {
     const auto num_rows = to_sort->get_size()[0];
     const auto row_ptrs = to_sort->get_const_row_ptrs();
-    const auto cols = to_sort->get_const_col_idxs();
+    const auto cols = to_sort->get_col_idxs();
     auto queue = exec->get_queue();
     // build sorted postorder node list for each row
     queue->submit([&](sycl::handler& cgh) {
@@ -314,10 +314,9 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            auto lower_end = row_begin;
             // heap-sort the elements
-            std::make_heap(cols + row_begin, cols + lower_end);
-            std::sort_heap(cols + row_begin, cols + lower_end);
+            std::make_heap(cols + row_begin, cols + row_end);
+            std::sort_heap(cols + row_begin, cols + row_end);
         });
     });
 }
