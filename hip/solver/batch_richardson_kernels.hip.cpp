@@ -76,6 +76,27 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
+template <typename BatchMatrixType>
+int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
+                              const int num_rows)
+{
+    int nwarps = num_rows / 4;
+    if (nwarps < 2) {
+        nwarps = 2;
+    }
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
+    const int num_regs_used_per_thread = 64;
+    int max_regs_blk = 0;
+    hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
+                          exec->get_device_id());
+    const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
+    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+}
+
 
 template <typename DValueType>
 class KernelCaller {
@@ -101,8 +122,10 @@ public:
                 a.num_rows, b.num_rhs) +
             PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
                 sizeof(value_type);
+        const int block_size =
+            get_num_threads_per_block<BatchMatrixType>(exec_, a.num_rows);
 
-        hipLaunchKernelGGL(apply_kernel<StopType>, nbatch, default_block_size,
+        hipLaunchKernelGGL(apply_kernel<StopType>, nbatch, block_size,
                            shared_size, 0, opts_.max_its, opts_.residual_tol,
                            opts_.relax_factor, logger, prec, a, b.values,
                            x.values);
