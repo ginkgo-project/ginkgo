@@ -152,6 +152,72 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Csr<ValueType, IndexType>* csr,
+               matrix::Diagonal<ValueType>* diag)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto vals,
+                      auto diag) {
+            auto off_diag = zero(vals[0]);
+            for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+                if (col_idxs[i] == row) {
+                    continue;
+                }
+                off_diag += abs(vals[i]);
+            }
+            diag[row] += off_diag;
+        },
+        csr->get_size()[0], csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_const_values(), diag->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+              const array<IndexType>& block_ptrs,
+              matrix::Csr<ValueType, IndexType>* csr)
+{
+    // Note: there are two another possible ways to do it.
+    // 1. allocate block_num * max_block_size -> have enough thread for rows in
+    // block, and run the process if the threads runs on a valid row.
+    // 2. allocate thread per row -> get the block first, and use it as
+    // diagonal/off-diagonal condition.
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto block_id, auto block_ptrs, auto row_ptrs,
+                      auto col_idxs, auto vals) {
+            auto start = block_ptrs[block_id];
+            auto end = block_ptrs[block_id + 1];
+            for (auto row = start; row < end; row++) {
+                auto off_diag = zero(vals[0]);
+                IndexType diag_idx = -1;
+                for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+                    auto col = col_idxs[i];
+                    if (col >= start && col < end) {
+                        if (col == row) {
+                            diag_idx = i;
+                        }
+                        continue;
+                    }
+                    off_diag += abs(vals[i]);
+                }
+                vals[diag_idx] += off_diag;
+            }
+        },
+        num_blocks, block_ptrs.get_const_data(), csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL);
+
+
 }  // namespace jacobi
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

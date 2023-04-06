@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -110,7 +111,7 @@ protected:
         }
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<typename Bj::Factory> bj_factory;
     std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
@@ -1138,6 +1139,158 @@ TYPED_TEST(Jacobi, ConvertsEmptyToDense)
     res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
 
     ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Jacobi, ScalarL1Diag)
+{
+    /* example matrix:
+        1   1
+        2   2
+       -5       1
+        1      -1
+     */
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{4}, 8);
+    this->template init_array<index_type>(mtx->get_row_ptrs(), {0, 2, 4, 6, 8});
+    this->template init_array<index_type>(mtx->get_col_idxs(),
+                                          {0, 1, 0, 1, 0, 2, 0, 2});
+    this->template init_array<value_type>(
+        mtx->get_values(), {1.0, 1.0, 2.0, 2.0, -5.0, 1.0, 1.0, -1.0});
+    auto diag = mtx->extract_diagonal();
+    auto diag_val = diag->get_const_values();
+
+    gko::kernels::reference::jacobi::scalar_l1(this->exec, mtx.get(),
+                                               diag.get());
+
+    EXPECT_EQ(diag_val[0], value_type{2.0});
+    EXPECT_EQ(diag_val[1], value_type{4.0});
+    EXPECT_EQ(diag_val[2], value_type{6.0});
+    EXPECT_EQ(diag_val[3], value_type{2.0});
+}
+
+
+TYPED_TEST(Jacobi, BlockL1)
+{
+    /* example matrix:
+        1   1
+        2   2
+       -5       1
+        1      -1   1
+     */
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{4}, 9);
+    this->template init_array<index_type>(mtx->get_row_ptrs(), {0, 2, 4, 6, 9});
+    this->template init_array<index_type>(mtx->get_col_idxs(),
+                                          {0, 1, 0, 1, 0, 2, 0, 2, 3});
+    this->template init_array<value_type>(
+        mtx->get_values(), {1.0, 1.0, 2.0, 2.0, -5.0, 1.0, 1.0, -1.0, 1});
+    gko::array<index_type> block_ptr(this->exec, {0, 1, 2, 4});
+
+    gko::kernels::reference::jacobi::block_l1(this->exec, 3, block_ptr,
+                                              mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l({{2.0, 1.0, 0.0, 0.0},
+                           {2.0, 4.0, 0.0, 0.0},
+                           {-5.0, 0.0, 6.0, 0.0},
+                           {1.0, 0.0, -1.0, 2.0}}),
+                        0.0);
+}
+
+
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
+{
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto dense = Vec::create(this->exec);
+    auto bj_factory = Bj::build()
+                          .with_max_block_size(3u)
+                          .with_block_pointers(this->block_pointers)
+                          .with_l1(true)
+                          .on(this->exec);
+    // after L1 modification, it will be the same as the matrix in other tests
+    /* test matrix:
+        2  -2 |        -2
+        -1  4 |
+       -------+----------
+              | 4  -2
+              |-1   4  -2
+       -4     |    -1
+    */
+    auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
+    this->template init_array<index_type>(mtx->get_row_ptrs(),
+                                          {0, 3, 5, 7, 10, 12});
+    this->template init_array<index_type>(
+        mtx->get_col_idxs(), {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    this->template init_array<value_type>(
+        mtx->get_values(),
+        {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
+
+    dense->move_from(bj_factory->generate(mtx));
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(dense,
+        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), r<value_type>::value);
+    // clang-format on
+}
+
+
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
+{
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto dense = Vec::create(this->exec);
+    auto bj_factory = Bj::build()
+                          .with_max_block_size(17u)
+                          // make sure group size is 1
+                          .with_block_pointers(this->block_pointers)
+                          .with_storage_optimization(this->block_precisions)
+                          .with_l1(true)
+                          .on(this->exec);
+    // after L1 modification, it will be the same as the matrix in other tests
+    /* test matrix:
+        2  -2 |        -2
+        -1  4 |
+       -------+----------
+              | 4  -2
+              |-1   4  -2
+       -4     |    -1
+    */
+    auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
+    this->template init_array<index_type>(mtx->get_row_ptrs(),
+                                          {0, 3, 5, 7, 10, 12});
+    this->template init_array<index_type>(
+        mtx->get_col_idxs(), {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    this->template init_array<value_type>(
+        mtx->get_values(),
+        {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
+
+    dense->move_from(bj_factory->generate(mtx));
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(dense,
+        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), half_tol);
+    // clang-format on
 }
 
 

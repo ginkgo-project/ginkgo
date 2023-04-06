@@ -397,6 +397,13 @@ public:
         gko::array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
                                                             nullptr);
 
+        /**
+         * Use L1 Jacboi.
+         * If it is true, it generates the preconditioner on A + Diag(sum_{k in
+         * off diagonal block of i} A_ik) not A.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(l1, false);
+
     private:
         // See documentation of storage_optimization parameter for details about
         // this class

@@ -61,7 +61,7 @@ protected:
         std::initializer_list<gko::precision_reduction> block_precisions,
         std::initializer_list<double> condition_numbers,
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
-        double accuracy = 0.1, bool skip_sorting = true)
+        double accuracy = 0.1, bool skip_sorting = true, bool l1 = false)
     {
         std::default_random_engine engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -92,11 +92,13 @@ protected:
                     .with_max_block_stride(gko::uint32(exec->get_warp_size()))
 #endif
                     .with_skip_sorting(skip_sorting)
+                    .with_l1(l1)
                     .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_skip_sorting(skip_sorting)
+                               .with_l1(l1)
                                .on(exec);
         } else {
             bj_factory =
@@ -109,6 +111,7 @@ protected:
                     .with_storage_optimization(block_prec)
                     .with_accuracy(accuracy)
                     .with_skip_sorting(skip_sorting)
+                    .with_l1(l1)
                     .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
@@ -116,6 +119,7 @@ protected:
                                .with_storage_optimization(block_prec)
                                .with_accuracy(accuracy)
                                .with_skip_sorting(skip_sorting)
+                               .with_l1(l1)
                                .on(exec);
         }
         b = gko::test::generate_random_matrix<Vec>(
@@ -283,6 +287,58 @@ TEST_F(Jacobi,
 }
 
 
+TEST_F(Jacobi, ScalarInLargeMatrixEquivalentToRef)
+{
+    /* example matrix:
+        1   1
+        1   1
+        1       1
+     */
+    using data = gko::matrix_data<double, int>;
+    auto mtx = share(Mtx::create(ref));
+    mtx->read(data::diag({550, 550},
+                         {{1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 1.0}}));
+
+    auto bj =
+        Bj::build().with_max_block_size(1u).with_l1(true).on(ref)->generate(
+            mtx);
+    auto d_bj =
+        Bj::build().with_max_block_size(1u).with_l1(true).on(exec)->generate(
+            mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+}
+
+
+TEST_F(Jacobi, BlockL1InLargeMatrixEquivalentToRef)
+{
+    /* example matrix duplicated 50 times:
+        1   1       1
+        1   1       1
+        1       1   1
+        1       1   1
+        1       1
+     */
+    using data = gko::matrix_data<double, int>;
+    auto mtx = share(Mtx::create(ref));
+    mtx->read({{50, 50},
+               {{1.0, 1.0, 0.0, 1.0, 0.0},
+                {1.0, 1.0, 0.0, 1.0, 0.0},
+                {1.0, 0.0, 1.0, 1.0, 0.0},
+                {1.0, 0.0, 1.0, 1.0, 0.0},
+                {1.0, 0.0, 1.0, 0.0, 0.0}}});
+
+    auto bj =
+        Bj::build().with_max_block_size(3u).with_l1(true).on(ref)->generate(
+            mtx);
+    auto d_bj =
+        Bj::build().with_max_block_size(3u).with_l1(true).on(exec)->generate(
+            mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+}
+
+
 TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize32Sorted)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110);
@@ -298,6 +354,20 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize32Unsorted)
 {
     std::default_random_engine engine(42);
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
+    gko::test::unsort_matrix(mtx.get(), engine);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+}
+
+
+TEST_F(Jacobi, L1PreconditionerEquivalentToRefWithBlockSize32Unsorted)
+{
+    std::default_random_engine engine(42);
+    initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false,
+                    true);
     gko::test::unsort_matrix(mtx.get(), engine);
 
     auto bj = bj_factory->generate(mtx);
@@ -465,6 +535,58 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
     d_sj->apply(d_sb, d_sx);
 
     GKO_ASSERT_MTX_NEAR(sx, d_sx, 1e-12);
+}
+
+
+TEST_F(Jacobi, ScalarL1ApplyEquivalentToRef)
+{
+    gko::size_type dim = 313;
+    std::default_random_engine engine(42);
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::utils::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
+    auto smtx = gko::share(Mtx::create(ref));
+    smtx->copy_from(dense_smtx);
+    auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref));
+    auto sx = Vec::create(ref, sb->get_size());
+
+    auto d_smtx = gko::share(Mtx::create(exec));
+    auto d_sb = gko::share(Vec::create(exec));
+    auto d_sx = gko::share(Vec::create(exec, sb->get_size()));
+    d_smtx->copy_from(smtx);
+    d_sb->copy_from(sb);
+
+    auto sj =
+        Bj::build().with_max_block_size(1u).with_l1(true).on(ref)->generate(
+            smtx);
+    auto d_sj =
+        Bj::build().with_max_block_size(1u).with_l1(true).on(exec)->generate(
+            d_smtx);
+
+    sj->apply(sb, sx);
+    d_sj->apply(d_sb, d_sx);
+
+    GKO_ASSERT_MTX_NEAR(sx, d_sx, 1e-12);
+}
+
+
+TEST_F(Jacobi, BlockL1ApplyEquivalentToRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+                    97, 99, 1, 0.1, true, true);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
