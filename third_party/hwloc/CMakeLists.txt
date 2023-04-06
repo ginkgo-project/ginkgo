@@ -2,6 +2,7 @@ message(STATUS "Configuring and building HWLOC")
 set(TPL_HWLOC_PATH "${PROJECT_BINARY_DIR}/third_party/hwloc")
 ginkgo_load_and_configure_package(hwloc_external "https://download.open-mpi.org/release/hwloc/v2.4/hwloc-2.4.1.tar.gz"
     "SHA1=b94950e8958e1125ca75ecac0bc0259ee3d108c4"
+    ""
     "${TPL_HWLOC_PATH}/src/configure" "--disable-nvml" "--disable-cuda" "--disable-rsmi"
     )
 
