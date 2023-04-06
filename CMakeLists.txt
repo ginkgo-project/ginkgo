@@ -79,6 +79,7 @@ if(MSVC OR WIN32 OR CYGWIN OR APPLE)
 else()
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 endif()
+option(GINKGO_BUILD_PAPI_SDE "Build Ginkgo with PAPI SDE. Default is OFF." OFF)
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
@@ -191,11 +192,10 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
-# PAPI is temporarily disabled
-#find_package(PAPI OPTIONAL_COMPONENTS sde)
-#if(PAPI_sde_FOUND)
-#    set(GINKGO_HAVE_PAPI_SDE 1)
-#endif()
+find_package(PAPI OPTIONAL_COMPONENTS sde)
+if(PAPI_sde_FOUND)
+    set(GINKGO_HAVE_PAPI_SDE 1)
+endif()
 
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)
@@ -231,6 +231,12 @@ if(GINKGO_BUILD_HWLOC)
 else()
     set(GINKGO_HAVE_HWLOC 0)
     message(STATUS "HWLOC is being forcibly switched off")
+endif()
+if(GINKGO_BUILD_PAPI_SDE)
+    set(GINKGO_HAVE_PAPI_SDE 1)
+else()
+    set(GINKGO_HAVE_PAPI_SDE 0)
+    message(STATUS "PAPI SDE is being forcibly switched off")
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
@@ -271,6 +277,10 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 if(GINKGO_BUILD_HWLOC)
     find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+endif()
+if(GINKGO_BUILD_PAPI_SDE)
+    # No need for QUIET as we ship FindPAPI
+    find_package(PAPI OPTIONAL_COMPONENTS sde)
 endif()
 add_subdirectory(third_party)    # Third-party tools and libraries
 

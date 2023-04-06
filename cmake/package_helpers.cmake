@@ -7,9 +7,10 @@ set(NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT
 #   \param package_name     Name of the package
 #   \param package_url      Url of the package
 #   \param package_tag      Tag or version of the package to be downloaded.
+#   \param working_dir      The directory where the configure/build should happen.
 #   \param config_command   The command for the configuration step.
 #
-function(ginkgo_load_and_configure_package package_name package_url package_hash config_command)
+function(ginkgo_load_and_configure_package package_name package_url package_hash working_dir config_command)
     set(GINKGO_THIRD_PARTY_BUILD_TYPE "Debug")
     if (CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
         set(GINKGO_THIRD_PARTY_BUILD_TYPE "Release")

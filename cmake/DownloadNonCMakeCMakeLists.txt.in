@@ -3,12 +3,25 @@ project(${package_name})
 
 include(ExternalProject)
 ExternalProject_Add(${package_name}
-    URL "${package_url}"
-    URL_HASH "${package_hash}"
+    URL               "${package_url}"
+    URL_HASH          "${package_hash}"
     DOWNLOAD_NO_PROGRESS TRUE
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/src"
-    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/build"
-    CONFIGURE_COMMAND "${config_command}" "${ARGN}"
-    INSTALL_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
     UPDATE_DISCONNECTED ${GINKGO_SKIP_DEPENDENCY_UPDATE}
     )
+
+ExternalProject_Add_Step(${package_name} custom_configure
+    COMMAND "${config_command}" "${ARGN}"
+    WORKING_DIRECTORY "${working_dir}"
+    DEPENDEES download)
+ExternalProject_Add_Step(${package_name} custom_build
+    COMMAND make
+    WORKING_DIRECTORY "${working_dir}"
+    DEPENDEES custom_configure)
+ExternalProject_Add_Step(${package_name} custom_install
+    COMMAND make all install
+    WORKING_DIRECTORY "${working_dir}"
+    DEPENDEES custom_build)

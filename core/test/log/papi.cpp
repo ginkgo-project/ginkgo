@@ -71,7 +71,11 @@ protected:
         }
     }
 
-    void TearDown() { eventset = PAPI_NULL; }
+    void TearDown() {
+        logger = nullptr;
+        PAPI_destroy_eventset(&eventset);
+        PAPI_shutdown();
+    }
 
     template <typename U>
     const std::string init(const gko::log::Logger::mask_type& event,
