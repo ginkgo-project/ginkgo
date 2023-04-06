@@ -48,7 +48,9 @@ int main(int argc, char* argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using cg = gko::solver::Cg<ValueType>;
+    using gmres = gko::solver::Gmres<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
@@ -81,15 +83,23 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A_file = std::ifstream("data/ef_A.mtx");
+    auto A_data = gko::read_raw<ValueType, IndexType>(A_file);
+    // A_data.remove_zeros();
+    auto A = gko::share(mtx::create(exec));
+    A->read(A_data);
+    // auto A = share(gko::read<mtx>(, exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    auto host_b =
+        gko::read<vec>(std::ifstream("data/ef_b.mtx"), exec->get_master());
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
-        host_b->at(i, 0) = 1.;
+        // host_b->at(i, 0) = 1.;
     }
+    // host_x->copy_from(host_b);
     auto x = vec::create(exec);
     auto b = vec::create(exec);
     x->copy_from(host_x);
@@ -106,9 +116,9 @@ int main(int argc, char* argv[])
     b->copy_from(host_b);
 
     // Prepare the stopping criteria
-    const gko::remove_complex<ValueType> tolerance = 1e-8;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
+    const gko::remove_complex<ValueType> tolerance = 1e-7;
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
@@ -119,17 +129,38 @@ int main(int argc, char* argv[])
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
+    auto inner_solver_gen = gko::share(bj::build().on(exec));
+    auto smoother_gen = gko::share(
+        ir::build()
+            .with_solver(inner_solver_gen)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            // .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
+            .on(exec));
+    auto coarsest_gen = gko::share(
+        gmres::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec))
+            .with_flexible(false)
+            .on(exec));
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     multigrid_gen =
         mg::build()
+            // .with_max_levels(12u)
             .with_mg_level(pgm::build().with_deterministic(true).on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
+            .with_pre_smoother(smoother_gen)
+            // .with_pre_smoother(smoother_gen)
+            .with_coarsest_solver(smoother_gen)
             .on(exec);
-    auto solver_gen = cg::build()
+    auto solver_gen = gmres::build()
                           .with_criteria(iter_stop, tol_stop)
                           .with_preconditioner(multigrid_gen)
+                          .with_flexible(false)
                           .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
@@ -160,13 +191,13 @@ int main(int argc, char* argv[])
     write(std::cout, res);
 
     // Print solver statistics
-    std::cout << "CG iteration count:     " << logger->get_num_iterations()
+    std::cout << "Gmres iteration count:     " << logger->get_num_iterations()
               << std::endl;
-    std::cout << "CG generation time [ms]: "
+    std::cout << "Gmres generation time [ms]: "
               << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
-    std::cout << "CG execution time [ms]: "
+    std::cout << "Gmres execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
-    std::cout << "CG execution time per iteraion[ms]: "
+    std::cout << "Gmres execution time per iteraion[ms]: "
               << static_cast<double>(time.count()) / 1000000.0 /
                      logger->get_num_iterations()
               << std::endl;
