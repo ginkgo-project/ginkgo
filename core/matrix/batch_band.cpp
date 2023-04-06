@@ -98,6 +98,51 @@ template <typename ValueType>
 void BatchBand<ValueType>::move_to(BatchDense<ValueType>* const result)
     GKO_NOT_IMPLEMENTED;
 
+namespace {
+
+template <typename ValueType>
+void validate_conversion_to_tridiagonal(
+    const BatchBand<ValueType>* const band_mat)
+{
+    if (band_mat->get_size().stores_equal_sizes() &&
+        band_mat->get_num_lower_diagonals().stores_equal_strides() &&
+        band_mat->get_num_upper_diagonals().stores_equal_strides() &&
+        band_mat->get_num_batch_entries() >= 1) {
+        const auto nrows = band_mat->get_size().at(0)[0];
+        const auto kl = band_mat->get_num_lower_diagonals().at(0);
+        const auto ku = band_mat->get_num_upper_diagonals().at(0);
+        GKO_ASSERT(kl <= 1 && ku <= 1);
+    } else {
+        for (size_type batch_entry_idx = 0;
+             batch_entry_idx < band_mat->get_num_batch_entries();
+             batch_entry_idx++) {
+            const auto nrows = band_mat->get_size().at(batch_entry_idx)[0];
+            const auto kl =
+                band_mat->get_num_lower_diagonals().at(batch_entry_idx);
+            const auto ku =
+                band_mat->get_num_upper_diagonals().at(batch_entry_idx);
+            GKO_ASSERT(kl <= 1 && ku <= 1);
+        }
+    }
+}
+
+}  // namespace
+
+template <typename ValueType>
+void BatchBand<ValueType>::convert_to(
+    BatchTridiagonal<ValueType>* const result) const
+{
+    validate_conversion_to_tridiagonal(this);
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+template <typename ValueType>
+void BatchBand<ValueType>::move_to(BatchTridiagonal<ValueType>* const result)
+{
+    validate_conversion_to_tridiagonal(this);
+    GKO_NOT_IMPLEMENTED;
+}
 
 namespace {
 

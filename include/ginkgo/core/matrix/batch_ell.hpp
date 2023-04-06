@@ -47,6 +47,9 @@ namespace matrix {
 template <typename ValueType>
 class BatchDense;
 
+template <typename ValueType>
+class BatchBand;
+
 template <typename ValueType, typename IndexType>
 class BatchEll;
 
@@ -72,6 +75,7 @@ class BatchEll
     : public EnableBatchLinOp<BatchEll<ValueType, IndexType>>,
       public EnableCreateMethod<BatchEll<ValueType, IndexType>>,
       public ConvertibleTo<BatchEll<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<BatchBand<ValueType>>,
       public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
@@ -118,6 +122,10 @@ public:
     void convert_to(BatchDense<ValueType>* result) const override;
 
     void move_to(BatchDense<ValueType>* result) override;
+
+    void convert_to(BatchBand<ValueType>* result) const override;
+
+    void move_to(BatchBand<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 

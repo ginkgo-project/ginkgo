@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/batch_band.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
@@ -326,6 +327,15 @@ void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
     // set the size of this to 0
     this->set_size(batch_dim<2>());
 }
+
+template <typename ValueType>
+void BatchDense<ValueType>::convert_to(BatchBand<ValueType>* const result) const
+    GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::move_to(BatchBand<ValueType>* const result)
+    GKO_NOT_IMPLEMENTED;
 
 
 namespace {

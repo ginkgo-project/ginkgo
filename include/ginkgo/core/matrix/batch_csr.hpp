@@ -47,6 +47,9 @@ namespace matrix {
 template <typename ValueType>
 class BatchDense;
 
+template <typename ValueType>
+class BatchBand;
+
 template <typename ValueType, typename IndexType>
 class BatchCsr;
 
@@ -72,6 +75,7 @@ class BatchCsr
       public EnableCreateMethod<BatchCsr<ValueType, IndexType>>,
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<BatchDense<ValueType>>,
+      public ConvertibleTo<BatchBand<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
       public BatchTransposable,
@@ -115,6 +119,10 @@ public:
     void convert_to(BatchDense<ValueType>* result) const override;
 
     void move_to(BatchDense<ValueType>* result) override;
+
+    void convert_to(BatchBand<ValueType>* result) const override;
+
+    void move_to(BatchBand<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 

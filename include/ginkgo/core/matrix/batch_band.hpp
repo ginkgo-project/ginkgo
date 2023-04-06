@@ -58,11 +58,58 @@ class BatchCsr;
 template <typename ValueType>
 class BatchDense;
 
+template <typename ValueType>
+class BatchTridiagonal;
 
 /**
  * BatchBand is a matrix format that holds a collection of banded
  * matrices.
  *
+ * We use the LAPACK band storage format, i.e.,
+ * each band matrix is stored in a dense band array of size: (N, 2 * KL + KU +
+ * 1), where N is the size of the matrix, KL is the number of sub-diagonals and
+ * KU is the number of super-diagonals. The main diagonal is stored at row
+ * index: KL + KU (assuming 0 based indexing); the super-diagonals are stored in
+ * rows: KU- 1 to KU + KL -1; and the sub-diagonals are stored in the last KL
+ * rows. Extra KL rows (above the super-diagonals) are required for pivoting.
+ *
+ * Example:
+ * General band matrix with N = 6 , KL = 2, KU = 1
+ *
+ *
+ *    A =           1   3    0   0   0   0
+ *                  2   9    3   0   0   0
+ *                  1   8    4  -8   0   0
+ *                  0   2    7   3   9   0
+ *                  0   0    8   1   2   3
+ *                  0   0    0   9   5   6
+ *
+ *                   | |
+ *                   | |
+ *                   \_/
+ *
+ *
+ *     Stored as the following band array:
+ *
+ *
+ *   Band_array_A =  *   *    *    *   *   *
+ *                   *   *    *    *   *   *
+ *                   *   3    3   -8   9   3
+ *                   1   9    4    3   2   6
+ *                   2   8    7    1   5   *
+ *                   1   2    8    9   *   *
+ *
+ *
+ * In short, the element at position: (i,j) in the dense layout is stored at
+ * position: (KL + KU + i - j, j) in the band layout, for max(0, j - KU)  <= i
+ * <=  min(N-1 , j + KL).
+ *
+ * @note We choose to store the band array in a colum major order to enable
+ * efficient memory accesses during the banded solves.
+ *
+ * @note A strided batched format is used, i.e. the whole band array of the
+ * first matrix is stored first, then the complete band array of the second
+ * matrix and so on.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -77,6 +124,7 @@ class BatchBand : public EnableBatchLinOp<BatchBand<ValueType>>,
                   public ConvertibleTo<BatchBand<next_precision<ValueType>>>,
                   public ConvertibleTo<BatchCsr<ValueType, int32>>,
                   public ConvertibleTo<BatchDense<ValueType>>,
+                  public ConvertibleTo<BatchTridiagonal<ValueType>>,
                   public BatchReadableFromMatrixData<ValueType, int32>,
                   public BatchReadableFromMatrixData<ValueType, int64>,
                   public BatchWritableToMatrixData<ValueType, int32>,
@@ -102,8 +150,6 @@ public:
     using complex_type = to_complex<BatchBand>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
-
-    // TO ADD: Conversion from batch dense, csr and ell to batch band???
 
     /**
      * Creates a BatchBand matrix with the configuration of another
@@ -136,6 +182,10 @@ public:
 
     void move_to(BatchDense<ValueType>* result) override;
 
+    void convert_to(BatchTridiagonal<ValueType>* result) const override;
+
+    void move_to(BatchTridiagonal<ValueType>* result) override;
+
     void read(const std::vector<mat_data>& data) override;
 
     void read(const std::vector<mat_data32>& data) override;
@@ -154,6 +204,11 @@ public:
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
+    /**
+     * Returns true if the element at position: ('dense_row', 'dense_col') lies
+     * in the band of matrix having batch index = 'batch'.
+     *
+     */
     bool check_if_element_is_part_of_the_band_for_dense_layout_indices(
         size_type batch, size_type dense_row,
         size_type dense_col) const noexcept
@@ -172,6 +227,17 @@ public:
         }
     }
 
+    /**
+     * @brief Returns the linear index in respect of the column major band
+     * array, of an element, described by indices in the dense layout.
+     *
+     * @param batch the batch entry index
+     * @param dense_row the row index of the element (with respect to the dense
+     * layout)
+     * @param dense_col the column index of the element (with respect to the
+     * dense layout)
+     *
+     */
     size_type get_linear_index_wrt_band_arr_for_dense_layout_indices(
         size_type batch, size_type dense_row, size_type dense_col) const
     {
@@ -192,11 +258,14 @@ public:
     }
 
     /**
-     * Returns a single element for a particular batch.
+     * Returns an element, described by position in the band layout, for a
+     * particular batch.
      *
      * @param batch  the batch index to be queried
-     * @param row  the row of the requested element
-     * @param col  the column of the requested element
+     * @param row_in_dense_layout  the row of the requested element (with
+     * respect to the dense layout)
+     * @param col_in_dense_layout  the column of the requested element (with
+     * respect to the dense layout)
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
@@ -213,7 +282,8 @@ public:
     }
 
     /**
-     * @copydoc BatchBand::at(size_type, size_type, size_type)
+     * @copydoc BatchBand::at_in_reference_to_dense_layout(size_type, size_type,
+     * size_type)
      */
     value_type at_in_reference_to_dense_layout(
         size_type batch, size_type row_in_dense_layout,
@@ -225,6 +295,17 @@ public:
                 batch, row_in_dense_layout, col_in_dense_layout)];
     }
 
+    /**
+     * @brief Returns the linear index in respect of the column major band
+     * array, of an element, described by indices in the band array.
+     *
+     * @param batch the batch entry index
+     * @param band_row the row index of the element (with respect to the band
+     * layout)
+     * @param band_col the column index of the element (with respect to the band
+     * layout)
+     *
+     */
     size_type get_linear_index_wrt_band_arr_for_band_layout_indices(
         size_type batch, size_type band_row, size_type band_col) const
     {
@@ -236,6 +317,20 @@ public:
                band_col * (2 * kl + ku + 1);
     }
 
+    /**
+     * Returns a single element, described by position in the band layout, for a
+     * particular batch.
+     *
+     * @param batch  the batch index to be queried
+     * @param row_in_band_layout  the row of the requested element (with respect
+     * to the band layout)
+     * @param col_in_band_layout  the column of the requested element (with
+     * respect to the band layout)
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the OMP results in a runtime error)
+     */
     value_type& at_in_reference_to_band_layout(size_type batch,
                                                size_type row_in_band_layout,
                                                size_type col_in_band_layout)
@@ -246,6 +341,10 @@ public:
                 batch, row_in_band_layout, col_in_band_layout)];
     }
 
+    /**
+     * @copydoc BatchBand::at_in_reference_to_band_layout(size_type, size_type,
+     * size_type)
+     */
     value_type at_in_reference_to_band_layout(
         size_type batch, size_type row_in_band_layout,
         size_type col_in_band_layout) const
@@ -304,8 +403,18 @@ public:
                num_elems_per_batch_cumul_.get_const_data()[batch];
     }
 
+    /**
+     * Returns the number of sub-diagonals in the band matrix.
+     *
+     * @return the number of sub-diagonals in the band matrix.
+     */
     batch_stride get_num_lower_diagonals() const noexcept { return KL_; }
 
+    /**
+     * Returns the number of super-diagonals in the band matrix.
+     *
+     * @return the number of super-diagonals in the band matrix.
+     */
     batch_stride get_num_upper_diagonals() const noexcept { return KU_; }
 
     /**
@@ -336,14 +445,14 @@ public:
     }
 
     /**
-     * Creates a constant (immutable) batch tridiagonal matrix from a constant
+     * Creates a constant (immutable) batch band matrix from a constant
      * array.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param KLs
-     * @param Kus
-     * @param band_arr_col_major
+     * @param KLs the number of sub-diagonals
+     * @param Kus the number of super-diagonals
+     * @param band_arr_col_major the band array in the prescribed format
      * @returns A smart pointer to the constant matrix wrapping the input array
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
@@ -401,6 +510,9 @@ private:
         return num_elems;
     }
 
+    /**
+     * Validate number of sub and super diagonals.
+     */
     void validate_KL_and_KU() const
     {
         GKO_ASSERT(this->KL_.get_num_batch_entries() ==
@@ -437,8 +549,10 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
-     * @param KL
-     * @param KU
+     * @param KL number of sub-diagonals in the batch matrices in a batch_stride
+     * object
+     * @param KU number of super-diagonals in the batch matrices in a
+     * batch_stride object
      *
      */
     BatchBand(std::shared_ptr<const Executor> exec,
@@ -465,10 +579,13 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  sizes of the batch matrices in a batch_dim object
-     * @param KL
-     * @param KU
-     * @param band_arr_col_major band stored in dense column major array.
-     * Please note that a dense band array in any format other than the one
+     * @param KL number of sub-diagonals in the batch matrices in a batch_stride
+     * object
+     * @param KU number of super-diagonals in the batch matrices in a
+     * batch_stride object
+     * @param band_arr_col_major band array in the prescribed format
+     *
+     * @note Please note that band array in any format other than the one
      * documented with this class will lead to undefined behviour.
      *
      * @note If 'band_arr_col_major' is not
