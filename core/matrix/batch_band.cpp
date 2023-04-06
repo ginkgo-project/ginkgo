@@ -105,12 +105,12 @@ void validate_conversion_to_tridiagonal(
     const BatchBand<ValueType>* const band_mat)
 {
     if (band_mat->get_size().stores_equal_sizes() &&
-        band_mat->get_num_lower_diagonals().stores_equal_strides() &&
-        band_mat->get_num_upper_diagonals().stores_equal_strides() &&
+        band_mat->get_num_subdiagonals().stores_equal_strides() &&
+        band_mat->get_num_superdiagonals().stores_equal_strides() &&
         band_mat->get_num_batch_entries() >= 1) {
         const auto nrows = band_mat->get_size().at(0)[0];
-        const auto kl = band_mat->get_num_lower_diagonals().at(0);
-        const auto ku = band_mat->get_num_upper_diagonals().at(0);
+        const auto kl = band_mat->get_num_subdiagonals().at(0);
+        const auto ku = band_mat->get_num_superdiagonals().at(0);
         GKO_ASSERT(kl <= 1 && ku <= 1);
     } else {
         for (size_type batch_entry_idx = 0;
@@ -118,9 +118,9 @@ void validate_conversion_to_tridiagonal(
              batch_entry_idx++) {
             const auto nrows = band_mat->get_size().at(batch_entry_idx)[0];
             const auto kl =
-                band_mat->get_num_lower_diagonals().at(batch_entry_idx);
+                band_mat->get_num_subdiagonals().at(batch_entry_idx);
             const auto ku =
-                band_mat->get_num_upper_diagonals().at(batch_entry_idx);
+                band_mat->get_num_superdiagonals().at(batch_entry_idx);
             GKO_ASSERT(kl <= 1 && ku <= 1);
         }
     }
@@ -311,8 +311,8 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
         const auto size = mtx->get_size().at(batch_entry_idx)[0];
         data[batch_entry_idx] = {mtx->get_size().at(batch_entry_idx), {}};
 
-        const auto kl = tmp->get_num_lower_diagonals().at(batch_entry_idx);
-        const auto ku = tmp->get_num_upper_diagonals().at(batch_entry_idx);
+        const auto kl = tmp->get_num_subdiagonals().at(batch_entry_idx);
+        const auto ku = tmp->get_num_superdiagonals().at(batch_entry_idx);
 
         for (size_type row = 0; row < data[batch_entry_idx].size[0]; ++row) {
             for (size_type col = static_cast<size_type>(std::max(

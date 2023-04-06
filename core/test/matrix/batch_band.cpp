@@ -122,10 +122,10 @@ protected:
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
         ASSERT_EQ(m->get_size().at(1), gko::dim<2>(5, 5));
 
-        ASSERT_EQ(m->get_num_lower_diagonals().at(0), 1);
-        ASSERT_EQ(m->get_num_lower_diagonals().at(1), 3);
-        ASSERT_EQ(m->get_num_upper_diagonals().at(0), 2);
-        ASSERT_EQ(m->get_num_upper_diagonals().at(1), 1);
+        ASSERT_EQ(m->get_num_subdiagonals().at(0), 1);
+        ASSERT_EQ(m->get_num_subdiagonals().at(1), 3);
+        ASSERT_EQ(m->get_num_superdiagonals().at(0), 2);
+        ASSERT_EQ(m->get_num_superdiagonals().at(1), 1);
 
         ASSERT_EQ(m->get_num_stored_elements(),
                   (4 * (2 * 1 + 2 + 1)) + (5 * (2 * 3 + 1 + 1)));
@@ -209,10 +209,10 @@ TYPED_TEST(BatchBand, CanBeConstructedWith_Size_KL_LU)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(4, 4));
 
-    ASSERT_EQ(m->get_num_lower_diagonals().at(0), 1);
-    ASSERT_EQ(m->get_num_lower_diagonals().at(1), 2);
-    ASSERT_EQ(m->get_num_upper_diagonals().at(0), 2);
-    ASSERT_EQ(m->get_num_upper_diagonals().at(1), 3);
+    ASSERT_EQ(m->get_num_subdiagonals().at(0), 1);
+    ASSERT_EQ(m->get_num_subdiagonals().at(1), 2);
+    ASSERT_EQ(m->get_num_superdiagonals().at(0), 2);
+    ASSERT_EQ(m->get_num_superdiagonals().at(1), 3);
     ASSERT_EQ(m->get_num_stored_elements(),
               (3 * (2 * 1 + 2 + 1)) + (4 * (2 * 2 + 3 + 1)));
     ASSERT_EQ(m->get_num_stored_elements(0), (3 * (2 * 1 + 2 + 1)));
@@ -615,9 +615,9 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixData)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
 
-    ASSERT_EQ(m->get_num_lower_diagonals(),
+    ASSERT_EQ(m->get_num_subdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
-    ASSERT_EQ(m->get_num_upper_diagonals(),
+    ASSERT_EQ(m->get_num_superdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
 
     ASSERT_EQ(m->get_num_stored_elements(), 40);
@@ -696,9 +696,9 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixAssemblyData)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
 
-    ASSERT_EQ(m->get_num_lower_diagonals(),
+    ASSERT_EQ(m->get_num_subdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
-    ASSERT_EQ(m->get_num_upper_diagonals(),
+    ASSERT_EQ(m->get_num_superdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
 
     ASSERT_EQ(m->get_num_stored_elements(), 40);
@@ -776,9 +776,9 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixDataWhenKLAndKUAreGivenByTheUser)
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
 
-    ASSERT_EQ(m->get_num_lower_diagonals(),
+    ASSERT_EQ(m->get_num_subdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
-    ASSERT_EQ(m->get_num_upper_diagonals(),
+    ASSERT_EQ(m->get_num_superdiagonals(),
               gko::batch_stride(std::vector<gko::size_type>{2, 1}));
 
     ASSERT_EQ(m->get_num_stored_elements(), 40);

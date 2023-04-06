@@ -408,14 +408,14 @@ public:
      *
      * @return the number of sub-diagonals in the band matrix.
      */
-    batch_stride get_num_lower_diagonals() const noexcept { return KL_; }
+    batch_stride get_num_subdiagonals() const noexcept { return KL_; }
 
     /**
      * Returns the number of super-diagonals in the band matrix.
      *
      * @return the number of super-diagonals in the band matrix.
      */
-    batch_stride get_num_upper_diagonals() const noexcept { return KU_; }
+    batch_stride get_num_superdiagonals() const noexcept { return KU_; }
 
     /**
      * Returns the number of elements explicitly stored in the batch matrix,
@@ -636,10 +636,10 @@ protected:
                         input->get_size().at(0))),
           KL_{gko::batch_stride(
               input->get_num_batch_entries() * num_duplications,
-              input->get_num_lower_diagonals().at(0))},
+              input->get_num_subdiagonals().at(0))},
           KU_{gko::batch_stride(
               input->get_num_batch_entries() * num_duplications,
-              input->get_num_upper_diagonals().at(0))}
+              input->get_num_superdiagonals().at(0))}
     //   band_array_col_major_(exec,
     //                         compute_batch_mem(this->get_size(), KL_, KU_))
     //                         //Results in seg. fault??
@@ -650,8 +650,8 @@ protected:
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
 
         num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
-            exec->get_master(), this->get_size(),
-            this->get_num_lower_diagonals(), this->get_num_upper_diagonals());
+            exec->get_master(), this->get_size(), this->get_num_subdiagonals(),
+            this->get_num_superdiagonals());
         size_type offset = 0;
 
         for (size_type i = 0; i < num_duplications; ++i) {
