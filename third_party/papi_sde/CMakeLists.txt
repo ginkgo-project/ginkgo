@@ -5,8 +5,8 @@ ginkgo_load_and_configure_package(papi_external
     "SHA1=540c18a14eeafb83cd60cbbf0a96706111dbff3b"
     "${TPL_PAPI_PATH}/src"
     "./configure" "--prefix=${TPL_PAPI_PATH}/install"
-    "--with-components=sde" "--with-libsde=yes" "--with-tests=no"
-    "--with-static-lib=no" "--with-shared-lib=yes"
+        "--with-components=sde" "--with-libsde=yes" "--with-tests=no"
+        "--with-static-lib=no" "--with-shared-lib=yes"
     )
 
 add_library(PAPI SHARED IMPORTED GLOBAL)
