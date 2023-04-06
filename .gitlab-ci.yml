@@ -113,6 +113,7 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
     CUDA_ARCH: 35
 
 # Job with example runs.
+# Also explicitly test PAPI SDE
 build/cuda101/openmpi/gcc/all/debug/shared:
   extends:
     - .build_template
@@ -126,6 +127,7 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     MPI_AS_ROOT: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    BUILD_PAPI_SDE: "ON"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
