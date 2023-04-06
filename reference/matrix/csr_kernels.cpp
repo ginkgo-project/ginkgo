@@ -150,8 +150,9 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    arithmetic_type valpha = alpha->at(0, 0);
-    arithmetic_type vbeta = beta->at(0, 0);
+    // TODO: check the difference between this and values_near
+    arithmetic_type valpha{alpha->at(0, 0)};
+    arithmetic_type vbeta{beta->at(0, 0)};
 
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
