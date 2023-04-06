@@ -357,28 +357,29 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
                                      size_type next_nrows)
 {
     using vec = matrix::Dense<ValueType>;
+    using work_vec = matrix::Dense<double>;
     using norm_vec = matrix::Dense<remove_complex<ValueType>>;
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+    r_list.emplace_back(work_vec::create(exec, dim<2>{current_nrows, nrhs}));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+        g_list.emplace_back(
+            work_vec::create(exec, dim<2>{current_nrows, nrhs}));
         // e always use double
         e_list.emplace_back(
-            matrix::Dense<double>::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(
-            initialize<matrix::Dense<double>>({one<double>()}, exec));
+            work_vec::create(exec, dim<2>{current_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        g_list.emplace_back(work_vec::create(exec, dim<2>{next_nrows, nrhs}));
+        e_list.emplace_back(work_vec::create(exec, dim<2>{next_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
     }
-    one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<ValueType>()}, exec));
+    one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
+    neg_one_list.emplace_back(initialize<work_vec>({-one<double>()}, exec));
 }
 
 
@@ -468,18 +469,18 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // additional residual computation
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
-    as<gko::matrix::Dense<ValueType>>(b)->compute_norm2(norm.get());
-    std::cout << level << " b: "
-              << static_cast<double>(
-                     real(norm->get_executor()->copy_val_to_host(
-                         norm->get_values())));
-    auto x_ = gko::matrix::Dense<ValueType>::create(r->get_executor());
-    x_->copy_from(x);
-    x_->compute_norm2(norm.get());
-    std::cout << " x: "
-              << static_cast<double>(
-                     real(norm->get_executor()->copy_val_to_host(
-                         norm->get_values())));
+    // as<gko::matrix::Dense<ValueType>>(b)->compute_norm2(norm.get());
+    // std::cout << level << " b: "
+    //           << static_cast<double>(
+    //                  real(norm->get_executor()->copy_val_to_host(
+    //                      norm->get_values())));
+    // auto x_ = gko::matrix::Dense<ValueType>::create(r->get_executor());
+    // x_->copy_from(x);
+    // x_->compute_norm2(norm.get());
+    // std::cout << " x: "
+    //           << static_cast<double>(
+    //                  real(norm->get_executor()->copy_val_to_host(
+    //                      norm->get_values())));
     // as<gko::matrix::Dense<ValueType>>(x)->compute_norm2(norm.get());
     // std::cout << " x: "
     //           << static_cast<double>(
@@ -487,12 +488,12 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     //                      norm->get_values())));
     r->copy_from(b);  // n * b
     matrix->apply(neg_one, x, one, r);
-    as<gko::matrix::Dense<ValueType>>(r)->compute_norm2(norm.get());
-    std::cout << " r: "
-              << static_cast<double>(
-                     real(norm->get_executor()->copy_val_to_host(
-                         norm->get_values())))
-              << std::endl;
+    // as<gko::matrix::Dense<ValueType>>(r)->compute_norm2(norm.get());
+    // std::cout << " r: "
+    //           << static_cast<double>(
+    //                  real(norm->get_executor()->copy_val_to_host(
+    //                      norm->get_values())))
+    //           << std::endl;
     // first cycle
     mg_level->get_restrict_op()->apply(r, g);
     // next level

@@ -225,8 +225,9 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         return static_cast<double>(
             real(exec->copy_val_to_host(norm->get_values())));
     };
-    std::cout << "IR: x: " << get_norm(dense_x) << " b: " << get_norm(dense_b)
-              << " r: " << get_norm(residual_ptr) << std::endl;
+    // std::cout << "IR: x: " << get_norm(dense_x) << " b: " <<
+    // get_norm(dense_b)
+    //           << " r: " << get_norm(residual_ptr) << std::endl;
     int iter = -1;
     while (true) {
         ++iter;
@@ -244,7 +245,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 break;
             }
         } else {
-            std::cout << " IR update x: " << get_norm(dense_x) << std::endl;
+            // std::cout << " IR update x: " << get_norm(dense_x) << std::endl;
             // In the other iterations, the residual can be updated separately.
             if (stop_criterion->update()
                     .num_iterations(iter)
@@ -274,13 +275,13 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // with residual as initial guess.
             inner_solution->copy_from(residual_ptr);
             solver_->apply(residual_ptr, inner_solution);
-            std::cout << " inner: " << get_norm(inner_solution);
+            // std::cout << " inner: " << get_norm(inner_solution);
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
             // x = x + relaxation_factor * A \ residual
-            std::cout << " IR inner solver : " << get_norm(dense_x) << " "
-                      << get_norm(residual_ptr) << std::endl;
+            // std::cout << " IR inner solver : " << get_norm(dense_x) << " "
+            //           << get_norm(residual_ptr) << std::endl;
             solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
         }
     }

@@ -182,16 +182,35 @@ int main(int argc, char* argv[])
             max_diag = std::abs(diag->get_values()[i]);
         }
     }
+    std::vector<ValueType> row_max(A_host->get_size()[0], 0);
+    std::vector<ValueType> col_max(A_host->get_size()[0], 0);
+    // using max of row/col
     for (int row = 0; row < A_host->get_size()[0]; row++) {
         for (auto i = A_host->get_row_ptrs()[row];
              i < A_host->get_row_ptrs()[row + 1]; i++) {
             auto col = A_host->get_col_idxs()[i];
-            A_host->get_values()[i] /=
-                std::sqrt(std::abs(diag->get_values()[row]));
-            A_host->get_values()[i] /=
-                std::sqrt(std::abs(diag->get_values()[col]));
+            auto val = std::abs(A_host->get_values()[i]);
+            row_max.at(row) = std::max(row_max.at(row), val);
+            col_max.at(col) = std::max(col_max.at(col), val);
         }
     }
+    std::cout << "abs max of row max: "
+              << *std::max_element(row_max.begin(), row_max.end()) << std::endl;
+    std::cout << "abs max of col max: "
+              << *std::max_element(col_max.begin(), col_max.end()) << std::endl;
+
+    // for (int row = 0; row < A_host->get_size()[0]; row++) {
+    //     for (auto i = A_host->get_row_ptrs()[row];
+    //          i < A_host->get_row_ptrs()[row + 1]; i++) {
+    //         auto col = A_host->get_col_idxs()[i];
+    //         // A_host->get_values()[i] /=
+    //         //     std::sqrt(std::abs(diag->get_values()[row]));
+    //         // A_host->get_values()[i] /=
+    //         //     std::sqrt(std::abs(diag->get_values()[col]));
+    //         A_host->get_values()[i] /= std::sqrt(row_max.at(row));
+    //         A_host->get_values()[i] /= std::sqrt(col_max.at(col));
+    //     }
+    // }
     auto A = gko::share(A_host->clone(exec));
     std::cout << "max_diag " << max_diag << " scaling "
               << 65504 / 1024.0 / max_diag << std::endl;
@@ -272,36 +291,44 @@ int main(int argc, char* argv[])
     // Create smoother factory (ir with bj)
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(
-                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
+            .with_solver(bj::build()
+                             //  .with_l1(true)
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto post_smoother_gen = gko::share(
         ir::build()
-            .with_solver(
-                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
+            .with_solver(bj::build()
+                             //  .with_l1(true)
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto smoother_gen2 = gko::share(
         ir2::build()
-            .with_solver(
-                bj2::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
+            .with_solver(bj2::build()
+                             //  .with_l1(true)
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec))
             .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto smoother_gen3 = gko::share(
-        ir3::build()
-            .with_solver(
-                bj3::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
+        ir2::build()
+            .with_solver(bj2::build()
+                             //  .with_l1(true)
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec))
             .with_relaxation_factor(static_cast<MixedType2>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
@@ -318,21 +345,27 @@ int main(int argc, char* argv[])
     // Create CoarsesSolver factory
     auto coarsest_solver_gen = gko::share(
         ir::build()
-            .with_solver(bj::build().with_max_block_size(1u).on(exec))
+            .with_solver(
+                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
+                    exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     auto coarsest_solver_gen2 = gko::share(
         ir2::build()
-            .with_solver(bj2::build().with_max_block_size(1u).on(exec))
+            .with_solver(
+                bj2::build().with_max_block_size(1u).with_skip_sorting(true).on(
+                    exec))
             .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     auto coarsest_solver_gen3 = gko::share(
         ir3::build()
-            .with_solver(bj3::build().with_max_block_size(1u).on(exec))
+            .with_solver(
+                bj3::build().with_max_block_size(1u).with_skip_sorting(true).on(
+                    exec))
             .with_relaxation_factor(static_cast<MixedType2>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
@@ -394,7 +427,7 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 2 ? 2 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_coarsest_solver(coarsest_solver_gen2)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
