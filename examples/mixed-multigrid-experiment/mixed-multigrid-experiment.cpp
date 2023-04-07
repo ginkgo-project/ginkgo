@@ -333,12 +333,12 @@ int main(int argc, char* argv[])
     }
 
     // Create smoother factory (ir with bj)
-    // auto smoother_gen = generate_sj_ir<double>(exec, 1u);
-    // auto smoother_gen2 = generate_sj_ir<float>(exec, 1u);
-    // auto smoother_gen3 = generate_sj_ir<gko::half>(exec, 1u);
-    auto smoother_gen = generate_l1sj_cheb<double>(exec, 2u);
-    auto smoother_gen2 = generate_l1sj_cheb<float>(exec, 2u);
-    auto smoother_gen3 = generate_l1sj_cheb<gko::half>(exec, 2u);
+    auto smoother_gen = generate_sj_ir<double>(exec, 1u);
+    auto smoother_gen2 = generate_sj_ir<float>(exec, 1u);
+    auto smoother_gen3 = generate_sj_ir<gko::half>(exec, 1u);
+    // auto smoother_gen = generate_l1sj_cheb<double>(exec, 2u);
+    // auto smoother_gen2 = generate_l1sj_cheb<float>(exec, 2u);
+    // auto smoother_gen3 = generate_l1sj_cheb<gko::half>(exec, 2u);
     // Create RestrictProlong factory
     auto mg_level_gen = generate_pgm<double, double, double>(exec);
     auto mg_level_gen2 = generate_pgm<float, double, float>(exec);
@@ -598,8 +598,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    int warmup = 0;
-    int rep = 1;
+    int warmup = 2;
+    int rep = 5;
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
                               : gko::as<gko::LinOp>(cg_solver);
