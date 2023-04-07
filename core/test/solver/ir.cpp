@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/log/stream.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -51,22 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
-
-
-int count_occurrence(const std::string& str, const std::string& substr)
-{
-    int occurrence = 0;
-    std::string::size_type pos = 0;
-    while (pos < str.length()) {
-        // no overlapped cases
-        pos = str.find(substr, pos);
-        if (pos != std::string::npos) {
-            pos += substr.length();
-            occurrence++;
-        }
-    }
-    return occurrence;
-}
 
 
 template <typename T>
@@ -475,6 +459,25 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
 }
 
 
+struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
+    void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
+               gko::int64 overhead_ns) override
+    {
+        int matched = 0;
+        for (const auto& data : e) {
+            if (data.name == "residual_norm::residual_norm") {
+                matched++;
+                // Contains make_residual_norm 3 times: The last 4-th iteration
+                // exits due to iteration limit.
+                EXPECT_EQ(data.count, 3);
+            }
+        }
+        // ensure matching once
+        EXPECT_EQ(matched, 1);
+    }
+};
+
+
 TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
 {
     using value_type = typename TestFixture::value_type;
@@ -482,17 +485,14 @@ TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
     using Mtx = typename TestFixture::Mtx;
     auto b = gko::initialize<Mtx>({2, -1.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
-    std::stringstream out;
-    auto logger = gko::share(gko::log::Stream<TypeParam>::create(
-        gko::log::Logger::operation_launched_mask, out));
+    auto logger = gko::share(gko::log::ProfilerHook::create_summary(
+        std::make_unique<TestSummaryWriter>()));
     this->exec->add_logger(logger);
 
     // solver reaches the iteration limit
     this->solver->apply(b, x);
 
-    // Contains make_residual_norm 3 times: check in initialization and two
-    // iterations. The last iteration exits due to iteration limit.
-    ASSERT_EQ(count_occurrence(out.str(), "make_residual_norm"), 3);
+    // The assertions happen in the destructor of `logger`
 }
 
 
