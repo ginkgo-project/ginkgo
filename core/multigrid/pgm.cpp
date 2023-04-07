@@ -148,9 +148,13 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 }  // namespace
 
 
-template <typename ValueType, typename IndexType, typename WorkingType>
-void Pgm<ValueType, IndexType, WorkingType>::generate()
+template <typename ValueType, typename IndexType, typename WorkingType,
+          typename MultigridType>
+void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
 {
+    std::cout << "Pgm " << typeid(ValueType).name() << ", "
+              << typeid(WorkingType).name() << ", "
+              << typeid(MultigridType).name() << " generation" << std::endl;
     using csr_type = matrix::Csr<WorkingType, IndexType>;
     using real_type = remove_complex<WorkingType>;
     using weight_csr_type = remove_complex<csr_type>;
@@ -240,26 +244,39 @@ void Pgm<ValueType, IndexType, WorkingType>::generate()
 
     // Construct the coarse matrix
     // TODO: improve it
-    working_coarse_matrix_ = generate_coarse(exec, pgm_op, num_agg, agg_);
+    auto working_coarse_matrix = generate_coarse(exec, pgm_op, num_agg, agg_);
     auto coarse_matrix = share(gko::matrix::Csr<ValueType, IndexType>::create(
         exec,
         std::make_shared<
             typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
-    coarse_matrix->copy_from(working_coarse_matrix_.get());
+    coarse_matrix->copy_from(working_coarse_matrix.get());
     this->set_multigrid_level(prolong_row_gather, coarse_matrix,
                               restrict_sparsity);
+    //   after coarse setting
+    this->set_working_coarse_op(working_coarse_matrix);
+    std::cout << "finish" << std::endl;
 }
 
 
 #define GKO_DECLARE_PGM(_vtype, _itype) class Pgm<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM);
-template class Pgm<float, int32, double>;
-template class Pgm<float, int64, double>;
+template class Pgm<float, int32, double, float>;
+template class Pgm<float, int64, double, float>;
+template class Pgm<float, int32, double, double>;
+template class Pgm<float, int64, double, double>;
 #if GINKGO_ENABLE_HALF
-template class Pgm<half, int32, double>;
-template class Pgm<half, int64, double>;
-template class Pgm<half, int32, float>;
-template class Pgm<half, int64, float>;
+template class Pgm<half, int32, double, half>;
+template class Pgm<half, int64, double, half>;
+template class Pgm<half, int32, float, half>;
+template class Pgm<half, int64, float, half>;
+template class Pgm<half, int32, double, float>;
+template class Pgm<half, int64, double, float>;
+template class Pgm<half, int32, float, float>;
+template class Pgm<half, int64, float, float>;
+template class Pgm<half, int32, double, double>;
+template class Pgm<half, int64, double, double>;
+template class Pgm<half, int32, float, double>;
+template class Pgm<half, int64, float, double>;
 #endif
 
 }  // namespace multigrid

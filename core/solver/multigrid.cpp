@@ -362,24 +362,22 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(work_vec::create(exec, dim<2>{current_nrows, nrhs}));
+    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(
-            work_vec::create(exec, dim<2>{current_nrows, nrhs}));
+        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
         // e always use double
-        e_list.emplace_back(
-            work_vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
+        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<vec>({one<double>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(work_vec::create(exec, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(work_vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
+        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<vec>({one<double>()}, exec));
     }
-    one_list.emplace_back(initialize<work_vec>({one<double>()}, exec));
-    neg_one_list.emplace_back(initialize<work_vec>({-one<double>()}, exec));
+    one_list.emplace_back(initialize<vec>({one<double>()}, exec));
+    neg_one_list.emplace_back(initialize<vec>({-one<double>()}, exec));
 }
 
 
@@ -388,9 +386,9 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
                                   const LinOp* b, LinOp* x, cycle_mode mode)
 {
     if (level == multigrid->get_mg_level_list().size()) {
-        std::cout << "coarsest_solver start" << std::endl;
+        // std::cout << "coarsest_solver start" << std::endl;
         multigrid->get_coarsest_solver()->apply(b, x);
-        std::cout << "coarsest_solver end" << std::endl;
+        // std::cout << "coarsest_solver end" << std::endl;
         return;
     }
     auto mg_level = multigrid->get_mg_level_list().at(level);
@@ -418,10 +416,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 {
     // std::string range = "cycle" + std::to_string(level);
     // log::profiling_scope_guard prof{
-    //     range.c_str(),
+    //     range.c_str(), log::profile_event_category::user,
     //     log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
     //     log::end_nvtx};
-    std::cout << "level " << level << std::endl;
+    // std::cout << "level " << level << std::endl;
     auto total_level = multigrid->get_mg_level_list().size();
 
     auto r = r_list.at(level);
@@ -446,8 +444,8 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     bool use_pre = has_property(mode, cycle_mode::first_of_cycle) ||
                    mid_case == multigrid::mid_smooth_type::both ||
                    mid_case == multigrid::mid_smooth_type::pre_smoother;
-    auto norm = gko::matrix::Dense<ValueType>::create(r->get_executor(),
-                                                      gko::dim<2>{1, 1});
+    // auto norm = gko::matrix::Dense<ValueType>::create(r->get_executor(),
+    //                                                   gko::dim<2>{1, 1});
     if (use_pre && pre_smoother) {
         if (has_property(mode, cycle_mode::x_is_zero)) {
             if (auto pre_allow_zero_input =
@@ -502,15 +500,17 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
-        if (auto e_ = std::dynamic_pointer_cast<matrix::Dense<ValueType>>(e)) {
-            e_->fill(zero<ValueType>());
-        } else if (auto e_ =
-                       std::dynamic_pointer_cast<matrix::Dense<float>>(e)) {
-            e_->fill(zero<float>());
-        } else if (auto e_ =
-                       std::dynamic_pointer_cast<matrix::Dense<double>>(e)) {
-            e_->fill(zero<double>());
-        }
+        as_vec<ValueType>(e)->fill(zero<ValueType>());
+        // if (auto e_ = std::dynamic_pointer_cast<matrix::Dense<ValueType>>(e))
+        // {
+        //     e_->fill(zero<ValueType>());
+        // } else if (auto e_ =
+        //                std::dynamic_pointer_cast<matrix::Dense<float>>(e)) {
+        //     e_->fill(zero<float>());
+        // } else if (auto e_ =
+        //                std::dynamic_pointer_cast<matrix::Dense<double>>(e)) {
+        //     e_->fill(zero<double>());
+        // }
     }
     auto next_level_matrix =
         (level + 1 < total_level)
@@ -609,16 +609,13 @@ void Multigrid::generate()
                         parameters_.smoother_relax);
                 }
                 if (!parameters_.post_uses_pre) {
-                    // always using double in the post_smoother
-                    handle_list<double>(
-                        index, working_matrix, parameters_.post_smoother,
+                    // always using value_type in the post_smoother
+                    handle_list<value_type>(
+                        index, matrix, parameters_.post_smoother,
                         post_smoother_list_, parameters_.smoother_iters,
                         parameters_.smoother_relax);
                 }
-                working_matrix =
-                    gko::as<gko::multigrid::Pgm<value_type, int, double>>(
-                        mg_level)
-                        ->get_working_coarse_matrix();
+                working_matrix = mg_level->get_working_coarse_op();
             },
             index, mg_level->get_fine_op());
 

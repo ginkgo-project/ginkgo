@@ -93,6 +93,13 @@ public:
      * @return  the prolong operator.
      */
     virtual std::shared_ptr<const LinOp> get_prolong_op() const = 0;
+
+    /**
+     * Returns the coarse operator with working type.
+     *
+     * @return  the working type operator
+     */
+    virtual std::shared_ptr<const LinOp> get_working_coarse_op() const = 0;
 };
 
 
@@ -132,6 +139,11 @@ public:
         return this->get_operator_at(0);
     }
 
+    std::shared_ptr<const LinOp> get_working_coarse_op() const override
+    {
+        return working_coarse_op_;
+    }
+
 protected:
     /**
      * Sets the multigrid level information. The stored composition will be
@@ -164,6 +176,13 @@ protected:
         fine_op_ = fine_op;
     }
 
+    void set_working_coarse_op(std::shared_ptr<const LinOp> working_coarse_op)
+    {
+        GKO_ASSERT_EQUAL_DIMENSIONS(working_coarse_op->get_size(),
+                                    this->get_coarse_op()->get_size());
+        working_coarse_op_ = working_coarse_op;
+    }
+
     explicit EnableMultigridLevel() {}
 
     /**
@@ -181,6 +200,7 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> fine_op_;
+    std::shared_ptr<const LinOp> working_coarse_op_;
 };
 
 

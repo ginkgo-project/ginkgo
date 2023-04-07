@@ -139,19 +139,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
-                auto norm = gko::matrix::Dense<ValueType>::create(
-                    this->get_executor(), gko::dim<2>{1, 1});
-                auto exec = this->get_executor();
-                auto get_norm = [&](auto vector) {
-                    vector->compute_norm2(norm.get());
-                    return static_cast<double>(
-                        real(exec->copy_val_to_host(norm->get_values())));
-                };
-                std::cout << "Jacobi: x: " << get_norm(dense_x);
+                // auto norm = gko::matrix::Dense<ValueType>::create(
+                //     this->get_executor(), gko::dim<2>{1, 1});
+                // auto exec = this->get_executor();
+                // auto get_norm = [&](auto vector) {
+                //     vector->compute_norm2(norm.get());
+                //     return static_cast<double>(
+                //         real(exec->copy_val_to_host(norm->get_values())));
+                // };
+                // std::cout << "Jacobi: x: " << get_norm(dense_x);
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
                     this->blocks_, dense_b, dense_x));
-                std::cout << " update x: " << get_norm(dense_x)
-                          << " b: " << get_norm(dense_b) << std::endl;
+                // std::cout << " update x: " << get_norm(dense_x)
+                //           << " b: " << get_norm(dense_b) << std::endl;
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
@@ -172,19 +172,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
-                auto norm = gko::matrix::Dense<ValueType>::create(
-                    this->get_executor(), gko::dim<2>{1, 1});
-                auto exec = this->get_executor();
-                auto get_norm = [&](auto vector) {
-                    vector->compute_norm2(norm.get());
-                    return static_cast<double>(
-                        real(exec->copy_val_to_host(norm->get_values())));
-                };
-                std::cout << "Jacobi: x: " << get_norm(dense_x);
+                // auto norm = gko::matrix::Dense<ValueType>::create(
+                //     this->get_executor(), gko::dim<2>{1, 1});
+                // auto exec = this->get_executor();
+                // auto get_norm = [&](auto vector) {
+                //     vector->compute_norm2(norm.get());
+                //     return static_cast<double>(
+                //         real(exec->copy_val_to_host(norm->get_values())));
+                // };
+                // std::cout << "Jacobi: x: " << get_norm(dense_x);
                 this->get_executor()->run(jacobi::make_scalar_apply(
                     this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
-                std::cout << " update x: " << get_norm(dense_x)
-                          << " b: " << get_norm(dense_b) << std::endl;
+                // std::cout << " update x: " << get_norm(dense_x)
+                //           << " b: " << get_norm(dense_b) << std::endl;
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,

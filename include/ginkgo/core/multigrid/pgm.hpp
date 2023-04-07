@@ -73,9 +73,10 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32,
-          typename WorkingType = ValueType>
-class Pgm : public EnableLinOp<Pgm<ValueType, IndexType, WorkingType>>,
-            public EnableMultigridLevel<ValueType> {
+          typename WorkingType = ValueType, typename MultigridType = ValueType>
+class Pgm
+    : public EnableLinOp<Pgm<ValueType, IndexType, WorkingType, MultigridType>>,
+      public EnableMultigridLevel<MultigridType> {
     friend class EnableLinOp<Pgm>;
     friend class EnablePolymorphicObject<Pgm, LinOp>;
 
@@ -93,11 +94,11 @@ public:
         return system_matrix_;
     }
 
-    std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
-    get_working_coarse_matrix() const
-    {
-        return working_coarse_matrix_;
-    }
+    // std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
+    // get_working_coarse_matrix() const
+    // {
+    //     return working_coarse_matrix_;
+    // }
 
     /**
      * Returns the aggregate group.
@@ -182,7 +183,7 @@ protected:
     explicit Pgm(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Pgm>(factory->get_executor(), system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
+          EnableMultigridLevel<MultigridType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
@@ -199,8 +200,8 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
-        working_coarse_matrix_{};
+    // std::shared_ptr<const matrix::Csr<WorkingType, IndexType>>
+    //     working_coarse_matrix_{};
     array<IndexType> agg_;
 };
 

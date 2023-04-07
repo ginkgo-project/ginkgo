@@ -42,6 +42,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+template <typename ValueType>
+std::shared_ptr<typename gko::solver::Ir<ValueType>::Factory> generate_sj_ir(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type iteration)
+{
+    using IndexType = int;
+    using ir = gko::solver::Ir<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    return gko::share(
+        ir::build()
+            .with_solver(
+                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
+                    exec))
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(iteration).on(
+                    exec))
+            .on(exec));
+}
+
+template <typename ValueType>
+std::shared_ptr<typename gko::solver::Chebyshev<ValueType>::Factory>
+generate_l1sj_cheb(std::shared_ptr<const gko::Executor> exec,
+                   gko::size_type iteration)
+{
+    using IndexType = int;
+    using cheb = gko::solver::Chebyshev<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    return gko::share(
+        cheb::build()
+            .with_solver(bj::build()
+                             .with_l1(true)
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec))
+            .with_num_keep(2)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(iteration).on(
+                    exec))
+            .on(exec));
+}
+
+template <typename ValueType, typename WorkingType, typename MultigridType>
+std::shared_ptr<typename gko::multigrid::Pgm<ValueType, int, WorkingType,
+                                             MultigridType>::Factory>
+generate_pgm(std::shared_ptr<const gko::Executor> exec)
+{
+    return gko::share(
+        gko::multigrid::Pgm<ValueType, int, WorkingType, MultigridType>::build()
+            .with_deterministic(true)
+            .with_skip_sorting(true)
+            .on(exec));
+}
+
 int main(int argc, char* argv[])
 {
     // Some shortcuts
@@ -51,16 +104,7 @@ int main(int argc, char* argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using ir = gko::solver::Ir<ValueType>;
-    using ir2 = gko::solver::Ir<MixedType>;
-    using ir3 = gko::solver::Ir<MixedType2>;
     using mg = gko::solver::Multigrid;
-    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using bj2 = gko::preconditioner::Jacobi<MixedType, IndexType>;
-    using bj3 = gko::preconditioner::Jacobi<MixedType2, IndexType>;
-    using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
-    using pgm2 = gko::multigrid::Pgm<MixedType, IndexType, ValueType>;
-    using pgm3 = gko::multigrid::Pgm<MixedType2, IndexType, ValueType>;
     using cg = gko::solver::Cg<ValueType>;
 
     // Print version information
@@ -214,11 +258,10 @@ int main(int argc, char* argv[])
     // }
     auto A = gko::share(A_host->clone(exec));
     std::cout << "max_diag " << max_diag << " scaling "
-              << 65504 / 1024.0 / max_diag << std::endl;
-    // auto scale_host =
-    //     gko::initialize<vec>({65504 / 1024.0 / max_diag},
-    //     exec->get_master());
-    // auto scale = gko::initialize<vec>({65504 / 1024.0 / max_diag}, exec);
+              << 65504 / 10.0 / max_diag << std::endl;
+    auto scale_host =
+        gko::initialize<vec>({65504 / 10.0 / max_diag}, exec->get_master());
+    auto scale = gko::initialize<vec>({65504 / 10.0 / max_diag}, exec);
     // A->scale(scale.get());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
@@ -267,8 +310,8 @@ int main(int argc, char* argv[])
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
-    auto cg_iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(500u).on(exec));
+    auto cg_iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
     auto cg_tol_stop =
         gko::share(gko::stop::ImplicitResidualNorm<ValueType>::build()
                        .with_baseline(gko::stop::mode::initial_resnorm)
@@ -290,94 +333,20 @@ int main(int argc, char* argv[])
     }
 
     // Create smoother factory (ir with bj)
-    // auto smoother_gen = gko::share(
-    //     ir::build()
-    //         .with_solver(bj::build()
-    //                         //   .with_l1(true)
-    //                          .with_max_block_size(1u)
-    //                          .with_skip_sorting(true)
-    //                          .on(exec))
-    //         .with_relaxation_factor(static_cast<ValueType>(0.9))
-    //         .with_criteria(
-    //             gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-    //         .on(exec));
-    auto smoother_gen = gko::share(
-        gko::solver::Chebyshev<ValueType>::build()
-            .with_solver(bj::build()
-                             .with_l1(true)
-                             .with_max_block_size(1u)
-                             .with_skip_sorting(true)
-                             .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .on(exec));
-    auto post_smoother_gen = gko::share(
-        gko::solver::Chebyshev<ValueType>::build()
-            .with_solver(bj::build()
-                             .with_l1(true)
-                             .with_max_block_size(1u)
-                             .with_skip_sorting(true)
-                             .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .on(exec));
-    auto smoother_gen2 = gko::share(
-        gko::solver::Chebyshev<MixedType>::build()
-            .with_solver(bj2::build()
-                             .with_l1(true)
-                             .with_max_block_size(1u)
-                             .with_skip_sorting(true)
-                             .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .on(exec));
-    auto smoother_gen3 = gko::share(
-        gko::solver::Chebyshev<MixedType>::build()
-            .with_solver(bj::build()
-                             .with_l1(true)
-                             .with_max_block_size(1u)
-                             .with_skip_sorting(true)
-                             .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .on(exec));
+    // auto smoother_gen = generate_sj_ir<double>(exec, 1u);
+    // auto smoother_gen2 = generate_sj_ir<float>(exec, 1u);
+    // auto smoother_gen3 = generate_sj_ir<gko::half>(exec, 1u);
+    auto smoother_gen = generate_l1sj_cheb<double>(exec, 2u);
+    auto smoother_gen2 = generate_l1sj_cheb<float>(exec, 2u);
+    auto smoother_gen3 = generate_l1sj_cheb<gko::half>(exec, 2u);
     // Create RestrictProlong factory
-    auto mg_level_gen = gko::share(
-        pgm::build().with_deterministic(true).with_skip_sorting(true).on(exec));
-    auto mg_level_gen2 = gko::share(
-        pgm2::build().with_deterministic(true).with_skip_sorting(true).on(
-            exec));
-    auto mg_level_gen3 = gko::share(
-        pgm3::build().with_deterministic(true).with_skip_sorting(true).on(
-            exec));
+    auto mg_level_gen = generate_pgm<double, double, double>(exec);
+    auto mg_level_gen2 = generate_pgm<float, double, float>(exec);
+    auto mg_level_gen3 = generate_pgm<gko::half, double, float>(exec);
     // Create CoarsesSolver factory
-    auto coarsest_solver_gen = gko::share(
-        ir::build()
-            .with_solver(
-                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
-            .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
-    auto coarsest_solver_gen2 = gko::share(
-        ir2::build()
-            .with_solver(
-                bj2::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
-            .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
-    auto coarsest_solver_gen3 = gko::share(
-        ir3::build()
-            .with_solver(
-                bj3::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
-            .with_relaxation_factor(static_cast<MixedType2>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
+    auto coarsest_solver_gen = generate_sj_ir<double>(exec, 4u);
+    auto coarsest_solver_gen2 = generate_sj_ir<float>(exec, 4u);
+    auto coarsest_solver_gen3 = generate_sj_ir<gko::half>(exec, 4u);
     // Create multigrid factory
     std::shared_ptr<gko::solver::Multigrid::Factory> multigrid_gen;
     if (mixed_mode == 0) {
@@ -420,10 +389,11 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
-                .with_post_uses_pre(false)
-                .with_post_smoother(post_smoother_gen, post_smoother_gen,
-                                    post_smoother_gen)
+                // smoother using float
+                .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen2)
+                // .with_post_uses_pre(false)
+                // .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                //                     post_smoother_gen)
                 .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
@@ -510,9 +480,9 @@ int main(int argc, char* argv[])
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
                 .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
-                .with_post_uses_pre(false)
-                .with_post_smoother(post_smoother_gen, post_smoother_gen,
-                                    post_smoother_gen)
+                // .with_post_uses_pre(false)
+                // .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                //                     post_smoother_gen)
                 .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
                 .with_level_selector([=](const gko::size_type level,
                                          const gko::LinOp*) -> gko::size_type {
