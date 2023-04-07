@@ -135,6 +135,26 @@ TYPED_TEST(ResidualNorm, CanCreateCriterionWithNeededInput)
 }
 
 
+TYPED_TEST(ResidualNorm, CanIgorneResidualNorm)
+{
+    using Mtx = typename TestFixture::Mtx;
+    std::shared_ptr<gko::LinOp> scalar =
+        gko::initialize<Mtx>({1.0}, this->exec_);
+    auto criterion =
+        this->rhs_factory_->generate(nullptr, scalar, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{1};
+    bool one_changed{};
+    gko::array<gko::stopping_status> stop_status(this->exec_, 1);
+    stop_status.get_data()[0].reset();
+
+    ASSERT_FALSE(criterion->update().ignore_residual_check(true).check(
+        RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_THROW(criterion->update().check(RelativeStoppingId, true,
+                                           &stop_status, &one_changed),
+                 gko::NotSupported);
+}
+
+
 TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;

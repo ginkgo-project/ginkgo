@@ -110,6 +110,17 @@ protected:
 };
 
 
+TEST_F(Criterion, DefaultUpdateStatus)
+{
+    EXPECT_EQ(criterion->update().num_iterations_, 0);
+    EXPECT_EQ(criterion->update().ignore_residual_check_, false);
+    EXPECT_EQ(criterion->update().residual_, nullptr);
+    EXPECT_EQ(criterion->update().residual_norm_, nullptr);
+    EXPECT_EQ(criterion->update().implicit_sq_residual_norm_, nullptr);
+    EXPECT_EQ(criterion->update().solution_, nullptr);
+}
+
+
 TEST_F(Criterion, CanLogCheck)
 {
     auto before_logger = *logger;
