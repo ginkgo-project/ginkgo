@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <fstream>
+#include <ginkgo/core/solver/chebyshev.hpp>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -267,7 +268,7 @@ int main(int argc, char* argv[])
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
     auto cg_iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(300u).on(exec));
+        gko::share(gko::stop::Iteration::build().with_max_iters(500u).on(exec));
     auto cg_tol_stop =
         gko::share(gko::stop::ImplicitResidualNorm<ValueType>::build()
                        .with_baseline(gko::stop::mode::initial_resnorm)
@@ -289,49 +290,56 @@ int main(int argc, char* argv[])
     }
 
     // Create smoother factory (ir with bj)
+    // auto smoother_gen = gko::share(
+    //     ir::build()
+    //         .with_solver(bj::build()
+    //                         //   .with_l1(true)
+    //                          .with_max_block_size(1u)
+    //                          .with_skip_sorting(true)
+    //                          .on(exec))
+    //         .with_relaxation_factor(static_cast<ValueType>(0.9))
+    //         .with_criteria(
+    //             gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+    //         .on(exec));
     auto smoother_gen = gko::share(
-        ir::build()
+        gko::solver::Chebyshev<ValueType>::build()
             .with_solver(bj::build()
-                             //  .with_l1(true)
+                             .with_l1(true)
                              .with_max_block_size(1u)
                              .with_skip_sorting(true)
                              .on(exec))
-            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto post_smoother_gen = gko::share(
-        ir::build()
+        gko::solver::Chebyshev<ValueType>::build()
             .with_solver(bj::build()
-                             //  .with_l1(true)
+                             .with_l1(true)
                              .with_max_block_size(1u)
                              .with_skip_sorting(true)
                              .on(exec))
-            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto smoother_gen2 = gko::share(
-        ir2::build()
+        gko::solver::Chebyshev<MixedType>::build()
             .with_solver(bj2::build()
-                             //  .with_l1(true)
+                             .with_l1(true)
                              .with_max_block_size(1u)
                              .with_skip_sorting(true)
                              .on(exec))
-            .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto smoother_gen3 = gko::share(
-        ir2::build()
-            .with_solver(bj2::build()
-                             //  .with_l1(true)
+        gko::solver::Chebyshev<MixedType>::build()
+            .with_solver(bj::build()
+                             .with_l1(true)
                              .with_max_block_size(1u)
                              .with_skip_sorting(true)
                              .on(exec))
-            .with_relaxation_factor(static_cast<MixedType2>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     // Create RestrictProlong factory
     auto mg_level_gen = gko::share(

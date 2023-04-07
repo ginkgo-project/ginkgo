@@ -388,7 +388,9 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
                                   const LinOp* b, LinOp* x, cycle_mode mode)
 {
     if (level == multigrid->get_mg_level_list().size()) {
+        std::cout << "coarsest_solver start" << std::endl;
         multigrid->get_coarsest_solver()->apply(b, x);
+        std::cout << "coarsest_solver end" << std::endl;
         return;
     }
     auto mg_level = multigrid->get_mg_level_list().at(level);
@@ -419,6 +421,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     //     range.c_str(),
     //     log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
     //     log::end_nvtx};
+    std::cout << "level " << level << std::endl;
     auto total_level = multigrid->get_mg_level_list().size();
 
     auto r = r_list.at(level);
@@ -499,7 +502,15 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
-        as_vec<ValueType>(e)->fill(zero<ValueType>());
+        if (auto e_ = std::dynamic_pointer_cast<matrix::Dense<ValueType>>(e)) {
+            e_->fill(zero<ValueType>());
+        } else if (auto e_ =
+                       std::dynamic_pointer_cast<matrix::Dense<float>>(e)) {
+            e_->fill(zero<float>());
+        } else if (auto e_ =
+                       std::dynamic_pointer_cast<matrix::Dense<double>>(e)) {
+            e_->fill(zero<double>());
+        }
     }
     auto next_level_matrix =
         (level + 1 < total_level)
