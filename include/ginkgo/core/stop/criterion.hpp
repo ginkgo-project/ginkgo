@@ -125,6 +125,7 @@ public:
     mutable _type* _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
+        // ignore_residual_check default is false
         GKO_UPDATER_REGISTER_PARAMETER(bool, ignore_residual_check);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
