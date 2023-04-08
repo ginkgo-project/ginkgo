@@ -68,7 +68,9 @@ public:
      * Criterion's check function. The pattern used is a Builder, except Updater
      * builds a function's arguments before calling the function itself, and
      * does not build an object. This allows calling a Criterion's check in the
-     * form of: stop_criterion->update() .num_iterations(num_iterations)
+     * form of: stop_criterion->update()
+     *   .num_iterations(num_iterations)
+     *   .ignore_residual_check(ignore_residual_check)
      *   .residual_norm(residual_norm)
      *   .implicit_sq_residual_norm(implicit_sq_residual_norm)
      *   .residual(residual)
@@ -123,6 +125,8 @@ public:
     mutable _type* _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
+        // ignore_residual_check default is false
+        GKO_UPDATER_REGISTER_PARAMETER(bool, ignore_residual_check);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
