@@ -598,8 +598,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    int warmup = 2;
-    int rep = 5;
+    int warmup = 0;
+    int rep = 1;
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
                               : gko::as<gko::LinOp>(cg_solver);

@@ -359,25 +359,37 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     using vec = matrix::Dense<ValueType>;
     using work_vec = matrix::Dense<double>;
     using norm_vec = matrix::Dense<remove_complex<ValueType>>;
-
-    auto exec =
-        as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
+    auto mg_level = multigrid->get_mg_level_list().at(level);
+    auto exec = as<LinOp>(mg_level)->get_executor();
     r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+    auto matrix = level == 0 ? system_matrix : mg_level->get_fine_op().get();
+    if (dynamic_cast<const matrix::Csr<double>*>(matrix)) {
+        neg_one_list.emplace_back(
+            initialize<matrix::Dense<double>>({-one<double>()}, exec));
+    } else if (dynamic_cast<const matrix::Csr<float>*>(matrix)) {
+        neg_one_list.emplace_back(
+            initialize<matrix::Dense<float>>({-one<float>()}, exec));
+    } else if (dynamic_cast<const matrix::Csr<gko::half>*>(matrix)) {
+        neg_one_list.emplace_back(
+            initialize<matrix::Dense<gko::half>>({-one<gko::half>()}, exec));
+    } else {
+        neg_one_list.emplace_back(initialize<vec>({-one<ValueType>()}, exec));
+    }
+
     if (level != 0) {
         // allocate the previous level
         g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
         // e always use double
         e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<double>()}, exec));
+        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
         g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
         e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<double>()}, exec));
+        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
     }
-    one_list.emplace_back(initialize<vec>({one<double>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<double>()}, exec));
+    one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
 }
 
 
@@ -387,7 +399,13 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
 {
     if (level == multigrid->get_mg_level_list().size()) {
         // std::cout << "coarsest_solver start" << std::endl;
+        std::string range = "coarsest";
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
         multigrid->get_coarsest_solver()->apply(b, x);
+
         // std::cout << "coarsest_solver end" << std::endl;
         return;
     }
@@ -446,57 +464,73 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                    mid_case == multigrid::mid_smooth_type::pre_smoother;
     // auto norm = gko::matrix::Dense<ValueType>::create(r->get_executor(),
     //                                                   gko::dim<2>{1, 1});
-    if (use_pre && pre_smoother) {
-        if (has_property(mode, cycle_mode::x_is_zero)) {
-            if (auto pre_allow_zero_input =
-                    std::dynamic_pointer_cast<const ApplyWithInitialGuess>(
-                        pre_smoother)) {
-                pre_allow_zero_input->apply_with_initial_guess(
-                    b, x, initial_guess_mode::zero);
-            } else {
-                // x in first level is already filled by zero outside.
-                if (level != 0) {
-                    dynamic_cast<matrix::Dense<ValueType>*>(x)->fill(
-                        zero<ValueType>());
+    {
+        std::string range = "presmoother" + std::to_string(level);
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
+        if (use_pre && pre_smoother) {
+            if (has_property(mode, cycle_mode::x_is_zero)) {
+                if (auto pre_allow_zero_input =
+                        std::dynamic_pointer_cast<const ApplyWithInitialGuess>(
+                            pre_smoother)) {
+                    pre_allow_zero_input->apply_with_initial_guess(
+                        b, x, initial_guess_mode::zero);
+                } else {
+                    // x in first level is already filled by zero outside.
+                    if (level != 0) {
+                        dynamic_cast<matrix::Dense<ValueType>*>(x)->fill(
+                            zero<ValueType>());
+                    }
+                    pre_smoother->apply(b, x);
                 }
+            } else {
                 pre_smoother->apply(b, x);
             }
-        } else {
-            pre_smoother->apply(b, x);
         }
     }
-    // The common smoother is wrapped by IR and IR already split the iter and
-    // residual check. Thus, when the IR only contains iter limit, there's no
-    // additional residual computation
-    // TODO: if already computes the residual outside, the first level may not
-    // need this residual computation when no presmoother in the first level.
-    // as<gko::matrix::Dense<ValueType>>(b)->compute_norm2(norm.get());
-    // std::cout << level << " b: "
-    //           << static_cast<double>(
-    //                  real(norm->get_executor()->copy_val_to_host(
-    //                      norm->get_values())));
-    // auto x_ = gko::matrix::Dense<ValueType>::create(r->get_executor());
-    // x_->copy_from(x);
-    // x_->compute_norm2(norm.get());
-    // std::cout << " x: "
-    //           << static_cast<double>(
-    //                  real(norm->get_executor()->copy_val_to_host(
-    //                      norm->get_values())));
-    // as<gko::matrix::Dense<ValueType>>(x)->compute_norm2(norm.get());
-    // std::cout << " x: "
-    //           << static_cast<double>(
-    //                  real(norm->get_executor()->copy_val_to_host(
-    //                      norm->get_values())));
-    r->copy_from(b);  // n * b
-    matrix->apply(neg_one, x, one, r);
-    // as<gko::matrix::Dense<ValueType>>(r)->compute_norm2(norm.get());
-    // std::cout << " r: "
-    //           << static_cast<double>(
-    //                  real(norm->get_executor()->copy_val_to_host(
-    //                      norm->get_values())))
-    //           << std::endl;
-    // first cycle
-    mg_level->get_restrict_op()->apply(r, g);
+    {
+        std::string range = "restrict" + std::to_string(level);
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
+        // The common smoother is wrapped by IR and IR already split the iter
+        // and residual check. Thus, when the IR only contains iter limit,
+        // there's no additional residual computation
+        // TODO: if already computes the residual outside, the first level may
+        // not need this residual computation when no presmoother in the first
+        // level.
+        // as<gko::matrix::Dense<ValueType>>(b)->compute_norm2(norm.get());
+        // std::cout << level << " b: "
+        //           << static_cast<double>(
+        //                  real(norm->get_executor()->copy_val_to_host(
+        //                      norm->get_values())));
+        // auto x_ = gko::matrix::Dense<ValueType>::create(r->get_executor());
+        // x_->copy_from(x);
+        // x_->compute_norm2(norm.get());
+        // std::cout << " x: "
+        //           << static_cast<double>(
+        //                  real(norm->get_executor()->copy_val_to_host(
+        //                      norm->get_values())));
+        // as<gko::matrix::Dense<ValueType>>(x)->compute_norm2(norm.get());
+        // std::cout << " x: "
+        //           << static_cast<double>(
+        //                  real(norm->get_executor()->copy_val_to_host(
+        //                      norm->get_values())));
+        r->copy_from(b);  // n * b
+        // IMP: neg_one should be the same type as matrix
+        matrix->apply(neg_one, x, one, r);
+        // as<gko::matrix::Dense<ValueType>>(r)->compute_norm2(norm.get());
+        // std::cout << " r: "
+        //           << static_cast<double>(
+        //                  real(norm->get_executor()->copy_val_to_host(
+        //                      norm->get_values())))
+        //           << std::endl;
+        // first cycle
+        mg_level->get_restrict_op()->apply(r, g);
+    }
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
@@ -536,18 +570,31 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                                e.get(), cycle_mode::end_of_cycle);
         }
     }
-    // prolong
-    mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
-
+    {
+        std::string range = "prolong" + std::to_string(level);
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
+        // prolong
+        // IMP: the first scalar should use the type of matrix
+        mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
+    }
     // end or origin previous
     bool use_post = has_property(mode, cycle_mode::end_of_cycle) ||
                     mid_case == multigrid::mid_smooth_type::both ||
                     mid_case == multigrid::mid_smooth_type::post_smoother;
     // post-smooth
-    if (use_post && post_smoother) {
-        post_smoother->apply(b, x);
+    {
+        std::string range = "post" + std::to_string(level);
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
+        if (use_post && post_smoother) {
+            post_smoother->apply(b, x);
+        }
     }
-
     // put the mid smoother into the end of previous cycle
     // only W/F cycle
     bool use_mid =
@@ -763,68 +810,76 @@ template <typename VectorType>
 void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                  initial_guess_mode guess) const
 {
-    using ws = workspace_traits<Multigrid>;
-    this->setup_workspace();
-    this->create_state();
-    if (cache_.state->nrhs != b->get_size()[1]) {
-        cache_.state->generate(this->get_system_matrix().get(), this,
-                               b->get_size()[1]);
-    }
-    auto lambda = [&, this](auto mg_level, auto b, auto x) {
-        using value_type =
-            typename std::decay_t<decltype(*mg_level)>::value_type;
-        auto exec = this->get_executor();
-        auto neg_one_op = cache_.state->neg_one_list.at(0);
-        auto one_op = cache_.state->one_list.at(0);
-        constexpr uint8 RelativeStoppingId{1};
-        auto& stop_status =
-            this->template create_workspace_array<stopping_status>(
-                ws::stop, b->get_size()[1]);
-        bool one_changed{};
-        exec->run(multigrid::make_initialize(&stop_status));
-        auto stop_criterion = this->get_stop_criterion_factory()->generate(
-            this->get_system_matrix(),
-            std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
-            nullptr);
-        int iter = -1;
-
-        while (true) {
-            ++iter;
-            this->template log<log::Logger::iteration_complete>(this, iter,
-                                                                nullptr, x);
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    // TODO: combine the out-of-cycle residual computation
-                    // currently, the residual will computed additionally in
-                    // stop_criterion when users require the corresponding
-                    // residual check.
-                    .solution(x)
-                    .check(RelativeStoppingId, true, &stop_status,
-                           &one_changed)) {
-                break;
-            }
-            auto mode = multigrid::cycle_mode::first_of_cycle |
-                        multigrid::cycle_mode::end_of_cycle;
-            if (iter == 0 && guess == initial_guess_mode::zero) {
-                mode = mode | multigrid::cycle_mode::x_is_zero;
-            }
-            cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
-                                       this->get_system_matrix(), b, x, mode);
+    {
+        using ws = workspace_traits<Multigrid>;
+        this->setup_workspace();
+        this->create_state();
+        if (cache_.state->nrhs != b->get_size()[1]) {
+            cache_.state->generate(this->get_system_matrix().get(), this,
+                                   b->get_size()[1]);
         }
-    };
+        std::string range = "apply";
+        log::profiling_scope_guard prof{
+            range.c_str(), log::profile_event_category::user,
+            log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
+            log::end_nvtx};
+        auto lambda = [&, this](auto mg_level, auto b, auto x) {
+            using value_type =
+                typename std::decay_t<decltype(*mg_level)>::value_type;
+            auto exec = this->get_executor();
+            auto neg_one_op = cache_.state->neg_one_list.at(0);
+            auto one_op = cache_.state->one_list.at(0);
+            constexpr uint8 RelativeStoppingId{1};
+            auto& stop_status =
+                this->template create_workspace_array<stopping_status>(
+                    ws::stop, b->get_size()[1]);
+            bool one_changed{};
+            exec->run(multigrid::make_initialize(&stop_status));
+            auto stop_criterion = this->get_stop_criterion_factory()->generate(
+                this->get_system_matrix(),
+                std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
+                nullptr);
+            int iter = -1;
 
-    auto first_mg_level = this->get_mg_level_list().front();
+            while (true) {
+                ++iter;
+                this->template log<log::Logger::iteration_complete>(this, iter,
+                                                                    nullptr, x);
+                if (stop_criterion->update()
+                        .num_iterations(iter)
+                        // TODO: combine the out-of-cycle residual computation
+                        // currently, the residual will computed additionally in
+                        // stop_criterion when users require the corresponding
+                        // residual check.
+                        .solution(x)
+                        .check(RelativeStoppingId, true, &stop_status,
+                               &one_changed)) {
+                    break;
+                }
+                auto mode = multigrid::cycle_mode::first_of_cycle |
+                            multigrid::cycle_mode::end_of_cycle;
+                if (iter == 0 && guess == initial_guess_mode::zero) {
+                    mode = mode | multigrid::cycle_mode::x_is_zero;
+                }
+                cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
+                                           this->get_system_matrix(), b, x,
+                                           mode);
+            }
+        };
 
-    run<gko::multigrid::EnableMultigridLevel,
+        auto first_mg_level = this->get_mg_level_list().front();
+
+        run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+            half,
 #endif
-        float, double,
+            float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+            std::complex<half>,
 #endif
-        std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
-                                                   x);
+            std::complex<float>, std::complex<double>>(first_mg_level, lambda,
+                                                       b, x);
+    }
 }
 
 

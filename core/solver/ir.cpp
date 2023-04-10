@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
@@ -200,7 +201,30 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
 
-    GKO_SOLVER_ONE_MINUS_ONE();
+    auto one_op = this->template create_workspace_scalar<ValueType>(
+        GKO_SOLVER_TRAITS::one, 1);
+    one_op->fill(one<ValueType>());
+    LinOp* neg_one_op = nullptr;
+    auto matrix = this->get_system_matrix();
+    if (std::dynamic_pointer_cast<const matrix::Csr<double, int>>(matrix)) {
+        neg_one_op = this->template create_workspace_scalar<double>(
+            GKO_SOLVER_TRAITS::minus_one, 1);
+        gko::as<matrix::Dense<double>>(neg_one_op)->fill(-one<double>());
+    } else if (std::dynamic_pointer_cast<const matrix::Csr<float, int>>(
+                   matrix)) {
+        neg_one_op = this->template create_workspace_scalar<float>(
+            GKO_SOLVER_TRAITS::minus_one, 1);
+        gko::as<matrix::Dense<float>>(neg_one_op)->fill(-one<float>());
+    } else if (std::dynamic_pointer_cast<const matrix::Csr<gko::half, int>>(
+                   matrix)) {
+        neg_one_op = this->template create_workspace_scalar<gko::half>(
+            GKO_SOLVER_TRAITS::minus_one, 1);
+        gko::as<matrix::Dense<gko::half>>(neg_one_op)->fill(-one<gko::half>());
+    } else {
+        neg_one_op = this->template create_workspace_scalar<ValueType>(
+            GKO_SOLVER_TRAITS::minus_one, 1);
+        gko::as<matrix::Dense<ValueType>>(neg_one_op)->fill(-one<ValueType>());
+    }
 
     bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
