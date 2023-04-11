@@ -136,7 +136,6 @@ protected:
     using Solver = gko::solver::Multigrid;
     using DummyRPFactory = DummyLinOpWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
-    using DummyFactoryWoGuess = DummyLinOpWithFactory<value_type, false>;
 
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -320,9 +319,6 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 TYPED_TEST(Multigrid, EachLevelAreDistinct)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using DummyFactory = typename TestFixture::DummyFactory;
-    using value_type = typename TestFixture::value_type;
     auto solver = static_cast<Solver*>(this->solver.get());
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -394,9 +390,7 @@ TYPED_TEST(Multigrid, DefaultBehavior)
 
 TYPED_TEST(Multigrid, DefaultBehaviorGivenNullptrs)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto solver = Solver::build()
                       .with_max_levels(1u)
                       .with_min_coarse_rows(2u)
@@ -419,9 +413,7 @@ TYPED_TEST(Multigrid, DefaultBehaviorGivenNullptrs)
 
 TYPED_TEST(Multigrid, ThrowWhenNullMgLevel)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory = Solver::build()
                        .with_max_levels(1u)
                        .with_min_coarse_rows(2u)
@@ -434,9 +426,7 @@ TYPED_TEST(Multigrid, ThrowWhenNullMgLevel)
 
 TYPED_TEST(Multigrid, ThrowWhenMgLevelContainsNullptr)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory = Solver::build()
                        .with_max_levels(1u)
                        .with_min_coarse_rows(2u)
@@ -450,9 +440,7 @@ TYPED_TEST(Multigrid, ThrowWhenMgLevelContainsNullptr)
 
 TYPED_TEST(Multigrid, ThrowWhenEmptyMgLevelList)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory =
         Solver::build()
             .with_max_levels(1u)
@@ -468,9 +456,7 @@ TYPED_TEST(Multigrid, ThrowWhenEmptyMgLevelList)
 
 TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPreSmoother)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory =
         Solver::build()
             .with_max_levels(1u)
@@ -486,9 +472,7 @@ TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPreSmoother)
 
 TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfMidSmoother)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory =
         Solver::build()
             .with_max_levels(1u)
@@ -505,9 +489,7 @@ TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfMidSmoother)
 
 TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPostSmoother)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto factory =
         Solver::build()
             .with_max_levels(1u)
@@ -525,7 +507,6 @@ TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPostSmoother)
 TYPED_TEST(Multigrid, TwoMgLevel)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using value_type = typename TestFixture::value_type;
 
     auto solver =
@@ -568,7 +549,6 @@ TYPED_TEST(Multigrid, TwoMgLevel)
 TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using value_type = typename TestFixture::value_type;
 
     auto solver =
@@ -609,9 +589,7 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
 
 TYPED_TEST(Multigrid, CustomSelectorWithSameSize)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
@@ -654,9 +632,7 @@ TYPED_TEST(Multigrid, CustomSelectorWithSameSize)
 
 TYPED_TEST(Multigrid, CustomSelectorWithOneSmootherRelaxation)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
@@ -699,9 +675,7 @@ TYPED_TEST(Multigrid, CustomSelectorWithOneSmootherRelaxation)
 
 TYPED_TEST(Multigrid, CustomSelectorWithMix)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
@@ -744,8 +718,6 @@ TYPED_TEST(Multigrid, CustomSelectorWithMix)
 TYPED_TEST(Multigrid, PostUsesPre)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using value_type = typename TestFixture::value_type;
     // post setting should be ignored
     auto solver = Solver::build()
                       .with_max_levels(2u)
@@ -772,8 +744,6 @@ TYPED_TEST(Multigrid, PostUsesPre)
 TYPED_TEST(Multigrid, MidUsesPre)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using value_type = typename TestFixture::value_type;
     // post setting should be ignored
     auto solver = Solver::build()
                       .with_max_levels(2u)
@@ -801,8 +771,6 @@ TYPED_TEST(Multigrid, MidUsesPre)
 TYPED_TEST(Multigrid, MidUsesPost)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using value_type = typename TestFixture::value_type;
     // post setting should be ignored
     auto solver =
         Solver::build()
@@ -832,8 +800,6 @@ TYPED_TEST(Multigrid, MidUsesPost)
 TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPre)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using value_type = typename TestFixture::value_type;
     // post setting should be ignored
     auto solver = Solver::build()
                       .with_max_levels(2u)
@@ -867,8 +833,6 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPre)
 TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
 {
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    using value_type = typename TestFixture::value_type;
     // post setting should be ignored
     auto solver =
         Solver::build()
@@ -902,9 +866,7 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
 
 TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto solver = Solver::build()
                       .with_max_levels(2u)
                       .with_min_coarse_rows(2u)
@@ -922,9 +884,7 @@ TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
 
 TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
 {
-    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
     auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 2) ? 1 : 0;
     };
