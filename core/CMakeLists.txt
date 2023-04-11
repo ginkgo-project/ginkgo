@@ -28,17 +28,17 @@ target_sources(ginkgo
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
     factorization/symbolic.cpp
-	log/batch_convergence.cpp
+    log/batch_convergence.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
     log/profiler_hook.cpp
     log/profiler_hook_summary.cpp
     log/profiler_hook_summary_writer.cpp
-    log/tau.cpp
-    log/vtune.cpp
     log/record.cpp
     log/stream.cpp
+    log/tau.cpp
+    log/vtune.cpp
     matrix/batch_band.cpp
     matrix/batch_csr.cpp
     matrix/batch_dense.cpp
@@ -56,11 +56,11 @@ target_sources(ginkgo
     matrix/identity.cpp
     matrix/permutation.cpp
     matrix/row_gatherer.cpp
+    matrix/row_gatherer.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    matrix/row_gatherer.cpp
-    multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
+    multigrid/pgm.cpp
     preconditioner/batch_ilu.cpp
     preconditioner/batch_ilu_isai.cpp
     preconditioner/batch_isai.cpp
@@ -70,6 +70,7 @@ target_sources(ginkgo
     reorder/amd.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+    solver/batch_band_solver.cpp
     solver/batch_bicgstab.cpp
     solver/batch_cg.cpp
     solver/batch_direct.cpp

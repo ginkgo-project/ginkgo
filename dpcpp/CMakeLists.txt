@@ -60,6 +60,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
+    solver/batch_band_solver_kernels.cu
     solver/batch_bicgstab_kernels.dp.cpp
     solver/batch_cg_kernels.dp.cpp
     solver/batch_direct_kernels.dp.cpp

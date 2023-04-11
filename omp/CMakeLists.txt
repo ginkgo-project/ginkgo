@@ -43,6 +43,7 @@ target_sources(ginkgo_omp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
+    solver/batch_band_solver_kernels.cpp
     solver/batch_bicgstab_kernels.cpp
     solver/batch_cg_kernels.cpp
     solver/batch_direct_kernels.cpp
