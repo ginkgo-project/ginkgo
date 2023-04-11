@@ -388,14 +388,14 @@ public:
         double GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol, 0.25);
 
         /**
-         * smoother_relax is the relaxation factor of auto generated smoother
-         * when a user-supplied smoother does not use the initial guess.
+         * smoother_relax is the relaxation factor of default generated
+         * smoother.
          */
         std::complex<double> GKO_FACTORY_PARAMETER_SCALAR(smoother_relax, 0.9);
 
         /**
-         * smoother_iters is the number of iteration of auto generated smoother
-         * when a user-supplied smoother does not use the initial guess.
+         * smoother_iters is the number of iteration of default generated
+         * smoother.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
 
