@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/merging.dp.hpp"
 #include "dpcpp/components/segment_scan.dp.hpp"
@@ -51,9 +52,10 @@ namespace kernels {
 namespace dpcpp {
 namespace batch_isai {
 
-
+namespace {
 #include "dpcpp/preconditioner/batch_isai.hpp.inc"
 #include "dpcpp/preconditioner/batch_isai_kernels.hpp.inc"
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -85,7 +87,7 @@ void extract_dense_linear_sys_pattern(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1)
                 [[intel::reqd_sub_group_size(subgroup_size)]] {
-                    extract_dense_linear_sys_pattern_kernel(
+                    extract_dense_linear_sys_pattern_kernel<subgroup_size>(
                         nrows, sys_row_ptrs, sys_col_idxs, approx_row_ptrs,
                         approx_col_idxs, dense_mat_pattern, rhs_one_idxs, sizes,
                         num_matches_per_row_for_each_csr_sys, item_ct1);
@@ -124,15 +126,15 @@ void fill_values_dense_mat_and_solve(
     auto inv_values = inv->get_values();
     const auto inv_row_ptrs = inv->get_const_row_ptrs();
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 fill_values_dense_mat_and_solve_kernel(
-                                     nbatch, nrows, A_nnz, sys_csr_values,
-                                     aiA_nnz, inv_row_ptrs, inv_values,
-                                     dense_mat_pattern, rhs_one_idxs, sizes,
-                                     input_matrix_type_isai, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[intel::reqd_sub_group_size(subgroup_size)]] {
+                    fill_values_dense_mat_and_solve_kernel<ValueType>(
+                        nbatch, nrows, A_nnz, sys_csr_values, aiA_nnz,
+                        inv_row_ptrs, inv_values, dense_mat_pattern,
+                        rhs_one_idxs, sizes, input_matrix_type_isai, item_ct1);
+                });
     });
 }
 
@@ -174,8 +176,11 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
             slm_storage(sycl::range<1>(shared_size), cgh);
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto batch_id = item_ct1.get_group_linear_id();
+                auto r_b = r_values + batch_id * num_rows;
+                auto z_b = z_values + batch_id * num_rows;
                 batch_isai_apply(
-                    prec, nbatch, num_rows, r_values, z_values,
+                    prec, num_rows, r_b, z_b,
                     static_cast<ValueType*>(slm_storage.get_pointer()),
                     item_ct1);
             });
@@ -208,7 +213,7 @@ void extract_csr_sys_pattern(
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(n_items, [=](auto gid) {
-            extract_csr_sys_pattern_kernel(
+            extract_csr_sys_pattern_kernel<ValueType>(
                 lin_sys_row, approx_row_ptrs, approx_col_idxs, sys_row_ptrs,
                 sys_col_idxs, csr_row_ptrs, csr_col_idxs, csr_values, gid);
         });
@@ -287,8 +292,8 @@ void write_large_sys_solution_to_inverse(
     const auto x_values = x->get_const_values();
     const auto approx_inv_n_elems =
         approx_inv->get_num_stored_elements() / nbatch;
-    auto approx_inv_values = approx_inv->get_values();
     const auto approx_inv_row_ptrs = approx_inv->get_const_row_ptrs();
+    auto approx_inv_values = approx_inv->get_values();
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(n_items, [=](auto gid) {

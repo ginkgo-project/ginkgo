@@ -31,32 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-// namespace {
+#ifndef GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
+#define GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
 
-// TODO: find a way to use single_matvec_kernel in batch_csr_kernels.hpp.inc
-template <typename ValueType>
-__dpct_inline__ void single_csr_spmv_kernel(
-    const gko::batch_csr::BatchEntry<const ValueType>& a,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
-    sycl::nd_item<3> item_ct1)
-{
-    const auto num_rows = a.num_rows;
-    const auto val = a.values;
-    const auto col = a.col_idxs;
-    for (int tidx = item_ct1.get_local_linear_id(); tidx < num_rows;
-         tidx += item_ct1.get_local_range().size()) {
-        auto temp = zero<ValueType>();
-        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
-            const auto col_idx = col[nnz];
-            temp += val[nnz] * b[col_idx];
-        }
-        c[tidx] = temp;
-    }
+namespace {
+#include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 }
-
-
-//}  // namespace
-
 
 /**
  * Batch isai preconditioner.
@@ -126,7 +106,7 @@ public:
                                sycl::nd_item<3> item_ct1) const
     {
         // z = precond * r  ==> z = approx_inv * r (SpMV)
-        single_csr_spmv_kernel(approx_inv_entry_, r, z, item_ct1);
+        single_matvec_kernel(approx_inv_entry_, r, z, item_ct1);
     }
 
 private:
@@ -137,8 +117,7 @@ private:
 
 template <typename ValueType>
 __dpct_inline__ void batch_isai_apply(batch_isai<ValueType> prec,
-                                      const size_type nbatch, const int nrows,
-                                      const ValueType* const b,
+                                      const int nrows, const ValueType* const b,
                                       ValueType* const x,
                                       ValueType* const sh_mem,
                                       sycl::nd_item<3> item_ct1)
@@ -148,4 +127,7 @@ __dpct_inline__ void batch_isai_apply(batch_isai<ValueType> prec,
                   sh_mem, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
     prec.apply(nrows, b, x, item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
 }
+
+#endif

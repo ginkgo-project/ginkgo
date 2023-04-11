@@ -30,6 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
+template <int subwarp_size>
 __dpct_inline__ void extract_dense_linear_sys_pattern_kernel(
     const int nrows, const int* const __restrict__ A_row_ptrs,
     const int* const __restrict__ A_col_idxs,
@@ -40,18 +42,15 @@ __dpct_inline__ void extract_dense_linear_sys_pattern_kernel(
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     // assert(subwarp_size >= row_size_limit); //Not required here
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_tid = sg.get_local_id();
-    constexpr int sg_size = config::warp_size;
-    const int sg_global_id = item_ct1.get_global_linear_id() / sg_size;
-    const int num_sg_total = item_ct1.get_global_range().size() / sg_size;
+    auto subwarpgrp = group::tiled_partition<subwarp_size>(
+        group::this_thread_block(item_ct1));
+    const int subgrpwarp_id_in_grid =
+        thread::get_subwarp_id_flat<subwarp_size, int>(item_ct1);
+    const int total_num_subwarp_grps_in_grid =
+        thread::get_subwarp_num_flat<subwarp_size, int>(item_ct1);
+    const int id_within_warp = subwarpgrp.thread_rank();
 
-    // TODO: Rewrite later, for now subwarpgrp is there for group_match
-    // functions (merging routines).
-    // auto subwarpgrp =
-    // group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
-
-    int ele_id_assigned_to_subwarpgrp = sg_global_id;
+    int ele_id_assigned_to_subwarpgrp = subgrpwarp_id_in_grid;
 
     for (int aiA_row = 0; aiA_row < nrows; aiA_row++) {
         int* const dense_mat_ptr =
@@ -66,13 +65,13 @@ __dpct_inline__ void extract_dense_linear_sys_pattern_kernel(
 
             const int i_size = aiA_row_end - aiA_row_st;
 
-            if (aiA_nz_id == aiA_row_st && sg_tid == 0) {
+            if (aiA_nz_id == aiA_row_st && subwarpgrp.thread_rank() == 0) {
                 sizes[aiA_row] = i_size;
             }
 
             const int aiA_col = aiA_col_idxs[aiA_nz_id];
 
-            if (aiA_col == aiA_row && sg_tid == 0) {
+            if (aiA_col == aiA_row && subwarpgrp.thread_rank() == 0) {
                 rhs_one_idxs[aiA_row] = aiA_nz_id - aiA_row_st;
             }
 
@@ -91,49 +90,45 @@ __dpct_inline__ void extract_dense_linear_sys_pattern_kernel(
 
                 int* const dense_ptr_for_this_row =
                     dense_mat_ptr + dense_sys_row * row_size_limit;
-                /*
-                                auto do_this_on_match =
-                                    [dense_ptr_for_this_row, aiA_row_st,
-                   A_row_st]( int, int aiA_idx_match, int A_idx_match,
-                                        config::lane_mask_type, bool valid) {
-                                        if (valid) {
-                                            dense_ptr_for_this_row[aiA_idx_match]
-                   = A_idx_match + A_row_st;
-                                        }
-                                    };
-                */
-                // warp-parallel match algorithm
-                /*
-                group_match<sg_size>(
-                    aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
-                    A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
-                    do_this_on_match);   //TODO
-                    */
 
-            } else {
-                if (sg_tid == 0) {
-                    *count_matches = 0;
-                }
-                /*
-                                auto do_this_on_match =
-                                    [count_matches](int, int aiA_idx_match, int
-                   A_idx_match, config::lane_mask_type, bool valid) { if (valid)
-                   {
-                                            //atomicAdd(count_matches, 1);
-                                        }
-                                    };
-                */
+                auto do_this_on_match =
+                    [dense_ptr_for_this_row, aiA_row_st, A_row_st](
+                        int, int aiA_idx_match, int A_idx_match,
+                        config::lane_mask_type, bool valid) {
+                        if (valid) {
+                            dense_ptr_for_this_row[aiA_idx_match] =
+                                A_idx_match + A_row_st;
+                        }
+                    };
+
                 // warp-parallel match algorithm
-                /*
-                group_match<sg_size>(
+                group_match<subwarp_size>(
                     aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
                     A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
                     do_this_on_match);
-                    */
+
+            } else {
+                if (subwarpgrp.thread_rank() == 0) {
+                    *count_matches = 0;
+                }
+
+                auto do_this_on_match =
+                    [count_matches](int, int aiA_idx_match, int A_idx_match,
+                                    config::lane_mask_type, bool valid) {
+                        if (valid) {
+                            atomic_add(count_matches, 1);
+                        }
+                    };
+
+                // warp-parallel match algorithm
+                group_match<subwarp_size>(
+                    aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
+                    A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
+                    do_this_on_match);
             }
 
-            sg.barrier();
-            ele_id_assigned_to_subwarpgrp += num_sg_total;
+            subwarpgrp.sync();
+            ele_id_assigned_to_subwarpgrp += total_num_subwarp_grps_in_grid;
         }
     }
 }
@@ -276,7 +271,6 @@ __dpct_inline__ void row_transformation(const int diag_pos, const int size,
                                         ValueType& rhs,
                                         sycl::nd_item<3> item_ct1)
 {
-    //    const int sg_tid = sg_tid;
     const auto sg = item_ct1.get_sub_group();
     const int sg_tid = sg.get_local_id();
 
@@ -304,7 +298,6 @@ __dpct_inline__ ValueType solve_general_dense_system(const int size,
                                                      const int rhs_one_idx,
                                                      sycl::nd_item<3> item_ct1)
 {
-    // const int sg_tid = sg_tid;
     const auto sg = item_ct1.get_sub_group();
     const int sg_tid = sg.get_local_id();
 
@@ -408,7 +401,8 @@ __dpct_inline__ void fill_values_dense_mat_and_solve_kernel(
         sol =
             solve_general_dense_system(size, local_row, rhs_one_idx, item_ct1);
     } else {
-        printf("\n No such case: line: %d and file: %s ", __LINE__, __FILE__);
+        // printf("\n No such case: line: %d and file: %s ", __LINE__,
+        // __FILE__); //TODO
         assert(false);
     }
 
@@ -461,26 +455,20 @@ __dpct_inline__ void extract_csr_sys_pattern_kernel(
 {
     // use one thread per match of the 2 arrays (non-coalseced accesses but data
     // locality)
-    // const int gid = threadIdx.x + blockIdx.x * blockDim.x;
-
     const int inv_row_st = inv_row_ptrs[lin_sys_row];
     const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
 
-    // for (int i = inv_row_st + gid; i < inv_row_end;
-    //      i += blockDim.x * gridDim.x) {
-    const int i = gid;
-    const int col_idx = inv_col_idxs[i];
+    const int col_idx = inv_col_idxs[gid];
     const int sys_row = col_idx;
     const int sys_row_st = sys_row_ptrs[sys_row];
     const int sys_row_end = sys_row_ptrs[sys_row + 1];
 
-    const int csr_pattern_row_start = csr_pattern_row_ptrs[i - inv_row_st];
+    const int csr_pattern_row_start = csr_pattern_row_ptrs[gid - inv_row_st];
 
     match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
                              sys_col_idxs, sys_row_st, sys_row_end,
                              csr_pattern_row_start, csr_pattern_col_idxs,
                              csr_pattern_values);
-}
 }
 
 
@@ -527,7 +515,6 @@ __dpct_inline__ void write_large_sys_solution_to_inverse_kernel(
 {
     assert(size == inv_row_ptrs[lin_sys_row + 1] - inv_row_ptrs[lin_sys_row]);
 
-    //    for (int i = gid; i < nbatch * size; i += blockDim.x * gridDim.x) {
     const int batch_id = gid / size;
     const int idx = gid % size;
 
