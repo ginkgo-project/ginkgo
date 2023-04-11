@@ -2246,13 +2246,78 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
+template <typename IndexType>
+void check_diagonal_entries_kernel(const IndexType num_min_rows_cols,
+                                   const IndexType* const __restrict__ row_ptrs,
+                                   const IndexType* const __restrict__ col_idxs,
+                                   bool* const __restrict__ has_all_diags,
+                                   sycl::nd_item<3> item_ct1)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_size = sg.get_local_range().size();
+    const int sg_tid = sg.get_local_id();
+    const int sg_global_id =
+        item_ct1.get_global_linear_id() / sg.get_max_local_range().size();
+
+    const int row = sg_global_id;
+    if (row < num_min_rows_cols) {
+        const IndexType row_start = row_ptrs[row];
+        const IndexType num_nz = row_ptrs[row + 1] - row_start;
+        bool row_has_diag_local{false};
+        for (IndexType iz = sg_tid; iz < num_nz; iz += sg_size) {
+            if (col_idxs[iz + row_start] == row) {
+                row_has_diag_local = true;
+                break;
+            }
+        }
+        auto row_has_diag =
+            sycl::ext::oneapi::group_ballot(sg, row_has_diag_local).any();
+        if (!row_has_diag) {
+            if (sg_tid == 0) {
+                *has_all_diags = false;
+            }
+            return;
+        }
+    }
+}
+
 
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
+{
+    const size_type nrows = mtx->get_size()[0];
+    has_all_diags = true;
+    if (nrows > 0) {
+        constexpr int subgroup_size = config::warp_size;
+        auto device = exec->get_queue()->get_device();
+        auto group_size =
+            device.get_info<sycl::info::device::max_work_group_size>();
 
+        const dim3 block(group_size);
+        const dim3 grid(ceildiv(nrows * subgroup_size, group_size));
+
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto col_idxs = mtx->get_const_col_idxs();
+        IndexType min_num_rows_cols =
+            std::min(mtx->get_size()[0], mtx->get_size()[1]);
+
+        array<bool> has_diags(exec, {true});
+        auto has_diags_data = has_diags.get_data();
+
+        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                     check_diagonal_entries_kernel(
+                                         min_num_rows_cols, row_ptrs, col_idxs,
+                                         has_diags_data, item_ct1);
+                                 });
+        });
+        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
+    }
+}
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
 
@@ -2390,11 +2455,68 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
 
+template <typename IndexType>
+void find_diagonal_locations_kernel(
+    const IndexType num_min_rows_cols,
+    const IndexType* const __restrict__ row_ptrs,
+    const IndexType* const __restrict__ col_idxs,
+    IndexType* const __restrict__ diag_locs, sycl::nd_item<3> item_ct1)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_size = sg.get_local_range().size();
+    const int sg_tid = sg.get_local_id();
+    const int sg_global_id =
+        item_ct1.get_global_linear_id() / sg.get_max_local_range().size();
+
+    const int row = sg_global_id;
+    if (row < num_min_rows_cols) {
+        const IndexType row_start = row_ptrs[row];
+        const IndexType num_nz = row_ptrs[row + 1] - row_start;
+
+        for (IndexType iz = sg_tid; iz < num_nz; iz += sg_size) {
+            if (col_idxs[iz + row_start] == row) {
+                diag_locs[row] = iz + row_start;
+                break;
+            }
+        }
+    }
+}
+
 template <typename ValueType, typename IndexType>
 void find_diagonal_entries_locations(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    IndexType* diag_locs) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* const mtx, IndexType* diag_locs)
+{
+    const size_type nrows = mtx->get_size()[0];
+    if (nrows == 0) {
+        return;
+    }
+    // const size_type num_blocks =
+    //     ceildiv(nrows, ceildiv(default_block_size, config::warp_size));
+
+    constexpr int subgroup_size = config::warp_size;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(ceildiv(nrows * subgroup_size, group_size));
+
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    IndexType min_num_rows_cols =
+        std::min(mtx->get_size()[0], mtx->get_size()[1]);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[intel::reqd_sub_group_size(subgroup_size)]] {
+                                 find_diagonal_locations_kernel(
+                                     min_num_rows_cols, row_ptrs, col_idxs,
+                                     diag_locs, item_ct1);
+                             });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS);

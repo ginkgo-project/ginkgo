@@ -30,8 +30,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
-#define GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
+
+// namespace {
+
+// TODO: find a way to use single_matvec_kernel in batch_csr_kernels.hpp.inc
+template <typename ValueType>
+__dpct_inline__ void single_csr_spmv_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    sycl::nd_item<3> item_ct1)
+{
+    const auto num_rows = a.num_rows;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    for (int tidx = item_ct1.get_local_linear_id(); tidx < num_rows;
+         tidx += item_ct1.get_local_range().size()) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
+        }
+        c[tidx] = temp;
+    }
+}
+
+
+//}  // namespace
 
 
 /**
@@ -40,54 +64,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 class batch_isai final {
 private:
-    inline void common_generate_for_all_system_matrix_types(size_type batch_id)
+    __dpct_inline__ void common_generate_for_all_system_matrix_types(
+        size_type batch_id)
     {
-        // approx_inv_entry_ =
-        //     batch::batch_entry(approx_inv_batch_, batch_id);
+        approx_inv_entry_ =
+            gko::batch::batch_entry(approx_inv_batch_, batch_id);
     }
 
 public:
     using value_type = ValueType;
 
     /**
-     * @param approx_inv  Approximate inverse (that was factored externally)
+     *
+     * @param approx_inv  Incomplete Sparse Approximate Inverse (that was
+     * factored externally).
      */
-    batch_isai(const batch_csr::UniformBatch<const value_type>& approx_inv)
+    batch_isai(const gko::batch_csr::UniformBatch<const value_type>& approx_inv)
         : approx_inv_batch_{approx_inv}
     {}
+
 
     /**
      * The size of the work vector required per batch entry. (takes into account
      * both- generation and application)
      */
-    static constexpr int dynamic_work_size(int nrows, int) { return 0; }
+    __dpct_inline__ static constexpr int dynamic_work_size(int nrows, int nnz)
+    {
+        return 0;
+    }
 
     /**
      * Complete the precond generation process.
      *
      */
-    void generate(size_type batch_id,
-                  const batch_csr::BatchEntry<const ValueType>&,
-                  ValueType* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
-    void generate(size_type batch_id,
-                  const batch_ell::BatchEntry<const ValueType>&,
-                  ValueType* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
+        ValueType* const, sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
-    void generate(size_type batch_id,
-                  const batch_dense::BatchEntry<const ValueType>&,
-                  ValueType* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id,
+        const gko::batch_dense::BatchEntry<const ValueType>&, ValueType* const,
+        sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id);
+        common_generate_for_all_system_matrix_types(batch_id);
     }
 
 
@@ -96,15 +125,27 @@ public:
                                ValueType* const __restrict__ z,
                                sycl::nd_item<3> item_ct1) const
     {
-        assert(false);
-        // z = approx_inv * r (Spmv)
-        // matvec_kernel(approx_inv_entry_, r, z);
+        // z = precond * r  ==> z = approx_inv * r (SpMV)
+        single_csr_spmv_kernel(approx_inv_entry_, r, z, item_ct1);
     }
 
 private:
-    const batch_csr::UniformBatch<const value_type> approx_inv_batch_;
-    batch_csr::BatchEntry<const value_type> approx_inv_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> approx_inv_batch_;
+    gko::batch_csr::BatchEntry<const value_type> approx_inv_entry_;
 };
 
 
-#endif  // GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
+template <typename ValueType>
+__dpct_inline__ void batch_isai_apply(batch_isai<ValueType> prec,
+                                      const size_type nbatch, const int nrows,
+                                      const ValueType* const b,
+                                      ValueType* const x,
+                                      ValueType* const sh_mem,
+                                      sycl::nd_item<3> item_ct1)
+{
+    auto batch_id = item_ct1.get_group_linear_id();
+    prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                  sh_mem, item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+    prec.apply(nrows, b, x, item_ct1);
+}
