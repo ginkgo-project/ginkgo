@@ -34,192 +34,205 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_PRECONDITIONER_BATCH_ILU_ISAI_HPP_INC_
 
 
+namespace batch_ilu_isai_temp {
+
+// TODO: find a way to use single_matvec_kernel in batch_csr_kernels.hpp.inc
+template <typename ValueType>
+__dpct_inline__ void single_csr_spmv_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    sycl::nd_item<3> item_ct1)
+{
+    const auto num_rows = a.num_rows;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    for (int tidx = item_ct1.get_local_linear_id(); tidx < num_rows;
+         tidx += item_ct1.get_local_range().size()) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
+        }
+        c[tidx] = temp;
+    }
+}
+
+}  // namespace batch_ilu_isai_temp
+
 /**
  * Batch ilu-isai preconditioner.
  */
 template <typename ValueType>
 class batch_ilu_isai final {
 private:
-    inline void common_generate_for_all_system_matrix_types(
-        size_type batch_id, ValueType* const work)
+    __dpct_inline__ void common_generate_for_all_system_matrix_types(
+        size_type batch_id, ValueType* const __restrict__ work,
+        sycl::nd_item<3> item_ct1)
     {
-        // work_ = work;
-        // l_entry_ = batch::batch_entry(l_batch_, batch_id);
-        // u_entry_ = batch::batch_entry(u_batch_, batch_id);
-        // l_isai_entry_ = batch::batch_entry(l_isai_batch_, batch_id);
-        // u_isai_entry_ = batch::batch_entry(u_isai_batch_, batch_id);
-        // if (apply_type_ ==
-        //     preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm)
-        //     { mult_inv_entry_ =
-        //         batch::batch_entry(mult_inv_batch_, batch_id);
-        // } else if (apply_type_ == preconditioner::batch_ilu_isai_apply::
-        //                               relaxation_steps_isai_with_spgemm) {
-        //     iter_mat_lower_solve_entry_ =
-        //         batch::batch_entry(iter_mat_lower_solve_batch_,
-        //         batch_id);
-        //     iter_mat_upper_solve_entry_ =
-        //         batch::batch_entry(iter_mat_upper_solve_batch_,
-        //         batch_id);
-        // }
+        work_ = work;
+        l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
+        l_isai_entry_ = gko::batch::batch_entry(l_isai_batch_, batch_id);
+        u_isai_entry_ = gko::batch::batch_entry(u_isai_batch_, batch_id);
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::spmv_isai_with_spgemm) {
+            mult_inv_entry_ =
+                gko::batch::batch_entry(mult_inv_batch_, batch_id);
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      relaxation_steps_isai_with_spgemm) {
+            iter_mat_lower_solve_entry_ =
+                gko::batch::batch_entry(iter_mat_lower_solve_batch_, batch_id);
+            iter_mat_upper_solve_entry_ =
+                gko::batch::batch_entry(iter_mat_upper_solve_batch_, batch_id);
+        }
     }
 
 
-    inline void apply_spmv_isai_simple(
-        const batch_dense::BatchEntry<const ValueType>& r,
-        const batch_dense::BatchEntry<ValueType>& z) const
+    __dpct_inline__ void apply_spmv_isai_simple(
+        const int num_rows, const ValueType* const __restrict__ r,
+        ValueType* const __restrict__ z, sycl::nd_item<3> item_ct1) const
     {
-        // // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
-        // // lai_U * laiL * r ===> z = lai_U * laiL * r
-
-        // const batch_dense::BatchEntry<ValueType> work_entry{work_, 1,
-        //                                                          r.num_rows,
-        //                                                          1};
-
-        // batch_ilu_isai_temp::matvec_kernel(l_isai_entry_, r, work_entry);
-
-        // batch_ilu_isai_temp::matvec_kernel(u_isai_entry_,
-        //                                    batch::to_const(work_entry),
-        //                                    z);
+        // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
+        // lai_U * laiL * r ===> z = lai_U * laiL * r
+        batch_ilu_isai_temp::single_csr_spmv_kernel(l_isai_entry_, r, work_,
+                                                    item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+        batch_ilu_isai_temp::single_csr_spmv_kernel(u_isai_entry_, work_, z,
+                                                    item_ct1);
     }
 
-    inline void apply_spmv_isai_with_spgemm(
-        const batch_dense::BatchEntry<const ValueType>& r,
-        const batch_dense::BatchEntry<ValueType>& z) const
+    __dpct_inline__ void apply_spmv_isai_with_spgemm(
+        const int num_rows, const ValueType* const __restrict__ r,
+        ValueType* const __restrict__ z, sycl::nd_item<3> item_ct1) const
     {
-        // // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
-        // // lai_U * laiL * r ===> z = lai_U * laiL * r
-        // batch_ilu_isai_temp::matvec_kernel(mult_inv_entry_, r, z);
+        // z = precond * r  ==> L * U * z = r ==> lai_U * lai_L * L * U * z =
+        // lai_U * laiL * r ===> z = lai_U * laiL * r
+
+        batch_ilu_isai_temp::single_csr_spmv_kernel(mult_inv_entry_, r, z,
+                                                    item_ct1);
     }
 
-    inline void solve_system_relaxation_steps_simple(
-        const batch_csr::BatchEntry<const ValueType>& mat_entry,
-        const batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
-        const batch_dense::BatchEntry<const ValueType>& rhs,
-        const batch_dense::BatchEntry<ValueType>& sol_guess,
-        const batch_dense::BatchEntry<ValueType>& temp1,
-        const batch_dense::BatchEntry<ValueType>& temp2,
-        const batch_dense::BatchEntry<ValueType>& temp3) const
+    __dpct_inline__ void solve_system_relaxation_steps_simple(
+        const int num_rows,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_entry,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
+        const ValueType* const __restrict__ rhs,
+        ValueType* const __restrict__ sol_guess,
+        ValueType* const __restrict__ temp1,
+        ValueType* const __restrict__ temp2, sycl::nd_item<3> item_ct1) const
     {
-        // // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) *
-        // sol_guess
-        // // (iterations)
+        // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) * sol_guess
+        // (iterations)
 
-        // batch_ilu_isai_temp::matvec_kernel(mat_isai_entry, rhs, temp1);
+        batch_ilu_isai_temp::single_csr_spmv_kernel(mat_isai_entry, rhs, temp1,
+                                                    item_ct1);
+        for (int i = item_ct1.get_local_linear_id(); i < num_rows;
+             i += item_ct1.get_local_range().size()) {
+            sol_guess[i] = 0;
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        // for (int i = 0; i < sol_guess.num_rows; i++) {
-        //     sol_guess.values[i] = 0;
-        // }
+        for (int step = 0; step < num_relaxation_steps_; step++) {
+            // sol_guess_updated =  temp1 + sol_guess -  (lai_mat * temp2) where
+            // temp2 = mat * sol_guess
+            batch_ilu_isai_temp::single_csr_spmv_kernel(mat_entry, sol_guess,
+                                                        temp2, item_ct1);
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+            // merged kernel
+            for (int row = item_ct1.get_local_linear_id(); row < num_rows;
+                 row += item_ct1.get_local_range().size()) {
+                auto sum = zero<ValueType>();
+                for (auto i = mat_isai_entry.row_ptrs[row];
+                     i < mat_isai_entry.row_ptrs[row + 1]; i++) {
+                    const auto col_idx = mat_isai_entry.col_idxs[i];
+                    sum += mat_isai_entry.values[i] * temp2[col_idx];
+                }
 
-        // for (int step = 0; step < num_relaxation_steps_; step++) {
-        //     // sol_guess_updated =  temp1 + sol_guess -  (lai_mat * temp2)
-        //     where
-        //     // temp2 = mat * sol_guess
-        //     // ===> sol_guess_updated =  temp1 + sol_guess -  temp3  where
-        //     temp3
-        //     // = lai_mat * temp2
-
-        //     batch_ilu_isai_temp::matvec_kernel(
-        //         mat_entry, batch::to_const(sol_guess), temp2);
-        //     batch_ilu_isai_temp::matvec_kernel(
-        //         mat_isai_entry, batch::to_const(temp2), temp3);
-
-        //     for (int i = 0; i < sol_guess.num_rows; i++) {
-        //         sol_guess.values[i] =
-        //             temp1.values[i] + sol_guess.values[i] - temp3.values[i];
-        //     }
-        // }
+                sol_guess[row] = temp1[row] + sol_guess[row] - sum;
+            }
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+        }
     }
 
-
-    inline void solve_system_relaxation_steps_external_spgemm(
-        const batch_csr::BatchEntry<const ValueType>& iteration_mat_entry,
-        const batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
-        const batch_dense::BatchEntry<const ValueType>& rhs,
-        const batch_dense::BatchEntry<ValueType>& sol_guess,
-        const batch_dense::BatchEntry<ValueType>& temp1,
-        const batch_dense::BatchEntry<ValueType>& temp2) const
+    __dpct_inline__ void apply_relaxation_steps_isai_simple(
+        const int num_rows, const ValueType* const __restrict__ r,
+        ValueType* const __restrict__ z, sycl::nd_item<3> item_ct1) const
     {
-        // // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) *
-        // sol_guess
-        // // (iterations)
+        // z = precond * r
+        // L * U * z = r
+        // L * y = r  and then U * z = y
+        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
+        // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
+        // (iterations)
 
-        // batch_ilu_isai_temp::matvec_kernel(mat_isai_entry, rhs, temp1);
+        ValueType* y = work_;
+        ValueType* temp1 = work_ + num_rows;
+        ValueType* temp2 = temp1 + num_rows;
 
-        // for (int i = 0; i < sol_guess.num_rows; i++) {
-        //     sol_guess.values[i] = 0;
-        // }
-
-        // for (int step = 0; step < num_relaxation_steps_; step++) {
-        //     // sol_guess_updated =  temp1 + iteration_mat * sol_guess
-
-        //     batch_ilu_isai_temp::matvec_kernel(
-        //         iteration_mat_entry, batch::to_const(sol_guess), temp2);
-
-        //     for (int i = 0; i < sol_guess.num_rows; i++) {
-        //         sol_guess.values[i] = temp1.values[i] + temp2.values[i];
-        //     }
-        // }
+        solve_system_relaxation_steps_simple(num_rows, l_entry_, l_isai_entry_,
+                                             r, y, temp1, temp2, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+        solve_system_relaxation_steps_simple(num_rows, u_entry_, u_isai_entry_,
+                                             y, z, temp1, temp2, item_ct1);
     }
 
-
-    inline void apply_relaxation_steps_isai_simple(
-        const batch_dense::BatchEntry<const ValueType>& r,
-        const batch_dense::BatchEntry<ValueType>& z) const
+    __dpct_inline__ void solve_system_relaxation_steps_external_spgemm(
+        const int num_rows,
+        const gko::batch_csr::BatchEntry<const ValueType>& iteration_mat_entry,
+        const gko::batch_csr::BatchEntry<const ValueType>& mat_isai_entry,
+        const ValueType* const __restrict__ rhs,
+        ValueType* const __restrict__ sol_guess,
+        ValueType* const __restrict__ temp, sycl::nd_item<3> item_ct1) const
     {
-        // // z = precond * r
-        // // L * U * z = r
-        // // L * y = r  and then U * z = y
-        // // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
-        // // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) *
-        // z_old
-        // // (iterations)
-        // const int num_rows = r.num_rows;
-        // ValueType* y_arr = work_;
-        // ValueType* temp1_arr = work_ + num_rows;
-        // ValueType* temp2_arr = temp1_arr + num_rows;
-        // ValueType* temp3_arr = temp2_arr + num_rows;
-        // const batch_dense::BatchEntry<ValueType> y{y_arr, 1, num_rows,
-        // 1}; const batch_dense::BatchEntry<ValueType> temp1{temp1_arr, 1,
-        //                                                     num_rows, 1};
-        // const batch_dense::BatchEntry<ValueType> temp2{temp2_arr, 1,
-        //                                                     num_rows, 1};
-        // const batch_dense::BatchEntry<ValueType> temp3{temp3_arr, 1,
-        //                                                     num_rows, 1};
+        // sol_guess_updated = lai_mat * rhs + (I - lai_mat * mat) * sol_guess
+        // (iterations)
+        batch_ilu_isai_temp::single_csr_spmv_kernel(mat_isai_entry, rhs, temp,
+                                                    item_ct1);
+        for (int i = item_ct1.get_local_linear_id(); i < num_rows;
+             i += item_ct1.get_local_range().size()) {
+            sol_guess[i] = 0;
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        // solve_system_relaxation_steps_simple(l_entry_, l_isai_entry_, r, y,
-        //                                      temp1, temp2, temp3);
-        // solve_system_relaxation_steps_simple(u_entry_, u_isai_entry_,
-        //                                      batch::to_const(y), z,
-        //                                      temp1, temp2, temp3);
+        for (int step = 0; step < num_relaxation_steps_; step++) {
+            // sol_guess_updated =  temp + iter_mat * sol_guess
+
+            // merged kernel
+            for (int row = item_ct1.get_local_linear_id(); row < num_rows;
+                 row += item_ct1.get_local_range().size()) {
+                auto sum = zero<ValueType>();
+                for (auto i = iteration_mat_entry.row_ptrs[row];
+                     i < iteration_mat_entry.row_ptrs[row + 1]; i++) {
+                    const auto col_idx = iteration_mat_entry.col_idxs[i];
+                    sum += iteration_mat_entry.values[i] * sol_guess[col_idx];
+                }
+
+                sol_guess[row] = temp[row] + sum;
+            }
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+        }
     }
 
-    inline void apply_relaxation_steps_isai_with_spgemm(
-        const batch_dense::BatchEntry<const ValueType>& r,
-        const batch_dense::BatchEntry<ValueType>& z) const
+    __dpct_inline__ void apply_relaxation_steps_isai_with_spgemm(
+        const int num_rows, const ValueType* const __restrict__ r,
+        ValueType* const __restrict__ z, sycl::nd_item<3> item_ct1) const
     {
-        // // z = precond * r
-        // // L * U * z = r
-        // // L * y = r  and then U * z = y
-        // // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
-        // // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) *
-        // z_old
-        // // (iterations)
+        // z = precond * r
+        // L * U * z = r
+        // L * y = r  and then U * z = y
+        // y_updated = lai_L * r + (I - lai_L * L) * y_old    (iterations)
+        // Once y is obtained, z_updated = lai_U * y + (I - lai_U * U) * z_old
+        // (iterations)
 
-        // const int num_rows = r.num_rows;
-        // ValueType* y_arr = work_;
-        // ValueType* temp1_arr = work_ + num_rows;
-        // ValueType* temp2_arr = temp1_arr + num_rows;
-        // const batch_dense::BatchEntry<ValueType> y{y_arr, 1, num_rows,
-        // 1}; const batch_dense::BatchEntry<ValueType> temp1{temp1_arr, 1,
-        //                                                     num_rows, 1};
-        // const batch_dense::BatchEntry<ValueType> temp2{temp2_arr, 1,
-        //                                                     num_rows, 1};
-
-        // solve_system_relaxation_steps_external_spgemm(
-        //     iter_mat_lower_solve_entry_, l_isai_entry_, r, y, temp1, temp2);
-        // solve_system_relaxation_steps_external_spgemm(
-        //     iter_mat_upper_solve_entry_, u_isai_entry_,
-        //     batch::to_const(y), z, temp1, temp2);
+        ValueType* y = work_;
+        ValueType* temp = work_ + num_rows;
+        solve_system_relaxation_steps_external_spgemm(
+            num_rows, iter_mat_lower_solve_entry_, l_isai_entry_, r, y, temp,
+            item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+        solve_system_relaxation_steps_external_spgemm(
+            num_rows, iter_mat_upper_solve_entry_, u_isai_entry_, y, z, temp,
+            item_ct1);
     }
 
 public:
@@ -250,16 +263,16 @@ public:
      * @param num_relaxation_steps
      */
     batch_ilu_isai(
-        const batch_csr::UniformBatch<const value_type>& l_batch,
-        const batch_csr::UniformBatch<const value_type>& u_batch,
-        const batch_csr::UniformBatch<const value_type>& l_isai_batch,
-        const batch_csr::UniformBatch<const value_type>& u_isai_batch,
-        const batch_csr::UniformBatch<const value_type>& mult_inv_batch,
-        const batch_csr::UniformBatch<const value_type>&
+        const gko::batch_csr::UniformBatch<const value_type>& l_batch,
+        const gko::batch_csr::UniformBatch<const value_type>& u_batch,
+        const gko::batch_csr::UniformBatch<const value_type>& l_isai_batch,
+        const gko::batch_csr::UniformBatch<const value_type>& u_isai_batch,
+        const gko::batch_csr::UniformBatch<const value_type>& mult_inv_batch,
+        const gko::batch_csr::UniformBatch<const value_type>&
             iter_mat_lower_solve_batch,
-        const batch_csr::UniformBatch<const value_type>&
+        const gko::batch_csr::UniformBatch<const value_type>&
             iter_mat_upper_solve_batch,
-        const enum preconditioner::batch_ilu_isai_apply& apply_type,
+        const enum gko::preconditioner::batch_ilu_isai_apply& apply_type,
         const int& num_relaxation_steps)
         : l_batch_{l_batch},
           u_batch_{u_batch},
@@ -272,89 +285,107 @@ public:
           num_relaxation_steps_{num_relaxation_steps}
     {}
 
-
     /**
      * The size of the work vector required per batch entry. (takes into account
      * both- generation and application (for application, returns the max. of
      * what is required by each of the 4 methods))
      */
-    static constexpr int dynamic_work_size(int nrows, int) { return 4 * nrows; }
+    __dpct_inline__ static constexpr int dynamic_work_size(int nrows, int nnz)
+    {
+        return 3 * nrows;
+    }
 
     /**
      * Complete the precond generation process.
      *
      */
-    void generate(size_type batch_id,
-                  const batch_csr::BatchEntry<const ValueType>&,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id, work);
+        common_generate_for_all_system_matrix_types(batch_id, work, item_ct1);
     }
 
-    void generate(size_type batch_id,
-                  const batch_ell::BatchEntry<const ValueType>&,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id, work);
+        common_generate_for_all_system_matrix_types(batch_id, work, item_ct1);
     }
 
-    void generate(size_type batch_id,
-                  const batch_dense::BatchEntry<const ValueType>&,
-                  ValueType* const work, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id,
+        const gko::batch_dense::BatchEntry<const ValueType>&,
+        ValueType* const __restrict__ work, sycl::nd_item<3> item_ct1)
     {
-        assert(false);
-        // common_generate_for_all_system_matrix_types(batch_id, work);
+        common_generate_for_all_system_matrix_types(batch_id, work, item_ct1);
     }
 
 
-    __dpct_inline__ void apply(const int num_rows, const ValueType* const r,
-                               ValueType* const z,
+    __dpct_inline__ void apply(const int num_rows,
+                               const ValueType* const __restrict__ r,
+                               ValueType* const __restrict__ z,
                                sycl::nd_item<3> item_ct1) const
     {
-        assert(false);
-        // // z = precond * r
-        // if (apply_type_ ==
-        //     preconditioner::batch_ilu_isai_apply::spmv_isai_simple) {
-        //     apply_spmv_isai_simple(r, z);
+        // z = precond * r
+        if (apply_type_ ==
+            gko::preconditioner::batch_ilu_isai_apply::spmv_isai_simple) {
+            apply_spmv_isai_simple(num_rows, r, z, item_ct1);
 
-        // } else if (apply_type_ == preconditioner::batch_ilu_isai_apply::
-        //                               spmv_isai_with_spgemm) {
-        //     apply_spmv_isai_with_spgemm(r, z);
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      spmv_isai_with_spgemm) {
+            apply_spmv_isai_with_spgemm(num_rows, r, z, item_ct1);
 
-        // } else if (apply_type_ == preconditioner::batch_ilu_isai_apply::
-        //                               relaxation_steps_isai_simple) {
-        //     apply_relaxation_steps_isai_simple(r, z);
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      relaxation_steps_isai_simple) {
+            apply_relaxation_steps_isai_simple(num_rows, r, z, item_ct1);
 
-        // } else if (apply_type_ == preconditioner::batch_ilu_isai_apply::
-        //                               relaxation_steps_isai_with_spgemm) {
-        //     apply_relaxation_steps_isai_with_spgemm(r, z);
+        } else if (apply_type_ == gko::preconditioner::batch_ilu_isai_apply::
+                                      relaxation_steps_isai_with_spgemm) {
+            apply_relaxation_steps_isai_with_spgemm(num_rows, r, z, item_ct1);
 
-        // } else {
-        //     GKO_NOT_IMPLEMENTED;
-        // }
+        } else {
+            //            printf("\n No such case: %d and %s ", __LINE__,
+            //            __FILE__); //TODO
+        }
     }
 
 private:
     value_type* work_;
-    const enum preconditioner::batch_ilu_isai_apply apply_type_;
+    const enum gko::preconditioner::batch_ilu_isai_apply apply_type_;
     const int num_relaxation_steps_;
-    const batch_csr::UniformBatch<const value_type> l_batch_;
-    batch_csr::BatchEntry<const value_type> l_entry_;
-    const batch_csr::UniformBatch<const value_type> u_batch_;
-    batch_csr::BatchEntry<const value_type> u_entry_;
-    const batch_csr::UniformBatch<const value_type> l_isai_batch_;
-    batch_csr::BatchEntry<const value_type> l_isai_entry_;
-    const batch_csr::UniformBatch<const value_type> u_isai_batch_;
-    batch_csr::BatchEntry<const value_type> u_isai_entry_;
-    const batch_csr::UniformBatch<const value_type> mult_inv_batch_;
-    batch_csr::BatchEntry<const value_type> mult_inv_entry_;
-    const batch_csr::UniformBatch<const value_type> iter_mat_lower_solve_batch_;
-    batch_csr::BatchEntry<const value_type> iter_mat_lower_solve_entry_;
-    const batch_csr::UniformBatch<const value_type> iter_mat_upper_solve_batch_;
-    batch_csr::BatchEntry<const value_type> iter_mat_upper_solve_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> l_batch_;
+    gko::batch_csr::BatchEntry<const value_type> l_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> u_batch_;
+    gko::batch_csr::BatchEntry<const value_type> u_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> l_isai_batch_;
+    gko::batch_csr::BatchEntry<const value_type> l_isai_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> u_isai_batch_;
+    gko::batch_csr::BatchEntry<const value_type> u_isai_entry_;
+    const gko::batch_csr::UniformBatch<const value_type> mult_inv_batch_;
+    gko::batch_csr::BatchEntry<const value_type> mult_inv_entry_;
+    const gko::batch_csr::UniformBatch<const value_type>
+        iter_mat_lower_solve_batch_;
+    gko::batch_csr::BatchEntry<const value_type> iter_mat_lower_solve_entry_;
+    const gko::batch_csr::UniformBatch<const value_type>
+        iter_mat_upper_solve_batch_;
+    gko::batch_csr::BatchEntry<const value_type> iter_mat_upper_solve_entry_;
 };
 
+
+template <typename ValueType>
+__dpct_inline__ void batch_ilu_isai_apply(batch_ilu_isai<ValueType> prec,
+                                          const int nrows,
+                                          const ValueType* const b,
+                                          ValueType* const x,
+                                          ValueType* const slm_values_ptr,
+                                          sycl::nd_item<3> item_ct1)
+{
+    auto batch_id = item_ct1.get_group_linear_id();
+    prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                  slm_values_ptr, item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+    prec.apply(nrows, b, x, item_ct1);
+}
 
 #endif  // GKO_DPCPP_PRECONDITIONER_BATCH_ILU_ISAI_HPP_INC_
