@@ -82,7 +82,7 @@ namespace csr {
 constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 
 
 /**
@@ -91,7 +91,7 @@ constexpr int classical_overweight = 32;
  */
 using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
+using classical_kernels = syn::value_list<int, config::warp_size, 16, 1>;
 
 
 namespace kernel {
@@ -678,14 +678,13 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
-                        c_stride, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, val, col_idxs, row_ptrs, b,
+                                         b_stride, c, c_stride, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -731,14 +730,14 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
-                        beta, c, c_stride, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, alpha, val, col_idxs,
+                                         row_ptrs, b, b_stride, beta, c,
+                                         c_stride, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -1108,9 +1107,8 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
                     const matrix::Dense<ValueType>* alpha = nullptr,
                     const matrix::Dense<ValueType>* beta = nullptr)
 {
-    constexpr int threads_per_cu = 7;
     const auto num_subgroup =
-        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+        exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),

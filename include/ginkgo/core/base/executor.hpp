@@ -120,6 +120,20 @@ constexpr allocation_mode default_hip_alloc_mode =
 
 }  // namespace gko
 
+
+// after intel/llvm September'22 release, which uses major version 6, they
+// introduce another inline namespace _V1.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
+inline namespace _V1 {
+
+
+class queue;
+
+
+}  // namespace _V1
+}  // namespace sycl
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
 inline namespace cl {
 namespace sycl {
 
@@ -129,6 +143,7 @@ class queue;
 
 }  // namespace sycl
 }  // namespace cl
+#endif
 
 
 /**
@@ -956,7 +971,9 @@ protected:
          *       per core.
          *       In CUDA and HIP executors this is the number of warps
          *       per SM.
-         *       In DPCPP, this is currently undefined.
+         *       In DPCPP, this is currently number of hardware threads per eu.
+         *       If the device does not support, it will be set as 1.
+         *       (TODO: check)
          */
         int num_pu_per_cu = -1;
 
@@ -1952,7 +1969,7 @@ public:
         return this->get_exec_info().device_id;
     }
 
-    ::cl::sycl::queue* get_queue() const { return queue_.get(); }
+    sycl::queue* get_queue() const { return queue_.get(); }
 
     /**
      * Get the number of devices present on the system.
@@ -1981,6 +1998,15 @@ public:
     int get_num_computing_units() const noexcept
     {
         return this->get_exec_info().num_computing_units;
+    }
+
+    /**
+     * Get the number of subgroups of this executor.
+     */
+    int get_num_subgroups() const noexcept
+    {
+        return this->get_exec_info().num_computing_units *
+               this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -2063,7 +2089,7 @@ private:
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T*)>>;
-    queue_manager<::cl::sycl::queue> queue_;
+    queue_manager<sycl::queue> queue_;
 };
 
 
