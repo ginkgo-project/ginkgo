@@ -73,7 +73,7 @@ constexpr int default_block_size = 256;
 
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
-using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 16, 32>;
 
 namespace kernel {
 
@@ -175,14 +175,15 @@ void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
            ValueType* u_vals, const IndexType* ut_col_ptrs,
            const IndexType* ut_row_idxs, ValueType* ut_vals, IndexType u_nnz)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            sweep<subgroup_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
-                                 l_row_idxs, l_col_idxs, l_vals, l_nnz,
-                                 u_row_idxs, u_col_idxs, u_vals, ut_col_ptrs,
-                                 ut_row_idxs, ut_vals, u_nnz, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                sweep<subgroup_size>(
+                                    a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                    l_row_idxs, l_col_idxs, l_vals, l_nnz,
+                                    u_row_idxs, u_col_idxs, u_vals, ut_col_ptrs,
+                                    ut_row_idxs, ut_vals, u_nnz, item_ct1);
+                            });
 }
 
 
