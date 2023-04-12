@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 
+#define ENABLE_PROFILE 0
 
 namespace gko {
 namespace solver {
@@ -398,12 +399,14 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
                                   const LinOp* b, LinOp* x, cycle_mode mode)
 {
     if (level == multigrid->get_mg_level_list().size()) {
-        // std::cout << "coarsest_solver start" << std::endl;
+// std::cout << "coarsest_solver start" << std::endl;
+#if ENABLE_PROFILE
         std::string range = "coarsest";
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+#endif
         multigrid->get_coarsest_solver()->apply(b, x);
 
         // std::cout << "coarsest_solver end" << std::endl;
@@ -465,11 +468,18 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // auto norm = gko::matrix::Dense<ValueType>::create(r->get_executor(),
     //                                                   gko::dim<2>{1, 1});
     {
+#if ENABLE_PROFILE
         std::string range = "presmoother" + std::to_string(level);
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+        if (dynamic_cast<const matrix::Dense<double>*>(b)) {
+            std::cout << "level " << level << " double " << std::endl;
+        } else if (dynamic_cast<const matrix::Dense<float>*>(b)) {
+            std::cout << "level " << level << " float " << std::endl;
+        }
+#endif
         if (use_pre && pre_smoother) {
             if (has_property(mode, cycle_mode::x_is_zero)) {
                 if (auto pre_allow_zero_input =
@@ -491,11 +501,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     {
+#if ENABLE_PROFILE
         std::string range = "restrict" + std::to_string(level);
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+#endif
         // The common smoother is wrapped by IR and IR already split the iter
         // and residual check. Thus, when the IR only contains iter limit,
         // there's no additional residual computation
@@ -571,11 +583,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     {
+#if ENABLE_PROFILE
         std::string range = "prolong" + std::to_string(level);
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+#endif
         // prolong
         // IMP: the first scalar should use the type of matrix
         mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
@@ -586,11 +600,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                     mid_case == multigrid::mid_smooth_type::post_smoother;
     // post-smooth
     {
+#if ENABLE_PROFILE
         std::string range = "post" + std::to_string(level);
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+#endif
         if (use_post && post_smoother) {
             post_smoother->apply(b, x);
         }
@@ -631,7 +647,7 @@ void Multigrid::generate()
             // do not reduce dimension
             break;
         }
-
+        matrix = mg_level->get_fine_op();
         run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
             half,
@@ -739,7 +755,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
     auto lambda = [this, guess](auto mg_level, auto b, auto x) {
         using value_type =
             typename std::decay_t<decltype(*mg_level)>::value_type;
-        experimental::precision_dispatch_real_complex_distributed<value_type>(
+        mixed_precision_dispatch_real_complex<value_type>(
             [this, guess](auto dense_b, auto dense_x) {
                 prepare_initial_guess(dense_b, dense_x, guess);
                 this->apply_dense_impl(dense_b, dense_x, guess);
@@ -806,8 +822,8 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
 }
 
 
-template <typename VectorType>
-void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
+template <typename VectorType, typename Vector2Type>
+void Multigrid::apply_dense_impl(const VectorType* b, Vector2Type* x,
                                  initial_guess_mode guess) const
 {
     {
@@ -818,11 +834,13 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             cache_.state->generate(this->get_system_matrix().get(), this,
                                    b->get_size()[1]);
         }
+#if ENABLE_PROFILE
         std::string range = "apply";
         log::profiling_scope_guard prof{
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
+#endif
         auto lambda = [&, this](auto mg_level, auto b, auto x) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;

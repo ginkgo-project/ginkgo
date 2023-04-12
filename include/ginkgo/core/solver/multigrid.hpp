@@ -423,8 +423,8 @@ protected:
                                        const LinOp* beta, LinOp* x,
                                        initial_guess_mode guess) const override;
 
-    template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x,
+    template <typename VectorType, typename Vector2Type>
+    void apply_dense_impl(const VectorType* b, Vector2Type* x,
                           initial_guess_mode guess) const;
 
     /**
