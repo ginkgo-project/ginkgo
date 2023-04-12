@@ -209,14 +209,18 @@ void extract_csr_sys_pattern(
     auto csr_col_idxs = csr_pattern->get_col_idxs();
     auto csr_values = csr_pattern->get_values();
 
-    auto n_items = approx_row_ptrs[lin_sys_row + 1];
+    const auto n_items =
+        approx_row_ptrs[lin_sys_row + 1] - approx_row_ptrs[lin_sys_row];
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(n_items, [=](auto gid) {
-            extract_csr_sys_pattern_kernel<ValueType>(
-                lin_sys_row, approx_row_ptrs, approx_col_idxs, sys_row_ptrs,
-                sys_col_idxs, csr_row_ptrs, csr_col_idxs, csr_values, gid);
-        });
+        cgh.parallel_for(size,
+                         [=](auto gid) {  // TODO: launch kernel with n_items &
+                                          // rm the iterator loop
+                             extract_csr_sys_pattern_kernel<ValueType>(
+                                 lin_sys_row, approx_row_ptrs, approx_col_idxs,
+                                 sys_row_ptrs, sys_col_idxs, csr_row_ptrs,
+                                 csr_col_idxs, csr_values, size, gid);
+                         });
     });
 }
 
