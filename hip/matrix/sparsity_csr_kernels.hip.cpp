@@ -63,7 +63,7 @@ namespace hip {
 namespace sparsity_csr {
 
 
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 constexpr int spmv_block_size = 256;
 constexpr int warps_in_block = 4;
 
@@ -95,7 +95,8 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * classical_overweight;
+                        exec->get_num_multiprocessor() *
+                        classical_oversubscription;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));

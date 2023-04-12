@@ -389,12 +389,10 @@ public:
          *
          * @param exec the DPCPP executor
          *
-         * @note TODO: porting - we hardcode the subgroup size is 32 and the
-         *             number of threads in a SIMD unit is 7
+         * @note TODO: porting - we hardcode the subgroup size is 32
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(exec->get_num_computing_units() * 7, 32, false,
-                           "intel")
+            : load_balance(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
         /**
@@ -579,12 +577,10 @@ public:
          *
          * @param exec the Dpcpp executor
          *
-         * @note TODO: porting - we hardcode the subgroup size is 32 and the
-         *             number of threads in a SIMD unit is 7
+         * @note TODO: porting - we hardcode the subgroup size is 32
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_computing_units() * 7, 32, false,
-                          "intel")
+            : automatical(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
         /**

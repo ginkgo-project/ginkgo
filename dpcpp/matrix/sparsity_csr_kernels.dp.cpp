@@ -61,7 +61,7 @@ namespace dpcpp {
 namespace sparsity_csr {
 
 
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 constexpr int spmv_block_size = 128;
 
 
@@ -207,8 +207,8 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     using output_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
     constexpr int threads_per_cu = 7;
-    const auto num_subgroup =
-        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+    const auto num_subgroup = exec->get_num_computing_units() * threads_per_cu *
+                              classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),

@@ -75,7 +75,7 @@ constexpr int default_block_size = 256;
 
 
 // subwarp sizes for add_candidates kernels
-using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 16, 32>;
 
 
 namespace kernel {
@@ -128,13 +128,14 @@ void tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     const IndexType* a_col_idxs, IndexType* l_new_row_ptrs,
                     IndexType* u_new_row_ptrs, IndexType num_rows)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            tri_spgeam_nnz<subgroup_size>(lu_row_ptrs, lu_col_idxs, a_row_ptrs,
-                                          a_col_idxs, l_new_row_ptrs,
-                                          u_new_row_ptrs, num_rows, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                tri_spgeam_nnz<subgroup_size>(
+                                    lu_row_ptrs, lu_col_idxs, a_row_ptrs,
+                                    a_col_idxs, l_new_row_ptrs, u_new_row_ptrs,
+                                    num_rows, item_ct1);
+                            });
 }
 
 
@@ -352,15 +353,17 @@ void tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const IndexType* u_new_row_ptrs, IndexType* u_new_col_idxs,
                      ValueType* u_new_vals, IndexType num_rows)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            tri_spgeam_init<subgroup_size>(
-                lu_row_ptrs, lu_col_idxs, lu_vals, a_row_ptrs, a_col_idxs,
-                a_vals, l_row_ptrs, l_col_idxs, l_vals, u_row_ptrs, u_col_idxs,
-                u_vals, l_new_row_ptrs, l_new_col_idxs, l_new_vals,
-                u_new_row_ptrs, u_new_col_idxs, u_new_vals, num_rows, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                tri_spgeam_init<subgroup_size>(
+                                    lu_row_ptrs, lu_col_idxs, lu_vals,
+                                    a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                    l_col_idxs, l_vals, u_row_ptrs, u_col_idxs,
+                                    u_vals, l_new_row_ptrs, l_new_col_idxs,
+                                    l_new_vals, u_new_row_ptrs, u_new_col_idxs,
+                                    u_new_vals, num_rows, item_ct1);
+                            });
 }
 
 
