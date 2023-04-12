@@ -52,10 +52,11 @@ version version_info::get_dpcpp_version() noexcept
 
 
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, std::string device_type)
+    int device_id, std::shared_ptr<Executor> master, std::string device_type,
+    dpcpp_queue_property property)
 {
     return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type));
+        new DpcppExecutor(device_id, std::move(master), device_type, property));
 }
 
 
@@ -129,7 +130,7 @@ scoped_device_id DpcppExecutor::get_scoped_device_id() const
 int DpcppExecutor::get_num_devices(std::string) { return 0; }
 
 
-void DpcppExecutor::set_device_property() {}
+void DpcppExecutor::set_device_property(dpcpp_queue_property property) {}
 
 
 bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const

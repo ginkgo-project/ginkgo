@@ -86,10 +86,11 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 
 
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, std::string device_type)
+    int device_id, std::shared_ptr<Executor> master, std::string device_type,
+    dpcpp_queue_property property)
 {
     return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type));
+        new DpcppExecutor(device_id, std::move(master), device_type, property));
 }
 
 
@@ -239,10 +240,24 @@ void delete_queue(sycl::queue* queue)
 }
 
 
+::cl::sycl::property_list get_property_list(dpcpp_queue_property property)
+{
+    if (property == dpcpp_queue_property::in_order) {
+        return {sycl::property::queue::in_order{}};
+    } else if (property == (dpcpp_queue_property::in_order |
+                            dpcpp_queue_property::enable_profiling)) {
+        return {sycl::property::queue::in_order{},
+                sycl::property::queue::enable_profiling{}};
+    } else {
+        GKO_NOT_SUPPORTED(property);
+    }
+}
+
+
 }  // namespace detail
 
 
-void DpcppExecutor::set_device_property()
+void DpcppExecutor::set_device_property(dpcpp_queue_property property)
 {
     assert(this->get_exec_info().device_id <
            DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
@@ -282,7 +297,7 @@ void DpcppExecutor::set_device_property()
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, sycl::property::queue::in_order{}};
+    auto* queue = new sycl::queue{device, detail::get_property_list(property)};
     queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 

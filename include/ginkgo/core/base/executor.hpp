@@ -105,10 +105,36 @@ constexpr allocation_mode default_hip_alloc_mode =
 inline namespace cl {
 namespace sycl {
 
+
 class queue;
+
 
 }  // namespace sycl
 }  // namespace cl
+
+
+/**
+ * The enum class is for the dpcpp queue property. It's legal to use a binary
+ * or(|) operation to combine several properties.
+ */
+enum class dpcpp_queue_property {
+    /**
+     * queue executes in order
+     */
+    in_order = 1,
+
+    /**
+     * queue enables the profiling
+     */
+    enable_profiling = 2
+};
+
+GKO_ATTRIBUTES GKO_INLINE dpcpp_queue_property operator|(dpcpp_queue_property a,
+                                                         dpcpp_queue_property b)
+{
+    return static_cast<dpcpp_queue_property>(static_cast<int>(a) |
+                                             static_cast<int>(b));
+}
 
 
 struct cublasContext;
@@ -1779,7 +1805,8 @@ public:
      */
     static std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
-        std::string device_type = "all");
+        std::string device_type = "all",
+        dpcpp_queue_property property = dpcpp_queue_property::in_order);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1873,17 +1900,20 @@ public:
     }
 
 protected:
-    void set_device_property();
+    void set_device_property(
+        dpcpp_queue_property property = dpcpp_queue_property::in_order);
 
-    DpcppExecutor(int device_id, std::shared_ptr<Executor> master,
-                  std::string device_type = "all")
+    DpcppExecutor(
+        int device_id, std::shared_ptr<Executor> master,
+        std::string device_type = "all",
+        dpcpp_queue_property property = dpcpp_queue_property::in_order)
         : master_(master)
     {
         std::for_each(device_type.begin(), device_type.end(),
                       [](char& c) { c = std::tolower(c); });
         this->get_exec_info().device_type = std::string(device_type);
         this->get_exec_info().device_id = device_id;
-        this->set_device_property();
+        this->set_device_property(property);
     }
 
     void populate_exec_info(const machine_topology* mach_topo) override;

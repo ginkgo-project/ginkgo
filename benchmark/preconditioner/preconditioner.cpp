@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
         "Running with preconditioners: " + FLAGS_preconditioners + "\n";
     print_general_information(extra_information);
 
-    auto exec = get_executor();
+    auto exec = get_executor(FLAGS_gpu_timer);
     auto& engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');

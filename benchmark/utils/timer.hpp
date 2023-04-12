@@ -52,16 +52,22 @@ DEFINE_bool(gpu_timer, false,
             "executor is cuda or hip");
 
 
-#ifdef HAS_CUDA
+#ifdef HAS_CUDA_TIMER
 std::shared_ptr<Timer> get_cuda_timer(
     std::shared_ptr<const gko::CudaExecutor> exec);
-#endif  // HAS_CUDA
+#endif  // HAS_CUDA_TIMER
 
 
-#ifdef HAS_HIP
+#ifdef HAS_HIP_TIMER
 std::shared_ptr<Timer> get_hip_timer(
     std::shared_ptr<const gko::HipExecutor> exec);
-#endif  // HAS_HIP
+#endif  // HAS_HIP_TIMER
+
+
+#ifdef HAS_DPCPP_TIMER
+std::shared_ptr<Timer> get_dpcpp_timer(
+    std::shared_ptr<const gko::DpcppExecutor> exec);
+#endif  // HAS_DPCPP_TIMER
 
 
 /**
@@ -75,21 +81,28 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
                                  bool use_gpu_timer)
 {
     if (use_gpu_timer) {
-#ifdef HAS_CUDA
+#ifdef HAS_CUDA_TIMER
         if (auto cuda =
                 std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
             return get_cuda_timer(cuda);
         }
-#endif  // HAS_CUDA
+#endif  // HAS_CUDA_TIMER
 
-#ifdef HAS_HIP
+#ifdef HAS_HIP_TIMER
         if (auto hip =
                 std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
             return get_hip_timer(hip);
         }
-#endif  // HAS_HIP
+#endif  // HAS_HIP_TIMER
+
+#ifdef HAS_DPCPP_TIMER
+        if (auto dpcpp =
+                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+            return get_dpcpp_timer(dpcpp);
+        }
+#endif  // HAS_DPCPP_TIMER
     }
-    // No cuda/hip executor available or no gpu_timer used
+    // No cuda/hip/dpcpp executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);
 }
 
