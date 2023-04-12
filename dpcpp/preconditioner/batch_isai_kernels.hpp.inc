@@ -451,24 +451,29 @@ __dpct_inline__ void extract_csr_sys_pattern_kernel(
     const int* const __restrict__ csr_pattern_row_ptrs,
     int* const __restrict__ csr_pattern_col_idxs,
     gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values,
-    sycl::id<1> gid)
+    int size, sycl::id<1> gid)
 {
     // use one thread per match of the 2 arrays (non-coalseced accesses but data
     // locality)
     const int inv_row_st = inv_row_ptrs[lin_sys_row];
     const int inv_row_end = inv_row_ptrs[lin_sys_row + 1];
 
-    const int col_idx = inv_col_idxs[gid];
-    const int sys_row = col_idx;
-    const int sys_row_st = sys_row_ptrs[sys_row];
-    const int sys_row_end = sys_row_ptrs[sys_row + 1];
+    //    const int inv_row_idx = inv_row_st + gid;
+    for (int inv_row_idx = inv_row_st + gid; inv_row_idx < inv_row_end;
+         inv_row_idx += size) {
+        const int col_idx = inv_col_idxs[inv_row_idx];
+        const int sys_row = col_idx;
+        const int sys_row_st = sys_row_ptrs[sys_row];
+        const int sys_row_end = sys_row_ptrs[sys_row + 1];
 
-    const int csr_pattern_row_start = csr_pattern_row_ptrs[gid - inv_row_st];
+        const int csr_pattern_row_start =
+            csr_pattern_row_ptrs[inv_row_idx - inv_row_st];
 
-    match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
-                             sys_col_idxs, sys_row_st, sys_row_end,
-                             csr_pattern_row_start, csr_pattern_col_idxs,
-                             csr_pattern_values);
+        match_for_csr<ValueType>(inv_col_idxs, inv_row_st, inv_row_end,
+                                 sys_col_idxs, sys_row_st, sys_row_end,
+                                 csr_pattern_row_start, csr_pattern_col_idxs,
+                                 csr_pattern_values);
+    }
 }
 
 
