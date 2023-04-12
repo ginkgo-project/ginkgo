@@ -59,6 +59,7 @@ using bicgstab = gko::solver::BatchBicgstab<value_type>;
 using cg = gko::solver::BatchCg<value_type>;
 using gmres = gko::solver::BatchGmres<value_type>;
 using richardson = gko::solver::BatchRichardson<value_type>;
+using direct = gko::solver::BatchDirect<value_type>;
 
 
 int main(int argc, char* argv[])
@@ -193,30 +194,30 @@ int main(int argc, char* argv[])
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_restart(gmres_restart)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build()
-            //         .with_max_block_size(1u)
-            //         .on(exec))
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
             .on(exec);
     auto solver_cg =
         cg::build()
             .with_default_max_iterations(maxits)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build()
-            //         .with_max_block_size(1u)
-            //         .on(exec))
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
             .on(exec);
     auto solver_bicgstab =
         bicgstab::build()
             .with_default_max_iterations(maxits)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build()
-            //         .with_max_block_size(1u)
-            //         .on(exec))
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build()
+                    .with_max_block_size(1u)
+                    .on(exec))
             .on(exec);
     auto solver_richardson =
         richardson::build()
@@ -228,6 +229,7 @@ int main(int argc, char* argv[])
                     .with_max_block_size(1u)
                     .on(exec))
             .on(exec);
+    auto solver_direct = direct::build().on(exec);
 
     // @sect3{Batch logger}
     // Create a logger to obtain the iteration counts and "implicit" residual
@@ -246,6 +248,8 @@ int main(int argc, char* argv[])
         solver = solver_bicgstab->generate(A);
     } else if (in_solver == "richardson") {
         solver = solver_richardson->generate(A);
+    } else if (in_solver == "direct") {
+        solver = solver_direct->generate(A);
     } else {
         throw "Not implemented";
     }
@@ -301,13 +305,18 @@ int main(int argc, char* argv[])
         auto unb_res = res_norm->unbatch();
         auto unb_bnorm = b_norm->unbatch();
         for (size_type i = 0; i < num_systems; ++i) {
-            std::cout << " System no. " << i
-                      << ": residual norm = " << unb_res[i]->at(0, 0)
-                      << ", internal residual norm = "
-                      << logger->get_residual_norm()->at(i, 0, 0)
-                      << ", iterations = "
-                      << logger->get_num_iterations().get_const_data()[i]
-                      << std::endl;
+            std::cout
+                << " System no. " << i
+                << ": residual norm = " << unb_res[i]->at(0, 0)
+                << ", internal residual norm = "
+                << ((in_solver == "direct")
+                        ? 0
+                        : logger->get_residual_norm()->at(i, 0, 0))
+                << ", iterations = "
+                << ((in_solver == "direct")
+                        ? 0.0
+                        : logger->get_num_iterations().get_const_data()[i])
+                << std::endl;
             const real_type relresnorm =
                 unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
             if (!(relresnorm <= reduction_factor)) {
@@ -317,8 +326,16 @@ int main(int argc, char* argv[])
         }
     }
     if (print_time) {
-        std::cout << A->get_size().at(0)[0] << "," << apply_time / num_reps
-                  << "," << logger->get_num_iterations().get_const_data()[0]
+        std::cout << A->get_size().at(0)[0] << ","
+                  << A->get_num_stored_elements() / num_total_systems << ","
+                  << apply_time / num_reps << ","
+                  << ((in_solver == "direct")
+                          ? 0
+                          : logger->get_num_iterations().get_const_data()[0])
+                  << ","
+                  << ((in_solver == "direct")
+                          ? 0.0
+                          : logger->get_residual_norm()->at(0, 0, 0))
                   << std::endl;
     } else {
         std::cout << "Solver type: " << in_solver
