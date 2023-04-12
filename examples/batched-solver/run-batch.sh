@@ -17,4 +17,3 @@ do
 		echo "$b,$m,$(./batched-solver $EXEC $b $m $SOLVER time no_resid)" >> $FNAME
 	done
 done
-
