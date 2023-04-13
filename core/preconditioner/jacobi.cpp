@@ -378,22 +378,23 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
 
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
-        std::cout << "before" << std::endl;
-        int t = 0;
+        // std::cout << "before" << std::endl;
+        // int t = 0;
 
 
-        for (int i = 0; i < temp.get_num_elems() && t < 20; i++) {
-            auto orig_diag = real(exec->copy_val_to_host(temp.get_data() + i));
+        // for (int i = 0; i < temp.get_num_elems() && t < 20; i++) {
+        //     auto orig_diag = real(exec->copy_val_to_host(temp.get_data() +
+        //     i));
 
-            auto diag = double(orig_diag);
-            auto inv_diag =
-                double(real(exec->copy_val_to_host(blocks_.get_data() + i)));
-            if (diag == 0) {
-                std::cout << i << " " << get_bits(orig_diag) << " " << diag
-                          << " " << inv_diag << std::endl;
-                t++;
-            }
-        }
+        //     auto diag = double(orig_diag);
+        //     auto inv_diag =
+        //         double(real(exec->copy_val_to_host(blocks_.get_data() + i)));
+        //     if (diag == 0) {
+        //         std::cout << i << " " << get_bits(orig_diag) << " " << diag
+        //                   << " " << inv_diag << std::endl;
+        //         t++;
+        //     }
+        // }
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
         auto csr_mtx = share(

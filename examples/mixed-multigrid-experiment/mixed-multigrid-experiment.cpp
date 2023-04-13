@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <string>
 
+#include <cuda_profiler_api.h>
+
 
 template <typename ValueType>
 std::shared_ptr<typename gko::solver::Ir<ValueType>::Factory> generate_sj_ir(
@@ -585,8 +587,8 @@ int main(int argc, char* argv[])
                     auto csr =
                         gko::as<gko::matrix::Csr<MixedType2, IndexType>>(op);
                     num_stored_elements = csr->get_num_stored_elements();
-                    std::string file = "matrix_" + std::to_string(i) + ".mtx";
-                    write(std::ofstream(file), csr);
+                    // std::string file = "matrix_" + std::to_string(i) +
+                    // ".mtx"; write(std::ofstream(file), csr);
                 } else if ((mixed_mode == 1 && i >= 1) ||
                            (mixed_mode == 2 && i == 1)) {
                     auto csr =
@@ -636,7 +638,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    int warmup = 0;
+    int warmup = 1;
     int rep = 1;
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
@@ -647,6 +649,7 @@ int main(int argc, char* argv[])
         run_solver->apply(b, x_run);
     }
 
+    cudaProfilerStart();
     // auto prof =
     // gko::share(gko::log::ProfilerHook::create_for_executor(exec));
     // run_solver->add_logger(prof);
@@ -662,7 +665,7 @@ int main(int argc, char* argv[])
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
     }
     // run_solver->remove_logger(prof.get());
-
+    cudaProfilerStop();
 
     // Calculate residual
     auto res = gko::initialize<vec>({0.0}, exec);
