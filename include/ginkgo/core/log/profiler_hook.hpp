@@ -427,6 +427,9 @@ private:
  */
 class profiling_scope_guard {
 public:
+    /** Creates an empty (moved-from) scope guard. */
+    profiling_scope_guard();
+
     /**
      * Creates the scope guard
      *
@@ -450,7 +453,7 @@ public:
 
     profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
 
-    profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
+    profiling_scope_guard& operator=(profiling_scope_guard&&);
 
 private:
     bool empty_;

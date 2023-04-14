@@ -166,8 +166,21 @@ int main(int argc, char* argv[])
     print_general_information(extra_information);
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate =
+        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    };
 
     auto operations = split(FLAGS_operations, ',');
+
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -180,8 +193,12 @@ int main(int argc, char* argv[])
             }
             auto& sp_blas_case = test_case[benchmark_name];
             std::clog << "Running test case: " << test_case << std::endl;
-            auto data =
-                DefaultSystemGenerator<>::generate_matrix_data(test_case);
+            // annotate the test case
+            // This string needs to outlive `test_case_range` to make sure we
+            // don't use its const char* c_str() after it was freed.
+            auto test_case_str = generator.describe_config(test_case);
+            auto test_case_range = annotate(test_case_str.c_str());
+            auto data = generator.generate_matrix_data(test_case);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
@@ -196,8 +213,11 @@ int main(int argc, char* argv[])
             for (const auto& operation_name : operations) {
                 if (FLAGS_overwrite ||
                     !sp_blas_case.HasMember(operation_name.c_str())) {
-                    apply_sparse_blas(operation_name.c_str(), exec, mtx.get(),
-                                      sp_blas_case, allocator);
+                    {
+                        auto operation_range = annotate(operation_name.c_str());
+                        apply_sparse_blas(operation_name.c_str(), exec,
+                                          mtx.get(), sp_blas_case, allocator);
+                    }
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                     backup_results(test_cases);
@@ -214,6 +234,9 @@ int main(int argc, char* argv[])
                 add_or_set_member(test_case, "error", msg_value, allocator);
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

@@ -286,6 +286,17 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate =
+        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    };
 
     DefaultSystemGenerator<> generator{};
 
@@ -308,6 +319,12 @@ int main(int argc, char* argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
+            // annotate the test case
+            // This string needs to outlive `test_case_range` to make sure we
+            // don't use its const char* c_str() after it was freed.
+            auto test_case_str = generator.describe_config(test_case);
+            auto test_case_range = annotate(test_case_str.c_str());
+
             auto data = generator.generate_matrix_data(test_case);
 
             auto system_matrix =
@@ -322,8 +339,12 @@ int main(int argc, char* argv[])
                       << std::endl;
             add_or_set_member(test_case, "size", data.size[0], allocator);
             for (const auto& precond_name : preconditioners) {
-                run_preconditioner(precond_name.c_str(), exec, system_matrix,
-                                   b.get(), x.get(), test_case, allocator);
+                {
+                    auto precond_range = annotate(precond_name.c_str());
+                    run_preconditioner(precond_name.c_str(), exec,
+                                       system_matrix, b.get(), x.get(),
+                                       test_case, allocator);
+                }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
@@ -332,6 +353,9 @@ int main(int argc, char* argv[])
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;
