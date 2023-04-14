@@ -71,7 +71,7 @@ Parameters for a benchmark case are:
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
-    std::string json_input = broadcast_json_input(std::cin, comm);
+    std::string json_input = broadcast_json_input(get_input_stream(), comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
     if (!test_cases.IsArray()) {
