@@ -93,6 +93,15 @@ DEFINE_bool(keep_errors, true,
 
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
 
+DEFINE_bool(profile, false,
+            "If set, enables profiler mode: 1 repetition, 0 warmup "
+            "repetitions, profiler_hook=auto (if it is not otherwise set)");
+
+DEFINE_string(
+    profiler_hook, "none",
+    "Which profiler annotation mode to use, if any. Options are nvtx, roctx, "
+    "vtune, tau, debug, auto (choose based on executor).");
+
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
 DEFINE_uint32(warmup, 2, "Warm-up repetitions");
@@ -153,6 +162,13 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+    if (FLAGS_profile) {
+        FLAGS_repetitions = "1";
+        FLAGS_warmup = 0;
+        if (FLAGS_profiler_hook == "none") {
+            FLAGS_profiler_hook = "auto";
+        }
+    }
 }
 
 /**
@@ -178,6 +194,31 @@ void print_general_information(const std::string& extra)
     std::clog << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl
               << extra;
+}
+
+
+std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    using gko::log::ProfilerHook;
+    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
+        hook_map{
+            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
+            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
+            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
+            {"roctx", [] { return ProfilerHook::create_roctx(); }},
+            {"tau", [] { return ProfilerHook::create_tau(); }},
+            {"vtune", [] { return ProfilerHook::create_vtune(); }},
+            {"debug", [] {
+                 return ProfilerHook::create_custom(
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: begin " << name << '\n';
+                     },
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: end   " << name << '\n';
+                     });
+             }}};
+    return hook_map.at(FLAGS_profiler_hook)();
 }
 
 
