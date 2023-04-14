@@ -128,12 +128,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::string json_input = FLAGS_overhead
-                                 ? R"(
+    std::string json_input =
+        FLAGS_overhead ? R"(
 [{"filename": "overhead.mtx",
   "optimal": {"spmv": "csr-csr"}]
 )"
-                                 : broadcast_json_input(std::cin, comm);
+                       : broadcast_json_input(get_input_stream(), comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
 

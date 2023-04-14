@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 
     rapidjson::Document test_cases;
     if (!FLAGS_overhead) {
-        rapidjson::IStreamWrapper jcin(std::cin);
+        rapidjson::IStreamWrapper jcin(get_input_stream());
         test_cases.ParseStream(jcin);
     } else {
         // Fake test case to run once

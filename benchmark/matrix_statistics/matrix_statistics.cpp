@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 
     std::clog << gko::version_info::get() << std::endl;
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {

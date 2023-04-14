@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::string json_input = broadcast_json_input(std::cin, comm);
+    std::string json_input = broadcast_json_input(get_input_stream(), comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
     if (!test_cases.IsArray()) {

@@ -84,6 +84,11 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_string(
+    input, "",
+    "If set, the value is used as the input for the benchmark (if set to a "
+    "string ending with ]) or as input file path (otherwise).");
+
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
@@ -240,6 +245,26 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
         tokens.push_back(token);
     }
     return tokens;
+}
+
+
+// returns the stream to be used as input of the application
+std::istream& get_input_stream()
+{
+    static auto stream = []() -> std::unique_ptr<std::istream> {
+        std::string input_str(FLAGS_input);
+        if (input_str.empty()) {
+            return nullptr;
+        }
+        if (input_str.back() == ']') {
+            return std::make_unique<std::stringstream>(input_str);
+        }
+        return std::make_unique<std::ifstream>(input_str);
+    }();
+    if (stream) {
+        return *stream;
+    }
+    return std::cin;
 }
 
 

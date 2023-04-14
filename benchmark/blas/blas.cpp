@@ -137,7 +137,7 @@ Parameters for a benchmark case are:
     print_general_information(extra_information);
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
