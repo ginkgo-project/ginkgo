@@ -248,7 +248,8 @@ void run_preconditioner(const char* precond_name,
             add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
                               "error", msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -310,7 +311,7 @@ int main(int argc, char* argv[])
                        })) {
                 continue;
             }
-            std::clog << "Running test case: " << test_case << std::endl;
+            std::clog << "Running test case\n" << test_case << std::endl;
 
             // annotate the test case
             auto test_case_range =
