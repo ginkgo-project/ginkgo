@@ -1,0 +1,130 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+Running on reference(0)
+Running with 0 warm iterations and 1 running iterations
+The random seed for right hand sides is 42
+The operations are copy,axpy,scalRunning test case
+{
+    "n": 100,
+    "blas": {}
+}
+DEBUG: begin n = 100 
+DEBUG: begin copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   copy
+Current state:
+[
+    {
+        "n": 100,
+        "blas": {
+            "copy": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        }
+    }
+]
+DEBUG: begin axpy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::add_scaled
+DEBUG: end   dense::add_scaled
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   axpy
+Current state:
+[
+    {
+        "n": 100,
+        "blas": {
+            "copy": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "axpy": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        }
+    }
+]
+DEBUG: begin scal
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::scale
+DEBUG: end   dense::scale
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   scal
+Current state:
+[
+    {
+        "n": 100,
+        "blas": {
+            "copy": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "axpy": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "scal": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        }
+    }
+]
+DEBUG: end   n = 100 

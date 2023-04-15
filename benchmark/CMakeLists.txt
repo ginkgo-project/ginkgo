@@ -160,6 +160,9 @@ add_subdirectory(solver)
 add_subdirectory(sparse_blas)
 add_subdirectory(spmv)
 add_subdirectory(tools)
+if (GINKGO_BUILD_TESTS)
+    add_subdirectory(test)
+endif()
 
 configure_file(run_all_benchmarks.sh run_all_benchmarks.sh COPYONLY)
 

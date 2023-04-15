@@ -1,0 +1,38 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "problem": {
+            "rows": 125,
+            "columns": 125,
+            "nonzeros": 725,
+            "row_distribution": {
+                "min": 4,
+                "q1": 5.0,
+                "median": 6.0,
+                "q3": 6.0,
+                "max": 7,
+                "mean": 5.8,
+                "variance": 0.7199999999999992,
+                "skewness": -0.23570226039551892,
+                "kurtosis": 2.388888888888889,
+                "hyperskewness": -1.741577812922432,
+                "hyperflatness": 7.762345679012379
+            },
+            "col_distribution": {
+                "min": 4,
+                "q1": 5.0,
+                "median": 6.0,
+                "q3": 6.0,
+                "max": 7,
+                "mean": 5.8,
+                "variance": 0.7199999999999992,
+                "skewness": -0.23570226039551892,
+                "kurtosis": 2.388888888888889,
+                "hyperskewness": -1.741577812922432,
+                "hyperflatness": 7.762345679012379
+            }
+        }
+    }
+]

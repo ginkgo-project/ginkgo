@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+import subprocess
+import difflib
+import json
+import typing
+import re
+import pathlib
+import sys
+sourcepath = pathlib.Path("@CMAKE_CURRENT_SOURCE_DIR@")
+binpath = pathlib.Path("@PROJECT_BINARY_DIR@")
+generate = False
+if len(sys.argv) > 1 and sys.argv[1] == "--generate":
+    generate = True
+
+
+denumberify_paths = ["time", "bandwidth", "flops", "components",
+                     "residual_norm", "rhs_norm", "max_relative_norm2"]
+empty_array_paths = ["recurrent_residuals", "true_residuals",
+                     "implicit_residuals", "iteration_timestamps"]
+
+
+def sanitize_json_single(key, value, sanitize_all):
+    if key in denumberify_paths and isinstance(value, float):
+        return 1.0
+    if key in denumberify_paths and isinstance(value, typing.Dict):
+        return sanitize_json(value, True)
+    if key in empty_array_paths and isinstance(value, typing.List):
+        return []
+    return sanitize_json(value, sanitize_all)
+
+
+def sanitize_json(parsed_input, sanitize_all=False):
+    if isinstance(parsed_input, typing.Dict):
+        return {key: sanitize_json_single(key, value, sanitize_all) for key, value in parsed_input.items()}
+    elif isinstance(parsed_input, typing.List):
+        return [sanitize_json(e, sanitize_all) for e in parsed_input]
+    elif sanitize_all and isinstance(parsed_input, float):
+        return 1.0
+    else:
+        return parsed_input
+
+
+def sanitize_text(lines):
+    json_begins = [i for i, l in enumerate(lines) if l in ["[", "{"]]
+    json_ends = [i + 1 for i, l in enumerate(lines) if l in ["]", "}"]]
+    json_pairs = list(zip(json_begins, json_ends))
+    if (len(json_pairs) == 0):
+        return lines
+    assert (all(begin < end for begin, end in json_pairs))
+    nonjson_pairs = [(0, json_begins[0])] + list(zip(json_ends[:-1],
+                                                     json_begins[1:])) + [(json_ends[-1], len(lines))]
+    combined_pairs = sorted([(begin, end, False) for begin, end in nonjson_pairs] + [
+                            (begin, end, True) for begin, end in json_pairs])
+    texts = [("\n".join(lines[begin:end]), do_sanitize)
+             for begin, end, do_sanitize in combined_pairs]
+    reconstructed = [json.dumps(sanitize_json(json.loads(
+        t)), indent=4) if do_sanitize else t for t, do_sanitize in texts]
+    return "\n".join(reconstructed).split("\n")
+
+
+def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patterns=[]):
+    lines = input.split("\n")
+    output_lines = []
+    patterns = [re.compile(pattern) for pattern in ignore_patterns]
+    for line in lines:
+        keep = True
+        for pattern in patterns:
+            if re.match(pattern, line):
+                keep = False
+                break
+        if keep:
+            output_lines.append(line)
+    return sanitize_text(output_lines)
+
+
+def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_flags=[]):
+    args[0] = binpath / "benchmark" / args[0]
+    expected_stdout = sourcepath / "reference" / expected_stdout
+    expected_stderr = sourcepath / "reference" / expected_stderr
+    result = subprocess.run(args=launcher_flags + args, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, input=bytes(stdin, "utf-8"))
+    print("TEST: {}".format(
+        " ".join(["'{}'".format(arg) for arg in launcher_flags + args])))
+    version_patterns = [
+        "    the .* module is",
+    ]
+    if generate:
+        open(expected_stdout, "w").write("\n".join(determinize_text(
+            result.stdout.decode())))
+        open(expected_stderr, "w").write("\n".join(determinize_text(result.stderr.decode(
+        ), ignore_patterns=version_patterns)))
+        print("GENERATED")
+        return
+    result_stdout_processed = determinize_text(
+        result.stdout.decode())
+    result_stderr_processed = determinize_text(result.stderr.decode(
+    ), ignore_patterns=version_patterns)
+    expected_stdout_processed = determinize_text(
+        open(expected_stdout).read())
+    expected_stderr_processed = determinize_text(open(expected_stderr).read(
+    ), ignore_patterns=version_patterns)
+    failed = False
+    if result_stdout_processed != expected_stdout_processed:
+        print("FAIL: stdout differs")
+        print("\n".join(difflib.unified_diff(
+            expected_stdout_processed, result_stdout_processed)))
+        failed = True
+    if result_stderr_processed != expected_stderr_processed:
+        print("FAIL: stderr differs")
+        print("\n".join(difflib.unified_diff(
+            expected_stderr_processed, result_stderr_processed)))
+        failed = True
+    if failed:
+        exit(1)
+    print("PASS")
+
+
+def compare_output_distributed(args, expected_stdout, expected_stderr, num_procs, stdin=""):
+    compare_output(args, expected_stdout, expected_stderr, stdin, [
+                   "@MPIEXEC_EXECUTABLE@", "@MPIEXEC_NUMPROC_FLAG@", str(num_procs)])

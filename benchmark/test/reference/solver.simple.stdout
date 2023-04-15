@@ -1,0 +1,60 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "optimal": {
+            "spmv": "csr"
+        },
+        "solver": {
+            "cg": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(gko::solver::Cg<double>::Factory)": 1.0,
+                        "generate(gko::matrix::IdentityFactory<double>)": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0
+                },
+                "apply": {
+                    "components": {
+                        "apply(gko::solver::Cg<double>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "cg::initialize": 1.0,
+                        "advanced_apply(gko::matrix::Csr<double, int>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "apply(gko::matrix::Identity<double>)": 1.0,
+                        "copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)": 1.0,
+                        "dense::copy": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "check(gko::stop::Combined)": 1.0,
+                        "check(gko::stop::ResidualNorm<double>)": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "check(gko::stop::Iteration)": 1.0,
+                        "cg::step_1": 1.0,
+                        "apply(gko::matrix::Csr<double, int>)": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::step_2": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 7,
+                    "time": 1.0
+                },
+                "preconditioner": {},
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        }
+    }
+]

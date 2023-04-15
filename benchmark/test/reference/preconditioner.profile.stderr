@@ -1,0 +1,137 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+Running on reference(0)
+Running with 0 warm iterations and 1 running iterations
+The random seed for right hand sides is 42
+Running with preconditioners: none
+Running test case
+{
+    "size": 100,
+    "stencil": "7pt",
+    "preconditioner": {}
+}
+DEBUG: begin stencil(100,7pt)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin components::convert_idxs_to_ptrs
+DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill_in_matrix_data
+DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill_in_matrix_data
+DEBUG: end   dense::fill_in_matrix_data
+Matrix is of size (125, 125)
+DEBUG: begin none
+DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::matrix::IdentityFactory<double>)
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::matrix::IdentityFactory<double>)
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   none
+Current state:
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "preconditioner": {
+            "none": {
+                "generate": {
+                    "components": {
+                        "generate(gko::matrix::IdentityFactory<double>)": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 1
+                },
+                "apply": {
+                    "components": {
+                        "apply(gko::matrix::Identity<double>)": 1.0,
+                        "copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)": 1.0,
+                        "dense::copy": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 1
+                },
+                "completed": true
+            }
+        }
+    }
+]
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   stencil(100,7pt)

@@ -1,0 +1,34 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+The formats are [csr]x[csr]
+The number of right hand sides is 1
+Running test case
+{
+    "size": 100,
+    "stencil": "7pt",
+    "comm_pattern": "stencil",
+    "spmv": {}
+}
+Matrix is of size (81, 81)
+Current state:
+[
+    {
+        "size": 81,
+        "stencil": "7pt",
+        "comm_pattern": "stencil",
+        "spmv": {
+            "csr-csr": {
+                "storage": 2316,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "nnz": 135,
+        "optimal": {}
+    }
+]

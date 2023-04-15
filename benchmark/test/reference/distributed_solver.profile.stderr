@@ -1,0 +1,1845 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+Running on reference(0)
+Running with 0 warm iterations and 1 running iterations
+The random seed for right hand sides is 42
+Running cg with 1000 iterations and residual goal of 1.000000e-06
+The number of right hand sides is 1
+DEBUG: begin stencil(100,7pt,stencil)
+Running test case
+{
+    "size": 100,
+    "stencil": "7pt",
+    "comm_pattern": "stencil",
+    "optimal": {
+        "spmv": "csr-csr"
+    },
+    "solver": {}
+}
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_ranges_from_global_size
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin copy(gko::matrix::Csr<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: end   copy(gko::matrix::Csr<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin copy(gko::matrix::Csr<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: end   copy(gko::matrix::Csr<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin distributed_matrix::build_local_nonlocal
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   distributed_matrix::build_local_nonlocal
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin components::convert_idxs_to_ptrs
+DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin components::convert_idxs_to_ptrs
+DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill_in_matrix_data
+DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+Matrix is of size (125, 125)
+DEBUG: begin cg
+	Running solver: cg
+DEBUG: begin none
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin generate(gko::solver::Cg<double>::Factory)
+DEBUG: begin generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::solver::Cg<double>::Factory)
+DEBUG: begin copy(gko::matrix::Identity<double>,gko::matrix::Identity<double>)
+DEBUG: end   copy(gko::matrix::Identity<double>,gko::matrix::Identity<double>)
+DEBUG: begin apply(gko::solver::Cg<double>)
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin cg::initialize
+DEBUG: end   cg::initialize
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   iteration
+DEBUG: end   apply(gko::solver::Cg<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin apply(gko::solver::Cg<double>)
+DEBUG: begin iteration
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin cg::initialize
+DEBUG: end   cg::initialize
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   iteration
+DEBUG: end   apply(gko::solver::Cg<double>)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin generate(gko::solver::Cg<double>::Factory)
+DEBUG: begin generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::matrix::IdentityFactory<double>)
+DEBUG: end   generate(gko::solver::Cg<double>::Factory)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin apply(gko::solver::Cg<double>)
+DEBUG: begin iteration
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin cg::initialize
+DEBUG: end   cg::initialize
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: begin check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Iteration)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin cg::step_1
+DEBUG: end   cg::step_1
+DEBUG: begin apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::spmv
+DEBUG: end   csr::spmv
+DEBUG: end   apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: begin cg::step_2
+DEBUG: end   cg::step_2
+DEBUG: begin apply(gko::matrix::Identity<double>)
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: end   apply(gko::matrix::Identity<double>)
+DEBUG: begin dense::compute_conj_dot_dispatch
+DEBUG: end   dense::compute_conj_dot_dispatch
+DEBUG: end   iteration
+DEBUG: begin iteration
+DEBUG: begin check(gko::stop::Combined)
+DEBUG: begin check(gko::stop::ResidualNorm<double>)
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin residual_norm::residual_norm
+DEBUG: end   residual_norm::residual_norm
+DEBUG: end   check(gko::stop::ResidualNorm<double>)
+DEBUG: end   check(gko::stop::Combined)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   iteration
+DEBUG: end   apply(gko::solver::Cg<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(gko::experimental::distributed::Vector<double>,gko::experimental::distributed::Vector<double>)
+DEBUG: begin advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin dense::row_gather
+DEBUG: end   dense::row_gather
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: begin csr::advanced_spmv
+DEBUG: end   csr::advanced_spmv
+DEBUG: end   advanced_apply(gko::matrix::Csr<double, int>)
+DEBUG: end   advanced_apply(gko::experimental::distributed::Matrix<double, int, long>)
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::compute_squared_norm2
+DEBUG: end   dense::compute_squared_norm2
+DEBUG: begin dense::compute_sqrt
+DEBUG: end   dense::compute_sqrt
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   none
+DEBUG: end   cg
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   stencil(100,7pt,stencil)
