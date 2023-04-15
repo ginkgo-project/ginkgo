@@ -1,0 +1,30 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "preconditioner": {
+            "none": {
+                "generate": {
+                    "components": {
+                        "generate(gko::matrix::IdentityFactory<double>)": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "apply": {
+                    "components": {
+                        "apply(gko::matrix::Identity<double>)": 1.0,
+                        "copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)": 1.0,
+                        "dense::copy": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "completed": true
+            }
+        }
+    }
+]

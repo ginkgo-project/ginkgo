@@ -1,0 +1,43 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+Running with preconditioners: none
+Running test case
+{
+    "size": 100,
+    "stencil": "7pt",
+    "preconditioner": {}
+}
+Matrix is of size (125, 125)
+Current state:
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "preconditioner": {
+            "none": {
+                "generate": {
+                    "components": {
+                        "generate(gko::matrix::IdentityFactory<double>)": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "apply": {
+                    "components": {
+                        "apply(gko::matrix::Identity<double>)": 1.0,
+                        "copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)": 1.0,
+                        "dense::copy": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "completed": true
+            }
+        }
+    }
+]
