@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
             }
             auto& problem = test_case["problem"];
 
-            std::clog << "Running test case: " << test_case << std::endl;
+            std::clog << "Running test case\n" << test_case << std::endl;
 
             auto matrix =
                 DefaultSystemGenerator<etype, gko::int64>::generate_matrix_data(

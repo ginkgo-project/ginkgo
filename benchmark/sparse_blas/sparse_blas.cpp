@@ -145,7 +145,8 @@ void apply_sparse_blas(const char* operation_name,
             add_or_set_member(test_case[operation_name], "error", msg_value,
                               allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -192,7 +193,7 @@ int main(int argc, char* argv[])
                                     allocator);
             }
             auto& sp_blas_case = test_case[benchmark_name];
-            std::clog << "Running test case: " << test_case << std::endl;
+            std::clog << "Running test case\n" << test_case << std::endl;
             auto data = generator.generate_matrix_data(test_case);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "

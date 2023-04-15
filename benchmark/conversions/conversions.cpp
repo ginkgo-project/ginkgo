@@ -103,7 +103,8 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
             add_or_set_member(test_case["conversions"][conversion_name],
                               "error", msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -150,7 +151,7 @@ int main(int argc, char* argv[])
         }
         auto& conversion_case = test_case["conversions"];
 
-        std::clog << "Running test case: " << test_case << std::endl;
+        std::clog << "Running test case\n" << test_case << std::endl;
         gko::matrix_data<etype, itype> data;
         try {
             data = generator.generate_matrix_data(test_case);
