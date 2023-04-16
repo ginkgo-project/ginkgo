@@ -159,10 +159,12 @@ protected:
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
-          workspace_(
-              factory->get_executor(),
-              2 * system_matrix_->get_num_batch_entries() *
-                  system_matrix_->get_size().at(0)[0])  // TODO: Workspace size
+          //   workspace_(factory->get_executor(),
+          //              system_matrix_->get_num_stored_elements()) // TODO:
+          //              Should we downcast it or what???
+          // TODO: Workspace not needed in case band array -> copied to shared
+          // memory- cuda/hip kernels (AVOID: extra workspace copy)
+          workspace_(factory->get_executor(), 10000)
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 

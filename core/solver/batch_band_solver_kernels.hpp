@@ -47,18 +47,25 @@ namespace kernels {
 namespace batch_band_solver {
 
 /**
- * Calculates the amount of in-solver storage needed by batch-tridiagonal
+ * Calculates the amount of in-solver storage needed by batch-band
  * solver.
  *
  */
+// TODO: Band matrix in shared memory.... for smaller nrows.
 template <typename ValueType>
-inline int local_memory_requirement(const int num_rows,
-                                    const int num_rhs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_band_solver): change the code imported from
-// solver/batch_tridiagonal_solver if needed
-//    return 0;
-//}
+inline int local_memory_requirement(
+    const int num_rows, const int num_rhs,
+    const enum gko::solver::batch_band_solve_approach approach)
+{
+    if (approach == gko::solver::batch_band_solve_approach::unblocked) {
+        return sizeof(ValueType) * 2 * num_rows * num_rhs +
+               sizeof(int) * num_rows;
+    } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
+        GKO_NOT_IMPLEMENTED;
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 
 #define GKO_DECLARE_BATCH_BAND_SOLVER_APPLY_KERNEL(_type)                    \

@@ -43,7 +43,7 @@ namespace batch_band_solver {
 
 namespace {
 
-//#include "reference/solver/batch_band_solver_kernels.hpp.inc"
+#include "reference/solver/batch_band_solver_kernels.hpp.inc"
 
 }  // namespace
 
@@ -55,52 +55,46 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
            ValueType* const workspace_ptr,
            const enum gko::solver::batch_band_solve_approach approach,
-           const int blocked_solve_panel_size) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_band_solver): change the code imported from
-// solver/batch_tridiagonal_solver if needed
-//    const auto nbatch = tridiag_mat->get_num_batch_entries();
-//    const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
-//    const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
-//    assert(nrhs == 1);
-//
-//    namespace device = gko::kernels::host;
-//    const auto x_batch = device::get_batch_struct(x);
-//
-//    const int local_size_bytes =
-//        gko::kernels::batch_band_solver::local_memory_requirement<
-//            ValueType>(nrows, nrhs);
-//
-//    std::vector<unsigned char> local_space(local_size_bytes);
-//
-//    const ValueType* const tridiag_mat_subdiags =
-//        tridiag_mat->get_const_sub_diagonal();
-//    const ValueType* const tridiag_mat_superdiags =
-//        tridiag_mat->get_const_super_diagonal();
-//
-//    assert(workspace_size >=
-//           tridiag_mat->get_num_stored_elements_per_diagonal() +
-//               rhs->get_num_stored_elements());
-//
-//    ValueType* const tridiag_mat_maindiags = workspace_ptr;
-//    exec->copy(tridiag_mat->get_num_stored_elements_per_diagonal(),
-//               tridiag_mat->get_const_main_diagonal(), tridiag_mat_maindiags);
-//
-//    ValueType* rhs_copy = tridiag_mat_maindiags +
-//                          tridiag_mat->get_num_stored_elements_per_diagonal();
-//    exec->copy(rhs->get_num_stored_elements(), rhs->get_const_values(),
-//               rhs_copy);
-//    auto rhs_clone_batch = gko::batch_dense::UniformBatch<ValueType>{
-//        rhs_copy, nbatch, rhs->get_stride().at(0), nrows, nrhs, nrows * nrhs};
-//
-//    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-//        batch_entry_tridiagonal_thomas_solve_impl(
-//            ibatch, tridiag_mat_subdiags, tridiag_mat_maindiags,
-//            tridiag_mat_superdiags, rhs_clone_batch, x_batch,
-//            local_space.data());
-//    }
-//}
+           const int blocked_solve_panel_size)
+{
+    const auto nbatch = band_mat->get_num_batch_entries();
+    const auto nrows = static_cast<int>(band_mat->get_size().at(0)[0]);
+    const auto nrhs = static_cast<int>(b->get_size().at(0)[1]);
+    assert(nrhs == 1);
 
+    namespace device = gko::kernels::host;
+    const auto x_batch = device::get_batch_struct(x);
+    const auto b_batch = device::get_batch_struct(b);
+
+    const int local_size_bytes =
+        gko::kernels::batch_band_solver::local_memory_requirement<ValueType>(
+            nrows, nrhs, approach);
+
+    std::vector<unsigned char> local_space(local_size_bytes);
+
+    assert(workspace_size >= band_mat->get_num_stored_elements());
+    ValueType* const batch_band_mat_array = workspace_ptr;
+    exec->copy(band_mat->get_num_stored_elements(),
+               band_mat->get_const_band_array(), batch_band_mat_array);
+
+    const int KL = static_cast<int>(band_mat->get_num_subdiagonals().at(0));
+    const int KU = static_cast<int>(band_mat->get_num_superdiagonals().at(0));
+
+    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        if (approach == gko::solver::batch_band_solve_approach::unblocked) {
+            batch_entry_band_unblocked_solve_impl(ibatch, nbatch, KL, KU,
+                                                  batch_band_mat_array, b_batch,
+                                                  x_batch, local_space.data());
+        } else if (approach ==
+                   gko::solver::batch_band_solve_approach::blocked) {
+            batch_entry_band_blocked_solve_impl(
+                ibatch, nbatch, KL, KU, batch_band_mat_array,
+                blocked_solve_panel_size, b_batch, x_batch, local_space.data());
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BAND_SOLVER_APPLY_KERNEL);
 
