@@ -239,9 +239,10 @@ private:
     array<index_type> non_local_idxs_;
     array<index_type> local_to_local_;
     array<index_type> coarse_local_to_local_;
+    array<index_type> inner_to_local_;
     std::vector<index_type> local_idxs_;
     std::vector<index_type> inner_idxs_;
-    std::vector<index_type> local_to_inner_;
+    array<index_type> local_to_inner_;
     std::vector<index_type> interfaces_;
     std::shared_ptr<vec_type> local_residual_;
     std::shared_ptr<vec_type> local_residual_large_;

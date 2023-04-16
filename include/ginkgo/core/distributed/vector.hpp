@@ -229,6 +229,8 @@ public:
      */
     void fill(ValueType value);
 
+    // void set(array<LocalIndexType>& idxs, array<ValueType>& vals, bool add);
+
     /**
      * Scales the vectors with a scalar (aka: BLAS scal).
      *

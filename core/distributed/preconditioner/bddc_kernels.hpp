@@ -93,6 +93,24 @@ namespace kernels {
         const matrix::Dense<ValueType>* non_local,                \
         matrix::Dense<ValueType>* local_intermediate)
 
+
+#define GKO_DECLARE_PROLONG_COARSE_SOLUTION1(ValueType, IndexType) \
+    void prolong_coarse_solution1(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const array<IndexType>& coarse_recv_to_local,              \
+        const matrix::Dense<ValueType>* coarse_solution,           \
+        array<ValueType>& coarse_recv_buffer)
+
+#define GKO_DECLARE_PROLONG_COARSE_SOLUTION2(ValueType, IndexType) \
+    void prolong_coarse_solution2(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const array<IndexType>& coarse_local_to_local,             \
+        const matrix::Dense<ValueType>* coarse_solution,           \
+        const array<IndexType>& coarse_local_to_send,              \
+        const array<ValueType>& coarse_send_buffer,                \
+        matrix::Dense<ValueType>* local_intermediate)
+
+
 #define GKO_DECLARE_FINALIZE1(ValueType, IndexType)                 \
     void finalize1(std::shared_ptr<const DefaultExecutor> exec,     \
                    const matrix::Dense<ValueType>* coarse_solution, \
@@ -110,6 +128,18 @@ namespace kernels {
                    matrix::Dense<ValueType>* local_solution,     \
                    ValueType* global_solution)
 
+#define GKO_DECLARE_STATIC_CONDENSATION1(ValueType, IndexType)             \
+    void static_condensation1(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::Dense<ValueType>* residual,    \
+                              const array<IndexType>& inner_to_local,      \
+                              matrix::Dense<ValueType>* inner_residual)
+
+#define GKO_DECLARE_STATIC_CONDENSATION2(ValueType, IndexType)                \
+    void static_condensation2(std::shared_ptr<const DefaultExecutor> exec,    \
+                              const matrix::Dense<ValueType>* inner_solution, \
+                              const array<IndexType>& inner_to_local,         \
+                              ValueType* solution)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename IndexType>                   \
@@ -123,9 +153,17 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_PROLONG_COARSE_SOLUTION(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION1(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION2(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_FINALIZE1(ValueType, IndexType);                        \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FINALIZE2(ValueType, IndexType)
+    GKO_DECLARE_FINALIZE2(ValueType, IndexType);                        \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_STATIC_CONDENSATION1(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_STATIC_CONDENSATION2(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_bddc,
