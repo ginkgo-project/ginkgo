@@ -167,6 +167,52 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void prolong_coarse_solution1(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_recv_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              array<ValueType>& coarse_recv_buffer)
+{
+    auto recv_to_local_data = coarse_recv_to_local.get_const_data();
+    auto recv_data = coarse_recv_buffer.get_data();
+
+    for (auto i = 0; i < coarse_recv_buffer.get_num_elems(); i++) {
+        recv_data[i] = coarse_solution->at(recv_to_local_data[i], 0);
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION1);
+
+
+template <typename ValueType, typename IndexType>
+void prolong_coarse_solution2(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_local_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              const array<IndexType>& coarse_local_to_send,
+                              const array<ValueType>& coarse_send_buffer,
+                              matrix::Dense<ValueType>* local_intermediate)
+{
+    auto local_to_local_data = coarse_local_to_local.get_const_data();
+    auto local_to_send_data = coarse_local_to_send.get_const_data();
+    auto send_data = coarse_send_buffer.get_const_data();
+
+    for (auto i = 0; i < coarse_local_to_local.get_num_elems(); i++) {
+        local_intermediate->at(local_to_local_data[i], 0) =
+            coarse_solution->at(i, 0);
+    }
+
+    for (auto i = 0; i < coarse_send_buffer.get_num_elems(); i++) {
+        local_intermediate->at(local_to_send_data[i], i) = send_data[i];
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION2);
+
+
+template <typename ValueType, typename IndexType>
 void finalize1(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* coarse_solution,
                const matrix::Diagonal<ValueType>* weights,
@@ -220,6 +266,47 @@ void finalize2(std::shared_ptr<const DefaultExecutor> exec,
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE2);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation1(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* residual,
+                          const array<IndexType>& inner_to_local,
+                          matrix::Dense<ValueType>* inner_residual)
+{
+    for (auto i = 0; i < inner_to_local.get_num_elems(); i++) {
+        if (inner_to_local.get_const_data()[i] != -1) {
+            inner_residual->at(inner_to_local.get_const_data()[i], 0) =
+                residual->at(
+                    i,
+                    0);  // i, 0) =
+                         // residual->at(inner_to_local.get_const_data()[i], 0);
+        }
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION1);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation2(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* inner_solution,
+                          const array<IndexType>& inner_to_local,
+                          ValueType* solution)
+{
+    for (auto i = 0; i < inner_to_local.get_num_elems(); i++) {
+        if (inner_to_local.get_const_data()[i] != -1) {
+            solution[i] +=
+                inner_solution->at(inner_to_local.get_const_data()[i]);
+        }
+        // solution[inner_to_local.get_const_data()[i]] +=
+        // inner_solution->at(i,0);
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION2);
 
 
 }  // namespace distributed_bddc

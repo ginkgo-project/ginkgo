@@ -72,8 +72,16 @@ GKO_REGISTER_OPERATION(coarsen_residual1, distributed_bddc::coarsen_residual1);
 GKO_REGISTER_OPERATION(coarsen_residual2, distributed_bddc::coarsen_residual2);
 GKO_REGISTER_OPERATION(prolong_coarse_solution,
                        distributed_bddc::prolong_coarse_solution);
+GKO_REGISTER_OPERATION(prolong_coarse_solution1,
+                       distributed_bddc::prolong_coarse_solution1);
+GKO_REGISTER_OPERATION(prolong_coarse_solution2,
+                       distributed_bddc::prolong_coarse_solution2);
 GKO_REGISTER_OPERATION(finalize1, distributed_bddc::finalize1);
 GKO_REGISTER_OPERATION(finalize2, distributed_bddc::finalize2);
+GKO_REGISTER_OPERATION(static_condensation1,
+                       distributed_bddc::static_condensation1);
+GKO_REGISTER_OPERATION(static_condensation2,
+                       distributed_bddc::static_condensation2);
 
 
 }  // namespace
@@ -297,7 +305,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<IndexType> local_rows{};
     IndexType local_row = -1;
 
-    // std::cout << "298" << std::endl;
     for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
         if (mat_data.nonzeros[i].row != local_row) {
             local_row = mat_data.nonzeros[i].row;
@@ -324,7 +331,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                      count_offsets.data() + 1);
     std::vector<IndexType> send_buffer(
         non_local_idxs.size() * (comm.size() - 1), 0);
-    // std::cout << "325" << std::endl;
     for (auto i = 0; i < send_buffer.size(); i++) {
         send_buffer[i] = non_local_idxs[i % non_local_idxs.size()];
     }
@@ -335,7 +341,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                       send_offsets.data(), recv_buffer.data(),
                       count_buffer.data(), count_offsets.data());
 
-    // std::cout << "336" << std::endl;
     for (auto i = 0; i < non_local_idxs.size(); i++) {
         recv_buffer[count_offsets[comm.size()] + i] = non_local_idxs[i];
     }
@@ -344,7 +349,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     recv_buffer.erase(std::unique(recv_buffer.begin(), recv_buffer.end()),
                       recv_buffer.end());
 
-    // std::cout << "345" << std::endl;
     std::vector<int> send_mask(comm.size() * recv_buffer.size(), 0);
     for (auto i = 0; i < recv_buffer.size(); i++) {
         if (std::find(local_rows.begin(), local_rows.end(), recv_buffer[i]) !=
@@ -358,7 +362,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     comm.all_to_all(exec, send_mask.data(), recv_buffer.size(),
                     recv_mask.data(), recv_buffer.size());
 
-    // std::cout << "359" << std::endl;
     std::map<std::vector<IndexType>, std::vector<IndexType>> interface_map{};
     for (auto i = 0; i < recv_buffer.size(); i++) {
         std::vector<IndexType> ranks{};
@@ -386,7 +389,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         }
     }
 
-    // std::cout << "387" << std::endl;
     for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
         if (it->second.size() > 1) {  // first.size() == 2) {
             std::vector<IndexType> edge{};
@@ -411,7 +413,6 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
 template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::generate_constraints()
 {
-    // std::cout << "406" << std::endl;
     auto exec = this->get_executor();
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
@@ -429,7 +430,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
-    // std::cout << "424" << std::endl;
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
     mat_data.ensure_row_major_order();
 
@@ -451,8 +451,8 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     std::vector<IndexType> outer_idxs{};
     std::vector<IndexType> local_to_inner{};
     std::vector<IndexType> local_to_outer{};
+    std::vector<IndexType> inner_to_local{};
 
-    // std::cout << "444" << std::endl;
     for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
         if (mat_data.nonzeros[i].row != local_row) {
             local_row = mat_data.nonzeros[i].row;
@@ -476,6 +476,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                 }
                 if (inner) {
                     inner_idxs.emplace_back(local_row);
+                    inner_to_local.emplace_back(local_idxs.size() - 1);
                     local_to_inner.emplace_back(inner_idxs.size() - 1);
                     local_to_outer.emplace_back(-1);
                 } else {
@@ -487,7 +488,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
-    // std::cout << "479" << std::endl;
     std::vector<std::tuple<gko::experimental::distributed::comm_index_type,
                            IndexType, IndexType>>
         send_pattern{};
@@ -511,7 +511,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
-    // std::cout << "503" << std::endl;
     std::stable_sort(send_pattern.begin(), send_pattern.end(),
                      [](const auto& a, const auto& b) {
                          return std::get<0>(a) < std::get<0>(b);
@@ -539,12 +538,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                           recv_offsets.data());
     };
 
-    // std::cout << "531" << std::endl;
     communicate(send_buffer.data(), global_idxs.data());
 
     comm.synchronize();
 
-    // std::cout << "536" << std::endl;
     std::map<IndexType, IndexType> global_idx_to_recv_buffer{};
     for (IndexType i = 0; i < recv_offsets.back(); i++) {
         global_idx_to_recv_buffer.insert({global_idxs[i], i});
@@ -564,9 +561,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     auto nnz = mat_data.nonzeros[idx];
     std::set<IndexType> dbcs{};
     while (i < local_rows.size()) {
-        // std::cout << "549" << std::endl;
         while (nnz.row == local_rows[i] && idx < mat_data.nonzeros.size()) {
-            // std::cout << "551" << std::endl;
             auto j = std::distance(
                 local_rows.begin(),
                 std::find(local_rows.begin(), local_rows.end(), nnz.column));
@@ -599,14 +594,11 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     nnz = mat_data.nonzeros[idx];
     std::set<IndexType> inner_dbcs{};
     while (i < inner_idxs.size()) {
-        // std::cout << "584" << std::endl;
         while (nnz.row < inner_idxs[i]) {
-            // std::cout << "586" << std::endl;
             idx++;
             nnz = mat_data.nonzeros[idx];
         }
         while (nnz.row == inner_idxs[i] && idx < mat_data.nonzeros.size()) {
-            // std::cout << "591" << std::endl;
             auto found =
                 std::find(inner_idxs.begin(), inner_idxs.end(), nnz.column);
             if (found != inner_idxs.end()) {
@@ -680,18 +672,13 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     inner_data.ensure_row_major_order();
     inner_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
     inner_system_matrix_->read(inner_data);
+
     // outer_data.ensure_row_major_order();
     // outer_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
     // outer_system_matrix_->read(outer_data);
     local_rows_ = local_rows;
     non_local_to_local_ = array<IndexType>(exec, non_local_to_local.begin(),
                                            non_local_to_local.end());
-    /*if (rank == 0) {
-        std::ofstream lout{"local_to_local_0"};
-        for (auto i = 0; i < local_to_local.size(); i++) {
-            lout << local_to_local[i] << ", ";
-        }
-    }*/
     non_local_idxs_ =
         array<IndexType>(exec, non_local_idxs.begin(), non_local_idxs.end());
     local_idxs_ = local_idxs;
@@ -713,7 +700,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     recv_buffer_.fill(zero<ValueType>());
     global_idx_to_recv_buffer_ = global_idx_to_recv_buffer;
     inner_idxs_ = inner_idxs;
-    local_to_inner_ = local_to_inner;
+    local_to_inner_ =
+        array<IndexType>(exec, local_to_inner.begin(), local_to_inner.end());
+    inner_to_local_ =
+        array<IndexType>(exec, inner_to_local.begin(), inner_to_local.end());
     recv_buffer_to_global_ = array<IndexType>(
         exec, recv_buffer_to_global.begin(), recv_buffer_to_global.end());
 
@@ -750,10 +740,6 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
     lhs->fill(zero<ValueType>());
     auto host_rhs = clone(host, lhs);
     auto comm = global_system_matrix_->get_communicator();
-    /*if (comm.rank() == 0) {
-        std::ofstream out{"out"};
-        out << "rows: " << n_rows << ", cols: " << n_cols << std::endl;
-    }*/
     for (auto i = 0; i < n_cols; i++) {
         host_rhs->at(n_rows - n_cols + i, i) = one<ValueType>();
     }
@@ -1080,16 +1066,41 @@ void Bddc<ValueType, IndexType>::prolong_coarse_solution() const
 {
     auto exec = this->get_executor();
     auto comm = global_coarse_matrix_->get_communicator();
-    auto req = global_coarse_matrix_->communicate(
-        coarse_solution_->get_local_vector());
-    req.wait();
 
-    nonlocal_->copy_from(global_coarse_matrix_->get_recv_buffer());
+    auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
+        comm.all_to_all_v(exec, send_buffer,
+                          coarsening_recv_sizes_.get_const_data(),
+                          coarsening_recv_offsets_.get_const_data(),
+                          recv_buffer, coarsening_send_sizes_.get_const_data(),
+                          coarsening_send_offsets_.get_const_data());
+    };
 
-    exec->run(bddc::make_prolong_coarse_solution(
+    exec->run(bddc::make_prolong_coarse_solution1(
+        coarsening_recv_to_local_, coarse_solution_->get_local_vector(),
+        coarsening_recv_buffer_));
+
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    if (use_host_buffer) {
+        coarsening_send_buffer_.set_executor(exec->get_master());
+        coarsening_recv_buffer_.set_executor(exec->get_master());
+    }
+
+    communicate(coarsening_recv_buffer_.get_data(),
+                coarsening_send_buffer_.get_data());
+
+    comm.synchronize();
+
+    if (use_host_buffer) {
+        coarsening_send_buffer_.set_executor(exec);
+        coarsening_recv_buffer_.set_executor(exec);
+    }
+
+    exec->run(bddc::make_prolong_coarse_solution2(
         coarse_local_to_local_, coarse_solution_->get_local_vector(),
-        coarse_non_local_to_local_, coarse_local_to_non_local_, nonlocal_.get(),
+        coarsening_local_to_send_, coarsening_send_buffer_,
         local_intermediate_.get()));
+
+    exec->synchronize();
 
     phi_->apply(local_intermediate_.get(), local_coarse_solution_.get());
 }
@@ -1100,7 +1111,6 @@ template <typename VectorType>
 void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                                   VectorType* dense_x) const
 {
-    static int cnt = 0;
     auto exec = this->get_executor();
     auto comm = global_system_matrix_->get_communicator();
 
@@ -1148,31 +1158,50 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                    global_solution));
 
     comm.synchronize();
-    /*if (parameters_.static_condensation) {
+    if (parameters_.static_condensation) {
         auto intermediate =
             clone(as<experimental::distributed::Vector<ValueType>>(dense_b));
+        /*auto nsp =
+            clone(as<experimental::distributed::Vector<ValueType>>(dense_b));
+        nsp->fill(one<ValueType>());
+        auto s_op = initialize<matrix::Dense<ValueType>>({0.}, exec);
+        auto n_op = initialize<matrix::Dense<ValueType>>({-one<ValueType>() *
+        (ValueType)dense_b->get_size()[0]}, exec);
+        dense_x->compute_dot(nsp.get(), s_op.get());
+        s_op->inv_scale(n_op.get());
+        dense_x->add_scaled(s_op.get(), nsp.get());*/
         global_system_matrix_->apply(neg_one_op_.get(), dense_x, one_op_.get(),
                                      intermediate.get());
         auto r1 = intermediate->get_local_vector();
-        for (auto i = 0; i < r1->get_size()[0]; i++) {
+        /*for (auto i = 0; i < r1->get_size()[0]; i++) {
             if (local_to_inner_[i] != -1) {
                 inner_residual_->at(local_to_inner_[i], 0) = r1->at(i, 0);
             }
-        }
-        inner_solution_->fill(zero<ValueType>());
+        }*/
+        exec->run(bddc::make_static_condensation1(r1, local_to_inner_,
+                                                  inner_residual_.get()));
 
+        inner_solution_->fill(zero<ValueType>());
         inner_solver_->apply(inner_residual_.get(), inner_solution_.get());
 
+        auto inner_res = clone(exec, inner_residual_.get());
+        inner_system_matrix_->apply(one_op_.get(), inner_solution_.get(),
+                                    neg_one_op_.get(), inner_res.get());
+        auto resnorm = clone(exec->get_master(), one_op_.get());
+        inner_res->compute_norm2(resnorm.get());
+        comm.synchronize();
         auto local_vals =
             as<experimental::distributed::Vector<ValueType>>(dense_x)
                 ->get_local_values();
-        for (auto i = 0; i < r1->get_size()[0]; i++) {
+        exec->run(bddc::make_static_condensation2(inner_solution_.get(),
+                                                  local_to_inner_, local_vals));
+        /*for (auto i = 0; i < r1->get_size()[0]; i++) {
             if (local_to_inner_[i] != -1) {
                 local_vals[i] += inner_solution_->at(local_to_inner_[i]);
             }
-        }
+        }*/
         comm.synchronize();
-    }*/
+    }
 }
 
 
@@ -1197,7 +1226,6 @@ void Bddc<ValueType, IndexType>::generate()
     auto exec = this->get_executor();
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
-    // std::cout << "1181" << std::endl;
     if (parameters_.interface_dofs.size() > 0 &&
         parameters_.interface_dof_ranks.size() > 0) {
         interface_dofs_ = parameters_.interface_dofs;
@@ -1206,19 +1234,15 @@ void Bddc<ValueType, IndexType>::generate()
         generate_interfaces();
     }
     comm.synchronize();
-    // std::cout << "1190" << std::endl;
     generate_constraints();
     comm.synchronize();
-    // std::cout << "1193" << std::endl;
     schur_complement_solver_ =
         parameters_.schur_complement_solver_factory->generate(
             local_system_matrix_);
     schur_complement_solve();
     comm.synchronize();
-    // std::cout << "1199" << std::endl;
     generate_coarse_system();
     comm.synchronize();
-    // std::cout << "1202" << std::endl;
     coarse_solver_ =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
     local_solver_ =

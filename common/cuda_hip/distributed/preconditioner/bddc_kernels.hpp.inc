@@ -63,10 +63,8 @@ __global__ __launch_bounds__(default_block_size) void fill_reordered(
         const auto src_idx =
             src_numbering == nullptr ? tidx : src_numbering[tidx];
 
-        if (src_numbering != nullptr) {
-            if (src_numbering[src_idx] == -1) {
-                return;
-            }
+        if (src_idx == -1 || dst_idx == -1) {
+            return;
         }
         if (add) {
             atomic_add(&dst[dst_idx], src[src_idx]);
@@ -249,14 +247,71 @@ void prolong_coarse_solution(
 
     auto non_local_grid_dim =
         ceildiv(local_to_non_local_size, config::warp_size);
-    kernel::fill_reordered<<<non_local_grid_dim, config::warp_size>>>(
-        local_to_non_local_size, local_to_non_local_data,
-        non_local_to_local_data, non_local_vals, intermediate_vals, false);
+    if (non_local->get_size()[0] > 0) {
+        kernel::fill_reordered<<<non_local_grid_dim, config::warp_size>>>(
+            local_to_non_local_size, local_to_non_local_data,
+            non_local_to_local_data, non_local_vals, intermediate_vals, false);
+    }
 }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PROLONG_COARSE_SOLUTION);
+
+
+template <typename ValueType, typename IndexType>
+void prolong_coarse_solution1(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_recv_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              array<ValueType>& coarse_recv_buffer)
+{
+    auto recv_size = coarse_recv_buffer.get_num_elems();
+    auto recv_to_local_data = coarse_recv_to_local.get_const_data();
+    auto coarse_vals = as_device_type(coarse_solution->get_const_values());
+    auto recv_data = as_device_type(coarse_recv_buffer.get_data());
+
+    auto grid_dim = ceildiv(recv_size, config::warp_size);
+    kernel::fill_reordered<<<grid_dim, config::warp_size>>>(
+        recv_size, recv_to_local_data, static_cast<const IndexType*>(nullptr),
+        coarse_vals, recv_data, false);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION1);
+
+
+template <typename ValueType, typename IndexType>
+void prolong_coarse_solution2(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_local_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              const array<IndexType>& coarse_local_to_send,
+                              const array<ValueType>& coarse_send_buffer,
+                              matrix::Dense<ValueType>* local_intermediate)
+{
+    auto local_to_local_size = coarse_local_to_local.get_num_elems();
+    auto send_size = coarse_send_buffer.get_num_elems();
+    auto local_to_local_data = coarse_local_to_local.get_const_data();
+    auto local_to_send_data = coarse_local_to_send.get_const_data();
+    auto coarse_vals = as_device_type(coarse_solution->get_const_values());
+    auto send_data = as_device_type(coarse_send_buffer.get_const_data());
+    auto intermediate_vals = as_device_type(local_intermediate->get_values());
+
+    auto local_to_local_grid_dim =
+        ceildiv(local_to_local_size, config::warp_size);
+    kernel::fill_reordered<<<local_to_local_grid_dim, config::warp_size>>>(
+        local_to_local_size, static_cast<const IndexType*>(nullptr),
+        local_to_local_data, coarse_vals, intermediate_vals, false);
+
+    auto send_grid_dim = ceildiv(send_size, config::warp_size);
+    kernel::fill_reordered<<<send_grid_dim, config::warp_size>>>(
+        send_size, static_cast<const IndexType*>(nullptr), local_to_send_data,
+        send_data, intermediate_vals, false);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION2);
 
 
 template <typename ValueType, typename IndexType>
@@ -320,3 +375,45 @@ void finalize2(std::shared_ptr<const DefaultExecutor> exec,
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE2);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation1(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* residual,
+                          const array<IndexType>& inner_to_local,
+                          matrix::Dense<ValueType>* inner_residual)
+{
+    auto inner_size = inner_to_local.get_num_elems();
+    auto inner_to_local_data = inner_to_local.get_const_data();
+    auto res_vals = as_device_type(residual->get_const_values());
+    auto inner_vals = as_device_type(inner_residual->get_values());
+
+    auto grid_dim = ceildiv(inner_size, config::warp_size);
+    kernel::fill_reordered<<<grid_dim, config::warp_size>>>(
+        inner_size, static_cast<const IndexType*>(nullptr), inner_to_local_data,
+        res_vals, inner_vals, false);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION1);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation2(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* inner_solution,
+                          const array<IndexType>& inner_to_local,
+                          ValueType* solution)
+{
+    auto inner_size = inner_to_local.get_num_elems();
+    auto inner_vals = as_device_type(inner_solution->get_const_values());
+    auto inner_to_local_data = inner_to_local.get_const_data();
+    auto sol_vals = as_device_type(solution);
+
+    auto grid_dim = ceildiv(inner_size, config::warp_size);
+    kernel::fill_reordered<<<grid_dim, config::warp_size>>>(
+        inner_size, inner_to_local_data, static_cast<const IndexType*>(nullptr),
+        inner_vals, sol_vals, true);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION2);

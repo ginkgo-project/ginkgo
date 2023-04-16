@@ -483,6 +483,7 @@ int main(int argc, char* argv[])
         cg::build()
             .with_preconditioner(
                 bddc::build()
+                    .with_static_condensation(true)
                     .with_interface_dofs(interface_dofs)
                     .with_interface_dof_ranks(interface_dof_ranks)
                     .with_local_solver_factory(gmres_factory)
@@ -508,7 +509,7 @@ int main(int argc, char* argv[])
     // case.
     Ainv->apply(gko::lend(b), gko::lend(x));
 
-    const char* input_name;
+    /*const char* input_name;
     if (rank == 0) input_name = "sol_0.mtx";
     if (rank == 1) input_name = "sol_1.mtx";
     if (rank == 2) input_name = "sol_2.mtx";
@@ -528,7 +529,7 @@ int main(int argc, char* argv[])
     if (rank == 3) input_name = "b_3.mtx";
 
     std::ofstream in2{input_name};
-    gko::write(in2, b->get_local_vector());
+    gko::write(in2, b->get_local_vector());*/
 
     // Take timings.
     comm.synchronize();

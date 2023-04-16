@@ -103,6 +103,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void prolong_coarse_solution1(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_recv_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              array<ValueType>& coarse_recv_buffer)
+    GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION1);
+
+
+template <typename ValueType, typename IndexType>
+void prolong_coarse_solution2(std::shared_ptr<const DefaultExecutor> exec,
+                              const array<IndexType>& coarse_local_to_local,
+                              const matrix::Dense<ValueType>* coarse_solution,
+                              const array<IndexType>& coarse_local_to_send,
+                              const array<ValueType>& coarse_send_buffer,
+                              matrix::Dense<ValueType>* local_intermediate)
+    GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PROLONG_COARSE_SOLUTION2);
+
+
+template <typename ValueType, typename IndexType>
 void finalize1(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* coarse_solution,
                const matrix::Diagonal<ValueType>* weights,
@@ -125,6 +151,27 @@ void finalize2(std::shared_ptr<const DefaultExecutor> exec,
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FINALIZE2);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation1(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* residual,
+                          const array<IndexType>& inner_to_local,
+                          matrix::Dense<ValueType>* inner_residual)
+    GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION1);
+
+
+template <typename ValueType, typename IndexType>
+void static_condensation2(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* inner_solution,
+                          const array<IndexType>& inner_to_local,
+                          ValueType* solution) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_STATIC_CONDENSATION2);
 
 
 }  // namespace distributed_bddc
