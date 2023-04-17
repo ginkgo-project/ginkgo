@@ -43,6 +43,8 @@ namespace batch_band_solver {
 
 namespace {
 
+// include all depedencies (note: do not remove this comment)
+#include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/solver/batch_band_solver_kernels.hpp.inc"
 
 }  // namespace

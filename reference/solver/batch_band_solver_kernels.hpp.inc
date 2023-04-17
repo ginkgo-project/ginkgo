@@ -221,16 +221,69 @@ void accommodate_partial_row_swaps_lower_trsv(
     const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
     const gko::batch_dense::BatchEntry<ValueType>& temp_entry)
 {
-    GKO_NOT_IMPLEMENTED;
+    // initialize temp with b
+    copy(b_entry, temp_entry);
+
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    for (int rhs_idx = 0; rhs_idx < b_entry.num_rhs; rhs_idx++) {
+        for (int j = 0; j <= N - 2; j++) {
+            // swap temp[j] and temp[ipiv[j]]
+            const ValueType tmp =
+                temp_entry.values[j + temp_entry.stride * rhs_idx];
+            temp_entry.values[j + temp_entry.stride * rhs_idx] =
+                temp_entry.values[ipiv_entry[j]];
+            temp_entry.values[ipiv_entry[j] + temp_entry.stride * rhs_idx] =
+                tmp;
+
+            for (int A_row_idx = j + 1; A_row_idx <= std::min(N - 1, j + KL);
+                 A_row_idx++) {
+                const int A_col_idx = j;
+
+                // temp[A_row_idx] += -1 * A(A_row_idx, A_col_idx) *
+                // temp[A_col_idx]
+
+                const int AB_row_idx = KL + KU + A_row_idx - A_col_idx;
+                temp_entry.values[A_row_idx + temp_entry.stride * rhs_idx] +=
+                    -one<ValueType>() *
+                    AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
+                    temp_entry.values[A_col_idx + temp_entry.stride * rhs_idx];
+            }
+            // Now temp[j] holds the correct value.
+        }
+    }
 }
 
 template <typename ValueType>
 void upper_trsv(const int N, const int KL, const int KU,
                 const ValueType* const AB_array_entry,
-                const gko::batch_dense::BatchEntry<const ValueType>& temp_entry,
+                const gko::batch_dense::BatchEntry<const ValueType>& y_entry,
                 const gko::batch_dense::BatchEntry<ValueType>& x_entry)
 {
-    GKO_NOT_IMPLEMENTED;
+    const int AB_nrows = 2 * KL + KU + 1;
+    const int KV = KL + KU;
+
+    for (int rhs_idx = 0; rhs_idx < x_entry.num_rhs; rhs_idx++) {
+        for (int A_row_idx = N - 1; A_row_idx >= 0; A_row_idx--) {
+            const int A_col_idx_last = std::min(A_row_idx + KL + KU, N - 1);
+            ValueType sum = zero<ValueType>();
+            for (int A_col_idx = A_col_idx_last; A_col_idx > A_row_idx;
+                 A_col_idx--) {
+                // sum += A(A_row_idx, A_col_idx) * x(A_col_idx)
+                const int AB_corr_row_idx = KL + KU + A_row_idx - A_col_idx;
+                sum += AB_array_entry[AB_corr_row_idx + A_col_idx * AB_nrows] *
+                       x_entry.values[A_col_idx + x_entry.stride * rhs_idx];
+            }
+
+            // x(A_row_idx) = (y(A_row_idx) - sum)/A(A_row_idx, A_row_idx);
+            const int AB_row_idx_diag_ele = KL + KU;
+            const ValueType diag_ele =
+                AB_array_entry[AB_row_idx_diag_ele + A_row_idx * AB_nrows];
+            x_entry.values[A_row_idx + x_entry.stride * rhs_idx] =
+                (y_entry.values[A_row_idx + y_entry.stride * rhs_idx] - sum) /
+                diag_ele;
+        }
+    }
 }
 
 template <typename ValueType>
