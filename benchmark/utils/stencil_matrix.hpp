@@ -53,7 +53,11 @@ double closest_nth_root(T v, int n)
     }
 }
 
-
+/**
+ * Checks if an index is within [0, bound).
+ *
+ * @return True if i in [0, bound).
+ */
 template <typename IndexType>
 bool is_in_box(const IndexType i, const IndexType bound)
 {
@@ -98,18 +102,35 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
+    /**
+     * This computes the offsets in the global indices for a box at (position_y,
+     * position_x).
+     */
     auto global_offset = [&](const IndexType position_y,
                              const IndexType position_x) {
         return static_cast<IndexType>(local_size) * position_x +
                static_cast<IndexType>(local_size) * dims[0] * position_y;
     };
 
+    /**
+     * This computes a single dimension of the target box position
+     * for a given index. The target box is the box that owns the given index.
+     * If the index is within the local indices [0, discretization_points) this
+     * returns the current position, otherwise it is shifted by +-1.
+     */
     auto target_position = [&](const IndexType i, const int position) {
         return is_in_box(i, discretization_points)
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
 
+    /**
+     * This computes a single dimension of target local index for a given index.
+     * The target local index is the local index within the index set of the box
+     * that owns the index. If the index is within the local indices [0,
+     * discretization_points), this returns the index unchanged, otherwise it is
+     * projected into the index set of the owning, adjacent box.
+     */
     auto target_local_idx = [&](const IndexType i) {
         return is_in_box(i, discretization_points)
                    ? i
@@ -117,6 +138,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
                             : discretization_points - i);
     };
 
+    /**
+     * For a two dimensional pair of local indices (iy, ix), this computes the
+     * corresponding global one dimensional index.
+     * If any target positions of the owning box is not inside [0, dims[0]] x
+     * [0, dims[1]] then the invalid index -1 is returned.
+     */
     auto flat_idx = [&](const IndexType iy, const IndexType ix) {
         auto tpx = target_position(ix, positions[0]);
         auto tpy = target_position(iy, positions[1]);
@@ -128,10 +155,18 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         }
     };
 
+    /**
+     * This computes if the given local-index-offsets are valid neighbors for
+     * the current stencil, regardless of any global indices.
+     */
     auto is_valid_neighbor = [&](const IndexType dy, const IndexType dx) {
         return !restricted || dx == 0 || dy == 0;
     };
 
+    /**
+     * This computes the maximal number of non-zeros per row for the current
+     * stencil.
+     */
     auto nnz_in_row = [&]() {
         int num_neighbors = 0;
         for (IndexType d_i : {-1, 0, 1}) {
@@ -211,6 +246,10 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
+    /**
+     * This computes the offsets in the global indices for a box at (position_z,
+     * position_y, position_x).
+     */
     auto global_offset = [&](const IndexType position_z,
                              const IndexType position_y,
                              const IndexType position_x) {
@@ -220,12 +259,25 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                    dims[1];
     };
 
+    /**
+     * This computes a single dimension of the target box position
+     * for a given index. The target box is the box that owns the given index.
+     * If the index is within the local indices [0, discretization_points) this
+     * returns the current position, otherwise it is shifted by +-1.
+     */
     auto target_position = [&](const IndexType i, const int position) {
         return is_in_box(i, discretization_points)
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
 
+    /**
+     * This computes a single dimension of target local index for a given index.
+     * The target local index is the local index within the index set of the box
+     * that owns the index. If the index is within the local indices [0,
+     * discretization_points), this returns the index unchanged, otherwise it is
+     * projected into the index set of the owning, adjacent box.
+     */
     auto target_local_idx = [&](const IndexType i) {
         return is_in_box(i, discretization_points)
                    ? i
@@ -233,6 +285,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                             : discretization_points - i);
     };
 
+    /**
+     * For a three dimensional tuple of local indices (iz, iy, ix), this
+     * computes the corresponding global one dimensional index. If any target
+     * positions of the owning box is not inside [0, dims[0]] x [0, dims[1]] x
+     * [0, dims[2]] then the invalid index -1 is returned.
+     */
     auto flat_idx = [&](const IndexType iz, const IndexType iy,
                         const IndexType ix) {
         auto tpx = target_position(ix, positions[0]);
@@ -249,11 +307,19 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         }
     };
 
+    /**
+     * This computes if the given local-index-offsets are valid neighbors for
+     * the current stencil, regardless of any global indices.
+     */
     auto is_valid_neighbor = [&](const IndexType dz, const IndexType dy,
                                  const IndexType dx) {
         return !restricted || ((dz == 0) + (dy == 0) + (dx == 0) >= 2);
     };
 
+    /**
+     * This computes the maximal number of non-zeros per row for the current
+     * stencil.
+     */
     auto nnz_in_row = [&]() {
         int num_neighbors = 0;
         for (IndexType d_i : {-1, 0, 1}) {
