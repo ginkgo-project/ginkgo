@@ -155,6 +155,40 @@
     - popd
   cache: []
 
+.unified_build_template:
+  stage: build
+  before_script:
+    - !reference [.before_script_template, before_script]
+    # - !reference [.horeka_test_template, before_script]
+    - if [ -z "${USE_NAME}" ]; then exit 111; fi
+    - if [ -z "${TEST_SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ ! "${TEST_SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
+  variables: !reference [.horeka_test_template, variables]
+  script:
+    - echo "RUNNER TAG ${CI_RUNNER_TAGS}"
+    - if [ "0" == "0" ]; then
+    - export CUDA_ARCH=61
+    - echo "run normal"
+    - !reference [.build_and_test_template, script]
+    - else
+    - echo "run slurm"
+    # export the build related variables
+    - if [ -n "${BUILD_KEEP_CONTAINER}" ]; then export KEEP_CONTAINER="${BUILD_KEEP_CONTAINER}"; fi
+    - if [ -n "${BUILD_USE_SLURM}" ]; then export USE_SLURM="${BUILD_USE_SLURM}"; fi
+    - !reference [.build_template, script]
+    - if [ -n "${BUILD_KEEP_CONTAINER}" ]; then unset KEEP_CONTAINER; fi
+    - if [ -n "${BUILD_USE_SLURM}" ]; then unset USE_SLURM; fi
+    # export the test related variables
+    - if [ -n "${TEST_SLURM_PARTITION}" ]; then export SLURM_PARTITION="${TEST_SLURM_PARTITION}"; fi
+    - if [ -n "${TEST_SLURM_GRES}" ]; then export SLURM_GRES="${TEST_SLURM_GRES}"; fi
+    - if [ -n "${TEST_SLURM_TIME}" ]; then export SLURM_TIME="${TEST_SLURM_TIME}"; fi
+    - !reference [.horeka_test_template, script]
+    - if [ -n "${TEST_SLURM_PARTITION}" ]; then unset SLURM_PARTITION; fi
+    - if [ -n "${TEST_SLURM_GRES}" ]; then unset SLURM_GRES; fi
+    - if [ -n "${TEST_SLURM_TIME}" ]; then unset SLURM_TIME; fi
+    - fi
+  dependencies: []
+  cache: []
 
 .horeka_benchmark_before_script_template:
   before_script:
