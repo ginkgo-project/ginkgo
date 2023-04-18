@@ -28,12 +28,22 @@
     # Run only when the `RUN_CI_TAG` variable is set and this is a full pipeline, or for `master`, `develop` or tags.
     - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
   dependencies: []
+  needs:
+    - job: trigger_pipeline
+      optional: true
+    - job: sync
+      optional: true
 
 
 .quick_test_condition:
   rules:
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == null
   dependencies: []
+  needs: 
+    - job: trigger_pipeline
+      optional: true
+    - job: sync
+      optional: true
 
 .quick_test_short_lived_condition:
   rules:

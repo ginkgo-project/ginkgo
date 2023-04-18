@@ -2,8 +2,10 @@ stages:
   - init-status
   - sync
   - trigger_pipeline
+  - check
   - build
   - test
+  - fallback
   - code_quality
   - deploy
   - QoS_tools
@@ -83,6 +85,13 @@ trigger_pipeline:
         echo "Can not find the corresponding Pull Request"
       fi
 
+check/horeka:
+  stage: check
+  extends:
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  script: 
+    - apt update && apt install -y netcat
+    - nc -w 20 -z horeka.scc.kit.edu 22
 
 # Build jobs
 # Job with example runs.
@@ -359,6 +368,7 @@ build/cuda110/nompi/intel/cuda/debug/static:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
     USE_SLURM: 0
+  needs: [ "check/horeka" ]
 
 test/cuda110/nompi/intel/cuda/debug/static:
   extends:
@@ -373,6 +383,29 @@ test/cuda110/nompi/intel/cuda/debug/static:
     SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
+
+fallback/cuda110/nompi/intel/cuda/debug/static:
+  stage: fallback
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  variables:
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 61
+  tags:
+    - private_ci
+    - nvidia-gpu
+  dependencies: null
+  needs: [ "check/horeka" ]
+  when: on_failure
 
 
 # cuda 11.4 and friends
@@ -695,6 +728,7 @@ no-circular-deps:
     - .default_variables
     - .quick_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+  needs: null
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
