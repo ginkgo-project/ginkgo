@@ -74,9 +74,9 @@ def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patter
 
 
 def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_flags=[]):
-    args[0] = binpath / "benchmark" / args[0]
-    expected_stdout = sourcepath / "reference" / expected_stdout
-    expected_stderr = sourcepath / "reference" / expected_stderr
+    args[0] = str(binpath / "benchmark" / args[0])
+    expected_stdout = str(sourcepath / "reference" / expected_stdout)
+    expected_stderr = str(sourcepath / "reference" / expected_stderr)
     result = subprocess.run(args=launcher_flags + args, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, input=bytes(stdin, "utf-8"))
     print("TEST: {}".format(
