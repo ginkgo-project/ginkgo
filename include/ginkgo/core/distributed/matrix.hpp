@@ -127,6 +127,20 @@ template <typename ValueType>
 class Vector;
 
 
+// TODO: move the data into this class
+template <typename IndexType>
+class MatrixBase {
+public:
+    virtual std::vector<comm_index_type> get_recv_sizes() const = 0;
+    virtual std::vector<comm_index_type> get_send_sizes() const = 0;
+    virtual std::vector<comm_index_type> get_recv_offsets() const = 0;
+    virtual std::vector<comm_index_type> get_send_offsets() const = 0;
+    virtual std::shared_ptr<const LinOp> get_non_local_matrix() const = 0;
+    virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
+    virtual array<IndexType> get_gather_idxs() const = 0;
+    virtual array<IndexType> get_recv_gather_idxs() const = 0;
+};
+
 /**
  * The Matrix class defines a (MPI-)distributed matrix.
  *
@@ -238,7 +252,8 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+      public DistributedBase,
+      public MatrixBase<LocalIndexType> {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
@@ -343,14 +358,17 @@ public:
      *
      * @return  Shared pointer to the stored local matrix
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+    std::shared_ptr<const LinOp> get_local_matrix() const override
+    {
+        return local_mtx_;
+    }
 
     /**
      * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
      */
-    std::shared_ptr<const LinOp> get_non_local_matrix() const
+    std::shared_ptr<const LinOp> get_non_local_matrix() const override
     {
         return non_local_mtx_;
     }
@@ -388,6 +406,32 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
+
+    std::vector<comm_index_type> get_recv_sizes() const override
+    {
+        return recv_sizes_;
+    };
+    std::vector<comm_index_type> get_send_sizes() const override
+    {
+        return send_sizes_;
+    };
+    std::vector<comm_index_type> get_recv_offsets() const override
+    {
+        return recv_offsets_;
+    };
+    std::vector<comm_index_type> get_send_offsets() const override
+    {
+        return send_offsets_;
+    }
+    array<local_index_type> get_gather_idxs() const override
+    {
+        return gather_idxs_;
+    }
+    array<local_index_type> get_recv_gather_idxs() const override
+    {
+        return recv_gather_idxs_;
+    }
+
     /**
      * Creates an empty distributed matrix.
      *
@@ -525,6 +569,7 @@ public:
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
+     * @param size  the global size
      * @param local_linop  the local linop
      *
      * @return A smart pointer to the newly created matrix.
@@ -532,6 +577,31 @@ public:
     static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm, dim<2> size,
                                           std::shared_ptr<LinOp> local_linop);
+
+    /**
+     * Creates distributed matrix with existent local and non-local LinOp and
+     * the corresponding mapping.
+     *
+     * @note It use the input to build up the distributed matrix
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param size  the global size
+     * @param local_linop  the local linop
+     * @param non_local_linop  the non-local linop
+     * @param recv_sizes  the size of non-local recevier
+     * @param recv_offset  the offset of non-local receiver
+     * @param recv_gather_idxs  the gathering index of non-local receiver
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> size, std::shared_ptr<LinOp> local_linop,
+        std::shared_ptr<LinOp> non_local_linop,
+        std::vector<comm_index_type> recv_sizes,
+        std::vector<comm_index_type> recv_offsets,
+        array<local_index_type> recv_gather_idxs);
 
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
@@ -545,6 +615,14 @@ protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, dim<2> size,
                     std::shared_ptr<LinOp> local_linop);
+
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop,
+                    std::shared_ptr<LinOp> non_local_linop,
+                    std::vector<comm_index_type> recv_sizes,
+                    std::vector<comm_index_type> recv_offsets,
+                    array<local_index_type> recv_gather_idxs);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
