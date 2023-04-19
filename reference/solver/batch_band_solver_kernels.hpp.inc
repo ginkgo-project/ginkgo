@@ -236,20 +236,23 @@ void accommodate_partial_row_swaps_lower_trsv(
             temp_entry.values[ipiv_entry[j] + temp_entry.stride * rhs_idx] =
                 tmp;
 
+            // Now temp[j] holds the correct value.
+            const int A_col_idx = j;
+            const ValueType temp_at_col_j =
+                temp_entry.values[A_col_idx + temp_entry.stride * rhs_idx];
+
             for (int A_row_idx = j + 1; A_row_idx <= std::min(N - 1, j + KL);
                  A_row_idx++) {
-                const int A_col_idx = j;
-
                 // temp[A_row_idx] += -1 * A(A_row_idx, A_col_idx) *
                 // temp[A_col_idx]
 
                 const int AB_row_idx = KL + KU + A_row_idx - A_col_idx;
+
                 temp_entry.values[A_row_idx + temp_entry.stride * rhs_idx] +=
                     -one<ValueType>() *
                     AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
-                    temp_entry.values[A_col_idx + temp_entry.stride * rhs_idx];
+                    temp_at_col_j;
             }
-            // Now temp[j] holds the correct value.
         }
     }
 }
