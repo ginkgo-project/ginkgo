@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/matrix/batch_band.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
@@ -175,6 +176,47 @@ generate_uniform_batch_tridiagonal_random_matrix(
             subdiag[batch_idx * mat_size + row_idx] = sub_val;
             maindiag[batch_idx * mat_size + row_idx] = main_val;
             superdiag[batch_idx * mat_size + row_idx] = super_val;
+        }
+    }
+
+    return mtx;
+}
+
+
+/**
+ * Generates a batch of random band matrices.
+ */
+template <typename ValueType, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<gko::matrix::BatchBand<ValueType>>
+generate_uniform_batch_band_random_matrix(
+    const size_type batch_size, const size_type mat_size, const size_type KL,
+    const size_type KU, ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec)
+{
+    using value_type = ValueType;
+    auto mtx = gko::matrix::BatchBand<value_type>::create(
+        exec, gko::batch_dim<2>(batch_size, gko::dim<2>{mat_size, mat_size}),
+        gko::batch_stride(batch_size, KL), gko::batch_stride(batch_size, KU));
+
+    for (size_type batch_idx = 0; batch_idx < batch_size; batch_idx++) {
+        for (size_type col_idx_wrt_dense_layout = 0;
+             col_idx_wrt_dense_layout < mat_size; col_idx_wrt_dense_layout++) {
+            const size_type row_start_inclusive = static_cast<size_type>(
+                std::max(int{0}, static_cast<int>(col_idx_wrt_dense_layout) -
+                                     static_cast<int>(KU)));
+
+            const size_type row_end_inclusive =
+                std::min(mat_size - 1, col_idx_wrt_dense_layout + KL);
+
+            for (size_type row_idx_wrt_dense_layout = row_start_inclusive;
+                 row_idx_wrt_dense_layout <= row_end_inclusive;
+                 row_idx_wrt_dense_layout++) {
+                mtx->at_in_reference_to_dense_layout(batch_idx,
+                                                     row_idx_wrt_dense_layout,
+                                                     col_idx_wrt_dense_layout) =
+                    gko::detail::get_rand_value<value_type>(value_dist, engine);
+            }
         }
     }
 

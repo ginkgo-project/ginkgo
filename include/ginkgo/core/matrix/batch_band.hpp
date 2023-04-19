@@ -92,8 +92,8 @@ class BatchTridiagonal;
  *     Stored as the following band array:
  *
  *
- *   Band_array_A =  *   *    *    *   *   *
- *                   *   *    *    *   *   *
+ *   Band_array_A =  *   *    *    +   +   +
+ *                   *   *    +    +   +   +
  *                   *   3    3   -8   9   3
  *                   1   9    4    3   2   6
  *                   2   8    7    1   5   *
@@ -102,7 +102,7 @@ class BatchTridiagonal;
  *
  * In short, the element at position: (i,j) in the dense layout is stored at
  * position: (KL + KU + i - j, j) in the band layout, for max(0, j - KU)  <= i
- * <=  min(N-1 , j + KL).
+ * <=  min(N-1 , j + KL). The elements marked by * and + need not be set.
  *
  * @note We choose to store the band array in a colum major order to enable
  * efficient memory accesses during the banded solves.
