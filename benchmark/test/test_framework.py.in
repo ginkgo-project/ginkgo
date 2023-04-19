@@ -96,8 +96,8 @@ def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_fl
     result_stderr_processed = determinize_text(result.stderr.decode(
     ), ignore_patterns=version_patterns)
     expected_stdout_processed = determinize_text(
-        open(expected_stdout).read())
-    expected_stderr_processed = determinize_text(open(expected_stderr).read(
+        open(expected_stdout, 'rU').read())
+    expected_stderr_processed = determinize_text(open(expected_stderr, 'rU').read(
     ), ignore_patterns=version_patterns)
     failed = False
     if result_stdout_processed != expected_stdout_processed:
