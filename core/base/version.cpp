@@ -48,7 +48,8 @@ version version_info::get_core_version() noexcept
 std::ostream& operator<<(std::ostream& os, const version_info& ver_info)
 {
     auto print_version = [](std::ostream& os, const version& ver) -> void {
-        static const std::string not_compiled_tag = "not compiled";
+        static const std::string not_compiled_tag =
+            GKO_VERSION_NOT_COMPILED_TAG;
         if (ver.tag == not_compiled_tag) {
             os << "not compiled";
         } else {

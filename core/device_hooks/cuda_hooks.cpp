@@ -47,7 +47,7 @@ version version_info::get_cuda_version() noexcept
 {
     // We just return the version with a special "not compiled" tag in
     // placeholder modules.
-    return {GKO_VERSION_STR, "not compiled"};
+    return {GKO_VERSION_STR, GKO_VERSION_NOT_COMPILED_TAG};
 }
 
 

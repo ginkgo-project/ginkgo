@@ -48,7 +48,7 @@ version version_info::get_hip_version() noexcept
 {
     // We just return 1.1.0 with a special "not compiled" tag in placeholder
     // modules.
-    return {1, 1, 0, "not compiled"};
+    return {GKO_VERSION_STR, GKO_VERSION_NOT_COMPILED_TAG};
 }
 
 
