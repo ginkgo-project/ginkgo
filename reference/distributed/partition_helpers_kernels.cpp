@@ -49,17 +49,16 @@ void sort_by_range_start(
     array<GlobalIndexType>& range_start_ends,
     array<experimental::distributed::comm_index_type>& part_ids)
 {
-    struct range {
-        GlobalIndexType idxs[2];
-    };
-
     auto part_ids_d = part_ids.get_data();
     auto num_parts = part_ids.get_num_elems();
-    auto range_it = reinterpret_cast<range*>(range_start_ends.get_data());
-    auto sort_it = detail::make_zip_iterator(range_it, part_ids_d);
+    auto start_it = detail::make_permute_iterator(
+        range_start_ends.get_data(), [](const auto i) { return 2 * i; });
+    auto end_it = detail::make_permute_iterator(
+        range_start_ends.get_data() + 1, [](const auto i) { return 2 * i; });
+    auto sort_it = detail::make_zip_iterator(start_it, end_it, part_ids_d);
     std::stable_sort(sort_it, sort_it + num_parts,
                      [](const auto& a, const auto& b) {
-                         return std::get<0>(a).idxs[0] < std::get<0>(b).idxs[0];
+                         return std::get<0>(a) < std::get<0>(b);
                      });
 }
 
@@ -72,19 +71,19 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               const array<GlobalIndexType>& range_start_ends,
                               bool* result)
 {
-    struct end_start {
-        GlobalIndexType end;
-        GlobalIndexType start;
-    };
-
     auto num_parts = range_start_ends.get_num_elems() / 2;
-    auto range_it = reinterpret_cast<const end_start*>(
-        range_start_ends.get_const_data() + 1);
+    auto start_it =
+        detail::make_permute_iterator(range_start_ends.get_const_data() + 2,
+                                      [](const auto i) { return 2 * i; });
+    auto end_it =
+        detail::make_permute_iterator(range_start_ends.get_const_data() + 1,
+                                      [](const auto i) { return 2 * i; });
+    auto range_it = detail::make_zip_iterator(start_it, end_it);
 
     if (num_parts) {
-        *result =
-            std::all_of(range_it, range_it + num_parts - 1,
-                        [](const end_start& r) { return r.end == r.start; });
+        *result = std::all_of(
+            range_it, range_it + num_parts - 1,
+            [](const auto& r) { return std::get<0>(r) == std::get<1>(r); });
     } else {
         *result = true;
     }
