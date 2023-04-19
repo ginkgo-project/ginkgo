@@ -94,15 +94,15 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c_vals(row, j) = zero<arithmetic_type>();
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = a_vals(k);
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c_vals(row, j) += val * b_vals(col, j);
+            auto temp = zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = a_vals(k);
+                auto col = col_idxs[k];
+
+                temp += val * b_vals(col, j);
             }
+            c_vals(row, j) = temp;
         }
     }
 }
@@ -134,15 +134,14 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c_vals(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = a_vals(k);
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c_vals(row, j) += valpha * val * b_vals(col, j);
+            auto temp = c_vals(row, j) * vbeta;
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = a_vals(k);
+                auto col = col_idxs[k];
+                temp += valpha * val * b_vals(col, j);
             }
+            c_vals(row, j) = temp;
         }
     }
 }
