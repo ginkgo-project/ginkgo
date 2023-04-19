@@ -214,6 +214,9 @@ namespace blocked_LU_band_factorization {
 
 }  // namespace blocked_LU_band_factorization
 
+
+namespace unblocked_and_blocked_band_solver_common {
+
 template <typename ValueType>
 void accommodate_partial_row_swaps_lower_trsv(
     const int N, const int KL, const int KU, const int* const ipiv_entry,
@@ -289,6 +292,8 @@ void upper_trsv(const int N, const int KL, const int KU,
     }
 }
 
+}  // namespace unblocked_and_blocked_band_solver_common
+
 template <typename ValueType>
 inline void batch_entry_band_unblocked_solve_impl(
     const gko::size_type ibatch, const gko::size_type nbatch, const int KL,
@@ -323,11 +328,12 @@ inline void batch_entry_band_unblocked_solve_impl(
     unblocked_LU_band_factorization::factorize_band(N, KL, KU, AB_array_entry,
                                                     ipiv_entry);
 
-    accommodate_partial_row_swaps_lower_trsv(
-        N, KL, KU, ipiv_entry, AB_array_entry, b_entry, temp_entry);
+    unblocked_and_blocked_band_solver_common::
+        accommodate_partial_row_swaps_lower_trsv(
+            N, KL, KU, ipiv_entry, AB_array_entry, b_entry, temp_entry);
 
-    upper_trsv(N, KL, KU, AB_array_entry, gko::batch::to_const(temp_entry),
-               x_entry);
+    unblocked_and_blocked_band_solver_common::upper_trsv(
+        N, KL, KU, AB_array_entry, gko::batch::to_const(temp_entry), x_entry);
 }
 
 
