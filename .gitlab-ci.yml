@@ -615,7 +615,7 @@ build/dpcpp/2022-1/cpu/release/static:
     BUILD_DPCPP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
-    SYCL_DEVICE_TYPE: "CPU"
+    SYCL_DEVICE_FILTER: "CPU"
     SLURM_PARTITION: "cpu"
     SLURM_TIME: "2:00:00"
     # This job is not in exclusive mode
@@ -634,7 +634,7 @@ build/dpcpp/igpu/release/shared:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_TYPE: "GPU"
+    SYCL_DEVICE_FILTER: "GPU"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
@@ -666,7 +666,7 @@ build/dpcpp/dgpu/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_TYPE: "GPU"
+    SYCL_DEVICE_FILTER: "GPU"
 
 build/dpcpp/level_zero_dgpu/release/shared:
   extends:
