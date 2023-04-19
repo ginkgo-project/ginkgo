@@ -1579,4 +1579,25 @@ TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseSpd)
 }
 
 
+TYPED_TEST(Isai, IsExactInverseOnFullSparsitySet)
+{
+    using Isai = typename TestFixture::GeneralIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = gko::share(gko::initialize<Csr>(
+        {{2, -1, 0, 0}, {-1, 2, -1, 0}, {0, -1, 2, -1}, {0, 0, -1, 2}},
+        this->exec));
+    auto inv_mtx = gko::initialize<Csr>({{4 / 5., 3 / 5., 2 / 5., 1 / 5.},
+                                         {3 / 5., 6 / 5., 4 / 5., 2 / 5.},
+                                         {2 / 5., 4 / 5., 6 / 5., 3 / 5.},
+                                         {1 / 5., 2 / 5., 3 / 5., 4 / 5.}},
+                                        this->exec);
+
+    auto isai =
+        Isai::build().with_sparsity_power(3).on(this->exec)->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(inv_mtx, isai->get_approximate_inverse(),
+                        r<value_type>::value);
+}
+
 }  // namespace
