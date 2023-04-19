@@ -366,6 +366,130 @@ void swap(zip_iterator_reference<Iterators...> a,
 }
 
 
+template <typename IteratorType, typename PermuteFn>
+class permute_iterator {
+public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = typename std::iterator_traits<IteratorType>::value_type;
+    using pointer = typename std::iterator_traits<IteratorType>::pointer;
+    using reference = typename std::iterator_traits<IteratorType>::reference;
+    using iterator_category = std::random_access_iterator_tag;
+
+    explicit permute_iterator() = default;
+
+    explicit permute_iterator(IteratorType it, PermuteFn perm)
+        : it_{std::move(it)}, idx_{}, perm_{std::move(perm)}
+    {}
+
+    permute_iterator& operator=(permute_iterator other)
+    {
+        it_ = other.it_;
+        idx_ = other.idx_;
+        // no perm_ = other.perm_ because lambdas are not copy-assignable
+        return *this;
+    }
+
+    permute_iterator& operator+=(difference_type i)
+    {
+        idx_ += i;
+        return *this;
+    }
+
+    permute_iterator& operator-=(difference_type i) { return *this += -i; }
+
+    permute_iterator& operator++() { return *this += 1; }
+
+    permute_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    permute_iterator& operator--() { return *this -= 1; }
+
+    permute_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    permute_iterator operator+(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp += i;
+        return tmp;
+    }
+
+    friend permute_iterator operator+(difference_type i,
+                                      const permute_iterator& iter)
+    {
+        return iter + i;
+    }
+
+    permute_iterator operator-(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp -= i;
+        return tmp;
+    }
+
+    difference_type operator-(const permute_iterator& other) const
+    {
+        return idx_ - other.idx_;
+    }
+
+    reference operator*() const { return it_[perm_(idx_)]; }
+
+    reference operator[](difference_type i) const { return *(*this + i); }
+
+    bool operator==(const permute_iterator& other) const
+    {
+        return idx_ == other.idx_;
+    }
+
+    bool operator!=(const permute_iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    bool operator<(const permute_iterator& other) const
+    {
+        return idx_ < other.idx_;
+    }
+
+    bool operator<=(const permute_iterator& other) const
+    {
+        return idx_ <= other.idx_;
+    }
+
+    bool operator>(const permute_iterator& other) const
+    {
+        return !(*this <= other);
+    }
+
+    bool operator>=(const permute_iterator& other) const
+    {
+        return !(*this < other);
+    }
+
+private:
+    IteratorType it_;
+    difference_type idx_;
+    PermuteFn perm_;
+};
+
+
+template <typename IteratorType, typename PermutationFn>
+permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
+    IteratorType it, PermutationFn perm)
+{
+    return permute_iterator<IteratorType, PermutationFn>{std::move(it),
+                                                         std::move(perm)};
+}
+
+
 }  // namespace detail
 }  // namespace gko
 
