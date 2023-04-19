@@ -804,10 +804,10 @@ protected:
                       "Inconsistent config");
     }
 
-    template <typename VecType = Vec, typename MtxOrSolver,
+    template <typename VecType = Vec, typename MtxOrSolver, typename MtxType,
               typename TestFunction>
     void forall_vector_scenarios(const test_pair<MtxOrSolver>& op,
-                                 TestFunction fn)
+                                 const test_pair<MtxType>& mtx, TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
             try {
@@ -827,16 +827,15 @@ protected:
             guarded_fn(gen_in_vec<VecType>(op, 1, 1),
                        gen_out_vec<VecType>(op, 1, 1));
         }
-        // TODO this will need to move to a separate test, since it's
-        // incompatible with the mtx-or-solver parameter approach
-        /*if (Config::is_iterative() && mtx.ref->get_size()) {
+        if (Config::is_iterative() &&
+            mtx.ref->get_size() == op.ref->get_size()) {
             SCOPED_TRACE("Single vector with correct initial guess");
             auto in = gen_in_vec<VecType>(mtx, 1, 1);
             auto out = gen_out_vec<VecType>(mtx, 1, 1);
             mtx.ref->apply(out.ref, in.ref);
             mtx.dev->apply(out.dev, in.dev);
             guarded_fn(std::move(in), std::move(out));
-        }*/
+        }
         {
             SCOPED_TRACE("Single strided vector");
             guarded_fn(gen_in_vec<VecType>(op, 1, 2),
@@ -885,7 +884,7 @@ protected:
     {
         if (Config::requires_num_rhs()) {
             forall_vector_scenarios<VecType>(
-                mtx, [this, &mtx, &fn](auto b, auto x) {
+                mtx, mtx, [this, &mtx, &fn](auto b, auto x) {
                     forall_solver_scenarios_with_nrhs(
                         mtx, b,
                         [this, &fn, &b, &x](auto solver) { fn(solver, b, x); });
@@ -893,7 +892,7 @@ protected:
         } else {
             forall_solver_scenarios(mtx, [this, &mtx, &fn](auto solver) {
                 forall_vector_scenarios<VecType>(
-                    solver,
+                    solver, mtx,
                     [this, &solver, &fn](auto b, auto x) { fn(solver, b, x); });
             });
         }
@@ -916,8 +915,8 @@ protected:
 
 using SolverTypes =
     ::testing::Types<Cg, Cgs, Fcg, Bicg, Bicgstab,
-                     /* "IDR uses different initialization approaches even when
-                        deterministic", Idr<1>, Idr<4>,*/
+                     /* "IDR uses different initialization approaches even
+                        when deterministic", Idr<1>, Idr<4>,*/
                      Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>,
                      FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, LowerTrs, UpperTrs,
                      LowerTrsUnitdiag, UpperTrsUnitdiag
@@ -1118,7 +1117,8 @@ TYPED_TEST(Solver, CopyAssignCrossExecutor)
                 GKO_ASSERT_MTX_NEAR(
                     gko::as<Mtx>(solver2->get_system_matrix()),
                     gko::as<Mtx>(solver.ref->get_system_matrix()), 0.0);
-                // TODO no easy way to compare stopping criteria cross-executor
+                // TODO no easy way to compare stopping criteria
+                // cross-executor
                 auto precond = Config::get_preconditioner(solver2);
                 if (dynamic_cast<const Precond*>(precond)) {
                     GKO_ASSERT_MTX_NEAR(
@@ -1157,7 +1157,8 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
             if (solver.ref->get_system_matrix()) {
                 GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver2->get_system_matrix()),
                                     gko::as<Mtx>(mtx), 0.0);
-                // TODO no easy way to compare stopping criteria cross-executor
+                // TODO no easy way to compare stopping criteria
+                // cross-executor
                 auto new_precond = Config::get_preconditioner(solver2);
                 if (dynamic_cast<const Precond*>(new_precond)) {
                     GKO_ASSERT_MTX_NEAR(gko::as<Precond>(new_precond),
