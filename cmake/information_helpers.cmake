@@ -79,7 +79,7 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
             ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
         elseif(EXISTS "${_libs}")
             if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
-                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}/libhwloc.so")
+                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_FULL_LIBDIR}/libhwloc.so")
             else()
                 list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
             endif()
@@ -90,14 +90,14 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
 endmacro()
 
 macro(ginkgo_interface_information)
-    set(GINKGO_INTERFACE_LINK_FLAGS "-L${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}")
+    set(GINKGO_INTERFACE_LINK_FLAGS "-L${CMAKE_INSTALL_FULL_LIBDIR}")
     unset(GINKGO_INTERFACE_LIBS_FOUND)
     unset(GINKGO_INTERFACE_CFLAGS_FOUND)
     # Prepare recursively populated library list
     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "-lginkgo$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>")
     # Prepare recursively populated include directory list
     list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND
-        "-I${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_INCLUDE_DIR}")
+        "-I${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 
     # Call the recursive interface libraries macro
     get_target_property(GINKGO_INTERFACE_LINK_LIBRARIES ginkgo INTERFACE_LINK_LIBRARIES)
