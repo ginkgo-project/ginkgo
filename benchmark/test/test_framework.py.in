@@ -9,7 +9,7 @@ import sys
 sourcepath = pathlib.Path("@CMAKE_CURRENT_SOURCE_DIR@")
 binpath = pathlib.Path("@PROJECT_BINARY_DIR@")
 generate = False
-if len(sys.argv) > 1 and sys.argv[1] == "--generate":
+if len(sys.argv) > 2 and sys.argv[2] == "--generate":
     generate = True
 
 
@@ -74,7 +74,7 @@ def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patter
 
 
 def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_flags=[]):
-    args[0] = str(binpath / "benchmark" / args[0])
+    args = [sys.argv[1]] + args
     expected_stdout = str(sourcepath / "reference" / expected_stdout)
     expected_stderr = str(sourcepath / "reference" / expected_stderr)
     result = subprocess.run(args=launcher_flags + args, stdout=subprocess.PIPE,

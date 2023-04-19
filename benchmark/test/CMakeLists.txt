@@ -2,11 +2,11 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 function(add_benchmark_test test_name)
     configure_file(${test_name}.py ${test_name}.py COPYONLY)
     add_test(NAME benchmark_${test_name}
-             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.py
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.py $<TARGET_FILE:${test_name}>
              WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     set(regenerate_target benchmark_test_${test_name}_regenerate)
     add_custom_target(${regenerate_target}
-                      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.py --generate
+                      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.py $<TARGET_FILE:${test_name}> --generate
                       COMMENT "Regenerating reference output for ${test_name}"
                       WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     add_dependencies(${regenerate_target} ${test_name})
