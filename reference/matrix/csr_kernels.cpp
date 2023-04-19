@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "accessor/reduced_row_major.hpp"
+#include "accessor/linop_helper.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
@@ -82,34 +82,13 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
-    using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
-    using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
-    using c_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
 
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(a->get_num_stored_elements())},
-        a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
-    auto c_vals = gko::acc::range<c_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(c->get_size()[0]),
-             static_cast<acc::size_type>(c->get_size()[1])}},
-        c->get_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(c->get_stride())}});
+    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
+    const auto b_vals = acc::helper::build_const_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
@@ -141,36 +120,15 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
-    using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
-    using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
-    using c_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     arithmetic_type valpha = alpha->at(0, 0);
     arithmetic_type vbeta = beta->at(0, 0);
 
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(a->get_num_stored_elements())},
-        a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
-    auto c_vals = gko::acc::range<c_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(c->get_size()[0]),
-             static_cast<acc::size_type>(c->get_size()[1])}},
-        c->get_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(c->get_stride())}});
+    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
+    const auto b_vals = acc::helper::build_const_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
             c_vals(row, j) *= vbeta;
