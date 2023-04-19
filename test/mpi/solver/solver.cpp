@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
+#include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -185,6 +186,18 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
         std::shared_ptr<const gko::Executor> exec)
     {
         return SimpleSolverTest<gko::solver::Gmres<solver_value_type>>::build(
+                   std::move(exec))
+            .with_krylov_dim(dimension);
+    }
+};
+
+
+template <unsigned dimension>
+struct Gcr : SimpleSolverTest<gko::solver::Gcr<solver_value_type>> {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return SimpleSolverTest<gko::solver::Gcr<solver_value_type>>::build(
                    std::move(exec))
             .with_krylov_dim(dimension);
     }
@@ -497,8 +510,8 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-using SolverTypes =
-    ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gmres<10u>, Gmres<100u>>;
+using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>,
+                                     Gcr<100u>, Gmres<10u>, Gmres<100u>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 

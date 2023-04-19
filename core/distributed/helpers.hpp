@@ -168,6 +168,50 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 }
 
 
+/**
+ * Helper to extract a submatrix.
+ *
+ * @note  global_size is unused, since it can be deferred from rows and cols.
+ */
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
+    matrix::Dense<ValueType>* mtx, dim<2> global_size, span rows, span cols)
+{
+    return mtx->create_submatrix(rows, cols);
+}
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Helper to extract a submatrix.
+ *
+ * @param global_size  the global_size of the submatrix
+ * @param rows  the rows of the submatrix in local indices
+ * @param cols  the columns of the submatrix in local indices
+ */
+template <typename ValueType>
+std::unique_ptr<experimental::distributed::Vector<ValueType>>
+create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
+                        dim<2> global_size, span rows, span cols)
+{
+    const auto exec = mtx->get_executor();
+    auto local_view = matrix::Dense<ValueType>::create(
+        exec, mtx->get_local_vector()->get_size(),
+        make_array_view(exec,
+                        mtx->get_local_vector()->get_num_stored_elements(),
+                        mtx->get_local_values()),
+        mtx->get_local_vector()->get_stride());
+    return experimental::distributed::Vector<ValueType>::create(
+        exec, mtx->get_communicator(), global_size,
+        local_view->create_submatrix(rows, cols));
+}
+
+
+#endif
+
+
 }  // namespace detail
 }  // namespace gko
 
