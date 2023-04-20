@@ -43,7 +43,7 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
-DEBUG: begin copy(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin free
@@ -58,7 +58,7 @@ DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
-DEBUG: end   copy(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)
+DEBUG: end   copy(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
@@ -123,7 +123,7 @@ DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin copy(gko::matrix::Csr<double, int>,gko::matrix::Coo<double, int>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin copy
@@ -136,7 +136,7 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::convert_ptrs_to_idxs
 DEBUG: end   components::convert_ptrs_to_idxs
-DEBUG: end   copy(gko::matrix::Csr<double, int>,gko::matrix::Coo<double, int>)
+DEBUG: end   copy(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
