@@ -160,7 +160,9 @@ void BatchBandSolver<ValueType>::apply_impl(const BatchLinOp* b,
             gko::share(gko::matrix::BatchTridiagonal<ValueType>::create(exec));
         as<ConvertibleTo<gko::matrix::BatchTridiagonal<ValueType>>>(
             this->system_matrix_.get())
-            ->convert_to(sys_mat_tridiag.get());
+            ->convert_to(
+                sys_mat_tridiag.get());  // TODO: Implement batch band to batch
+                                         // tridiagonal conversion function
 
         auto tridiag_solver_factory =
             gko::solver::BatchTridiagonalSolver<ValueType>::build().on(exec);

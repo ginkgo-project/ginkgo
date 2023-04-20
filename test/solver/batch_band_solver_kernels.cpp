@@ -62,7 +62,9 @@ protected:
    
     BatchBandSolver()
         : band_mat_1(get_band_matrix(KL_1, KU_1)),
-          band_mat_2(get_band_matrix(KL_2, KU_2))
+          band_mat_2(get_band_matrix(KL_2, KU_2)),
+          band_mat_3(get_band_matrix(KL_3, KU_3)),
+          band_mat_4(get_band_matrix(KL_4, KU_4))
 
     {
         set_up_data();
@@ -78,9 +80,15 @@ protected:
     const size_t KU_1 = 7;
     const size_t KL_2 = 20;
     const size_t KU_2 = 42;
+    const size_t KL_3 = 1;
+    const size_t KU_3 = 1;
+    const size_t KL_4 = 0;
+    const size_t KU_4 = 0;
 
     std::shared_ptr<BBand> band_mat_1;
     std::shared_ptr<BBand> band_mat_2;
+    std::shared_ptr<BBand> band_mat_3;
+    std::shared_ptr<BBand> band_mat_4;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
     std::shared_ptr<BDiag> left_scale;
@@ -186,6 +194,14 @@ TEST_F(BatchBandSolver, UnblockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
 {   
    check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::unblocked);
 }
+
+
+// TEST_F(BatchBandSolver, UnblockedSolve_Tridiag_and_Diag_IsEquivalentToRef)
+// {   
+//    check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
+//    check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
+// }
+
 
 
 #endif
