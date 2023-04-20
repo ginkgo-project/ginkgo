@@ -206,16 +206,22 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         ++total_iter;
         // compute residual norm
         residual->compute_norm2(residual_norm, reduction_tmp);
-        // Log current iteration
-        this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual, dense_x, residual_norm);
-        // Check stopping criterion
-        if (stop_criterion->update()
+
+        // Should the iteration stop?
+        auto all_stopped =
+            stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual)
                 .residual_norm(residual_norm)
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+
+        // Log current iteration
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, total_iter, residual, residual_norm,
+            nullptr, &stop_status, all_stopped);
+        // Check stopping criterion
+        if (all_stopped) {
             break;
         }
 
