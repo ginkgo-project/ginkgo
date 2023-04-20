@@ -83,9 +83,7 @@ TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes, TypenameNameGenerator);
 
 TYPED_TEST(Convergence, CanGetEmptyData)
 {
-    auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask |
-        gko::log::Logger::iteration_complete_mask);
+    auto logger = gko::log::Convergence<TypeParam>::create();
 
     ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
@@ -99,9 +97,7 @@ TYPED_TEST(Convergence, CanLogData)
 {
     using Dense = gko::matrix::Dense<TypeParam>;
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
-    auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask |
-        gko::log::Logger::iteration_complete_mask);
+    auto logger = gko::log::Convergence<TypeParam>::create();
 
     logger->template on<gko::log::Logger::iteration_complete>(
         this->system.get(), this->rhs.get(), this->solution.get(), 100,
@@ -122,9 +118,7 @@ TYPED_TEST(Convergence, CanLogData)
 
 TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
 {
-    auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask |
-        gko::log::Logger::iteration_complete_mask);
+    auto logger = gko::log::Convergence<TypeParam>::create();
 
     logger->template on<gko::log::Logger::iteration_complete>(
         this->system.get(), this->rhs.get(), this->solution.get(), 100,
@@ -141,9 +135,7 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
 TYPED_TEST(Convergence, CanComputeResidualNormFromResidual)
 {
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
-    auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask |
-        gko::log::Logger::iteration_complete_mask);
+    auto logger = gko::log::Convergence<TypeParam>::create();
 
     logger->template on<gko::log::Logger::iteration_complete>(
         this->system.get(), this->rhs.get(), this->solution.get(), 100,
@@ -157,9 +149,7 @@ TYPED_TEST(Convergence, CanComputeResidualNormFromResidual)
 TYPED_TEST(Convergence, CanComputeResidualNormFromSolution)
 {
     using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
-    auto logger = gko::log::Convergence<TypeParam>::create(
-        gko::log::Logger::criterion_events_mask |
-        gko::log::Logger::iteration_complete_mask);
+    auto logger = gko::log::Convergence<TypeParam>::create();
 
     logger->template on<gko::log::Logger::iteration_complete>(
         this->system.get(), this->rhs.get(), this->solution.get(), 100, nullptr,
