@@ -171,7 +171,7 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 /**
  * Helper to extract a submatrix.
  *
- * @note  global_size is unused, since it can be deferred from rows and cols.
+ * @note  global_size is unused, since it can be inferred from rows and cols.
  */
 template <typename ValueType>
 std::unique_ptr<matrix::Dense<ValueType>> create_submatrix_helper(
