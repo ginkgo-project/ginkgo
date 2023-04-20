@@ -125,7 +125,8 @@ protected:
         std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
             from_partition,
         std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-            to_partition);
+            to_partition,
+        bool init_default_pattern);
 
 private:
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>

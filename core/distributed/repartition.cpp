@@ -121,7 +121,8 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
         from_partition,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-        to_partition)
+        to_partition,
+    bool init_default_pattern)
     : from_partition_(from_partition),
       to_partition_(to_partition),
       from_comm_(from_comm),
@@ -150,31 +151,34 @@ repartitioner<LocalIndexType, GlobalIndexType>::repartitioner(
         to_comm_ = from_comm_;
     }
 
-    array<GlobalIndexType> owned_global_idxs(
-        host_from_partition->get_executor(),
-        host_from_partition->get_part_size(rank));
-    {
-        size_type local_idx = 0;
-        for (size_type range_idx = 0; range_idx < old_n_ranges; ++range_idx) {
-            if (old_pid[range_idx] == rank) {
-                for (GlobalIndexType global_idx = old_ranges[range_idx];
-                     global_idx < old_ranges[range_idx + 1]; ++global_idx) {
-                    owned_global_idxs.get_data()[local_idx++] = global_idx;
+    if (init_default_pattern) {
+        array<GlobalIndexType> owned_global_idxs(
+            host_from_partition->get_executor(),
+            host_from_partition->get_part_size(rank));
+        {
+            size_type local_idx = 0;
+            for (size_type range_idx = 0; range_idx < old_n_ranges;
+                 ++range_idx) {
+                if (old_pid[range_idx] == rank) {
+                    for (GlobalIndexType global_idx = old_ranges[range_idx];
+                         global_idx < old_ranges[range_idx + 1]; ++global_idx) {
+                        owned_global_idxs.get_data()[local_idx++] = global_idx;
+                    }
                 }
             }
         }
-    }
-    auto pattern = build_communication_pattern(
-        from_comm_, from_partition_, to_partition_, owned_global_idxs);
+        auto pattern = build_communication_pattern(
+            from_comm_, from_partition_, to_partition_, owned_global_idxs);
 
-    default_send_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.send_sizes);
-    default_send_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.send_offsets);
-    default_recv_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.recv_sizes);
-    default_recv_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(pattern.recv_offsets);
+        default_send_sizes_ =
+            std::make_shared<std::vector<comm_index_type>>(pattern.send_sizes);
+        default_send_offsets_ = std::make_shared<std::vector<comm_index_type>>(
+            pattern.send_offsets);
+        default_recv_sizes_ =
+            std::make_shared<std::vector<comm_index_type>>(pattern.recv_sizes);
+        default_recv_offsets_ = std::make_shared<std::vector<comm_index_type>>(
+            pattern.recv_offsets);
+    }
 }
 
 
@@ -402,6 +406,21 @@ array<T> scatter_impl(const array<T>& from, const array<I>& scatter_indices)
     return ret;
 };
 
+template <typename T, typename I>
+void scatter2_impl(const array<T>& from, array<T>& to,
+                   const array<I>& scatter_indices)
+{
+    auto exec = scatter_indices.get_executor();
+    auto num_elems = scatter_indices.get_num_elems();
+    T* to_ptr = to.get_data();
+    const I* scatter_ptr = scatter_indices.get_const_data();
+    const T* from_ptr = from.get_const_data();
+    for (size_t i = 0; i < num_elems; ++i) {
+        to_ptr[i] = from_ptr[scatter_ptr[i]];
+    }
+};
+
+
 template <typename LocalIndexType, typename GlobalIndexType>
 template <typename ValueType>
 void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
@@ -416,11 +435,8 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
     array<ValueType>& local_to_data, array<ValueType>& non_local_to_data) const
 {
     // first apply same sorting as previously
-    auto from =
-        scatter_impl(append(local_from_data, non_local_from_data), sorting_idx);
-
+    auto from = append(local_from_data, non_local_from_data);
     auto exec = local_to_data.get_executor();
-    auto rank = from_comm_.rank();
 
     const auto new_local_nnz = recv_offsets.back();
     array<ValueType> recv_values(local_to_data.get_executor(), new_local_nnz);
@@ -439,8 +455,8 @@ void repartitioner<LocalIndexType, GlobalIndexType>::update_existing(
     };
     communicate(from.get_const_data(), recv_values.get_data());
 
-    local_to_data = scatter_impl(recv_values, local_scatter_pattern);
-    non_local_to_data = scatter_impl(recv_values, non_local_scatter_pattern);
+    scatter2_impl(recv_values, local_to_data, local_scatter_pattern);
+    scatter2_impl(recv_values, non_local_to_data, non_local_scatter_pattern);
 }
 
 #define GKO_DECLARE_REPETITIONER_UPDATE_EXISTING(_value_type, _index_type_l,   \
