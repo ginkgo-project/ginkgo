@@ -127,17 +127,16 @@ build_partition_from_local_size(std::shared_ptr<const Executor> exec,
                                 mpi::communicator comm, size_type local_size)
 {
     auto local_size_gi = static_cast<GlobalIndexType>(local_size);
-    std::vector<GlobalIndexType> sizes(comm.size());
-    comm.all_gather(exec, &local_size_gi, 1, sizes.data(), 1);
+    array<GlobalIndexType> sizes(exec->get_master(), comm.size());
+    comm.all_gather(exec, &local_size_gi, 1, sizes.get_data(), 1);
 
-    std::vector<GlobalIndexType> offsets(comm.size() + 1);
-    offsets[0] = 0;
-    std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
+    array<GlobalIndexType> offsets(exec->get_master(), comm.size() + 1);
+    offsets.get_data()[0] = 0;
+    std::partial_sum(sizes.get_data(), sizes.get_data() + comm.size(),
+                     offsets.get_data() + 1);
 
-    auto ranges =
-        make_array_view(exec->get_master(), offsets.size(), offsets.data());
     return Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
-        exec, ranges);
+        exec, offsets);
 }
 
 #define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_SIZE(_local_type, _global_type) \
