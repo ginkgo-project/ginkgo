@@ -1600,4 +1600,55 @@ TYPED_TEST(Isai, IsExactInverseOnFullSparsitySet)
                         r<value_type>::value);
 }
 
+
+template <typename MatrixType>
+std::unique_ptr<MatrixType> generate_stencil(
+    gko::size_type size, std::shared_ptr<const gko::Executor> exec)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+
+    gko::matrix_assembly_data<value_type, index_type> md;
+
+    for (int row = 0; row < size; ++row) {
+        if (row > 0) {
+            md.set_value(row, row - 1, -1);
+        }
+        md.set_value(row, row, 2);
+        if (row < size - 1) {
+            md.set_value(row, row + 1, -1);
+        }
+    }
+
+    auto mtx = MatrixType::create(exec, md.get_size());
+    mtx->read(md.get_ordered_data());
+    return mtx;
+}
+
+
+TYPED_TEST(Isai, IsExactInverseOnFullSparsitySetLarge)
+{
+    using Isai = typename TestFixture::GeneralIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = gko::share(gko::test::generate_random_band_matrix<Csr>(
+        35, 1, 1,
+        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
+        std::default_random_engine{}, this->exec));
+    auto id = gko::test::generate_random_band_matrix<
+        gko::matrix::Dense<gko::remove_complex<value_type>>>(
+        mtx->get_size()[0], 0, 0,
+        std::uniform_real_distribution<gko::remove_complex<value_type>>(1, 1),
+        std::default_random_engine{}, this->exec);
+
+    auto isai = Isai::build()
+                    .with_sparsity_power(static_cast<int>(mtx->get_size()[0]))
+                    .on(this->exec)
+                    ->generate(mtx);
+
+    auto result = Csr::create(this->exec, mtx->get_size());
+    isai->get_approximate_inverse()->apply(mtx, result);
+    GKO_ASSERT_MTX_NEAR(result, id, 5 * r<value_type>::value);
+}
+
 }  // namespace

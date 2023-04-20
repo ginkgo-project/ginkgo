@@ -108,6 +108,20 @@ protected:
         d_inverse = gko::clone(exec, inverse);
     }
 
+    void initialize_tridiag_data(matrix_type type, gko::size_type n)
+    {
+        auto val_dist = std::uniform_real_distribution<value_type>(0., 1.);
+        mtx = Csr::create(ref);
+        auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
+            n, 1, 1, val_dist, rand_engine, ref);
+        ensure_diagonal(dense_mtx.get());
+        mtx->copy_from(dense_mtx);
+        inverse = clone_allocations(mtx.get());
+
+        d_mtx = gko::clone(exec, mtx);
+        d_inverse = gko::clone(exec, inverse);
+    }
+
     void ensure_diagonal(Dense* mtx)
     {
         for (int i = 0; i < mtx->get_size()[0]; ++i) {
@@ -637,4 +651,26 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, IsaiGenerateGeneralWithHighSparsityPowerIsEquivalentToRef)
+{
+    using Isai =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
+                                  value_type, index_type>;
+    initialize_tridiag_data(matrix_type::general, 65);
+
+    auto d_isai =
+        Isai::build()
+            .with_sparsity_power(static_cast<int>(d_mtx->get_size()[0]))
+            .on(ref)
+            ->generate(d_mtx->clone());
+
+    auto id = Dense::create(exec, d_mtx->get_size());
+    id->fill(0.0);
+    ensure_diagonal(id.get());
+    auto result = Csr::create(exec, mtx->get_size());
+    d_isai->get_approximate_inverse()->apply(d_mtx, result);
+    GKO_ASSERT_MTX_NEAR(result, id, r<value_type>::value);
 }
