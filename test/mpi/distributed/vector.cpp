@@ -698,6 +698,32 @@ TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
 }
 
 
+TYPED_TEST(VectorReductions, ComputesSquaredNorm2IsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_squared_norm2(this->real_res);
+    this->dense_x->compute_squared_norm2(this->dense_real_res);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputesSquaredNorm2WithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_squared_norm2(this->real_res, this->tmp);
+    this->dense_x->compute_squared_norm2(this->dense_real_res, this->dense_tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
 template <typename ValueType>
 class VectorLocalOps : public CommonMpiTestFixture {
 public:
