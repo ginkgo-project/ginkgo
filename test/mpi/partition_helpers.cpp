@@ -58,7 +58,6 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRanges)
     gko::array<itype> expects_ranges{this->exec, {0, 4, 9, 11}};
     gko::array<comm_index_type> expects_pid{this->exec, {0, 1, 2}};
 
-
     auto part =
         gko::experimental::distributed::build_partition_from_local_range<
             gko::int32, itype>(this->exec, this->comm,

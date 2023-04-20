@@ -411,7 +411,6 @@ TYPED_TEST(PermuteIterator, SortingWithIdentityPermutation)
 {
     std::vector<TypeParam> vec{6, 2, 5, 2, 4};
     std::vector<TypeParam> sorted{2, 2, 4, 5, 6};
-
     auto test_iter = gko::detail::make_permute_iterator(
         vec.begin(), [](int i) { return i; });
 
@@ -439,7 +438,6 @@ TYPED_TEST(PermuteIterator, SortingWithStridedPermutation)
 {
     std::vector<TypeParam> vec{6, 8, 2, 9, 5, 1, 2, 7, 4, 0};
     std::vector<TypeParam> sorted{2, 8, 2, 9, 4, 1, 5, 7, 6, 0};
-
     auto test_iter = gko::detail::make_permute_iterator(
         vec.begin(), [](int i) { return 2 * i; });
 

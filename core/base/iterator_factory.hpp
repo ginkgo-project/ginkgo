@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 
 namespace gko {
@@ -375,17 +376,18 @@ public:
     using reference = typename std::iterator_traits<IteratorType>::reference;
     using iterator_category = std::random_access_iterator_tag;
 
-    explicit permute_iterator() = default;
+    explicit permute_iterator() : it_{}, idx_{}, perm_{{}} {}
 
     explicit permute_iterator(IteratorType it, PermuteFn perm)
         : it_{std::move(it)}, idx_{}, perm_{std::move(perm)}
     {}
 
-    permute_iterator& operator=(permute_iterator other)
+    permute_iterator& operator=(const permute_iterator& other)
     {
         it_ = other.it_;
         idx_ = other.idx_;
-        // no perm_ = other.perm_ because lambdas are not copy-assignable
+        perm_.clear();
+        perm_.emplace_back(other.perm_[0]);
         return *this;
     }
 
@@ -440,7 +442,7 @@ public:
         return idx_ - other.idx_;
     }
 
-    reference operator*() const { return it_[perm_(idx_)]; }
+    reference operator*() const { return it_[perm_[0](idx_)]; }
 
     reference operator[](difference_type i) const { return *(*this + i); }
 
@@ -477,7 +479,9 @@ public:
 private:
     IteratorType it_;
     difference_type idx_;
-    PermuteFn perm_;
+    // hack to make lambda function copy assignable
+    // could be better done with std::optional
+    std::vector<PermuteFn> perm_;
 };
 
 
