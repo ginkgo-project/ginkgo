@@ -61,7 +61,7 @@ __device__ __forceinline__ void set_possible_fill_in_zero_in_U_part(
 }
 
 template <typename ValueType>
-__device__ __forceinline__ int find_pivot_row_index(
+__device__ __forceinline__ int naive_find_pivot_row_index(
     const int N, const int KL, const int KU,
     const ValueType* const __restrict__ AB_array_entry, const int AB_col_idx)
 {
@@ -84,56 +84,61 @@ __device__ __forceinline__ int find_pivot_row_index(
     return AB_piv_row_idx;
 }
 
-/*
-template <typename ValueType>
-__device__ __forceinline__ int find_pivot_row_index_2(
-    const int N, const int KL, const int KU,
+
+template <typename Group, typename ValueType>
+__device__ __forceinline__ int find_pivot_row_index(
+    Group& subwarp_grp, const int N, const int KL, const int KU,
     const ValueType* const __restrict__ AB_array_entry, const int AB_col_idx)
 {
+    // Each subwarp of the threadblock finds the pivot row for the given column.
     const int AB_nrows = 2 * KL + KU + 1;
     const int KV = KU + KL;
     const int AB_row_idx_limit = KL + KU + (N - AB_col_idx - 1);
     const int final_AB_row_idx_limit = min(AB_row_idx_limit, KV + KL);
 
-    int my_AB_piv_row_idx = KV + subwarp_grp.thread_rank();
-    ValueType my_piv_val;
-    if (my_AB_piv_row_idx <= final_AB_row_idx_limit) {
-        my_piv_val = AB_array_entry[my_AB_piv_row_idx + AB_nrows * AB_col_idx];
-//coalesced accesses
+    int my_AB_row_idx = KV + subwarp_grp.thread_rank();
+    ValueType my_val;
+    if (my_AB_row_idx <= final_AB_row_idx_limit) {
+        my_val = AB_array_entry[my_AB_row_idx + AB_nrows * AB_col_idx];
+        // coalesced accesses
     }
 
-    const ValueType diag_val = subwarp_grp.shfl(my_piv_val, 0);
+    const ValueType diag_val = subwarp_grp.shfl(my_val, 0);
 
-    if (subwarp_grp.thread_rank() > final_AB_row_idx_limit) {
-        my_AB_piv_row_idx = KV;
-        my_piv_val = diag_val;
+    if (my_AB_row_idx > final_AB_row_idx_limit) {
+        my_AB_row_idx = KV;
+        my_val = diag_val;
     }
 
     for (int AB_row_idx = KV + subwarp_grp.size() + subwarp_grp.thread_rank();
          AB_row_idx <= final_AB_row_idx_limit;
          AB_row_idx += subwarp_grp.size()) {
-        const ValueType val = AB_array_entry[AB_row_idx + AB_nrows *
-AB_col_idx]; //coalesced accesses if (abs(val) > abs(my_piv_val)) { my_piv_val =
-val; my_AB_piv_row_idx = AB_row_idx;
+        const ValueType val =
+            AB_array_entry[AB_row_idx +
+                           AB_nrows * AB_col_idx];  // coalesced accesses
+        if (abs(val) > abs(my_val)) {
+            my_val = val;
+            my_AB_row_idx = AB_row_idx;
         }
     }
-
     subwarp_grp.sync();
 
     for (int offset = subwarp_grp.size() / 2; offset > 0; offset /= 2) {
-        const auto other_piv_val = subwarp_grp.shfl_down(my_piv_val, offset);
-        const auto other_AB_piv_row_idx =
-            subwarp_grp.shfl(my_AB_piv_row_idx, offset);
-        if (abs(other_piv_val) > abs(my_piv_val)) {
-            my_piv_val = other_piv_val;
-            my_AB_piv_row_idx = other_AB_piv_row_idx;
+        const auto other_val = subwarp_grp.shfl_down(my_val, offset);
+        const auto other_AB_row_idx =
+            subwarp_grp.shfl_down(my_AB_row_idx, offset);
+        if (abs(other_val) > abs(my_val)) {
+            my_val = other_val;
+            my_AB_row_idx = other_AB_row_idx;
         }
         subwarp_grp.sync();
     }
 
-    my_AB_piv_row_idx = subwarp_grp.shfl(my_AB_piv_row_idx, 0);
+    // 0th thread of the subwarp will have the correct pivot row index and value
+    const int AB_piv_row_idx = subwarp_grp.shfl(my_AB_row_idx, 0);
+    return AB_piv_row_idx;
 }
-*/
+
 
 template <typename ValueType>
 __device__ __forceinline__ void swap_rows(
@@ -228,8 +233,11 @@ __device__ __forceinline__ void factorize_band(
 
     for (int AB_col_idx = 0; AB_col_idx <= N - 1; AB_col_idx++) {
         const int AB_diag_row_idx = KV;
-        const int AB_pivot_row_idx =
-            find_pivot_row_index(N, KL, KU, AB_array_entry, AB_col_idx);
+
+        __syncthreads();
+        const int AB_pivot_row_idx = find_pivot_row_index(
+            subwarp_grp, N, KL, KU, AB_array_entry, AB_col_idx);
+
         const int A_pivot_row_idx = AB_pivot_row_idx - KV + AB_col_idx;
         const int A_diag_row_idx = AB_col_idx;
 
