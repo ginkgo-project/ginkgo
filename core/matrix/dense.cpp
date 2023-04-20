@@ -227,7 +227,7 @@ void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(LinOp* result) const
+void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_squared_norm2_impl(
@@ -480,7 +480,7 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(LinOp* result,
+void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
                                              array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
