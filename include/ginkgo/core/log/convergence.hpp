@@ -105,7 +105,8 @@ public:
     [[deprecated(
         "use single-parameter create")]] static std::unique_ptr<Convergence>
     create(std::shared_ptr<const Executor>,
-           const mask_type& enabled_events = Logger::all_events_mask)
+           const mask_type& enabled_events = Logger::criterion_events_mask |
+                                             Logger::iteration_complete_mask)
     {
         return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
@@ -124,7 +125,8 @@ public:
      * shouldn't be a problem.
      */
     static std::unique_ptr<Convergence> create(
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
     {
         return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
@@ -188,7 +190,8 @@ protected:
      */
     [[deprecated("use single-parameter constructor")]] explicit Convergence(
         std::shared_ptr<const gko::Executor>,
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
         : Logger(enabled_events)
     {}
 
@@ -199,7 +202,8 @@ protected:
      *                        events.
      */
     explicit Convergence(
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
         : Logger(enabled_events)
     {}
 

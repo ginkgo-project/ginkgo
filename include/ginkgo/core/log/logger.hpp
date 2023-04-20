@@ -432,7 +432,7 @@ protected:
      * @param x  the solution vector
      * @param it  the current iteration count
      * @param r  the residual (optional)
-     * @param tau  the residual norm (optional)
+     * @param tau  the implicit residual norm squared (optional)
      * @param implicit_tau_sq  the residual norm (optional)
      * @param status  the stopping status of the right hand sides (optional)
      * @param stopped  whether all right hand sides have stopped (invalid if
