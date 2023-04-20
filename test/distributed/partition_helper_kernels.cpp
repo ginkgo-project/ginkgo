@@ -85,14 +85,13 @@ template <typename IndexType>
 std::vector<IndexType> create_ranges(
     const std::vector<IndexType>& range_offsets)
 {
-    struct repeated_value {
-        repeated_value(IndexType i) : vals{i, i} {}
-        IndexType vals[2];
-    };
+    assert(range_offsets.size() >= 2);
     gko::size_type num_ranges = range_offsets.size() - 1;
     std::vector<IndexType> ranges(num_ranges * 2, 0);
-    auto ranges_it = reinterpret_cast<repeated_value*>(ranges.data() + 1);
-    std::copy(range_offsets.begin() + 1, range_offsets.end() - 1, ranges_it);
+    for (gko::size_type i = 1; i < num_ranges; ++i) {
+        ranges[2 * i - 1] = range_offsets[i];
+        ranges[2 * i] = range_offsets[i];
+    }
     ranges.back() = range_offsets.back();
     return ranges;
 }
@@ -145,17 +144,17 @@ std::pair<std::vector<IndexType>, std::vector<comm_index_type>>
 shuffle_range_and_pid(const std::vector<IndexType>& ranges,
                       const std::vector<comm_index_type>& pid)
 {
-    struct range {
-        IndexType vals[2];
-    };
-
     std::default_random_engine engine;
 
     auto result = std::make_pair(ranges, pid);
 
     auto num_ranges = result.second.size();
-    auto zip_it = gko::detail::make_zip_iterator(
-        reinterpret_cast<range*>(result.first.data()), result.second.begin());
+    auto range_start_it = gko::detail::make_permute_iterator(
+        result.first.begin(), [](const auto i) { return 2 * i; });
+    auto range_end_it = gko::detail::make_permute_iterator(
+        result.first.begin() + 1, [](const auto i) { return 2 * i; });
+    auto zip_it = gko::detail::make_zip_iterator(range_start_it, range_end_it,
+                                                 result.second.begin());
     std::shuffle(zip_it, zip_it + num_ranges, engine);
 
     return result;
@@ -199,11 +198,10 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
 }
 
 
- TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
+TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
 {
     using index_type = typename TestFixture::index_type;
-    auto start_ends =
-        make_array(this->ref, create_ranges<index_type>(1));
+    auto start_ends = make_array(this->ref, create_ranges<index_type>(1));
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
@@ -213,7 +211,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
 }
 
 
- TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
+TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
 {
     using index_type = typename TestFixture::index_type;
     auto start_ends = gko::array<index_type>(this->exec, {1});
