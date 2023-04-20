@@ -47,6 +47,7 @@ namespace {
 #include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/solver/batch_band_solver_kernels.hpp.inc"
 
+
 }  // namespace
 
 
@@ -75,6 +76,13 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     std::vector<unsigned char> local_space(local_size_bytes);
 
     assert(workspace_size >= band_mat->get_num_stored_elements());
+
+    if (workspace_size < band_mat->get_num_stored_elements()) {
+        std::cout << " file: " << __FILE__ << " line: " << __LINE__
+                  << " workspace size is not enough" << std::endl;
+        exit(0);
+    }
+
     ValueType* const batch_band_mat_array = workspace_ptr;
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), batch_band_mat_array);
@@ -87,6 +95,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             batch_entry_band_unblocked_solve_impl(ibatch, nbatch, KL, KU,
                                                   batch_band_mat_array, b_batch,
                                                   x_batch, local_space.data());
+
         } else if (approach ==
                    gko::solver::batch_band_solve_approach::blocked) {
             batch_entry_band_blocked_solve_impl(

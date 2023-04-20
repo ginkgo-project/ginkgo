@@ -33,8 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace unblocked_LU_band_factorization {
 
 template <typename ValueType>
-inline void set_possible_fill_in_zero(const int N, const int KL, const int KU,
-                                      ValueType* const AB_array_entry)
+inline void set_possible_fill_in_U_part_zero(const int N, const int KL,
+                                             const int KU,
+                                             ValueType* const AB_array_entry)
 {
     const int KV = KL + KU;
     const int AB_nrows = 2 * KL + KU + 1;
@@ -83,7 +84,7 @@ inline int find_pivot_row_index(const int N, const int KL, const int KU,
     for (int AB_row_idx = KV; AB_row_idx <= std::min(AB_row_idx_limit, KV + KL);
          AB_row_idx++) {
         const auto val = AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx];
-        if (abs(piv_val) > abs(val)) {
+        if (abs(piv_val) < abs(val)) {
             piv_val = val;
             AB_piv_row_idx = AB_row_idx;
         }
@@ -166,7 +167,7 @@ inline void factorize_band(const int N, const int KL, const int KU,
 {
     const int KV = KL + KU;
 
-    set_possible_fill_in_zero(N, KL, KU, AB_array_entry);
+    set_possible_fill_in_U_part_zero(N, KL, KU, AB_array_entry);
 
     // think of A as mat with KL subdiags, KU super diags (actually KL + KU
     // superdiags, the outer KL are zero...
@@ -241,7 +242,7 @@ void accommodate_partial_row_swaps_lower_trsv(
 
             // Now temp[j] holds the correct value.
             const int A_col_idx = j;
-            const ValueType temp_at_col_j =
+            const ValueType temp_at_row_j =
                 temp_entry.values[A_col_idx + temp_entry.stride * rhs_idx];
 
             for (int A_row_idx = j + 1; A_row_idx <= std::min(N - 1, j + KL);
@@ -254,7 +255,7 @@ void accommodate_partial_row_swaps_lower_trsv(
                 temp_entry.values[A_row_idx + temp_entry.stride * rhs_idx] +=
                     -one<ValueType>() *
                     AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
-                    temp_at_col_j;
+                    temp_at_row_j;
             }
         }
     }

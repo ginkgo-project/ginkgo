@@ -95,6 +95,13 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             nrows, nrhs, approach);
 
     assert(workspace_size >= band_mat->get_num_stored_elements());
+
+    if (workspace_size < band_mat->get_num_stored_elements()) {
+        std::cout << " file: " << __FILE__ << " line: " << __LINE__
+                  << " workspace size is not enough" << std::endl;
+        exit(0);
+    }
+
     ValueType* const band_arr = workspace_ptr;
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), band_arr);
@@ -108,6 +115,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                            as_cuda_type(band_arr),
                                            as_cuda_type(b->get_const_values()),
                                            as_cuda_type(x->get_values()));
+
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
         GKO_NOT_IMPLEMENTED;
     } else {

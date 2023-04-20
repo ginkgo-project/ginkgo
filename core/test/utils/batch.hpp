@@ -186,8 +186,8 @@ generate_uniform_batch_tridiagonal_random_matrix(
 /**
  * Generates a batch of random band matrices.
  */
-template <typename ValueType, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename ValueType, typename ValueDistribution, typename Engine,
+          typename... MatrixArgs>
 std::unique_ptr<gko::matrix::BatchBand<ValueType>>
 generate_uniform_batch_band_random_matrix(
     const size_type batch_size, const size_type mat_size, const size_type KL,

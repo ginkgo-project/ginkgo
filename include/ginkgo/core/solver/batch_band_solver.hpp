@@ -164,7 +164,7 @@ protected:
           //              Should we downcast it or what???
           // TODO: Workspace not needed in case band array -> copied to shared
           // memory- cuda/hip kernels (AVOID: extra workspace copy)
-          workspace_(factory->get_executor(), 10000)
+          workspace_(factory->get_executor(), 50000)
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 

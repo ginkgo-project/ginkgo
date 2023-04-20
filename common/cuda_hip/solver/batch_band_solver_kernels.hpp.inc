@@ -75,7 +75,7 @@ __device__ __forceinline__ int find_pivot_row_index(
     for (int AB_row_idx = KV; AB_row_idx <= min(AB_row_idx_limit, KV + KL);
          AB_row_idx++) {
         const auto val = AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx];
-        if (abs(piv_val) > abs(val)) {
+        if (abs(piv_val) < abs(val)) {
             piv_val = val;
             AB_piv_row_idx = AB_row_idx;
         }
@@ -286,9 +286,11 @@ __device__ __forceinline__ void accommodate_partial_row_swaps_lower_trsv(
             temp_sh_entry[ipiv_sh_entry[j]] = tmp;
         }
 
+        __syncthreads();
+
         // Now temp[j] holds the correct value.
         const int A_col_idx = j;
-        const auto temp_at_col_j = temp_sh_entry[A_col_idx];
+        const auto temp_at_row_j = temp_sh_entry[A_col_idx];
 
         for (int A_row_idx = j + 1 + threadIdx.x;
              A_row_idx <= min(N - 1, j + KL); A_row_idx += blockDim.x) {
@@ -299,7 +301,7 @@ __device__ __forceinline__ void accommodate_partial_row_swaps_lower_trsv(
             temp_sh_entry[A_row_idx] +=
                 -one<ValueType>() *
                 AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
-                temp_at_col_j;  // band matrix accesses are coalseced
+                temp_at_row_j;  // band matrix accesses are coalseced
         }
 
         __syncthreads();
@@ -345,30 +347,13 @@ __device__ __forceinline__ void naive_upper_trsv(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void dependencies_warp_synchronous_upper_trsv(
-    const int N, const int KL, const int KU,
-    const ValueType* const __restrict__ AB_array_entry,
-    const ValueType* const __restrict__ y_sh_entry,
-    ValueType* const __restrict__ x_sh_entry)
-{}
-
-template <typename ValueType>
-__device__ __forceinline__ void
-dependencies_independent_thread_scheduling_upper_trsv(
-    const int N, const int KL, const int KU,
-    const ValueType* const __restrict__ AB_array_entry,
-    const ValueType* const __restrict__ y_sh_entry,
-    ValueType* const __restrict__ x_sh_entry)
-{}
-
-
-template <typename ValueType>
 __device__ __forceinline__ void upper_trsv(
     const int N, const int KL, const int KU,
     const ValueType* const __restrict__ AB_array_entry,
     const ValueType* const __restrict__ y_sh_entry,
     ValueType* const __restrict__ x_sh_entry)
 {
+    // naive_upper_trsv(N, KL, KU, AB_array_entry, y_sh_entry, x_sh_entry);
     const int AB_nrows = 2 * KL + KU + 1;
     const int KV = KL + KU;
 
@@ -382,29 +367,31 @@ __device__ __forceinline__ void upper_trsv(
 
 
     for (int j = N - 1; j > 0; j--) {
+        const int A_col_idx = j;
+        const auto x_at_row_j = x_sh_entry[j];
+
         for (int A_row_idx = j - 1 - threadIdx.x;
              A_row_idx >= max(0, j - KL - KU); A_row_idx -= blockDim.x) {
-            const int A_col_idx = j;
             const int AB_row_idx = KL + KU + A_row_idx - A_col_idx;
             // coalesced accesses
             if (A_row_idx == j - 1) {
                 x_sh_entry[A_row_idx] =
                     (-1 * AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
-                         x_sh_entry[j] +
+                         x_at_row_j +
                      x_sh_entry[A_row_idx]) /
                     AB_array_entry[KV + (A_col_idx - 1) * AB_nrows];
             } else {
-                x_sh_entry[A_row_idx] =
+                x_sh_entry[A_row_idx] +=
                     -1 * AB_array_entry[AB_row_idx + A_col_idx * AB_nrows] *
-                        x_sh_entry[j] +
-                    x_sh_entry[A_row_idx];
+                    x_at_row_j;
             }
         }
 
         // case: A is a diagonal matrix
-        if (KL == 0 & KU == 0)  // could be done - more efficiently ofcourse -
+        if (KL == 0 & KU == 0)  // could be done - more efficiently of course -
                                 // but the focus here is not this -
-        // as there is another lightweight implementation for this case.
+        // as this path is never used; there's another lightweight
+        // implementation for the case of diagonal matrix solver.
         {
             if (threadIdx.x == 0) {
                 x_sh_entry[j - 1] /= AB_array_entry[KV + (j - 1) * AB_nrows];
@@ -450,15 +437,9 @@ __global__ void band_solver_unblocked_kernel(const size_type nbatch,
         ValueType* const __restrict__ AB_array_entry =
             batch_band_array + batch_idx * (N * AB_nrows);
 
-        //**************************************************start factorization
-        //***********************************************
-
         unblocked_LU_band_factorization::factorize_band(
             subwarp_grp, N, KL, KU, AB_array_entry, ipiv_sh_entry,
             temp_sh_entry);
-
-        //------------------------------------------------- factorization
-        // completed--------------------------------------------
 
         unblocked_and_blocked_band_solver_common::
             accommodate_partial_row_swaps_lower_trsv(
