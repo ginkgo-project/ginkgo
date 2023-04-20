@@ -58,11 +58,13 @@ def sanitize_text(lines):
     return "\n".join(reconstructed).split("\n")
 
 
-def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patterns=[]):
-    lines = input.split("\n")
+def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patterns=[], replace_patterns=[]):
+    lines = input.splitlines()
     output_lines = []
     patterns = [re.compile(pattern) for pattern in ignore_patterns]
     for line in lines:
+        for pattern, replacement in replace_patterns:
+            line = re.sub(pattern, replacement, line)
         keep = True
         for pattern in patterns:
             if re.match(pattern, line):
@@ -70,7 +72,10 @@ def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patter
                 break
         if keep:
             output_lines.append(line)
-    return sanitize_text(output_lines)
+    try:
+        return sanitize_text(output_lines)
+    except json.decoder.JSONDecodeError:
+        return output_lines
 
 
 def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_flags=[]):
@@ -84,21 +89,24 @@ def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_fl
     version_patterns = [
         "    the .* module is",
     ]
+    profiler_hook_typename_patterns = [
+        ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)")
+    ]
     if generate:
         open(expected_stdout, "w").write("\n".join(determinize_text(
-            result.stdout.decode())))
+            result.stdout.decode(), replace_patterns=profiler_hook_typename_patterns)))
         open(expected_stderr, "w").write("\n".join(determinize_text(result.stderr.decode(
-        ), ignore_patterns=version_patterns)))
+        ), ignore_patterns=version_patterns, replace_patterns=profiler_hook_typename_patterns)))
         print("GENERATED")
         return
     result_stdout_processed = determinize_text(
-        result.stdout.decode())
+        result.stdout.decode(), replace_patterns=profiler_hook_typename_patterns)
     result_stderr_processed = determinize_text(result.stderr.decode(
-    ), ignore_patterns=version_patterns)
+    ), ignore_patterns=version_patterns, replace_patterns=profiler_hook_typename_patterns)
     expected_stdout_processed = determinize_text(
-        open(expected_stdout, 'rU').read())
-    expected_stderr_processed = determinize_text(open(expected_stderr, 'rU').read(
-    ), ignore_patterns=version_patterns)
+        open(expected_stdout).read(), replace_patterns=profiler_hook_typename_patterns)
+    expected_stderr_processed = determinize_text(open(expected_stderr).read(
+    ), ignore_patterns=version_patterns, replace_patterns=profiler_hook_typename_patterns)
     failed = False
     if result_stdout_processed != expected_stdout_processed:
         print("FAIL: stdout differs")

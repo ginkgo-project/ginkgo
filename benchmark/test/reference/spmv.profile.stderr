@@ -53,12 +53,12 @@ DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 Matrix is of size (125, 125)
-DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
-DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: end   copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin allocate
@@ -67,10 +67,10 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin apply(gko::matrix::Coo<double, int>)
+DEBUG: begin apply(<typename>)
 DEBUG: begin coo::spmv
 DEBUG: end   coo::spmv
-DEBUG: end   apply(gko::matrix::Coo<double, int>)
+DEBUG: end   apply(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
@@ -86,16 +86,16 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
-DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
-DEBUG: begin apply(gko::matrix::Coo<double, int>)
+DEBUG: end   copy(<typename>)
+DEBUG: begin apply(<typename>)
 DEBUG: begin coo::spmv
 DEBUG: end   coo::spmv
-DEBUG: end   apply(gko::matrix::Coo<double, int>)
+DEBUG: end   apply(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::compute_norm2_dispatch
@@ -108,18 +108,18 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::compute_norm2_dispatch
 DEBUG: end   dense::compute_norm2_dispatch
-DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
-DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
-DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: end   copy(<typename>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
-DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: end   copy(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
@@ -132,16 +132,16 @@ DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
+DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
-DEBUG: end   copy(gko::matrix::Dense<double>,gko::matrix::Dense<double>)
-DEBUG: begin apply(gko::matrix::Coo<double, int>)
+DEBUG: end   copy(<typename>)
+DEBUG: begin apply(<typename>)
 DEBUG: begin coo::spmv
 DEBUG: end   coo::spmv
-DEBUG: end   apply(gko::matrix::Coo<double, int>)
+DEBUG: end   apply(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
