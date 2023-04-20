@@ -60,14 +60,10 @@ protected:
 
     BatchBandSolver()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::BatchBand<T>::create(
-              exec, gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, nrows)),
-              gko::batch_stride(nbatch, kl), gko::batch_stride(nbatch, ku))),
-          //   mtx(gko::test::generate_uniform_batch_band_random_matrix<
-          //       value_type>(nbatch, nrows, kl, ku,
-          //                   std::uniform_int_distribution<>(nrows, nrows),
-          //                   std::normal_distribution<real_type>(0.0, 1.0),
-          //                   rand_engine, exec)),
+          mtx(gko::test::generate_uniform_batch_band_random_matrix<value_type>(
+              nbatch, nrows, kl, ku,
+              std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+              exec)),
           batchbandsolver_factory(Solver::build().on(exec)),
           solver(batchbandsolver_factory->generate(mtx))
     {}

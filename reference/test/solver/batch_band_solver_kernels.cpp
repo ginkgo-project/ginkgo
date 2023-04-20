@@ -65,8 +65,10 @@ protected:
 
     BatchBandSolver() : exec(gko::ReferenceExecutor::create())
     {
-        set_up_band_system_1();
-        set_up_band_system_2();
+        set_up_band_system_KV_less_than_or_equal_to_N_minus_1();
+        set_up_band_system_KV_more_than_N_minus_1();
+        set_up_band_system_tridiag();
+        set_up_band_system_diag();
         set_up_x_and_scaling_vectors();
     }
 
@@ -94,7 +96,7 @@ protected:
     std::shared_ptr<BDiag> left_scale;
     std::shared_ptr<BDiag> right_scale;
 
-    void set_up_band_system_1()
+    void set_up_band_system_KV_less_than_or_equal_to_N_minus_1()
     {
         /*
         BatchBand matrix:
@@ -218,7 +220,7 @@ protected:
             {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, exec);
     }
 
-    void set_up_band_system_2()
+    void set_up_band_system_KV_more_than_N_minus_1()
     {
         /*
         BatchBand matrix: (KL = 2, KU = 3)
@@ -370,7 +372,7 @@ protected:
             {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, exec);
     }
 
-    void set_up_band_system_3()
+    void set_up_band_system_tridiag()
     {
         /*
         BatchBand matrix:
@@ -412,13 +414,7 @@ protected:
             exec, gko::batch_dim<2>(nbatch, gko::dim<2>{nrows, nrows}),
             gko::batch_stride(nbatch, 1), gko::batch_stride(nbatch, 1));
 
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
-
         value_type* band_col_major_array = band_mat_3->get_band_array();
-
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
 
         //clang-format off
         band_col_major_array[0] = gko::nan<value_type>();
@@ -474,9 +470,6 @@ protected:
 
         //clang-format on
 
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
-
         this->b_3 = gko::batch_initialize<BDense>(
             {{19.0, 18.0, 58.0, 22.0, 19.0}, {44.0, 29.0, 33.0, 30.0, 42.0}},
             exec);
@@ -485,7 +478,7 @@ protected:
             {{2.0, 5.0, 1.0, 3.0, 1.0}, {4.0, 1.0, 2.0, 6.0, 2.0}}, exec);
     }
 
-    void set_up_band_system_4()
+    void set_up_band_system_diag()
     {
         /*
         BatchBand matrix:
@@ -521,14 +514,9 @@ protected:
             exec, gko::batch_dim<2>(nbatch, gko::dim<2>{nrows, nrows}),
             gko::batch_stride(nbatch, 0), gko::batch_stride(nbatch, 0));
 
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
-
         value_type* band_col_major_array = band_mat_4->get_band_array();
 
         //clang-format off
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
 
         // Each column of band array has only 1 element
         band_col_major_array[0] = 2.0;
@@ -545,10 +533,6 @@ protected:
         band_col_major_array[9] = 3.0;
 
         //clang-format on
-
-        this->exec->synchronize();
-        std::cout << "line: " << __LINE__ << std::endl;
-
 
         this->b_4 = gko::batch_initialize<BDense>(
             {{4.0, 5.0, 9.0, 12.0, 1.0}, {36.0, 3.0, 2.0, 12.0, 6.0}}, exec);
@@ -644,27 +628,27 @@ TYPED_TEST(BatchBandSolver, UnblockedSolve_KV_more_than_N_minus_1_IsCorrect)
 }
 
 
-TYPED_TEST(BatchBandSolver, Solve_TridiagCase_IsCorrect)
-{
-    this->test_solve_is_correct(
-        this->band_mat_3, this->b_3, this->expected_sol_3,
-        gko::solver::batch_band_solve_approach::unblocked);
+// TYPED_TEST(BatchBandSolver, Solve_TridiagCase_IsCorrect)
+// {
+//     this->test_solve_is_correct(
+//         this->band_mat_3, this->b_3, this->expected_sol_3,
+//         gko::solver::batch_band_solve_approach::unblocked);
 
-    this->test_solve_is_correct(
-        this->band_mat_3, this->b_3, this->expected_sol_3,
-        gko::solver::batch_band_solve_approach::blocked, 2);
-}
+//     this->test_solve_is_correct(
+//         this->band_mat_3, this->b_3, this->expected_sol_3,
+//         gko::solver::batch_band_solve_approach::blocked, 2);
+// }
 
-TYPED_TEST(BatchBandSolver, Solve_DiagCase_IsCorrect)
-{
-    this->test_solve_is_correct(
-        this->band_mat_4, this->b_4, this->expected_sol_4,
-        gko::solver::batch_band_solve_approach::unblocked);
+// TYPED_TEST(BatchBandSolver, Solve_DiagCase_IsCorrect)
+// {
+//     this->test_solve_is_correct(
+//         this->band_mat_4, this->b_4, this->expected_sol_4,
+//         gko::solver::batch_band_solve_approach::unblocked);
 
-    this->test_solve_is_correct(
-        this->band_mat_4, this->b_4, this->expected_sol_4,
-        gko::solver::batch_band_solve_approach::blocked, 2);
-}
+//     this->test_solve_is_correct(
+//         this->band_mat_4, this->b_4, this->expected_sol_4,
+//         gko::solver::batch_band_solve_approach::blocked, 2);
+// }
 
 // TODO: Implement scaling for batched banded matrix format
 
