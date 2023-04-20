@@ -503,7 +503,7 @@ void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result,
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    compute_squared_norm2(dense_res.get(), tmp);
+    this->compute_squared_norm2(dense_res.get(), tmp);
     exec->run(vector::make_compute_sqrt(dense_res.get()));
 }
 
@@ -544,7 +544,7 @@ template <typename ValueType>
 void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
-    this->compute_norm2(result, tmp);
+    this->compute_squared_norm2(result, tmp);
 }
 
 
