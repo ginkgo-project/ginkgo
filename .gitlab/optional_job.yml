@@ -1,0 +1,15 @@
+test/%JOB_NAME%:
+  extends:
+  # do not need the full/quick condition because it is already controlled by the build job
+    - .horeka_test_template
+    - .default_variables
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  tags:
+    - private_ci
+    - %RUNNER_TAG%
+  variables:
+    USE_NAME: "%CONTAINER_NAME%"
+    SLURM_PARTITION: "accelerated"
+    SLURM_GRES: "%TEST_SLURM_GRES%"
+    SLURM_TIME: "02:00:00"
+  dependencies: null

@@ -2,10 +2,8 @@ stages:
   - init-status
   - sync
   - trigger_pipeline
-  - check
   - build
   - test
-  - fallback
   - code_quality
   - deploy
   - QoS_tools
@@ -85,13 +83,6 @@ trigger_pipeline:
         echo "Can not find the corresponding Pull Request"
       fi
 
-check/horeka:
-  stage: check
-  extends:
-    - .use_gko-nocuda-nompi-gnu9-llvm8
-  script: 
-    - apt update && apt install -y netcat
-    - nc -w 20 -z horeka.scc.kit.edu 22
 
 # Build jobs
 # Job with example runs.
@@ -286,7 +277,7 @@ build/cuda102/nompi/intel/cuda/debug/static:
 # cuda 11.0 and friends on HoreKa with tests
 build/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
-    - .build_template
+    - .unified_build_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
@@ -301,25 +292,12 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
     USE_SLURM: 0
-
-test/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
+    TEST_SLURM_GRES: "gpu:4"
 
 
 build/cuda110/nompi/clang/cuda/release/static:
   extends:
-    - .build_template
+    - .unified_build_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
@@ -334,20 +312,7 @@ build/cuda110/nompi/clang/cuda/release/static:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
     USE_SLURM: 0
-
-test/cuda110/nompi/clang/cuda/release/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:30:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
+    TEST_SLURM_GRES: "gpu:1"
 
 
 build/cuda110/nompi/intel/cuda/debug/static:
@@ -366,35 +331,43 @@ build/cuda110/nompi/intel/cuda/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    BUILD_KEEP_CONTAINER: "ON"
-    BUILD_USE_SLURM: 0
-    TEST_SLURM_PARTITION: "accelerated"
+    KEEP_CONTAINER: "ON"
+    USE_SLURM: 0
     TEST_SLURM_GRES: "gpu:1"
-    TEST_SLURM_TIME: "02:00:00"
-  dependencies: null
 
-fallback/cuda110/nompi/intel/cuda/debug/static:
-  stage: fallback
+
+test/generate_test_pipeline:
+  stage: test
   extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 61
-  tags:
-    - private_ci
-    - nvidia-gpu
-  dependencies: null
-  needs: [ "check/horeka" ]
-  when: on_failure
+    - .use_status-job-settings
+  script:
+    - cat .gitlab/optional_job_prefix.yml > generated.yml
+    - |
+      if [ "$(ls *.job.yml)" ]; then
+        ls *.job.yml
+        cat *.job.yml >> generated.yml
+      else
+        cat .gitlab/dummy_job.yml >> generated.yml
+      fi
+    - cat generated.yml
+  needs: 
+    - job: "build/cuda110/mvapich2/gcc/cuda/debug/shared"
+      optional: true
+    - job: "build/cuda110/nompi/clang/cuda/release/static"
+      optional: true
+    - job: "build/cuda110/nompi/intel/cuda/debug/static"
+      optional: true
+  artifacts:
+    paths: 
+      - generated.yml
+  
+test/trigger:
+  stage: test
+  trigger:
+    include:
+      - artifact: generated.yml
+        job: test/generate_test_pipeline
+  needs: ["test/generate_test_pipeline"]
 
 
 # cuda 11.4 and friends
@@ -717,7 +690,6 @@ no-circular-deps:
     - .default_variables
     - .quick_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
-  needs: null
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -954,6 +926,9 @@ benchmark-cuda-spmv-build:
     - .default_variables
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
     - .benchmark-spmv-cuda-rules
+  tags:
+    - private_ci
+    - horeka
   stage: benchmark-build
   variables:
     BUILD_OMP: "ON"
@@ -975,6 +950,9 @@ benchmark-cuda-spmv:
     - .default_variables
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
     - .benchmark-spmv-cuda-rules
+  tags:
+    - private_ci
+    - horeka
   stage: benchmark-cuda
   variables:
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
