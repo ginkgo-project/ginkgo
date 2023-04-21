@@ -902,7 +902,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_squared_norm2(LinOp* result) const;
+    void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the square of the column-wise Euclidian (L^2) norm of this
@@ -915,7 +915,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_squared_norm2(LinOp* result, array<char>& tmp) const;
+    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Create a submatrix from the original matrix.

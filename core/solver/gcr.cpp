@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -97,7 +98,7 @@ void Gcr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -122,19 +123,23 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     const auto num_rows = this->get_size()[0];
     const auto num_rhs = dense_b->get_size()[1];
+    const auto local_num_rows =
+        ::gko::detail::get_local(dense_b)->get_size()[0];
     const auto krylov_dim = this->get_krylov_dim();
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(precon_residual, dense_b);
     GKO_SOLVER_VECTOR(A_precon_residual, dense_b);
     auto krylov_bases_p = this->create_workspace_op_with_type_of(
         ws::krylov_bases_p, dense_b,
-        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
     auto mapped_krylov_bases_Ap = this->create_workspace_op_with_type_of(
         ws::mapped_krylov_bases_Ap, dense_b,
-        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
-    auto tmp_rAp = this->template create_workspace_op<Vector>(
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    auto tmp_rAp = this->template create_workspace_op<LocalVector>(
         ws::tmp_rAp, dim<2>{1, num_rhs});
-    auto tmp_minus_beta = this->template create_workspace_op<Vector>(
+    auto tmp_minus_beta = this->template create_workspace_op<LocalVector>(
         ws::tmp_minus_beta, dim<2>{1, num_rhs});
     auto residual_norm = this->template create_workspace_op<NormVector>(
         ws::residual_norm, dim<2>{1, num_rhs});
@@ -151,7 +156,9 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Initialization
     // residual = dense_b
     // reset stop status
-    exec->run(gcr::make_initialize(dense_b, residual, stop_status.get_data()));
+    exec->run(gcr::make_initialize(::gko::detail::get_local(dense_b),
+                                   ::gko::detail::get_local(residual),
+                                   stop_status.get_data()));
     // residual = residual - Ax
     // Note: x is passed in with initial guess
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -163,9 +170,12 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // p(:, 1) = precon_residual(:, 1)
     // Ap(:, 1) = A_precon_residual(:, 1)
     // final_iter_nums = {0, ..., 0}
-    exec->run(gcr::make_restart(precon_residual, A_precon_residual,
-                                krylov_bases_p, mapped_krylov_bases_Ap,
-                                final_iter_nums.get_data()));
+    exec->run(
+        gcr::make_restart(::gko::detail::get_local(precon_residual),
+                          ::gko::detail::get_local(A_precon_residual),
+                          ::gko::detail::get_local(krylov_bases_p),
+                          ::gko::detail::get_local(mapped_krylov_bases_Ap),
+                          final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -215,17 +225,24 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // p(:, 1) = precon_residual(:)
             // Ap(:, 1) = A_precon_residual(:)
             // final_iter_nums = {0, ..., 0}
-            exec->run(gcr::make_restart(precon_residual, A_precon_residual,
-                                        krylov_bases_p, mapped_krylov_bases_Ap,
-                                        final_iter_nums.get_data()));
+            exec->run(gcr::make_restart(
+                ::gko::detail::get_local(precon_residual),
+                ::gko::detail::get_local(A_precon_residual),
+                ::gko::detail::get_local(krylov_bases_p),
+                ::gko::detail::get_local(mapped_krylov_bases_Ap),
+                final_iter_nums.get_data()));
             restart_iter = 0;
         }
 
-        auto Ap = mapped_krylov_bases_Ap->create_submatrix(
-            span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
+        auto Ap = ::gko::detail::create_submatrix_helper(
+            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * restart_iter,
+                 local_num_rows * (restart_iter + 1)},
             span{0, num_rhs});
-        auto p = krylov_bases_p->create_submatrix(
-            span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
+        auto p = ::gko::detail::create_submatrix_helper(
+            krylov_bases_p, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * restart_iter,
+                 local_num_rows * (restart_iter + 1)},
             span{0, num_rhs});
         // compute r*Ap
         residual->compute_conj_dot(Ap.get(), tmp_rAp, reduction_tmp);
@@ -237,7 +254,10 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // alpha = r*Ap / Ap_norm
         // x = x + alpha * p
         // r = r - alpha * Ap
-        exec->run(gcr::make_step_1(dense_x, residual, p.get(), Ap.get(),
+        exec->run(gcr::make_step_1(::gko::detail::get_local(dense_x),
+                                   ::gko::detail::get_local(residual),
+                                   ::gko::detail::get_local(p.get()),
+                                   ::gko::detail::get_local(Ap.get()),
                                    Ap_norm.get(), tmp_rAp,
                                    stop_status.get_const_data()));
 
@@ -248,21 +268,29 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(precon_residual, A_precon_residual);
 
         // modified Gram-Schmidt
-        auto next_Ap = mapped_krylov_bases_Ap->create_submatrix(
-            span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
+        auto next_Ap = ::gko::detail::create_submatrix_helper(
+            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * (restart_iter + 1),
+                 local_num_rows * (restart_iter + 2)},
             span{0, num_rhs});
-        auto next_p = krylov_bases_p->create_submatrix(
-            span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
+        auto next_p = ::gko::detail::create_submatrix_helper(
+            krylov_bases_p, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * (restart_iter + 1),
+                 local_num_rows * (restart_iter + 2)},
             span{0, num_rhs});
         // Ap = Ar
         // p = r
         next_Ap->copy_from(A_precon_residual);
         next_p->copy_from(precon_residual);
         for (size_type i = 0; i <= restart_iter; ++i) {
-            Ap = mapped_krylov_bases_Ap->create_submatrix(
-                span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
-            p = krylov_bases_p->create_submatrix(
-                span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
+            Ap = ::gko::detail::create_submatrix_helper(
+                mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
+                span{local_num_rows * i, local_num_rows * (i + 1)},
+                span{0, num_rhs});
+            p = ::gko::detail::create_submatrix_helper(
+                krylov_bases_p, dim<2>{num_rows, num_rhs},
+                span{local_num_rows * i, local_num_rows * (i + 1)},
+                span{0, num_rhs});
             Ap_norm =
                 Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
             // tmp_minus_beta = -beta = Ar*Ap/Ap*Ap
@@ -284,7 +312,7 @@ void Gcr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());

@@ -549,7 +549,7 @@ TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
-TYPED_TEST(VectorReductions, ComputesDotProductIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeDotProductIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -561,7 +561,7 @@ TYPED_TEST(VectorReductions, ComputesDotProductIsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesDotProductWithTmpIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeDotProductWithTmpIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -573,7 +573,7 @@ TYPED_TEST(VectorReductions, ComputesDotProductWithTmpIsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesConjDotProductIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeConjDotProductIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -585,7 +585,7 @@ TYPED_TEST(VectorReductions, ComputesConjDotProductIsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesConjDotProductWithTmpIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeConjDotProductWithTmpIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -598,7 +598,7 @@ TYPED_TEST(VectorReductions, ComputesConjDotProductWithTmpIsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesNorm2IsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeNorm2IsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -611,7 +611,7 @@ TYPED_TEST(VectorReductions, ComputesNorm2IsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesNorm2WithTmpIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeNorm2WithTmpIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -624,7 +624,7 @@ TYPED_TEST(VectorReductions, ComputesNorm2WithTmpIsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeNorm1IsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
@@ -637,13 +637,39 @@ TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesNorm1WithTmpIsSameAsDense)
+TYPED_TEST(VectorReductions, ComputeNorm1WithTmpIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
     this->init_result();
 
     this->x->compute_norm1(this->real_res, this->tmp);
     this->dense_x->compute_norm1(this->dense_real_res, this->dense_tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputeSquaredNorm2IsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_squared_norm2(this->real_res);
+    this->dense_x->compute_squared_norm2(this->dense_real_res);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputeSquaredNorm2WithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_squared_norm2(this->real_res, this->tmp);
+    this->dense_x->compute_squared_norm2(this->dense_real_res, this->dense_tmp);
 
     GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
                         r<value_type>::value);
@@ -692,6 +718,18 @@ TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
     auto transfer_count_before = this->logger->get_transfer_count();
 
     this->x->compute_norm1(this->real_res);
+
+    ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
+              needs_transfers(this->exec));
+}
+
+
+TYPED_TEST(VectorReductions, ComputeSquaredNorm2CopiesToHostOnlyIfNecessary)
+{
+    this->init_result();
+    auto transfer_count_before = this->logger->get_transfer_count();
+
+    this->x->compute_squared_norm2(this->real_res);
 
     ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
               needs_transfers(this->exec));

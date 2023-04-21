@@ -337,6 +337,29 @@ public:
                           array<char>& tmp) const;
 
     /**
+     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * (multi-)vector using a global reduction.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result) const;
+
+    /**
+     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * (multi-)vector using a global reduction.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+
+    /**
      * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
