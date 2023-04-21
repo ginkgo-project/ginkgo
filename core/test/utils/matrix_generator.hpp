@@ -590,13 +590,13 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
                                          alpha[i] * beta[j + 1] / alpha.back());
             } else if (i < j) {
                 auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
-                auto val = sign * std::pow(b, j - i) * alpha[i] * beta[j + 1] /
-                           alpha.back();
+                auto val = sign * static_cast<ValueType>(std::pow(b, j - i)) *
+                           alpha[i] * beta[j + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             } else {
                 auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
-                auto val = sign * std::pow(c, i - j) * alpha[j] * beta[i + 1] /
-                           alpha.back();
+                auto val = sign * static_cast<ValueType>(std::pow(c, i - j)) *
+                           alpha[j] * beta[i + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             }
         }
