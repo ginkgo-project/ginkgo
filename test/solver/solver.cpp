@@ -806,10 +806,10 @@ protected:
                       "Inconsistent config");
     }
 
-    template <typename VecType = Vec, typename MtxOrSolver,
+    template <typename VecType = Vec, typename MtxOrSolver, typename MtxType,
               typename TestFunction>
     void forall_vector_scenarios(const test_pair<MtxOrSolver>& op,
-                                 TestFunction fn)
+                                 const test_pair<MtxType>& mtx, TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
             try {
@@ -829,16 +829,15 @@ protected:
             guarded_fn(gen_in_vec<VecType>(op, 1, 1),
                        gen_out_vec<VecType>(op, 1, 1));
         }
-        // TODO this will need to move to a separate test, since it's
-        // incompatible with the mtx-or-solver parameter approach
-        /*if (Config::is_iterative() && mtx.ref->get_size()) {
+        if (Config::is_iterative() &&
+            op.ref->get_size() == mtx.ref->get_size()) {
             SCOPED_TRACE("Single vector with correct initial guess");
             auto in = gen_in_vec<VecType>(mtx, 1, 1);
             auto out = gen_out_vec<VecType>(mtx, 1, 1);
             mtx.ref->apply(out.ref, in.ref);
             mtx.dev->apply(out.dev, in.dev);
             guarded_fn(std::move(in), std::move(out));
-        }*/
+        }
         {
             SCOPED_TRACE("Single strided vector");
             guarded_fn(gen_in_vec<VecType>(op, 1, 2),
@@ -887,7 +886,7 @@ protected:
     {
         if (Config::requires_num_rhs()) {
             forall_vector_scenarios<VecType>(
-                mtx, [this, &mtx, &fn](auto b, auto x) {
+                mtx, mtx, [this, &mtx, &fn](auto b, auto x) {
                     forall_solver_scenarios_with_nrhs(
                         mtx, b,
                         [this, &fn, &b, &x](auto solver) { fn(solver, b, x); });
@@ -895,12 +894,11 @@ protected:
         } else {
             forall_solver_scenarios(mtx, [this, &mtx, &fn](auto solver) {
                 forall_vector_scenarios<VecType>(
-                    solver,
+                    solver, mtx,
                     [this, &solver, &fn](auto b, auto x) { fn(solver, b, x); });
             });
         }
     }
-
 
     void assert_empty_state(gko::ptr_param<const SolverType> solver,
                             std::shared_ptr<const gko::Executor> expected_exec)
