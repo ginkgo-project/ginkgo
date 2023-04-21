@@ -214,7 +214,8 @@ public:
             excess_solver_factory, nullptr);
 
         gko::remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
-            excess_solver_reduction, 1e-6);
+            excess_solver_reduction,
+            static_cast<gko::remove_complex<value_type>>(1e-6));
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
