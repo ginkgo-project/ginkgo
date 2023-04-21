@@ -206,6 +206,53 @@ TYPED_TEST(IsaiFactory, SetsDefaultExcessLimitCorrectly)
 }
 
 
+TYPED_TEST(IsaiFactory, SetsExcessSolverReductionCorrectly)
+{
+    using GeneralIsai = typename TestFixture::GeneralIsai;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+    using value_type = typename TestFixture::value_type;
+
+    auto a_isai_factory =
+        GeneralIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
+    auto spd_isai_factory =
+        SpdIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
+    auto l_isai_factory =
+        LowerIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
+    auto u_isai_factory =
+        UpperIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
+
+    ASSERT_NEAR(a_isai_factory->get_parameters().excess_solver_reduction, 1e-3,
+                r<value_type>::value);
+    ASSERT_NEAR(spd_isai_factory->get_parameters().excess_solver_reduction,
+                1e-3, r<value_type>::value);
+    ASSERT_NEAR(l_isai_factory->get_parameters().excess_solver_reduction, 1e-3,
+                r<value_type>::value);
+    ASSERT_NEAR(u_isai_factory->get_parameters().excess_solver_reduction, 1e-3,
+                r<value_type>::value);
+}
+
+
+TYPED_TEST(IsaiFactory, SetsDefaultExcessSolverReductionCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+
+    ASSERT_NEAR(
+        this->general_isai_factory->get_parameters().excess_solver_reduction,
+        1e-6, r<value_type>::value);
+    ASSERT_NEAR(
+        this->spd_isai_factory->get_parameters().excess_solver_reduction, 1e-6,
+        r<value_type>::value);
+    ASSERT_NEAR(
+        this->lower_isai_factory->get_parameters().excess_solver_reduction,
+        1e-6, r<value_type>::value);
+    ASSERT_NEAR(
+        this->upper_isai_factory->get_parameters().excess_solver_reduction,
+        1e-6, r<value_type>::value);
+}
+
+
 TYPED_TEST(IsaiFactory, CanSetExcessSolverFactoryA)
 {
     using GeneralIsai = typename TestFixture::GeneralIsai;

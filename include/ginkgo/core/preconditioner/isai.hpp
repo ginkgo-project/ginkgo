@@ -212,6 +212,9 @@ public:
          */
         std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_factory, nullptr);
+
+        gko::remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
+            excess_solver_reduction, 1e-6);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -240,7 +243,8 @@ protected:
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
-        generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+        generate_inverse(system_matrix, skip_sorting, power, excess_limit,
+                         parameters_.excess_solver_reduction);
         if (IsaiType == isai_type::spd) {
             auto inv = share(as<Csr>(approximate_inverse_));
             auto inv_transp = share(inv->conj_transpose());
@@ -271,9 +275,10 @@ private:
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_inverse(std::shared_ptr<const LinOp> to_invert,
-                          bool skip_sorting, int power,
-                          index_type excess_limit);
+    void generate_inverse(
+        std::shared_ptr<const LinOp> to_invert, bool skip_sorting, int power,
+        index_type excess_limit,
+        gko::remove_complex<value_type> excess_solver_reduction);
 
 private:
     std::shared_ptr<LinOp> approximate_inverse_;
