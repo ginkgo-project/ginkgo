@@ -1,0 +1,16 @@
+<h1>Results</h1>
+The following is the expected result on the reference executor:
+
+@code{.cpp}
+
+Reading file: data/banded_N_100_KL_7_KU_8/0/A.mtx
+
+Reading file: data/banded_N_100_KL_7_KU_8/1/A.mtx
+
+The entire solve took 0.223 milliseconds.
+
+@endcode
+
+A file named timings_file.txt is produced, which logs the size of the batch solved and the time to solution.
+
+<h3> Comments about programming and debugging </h3>

@@ -24,6 +24,7 @@ set(EXAMPLES_LIST
     batched-solver
     batched-solver-from-files
     batched-tridiagonal-solver
+    batched-band-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
