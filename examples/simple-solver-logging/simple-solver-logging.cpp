@@ -182,8 +182,7 @@ int main(int argc, char* argv[])
     std::cout << "Solution (x):\n";
     write(std::cout, x);
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout,
-          gko::as<vec>(convergence_logger->get_residual_norm()));
+    write(std::cout, gko::as<vec>(convergence_logger->get_residual_norm()));
     std::cout << "Number of iterations "
               << convergence_logger->get_num_iterations() << std::endl;
     std::cout << "Convergence status " << std::boolalpha
