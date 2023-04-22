@@ -125,8 +125,7 @@ public:
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
-    virtual void on_##_event_name(__VA_ARGS__) const                 \
-    {}                                                               \
+    virtual void on_##_event_name(__VA_ARGS__) const {}              \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
