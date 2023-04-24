@@ -110,108 +110,6 @@ gko::remove_complex<ValueType> compute_residual_norm(
 namespace loggers {
 
 
-// A logger that accumulates the time of all operations. For each operation type
-// (allocations, free, copy, internal operations i.e. kernels), the timing is
-// taken before and after. This can create significant overhead since to ensure
-// proper timings, calls to `synchronize` are required.
-struct OperationLogger : gko::log::Logger {
-    void on_allocation_started(const gko::Executor* exec,
-                               const gko::size_type&) const override
-    {
-        this->start_operation(exec, "allocate");
-    }
-
-    void on_allocation_completed(const gko::Executor* exec,
-                                 const gko::size_type&,
-                                 const gko::uintptr&) const override
-    {
-        this->end_operation(exec, "allocate");
-    }
-
-    void on_free_started(const gko::Executor* exec,
-                         const gko::uintptr&) const override
-    {
-        this->start_operation(exec, "free");
-    }
-
-    void on_free_completed(const gko::Executor* exec,
-                           const gko::uintptr&) const override
-    {
-        this->end_operation(exec, "free");
-    }
-
-    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
-                         const gko::uintptr&, const gko::uintptr&,
-                         const gko::size_type&) const override
-    {
-        from->synchronize();
-        this->start_operation(to, "copy");
-    }
-
-    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
-                           const gko::uintptr&, const gko::uintptr&,
-                           const gko::size_type&) const override
-    {
-        from->synchronize();
-        this->end_operation(to, "copy");
-    }
-
-    void on_operation_launched(const gko::Executor* exec,
-                               const gko::Operation* op) const override
-    {
-        this->start_operation(exec, op->get_name());
-    }
-
-    void on_operation_completed(const gko::Executor* exec,
-                                const gko::Operation* op) const override
-    {
-        this->end_operation(exec, op->get_name());
-    }
-
-    void write_data(std::ostream& ostream)
-    {
-        for (const auto& entry : total) {
-            ostream << "\t" << entry.first.c_str() << ": "
-                    << std::chrono::duration_cast<std::chrono::nanoseconds>(
-                           entry.second)
-                           .count()
-                    << std::endl;
-        }
-    }
-
-private:
-    // Helper which synchronizes and starts the time before every operation.
-    void start_operation(const gko::Executor* exec,
-                         const std::string& name) const
-    {
-        nested.emplace_back(0);
-        exec->synchronize();
-        start[name] = std::chrono::steady_clock::now();
-    }
-
-    // Helper to compute the end time and store the operation's time at its
-    // end. Also time nested operations.
-    void end_operation(const gko::Executor* exec, const std::string& name) const
-    {
-        exec->synchronize();
-        const auto end = std::chrono::steady_clock::now();
-        const auto diff = end - start[name];
-        // make sure timings for nested operations are not counted twice
-        total[name] += diff - nested.back();
-        nested.pop_back();
-        if (nested.size() > 0) {
-            nested.back() += diff;
-        }
-    }
-
-    mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
-    mutable std::map<std::string, std::chrono::steady_clock::duration> total;
-    // the position i of this vector holds the total time spend on child
-    // operations on nesting level i
-    mutable std::vector<std::chrono::steady_clock::duration> nested;
-};
-
-
 // This logger tracks the persistently allocated data
 struct StorageLogger : gko::log::Logger {
     // Store amount of bytes allocated on every allocation
@@ -386,8 +284,15 @@ int main(int argc, char* argv[])
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
-    // executor where Ginkgo will perform the computation
-    const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    // Executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();
+
+    // Add tracing profiler to the executor if requested. Please make sure that
+    // Ginkgo is compiled to support the tracing libraries relevant for the used
+    // executor.
+    if (std::find(argv, argv + argc, "--trace")) {
+        exec->add_logger(gko::log::ProfilerHook::create_for_executor(exec));
+    }
 
     // Read the input matrix file directory
     std::string input_mtx = "data/A.mtx";
@@ -476,20 +381,22 @@ int main(int argc, char* argv[])
 
     // Log the internal operations using the OperationLogger without timing
     {
-        // Create an OperationLogger to analyze the generate step
-        auto gen_logger = std::make_shared<loggers::OperationLogger>();
+        // Create an ProfilerHook logger to analyze the apply step
+        auto apply_logger = gko::log::ProfilerHook::create_summary(
+            std::make_unique<gko::log::ProfilerHook::TableSummaryWriter>(
+                output_file, "Apply operations times (ns):"));
+
+        // Create an ProfilerHook logger to analyze the generate step
+        auto gen_logger = gko::log::ProfilerHook::create_summary(
+            std::make_unique<gko::log::ProfilerHook::TableSummaryWriter>(
+                output_file, "Generate operations times (ns):"));
         // Add the generate logger to the executor
         exec->add_logger(gen_logger);
         // Generate a solver
         auto generated_solver = solver_factory->generate(A);
         // Remove the generate logger from the executor
         exec->remove_logger(gen_logger);
-        // Write the data to the output file
-        output_file << "Generate operations times (ns):" << std::endl;
-        gen_logger->write_data(output_file);
 
-        // Create an OperationLogger to analyze the apply step
-        auto apply_logger = std::make_shared<loggers::OperationLogger>();
         exec->add_logger(apply_logger);
         // Create a ResidualLogger to log the recurent residual
         auto res_logger = std::make_shared<loggers::ResidualLogger<ValueType>>(
@@ -498,10 +405,9 @@ int main(int argc, char* argv[])
         // Solve the system
         generated_solver->apply(b, x);
         exec->remove_logger(apply_logger);
-        // Write the data to the output file
-        output_file << "Apply operations times (ns):" << std::endl;
-        apply_logger->write_data(output_file);
         res_logger->write_data(output_file);
+        // The ProfilerHook data will be written when the loggers are destroyed,
+        // i.e. when this scope ends.
     }
 
     // Print solution
