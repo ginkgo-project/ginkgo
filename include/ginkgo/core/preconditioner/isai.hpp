@@ -213,9 +213,7 @@ public:
         std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_factory, nullptr);
 
-        gko::remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
-            excess_solver_reduction,
-            static_cast<gko::remove_complex<value_type>>(1e-6));
+        double GKO_FACTORY_PARAMETER_SCALAR(excess_solver_reduction, 1e-6);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -245,7 +243,8 @@ protected:
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit,
-                         parameters_.excess_solver_reduction);
+                         static_cast<remove_complex<value_type>>(
+                             parameters_.excess_solver_reduction));
         if (IsaiType == isai_type::spd) {
             auto inv = share(as<Csr>(approximate_inverse_));
             auto inv_transp = share(inv->conj_transpose());

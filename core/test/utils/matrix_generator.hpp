@@ -509,25 +509,25 @@ std::unique_ptr<MatrixType> generate_random_band_matrix(
  *                diag, upper]
  * @param exec  the executor for the resulting matrix
  *
- * @ return  a tridiagonal Toeplitz matrix.
+ * @return  a tridiagonal Toeplitz matrix.
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_tridiag_matrix_data(
     gko::size_type size, std::array<ValueType, 3> coeffs,
     std::shared_ptr<const gko::Executor> exec)
 {
-    auto a = coeffs[1];
-    auto b = coeffs[2];
-    auto c = coeffs[0];
+    auto lower = coeffs[0];
+    auto diag = coeffs[1];
+    auto upper = coeffs[2];
 
     gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
-    for (int i = 0; i < size; ++i) {
+    for (size_type i = 0; i < size; ++i) {
         if (i > 0) {
-            md.nonzeros.emplace_back(i, i - 1, c);
+            md.nonzeros.emplace_back(i, i - 1, lower);
         }
-        md.nonzeros.emplace_back(i, i, a);
+        md.nonzeros.emplace_back(i, i, diag);
         if (i < size - 1) {
-            md.nonzeros.emplace_back(i, i + 1, b);
+            md.nonzeros.emplace_back(i, i + 1, upper);
         }
     }
     return md;
@@ -561,7 +561,7 @@ std::unique_ptr<MatrixType> generate_tridiag_matrix(
  *                diag, upper]
  * @param exec  the executor for the resulting matrix
  *
- * @ return  a matrix (possible dense) that is the inverse of the matrix
+ * @return  a matrix (possible dense) that is the inverse of the matrix
  *           generated from generate_tridiag_matrix_data with the same inputs
  */
 template <typename ValueType, typename IndexType>
@@ -569,33 +569,35 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
     gko::size_type size, std::array<ValueType, 3> coeffs,
     std::shared_ptr<const gko::Executor> exec)
 {
-    auto a = coeffs[1];
-    auto b = coeffs[2];
-    auto c = coeffs[0];
+    auto lower = coeffs[0];
+    auto diag = coeffs[1];
+    auto upper = coeffs[2];
 
     std::vector<ValueType> alpha(size + 1);
     auto beta = std::make_reverse_iterator(alpha.end());
 
     alpha[0] = 1;
-    alpha[1] = a;
-    for (int i = 2; i < alpha.size(); ++i) {
-        alpha[i] = a * alpha[i - 1] - b * c * alpha[i - 2];
+    alpha[1] = diag;
+    for (std::size_t i = 2; i < alpha.size(); ++i) {
+        alpha[i] = diag * alpha[i - 1] - upper * lower * alpha[i - 2];
     }
 
     gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
+    for (size_type i = 0; i < size; ++i) {
+        for (size_type j = 0; j < size; ++j) {
             if (i == j) {
                 md.nonzeros.emplace_back(i, j,
                                          alpha[i] * beta[j + 1] / alpha.back());
             } else if (i < j) {
                 auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
-                auto val = sign * static_cast<ValueType>(std::pow(b, j - i)) *
+                auto val = sign *
+                           static_cast<ValueType>(std::pow(upper, j - i)) *
                            alpha[i] * beta[j + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             } else {
                 auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
-                auto val = sign * static_cast<ValueType>(std::pow(c, i - j)) *
+                auto val = sign *
+                           static_cast<ValueType>(std::pow(lower, i - j)) *
                            alpha[j] * beta[i + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             }

@@ -1622,4 +1622,5 @@ TYPED_TEST(Isai, IsExactInverseOnFullSparsitySetLarge)
                         5 * r<value_type>::value);
 }
 
+
 }  // namespace
