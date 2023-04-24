@@ -839,11 +839,11 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
     coarsening_send_offsets.emplace_back(0);
     coarsening_recv_offsets.emplace_back(0);
     for (auto i = 0; i < comm.size(); i++) {
-        while (coarse_non_local_owners.size() > 0 &&
+        while (coarse_non_local_owners.size() > send_idx &&
                coarse_non_local_owners[send_idx].first == i) {
             send_idx++;
         }
-        while (coarse_recv_to_local.size() > 0 &&
+        while (coarse_recv_to_local.size() > recv_idx &&
                coarse_recv_to_local[recv_idx].first == i) {
             recv_idx++;
         }
@@ -975,7 +975,7 @@ void Bddc<ValueType, IndexType>::restrict_residual(
     auto exec = this->get_executor();
     auto comm = global_system_matrix_->get_communicator();
 
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
         comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
                           send_buffer, send_sizes_.get_data(),
@@ -1039,7 +1039,7 @@ void Bddc<ValueType, IndexType>::coarsen_residual() const
         coarse_solution_->get_local_values()));
 
     exec->synchronize();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         coarsening_send_buffer_.set_executor(exec->get_master());
         coarsening_recv_buffer_.set_executor(exec->get_master());
@@ -1079,7 +1079,7 @@ void Bddc<ValueType, IndexType>::prolong_coarse_solution() const
         coarsening_recv_to_local_, coarse_solution_->get_local_vector(),
         coarsening_recv_buffer_));
 
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         coarsening_send_buffer_.set_executor(exec->get_master());
         coarsening_recv_buffer_.set_executor(exec->get_master());
@@ -1135,7 +1135,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                           send_sizes_.get_data(), send_offsets_.get_data());
     };
 
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         recv_buffer_.set_executor(exec->get_master());
         send_buffer_.set_executor(exec->get_master());
@@ -1184,11 +1184,11 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         inner_solution_->fill(zero<ValueType>());
         inner_solver_->apply(inner_residual_.get(), inner_solution_.get());
 
-        auto inner_res = clone(exec, inner_residual_.get());
+        /*auto inner_res = clone(exec, inner_residual_.get());
         inner_system_matrix_->apply(one_op_.get(), inner_solution_.get(),
                                     neg_one_op_.get(), inner_res.get());
         auto resnorm = clone(exec->get_master(), one_op_.get());
-        inner_res->compute_norm2(resnorm.get());
+        inner_res->compute_norm2(resnorm.get());*/
         comm.synchronize();
         auto local_vals =
             as<experimental::distributed::Vector<ValueType>>(dense_x)

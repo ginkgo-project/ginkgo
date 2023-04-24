@@ -75,9 +75,11 @@ int main(int argc, char* argv[])
     // distributed systems at the moment.
     using cg = gko::solver::Cg<ValueType>;
     using gmres = gko::solver::Gmres<ValueType>;
+    using bicgstab = gko::solver::Bicgstab<ValueType>;
     using bddc =
         gko::experimental::distributed::preconditioner::Bddc<ValueType,
                                                              LocalIndexType>;
+    using pgm = gko::multigrid::Pgm<ValueType, LocalIndexType>;
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
@@ -104,12 +106,14 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
         static_cast<GlobalIndexType>(argc >= 3 ? std::atoi(argv[2]) : 100);
-    const auto num_iters =
+    const auto max_it =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
     const auto ranks_x =
         static_cast<GlobalIndexType>(argc >= 5 ? std::atoi(argv[4]) : 0);
     const auto ranks_y =
         static_cast<GlobalIndexType>(argc >= 6 ? std::atoi(argv[5]) : 1);
+    const auto reps =
+        static_cast<GlobalIndexType>(argc >= 7 ? std::atoi(argv[6]) : 1);
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -422,22 +426,122 @@ int main(int argc, char* argv[])
 
     // @sect3{Solve the Distributed System}
     // Generate the solver and preconditioner.
-    const gko::remove_complex<ValueType> reduction_factor{1e-8};
+    const gko::remove_complex<ValueType> tol{1e-8};
 
     // Add a convergence logger to get the iteration count and final residual
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(num_iters).on(exec));
+        gko::stop::Iteration::build().with_max_iters(max_it).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(reduction_factor)
+                                   .with_reduction_factor(tol)
                                    .on(exec));
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
     // Setup the local diagonal block preconditioner for use within the Schwarz
     // preconditioner
+    auto bj_factory = gko::share(
+        gko::preconditioner::Jacobi<ValueType, LocalIndexType>::build()
+            .with_max_block_size(1u)
+            .on(exec));
+    auto isai_factory = gko::share(
+        gko::preconditioner::SpdIsai<ValueType, LocalIndexType>::build().on(
+            exec));
+    auto smoother_factory = gko::share(
+        gko::solver::Ir<ValueType>::build()
+            .with_solver(bj_factory)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .on(exec));
+    auto mg_level_factory =
+        gko::share(pgm::build().with_deterministic(true).on(exec));
+    auto coarsest_solver_factory = gko::share(
+        gko::solver::Ir<ValueType>::build()
+            .with_solver(bj_factory)  // isai_factory)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .on(exec));
+    auto multigrid_factory = gko::share(
+        gko::solver::Multigrid::build()
+            .with_max_levels(3u)
+            .with_min_coarse_rows(64u)
+            .with_pre_smoother(smoother_factory)
+            .with_post_uses_pre(true)
+            .with_mg_level(mg_level_factory)
+            .with_coarsest_solver(coarsest_solver_factory)
+            .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec));
+
+    /*auto direct_factory = gko::share(
+        gmres::build()
+            .with_preconditioner(
+                direct::build()
+                    .with_factorization(
+                        lu::build()
+                            .with_symmetric_sparsity(true)
+                            .on(exec))
+                    .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(max_it).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(tol)
+                    .on(exec))
+            .on(exec));*/
+    auto direct_factory = gko::share(
+        gko::experimental::reorder::ScaledReordered<ValueType,
+                                                    LocalIndexType>::build()
+            .with_inner_operator(
+                gko::experimental::solver::Direct<ValueType,
+                                                  LocalIndexType>::build()
+                    .with_factorization(gko::experimental::factorization::Lu<
+                                            ValueType, LocalIndexType>::build()
+                                            //.with_symmetric_sparsity(true)
+                                            .on(exec))
+                    .on(exec))
+            .with_reordering(
+                gko::reorder::Rcm<ValueType, LocalIndexType>::build().on(exec))
+            .on(exec));
     auto gmres_factory = gko::share(
+        gko::experimental::reorder::ScaledReordered<ValueType,
+                                                    LocalIndexType>::build()
+            .with_inner_operator(
+                gmres::build()
+                    .with_preconditioner(multigrid_factory)
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(max_it).on(
+                            exec),
+                        gko::stop::ResidualNorm<ValueType>::build()
+                            .with_reduction_factor(1e-2)
+                            .on(exec))
+                    .on(exec))
+            .with_reordering(
+                gko::reorder::Rcm<ValueType, LocalIndexType>::build().on(exec))
+            .on(exec));
+    auto plain_gmres_factory = gko::share(
+        gmres::build()
+            //.with_krylov_dim(30u)
+            //.with_preconditioner(bj_factory)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(max_it).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(tol)
+                    .on(exec))
+            .on(exec));
+    auto cg_factory = gko::share(
+        cg::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(comm.size() * comm.size())
+                               .on(exec),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(tol)
+                               .on(exec))
+            .on(exec));
+    /*auto gmres_factory = gko::share(
         gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(exec),
@@ -461,7 +565,7 @@ int main(int argc, char* argv[])
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(1e-6)
                     .on(exec))
-            .on(exec));
+            .on(exec));*/
     /*auto schur_factory = gko::share(
         gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
             .with_num_rhs(3u)
@@ -471,24 +575,16 @@ int main(int argc, char* argv[])
                     .with_symmetric_sparsity(true)
                     .on(exec))
             .on(exec));*/
-    auto direct_factory = gko::share(
-        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
-            .with_factorization(
-                gko::experimental::factorization::Lu<ValueType,
-                                                     LocalIndexType>::build()
-                    .with_symmetric_sparsity(true)
-                    .on(exec))
-            .on(exec));
     auto Ainv =
-        cg::build()
+        gko::solver::Fcg<ValueType>::build()
             .with_preconditioner(
                 bddc::build()
                     .with_static_condensation(true)
                     .with_interface_dofs(interface_dofs)
                     .with_interface_dof_ranks(interface_dof_ranks)
                     .with_local_solver_factory(gmres_factory)
-                    .with_schur_complement_solver_factory(schur_factory)
-                    .with_inner_solver_factory(cg_factory)
+                    .with_schur_complement_solver_factory(gmres_factory)
+                    .with_inner_solver_factory(gmres_factory)
                     .with_coarse_solver_factory(cg_factory)  // gmres_factory)
                     .on(exec))
             .with_criteria(tol_stop, iter_stop)
@@ -499,7 +595,9 @@ int main(int argc, char* argv[])
         .with_schur_complement_solver_factory(gmres_factory)
         .with_inner_solver_factory(cg_factory)
         .on(exec)->generate(A);*/
-    Ainv->add_logger(logger);
+    std::shared_ptr<const gko::log::PerformanceHint> perf_logger =
+        gko::log::PerformanceHint::create();
+    Ainv->add_logger(perf_logger);
 
     // Take timings.
     comm.synchronize();
@@ -509,32 +607,19 @@ int main(int argc, char* argv[])
     // case.
     Ainv->apply(gko::lend(b), gko::lend(x));
 
-    /*const char* input_name;
-    if (rank == 0) input_name = "sol_0.mtx";
-    if (rank == 1) input_name = "sol_1.mtx";
-    if (rank == 2) input_name = "sol_2.mtx";
-    if (rank == 3) input_name = "sol_3.mtx";
-    if (rank == 4) input_name = "sol_4.mtx";
-    if (rank == 5) input_name = "sol_5.mtx";
-    if (rank == 6) input_name = "sol_6.mtx";
-    if (rank == 7) input_name = "sol_7.mtx";
-    if (rank == 8) input_name = "sol_8.mtx";
-
-    std::ofstream in{input_name};
-    gko::write(in, x->get_local_vector());
-
-    if (rank == 0) input_name = "b_0.mtx";
-    if (rank == 1) input_name = "b_1.mtx";
-    if (rank == 2) input_name = "b_2.mtx";
-    if (rank == 3) input_name = "b_3.mtx";
-
-    std::ofstream in2{input_name};
-    gko::write(in2, b->get_local_vector());*/
-
     // Take timings.
     comm.synchronize();
     ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
 
+    ValueType t_apply = gko::zero<ValueType>();
+    for (auto i = 0; i < reps; i++) {
+        x->copy_from(x_host.get());
+        ValueType t_start = gko::experimental::mpi::get_walltime();
+        Ainv->apply(gko::lend(b), gko::lend(x));
+        comm.synchronize();
+        ValueType t_end = gko::experimental::mpi::get_walltime();
+        t_apply += t_end - t_start;
+    }
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
     x_host->copy_from(x.get());
@@ -561,9 +646,11 @@ int main(int argc, char* argv[])
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-                  << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+                  << "\nSolver apply time: " << t_apply //t_solver_apply_end - t_solver_generate_end
+                  << "\nTimer per Iteration: " << t_apply / logger->get_num_iterations()
                   << "\nTotal time: " << t_end - t_init
                   << std::endl;
+        perf_logger->print_status();
         // clang-format on
     }
 }
