@@ -663,7 +663,6 @@ TEST_F(Isai, IsaiGenerateGeneralWithSparsityPower8IsEquivalentToRef)
 
     auto isai =
         Isai::build().with_sparsity_power(8).on(ref)->generate(mtx->clone());
-
     auto d_isai =
         Isai::build().with_sparsity_power(8).on(exec)->generate(d_mtx->clone());
 
@@ -671,6 +670,7 @@ TEST_F(Isai, IsaiGenerateGeneralWithSparsityPower8IsEquivalentToRef)
                         d_isai->get_approximate_inverse(),
                         r<value_type>::value);
 }
+
 
 TEST_F(Isai, IsaiGenerateGeneralSparsityPowerNIsEquivalentToRef)
 {
@@ -684,7 +684,6 @@ TEST_F(Isai, IsaiGenerateGeneralSparsityPowerNIsEquivalentToRef)
                     .with_excess_solver_reduction(r<value_type>::value)
                     .on(ref)
                     ->generate(mtx->clone());
-
     auto d_isai =
         Isai::build()
             .with_sparsity_power(static_cast<int>(d_mtx->get_size()[0]))
