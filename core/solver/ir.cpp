@@ -203,27 +203,49 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto one_op = this->template create_workspace_scalar<ValueType>(
         GKO_SOLVER_TRAITS::one, 1);
-    one_op->fill(one<ValueType>());
     LinOp* neg_one_op = nullptr;
-    auto matrix = this->get_system_matrix();
-    if (std::dynamic_pointer_cast<const matrix::Csr<double, int>>(matrix)) {
-        neg_one_op = this->template create_workspace_scalar<double>(
-            GKO_SOLVER_TRAITS::minus_one, 1);
-        gko::as<matrix::Dense<double>>(neg_one_op)->fill(-one<double>());
-    } else if (std::dynamic_pointer_cast<const matrix::Csr<float, int>>(
-                   matrix)) {
-        neg_one_op = this->template create_workspace_scalar<float>(
-            GKO_SOLVER_TRAITS::minus_one, 1);
-        gko::as<matrix::Dense<float>>(neg_one_op)->fill(-one<float>());
-    } else if (std::dynamic_pointer_cast<const matrix::Csr<gko::half, int>>(
-                   matrix)) {
-        neg_one_op = this->template create_workspace_scalar<gko::half>(
-            GKO_SOLVER_TRAITS::minus_one, 1);
-        gko::as<matrix::Dense<gko::half>>(neg_one_op)->fill(-one<gko::half>());
+    if (!generated_) {
+        one_op->fill(one<ValueType>());
+        auto matrix = this->get_system_matrix();
+        if (std::dynamic_pointer_cast<const matrix::Csr<double, int>>(matrix)) {
+            neg_one_op = this->template create_workspace_scalar<double>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+            gko::as<matrix::Dense<double>>(neg_one_op)->fill(-one<double>());
+        } else if (std::dynamic_pointer_cast<const matrix::Csr<float, int>>(
+                       matrix)) {
+            neg_one_op = this->template create_workspace_scalar<float>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+            gko::as<matrix::Dense<float>>(neg_one_op)->fill(-one<float>());
+        } else if (std::dynamic_pointer_cast<const matrix::Csr<gko::half, int>>(
+                       matrix)) {
+            neg_one_op = this->template create_workspace_scalar<gko::half>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+            gko::as<matrix::Dense<gko::half>>(neg_one_op)
+                ->fill(-one<gko::half>());
+        } else {
+            neg_one_op = this->template create_workspace_scalar<ValueType>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+            gko::as<matrix::Dense<ValueType>>(neg_one_op)
+                ->fill(-one<ValueType>());
+        }
+        generated_ = true;
     } else {
-        neg_one_op = this->template create_workspace_scalar<ValueType>(
-            GKO_SOLVER_TRAITS::minus_one, 1);
-        gko::as<matrix::Dense<ValueType>>(neg_one_op)->fill(-one<ValueType>());
+        auto matrix = this->get_system_matrix();
+        if (std::dynamic_pointer_cast<const matrix::Csr<double, int>>(matrix)) {
+            neg_one_op = this->template create_workspace_scalar<double>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+        } else if (std::dynamic_pointer_cast<const matrix::Csr<float, int>>(
+                       matrix)) {
+            neg_one_op = this->template create_workspace_scalar<float>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+        } else if (std::dynamic_pointer_cast<const matrix::Csr<gko::half, int>>(
+                       matrix)) {
+            neg_one_op = this->template create_workspace_scalar<gko::half>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+        } else {
+            neg_one_op = this->template create_workspace_scalar<ValueType>(
+                GKO_SOLVER_TRAITS::minus_one, 1);
+        }
     }
 
     bool one_changed{};

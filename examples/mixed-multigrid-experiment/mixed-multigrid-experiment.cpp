@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
         }
         std::cout << "0 ~ " << switch_to_single - 1 << " levels use double" << std::endl
                   << "rest use float" << std::endl;
-    } else if (mixed_mode == -1) {
+    } else if (mixed_mode == -1 || mixed_mode == -2) {
         std::cout << "complex" << std::endl;
     }else {
         std::exit(1);
@@ -399,6 +399,32 @@ int main(int argc, char* argv[])
                 .with_post_uses_pre(true)
                 // using
                 .with_mg_level(mg_level_gen2, mg_level_gen2)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -2) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // input and output are double
+                // first smoother needs to be double to avoid casting copy
+                .with_pre_smoother(smoother_gen, smoother_gen3)
+                .with_post_uses_pre(true)
+                // using
+                .with_mg_level(mg_level_gen3, mg_level_gen3)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first

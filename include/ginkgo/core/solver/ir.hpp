@@ -265,6 +265,7 @@ protected:
 private:
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
+    mutable bool generated_ = false;
 };
 
 
