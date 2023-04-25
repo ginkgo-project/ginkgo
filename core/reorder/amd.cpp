@@ -241,6 +241,15 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         host_exec, col_idxs_plus_workspace_size + 6 * num_rows};
     host_exec->copy_from(exec, nnz, pattern->get_const_col_idxs(),
                          col_idxs_plus_workspace.get_data());
+<<<<<<< HEAD
+=======
+    exec->run(make_amd_reorder(
+        host_exec, static_cast<IndexType>(num_rows), row_ptrs.get_data(),
+        col_idxs_plus_workspace.get_data(), permutation.get_data()));
+    array<IndexType> result_permutation{exec, num_rows};
+    exec->copy_from(host_exec, num_rows, permutation.get_const_data(),
+                    result_permutation.get_data());
+>>>>>>> 185d2a9782 (fixes & tests)
 
     array<IndexType> permutation{host_exec, num_rows};
     array<IndexType> row_lengths{host_exec, num_rows};
@@ -266,7 +275,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
 
     // permutation gets copied to device via gko::array constructor
     return permutation_type::create(exec, dim<2>{num_rows, num_rows},
-                                    std::move(permutation));
+                                    std::move(result_permutation));
 }
 
 
