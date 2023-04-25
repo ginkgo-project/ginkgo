@@ -161,17 +161,36 @@ protected:
             row_descs.get_data(), storage.get_data());
     }
 
-    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
-                              bool check_postorder = false)
+    gko::array<index_type> compute_reference_subtree_sizes(
+        const elimination_forest& forest)
+    {
+        const auto child_ptrs = forest.child_ptrs.get_const_data();
+        const auto children = forest.children.get_const_data();
+        const auto num_rows =
+            static_cast<index_type>(forest.parents.get_num_elems());
+        auto subtree_size_ref = [&](auto fn, index_type node) -> index_type {
+            index_type size{1};
+            for (auto c = child_ptrs[node]; c < child_ptrs[node + 1]; c++) {
+                size += fn(fn, children[c]);
+            }
+            return size;
+        };
+        gko::array<index_type> reference{this->ref,
+                                         forest.parents.get_num_elems()};
+        for (index_type row = 0; row < num_rows; row++) {
+            reference.get_data()[row] = subtree_size_ref(subtree_size_ref, row);
+        }
+        return reference;
+    }
+
+    void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs)
     {
         GKO_ASSERT_ARRAY_EQ(lhs.parents, rhs.parents);
         GKO_ASSERT_ARRAY_EQ(lhs.children, rhs.children);
         GKO_ASSERT_ARRAY_EQ(lhs.child_ptrs, rhs.child_ptrs);
-        if (check_postorder) {
-            GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
-            GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
-            GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
-        }
+        GKO_ASSERT_ARRAY_EQ(lhs.postorder, rhs.postorder);
+        GKO_ASSERT_ARRAY_EQ(lhs.postorder_parents, rhs.postorder_parents);
+        GKO_ASSERT_ARRAY_EQ(lhs.inv_postorder, rhs.inv_postorder);
     }
 
     void forall_matrices(std::function<void()> fn, bool non_spd)
@@ -383,7 +402,9 @@ TYPED_TEST(Cholesky, KernelForestFromFactorPlusPostprocessing)
             gko::kernels::reference::cholesky::forest_from_factor(
                 this->ref, combined_factor.get(), forest);
 
-            this->assert_equal_forests(forest, *forest_ref);
+            GKO_ASSERT_ARRAY_EQ(forest.parents, forest_ref->parents);
+            GKO_ASSERT_ARRAY_EQ(forest.child_ptrs, forest_ref->child_ptrs);
+            GKO_ASSERT_ARRAY_EQ(forest.children, forest_ref->children);
         },
         true);
 }
