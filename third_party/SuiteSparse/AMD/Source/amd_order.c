@@ -32,10 +32,6 @@ int AMD_order
     size_t nzaat, slen ;
     double mem = 0 ;
 
-#ifndef NDEBUG
-    AMD_debug_init ("amd") ;
-#endif
-
     /* clear the Info array, if it exists */
     info = Info != (double *) NULL ;
     if (info)
@@ -105,7 +101,6 @@ int AMD_order
     if (status == AMD_OK_BUT_JUMBLED)
     {
 	/* sort the input matrix and remove duplicate entries */
-	AMD_DEBUG1 (("Matrix is jumbled\n")) ;
 	Rp = SuiteSparse_malloc (n+1, sizeof (Int)) ;
 	Ri = SuiteSparse_malloc (nz,  sizeof (Int)) ;
 	mem += (n+1) ;
@@ -139,7 +134,6 @@ int AMD_order
     /* --------------------------------------------------------------------- */
 
     nzaat = AMD_aat (n, Cp, Ci, Len, P, Info) ;
-    AMD_DEBUG1 (("nzaat: %g\n", (double) nzaat)) ;
     ASSERT ((MAX (nz-n, 0) <= nzaat) && (nzaat <= 2 * (size_t) nz)) ;
 
     /* --------------------------------------------------------------------- */
@@ -161,7 +155,6 @@ int AMD_order
     {
 	S = SuiteSparse_malloc (slen, sizeof (Int)) ;
     }
-    AMD_DEBUG1 (("slen %g\n", (double) slen)) ;
     if (!S)
     {
 	/* :: out of memory :: (or problem too large) */

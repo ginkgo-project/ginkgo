@@ -35,13 +35,6 @@
 #ifndef AMD_H
 #define AMD_H
 
-/* make it easy for C++ programs to include AMD */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "SuiteSparse_config.h"
-
 int amd_order  /* returns AMD_OK, AMD_OK_BUT_JUMBLED,
                                     * AMD_INVALID, or AMD_OUT_OF_MEMORY */
 (
@@ -381,9 +374,5 @@ void amd_l_info     (double Info [ ]) ;
 
 #define AMD_VERSION_CODE(main,sub) ((main) * 1000 + (sub))
 #define AMD_VERSION AMD_VERSION_CODE(AMD_MAIN_VERSION,AMD_SUB_VERSION)
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
