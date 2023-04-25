@@ -61,27 +61,20 @@ void AMD_postorder
 #ifndef NDEBUG
     {
 	Int nels, ff, nchild ;
-	AMD_DEBUG1 (("\n\n================================ AMD_postorder:\n"));
 	nels = 0 ;
 	for (j = 0 ; j < nn ; j++)
 	{
 	    if (Nv [j] > 0)
 	    {
-		AMD_DEBUG1 (( ""ID" :  nels "ID" npiv "ID" size "ID
-		    " parent "ID" maxfr "ID"\n", j, nels,
-		    Nv [j], Fsize [j], Parent [j], Fsize [j])) ;
 		/* this is an element */
 		/* dump the link list of children */
 		nchild = 0 ;
-		AMD_DEBUG1 (("    Children: ")) ;
 		for (ff = Child [j] ; ff != EMPTY ; ff = Sibling [ff])
 		{
-		    AMD_DEBUG1 ((ID" ", ff)) ;
 		    ASSERT (Parent [ff] == j) ;
 		    nchild++ ;
 		    ASSERT (nchild < nn) ;
 		}
-		AMD_DEBUG1 (("\n")) ;
 		parent = Parent [j] ;
 		if (parent != EMPTY)
 		{
@@ -91,8 +84,6 @@ void AMD_postorder
 	    }
 	}
     }
-    AMD_DEBUG1 (("\n\nGo through the children of each node, and put\n"
-		 "the biggest child last in each list:\n")) ;
 #endif
 
     /* --------------------------------------------------------------------- */
@@ -106,12 +97,10 @@ void AMD_postorder
 
 #ifndef NDEBUG
 	    Int nchild ;
-	    AMD_DEBUG1 (("Before partial sort, element "ID"\n", i)) ;
 	    nchild = 0 ;
 	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
 	    {
 		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("      f: "ID"  size: "ID"\n", f, Fsize [f])) ;
 		nchild++ ;
 		ASSERT (nchild <= nn) ;
 	    }
@@ -139,9 +128,6 @@ void AMD_postorder
 
 	    fnext = Sibling [bigf] ;
 
-	    AMD_DEBUG1 (("bigf "ID" maxfrsize "ID" bigfprev "ID" fnext "ID
-		" fprev " ID"\n", bigf, maxfrsize, bigfprev, fnext, fprev)) ;
-
 	    if (fnext != EMPTY)
 	    {
 		/* if fnext is EMPTY then bigf is already at the end of list */
@@ -166,11 +152,9 @@ void AMD_postorder
 	    }
 
 #ifndef NDEBUG
-	    AMD_DEBUG1 (("After partial sort, element "ID"\n", i)) ;
 	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
 	    {
 		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("        "ID"  "ID"\n", f, Fsize [f])) ;
 		ASSERT (Nv [f] > 0) ;
 		nchild-- ;
 	    }
@@ -195,7 +179,6 @@ void AMD_postorder
     {
 	if (Parent [i] == EMPTY && Nv [i] > 0)
 	{
-	    AMD_DEBUG1 (("Root of assembly tree "ID"\n", i)) ;
 	    k = AMD_post_tree (i, k, Child, Sibling, Order, Stack
 #ifndef NDEBUG
 		, nn

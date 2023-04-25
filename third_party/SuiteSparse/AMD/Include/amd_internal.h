@@ -29,19 +29,6 @@
  * mexFunction, without any change.
  */
 
-/*
-    AMD will be exceedingly slow when running in debug mode.  The next three
-    lines ensure that debugging is turned off.
-*/
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-/*
-    To enable debugging, uncomment the following line:
-#undef NDEBUG
-*/
-
 #define SUITESPARSE_LIBRARY
 #include "amd.h"
 
@@ -126,9 +113,6 @@
 #define AMD_aat amd_l_aat
 #define AMD_postorder amd_l_postorder
 #define AMD_post_tree amd_l_post_tree
-#define AMD_dump amd_l_dump
-#define AMD_debug amd_l_debug
-#define AMD_debug_init amd_l_debug_init
 #define AMD_preprocess amd_l_preprocess
 
 #else
@@ -148,9 +132,6 @@
 #define AMD_aat amd_aat
 #define AMD_postorder amd_postorder
 #define AMD_post_tree amd_post_tree
-#define AMD_dump amd_dump
-#define AMD_debug amd_debug
-#define AMD_debug_init amd_debug_init
 #define AMD_preprocess amd_preprocess
 
 #endif
@@ -219,62 +200,3 @@ void AMD_preprocess
     Int Flag [ ]
 ) ;
 
-/* ------------------------------------------------------------------------- */
-/* debugging definitions */
-/* ------------------------------------------------------------------------- */
-
-#ifndef NDEBUG
-
-/* from assert.h:  assert macro */
-#include <assert.h>
-
-extern Int AMD_debug ;
-
-void AMD_debug_init ( char *s ) ;
-
-void AMD_dump
-(
-    Int n,
-    Int Pe [ ],
-    Int Iw [ ],
-    Int Len [ ],
-    Int iwlen,
-    Int pfree,
-    Int Nv [ ],
-    Int Next [ ],
-    Int Last [ ],
-    Int Head [ ],
-    Int Elen [ ],
-    Int Degree [ ],
-    Int W [ ],
-    Int nel
-) ;
-
-#ifdef ASSERT
-#undef ASSERT
-#endif
-
-/* Use mxAssert if AMD is compiled into a mexFunction */
-#ifdef MATLAB_MEX_FILE
-#define ASSERT(expression) (mxAssert ((expression), ""))
-#else
-#define ASSERT(expression) (assert (expression))
-#endif
-
-#define AMD_DEBUG0(params) { SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG1(params) { if (AMD_debug >= 1) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG2(params) { if (AMD_debug >= 2) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG3(params) { if (AMD_debug >= 3) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG4(params) { if (AMD_debug >= 4) SUITESPARSE_PRINTF (params) ; }
-
-#else
-
-/* no debugging */
-#define ASSERT(expression)
-#define AMD_DEBUG0(params)
-#define AMD_DEBUG1(params)
-#define AMD_DEBUG2(params)
-#define AMD_DEBUG3(params)
-#define AMD_DEBUG4(params)
-
-#endif
