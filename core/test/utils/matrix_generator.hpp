@@ -566,8 +566,7 @@ std::unique_ptr<MatrixType> generate_tridiag_matrix(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
-    gko::size_type size, std::array<ValueType, 3> coeffs,
-    std::shared_ptr<const gko::Executor> exec)
+    gko::size_type size, std::array<ValueType, 3> coeffs)
 {
     auto lower = coeffs[0];
     auto diag = coeffs[1];
@@ -588,17 +587,15 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
             if (i == j) {
                 md.nonzeros.emplace_back(i, j,
                                          alpha[i] * beta[j + 1] / alpha.back());
-            } else if (i < j) {
-                auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
-                auto val = sign *
-                           static_cast<ValueType>(std::pow(upper, j - i)) *
-                           alpha[i] * beta[j + 1] / alpha.back();
-                md.nonzeros.emplace_back(i, j, val);
             } else {
                 auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
+                auto off_diag = i < j ? upper : lower;
+                auto min_idx = std::min(i, j);
+                auto max_idx = std::max(i, j);
                 auto val = sign *
-                           static_cast<ValueType>(std::pow(lower, i - j)) *
-                           alpha[j] * beta[i + 1] / alpha.back();
+                           static_cast<ValueType>(
+                               std::pow(off_diag, max_idx - min_idx)) *
+                           alpha[min_idx] * beta[max_idx + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             }
         }
@@ -619,7 +616,7 @@ std::unique_ptr<MatrixType> generate_tridiag_inverse_matrix(
     mtx->read(
         generate_tridiag_inverse_matrix_data<typename MatrixType::value_type,
                                              typename MatrixType::index_type>(
-            size, coeffs, exec));
+            size, coeffs));
     return mtx;
 }
 
