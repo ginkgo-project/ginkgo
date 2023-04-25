@@ -47,6 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 namespace gko {
 namespace solver {
 
@@ -372,27 +382,31 @@ private:
 };
 
 
+namespace detail {
+
+
 /**
  * A LinOp implementing this interface stores a system matrix.
+ *
+ * @note This class will replace SolverBase in a future release
  *
  * @ingroup solver
  * @ingroup LinOp
  */
-template <typename MatrixType = LinOp>
-class SolverBase {
+class SolverBaseLinOp {
 public:
-    SolverBase(std::shared_ptr<const Executor> exec)
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
         : workspace_{std::move(exec)}
     {}
 
-    virtual ~SolverBase() = default;
+    virtual ~SolverBaseLinOp() = default;
 
     /**
      * Returns the system matrix used by the solver.
      *
      * @return the system matrix operator used by the solver
      */
-    std::shared_ptr<const MatrixType> get_system_matrix() const
+    std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
@@ -422,7 +436,7 @@ public:
     virtual std::vector<int> get_workspace_vectors() const { return {}; }
 
 protected:
-    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    void set_system_matrix_base(std::shared_ptr<const LinOp> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
@@ -511,7 +525,41 @@ protected:
 private:
     mutable detail::workspace workspace_;
 
-    std::shared_ptr<const MatrixType> system_matrix_;
+    std::shared_ptr<const LinOp> system_matrix_;
+};
+
+
+}  // namespace detail
+
+
+template <typename MatrixType>
+class
+    // clang-format off
+    [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
+    // clang-format on
+    : public detail::SolverBaseLinOp
+{
+public:
+    using detail::SolverBaseLinOp::SolverBaseLinOp;
+
+    /**
+     * Returns the system matrix, with its concrete type, used by the
+     * solver.
+     *
+     * @return the system matrix operator, with its concrete type, used by
+     * the solver
+     */
+    std::shared_ptr<const MatrixType> get_system_matrix() const
+    {
+        return std::dynamic_pointer_cast<const MatrixType>(
+            SolverBaseLinOp::get_system_matrix());
+    }
+
+protected:
+    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    {
+        SolverBaseLinOp::set_system_matrix_base(std::move(system_matrix));
+    }
 };
 
 
@@ -815,4 +863,10 @@ private:
 }  // namespace gko
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_BASE_HPP_

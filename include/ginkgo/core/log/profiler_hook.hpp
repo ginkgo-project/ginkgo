@@ -181,15 +181,11 @@ public:
 
     /* Internal solver events */
     void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
-
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override;
+        const LinOp* solver, const LinOp* right_hand_side,
+        const LinOp* solution, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm,
+        const array<stopping_status>* status, bool stopped) const override;
 
     bool needs_propagation() const override;
 

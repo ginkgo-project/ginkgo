@@ -222,20 +222,17 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(num_iters).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(reduction_factor)
-                                   .on(exec));
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
     auto Ainv =
         solver::build()
             .with_preconditioner(schwarz::build()
                                      .with_local_solver_factory(local_solver)
                                      .on(exec))
-            .with_criteria(iter_stop, tol_stop)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec))
             .on(exec)
             ->generate(A);
     // Add logger to the generated solver to log the iteration count and
@@ -252,20 +249,10 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
-
-    // Compute the residual, this is done in the same way as in the
-    // non-distributed case.
-    x_host->copy_from(x);
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(minus_one, x_host, one, b_host);
-    auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(res_norm);
-
-    // Take timings.
-    comm.synchronize();
     ValueType t_end = gko::experimental::mpi::get_walltime();
+
+    // Get the residual.
+    auto res_norm = gko::as<vec>(logger->get_residual_norm());
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
@@ -273,12 +260,12 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
-                  << "\nFinal Res norm: " << *res_norm->get_values()
+                  << "\nFinal Res norm: " << *res_norm->get_const_values()
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-                  << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+                  << "\nSolver apply time: " << t_end - t_solver_generate_end
                   << "\nTotal time: " << t_end - t_init
                   << std::endl;
         // clang-format on

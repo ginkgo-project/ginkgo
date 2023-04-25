@@ -156,16 +156,13 @@ public:
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
-
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override;
+    void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                               const LinOp* x, const size_type& num_iterations,
+                               const LinOp* residual,
+                               const LinOp* residual_norm,
+                               const LinOp* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
 
     /**
      * Creates a Stream logger. This dynamically allocates the memory,

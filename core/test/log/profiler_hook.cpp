@@ -187,12 +187,8 @@ TEST(ProfilerHook, LogsIteration)
     std::vector<std::string> expected{"begin:apply(solver)",
                                       "begin:iteration",
                                       "end:iteration",
-                                      "begin:iteration",
-                                      "end:iteration",
                                       "end:apply(solver)",
                                       "begin:advanced_apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
                                       "begin:iteration",
                                       "end:iteration",
                                       "end:advanced_apply(solver)"};

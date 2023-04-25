@@ -80,6 +80,14 @@ public:
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
+    void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                               const LinOp* x, const size_type& num_iterations,
+                               const LinOp* residual,
+                               const LinOp* residual_norm,
+                               const LinOp* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
+
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
@@ -97,7 +105,8 @@ public:
     [[deprecated(
         "use single-parameter create")]] static std::unique_ptr<Convergence>
     create(std::shared_ptr<const Executor>,
-           const mask_type& enabled_events = Logger::all_events_mask)
+           const mask_type& enabled_events = Logger::criterion_events_mask |
+                                             Logger::iteration_complete_mask)
     {
         return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
@@ -116,7 +125,8 @@ public:
      * shouldn't be a problem.
      */
     static std::unique_ptr<Convergence> create(
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
     {
         return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
@@ -180,7 +190,8 @@ protected:
      */
     [[deprecated("use single-parameter constructor")]] explicit Convergence(
         std::shared_ptr<const gko::Executor>,
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
         : Logger(enabled_events)
     {}
 
@@ -191,7 +202,8 @@ protected:
      *                        events.
      */
     explicit Convergence(
-        const mask_type& enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
         : Logger(enabled_events)
     {}
 

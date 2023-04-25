@@ -275,24 +275,14 @@ void ProfilerHook::on_criterion_check_completed(
 }
 
 
-void ProfilerHook::on_iteration_complete(const LinOp* solver,
-                                         const size_type& num_iterations,
-                                         const LinOp* residual,
-                                         const LinOp* solution,
-                                         const LinOp* residual_norm) const
-{
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
-}
-
-
 void ProfilerHook::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
+    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_sq_residual_norm,
+    const array<stopping_status>* status, bool stopped) const
 {
     if (num_iterations > 0 &&
-        dynamic_cast<const solver::IterativeBase*>(solver)) {
+        dynamic_cast<const solver::IterativeBase*>(solver) && !stopped) {
         this->end_hook_("iteration", profile_event_category::solver);
         this->begin_hook_("iteration", profile_event_category::solver);
     }
