@@ -352,7 +352,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     ptr_param<const Partition<local_index_type, global_index_type>>
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    bool add)
 {
     using part_type =
         gko::experimental::distributed::Partition<local_index_type,
@@ -364,8 +365,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    this->row_partition_->copy_from(row_partition);
-    this->col_partition_->copy_from(col_partition);
+    this->row_partition_->copy_from(row_partition.get());
+    this->col_partition_->copy_from(col_partition.get());
     this->matrix_data_ = data;
 
     auto dev_data = data;
@@ -455,7 +456,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     ptr_param<const Partition<local_index_type, global_index_type>>
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition, bool add)
+        col_partition,
+    bool add)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
@@ -467,7 +469,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition, bool add)
+    ptr_param<const Partition<local_index_type, global_index_type>> partition,
+    bool add)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
@@ -479,7 +482,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition, bool add)
+    ptr_param<const Partition<local_index_type, global_index_type>> partition,
+    bool add)
 {
     this->read_distributed(data, partition, partition, add);
 }

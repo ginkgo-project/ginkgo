@@ -595,9 +595,12 @@ int main(int argc, char* argv[])
         .with_schur_complement_solver_factory(gmres_factory)
         .with_inner_solver_factory(cg_factory)
         .on(exec)->generate(A);*/
-    std::shared_ptr<const gko::log::PerformanceHint> perf_logger =
-        gko::log::PerformanceHint::create();
-    Ainv->add_logger(perf_logger);
+    std::string log_name = "log_" + std::to_string(comm.rank()) + ".txt";
+    std::ofstream log{log_name};
+    std::shared_ptr<const gko::log::ProfilerHook> perf_logger =
+        gko::log::ProfilerHook::create_nested_summary(
+            std::make_unique<gko::log::ProfilerHook::TableSummaryWriter>(
+                gko::log::ProfilerHook::TableSummaryWriter(log)));
 
     // Take timings.
     comm.synchronize();
@@ -611,6 +614,10 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
 
+    exec->add_logger(perf_logger);
+    if (exec != exec->get_master()) {
+        exec->get_master()->add_logger(perf_logger);
+    }
     ValueType t_apply = gko::zero<ValueType>();
     for (auto i = 0; i < reps; i++) {
         x->copy_from(x_host.get());
@@ -619,6 +626,10 @@ int main(int argc, char* argv[])
         comm.synchronize();
         ValueType t_end = gko::experimental::mpi::get_walltime();
         t_apply += t_end - t_start;
+    }
+    exec->remove_logger(perf_logger);
+    if (exec != exec->get_master()) {
+        exec->get_master()->remove_logger(perf_logger);
     }
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
@@ -650,7 +661,7 @@ int main(int argc, char* argv[])
                   << "\nTimer per Iteration: " << t_apply / logger->get_num_iterations()
                   << "\nTotal time: " << t_end - t_init
                   << std::endl;
-        perf_logger->print_status();
+        perf_logger->create_summary();
         // clang-format on
     }
 }

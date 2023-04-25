@@ -323,7 +323,8 @@ public:
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         ptr_param<const Partition<local_index_type, global_index_type>>
-            partition);
+            partition,
+        bool add = false);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -378,8 +379,6 @@ public:
             row_partition,
         ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition,
-        const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition,
         bool add = false);
 
     /**
