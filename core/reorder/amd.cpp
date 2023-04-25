@@ -96,9 +96,8 @@ IndexType cs_tdfs(IndexType j, IndexType k, IndexType* head,
 
 template <typename IndexType>
 void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
-                 array<IndexType> row_ptrs,
-                 array<IndexType> col_idxs_plus_workspace,
-                 array<IndexType> permutation)
+                 IndexType* row_ptrs, IndexType* col_idxs_plus_workspace,
+                 IndexType* permutation)
 {
     IndexType d, dk, dext, lemax = 0, e, elenk, eln, i, j, k, k1, k2, k3, jlast,
                            ln, nzmax, mindeg = 0, nvi, nvj, nvk, mark, wnvi, ok,
@@ -111,7 +110,7 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
         std::max<IndexType>(16, static_cast<IndexType>(
                                     10 * std::sqrt(static_cast<double>(n)))));
 
-    auto cnz = row_ptrs.get_data()[num_rows];
+    auto cnz = row_ptrs[num_rows];
     t = cnz + cnz / 5 + 2 * n; /* add elbow room to C */
 
     // get workspace
@@ -123,12 +122,12 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
     IndexType* elen = head + (n + 1);
     IndexType* degree = elen + (n + 1);
     IndexType* w = degree + (n + 1);
-    IndexType* hhead = hhead + (n + 1);
-    IndexType* last = permutation.get_data(); /* use P as workspace for last */
+    IndexType* hhead = w + (n + 1);
+    IndexType* last = permutation; /* use P as workspace for last */
 
     /* --- Initialize quotient graph ---------------------------------------- */
-    IndexType* Cp = row_ptrs.get_data();
-    IndexType* Ci = col_idxs_plus_workspace.get_data();
+    IndexType* Cp = row_ptrs;
+    IndexType* Ci = col_idxs_plus_workspace;
     for (k = 0; k < n; k++) len[k] = Cp[k + 1] - Cp[k];
     len[n] = 0;
     nzmax = t;
@@ -414,7 +413,7 @@ void amd_reorder(std::shared_ptr<const Executor> host_exec, IndexType num_rows,
     for (k = 0, i = 0; i <= n; i++) /* postorder the assembly tree */
     {
         if (Cp[i] == -1)
-            k = cs_tdfs<IndexType>(i, k, head, next, permutation.get_data(), w);
+            k = cs_tdfs<IndexType>(i, k, head, next, permutation, w);
     }
 }
 
@@ -478,12 +477,15 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
                                              nnz + nnz / 5 + 2 * num_rows};
     host_exec->copy_from(exec, nnz, d_col_idxs,
                          col_idxs_plus_workspace.get_data());
-    exec->run(make_amd_reorder(host_exec, static_cast<IndexType>(num_rows),
-                               row_ptrs, col_idxs_plus_workspace, permutation));
-    permutation.set_executor(exec);
+    exec->run(make_amd_reorder(
+        host_exec, static_cast<IndexType>(num_rows), row_ptrs.get_data(),
+        col_idxs_plus_workspace.get_data(), permutation.get_data()));
+    array<IndexType> result_permutation{exec, num_rows};
+    exec->copy_from(host_exec, num_rows, permutation.get_const_data(),
+                    result_permutation.get_data());
 
     return permutation_type::create(exec, dim<2>{num_rows, num_rows},
-                                    std::move(permutation));
+                                    std::move(result_permutation));
 }
 
 
