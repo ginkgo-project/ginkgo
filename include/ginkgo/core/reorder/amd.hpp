@@ -40,7 +40,13 @@ public:
     using permutation_type = matrix::Permutation<index_type>;
 
     struct parameters_type
-        : public enable_parameters_type<parameters_type, Amd<IndexType>> {};
+        : public enable_parameters_type<parameters_type, Amd<IndexType>> {
+        /**
+         * If set to true, compute a symmetric AMD reordering, otherwise
+         * compute a column AMD reordering.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(symmetric, true);
+    };
 
     /**
      * @copydoc LinOpFactory::generate
