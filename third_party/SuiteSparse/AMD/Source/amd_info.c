@@ -12,7 +12,7 @@
  * for details.  If the Info array is not present, nothing is printed.
  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 #define PRI(format,x) { if (x >= 0) { SUITESPARSE_PRINTF ((format, x)) ; }}
 

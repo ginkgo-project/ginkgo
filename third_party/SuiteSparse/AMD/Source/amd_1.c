@@ -24,7 +24,7 @@
  * is performed (this was done in AMD_valid).
  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 void AMD_1
 (

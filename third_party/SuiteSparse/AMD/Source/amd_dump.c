@@ -13,7 +13,7 @@
  * debugging.  Not user-callable.
  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 #ifndef NDEBUG
 

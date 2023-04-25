@@ -16,7 +16,7 @@
  * This input condition is NOT checked.  This routine is not user-callable.
  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 /* AMD_preprocess does not check its input for errors or allocate workspace.
  * On input, the condition (AMD_valid (n,n,Ap,Ai) != AMD_INVALID) must hold.
