@@ -10,7 +10,7 @@
 
 /* Perform a postordering (via depth-first search) of an assembly tree. */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 void AMD_postorder
 (

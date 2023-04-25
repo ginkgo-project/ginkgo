@@ -13,7 +13,7 @@
  * printed instead.
  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 void AMD_control
 (

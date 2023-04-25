@@ -10,7 +10,7 @@
 
 /* Post-ordering of a supernodal elimination tree.  */
 
-#include "amd_internal.h"
+#include "../Include/amd_internal.h"
 
 Int AMD_post_tree
 (
