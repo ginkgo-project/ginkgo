@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/symbolic.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "matrices/config.hpp"
 
 
@@ -59,7 +60,11 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
 
-    Amd() : ref(gko::ReferenceExecutor::create()), permutation_ref{ref} {}
+    Amd()
+        : rng{793643},
+          ref(gko::ReferenceExecutor::create()),
+          permutation_ref{ref}
+    {}
 
     void setup(
         std::initializer_list<std::initializer_list<value_type>> mtx_list,
@@ -149,11 +154,60 @@ protected:
         }
     }
 
+    void forall_modes(std::function<void()> fn)
+    {
+        {
+            SCOPED_TRACE("normal matrix, default settings");
+            amd = gko::experimental::reorder::Amd<index_type>::build().on(
+                this->ref);
+            fn();
+        }
+        {
+            SCOPED_TRACE("normal matrix, skip sorting");
+            amd = gko::experimental::reorder::Amd<index_type>::build()
+                      .with_skip_sorting(true)
+                      .on(this->ref);
+            fn();
+        }
+        {
+            SCOPED_TRACE("normal matrix, skip symmetrizing");
+            amd = gko::experimental::reorder::Amd<index_type>::build()
+                      .with_skip_symmetrize(true)
+                      .on(this->ref);
+            fn();
+        }
+        {
+            SCOPED_TRACE("normal matrix, skip sorting and symmetrizing");
+            amd = gko::experimental::reorder::Amd<index_type>::build()
+                      .with_skip_sorting(true)
+                      .with_skip_symmetrize(true)
+                      .on(this->ref);
+            fn();
+        }
+        {
+            SCOPED_TRACE("unsorted matrix, default settings");
+            gko::test::unsort_matrix(this->mtx, rng);
+            amd = gko::experimental::reorder::Amd<index_type>::build().on(
+                this->ref);
+            fn();
+        }
+        {
+            SCOPED_TRACE("unsorted matrix, skip symmetrizing");
+            gko::test::unsort_matrix(this->mtx, rng);
+            amd = gko::experimental::reorder::Amd<index_type>::build()
+                      .with_skip_symmetrize(true)
+                      .on(this->ref);
+            fn();
+        }
+    }
+
+    std::default_random_engine rng;
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     int fillin_reduction;
     gko::size_type num_rows;
     gko::array<index_type> permutation_ref;
     std::shared_ptr<matrix_type> mtx;
+    std::shared_ptr<gko::experimental::reorder::Amd<index_type>> amd;
 };
 
 TYPED_TEST_SUITE(Amd, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
@@ -164,31 +218,30 @@ TYPED_TEST(Amd, WorksAndReducesFillIn)
     using matrix_type = typename TestFixture::matrix_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
-        auto amd =
-            gko::experimental::reorder::Amd<index_type>::build().on(this->ref);
+        this->forall_modes([this] {
+            auto perm = this->amd->generate(this->mtx);
 
-        auto perm = amd->generate(this->mtx);
+            auto perm_array = gko::make_array_view(this->ref, this->num_rows,
+                                                   perm->get_permutation());
+            GKO_ASSERT_ARRAY_EQ(perm_array, this->permutation_ref);
 
-        auto perm_array = gko::make_array_view(this->ref, this->num_rows,
-                                               perm->get_permutation());
-        GKO_ASSERT_ARRAY_EQ(perm_array, this->permutation_ref);
-
-        auto permuted_mtx =
-            gko::as<matrix_type>(this->mtx->permute(&perm_array));
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            forest;
-        std::unique_ptr<matrix_type> factorized_mtx;
-        std::unique_ptr<matrix_type> factorized_permuted_mtx;
-        gko::factorization::symbolic_cholesky(this->mtx.get(), true,
-                                              factorized_mtx, forest);
-        gko::factorization::symbolic_cholesky(permuted_mtx.get(), true,
-                                              factorized_permuted_mtx, forest);
-        int fillin_mtx = factorized_mtx->get_num_stored_elements() -
-                         this->mtx->get_num_stored_elements();
-        int fillin_permuted =
-            factorized_permuted_mtx->get_num_stored_elements() -
-            permuted_mtx->get_num_stored_elements();
-        ASSERT_LE(fillin_permuted, fillin_mtx - this->fillin_reduction);
+            auto permuted_mtx =
+                gko::as<matrix_type>(this->mtx->permute(&perm_array));
+            std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+                forest;
+            std::unique_ptr<matrix_type> factorized_mtx;
+            std::unique_ptr<matrix_type> factorized_permuted_mtx;
+            gko::factorization::symbolic_cholesky(this->mtx.get(), true,
+                                                  factorized_mtx, forest);
+            gko::factorization::symbolic_cholesky(
+                permuted_mtx.get(), true, factorized_permuted_mtx, forest);
+            int fillin_mtx = factorized_mtx->get_num_stored_elements() -
+                             this->mtx->get_num_stored_elements();
+            int fillin_permuted =
+                factorized_permuted_mtx->get_num_stored_elements() -
+                permuted_mtx->get_num_stored_elements();
+            ASSERT_LE(fillin_permuted, fillin_mtx - this->fillin_reduction);
+        });
     });
 }
 
@@ -200,10 +253,10 @@ TYPED_TEST(Amd, ReducesFillInAni4)
     this->mtx = gko::read<matrix_type>(
         std::ifstream{gko::matrices::location_ani4_mtx}, this->ref);
     this->num_rows = this->mtx->get_size()[0];
-    auto amd =
+    this->amd =
         gko::experimental::reorder::Amd<index_type>::build().on(this->ref);
 
-    auto perm = amd->generate(this->mtx);
+    auto perm = this->amd->generate(this->mtx);
 
     auto perm_array = gko::make_array_view(this->ref, this->num_rows,
                                            perm->get_permutation());
