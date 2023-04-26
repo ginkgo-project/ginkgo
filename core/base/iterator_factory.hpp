@@ -368,6 +368,17 @@ void swap(zip_iterator_reference<Iterators...> a,
 }
 
 
+/**
+ * Random access iterator that uses a function to transform the index.
+ *
+ * For a function `fn` and an underlying iterator `it`, accessing the
+ * permute_iterator at index `i` will result in accessing `it[fn(i)]`.
+ *
+ * @tparam IteratorType  Underlying iterator, has to be random access.
+ * @tparam PermuteFn  A function `difference_type -> difference_type` that
+ *                    transforms any given index. It doesn't have to be a strict
+ *                    permutation of indices (i.e. not bijective).
+ */
 template <typename IteratorType, typename PermuteFn>
 class permute_iterator {
 public:

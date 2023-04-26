@@ -160,6 +160,7 @@ shuffle_range_and_pid(const std::vector<IndexType>& ranges,
     return result;
 }
 
+
 template <typename IndexType>
 class PartitionHelpers : public CommonTestFixture {
 protected:
