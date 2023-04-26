@@ -1168,7 +1168,13 @@ void fallback_sort(std::shared_ptr<const DefaultExecutor> exec,
     array<IndexType> row_idx_array(exec, nnz);
     const auto row_idxs = row_idx_array.get_data();
     components::convert_ptrs_to_idxs(exec, row_ptrs, num_rows, row_idxs);
-    const auto key_it =
-        thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
-    thrust::sort_by_key(thrust_policy(exec), key_it, key_it + nnz, vals);
+    const auto row_val_it =
+        thrust::make_zip_iterator(thrust::make_tuple(row_idxs, vals));
+    const auto col_val_it =
+        thrust::make_zip_iterator(thrust::make_tuple(col_idxs, vals));
+    // two sorts by integer keys hopefully enable Thrust to use cub's RadixSort
+    thrust::sort_by_key(thrust_policy(exec), col_idxs, col_idxs + nnz,
+                        row_val_it);
+    thrust::stable_sort_by_key(thrust_policy(exec), row_idxs, row_idxs + nnz,
+                               col_val_it);
 }
