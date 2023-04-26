@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/distributed/partition_helpers_kernels.hpp"
-
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
@@ -41,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
+#include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
