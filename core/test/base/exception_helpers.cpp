@@ -321,4 +321,10 @@ TEST(KernelNotFound, ThrowsKernelNotFoundException)
 }
 
 
+TEST(InvalidState, ThrowsInvalidStateException)
+{
+    ASSERT_THROW(GKO_INVALID_STATE(""), gko::InvalidStateError);
+}
+
+
 }  // namespace

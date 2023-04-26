@@ -683,6 +683,24 @@ public:
 };
 
 
+class InvalidStateError : public Error {
+public:
+    /**
+     * Initializes an invalid state error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param clarification  A message describing the invalid state
+     */
+    InvalidStateError(const std::string& file, int line,
+                      const std::string& func, const std::string& clarification)
+        : Error(file, line,
+                func + ": Invalid state encountered : " + clarification)
+    {}
+};
+
+
 }  // namespace gko
 
 
