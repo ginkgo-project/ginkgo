@@ -978,10 +978,28 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
@@ -991,10 +1009,95 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     unsort_mtx();
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }

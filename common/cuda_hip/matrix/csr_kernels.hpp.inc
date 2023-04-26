@@ -1149,9 +1149,26 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(nnz, in_col_idxs, out_row_idxs.get_data());
     auto loc_it = thrust::make_zip_iterator(
         thrust::make_tuple(out_row_idxs.get_data(), out_col_idxs));
-    using tuple_type =
-        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
     thrust::sort_by_key(thrust_policy(exec), loc_it, loc_it + nnz, out_vals);
     components::convert_idxs_to_ptrs(exec, out_row_idxs.get_data(), nnz,
                                      out_num_rows, out_row_ptrs);
+}
+
+
+template <typename ValueType, typename IndexType>
+void fallback_sort(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::Csr<ValueType, IndexType>* to_sort)
+{
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto col_idxs = to_sort->get_col_idxs();
+    const auto vals =
+        reinterpret_cast<device_member_type<ValueType>*>(to_sort->get_values());
+    const auto nnz = to_sort->get_num_stored_elements();
+    const auto num_rows = to_sort->get_size()[0];
+    array<IndexType> row_idx_array(exec, nnz);
+    const auto row_idxs = row_idx_array.get_data();
+    components::convert_ptrs_to_idxs(exec, row_ptrs, num_rows, row_idxs);
+    const auto key_it =
+        thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
+    thrust::sort_by_key(thrust_policy(exec), key_it, key_it + nnz, vals);
 }
