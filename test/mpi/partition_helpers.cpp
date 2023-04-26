@@ -109,7 +109,7 @@ TYPED_TEST(PartitionHelpers, CanBuildFromLocalRangesThrowsOnGap)
 
     ASSERT_THROW(build_from_local_ranges(this->exec, this->comm,
                                          local_range[this->comm.rank()]),
-                 gko::Error);
+                 gko::InvalidStateError);
 }
 
 
