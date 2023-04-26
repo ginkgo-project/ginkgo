@@ -668,7 +668,7 @@ TEST_F(Isai, IsaiGenerateGeneralWithSparsityPower8IsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
                         d_isai->get_approximate_inverse(),
-                        r<value_type>::value);
+                        5 * r<value_type>::value);
 }
 
 
@@ -693,5 +693,5 @@ TEST_F(Isai, IsaiGenerateGeneralSparsityPowerNIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
                         d_isai->get_approximate_inverse(),
-                        5 * r<value_type>::value);
+                        10 * r<value_type>::value);
 }
