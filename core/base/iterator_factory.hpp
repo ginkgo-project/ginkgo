@@ -41,7 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <utility>
 
-#include <core/base/copy_assignable.hpp>
+
+#include "core/base/copy_assignable.hpp"
 
 
 namespace gko {
