@@ -1309,7 +1309,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
 
         cusparse::destroy(descr);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_sort(exec, to_sort);
     }
 }
 

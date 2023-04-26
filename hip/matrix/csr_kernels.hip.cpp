@@ -1106,7 +1106,7 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
 
         hipsparse::destroy(descr);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_sort(exec, to_sort);
     }
 }
 
