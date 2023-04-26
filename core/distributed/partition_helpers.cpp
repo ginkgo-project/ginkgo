@@ -100,7 +100,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
     exec->run(partition_helpers::make_check_consecutive_ranges(
         ranges_start_end, &consecutive_ranges));
     if (!consecutive_ranges) {
-        throw Error(__FILE__, __LINE__, "The partition contains gaps.");
+        GKO_INVALID_STATE("The partition contains gaps.");
     }
 
     // join (now consecutive) starts and ends into combined array
