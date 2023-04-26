@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 /**
  * @brief The Reorder namespace.
  *
@@ -74,10 +75,17 @@ public:
     struct parameters_type
         : public enable_parameters_type<parameters_type, Amd<IndexType>> {
         /**
-         * If set to true, compute a symmetric AMD reordering, otherwise
-         * compute a column AMD reordering.
+         * If set to false, computes the AMD reordering on A + A^T, otherwise
+         * assumes that A is symmetric and uses it directly.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(symmetric, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_symmetrize, false);
+
+        /**
+         * If set to false, sorts the input matrix before computing the AMD
+         * reordering. If the input matrix is not sorted by column index, the
+         * symmetrization or AMD reordering may fail silently or crash.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
 
     /**
@@ -99,10 +107,13 @@ protected:
 
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
+
+    parameters_type parameters_;
 };
 
 
 }  // namespace reorder
+}  // namespace experimental
 }  // namespace gko
 
 

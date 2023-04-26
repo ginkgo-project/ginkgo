@@ -75,7 +75,10 @@ target_sources(ginkgo
     stop/criterion.cpp
     stop/iteration.cpp
     stop/residual_norm.cpp
-    stop/time.cpp)
+    stop/time.cpp
+    ../third_party/SuiteSparse/wrapper32.cpp
+    ../third_party/SuiteSparse/wrapper64.cpp
+    )
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
