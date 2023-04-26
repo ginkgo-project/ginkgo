@@ -56,6 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -96,22 +98,24 @@ struct SimpleSolverTest {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build().with_criteria(
             gko::stop::Iteration::build()
                 .with_max_iters(iteration_count)
-                .on(exec));
+                .on(exec),
+            check_residual ? gko::stop::ResidualNorm<value_type>::build()
+                                 .with_baseline(gko::stop::mode::absolute)
+                                 .with_reduction_factor(1e-30)
+                                 .on(exec)
+                           : nullptr);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
                 precond_type::build().with_max_block_size(1u).on(exec));
     }
@@ -168,28 +172,21 @@ template <unsigned dimension>
 struct Idr : SimpleSolverTest<gko::solver::Idr<solver_value_type>> {
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::Idr<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_deterministic(true)
             .with_subspace_dim(dimension);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
-            .with_deterministic(true)
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec))
-            .with_subspace_dim(dimension);
+                precond_type::build().with_max_block_size(1u).on(exec));
     }
 };
 
@@ -199,12 +196,10 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::Ir<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_solver(
                 precond_type::build().with_max_block_size(1u).on(exec));
     }
@@ -225,26 +220,20 @@ struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::CbGmres<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_krylov_dim(dimension);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec))
-            .with_krylov_dim(dimension);
+                precond_type::build().with_max_block_size(1u).on(exec));
     }
 };
 
@@ -253,26 +242,20 @@ template <unsigned dimension>
 struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::Gmres<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_krylov_dim(dimension);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec))
-            .with_krylov_dim(dimension);
+                precond_type::build().with_max_block_size(1u).on(exec));
     }
 };
 
@@ -281,27 +264,21 @@ template <unsigned dimension>
 struct FGmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::Gmres<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_krylov_dim(dimension)
             .with_flexible(true);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
                 precond_type::build().with_max_block_size(1u).on(exec))
-            .with_krylov_dim(dimension)
             .with_flexible(true);
     }
 };
@@ -311,26 +288,20 @@ template <unsigned dimension>
 struct Gcr : SimpleSolverTest<gko::solver::Gcr<solver_value_type>> {
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return SimpleSolverTest<gko::solver::Gcr<solver_value_type>>::build(
+                   exec, iteration_count, check_residual)
             .with_krylov_dim(dimension);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(iteration_count)
-                               .on(exec))
+        return build(exec, iteration_count, check_residual)
             .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec))
-            .with_krylov_dim(dimension);
+                precond_type::build().with_max_block_size(1u).on(exec));
     }
 };
 
@@ -356,7 +327,8 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs,
+        bool = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
@@ -364,7 +336,7 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build_preconditioned(
-        std::shared_ptr<const gko::Executor>, gko::size_type)
+        std::shared_ptr<const gko::Executor>, gko::size_type, bool = true)
     {
         assert(false);
         return solver_type::build();
@@ -407,7 +379,8 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs,
+        bool = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
@@ -415,7 +388,7 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static typename solver_type::parameters_type build_preconditioned(
-        std::shared_ptr<const gko::Executor>, gko::size_type)
+        std::shared_ptr<const gko::Executor>, gko::size_type, bool = true)
     {
         assert(false);
         return solver_type::build();
@@ -439,7 +412,8 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
 
 struct LowerTrsUnitdiag : LowerTrs {
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs,
+        bool check_residual = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
@@ -451,7 +425,8 @@ struct LowerTrsUnitdiag : LowerTrs {
 
 struct UpperTrsUnitdiag : UpperTrs {
     static typename solver_type::parameters_type build(
-        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs)
+        std::shared_ptr<const gko::Executor> exec, gko::size_type num_rhs,
+        bool check_residual = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
@@ -466,7 +441,7 @@ struct LowerTrsSyncfree : LowerTrs {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build().with_algorithm(
             gko::solver::trisolve_algorithm::syncfree);
@@ -479,7 +454,7 @@ struct UpperTrsSyncfree : UpperTrs {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build().with_algorithm(
             gko::solver::trisolve_algorithm::syncfree);
@@ -492,7 +467,7 @@ struct LowerTrsSyncfreeUnitdiag : LowerTrs {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
@@ -506,7 +481,7 @@ struct UpperTrsSyncfreeUnitdiag : UpperTrs {
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
-        gko::size_type iteration_count)
+        gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
@@ -706,58 +681,78 @@ protected:
         };
         {
             SCOPED_TRACE("Defaulted solver");
-            guarded_fn(test_pair<SolverType>{Config::build(ref, 0)
-                                                 .on(ref)
-                                                 ->generate(mtx.ref)
-                                                 ->create_default(),
-                                             Config::build(exec, 0)
-                                                 .on(exec)
-                                                 ->generate(mtx.dev)
-                                                 ->create_default()});
+            guarded_fn(
+                test_pair<SolverType>{Config::build(ref, 0, check_residual)
+                                          .on(ref)
+                                          ->generate(mtx.ref)
+                                          ->create_default(),
+                                      Config::build(exec, 0, check_residual)
+                                          .on(exec)
+                                          ->generate(mtx.dev)
+                                          ->create_default()});
         }
         {
             SCOPED_TRACE("Cleared solver");
-            test_pair<SolverType> pair{
-                Config::build(ref, 0).on(ref)->generate(mtx.ref),
-                Config::build(exec, 0).on(exec)->generate(mtx.dev)};
+            test_pair<SolverType> pair{Config::build(ref, 0, check_residual)
+                                           .on(ref)
+                                           ->generate(mtx.ref),
+                                       Config::build(exec, 0, check_residual)
+                                           .on(exec)
+                                           ->generate(mtx.dev)};
             pair.ref->clear();
             pair.dev->clear();
             guarded_fn(std::move(pair));
         }
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
-            guarded_fn(test_pair<SolverType>{
-                Config::build(ref, 0).on(ref)->generate(mtx.ref), exec});
+            guarded_fn(
+                test_pair<SolverType>{Config::build(ref, 0, check_residual)
+                                          .on(ref)
+                                          ->generate(mtx.ref),
+                                      exec});
         }
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
-            guarded_fn(test_pair<SolverType>{
-                Config::build(ref, 0).on(ref)->generate(mtx.ref),
-                Config::build(exec, 0).on(exec)->generate(mtx.dev)});
+            guarded_fn(
+                test_pair<SolverType>{Config::build(ref, 0, check_residual)
+                                          .on(ref)
+                                          ->generate(mtx.ref),
+                                      Config::build(exec, 0, check_residual)
+                                          .on(exec)
+                                          ->generate(mtx.dev)});
         }
         if (Config::is_preconditionable()) {
             SCOPED_TRACE("Preconditioned solver with 0 iterations");
             guarded_fn(test_pair<SolverType>{
-                Config::build_preconditioned(ref, 0).on(ref)->generate(mtx.ref),
-                Config::build_preconditioned(exec, 0).on(exec)->generate(
-                    mtx.dev)});
+                Config::build_preconditioned(ref, 0, check_residual)
+                    .on(ref)
+                    ->generate(mtx.ref),
+                Config::build_preconditioned(exec, 0, check_residual)
+                    .on(exec)
+                    ->generate(mtx.dev)});
         }
         static_assert(!(Config::requires_num_rhs() && Config::is_iterative()),
                       "Inconsistent config");
         if (Config::is_iterative()) {
             {
                 SCOPED_TRACE("Unpreconditioned solver with 4 iterations");
-                guarded_fn(test_pair<SolverType>{
-                    Config::build(ref, 4).on(ref)->generate(mtx.ref),
-                    Config::build(exec, 4).on(exec)->generate(mtx.dev)});
+                guarded_fn(
+                    test_pair<SolverType>{Config::build(ref, 4, check_residual)
+                                              .on(ref)
+                                              ->generate(mtx.ref),
+                                          Config::build(exec, 4, check_residual)
+                                              .on(exec)
+                                              ->generate(mtx.dev)});
             }
             if (Config::is_preconditionable()) {
                 SCOPED_TRACE("Preconditioned solver with 4 iterations");
                 guarded_fn(test_pair<SolverType>{
-                    Config::build_preconditioned(ref, 4).on(ref)->generate(
-                        mtx.ref),
-                    Config::build_preconditioned(exec, 4).on(exec)->generate(
-                        mtx.dev)});
+                    Config::build_preconditioned(ref, 4, check_residual)
+                        .on(ref)
+                        ->generate(mtx.ref),
+                    Config::build_preconditioned(exec, 4, check_residual)
+                        .on(exec)
+                        ->generate(mtx.dev)});
             }
         }
     }
@@ -784,21 +779,29 @@ protected:
         // `vec`
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
-            guarded_fn(test_pair<SolverType>{
-                Config::build(ref, nrhs).on(ref)->generate(mtx.ref), exec});
+            guarded_fn(
+                test_pair<SolverType>{Config::build(ref, nrhs, check_residual)
+                                          .on(ref)
+                                          ->generate(mtx.ref),
+                                      exec});
         }
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
-            guarded_fn(test_pair<SolverType>{
-                Config::build(ref, nrhs).on(ref)->generate(mtx.ref),
-                Config::build(exec, nrhs).on(exec)->generate(mtx.dev)});
+            guarded_fn(
+                test_pair<SolverType>{Config::build(ref, nrhs, check_residual)
+                                          .on(ref)
+                                          ->generate(mtx.ref),
+                                      Config::build(exec, nrhs, check_residual)
+                                          .on(exec)
+                                          ->generate(mtx.dev)});
         }
         if (Config::is_preconditionable()) {
             SCOPED_TRACE("Preconditioned solver with 0 iterations");
             guarded_fn(test_pair<SolverType>{
-                Config::build_preconditioned(ref, nrhs).on(ref)->generate(
-                    mtx.ref),
-                Config::build_preconditioned(exec, nrhs)
+                Config::build_preconditioned(ref, nrhs, check_residual)
+                    .on(ref)
+                    ->generate(mtx.ref),
+                Config::build_preconditioned(exec, nrhs, check_residual)
                     .on(exec)
                     ->generate(mtx.dev)});
         }
@@ -912,6 +915,8 @@ protected:
     std::shared_ptr<DummyLogger> logger;
 
     std::default_random_engine rand_engine;
+
+    bool check_residual = true;
 };
 
 using SolverTypes =
@@ -947,6 +952,7 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 
 TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
 {
+    this->check_residual = false;
     if (!TypeParam::will_not_allocate()) {
         GTEST_SKIP();
     }
@@ -1207,7 +1213,7 @@ TYPED_TEST(Solver, LogsIterationComplete)
         auto b = Vec::create(this->exec);
         auto x = Vec::create(this->exec);
         gko::size_type num_iteration(4);
-        auto solver = Config::build(this->exec, num_iteration)
+        auto solver = Config::build(this->exec, num_iteration, false)
                           .on(this->exec)
                           ->generate(mtx);
         auto before_logger = *this->logger;
