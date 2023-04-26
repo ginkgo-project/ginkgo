@@ -10,3 +10,4 @@ find_package(Kokkos REQUIRED)
 
 add_executable(kokkos-assembly kokkos_assembly.cpp)
 target_link_libraries(kokkos-assembly Ginkgo::ginkgo Kokkos::kokkos)
+set_target_properties(kokkos-assembly PROPERTIES CXX_COMPILER_LAUNCHER "")
