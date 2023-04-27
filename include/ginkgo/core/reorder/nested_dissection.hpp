@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_REORDER_NESTED_DISSECTION_HPP_
 
 
-#include <unordered_map>
-
-
 #include <ginkgo/config.hpp>
 
 
@@ -44,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <unordered_map>
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
