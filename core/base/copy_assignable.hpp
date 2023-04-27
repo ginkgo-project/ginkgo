@@ -58,20 +58,45 @@ template <typename T>
 class copy_assignable<
     T, typename std::enable_if<std::is_copy_constructible<T>::value>::type> {
 public:
-    copy_assignable() : obj_{{}} {}
-    copy_assignable(const copy_assignable& other) = default;
-    copy_assignable(copy_assignable&& other) noexcept = default;
+    copy_assignable() : obj_(new(buf)(T)()) {}
 
-    copy_assignable(const T& obj) : obj_{obj} {}
-    copy_assignable(T&& obj) : obj_{std::move(obj)} {}
+    copy_assignable(const copy_assignable& other)
+    {
+        if (this != &other) {
+            *this = other;
+        }
+    }
+
+    copy_assignable(copy_assignable&& other) noexcept
+    {
+        if (this != &other) {
+            *this = std::move(other);
+        }
+    }
+
+    copy_assignable(const T& obj) : obj_{new(buf)(T)(obj)} {}
+
+    copy_assignable(T&& obj) : obj_{new(buf)(T)(std::move(obj))} {}
 
     copy_assignable& operator=(const copy_assignable& other)
     {
-        obj_.clear();
-        obj_.emplace_back(other.get());
+        if (this != &other) {
+            obj_->~T();
+            obj_ = new (buf)(T)(*other.obj_);
+        }
         return *this;
     }
-    copy_assignable& operator=(copy_assignable&& other) noexcept = default;
+
+    copy_assignable& operator=(copy_assignable&& other) noexcept
+    {
+        if (this != &other) {
+            obj_->~T();
+            obj_ = new (buf)(T)(std::move(*other.obj_));
+        }
+        return *this;
+    }
+
+    ~copy_assignable() { obj_->~T(); }
 
     template <typename... Args>
     decltype(auto) operator()(Args&&... args) const
@@ -80,11 +105,13 @@ public:
     }
 
     T const& get() const { return obj_[0]; }
+
     T& get() { return obj_[0]; }
 
 private:
-    //!< Store wrapped object in a container that has an emplace function
-    std::vector<T> obj_;
+    //!< Store wrapped object on the stack, should use std::optional in c++17
+    T* obj_;
+    alignas(T) unsigned char buf[sizeof(T)];
 };
 
 
