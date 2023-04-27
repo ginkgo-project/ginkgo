@@ -140,4 +140,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is the Kokkos extension enabled? */
+// clang-format off
+#cmakedefine01 GINKGO_EXTENSION_KOKKOS
+// clang-format on
+
 #endif  // GKO_INCLUDE_CONFIG_H

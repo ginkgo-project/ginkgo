@@ -35,245 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-#include <omp.h>
-#include <Kokkos_Core.hpp>
 #include <ginkgo/ginkgo.hpp>
-
-
-template <typename T, typename MemorySpace>
-struct kokkos_data;
-
-
-template <typename ValueType, typename MemorySpace>
-struct kokkos_data<gko::array<ValueType>, MemorySpace> {
-    kokkos_data(gko::array<ValueType>& arr)
-        : view(arr.get_data(), arr.get_num_elems())
-    {}
-
-    kokkos_data(ValueType* data, gko::size_type num_elements)
-        : view(data, num_elements)
-    {}
-
-    template <typename... IntType>
-    KOKKOS_INLINE_FUNCTION decltype(auto) operator()(
-        const IntType&... indices) const
-    {
-        return view(indices...);
-    }
-
-    Kokkos::View<ValueType*, MemorySpace,
-                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        view;
-};
-
-template <typename ValueType, typename MemorySpace>
-struct kokkos_data<gko::matrix::Dense<ValueType>, MemorySpace> {
-    kokkos_data(gko::matrix::Dense<ValueType>& mtx)
-        : values(mtx.get_values(), mtx.get_size()[0], mtx.get_size()[1])
-    {}
-
-    Kokkos::View<ValueType**, Kokkos::LayoutRight, MemorySpace,
-                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        values;
-};
-
-
-template <typename ValueType, typename MemorySpace>
-struct kokkos_data<const gko::matrix::Dense<ValueType>, MemorySpace> {
-    kokkos_data(const gko::matrix::Dense<ValueType>& mtx)
-        : values(mtx.get_const_values(), mtx.get_size()[0], mtx.get_size()[1])
-    {}
-
-    Kokkos::View<const ValueType**, Kokkos::LayoutRight, MemorySpace,
-                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        values;
-};
-
-
-template <typename ValueType, typename IndexType, typename MemorySpace>
-struct kokkos_data<gko::device_matrix_data<ValueType, IndexType>, MemorySpace> {
-    kokkos_data(gko::device_matrix_data<ValueType, IndexType>& md)
-        : row_idxs(md.get_row_idxs(), md.get_num_elems()),
-          col_idxs(md.get_col_idxs(), md.get_num_elems()),
-          values(md.get_values(), md.get_num_elems())
-    {}
-
-    kokkos_data<gko::array<IndexType>, MemorySpace> row_idxs;
-    kokkos_data<gko::array<IndexType>, MemorySpace> col_idxs;
-    kokkos_data<gko::array<ValueType>, MemorySpace> values;
-};
-
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-kokkos_data<T, MemorySpace> to_kokkos_data(T& data, MemorySpace ms = {})
-{
-    return kokkos_data<T, MemorySpace>{data};
-}
-
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-kokkos_data<const T, MemorySpace> to_kokkos_data(const T& data,
-                                                 MemorySpace ms = {})
-{
-    return kokkos_data<const T, MemorySpace>{data};
-}
-
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-kokkos_data<T, MemorySpace> to_kokkos_data(T* data, MemorySpace ms = {})
-{
-    return kokkos_data<T, MemorySpace>{*data};
-}
-
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-kokkos_data<const T, MemorySpace> to_kokkos_data(const T* data,
-                                                 MemorySpace ms = {})
-{
-    return kokkos_data<const T, MemorySpace>{*data};
-}
-
-
-template <typename ExecType>
-struct to_kokkos_execution_space;
-
-
-template <typename ExecType>
-struct to_kokkos_memory_space;
-
-#ifdef KOKKOS_ENABLE_SERIAL
-template <>
-struct to_kokkos_memory_space<gko::ReferenceExecutor> {
-    using type = Kokkos::HostSpace;
-};
-#endif
-#ifdef KOKKOS_ENABLE_OPENMP
-template <>
-struct to_kokkos_memory_space<gko::OmpExecutor> {
-    using type = Kokkos::HostSpace;
-};
-#endif
-#ifdef KOKKOS_ENABLE_CUDA
-template <>
-struct to_kokkos_memory_space<gko::CudaExecutor> {
-    using type = Kokkos::CudaSpace;
-};
-#endif
-#ifdef KOKKOS_ENABLE_HIP
-template <>
-struct to_kokkos_memory_space<gko::HipError> {
-    using type = Kokkos::SYCLDeviceUSMSpace;
-};
-#endif
-
-#ifdef KOKKOS_ENABLE_SYCL
-template <>
-struct to_kokkos_memory_space<gko::DpcppExecutor> {};
-#endif
-
-// template <typename Closure, typename... Args>
-// struct KokkosOperation : gko::Operation {
-//     KokkosOperation(Closure&& op, Args&&... args)
-//         : op_(std::forward<Closure>(op)),
-//         args(std::forward_as_tuple(args...))
-//     {}
-//
-//     void run(std::shared_ptr<const gko::ReferenceExecutor> exec) const
-//     override
-//     {
-// #ifdef KOKKOS_ENABLE_SERIAL
-//         apply(exec);
-// #endif
-//     }
-//
-//     void run(std::shared_ptr<const gko::OmpExecutor> exec) const override
-//     {
-//         apply(exec);
-//     }
-//
-//     void run(std::shared_ptr<const gko::CudaExecutor> exec) const override
-//     {
-//         apply(exec);
-//     }
-//
-//     void run(std::shared_ptr<const gko::HipExecutor> exec) const override
-//     {
-//         apply(exec);
-//     }
-//
-//     void run(std::shared_ptr<const gko::DpcppExecutor> exec) const override
-//     {
-//         apply(exec);
-//     }
-//
-// private:
-//     template <typename Space, std::size_t... I>
-//     void apply_impl(Space space, std::index_sequence<I...>)
-//     {
-//         op_(Space::execution_space(),
-//             to_kokkos_data<Space>(
-//                 std::get<I>(std::forward<std::tuple<Args...>>(args)))...);
-//     }
-//
-//     template <typename ExecType>
-//     void apply(std::shared_ptr<const ExecType> execs)
-//     {
-//         using memspace = typename to_kokkos_memory_space<ExecType>::type;
-//         apply_impl(memspace{}, std::make_index_sequence<sizeof...(Args)>{});
-//     }
-//
-//     Closure op_;
-//     std::tuple<Args...> args;
-// };
-//
-//
-// template <typename Fn, typename... Args>
-// KokkosOperation<Fn, Args...> make_kokkos_kernel(Fn&& fn, Args&&... args)
-//{
-//     return {std::forward<Fn>(fn), std::forward<Args>(args)...};
-// }
-
-template <typename Closure, typename... Args>
-struct kokkos_operator {
-    using tuple_type =
-        std::tuple<kokkos_data<typename std::remove_reference<Args>::type,
-                               Kokkos::DefaultExecutionSpace::memory_space>...>;
-
-    kokkos_operator(Closure&& op, Args&&... args)
-        : fn(std::forward<Closure>(op)), args(to_kokkos_data(args)...)
-    {}
-
-    template <typename... ExecPolicyHandles>
-    KOKKOS_INLINE_FUNCTION void operator()(ExecPolicyHandles&&... handles) const
-    {
-        apply_impl<ExecPolicyHandles...>(
-            std::forward<ExecPolicyHandles>(handles)...,
-            std::make_index_sequence<std::tuple_size<decltype(args)>::value>{});
-    }
-
-
-    template <typename... ExecPolicyHandles, std::size_t... I>
-    KOKKOS_INLINE_FUNCTION void apply_impl(ExecPolicyHandles&&... handles,
-                                           std::index_sequence<I...>) const
-    {
-        fn(std::forward<ExecPolicyHandles>(handles)...,
-           std::get<I>(std::forward<tuple_type>(args))...);
-    }
-
-    Closure fn;
-    mutable tuple_type args;
-};
-
-template <typename Closure, typename... Args>
-kokkos_operator<Closure, Args...> make_kokkos_operator(Closure&& cl,
-                                                       Args&&... args)
-{
-    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
-}
 
 
 // Creates a stencil matrix in CSR format for the given number of discretization
@@ -294,15 +56,15 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
     // first and second row to handle all rows uniformly.
     Kokkos::parallel_for(
         "generate_stencil_matrix", md.get_num_elems(),
-        make_kokkos_operator(
-            [discretization_points] __device__(int i, auto kokkos_md) {
+        gko::ext::kokkos::make_operator<>(
+            [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
                 const ValueType coefs[] = {-1, 2, -1};
                 auto ofs = static_cast<IndexType>((i % 3) - 1);
                 auto row = static_cast<IndexType>(i / 3);
                 auto col = row + ofs;
 
-                // To prevent branching, a mask is used to set the entry to
-                // zero, if the column is out-of-bounds
+                // To prevent branching, a mask is used to set the entry
+                // to zero, if the column is out-of-bounds
                 auto mask = static_cast<IndexType>(0 <= col &&
                                                    col < discretization_points);
 
@@ -326,20 +88,22 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
                   gko::matrix::Dense<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
-    auto values = rhs->get_values();
-    Kokkos::View<ValueType*> values_view(values, discretization_points);
-    Kokkos::parallel_for(
-        "generate_rhs", discretization_points, KOKKOS_LAMBDA(int i) {
-            const ValueType h = 1.0 / (discretization_points + 1);
-            const ValueType xi = ValueType(i + 1) * h;
-            values_view(i) = -f(xi) * h * h;
-            if (i == 0) {
-                values_view(i) += u0;
-            }
-            if (i == discretization_points - 1) {
-                values_view(i) += u1;
-            }
-        });
+    Kokkos::parallel_for("generate_rhs", discretization_points,
+                         gko::ext::kokkos::make_operator<>(
+                             [f, u0, u1, discretization_points] GKO_KOKKOS_FN(
+                                 int i, auto kokkos_rhs) {
+                                 const ValueType h =
+                                     1.0 / (discretization_points + 1);
+                                 const ValueType xi = ValueType(i + 1) * h;
+                                 kokkos_rhs(i, 0) = -f(xi) * h * h;
+                                 if (i == 0) {
+                                     kokkos_rhs(i, 0) += u0;
+                                 }
+                                 if (i == discretization_points - 1) {
+                                     kokkos_rhs(i, 0) += u1;
+                                 }
+                             },
+                             rhs));
 }
 
 
@@ -350,18 +114,20 @@ double calculate_error(int discretization_points,
                        const gko::matrix::Dense<ValueType>* u,
                        Closure&& correct_u)
 {
-    auto kokkos_u = to_kokkos_data(u);
-    auto view = kokkos_u.values;
     auto error = 0.0;
     Kokkos::parallel_reduce(
         "calculate_error", discretization_points,
-        KOKKOS_LAMBDA(int i, double& lsum) {
-            const auto h = 1.0 / (discretization_points + 1);
-            const auto xi = (i + 1) * h;
-            lsum += Kokkos::Experimental::abs(
-                (kokkos_u.values(i, 0) - correct_u(xi)) /
-                Kokkos::Experimental::abs(correct_u(xi)));
-        },
+        gko::ext::kokkos::make_reduction_operator<>(
+            double{},
+            [discretization_points, correct_u] GKO_KOKKOS_FN(
+                int i, double& lsum, auto kokkos_u) {
+                const auto h = 1.0 / (discretization_points + 1);
+                const auto xi = (i + 1) * h;
+                lsum += Kokkos::Experimental::abs(
+                    (kokkos_u(i, 0) - correct_u(xi)) /
+                    Kokkos::Experimental::abs(correct_u(xi)));
+            },
+            u),
         error);
     return error;
 }
@@ -393,32 +159,7 @@ int main(int argc, char* argv[])
         argc >= 2 ? std::atoi(argv[1]) : 100u;
 
     // chooses the executor that corresponds to the Kokkos DefaultExecutionSpace
-    auto exec = []() -> std::shared_ptr<gko::Executor> {
-#ifdef KOKKOS_ENABLE_SERIAL
-        if (std::is_same<Kokkos::DefaultExecutionSpace,
-                         Kokkos::Serial>::value) {
-            return gko::ReferenceExecutor::create();
-        }
-#endif
-#ifdef KOKKOS_ENABLE_OPENMP
-        if (std::is_same<Kokkos::DefaultExecutionSpace,
-                         Kokkos::OpenMP>::value) {
-            return gko::OmpExecutor::create();
-        }
-#endif
-#ifdef KOKKOS_ENABLE_CUDA
-        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::Cuda>::value) {
-            return gko::CudaExecutor::create(0,
-                                             gko::ReferenceExecutor::create());
-        }
-#endif
-#ifdef KOKKOS_ENABLE_HIP
-        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::HIP>::value) {
-            return gko::HipExecutor::create(0,
-                                            gko::ReferenceExecutor::create());
-        }
-#endif
-    }();
+    auto exec = gko::ext::kokkos::create_default_executor();
 
     // problem:
     auto correct_u = [] KOKKOS_FUNCTION(ValueType x) { return x * x * x; };
