@@ -58,7 +58,7 @@ template <typename T>
 class copy_assignable<
     T, typename std::enable_if<std::is_copy_constructible<T>::value>::type> {
 public:
-    copy_assignable() : obj_(new(buf)(T)()) {}
+    copy_assignable() : obj_(new (buf)(T)()) {}
 
     copy_assignable(const copy_assignable& other)
     {
@@ -74,9 +74,9 @@ public:
         }
     }
 
-    copy_assignable(const T& obj) : obj_{new(buf)(T)(obj)} {}
+    copy_assignable(const T& obj) : obj_{new (buf)(T)(obj)} {}
 
-    copy_assignable(T&& obj) : obj_{new(buf)(T)(std::move(obj))} {}
+    copy_assignable(T&& obj) : obj_{new (buf)(T)(std::move(obj))} {}
 
     copy_assignable& operator=(const copy_assignable& other)
     {
