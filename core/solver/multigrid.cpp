@@ -62,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 
-#define ENABLE_PROFILE 0
+#define ENABLE_PROFILE 1
 
 namespace gko {
 namespace solver {
@@ -363,7 +363,9 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     auto mg_level = multigrid->get_mg_level_list().at(level);
     auto exec = as<LinOp>(mg_level)->get_executor();
     r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-    auto matrix = level == 0 ? system_matrix : mg_level->get_fine_op().get();
+    // NOTE: be careful
+    // auto matrix = level == 0 ? system_matrix : mg_level->get_fine_op().get();
+    auto matrix = mg_level->get_fine_op().get();
     if (dynamic_cast<const matrix::Csr<double>*>(matrix)) {
         neg_one_list.emplace_back(
             initialize<matrix::Dense<double>>({-one<double>()}, exec));
@@ -852,9 +854,10 @@ void Multigrid::apply_dense_impl(const VectorType* b, Vector2Type* x,
                 this->template create_workspace_array<stopping_status>(
                     ws::stop, b->get_size()[1]);
             bool one_changed{};
+            auto matrix = mg_level->get_fine_op();  // this->get_system_matrix()
             exec->run(multigrid::make_initialize(&stop_status));
             auto stop_criterion = this->get_stop_criterion_factory()->generate(
-                this->get_system_matrix(),
+                matrix,
                 std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
                 nullptr);
             int iter = -1;
@@ -880,8 +883,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, Vector2Type* x,
                     mode = mode | multigrid::cycle_mode::x_is_zero;
                 }
                 cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
-                                           this->get_system_matrix(), b, x,
-                                           mode);
+                                           matrix, b, x, mode);
             }
         };
 

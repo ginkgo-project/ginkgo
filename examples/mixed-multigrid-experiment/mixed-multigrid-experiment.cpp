@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
         }
         std::cout << "0 ~ " << switch_to_single - 1 << " levels use double" << std::endl
                   << "rest use float" << std::endl;
-    } else if (mixed_mode == -1 || mixed_mode == -2) {
+    } else if (mixed_mode < 0) {
         std::cout << "complex" << std::endl;
     }else {
         std::exit(1);
@@ -314,8 +314,8 @@ int main(int argc, char* argv[])
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
-    auto cg_iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
+    auto cg_iter_stop =
+        gko::share(gko::stop::Iteration::build().with_max_iters(3u).on(exec));
     auto cg_tol_stop =
         gko::share(gko::stop::ImplicitResidualNorm<ValueType>::build()
                        .with_baseline(gko::stop::mode::initial_resnorm)
@@ -337,30 +337,34 @@ int main(int argc, char* argv[])
     }
 
     // Create smoother factory (ir with bj)
-    auto smoother_gen = generate_sj_ir<double>(exec, 1u);
-    auto smoother_gen2 = generate_sj_ir<float>(exec, 1u);
-    auto smoother_gen3 = generate_sj_ir<gko::half>(exec, 1u);
+    auto smoother_gen_d = generate_sj_ir<double>(exec, 1u);
+    auto smoother_gen_f = generate_sj_ir<float>(exec, 1u);
+    auto smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u);
     // auto smoother_gen = generate_l1sj_cheb<double>(exec, 2u);
     // auto smoother_gen2 = generate_l1sj_cheb<float>(exec, 2u);
     // auto smoother_gen3 = generate_l1sj_cheb<gko::half>(exec, 2u);
-    // Create RestrictProlong factory
-    auto mg_level_gen = generate_pgm<double, double, double>(exec);
-    auto mg_level_gen2 = generate_pgm<float, double, float>(exec);
-    auto mg_level_gen3 = generate_pgm<gko::half, double, float>(exec);
+    // Create RestrictProlong factory<coarse, fine, working> (always use double
+    // as fine matrix in generation)
+    auto mg_level_gen_dd = generate_pgm<double, double, double>(exec);
+    auto mg_level_gen_fd = generate_pgm<float, double, double>(exec);
+    auto mg_level_gen_ff = generate_pgm<float, double, float>(exec);
+    auto mg_level_gen_hd = generate_pgm<gko::half, double, double>(exec);
+    auto mg_level_gen_hf = generate_pgm<gko::half, double, float>(exec);
+    auto mg_level_gen_hh = generate_pgm<gko::half, double, gko::half>(exec);
     // Create CoarsesSolver factory
-    auto coarsest_solver_gen = generate_sj_ir<double>(exec, 4u);
-    auto coarsest_solver_gen2 = generate_sj_ir<float>(exec, 4u);
-    auto coarsest_solver_gen3 = generate_sj_ir<gko::half>(exec, 4u);
+    auto coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u);
+    auto coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u);
+    auto coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u);
     // Create multigrid factory
     std::shared_ptr<gko::solver::Multigrid::Factory> multigrid_gen;
     if (mixed_mode == 0) {
         multigrid_gen = mg::build()
                             .with_max_levels(num_max_levels)
                             .with_min_coarse_rows(64u)
-                            .with_pre_smoother(smoother_gen)
+                            .with_pre_smoother(smoother_gen_d)
                             .with_post_uses_pre(true)
-                            .with_mg_level(mg_level_gen)
-                            .with_coarsest_solver(coarsest_solver_gen)
+                            .with_mg_level(mg_level_gen_dd)
+                            .with_coarsest_solver(coarsest_solver_gen_d)
                             .with_criteria(criterion)
                             .with_cycle(cycle)
                             .with_default_initial_guess(initial_mode)
@@ -370,9 +374,9 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen, smoother_gen2)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
                 .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen, mg_level_gen2)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first
@@ -383,7 +387,7 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 1 ? 1 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_coarsest_solver(coarsest_solver_gen_f)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -395,10 +399,9 @@ int main(int argc, char* argv[])
                 .with_min_coarse_rows(64u)
                 // input and output are double
                 // first smoother needs to be double to avoid casting copy
-                .with_pre_smoother(smoother_gen, smoother_gen2)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
                 .with_post_uses_pre(true)
-                // using
-                .with_mg_level(mg_level_gen2, mg_level_gen2)
+                .with_mg_level(mg_level_gen_ff, mg_level_gen_ff)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first
@@ -409,22 +412,22 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 1 ? 1 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_coarsest_solver(coarsest_solver_gen_f)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
-    } else if (mixed_mode == -2) {
+    } else if (mixed_mode == -21) {
         multigrid_gen =
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
                 // input and output are double
                 // first smoother needs to be double to avoid casting copy
-                .with_pre_smoother(smoother_gen, smoother_gen3)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
                 .with_post_uses_pre(true)
                 // using
-                .with_mg_level(mg_level_gen3, mg_level_gen3)
+                .with_mg_level(mg_level_gen_hf, mg_level_gen_hf)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first
@@ -435,22 +438,50 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 1 ? 1 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_coarsest_solver(coarsest_solver_gen_f)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
-    } else if (mixed_mode == 2) {
+    } else if (mixed_mode == -22) {
         multigrid_gen =
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
                 // smoother using float
-                .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen2)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
                 // .with_post_uses_pre(false)
                 // .with_post_smoother(post_smoother_gen, post_smoother_gen,
                 //                     post_smoother_gen)
-                .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
+                .with_mg_level(mg_level_gen_ff, mg_level_gen_hf)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_f)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -22) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // smoother using float
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f,
+                                   smoother_gen_f)
+                // .with_post_uses_pre(false)
+                // .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                //                     post_smoother_gen)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff,
+                               mg_level_gen_hf)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first
@@ -461,7 +492,35 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 2 ? 2 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_coarsest_solver(coarsest_solver_gen_f)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == 2) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // smoother using float
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f,
+                                   smoother_gen_h)
+                // .with_post_uses_pre(false)
+                // .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                //                     post_smoother_gen)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff,
+                               mg_level_gen_hh)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
+                    return level >= 2 ? 2 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_h)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -471,9 +530,9 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen, smoother_gen3)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_h)
                 .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen, mg_level_gen3)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_hh)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     // The first (index 0) level will use the first
@@ -484,7 +543,7 @@ int main(int argc, char* argv[])
                     // than the normal multigrid.
                     return level >= 1 ? 1 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_coarsest_solver(coarsest_solver_gen_h)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -493,10 +552,10 @@ int main(int argc, char* argv[])
         multigrid_gen = mg::build()
                             .with_max_levels(num_max_levels)
                             .with_min_coarse_rows(64u)
-                            .with_pre_smoother(smoother_gen2)
+                            .with_pre_smoother(smoother_gen_f)
                             .with_post_uses_pre(true)
-                            .with_mg_level(mg_level_gen2)
-                            .with_coarsest_solver(coarsest_solver_gen2)
+                            .with_mg_level(mg_level_gen_ff)
+                            .with_coarsest_solver(coarsest_solver_gen_f)
                             .with_criteria(criterion)
                             .with_cycle(cycle)
                             .with_default_initial_guess(initial_mode)
@@ -506,14 +565,14 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen2, smoother_gen3)
+                .with_pre_smoother(smoother_gen_f, smoother_gen_h)
                 .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen2, mg_level_gen3)
+                .with_mg_level(mg_level_gen_ff, mg_level_gen_hh)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     return level >= 1 ? 1 : level;
                 })
-                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_coarsest_solver(coarsest_solver_gen_h)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -522,10 +581,10 @@ int main(int argc, char* argv[])
         multigrid_gen = mg::build()
                             .with_max_levels(num_max_levels)
                             .with_min_coarse_rows(64u)
-                            .with_pre_smoother(smoother_gen3)
+                            .with_pre_smoother(smoother_gen_h)
                             .with_post_uses_pre(true)
-                            .with_mg_level(mg_level_gen3)
-                            .with_coarsest_solver(coarsest_solver_gen3)
+                            .with_mg_level(mg_level_gen_hh)
+                            .with_coarsest_solver(coarsest_solver_gen_h)
                             .with_criteria(criterion)
                             .with_cycle(cycle)
                             .with_default_initial_guess(initial_mode)
@@ -535,11 +594,13 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen, smoother_gen2, smoother_gen3)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f,
+                                   smoother_gen_h)
                 // .with_post_uses_pre(false)
                 // .with_post_smoother(post_smoother_gen, post_smoother_gen,
                 //                     post_smoother_gen)
-                .with_mg_level(mg_level_gen, mg_level_gen2, mg_level_gen3)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff,
+                               mg_level_gen_hh)
                 .with_level_selector([=](const gko::size_type level,
                                          const gko::LinOp*) -> gko::size_type {
                     if (level >= switch_to_half) {
@@ -550,7 +611,7 @@ int main(int argc, char* argv[])
                     }
                     return 0;
                 })
-                .with_coarsest_solver(coarsest_solver_gen3)
+                .with_coarsest_solver(coarsest_solver_gen_h)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -560,9 +621,9 @@ int main(int argc, char* argv[])
             mg::build()
                 .with_max_levels(num_max_levels)
                 .with_min_coarse_rows(64u)
-                .with_pre_smoother(smoother_gen, smoother_gen2)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
                 .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen, mg_level_gen2)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff)
                 .with_level_selector([=](const gko::size_type level,
                                          const gko::LinOp*) -> gko::size_type {
                     if (level >= switch_to_single) {
@@ -570,7 +631,7 @@ int main(int argc, char* argv[])
                     }
                     return 0;
                 })
-                .with_coarsest_solver(coarsest_solver_gen2)
+                .with_coarsest_solver(coarsest_solver_gen_f)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
