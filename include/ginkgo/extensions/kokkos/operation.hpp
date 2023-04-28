@@ -74,10 +74,10 @@ template <typename MemorySpace, typename ValueType, typename Closure,
           typename... Args>
 struct kokkos_operator {
     using value_type = ValueType;
-    using tuple_type = std::tuple<
-        native_type<typename std::remove_pointer<
-                        typename std::remove_reference<Args>::type>::type,
-                    MemorySpace>...>;
+    using tuple_type = std::tuple<typename native_type<
+        typename std::remove_pointer<
+            typename std::remove_reference<Args>::type>::type,
+        MemorySpace>::type...>;
 
     kokkos_operator(Closure&& op, Args&&... args)
         : fn(std::forward<Closure>(op)),
