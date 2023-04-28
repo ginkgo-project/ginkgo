@@ -455,6 +455,30 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
+    auto schur_factory = gko::share(
+        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<ValueType,
+                                                     LocalIndexType>::build()
+                    .with_symmetric_sparsity(true)
+                    .on(exec))
+            .with_num_rhs(5u)
+            .on(exec));
+    auto direct_factory = gko::share(
+        // gko::experimental::reorder::ScaledReordered<ValueType,
+        //                                         LocalIndexType>::build()
+        //.with_inner_operator(
+        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<ValueType,
+                                                     LocalIndexType>::build()
+                    .with_symmetric_sparsity(true)
+                    .on(exec))
+            //        .on(exec))
+            //.with_reordering(
+            //    gko::reorder::Rcm<ValueType,
+            //    LocalIndexType>::build().on(exec))
+            .on(exec));
     auto mg_level_factory =
         gko::share(pgm::build().with_deterministic(true).on(exec));
     auto coarsest_solver_factory = gko::share(
@@ -471,7 +495,7 @@ int main(int argc, char* argv[])
             .with_pre_smoother(smoother_factory)
             .with_post_uses_pre(true)
             .with_mg_level(mg_level_factory)
-            .with_coarsest_solver(coarsest_solver_factory)
+            .with_coarsest_solver(coarsest_solver_factory)  // direct_factory)
             .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
@@ -492,20 +516,6 @@ int main(int argc, char* argv[])
                     .with_reduction_factor(tol)
                     .on(exec))
             .on(exec));*/
-    auto direct_factory = gko::share(
-        gko::experimental::reorder::ScaledReordered<ValueType,
-                                                    LocalIndexType>::build()
-            .with_inner_operator(
-                gko::experimental::solver::Direct<ValueType,
-                                                  LocalIndexType>::build()
-                    .with_factorization(gko::experimental::factorization::Lu<
-                                            ValueType, LocalIndexType>::build()
-                                            //.with_symmetric_sparsity(true)
-                                            .on(exec))
-                    .on(exec))
-            .with_reordering(
-                gko::reorder::Rcm<ValueType, LocalIndexType>::build().on(exec))
-            .on(exec));
     auto gmres_factory = gko::share(
         gko::experimental::reorder::ScaledReordered<ValueType,
                                                     LocalIndexType>::build()
@@ -516,7 +526,7 @@ int main(int argc, char* argv[])
                         gko::stop::Iteration::build().with_max_iters(max_it).on(
                             exec),
                         gko::stop::ResidualNorm<ValueType>::build()
-                            .with_reduction_factor(1e-2)
+                            .with_reduction_factor(1e-6)
                             .on(exec))
                     .on(exec))
             .with_reordering(
@@ -534,12 +544,13 @@ int main(int argc, char* argv[])
             .on(exec));
     auto cg_factory = gko::share(
         cg::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(comm.size() * comm.size())
-                               .on(exec),
-                           gko::stop::ResidualNorm<ValueType>::build()
-                               .with_reduction_factor(tol)
-                               .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build()
+                    .with_max_iters(max_it)  // comm.size() * comm.size())
+                    .on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(tol)
+                    .on(exec))
             .on(exec));
     /*auto gmres_factory = gko::share(
         gmres::build()
@@ -575,7 +586,7 @@ int main(int argc, char* argv[])
                     .with_symmetric_sparsity(true)
                     .on(exec))
             .on(exec));*/
-    auto Ainv =
+    /*auto Ainv =
         gko::solver::Fcg<ValueType>::build()
             .with_preconditioner(
                 bddc::build()
@@ -589,12 +600,22 @@ int main(int argc, char* argv[])
                     .on(exec))
             .with_criteria(tol_stop, iter_stop)
             .on(exec)
-            ->generate(A);
-    /*auto Ainv = bddc::build()
-        .with_local_solver_factory(gmres_factory)
-        .with_schur_complement_solver_factory(gmres_factory)
-        .with_inner_solver_factory(cg_factory)
-        .on(exec)->generate(A);*/
+            ->generate(A);*/
+    auto Ainv = gko::share(
+        gko::solver::Cg<ValueType>::build()
+            .with_preconditioner(
+                bddc::build()
+                    .with_static_condensation(true)
+                    .with_interface_dofs(interface_dofs)
+                    .with_interface_dof_ranks(interface_dof_ranks)
+                    .with_local_solver_factory(direct_factory)
+                    .with_schur_complement_solver_factory(schur_factory)
+                    .with_inner_solver_factory(direct_factory)
+                    .with_coarse_solver_factory(cg_factory)  // gmres_factory)
+                    .on(exec))
+            .with_criteria(tol_stop, iter_stop)
+            .on(exec)
+            ->generate(A));
     std::string log_name = "log_" + std::to_string(comm.rank()) + ".txt";
     std::ofstream log{log_name};
     std::shared_ptr<const gko::log::ProfilerHook> perf_logger =
@@ -661,7 +682,6 @@ int main(int argc, char* argv[])
                   << "\nTimer per Iteration: " << t_apply / logger->get_num_iterations()
                   << "\nTotal time: " << t_end - t_init
                   << std::endl;
-        perf_logger->create_summary();
         // clang-format on
     }
 }

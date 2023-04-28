@@ -203,7 +203,7 @@ void prolong_coarse_solution2(std::shared_ptr<const DefaultExecutor> exec,
     }
 
     for (auto i = 0; i < coarse_send_buffer.get_num_elems(); i++) {
-        local_intermediate->at(local_to_send_data[i], i) = send_data[i];
+        local_intermediate->at(local_to_send_data[i], 0) = send_data[i];
     }
 }
 
