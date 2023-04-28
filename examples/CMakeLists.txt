@@ -57,12 +57,6 @@ endif()
 
 find_package(Kokkos QUIET)
 if(Kokkos_FOUND)
-    if(GINKGO_WITH_CCACHE)
-        message(WARNING "The CMAKE_CXX_COMPILER_LAUNCHER is set due to "
-            "GINKGO_WITH_CCACHE=ON which is known to casue issues with CUDA enabled "
-            "Kokkos (https://github.com/kokkos/kokkos/issues/4821) including compilation "
-            "failures. This can be prevented by setting GINKGO_WITH_CCACHE=OFF.")
-    endif()
     list(APPEND EXAMPLES_LIST kokkos_assembly)
 else()
     message(STATUS "No Kokkos found, disabling examples with Kokkos assembly.")

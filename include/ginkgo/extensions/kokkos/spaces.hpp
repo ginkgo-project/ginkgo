@@ -210,6 +210,19 @@ std::shared_ptr<Executor> create_default_executor()
 }
 
 
+template <typename ExecType>
+typename native_memory_space<ExecType>::type create_memory_space(
+    const std::shared_ptr<const ExecType>& exec)
+{
+    return {};
+}
+template <typename ExecType>
+typename native_execution_space<ExecType>::type create_execution_space(
+    const std::shared_ptr<const ExecType>& exec)
+{
+    return {};
+}
+
 }  // namespace kokkos
 }  // namespace ext
 }  // namespace gko

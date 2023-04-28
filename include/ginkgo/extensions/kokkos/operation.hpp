@@ -9,6 +9,7 @@
 
 // need to check that KOKKOS_ENABLE_CUDA_LAMBDA is on
 
+#include <ginkgo/extensions/kokkos/spaces.hpp>
 #include <ginkgo/extensions/kokkos/types.hpp>
 
 
@@ -84,6 +85,13 @@ struct kokkos_operator {
           args(map_data(std::forward<Args>(args), MemorySpace{})...)
     {}
 
+    template <std::size_t... I>
+    kokkos_operator(Closure&& op, const std::tuple<Args&&...>& args,
+                    std::index_sequence<I...>)
+        : fn(std::forward<Closure>(op)),
+          args(map_data(std::forward<Args>(std::get<I>(args)))...)
+    {}
+
     template <typename... ExecPolicyHandles>
     KOKKOS_INLINE_FUNCTION void operator()(ExecPolicyHandles&&... handles) const
     {
@@ -108,21 +116,31 @@ private:
 
 }  // namespace detail
 
-
 template <typename MemorySpace, typename Closure, typename... Args,
           typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
-detail::kokkos_operator<MemorySpace, void, Closure, Args...> make_operator(
-    MemorySpace, Closure&& cl, Args&&... args)
+[[deprecated]] detail::kokkos_operator<MemorySpace, void, Closure, Args...>
+make_operator(MemorySpace, Closure&& cl, std::tuple<Args&&...> args)
 {
-    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+    return {std::forward<Closure>(cl), args,
+            std::make_index_sequence<sizeof...(Args)>{}};
 }
 
-template <typename Closure, typename... Args>
-detail::kokkos_operator<Kokkos::DefaultExecutionSpace, void, Closure, Args...>
-make_operator(Closure&& cl, Args&&... args)
-{
-    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
-}
+// template <typename MemorySpace, typename Closure, typename... Args,
+//           typename =
+//           std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
+//[[deprecated]]
+// detail::kokkos_operator<MemorySpace, void, Closure, Args...> make_operator(
+//     MemorySpace, Closure&& cl, Args&&... args)
+//{
+//     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+// }
+
+// template <typename Closure, typename... Args>
+// detail::kokkos_operator<Kokkos::DefaultExecutionSpace, void, Closure,
+// Args...> make_operator(Closure&& cl, Args&&... args)
+//{
+//     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+// }
 
 
 template <typename MemorySpace, typename ValueType, typename Closure,
@@ -160,6 +178,58 @@ make_scan_operator(ValueType, Closure&& cl, Args&&... args)
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
 }
 
+
+template <template <class...> class Policy, typename... PolicyArgs,
+          typename ExecType, typename... InitArgs>
+decltype(auto) make_policy(std::shared_ptr<ExecType> exec, InitArgs&&... args)
+{
+    return Policy<
+        typename native_execution_space<std::remove_cv_t<ExecType>>::type,
+        PolicyArgs...>(std::forward<InitArgs>(args)...);
+}
+
+template <template <class...> class Policy, typename... PolicyArgs,
+          typename... InitArgs>
+decltype(auto) make_policy_top(InitArgs&&... args)
+{
+    return [=](auto exec) {
+        return make_policy<Policy, PolicyArgs...>(exec, std::move(args)...);
+    };
+}
+
+template <typename I>
+decltype(auto) make_policy_top(I count)
+{
+    return make_policy_top<Kokkos::RangePolicy>(count);
+}
+
+template <typename Policy, typename Closure, typename... Args,
+          typename = std::enable_if_t<std::is_invocable_v<
+              Policy, std::shared_ptr<const ReferenceExecutor>>>>
+decltype(auto) parallel_for(const std::string& name, Policy&& policy,
+                            Closure&& closure, Args&&... args)
+{
+    return gko::detail::make_register_operation(
+        name.c_str(), [policy_ = std::forward<Policy>(policy),
+                       op_ = std::forward<Closure>(closure), name,
+                       args_ = std::forward_as_tuple(args...)](auto exec) {
+            Kokkos::parallel_for(name, policy_(exec),
+                                 make_operator(create_memory_space(exec),
+                                               std::move(op_), args_));
+        });
+}
+
+// template <typename I, typename Closure, typename... Args,
+//           typename = std::enable_if_t<!std::is_invocable_v<
+//               I, std::shared_ptr<const ReferenceExecutor>>>>
+// decltype(auto) parallel_for(const std::string& name, I count, Closure&&
+// closure,
+//                             Args&&... args)
+//{
+//     return parallel_for(name, make_policy_top(count),
+//                         std::forward<Closure>(closure),
+//                         std::forward<Args>(args)...);
+// }
 
 }  // namespace kokkos
 }  // namespace ext
