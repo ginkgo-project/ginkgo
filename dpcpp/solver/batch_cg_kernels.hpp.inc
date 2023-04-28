@@ -39,9 +39,9 @@ __dpct_inline__ void initialize(
     const ValueType* const b_global_entry,
     const ValueType* const x_global_entry, ValueType* const x_shared_entry,
     ValueType* const r_shared_entry, const PrecType& prec_shared,
-    ValueType* const z_shared_entry, ValueType& rho_old_shared_entry,
-    ValueType* const p_shared_entry,
-    gko::remove_complex<ValueType>& rhs_norms_sh, sycl::nd_item<3> item_ct1)
+    ValueType* const z_shared_entry, ValueType& rho_old,
+    ValueType* const p_shared_entry, gko::remove_complex<ValueType>& rhs_norms,
+    sycl::nd_item<3> item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
@@ -66,16 +66,15 @@ __dpct_inline__ void initialize(
     prec_shared.apply(num_rows, r_shared_entry, z_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
-    if (sg_id == 0) {
-        // Compute norms of rhs
-        compute_norm2_sg_kernel(num_rows, b_global_entry, rhs_norms_sh,
-                                item_ct1);
-    } else if (sg_id == 1) {
-        // rho_old = r' * z
-        compute_dot_product_sg_kernel(num_rows, r_shared_entry, z_shared_entry,
-                                      rho_old_shared_entry, item_ct1);
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    //    if (sg_id == 0) {
+    // Compute norms of rhs
+    compute_norm2_kernel(num_rows, b_global_entry, rhs_norms, item_ct1);
+    //    } else if (sg_id == 1) {
+    // rho_old = r' * z
+    compute_dot_product_kernel(num_rows, r_shared_entry, z_shared_entry,
+                               rho_old, item_ct1);
+    //}
+    // item_ct1.barrier(sycl::access::fence_space::local_space);
     // p = z
     for (int iz = tid; iz < num_rows; iz += group_size) {
         p_shared_entry[iz] = z_shared_entry[iz];
@@ -92,9 +91,9 @@ __dpct_inline__ void update_p(const int num_rows,
                               ValueType* const p_shared_entry,
                               sycl::nd_item<3> item_ct1)
 {
+    const ValueType beta = rho_new_shared_entry / rho_old_shared_entry;
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
-        const ValueType beta = rho_new_shared_entry / rho_old_shared_entry;
         p_shared_entry[li] = z_shared_entry[li] + beta * p_shared_entry[li];
     }
 }
@@ -105,7 +104,6 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
                                     const ValueType& rho_old_shared_entry,
                                     const ValueType* const p_shared_entry,
                                     const ValueType* const Ap_shared_entry,
-                                    ValueType& alpha_shared_entry,
                                     ValueType* const x_shared_entry,
                                     ValueType* const r_shared_entry,
                                     sycl::nd_item<3> item_ct1)
@@ -113,15 +111,13 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
 
-    if (sg_id == 0) {
-        compute_dot_product_sg_kernel(num_rows, p_shared_entry, Ap_shared_entry,
-                                      alpha_shared_entry, item_ct1);
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    ValueType alpha;
+    compute_dot_product_kernel(num_rows, p_shared_entry, Ap_shared_entry, alpha,
+                               item_ct1);
+    alpha = rho_old_shared_entry / alpha;
 
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
-        const ValueType alpha = rho_old_shared_entry / alpha_shared_entry;
         x_shared_entry[li] += alpha * p_shared_entry[li];
         r_shared_entry[li] -= alpha * Ap_shared_entry[li];
     }
@@ -154,11 +150,12 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
     const auto ibatch = item_ct1.get_group_linear_id();
 
-    ValueType* rho_old_sh = &slm_values[0];
-    ValueType* rho_new_sh = &slm_values[1];
-    ValueType* alpha_sh = &slm_values[2];
-    remove_complex<ValueType>* norms_rhs_sh = &slm_reals[0];
-    remove_complex<ValueType>* norms_res_sh = &slm_reals[1];
+    // The whole workgroup have the same values for these variables, but these
+    // variables are stored in reg. mem, not on SLM
+    ValueType rho_old_sh;
+    ValueType rho_new_sh;
+    remove_complex<ValueType> norms_rhs_sh;
+    remove_complex<ValueType> norms_res_sh;
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
@@ -208,18 +205,18 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     // rho_old = r' * z (' is for hermitian transpose)
     // p = z
     initialize(nrows, A_global_entry, b_global_entry, x_global_entry, x_sh,
-               r_sh, prec_shared, z_sh, rho_old_sh[0], p_sh, norms_rhs_sh[0],
+               r_sh, prec_shared, z_sh, rho_old_sh, p_sh, norms_rhs_sh,
                item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // stopping criterion object
-    StopType stop(tol, norms_rhs_sh);
+    StopType stop(tol, &norms_rhs_sh);
 
     int iter = 0;
     for (; iter < max_iter; iter++) {
-        norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
+        norms_res_sh = sqrt(abs(rho_old_sh));
         item_ct1.barrier(sycl::access::fence_space::local_space);
-        if (stop.check_converged(norms_res_sh)) {
+        if (stop.check_converged(&norms_res_sh)) {
             break;
         }
 
@@ -230,34 +227,32 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
         // r = r - alpha * Ap
-        update_x_and_r(nrows, rho_old_sh[0], p_sh, Ap_sh, alpha_sh[0], x_sh,
-                       r_sh, item_ct1);
+        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, x_sh, r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // z = precond * r
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        if (sg_id == 0) {
-            // rho_new =  (r)' * (z)
-            compute_dot_product_sg_kernel(nrows, r_sh, z_sh, rho_new_sh[0],
-                                          item_ct1);
-        }
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        // if (sg_id == 0) {
+        //  rho_new =  (r)' * (z)
+        compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
+        //}
+        //        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // beta = rho_new / rho_old
         // p = z + beta * p
-        update_p(nrows, rho_new_sh[0], rho_old_sh[0], z_sh, p_sh, item_ct1);
+        update_p(nrows, rho_new_sh, rho_old_sh, z_sh, p_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // rho_old = rho_new
-        if (item_ct1.get_local_linear_id() == 0) {
-            rho_old_sh[0] = rho_new_sh[0];
-        }
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        //        if (item_ct1.get_local_linear_id() == 0) {
+        rho_old_sh = rho_new_sh;
+        //}
+        // item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
-    logger.log_iteration(ibatch, iter, norms_res_sh[0]);
+    logger.log_iteration(ibatch, iter, norms_res_sh);
 
     // copy x back to global memory
     copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
