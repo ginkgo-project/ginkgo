@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <random>
@@ -153,7 +154,7 @@ int main(int argc, char* argv[])
         argc >= 6 ? (std::string(argv[5]) == "time") : false;
     const bool print_residuals =
         argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
-    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 20;
+    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 10;
     const int gmres_restart = argc >= 9 ? std::atoi(argv[8]) : 10;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
@@ -274,7 +275,7 @@ int main(int argc, char* argv[])
     // Warmup
     auto x_clone = gko::clone(x);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 1; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }
@@ -335,14 +336,16 @@ int main(int argc, char* argv[])
             }
         }
     }
+    auto apply_time_avrg = apply_time / num_reps * 1000;
     if (print_time) {
-        std::cout << apply_time / num_reps << std::endl;
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << apply_time_avrg << std::endl;
     } else {
         std::cout << "Solver type: " << in_solver
                   << "\nMatrix size: " << A->get_size().at(0)
                   << "\nNum batch entries: " << A->get_num_batch_entries()
-                  << "\nEntire solve took: " << apply_time / num_reps
-                  << " seconds." << std::endl;
+                  << "\nEntire solve took: " << apply_time_avrg << " msecs."
+                  << std::endl;
     }
 
     // Ginkgo objects are cleaned up automatically; but the "application" still
