@@ -129,6 +129,113 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
+void small_apply_kernel(
+    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, LogType logger,
+    PrecType prec_shared, const BatchMatrixType A_global_entry,
+    const ValueType* const __restrict__ b_global_entry,
+    ValueType* const __restrict__ x_global_entry, const size_type nrows,
+    const size_type nnz, ValueType* slm_values,
+    gko::remove_complex<ValueType>* slm_reals, sycl::nd_item<3> item_ct1,
+    ValueType* const __restrict__ workspace = nullptr)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
+
+    const auto ibatch = item_ct1.get_group_linear_id();
+
+    // The whole workgroup have the same values for these variables, but these
+    // variables are stored in reg. mem, not on SLM
+    ValueType rho_old_sh;
+    ValueType rho_new_sh;
+    remove_complex<ValueType> norms_rhs_sh;
+    remove_complex<ValueType> norms_res_sh;
+
+    const int gmem_offset =
+        ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
+    ValueType* r_sh;
+    ValueType* z_sh;
+    ValueType* p_sh;
+    ValueType* Ap_sh;
+    ValueType* x_sh;
+    ValueType* prec_work_sh;
+    r_sh = &slm_values[3];
+    z_sh = r_sh + sconf.padded_vec_len;
+    p_sh = z_sh + sconf.padded_vec_len;
+    Ap_sh = p_sh + sconf.padded_vec_len;
+    prec_work_sh = Ap_sh + sconf.padded_vec_len;
+    x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
+    // generate preconditioner
+    prec_shared.generate(ibatch, A_global_entry, prec_work_sh, item_ct1);
+
+    // initialization
+    // compute b norms
+    // r = b - A*x
+    // z = precond*r
+    // rho_old = r' * z (' is for hermitian transpose)
+    // p = z
+    initialize(nrows, A_global_entry, b_global_entry, x_global_entry, x_sh,
+               r_sh, prec_shared, z_sh, rho_old_sh, p_sh, norms_rhs_sh,
+               item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+
+    // stopping criterion object
+    StopType stop(tol, &norms_rhs_sh);
+
+    int iter = 0;
+    for (; iter < max_iter; iter++) {
+        norms_res_sh = sqrt(abs(rho_old_sh));
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+        if (stop.check_converged(&norms_res_sh)) {
+            break;
+        }
+
+        // Ap = A * p
+        single_matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+
+        // alpha = rho_old / (p' * Ap)
+        // x = x + alpha * p
+        // r = r - alpha * Ap
+        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, x_sh, r_sh, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+
+        // z = precond * r
+        prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+
+        // if (sg_id == 0) {
+        //  rho_new =  (r)' * (z)
+        compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
+        //}
+        //        item_ct1.barrier(sycl::access::fence_space::local_space);
+
+        // beta = rho_new / rho_old
+        // p = z + beta * p
+        update_p(nrows, rho_new_sh, rho_old_sh, z_sh, p_sh, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+
+        // rho_old = rho_new
+        //        if (item_ct1.get_local_linear_id() == 0) {
+        rho_old_sh = rho_new_sh;
+        //}
+        // item_ct1.barrier(sycl::access::fence_space::local_space);
+    }
+
+    logger.log_iteration(ibatch, iter, norms_res_sh);
+
+    // copy x back to global memory
+    copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+}
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
 void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
                   const int max_iter, const gko::remove_complex<ValueType> tol,
                   LogType logger, PrecType prec_shared,
