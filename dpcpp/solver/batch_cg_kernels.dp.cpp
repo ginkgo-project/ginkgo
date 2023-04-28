@@ -132,30 +132,37 @@ public:
                 slm_reals(sycl::range<1>(2), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1)
-                    [[intel::reqd_sub_group_size(subgroup_size)]] {
-                        auto group = item_ct1.get_group();
-                        auto batch_id = group.get_group_linear_id();
-                        const auto a_global_entry =
-                            gko::batch::batch_entry(a, batch_id);
-                        const ValueType* const b_global_entry =
-                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                        batch_id);
-                        ValueType* const x_global_entry =
-                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                        batch_id);
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto batch_id = group.get_group_linear_id();
+                    const auto a_global_entry =
+                        gko::batch::batch_entry(a, batch_id);
+                    const ValueType* const b_global_entry =
+                        gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                    batch_id);
+                    ValueType* const x_global_entry =
+                        gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                    batch_id);
 
-                        ValueType* const slm_values_ptr =
-                            slm_values.get_pointer();
-                        real_type* const slm_reals_ptr =
-                            slm_reals.get_pointer();
+                    ValueType* const slm_values_ptr = slm_values.get_pointer();
+                    real_type* const slm_reals_ptr = slm_reals.get_pointer();
+
+                    if (sconf.n_global == 0) {
+                        small_apply_kernel<StopType>(
+                            sconf, max_iters, res_tol, logger, prec,
+                            a_global_entry, b_global_entry, x_global_entry,
+                            nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
+                            item_ct1, workspace_data);
+                    } else {
                         apply_kernel<StopType>(
                             sconf, max_iters, res_tol, logger, prec,
                             a_global_entry, b_global_entry, x_global_entry,
                             nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
                             item_ct1, workspace_data);
-                    });
+                    }
+                });
         });
     }
 
