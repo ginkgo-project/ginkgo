@@ -46,16 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 std::shared_ptr<typename gko::solver::Ir<ValueType>::Factory> generate_sj_ir(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type iteration)
+    std::shared_ptr<const gko::Executor> exec, gko::size_type iteration,
+    gko::size_type max_block = 1u)
 {
     using IndexType = int;
     using ir = gko::solver::Ir<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     return gko::share(
         ir::build()
-            .with_solver(
-                bj::build().with_max_block_size(1u).with_skip_sorting(true).on(
-                    exec))
+            .with_solver(bj::build()
+                             .with_max_block_size(max_block)
+                             .with_skip_sorting(true)
+                             .on(exec))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(iteration).on(
@@ -88,12 +90,13 @@ generate_l1sj_cheb(std::shared_ptr<const gko::Executor> exec,
 template <typename ValueType, typename WorkingType, typename MultigridType>
 std::shared_ptr<typename gko::multigrid::Pgm<ValueType, int, WorkingType,
                                              MultigridType>::Factory>
-generate_pgm(std::shared_ptr<const gko::Executor> exec)
+generate_pgm(std::shared_ptr<const gko::Executor> exec, double scalar)
 {
     return gko::share(
         gko::multigrid::Pgm<ValueType, int, WorkingType, MultigridType>::build()
             .with_deterministic(true)
             .with_skip_sorting(true)
+            .with_scalar(static_cast<ValueType>(scalar))
             .on(exec));
 }
 
@@ -111,6 +114,9 @@ int main(int argc, char* argv[])
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
+    std::cout << "./exec executor mixed_mode num_level cycle_mode mg_mode "
+                 "sm_mode scale A [b]"
+              << std::endl;
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     // Figure out where to run the code
@@ -149,8 +155,11 @@ int main(int argc, char* argv[])
         std::cout << "mg_mode should be solver, cg";
         return -1;
     }
-    const std::string A_file = argc >= 7 ? argv[6] : "data/A.mtx";
-    const std::string b_file = argc >= 8 ? argv[7] : "ones";
+    const std::string sm_mode = argc >= 7 ? argv[6] : "jacobi";
+    const bool scale = argc >= 8 ? (std::atoi(argv[7]) != 0) : false;
+    const std::string A_file = argc >= 9 ? argv[8] : "data/A.mtx";
+
+    const std::string b_file = argc >= 10 ? argv[9] : "ones";
     int switch_to_single = mixed_mode % 400 / 10;
     int switch_to_half = mixed_mode % 400 % 10;
     std::cout << "mixed mode: " << mixed_mode << std::endl;
@@ -199,6 +208,8 @@ int main(int argc, char* argv[])
     std::cout << "The maxium number of levels: " << num_max_levels << std::endl;
     std::cout << "cycle mode: " << cycle_mode << std::endl;
     std::cout << "mg mode: " << mg_mode << std::endl;
+    std::cout << "sm mode: " << sm_mode << std::endl;
+    std::cout << "scale: " << scale << std::endl;
     std::cout << "A: " << A_file << std::endl;
     std::cout << "b: " << b_file << std::endl;
     gko::solver::multigrid::cycle cycle;
@@ -233,14 +244,18 @@ int main(int argc, char* argv[])
     }
     std::vector<ValueType> row_max(A_host->get_size()[0], 0);
     std::vector<ValueType> col_max(A_host->get_size()[0], 0);
+    double scalar = 1.0;
     // using max of row/col
-    for (int row = 0; row < A_host->get_size()[0]; row++) {
-        for (auto i = A_host->get_row_ptrs()[row];
-             i < A_host->get_row_ptrs()[row + 1]; i++) {
-            auto col = A_host->get_col_idxs()[i];
-            auto val = std::abs(A_host->get_values()[i]);
-            row_max.at(row) = std::max(row_max.at(row), val);
-            col_max.at(col) = std::max(col_max.at(col), val);
+    if (scale) {
+        for (int row = 0; row < A_host->get_size()[0]; row++) {
+            for (auto i = A_host->get_row_ptrs()[row];
+                 i < A_host->get_row_ptrs()[row + 1]; i++) {
+                auto col = A_host->get_col_idxs()[i];
+                auto val = std::abs(A_host->get_values()[i]);
+                row_max.at(row) = std::max(row_max.at(row), val);
+                col_max.at(col) = std::max(col_max.at(col), val);
+            }
+            scalar = 0.5;
         }
     }
     std::cout << "abs max of row max: "
@@ -248,24 +263,21 @@ int main(int argc, char* argv[])
     std::cout << "abs max of col max: "
               << *std::max_element(col_max.begin(), col_max.end()) << std::endl;
 
-    // for (int row = 0; row < A_host->get_size()[0]; row++) {
-    //     for (auto i = A_host->get_row_ptrs()[row];
-    //          i < A_host->get_row_ptrs()[row + 1]; i++) {
-    //         auto col = A_host->get_col_idxs()[i];
-    //         // A_host->get_values()[i] /=
-    //         //     std::sqrt(std::abs(diag->get_values()[row]));
-    //         // A_host->get_values()[i] /=
-    //         //     std::sqrt(std::abs(diag->get_values()[col]));
-    //         A_host->get_values()[i] /= std::sqrt(row_max.at(row));
-    //         A_host->get_values()[i] /= std::sqrt(col_max.at(col));
-    //     }
-    // }
+    for (int row = 0; row < A_host->get_size()[0]; row++) {
+        for (auto i = A_host->get_row_ptrs()[row];
+             i < A_host->get_row_ptrs()[row + 1]; i++) {
+            auto col = A_host->get_col_idxs()[i];
+
+            A_host->get_values()[i] /= std::sqrt(row_max.at(row));
+            A_host->get_values()[i] /= std::sqrt(col_max.at(col));
+        }
+    }
     auto A = gko::share(A_host->clone(exec));
-    std::cout << "max_diag " << max_diag << " scaling "
-              << 65504 / 10.0 / max_diag << std::endl;
-    auto scale_host =
-        gko::initialize<vec>({65504 / 10.0 / max_diag}, exec->get_master());
-    auto scale = gko::initialize<vec>({65504 / 10.0 / max_diag}, exec);
+    // std::cout << "max_diag " << max_diag << " scaling "
+    //           << 65504 / 10.0 / max_diag << std::endl;
+    // auto scale_host =
+    //     gko::initialize<vec>({65504 / 10.0 / max_diag}, exec->get_master());
+    // auto scale = gko::initialize<vec>({65504 / 10.0 / max_diag}, exec);
     // A->scale(scale.get());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
@@ -337,24 +349,48 @@ int main(int argc, char* argv[])
     }
 
     // Create smoother factory (ir with bj)
-    auto smoother_gen_d = generate_sj_ir<double>(exec, 1u);
-    auto smoother_gen_f = generate_sj_ir<float>(exec, 1u);
-    auto smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u);
-    // auto smoother_gen = generate_l1sj_cheb<double>(exec, 2u);
-    // auto smoother_gen2 = generate_l1sj_cheb<float>(exec, 2u);
-    // auto smoother_gen3 = generate_l1sj_cheb<gko::half>(exec, 2u);
+    std::shared<gko::LinOpFactory> smoother_gen_d, smoother_gen_f,
+        smoother_gen_h;
+    std::shared<gko::LinOpFactory> coarsest_solver_gen_d, coarsest_solver_gen_f,
+        coarsest_solver_gen_h;
+    if (sm_mode == "jacobi") {
+        smoother_gen_d = generate_sj_ir<double>(exec, 1u, 1u);
+        smoother_gen_f = generate_sj_ir<float>(exec, 1u, 1u);
+        smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u, 1u);
+        coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u, 1u);
+        coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u, 1u);
+        coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u, 1u);
+    } else if (sm_mode == "bj") {
+        // 32 block_size
+        smoother_gen_d = generate_sj_ir<double>(exec, 1u, 32u);
+        smoother_gen_f = generate_sj_ir<float>(exec, 1u, 32u);
+        smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u, 32u);
+        coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u, 32u);
+        coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u, 32u);
+        coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u, 32u);
+    } else if (sm_mode == "l1cheyb") {
+        smoother_gen_d = generate_l1sj_cheb<double>(exec, 2u);
+        smoother_gen_f = generate_l1sj_cheb<float>(exec, 2u);
+        smoother_gen_h = generate_l1sj_cheb<gko::half>(exec, 2u);
+        coarsest_solver_gen_d = generate_l1sj_cheb<double>(exec, 2u);
+        coarsest_solver_gen_f = generate_l1sj_cheb<float>(exec, 2u);
+        coarsest_solver_gen_h = generate_l1sj_cheb<gko::half>(exec, 2u);
+    } else {
+        std::cout << "not supported sm_mode " << sm_mode << std::endl;
+        std::exit(1);
+    }
+
+
     // Create RestrictProlong factory<coarse, fine, working> (always use double
     // as fine matrix in generation)
-    auto mg_level_gen_dd = generate_pgm<double, double, double>(exec);
-    auto mg_level_gen_fd = generate_pgm<float, double, double>(exec);
-    auto mg_level_gen_ff = generate_pgm<float, double, float>(exec);
-    auto mg_level_gen_hd = generate_pgm<gko::half, double, double>(exec);
-    auto mg_level_gen_hf = generate_pgm<gko::half, double, float>(exec);
-    auto mg_level_gen_hh = generate_pgm<gko::half, double, gko::half>(exec);
-    // Create CoarsesSolver factory
-    auto coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u);
-    auto coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u);
-    auto coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u);
+    auto mg_level_gen_dd = generate_pgm<double, double, double>(exec, scalar);
+    auto mg_level_gen_fd = generate_pgm<float, double, double>(exec, scalar);
+    auto mg_level_gen_ff = generate_pgm<float, double, float>(exec, scalar);
+    auto mg_level_gen_hd =
+        generate_pgm<gko::half, double, double>(exec, scalar);
+    auto mg_level_gen_hf = generate_pgm<gko::half, double, float>(exec, scalar);
+    auto mg_level_gen_hh =
+        generate_pgm<gko::half, double, gko::half>(exec, scalar);
     // Create multigrid factory
     std::shared_ptr<gko::solver::Multigrid::Factory> multigrid_gen;
     if (mixed_mode == 0) {
@@ -469,7 +505,35 @@ int main(int argc, char* argv[])
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
-    } else if (mixed_mode == -22) {
+    } else if (mixed_mode == -23) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // smoother using float
+                .with_pre_smoother(smoother_gen_d, smoother_gen_d,
+                                   smoother_gen_d)
+                // .with_post_uses_pre(false)
+                // .with_post_smoother(post_smoother_gen, post_smoother_gen,
+                //                     post_smoother_gen)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_fd,
+                               mg_level_gen_hd)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
+                    return level >= 2 ? 2 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_d)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -2) {
         multigrid_gen =
             mg::build()
                 .with_max_levels(num_max_levels)
@@ -725,8 +789,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    int warmup = 1;
-    int rep = 1;
+    int warmup = 2;
+    int rep = 3;
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
                               : gko::as<gko::LinOp>(cg_solver);

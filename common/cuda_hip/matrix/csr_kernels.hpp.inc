@@ -503,7 +503,7 @@ __device__ void device_classical_spmv(
              ind += subwarp_size * 2) {
             temp_val += val(ind) * b(col_idxs[ind], column_id);
             if (ind + 1 < ind_end) {
-                temp_val += val(ind + 1) * b(col_idxs[ind], column_id);
+                temp_val += val(ind + 1) * b(col_idxs[ind + 1], column_id);
             }
         }
         auto subwarp_result =

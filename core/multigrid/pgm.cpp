@@ -103,7 +103,7 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     std::shared_ptr<const Executor> exec,
     const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg)
+    const gko::array<IndexType>& agg, ValueType scalar_val)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
@@ -139,8 +139,8 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         exec, std::make_shared<
                   typename matrix::Csr<ValueType, IndexType>::classical>());
     coarse_csr->copy_from(std::move(coarse_coo));
-    // auto half_scalar = initialize<matrix::Dense<ValueType>>({0.5}, exec);
-    // coarse_csr->scale(half_scalar.get());
+    auto scalar = initialize<matrix::Dense<ValueType>>({scalar_val}, exec);
+    coarse_csr->scale(scalar.get());
     return std::move(coarse_csr);
 }
 
@@ -236,15 +236,18 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
+    auto scalar_val = parameters_.scalar;
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim, ValueType{1}));
+            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim,
+            ValueType{scalar_val}));
     agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
     // TODO: improve it
-    auto working_coarse_matrix = generate_coarse(exec, pgm_op, num_agg, agg_);
+    auto working_coarse_matrix =
+        generate_coarse(exec, pgm_op, num_agg, agg_, scalar_val);
     auto coarse_matrix = share(gko::matrix::Csr<ValueType, IndexType>::create(
         exec,
         std::make_shared<

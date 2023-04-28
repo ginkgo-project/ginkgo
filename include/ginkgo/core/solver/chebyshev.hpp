@@ -249,6 +249,7 @@ private:
     mutable int num_generated_;
     ValueType center_;
     ValueType foci_direction_;
+    mutable bool generated_ = false;
 };
 
 

@@ -265,12 +265,12 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual_ptr);
 
-    auto norm = Vector::create(exec, dim<2>{1, 1});
-    auto get_norm = [&](auto vector) {
-        vector->compute_norm2(norm.get());
-        return static_cast<double>(
-            real(exec->copy_val_to_host(norm->get_values())));
-    };
+    // auto norm = Vector::create(exec, dim<2>{1, 1});
+    // auto get_norm = [&](auto vector) {
+    //     vector->compute_norm2(norm.get());
+    //     return static_cast<double>(
+    //         real(exec->copy_val_to_host(norm->get_values())));
+    // };
     // std::cout << "IR: x: " << get_norm(dense_x) << " b: " <<
     // get_norm(dense_b)
     //           << " r: " << get_norm(residual_ptr) << std::endl;

@@ -62,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 
-#define ENABLE_PROFILE 1
+#define ENABLE_PROFILE 0
 
 namespace gko {
 namespace solver {
@@ -476,11 +476,11 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
             range.c_str(), log::profile_event_category::user,
             log::begin_nvtx_fn(log::ProfilerHook::color_yellow_argb),
             log::end_nvtx};
-        if (dynamic_cast<const matrix::Dense<double>*>(b)) {
-            std::cout << "level " << level << " double " << std::endl;
-        } else if (dynamic_cast<const matrix::Dense<float>*>(b)) {
-            std::cout << "level " << level << " float " << std::endl;
-        }
+        // if (dynamic_cast<const matrix::Dense<double>*>(b)) {
+        //     std::cout << "level " << level << " double " << std::endl;
+        // } else if (dynamic_cast<const matrix::Dense<float>*>(b)) {
+        //     std::cout << "level " << level << " float " << std::endl;
+        // }
 #endif
         if (use_pre && pre_smoother) {
             if (has_property(mode, cycle_mode::x_is_zero)) {
