@@ -37,15 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #if GKO_HAVE_METIS
 #include GKO_METIS_HEADER
 #endif
-
-
-#include <ginkgo/core/base/temporary_clone.hpp>
 
 
 #include "core/base/allocator.hpp"

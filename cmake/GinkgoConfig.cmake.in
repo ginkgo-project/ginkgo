@@ -200,7 +200,7 @@ if(GINKGO_HAVE_VTUNE)
     find_package(VTune REQUIRED)
 endif()
 
-if(GINKGO_HAVE_METIS)
+if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_METIS)
     find_package(METIS REQUIRED)
 endif()
 

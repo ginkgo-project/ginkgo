@@ -113,15 +113,15 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_HAVE_TAU)
-    target_link_libraries(ginkgo PUBLIC perfstubs)
+    target_link_libraries(ginkgo PRIVATE perfstubs)
 endif()
 
 if(GINKGO_HAVE_VTUNE)
-    target_link_libraries(ginkgo PUBLIC VTune::ITT)
+    target_link_libraries(ginkgo PRIVATE VTune::ITT)
 endif()
 
 if(GINKGO_HAVE_METIS)
-    target_link_libraries(ginkgo PUBLIC METIS::METIS)
+    target_link_libraries(ginkgo PRIVATE METIS::METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)
