@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"
+#include "cuda/base/kernel_config.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -158,6 +159,7 @@ public:
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const auto matrix_storage = a.get_entry_storage();
         const int shmem_per_blk =

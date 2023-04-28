@@ -79,6 +79,37 @@ using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
 
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
+                              const int num_rows)
+{
+    int nwarps = num_rows / 4;
+    if (nwarps < 2) {
+        nwarps = 2;
+    }
+    const int min_block_size = 2 * config::warp_size;
+    const int device_max_threads =
+        ((std::max(num_rows, min_block_size)) / config::warp_size) *
+        config::warp_size;
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(
+        &funcattr,
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    const int num_regs_used = funcattr.numRegs;
+    int max_regs_blk = 0;
+    cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
+                           exec->get_device_id());
+    const int max_threads_regs =
+        ((max_regs_blk /
+          static_cast<int>((static_cast<double>(num_regs_used) * 1.1))) /
+         config::warp_size) *
+        config::warp_size;
+    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+}
+
+
 template <typename CuValueType>
 class KernelCaller {
 public:
@@ -97,14 +128,19 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
+        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const int shared_size =
             gko::kernels::batch_rich::local_memory_requirement<value_type>(
                 a.num_rows, b.num_rhs) +
             PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
                 sizeof(value_type);
+        const int block_size =
+            get_num_threads_per_block<StopType, PrecType, LogType,
+                                      BatchMatrixType, value_type>(exec_,
+                                                                   a.num_rows);
 
-        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
+        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
             opts_.max_its, opts_.residual_tol, opts_.relax_factor, logger, prec,
             a, b.values, x.values);
 

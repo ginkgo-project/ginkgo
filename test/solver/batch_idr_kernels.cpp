@@ -221,8 +221,6 @@ TEST_F(BatchIdr, CanSolveCsrSystemWithoutScaling)
             .with_default_max_iterations(maxits)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(exec))
             .with_subspace_dim(static_cast<gko::size_type>(1))
             .with_smoothing(false)
             .with_deterministic(true)
