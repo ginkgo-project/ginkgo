@@ -56,7 +56,7 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
     // first and second row to handle all rows uniformly.
     Kokkos::parallel_for(
         "generate_stencil_matrix", md.get_num_elems(),
-        gko::ext::kokkos::make_operator<>(
+        gko::ext::kokkos::make_operator(
             [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
                 const ValueType coefs[] = {-1, 2, -1};
                 auto ofs = static_cast<IndexType>((i % 3) - 1);
@@ -89,7 +89,7 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
 {
     const auto discretization_points = rhs->get_size()[0];
     Kokkos::parallel_for("generate_rhs", discretization_points,
-                         gko::ext::kokkos::make_operator<>(
+                         gko::ext::kokkos::make_operator(
                              [f, u0, u1, discretization_points] GKO_KOKKOS_FN(
                                  int i, auto kokkos_rhs) {
                                  const ValueType h =
@@ -117,15 +117,14 @@ double calculate_error(int discretization_points,
     auto error = 0.0;
     Kokkos::parallel_reduce(
         "calculate_error", discretization_points,
-        gko::ext::kokkos::make_reduction_operator<>(
-            double{},
+        gko::ext::kokkos::make_reduction_operator(
+            error,
             [discretization_points, correct_u] GKO_KOKKOS_FN(
                 int i, double& lsum, auto kokkos_u) {
                 const auto h = 1.0 / (discretization_points + 1);
                 const auto xi = (i + 1) * h;
-                lsum += Kokkos::Experimental::abs(
-                    (kokkos_u(i, 0) - correct_u(xi)) /
-                    Kokkos::Experimental::abs(correct_u(xi)));
+                lsum += Kokkos::abs((kokkos_u(i, 0) - correct_u(xi)) /
+                                    Kokkos::abs(correct_u(xi)));
             },
             u),
         error);

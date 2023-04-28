@@ -84,7 +84,6 @@ struct kokkos_operator {
           args(map_data(std::forward<Args>(args), MemorySpace{})...)
     {}
 
-private:
     template <typename... ExecPolicyHandles>
     KOKKOS_INLINE_FUNCTION void operator()(ExecPolicyHandles&&... handles) const
     {
@@ -93,6 +92,7 @@ private:
             std::make_index_sequence<std::tuple_size<decltype(args)>::value>{});
     }
 
+private:
     template <typename... ExecPolicyHandles, std::size_t... I>
     KOKKOS_INLINE_FUNCTION void apply_impl(ExecPolicyHandles&&... handles,
                                            std::index_sequence<I...>) const
@@ -109,27 +109,52 @@ private:
 }  // namespace detail
 
 
-template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
-          typename Closure, typename... Args>
+template <typename MemorySpace, typename Closure, typename... Args,
+          typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
 detail::kokkos_operator<MemorySpace, void, Closure, Args...> make_operator(
-    Closure&& cl, Args&&... args)
+    MemorySpace, Closure&& cl, Args&&... args)
+{
+    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+}
+
+template <typename Closure, typename... Args>
+detail::kokkos_operator<Kokkos::DefaultExecutionSpace, void, Closure, Args...>
+make_operator(Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
 }
 
 
-template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
-          typename ValueType, typename Closure, typename... Args>
+template <typename MemorySpace, typename ValueType, typename Closure,
+          typename... Args,
+          typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
 detail::kokkos_operator<MemorySpace, ValueType, Closure, Args...>
+make_reduction_operator(MemorySpace, ValueType, Closure&& cl, Args&&... args)
+{
+    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+}
+
+template <typename ValueType, typename Closure, typename... Args>
+detail::kokkos_operator<Kokkos::DefaultExecutionSpace, ValueType, Closure,
+                        Args...>
 make_reduction_operator(ValueType, Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
 }
 
 
-template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
-          typename ValueType, typename Closure, typename... Args>
+template <typename MemorySpace, typename ValueType, typename Closure,
+          typename... Args,
+          typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
 detail::kokkos_operator<MemorySpace, ValueType, Closure, Args...>
+make_scan_operator(MemorySpace, ValueType, Closure&& cl, Args&&... args)
+{
+    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+}
+
+template <typename ValueType, typename Closure, typename... Args>
+detail::kokkos_operator<Kokkos::DefaultExecutionSpace, ValueType, Closure,
+                        Args...>
 make_scan_operator(ValueType, Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
