@@ -178,23 +178,26 @@ std::shared_ptr<Executor> create_executor(ExecSpace)
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
-    if (std::is_same<ExecSpace, Kokkos::Serial>::value) {
-        return ReferenceExecutor::create();
+    if (std::is_same<ExecSpace, Kokkos::OpenMP>::value) {
+        return OmpExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
     if (std::is_same<ExecSpace, Kokkos::Cuda>::value) {
-        return CudaExecutor::create(0, create_default_host_executor());
+        return CudaExecutor::create(Kokkos::device_id(),
+                                    create_default_host_executor());
     }
 #endif
 #ifdef KOKKOS_ENABLE_HIP
     if (std::is_same<ExecSpace, Kokkos::HIP>::value) {
-        return HipExecutpr::create(0, create_default_host_executor());
+        return HipExecutpr::create(Kokkos::device_id(),
+                                   create_default_host_executor());
     }
 #endif
 #ifdef KOKKOS_ENABLE_SYCL
     if (std::is_same<ExecSpace, Kokkos::Experimental::SYCL>::value) {
-        return DpcppExecutor::create(0, create_default_host_executor());
+        return DpcppExecutor::create(Kokkos::device_id(),
+                                     create_default_host_executor());
     }
 #endif
     GKO_NOT_IMPLEMENTED;
