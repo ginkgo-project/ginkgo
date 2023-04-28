@@ -58,7 +58,7 @@ template <typename T>
 class copy_assignable<
     T, typename std::enable_if<std::is_copy_constructible<T>::value>::type> {
 public:
-    copy_assignable() : obj_(new (buf)(T)()) {}
+    copy_assignable() = default;
 
     copy_assignable(const copy_assignable& other)
     {
@@ -74,14 +74,16 @@ public:
         }
     }
 
-    copy_assignable(const T& obj) : obj_{new (buf)(T)(obj)} {}
+    copy_assignable(const T& obj) : obj_{new(buf)(T)(obj)} {}
 
-    copy_assignable(T&& obj) : obj_{new (buf)(T)(std::move(obj))} {}
+    copy_assignable(T&& obj) : obj_{new(buf)(T)(std::move(obj))} {}
 
     copy_assignable& operator=(const copy_assignable& other)
     {
         if (this != &other) {
-            obj_->~T();
+            if (obj_) {
+                obj_->~T();
+            }
             obj_ = new (buf)(T)(*other.obj_);
         }
         return *this;
@@ -90,13 +92,20 @@ public:
     copy_assignable& operator=(copy_assignable&& other) noexcept
     {
         if (this != &other) {
-            obj_->~T();
+            if (obj_) {
+                obj_->~T();
+            }
             obj_ = new (buf)(T)(std::move(*other.obj_));
         }
         return *this;
     }
 
-    ~copy_assignable() { obj_->~T(); }
+    ~copy_assignable()
+    {
+        if (obj_) {
+            obj_->~T();
+        }
+    }
 
     template <typename... Args>
     decltype(auto) operator()(Args&&... args) const
