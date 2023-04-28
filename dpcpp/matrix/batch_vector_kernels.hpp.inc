@@ -129,6 +129,30 @@ __dpct_inline__ void compute_norm2_sg_kernel(
     sg.barrier();
 }
 
+template <typename ValueType>
+__dpct_inline__ void compute_norm2_kernel(
+    const int num_rows, const ValueType* const x,
+    gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
+{
+    const auto group = item_ct1.get_group();
+    const auto group_size = item_ct1.get_local_range().size();
+    const auto tid = item_ct1.get_local_linear_id();
+
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = tid; r < num_rows; r += group_size) {
+        val += squared_norm(x[r]);
+    }
+
+    val = sycl::reduce_over_group(group, val, sycl::plus<>());
+
+    // if (sg_tid == 0) {
+    result = sqrt(val);
+    // }
+    // sg.barrier();
+}
+
 /*
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void single_compute_norm2(
@@ -176,6 +200,25 @@ __dpct_inline__ void compute_dot_product_sg_kernel(const int num_rows,
     if (sg_tid == 0) {
         result = val;
     }
+}
+
+template <typename ValueType>
+__dpct_inline__ void compute_dot_product_kernel(const int num_rows,
+                                                const ValueType* const x,
+                                                const ValueType* const y,
+                                                ValueType& result,
+                                                sycl::nd_item<3> item_ct1)
+{
+    const auto group = item_ct1.get_group();
+    const auto group_size = item_ct1.get_local_range().size();
+    const auto tid = item_ct1.get_local_linear_id();
+
+    ValueType val = zero<ValueType>();
+
+    for (int r = tid; r < num_rows; r += group_size) {
+        val += conj(x[r]) * y[r];
+    }
+    result = sycl::reduce_over_group(group, val, sycl::plus<>());
 }
 
 /*
