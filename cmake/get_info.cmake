@@ -200,6 +200,15 @@ ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
 ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
 ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
+ginkgo_print_module_footer(${detailed_log} "")
+
+ginkgo_print_generic_header(${minimal_log} "  Extensions:")
+ginkgo_print_generic_header(${detailed_log} "  Extensions:")
+ginkgo_print_variable(${minimal_log} "GINKGO_EXTENSION_KOKKOS")
+ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS")
+ginkgo_print_variable(${detailed_log} "Kokkos_VERSION")
+ginkgo_print_variable(${detailed_log} "Kokkos_ROOT")
+ginkgo_print_variable(${detailed_log} "Kokkos_INCLUDE_DIRS")
 
 _minimal(
     "
