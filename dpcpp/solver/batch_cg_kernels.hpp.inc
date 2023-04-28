@@ -129,15 +129,16 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-void small_apply_kernel(
-    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
-    const gko::remove_complex<ValueType> tol, LogType logger,
-    PrecType prec_shared, const BatchMatrixType A_global_entry,
-    const ValueType* const __restrict__ b_global_entry,
-    ValueType* const __restrict__ x_global_entry, const size_type nrows,
-    const size_type nnz, ValueType* slm_values,
-    gko::remove_complex<ValueType>* slm_reals, sycl::nd_item<3> item_ct1,
-    ValueType* const __restrict__ workspace = nullptr)
+void small_apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
+                        const int max_iter,
+                        const gko::remove_complex<ValueType> tol,
+                        LogType logger, PrecType prec_shared,
+                        const BatchMatrixType A_global_entry,
+                        const ValueType* const __restrict__ b_global_entry,
+                        ValueType* const __restrict__ x_global_entry,
+                        const size_type nrows, const size_type nnz,
+                        ValueType* slm_values, sycl::nd_item<3> item_ct1,
+                        ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
@@ -163,7 +164,7 @@ void small_apply_kernel(
     ValueType* Ap_sh;
     ValueType* x_sh;
     ValueType* prec_work_sh;
-    r_sh = &slm_values[3];
+    r_sh = slm_values;
     z_sh = r_sh + sconf.padded_vec_len;
     p_sh = z_sh + sconf.padded_vec_len;
     Ap_sh = p_sh + sconf.padded_vec_len;
@@ -208,11 +209,7 @@ void small_apply_kernel(
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        // if (sg_id == 0) {
-        //  rho_new =  (r)' * (z)
         compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
-        //}
-        //        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // beta = rho_new / rho_old
         // p = z + beta * p
@@ -220,10 +217,7 @@ void small_apply_kernel(
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // rho_old = rho_new
-        //        if (item_ct1.get_local_linear_id() == 0) {
         rho_old_sh = rho_new_sh;
-        //}
-        // item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     logger.log_iteration(ibatch, iter, norms_res_sh);
@@ -243,9 +237,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
                   const ValueType* const __restrict__ b_global_entry,
                   ValueType* const __restrict__ x_global_entry,
                   const size_type nrows, const size_type nnz,
-                  ValueType* slm_values,
-                  gko::remove_complex<ValueType>* slm_reals,
-                  sycl::nd_item<3> item_ct1,
+                  ValueType* slm_values, sycl::nd_item<3> item_ct1,
                   ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -273,7 +265,7 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     ValueType* x_sh;
     ValueType* prec_work_sh;
     if (sconf.n_shared >= 1) {
-        r_sh = &slm_values[3];
+        r_sh = slm_values;
     } else {
         r_sh = workspace + gmem_offset;
     }
@@ -341,22 +333,15 @@ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        // if (sg_id == 0) {
         //  rho_new =  (r)' * (z)
         compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
-        //}
-        //        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // beta = rho_new / rho_old
         // p = z + beta * p
         update_p(nrows, rho_new_sh, rho_old_sh, z_sh, p_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        // rho_old = rho_new
-        //        if (item_ct1.get_local_linear_id() == 0) {
         rho_old_sh = rho_new_sh;
-        //}
-        // item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     logger.log_iteration(ibatch, iter, norms_res_sh);

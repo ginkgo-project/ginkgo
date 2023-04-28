@@ -63,6 +63,10 @@ namespace batch_cg {
 template <typename T>
 using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 
+int get_larger_power(int value, int guess = 32)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
 
 template <typename ValueType>
 class KernelCaller {
@@ -85,22 +89,17 @@ public:
         GKO_ASSERT(nrhs == 1);
 
         auto device = exec_->get_queue()->get_device();
-        auto group_size =
+        int group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
+        if (group_size > 2 * nrows) group_size = get_larger_power(nrows);
         constexpr int subgroup_size = config::warp_size;
-        GKO_ASSERT(group_size >= 2 * subgroup_size);
 
         const dim3 block(group_size);
         const dim3 grid(num_batches);
 
-        size_type slm_size =
+        size_type shmem_per_blk =
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
-        size_type shmem_per_blk =
-            slm_size - 3 * sizeof(ValueType) -
-            2 * sizeof(real_type);  // reserve 3 for intermediate rho-s, norms,
-                                    // and alpha
-        if (shmem_per_blk < 0) shmem_per_blk = 0;
         const int shared_gap =
             nrows;  // TODO: check if it is neccessary to align
         const size_type prec_size =
@@ -121,48 +120,43 @@ public:
         auto x_values = x.values;
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
-        const int local_accessor_size = shared_size + 3;
 
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
-                slm_values(sycl::range<1>(local_accessor_size), cgh);
-            sycl::accessor<real_type, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_reals(sycl::range<1>(2), cgh);
-
+                slm_values(sycl::range<1>(shared_size), cgh);
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto batch_id = group.get_group_linear_id();
-                    const auto a_global_entry =
-                        gko::batch::batch_entry(a, batch_id);
-                    const ValueType* const b_global_entry =
-                        gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                    batch_id);
-                    ValueType* const x_global_entry =
-                        gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                    batch_id);
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(subgroup_size)]] {
+                        auto group = item_ct1.get_group();
+                        auto batch_id = group.get_group_linear_id();
+                        const auto a_global_entry =
+                            gko::batch::batch_entry(a, batch_id);
+                        const ValueType* const b_global_entry =
+                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                        batch_id);
+                        ValueType* const x_global_entry =
+                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                        batch_id);
 
-                    ValueType* const slm_values_ptr = slm_values.get_pointer();
-                    real_type* const slm_reals_ptr = slm_reals.get_pointer();
+                        ValueType* const slm_values_ptr =
+                            slm_values.get_pointer();
 
-                    if (sconf.n_global == 0) {
-                        small_apply_kernel<StopType>(
-                            sconf, max_iters, res_tol, logger, prec,
-                            a_global_entry, b_global_entry, x_global_entry,
-                            nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
-                            item_ct1, workspace_data);
-                    } else {
-                        apply_kernel<StopType>(
-                            sconf, max_iters, res_tol, logger, prec,
-                            a_global_entry, b_global_entry, x_global_entry,
-                            nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
-                            item_ct1, workspace_data);
-                    }
-                });
+                        if (sconf.n_global == 0) {
+                            small_apply_kernel<StopType>(
+                                sconf, max_iters, res_tol, logger, prec,
+                                a_global_entry, b_global_entry, x_global_entry,
+                                nrows, a.num_nnz, slm_values_ptr, item_ct1,
+                                workspace_data);
+                        } else {
+                            apply_kernel<StopType>(
+                                sconf, max_iters, res_tol, logger, prec,
+                                a_global_entry, b_global_entry, x_global_entry,
+                                nrows, a.num_nnz, slm_values_ptr, item_ct1,
+                                workspace_data);
+                        }
+                    });
         });
     }
 
