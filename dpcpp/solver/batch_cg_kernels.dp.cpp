@@ -98,7 +98,8 @@ public:
         const dim3 grid(num_batches);
 
         size_type shmem_per_blk =
-            device.get_info<sycl::info::device::local_mem_size>();
+            device.get_info<sycl::info::device::local_mem_size>() -
+            3 * sizeof(ValueType) - 2 * sizeof(real_type);
         const auto matrix_size = a.get_entry_storage();
         const int shared_gap =
             nrows;  // TODO: check if it is neccessary to align
@@ -124,39 +125,89 @@ public:
         (exec_->get_queue())->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
-                slm_values(sycl::range<1>(shared_size), cgh);
-            cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1)
-                    [[intel::reqd_sub_group_size(subgroup_size)]] {
-                        auto group = item_ct1.get_group();
-                        auto batch_id = group.get_group_linear_id();
-                        const auto a_global_entry =
-                            gko::batch::batch_entry(a, batch_id);
-                        const ValueType* const b_global_entry =
-                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                        batch_id);
-                        ValueType* const x_global_entry =
-                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                        batch_id);
+                slm_values(sycl::range<1>(shared_size + 3), cgh);
+            sycl::accessor<real_type, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_reals(sycl::range<1>(2), cgh);
+            if (nrows < 64) {
+                cgh.parallel_for(
+                    sycl_nd_range(grid, block),
+                    [=](sycl::nd_item<3> item_ct1)
+                        [[intel::reqd_sub_group_size(16)]] {
+                            auto group = item_ct1.get_group();
+                            auto batch_id = group.get_group_linear_id();
+                            const auto a_global_entry =
+                                gko::batch::batch_entry(a, batch_id);
+                            const ValueType* const b_global_entry =
+                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                            batch_id);
+                            ValueType* const x_global_entry =
+                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                            batch_id);
 
-                        ValueType* const slm_values_ptr =
-                            slm_values.get_pointer();
+                            ValueType* const slm_values_ptr =
+                                slm_values.get_pointer();
+                            real_type* const slm_reals_ptr =
+                                slm_reals.get_pointer();
 
-                        if (sconf.n_global == 0) {
                             small_apply_kernel<StopType>(
                                 sconf, max_iters, res_tol, logger, prec,
                                 a_global_entry, b_global_entry, x_global_entry,
-                                nrows, a.num_nnz, slm_values_ptr, item_ct1,
-                                workspace_data);
-                        } else {
+                                nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
+                                item_ct1, workspace_data);
+                        });
+            } else if (nrows < 256) {
+                GKO_ASSERT(sconf.n_global != 0);
+                cgh.parallel_for(
+                    sycl_nd_range(grid, block),
+                    [=](sycl::nd_item<3> item_ct1)
+                        [[intel::reqd_sub_group_size(32)]] {
+                            auto group = item_ct1.get_group();
+                            auto batch_id = group.get_group_linear_id();
+                            const auto a_global_entry =
+                                gko::batch::batch_entry(a, batch_id);
+                            const ValueType* const b_global_entry =
+                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                            batch_id);
+                            ValueType* const x_global_entry =
+                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                            batch_id);
+
+                            ValueType* const slm_values_ptr =
+                                slm_values.get_pointer();
+                            real_type* const slm_reals_ptr =
+                                slm_reals.get_pointer();
+
+                            small_apply_kernel<StopType>(
+                                sconf, max_iters, res_tol, logger, prec,
+                                a_global_entry, b_global_entry, x_global_entry,
+                                nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
+                                item_ct1, workspace_data);
+                        });
+            } else {
+                cgh.parallel_for(
+                    sycl_nd_range(grid, block),
+                    [=](sycl::nd_item<3> item_ct1)
+                        [[intel::reqd_sub_group_size(subgroup_size)]] {
+                            auto group = item_ct1.get_group();
+                            auto batch_id = group.get_group_linear_id();
+                            const auto a_global_entry =
+                                gko::batch::batch_entry(a, batch_id);
+                            const ValueType* const b_global_entry =
+                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                            batch_id);
+                            ValueType* const x_global_entry =
+                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                            batch_id);
+                            ValueType* const slm_values_ptr =
+                                slm_values.get_pointer();
                             apply_kernel<StopType>(
                                 sconf, max_iters, res_tol, logger, prec,
                                 a_global_entry, b_global_entry, x_global_entry,
                                 nrows, a.num_nnz, slm_values_ptr, item_ct1,
                                 workspace_data);
-                        }
-                    });
+                        });
+            }
         });
     }
 
