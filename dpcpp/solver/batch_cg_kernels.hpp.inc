@@ -157,6 +157,7 @@ __dpct_inline__ void update_x_and_r_small(
         compute_dot_product_sg_kernel(num_rows, p_shared_entry, Ap_shared_entry,
                                       alpha_shared_entry, item_ct1);
     }
+    item_ct1.barrier(sycl::access::fence_space::local_space);
     ValueType alpha = rho_old_shared_entry / alpha_shared_entry;
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
