@@ -126,7 +126,6 @@ __dpct_inline__ void compute_norm2_sg_kernel(
     if (sg_tid == 0) {
         result = sqrt(val);
     }
-    sg.barrier();
 }
 
 template <typename ValueType>
