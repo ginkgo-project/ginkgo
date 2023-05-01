@@ -140,13 +140,13 @@ __dpct_inline__ void single_advanced_matvec_kernel(
              i += sg.get_local_range().size()) {
             const int col = a.col_idxs[i];
             const ValueType val = a.values[i];
-            temp += alpha * val * b[col];
+            temp += val * b[col];
         }
 
         temp = sycl::reduce_over_group(sg, temp, sycl::plus<>());
 
         if (sg.get_local_id() == 0) {
-            c[row] = temp + beta * c[row];
+            c[row] = alpha * temp + beta * c[row];
         }
     }
 }
