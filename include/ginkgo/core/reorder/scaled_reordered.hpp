@@ -108,6 +108,8 @@ public:
         std::shared_ptr<const ReorderingBaseFactory>
             GKO_FACTORY_PARAMETER_SCALAR(reordering, nullptr);
 
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            reordering_linop, nullptr);
         /**
          * The row scaling that is to be applied to the system matrix.
          */
@@ -165,6 +167,17 @@ protected:
         if (parameters_.reordering) {
             auto reordering = parameters_.reordering->generate(system_matrix_);
             permutation_array_ = reordering->get_permutation_array();
+            system_matrix_ = as<Permutable<index_type>>(system_matrix_)
+                                 ->permute(&permutation_array_);
+        }
+
+        if (parameters_.reordering_linop) {
+            auto permutation_matrix = as<matrix::Permutation<index_type>>(
+                parameters_.reordering_linop->generate(system_matrix_));
+            permutation_array_ = array<index_type>(
+                exec, permutation_matrix->get_const_permutation(),
+                permutation_matrix->get_const_permutation() +
+                    permutation_matrix->get_size()[0]);
             system_matrix_ = as<Permutable<index_type>>(system_matrix_)
                                  ->permute(&permutation_array_);
         }
