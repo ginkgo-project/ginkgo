@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/hybrid.hpp>
 
 
-#include "accessor/linop_helper.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
@@ -59,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/components/csr_spgeam.hpp"
 
@@ -87,22 +87,24 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
 
-    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
-    const auto b_vals = acc::helper::build_const_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            auto temp = zero<arithmetic_type>();
+            auto sum = zero<arithmetic_type>();
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                auto val = a_vals(k);
+                arithmetic_type val = a_vals(k);
                 auto col = col_idxs[k];
 
-                temp += val * b_vals(col, j);
+                sum += val * b_vals(col, j);
             }
-            c_vals(row, j) = temp;
+            c_vals(row, j) = sum;
         }
     }
 }
@@ -128,20 +130,22 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     arithmetic_type valpha = alpha->at(0, 0);
     arithmetic_type vbeta = beta->at(0, 0);
 
-    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
-    const auto b_vals = acc::helper::build_const_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            auto temp = c_vals(row, j) * vbeta;
+            auto sum = c_vals(row, j) * vbeta;
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                auto val = a_vals(k);
+                arithmetic_type val = a_vals(k);
                 auto col = col_idxs[k];
-                temp += valpha * val * b_vals(col, j);
+                sum += valpha * val * b_vals(col, j);
             }
-            c_vals(row, j) = temp;
+            c_vals(row, j) = sum;
         }
     }
 }

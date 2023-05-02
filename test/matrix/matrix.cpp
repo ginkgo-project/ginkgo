@@ -768,26 +768,27 @@ protected:
         });
     }
 
-    template <typename VecType = Vec, typename MtxType, typename TestFunction>
+    template <typename VecType = Vec, typename OutVecType = VecType,
+              typename MtxType, typename TestFunction>
     void run_strided(const test_pair<MtxType>& mtx, int rhs, int in_stride,
                      int out_stride, TestFunction fn)
     {
         // create slightly bigger vectors
         auto in_padded = gen_in_vec<VecType>(mtx, in_stride);
-        auto out_padded = gen_out_vec<VecType>(mtx, out_stride);
+        auto out_padded = gen_out_vec<OutVecType>(mtx, out_stride);
         const auto in_rows = gko::span(0, mtx.ref->get_size()[1]);
         const auto out_rows = gko::span(0, mtx.ref->get_size()[0]);
         const auto cols = gko::span(0, rhs);
         const auto out_pad_cols = gko::span(rhs, out_stride);
         // create views of the padding and in/out vectors
-        auto out_padding = test_pair<VecType>{
+        auto out_padding = test_pair<OutVecType>{
             out_padded.ref->create_submatrix(out_rows, out_pad_cols),
             out_padded.dev->create_submatrix(out_rows, out_pad_cols)};
         auto orig_padding = out_padding.ref->clone();
         auto in =
             test_pair<VecType>{in_padded.ref->create_submatrix(in_rows, cols),
                                in_padded.dev->create_submatrix(in_rows, cols)};
-        auto out = test_pair<VecType>{
+        auto out = test_pair<OutVecType>{
             out_padded.ref->create_submatrix(out_rows, cols),
             out_padded.dev->create_submatrix(out_rows, cols)};
         fn(std::move(in), std::move(out));
@@ -796,7 +797,8 @@ protected:
         GKO_ASSERT_MTX_NEAR(out_padding.dev, orig_padding, 0.0);
     }
 
-    template <typename VecType = Vec, typename MtxType, typename TestFunction>
+    template <typename VecType = Vec, typename OutVecType = VecType,
+              typename MtxType, typename TestFunction>
     void forall_vector_scenarios(const test_pair<MtxType>& mtx, TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
@@ -809,47 +811,50 @@ protected:
         {
             SCOPED_TRACE("Multivector with 0 columns");
             guarded_fn(gen_in_vec<VecType>(mtx, 0),
-                       gen_out_vec<VecType>(mtx, 0));
+                       gen_out_vec<OutVecType>(mtx, 0));
         }
         {
             SCOPED_TRACE("Single vector");
             guarded_fn(gen_in_vec<VecType>(mtx, 1),
-                       gen_out_vec<VecType>(mtx, 1));
+                       gen_out_vec<OutVecType>(mtx, 1));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Single strided vector");
-            run_strided(mtx, 1, 2, 3, guarded_fn);
+            run_strided<VecType, OutVecType>(mtx, 1, 2, 3, guarded_fn);
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector
             // viewed as interleaved real/imag vector
             using complex_vec = gko::to_complex<VecType>;
+            using complex_out_vec = gko::to_complex<OutVecType>;
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Single strided complex vector");
-                run_strided<complex_vec>(mtx, 1, 2, 3, guarded_fn);
+                run_strided<complex_vec, complex_out_vec>(mtx, 1, 2, 3,
+                                                          guarded_fn);
             }
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                run_strided<complex_vec>(mtx, 2, 3, 4, guarded_fn);
+                run_strided<complex_vec, complex_out_vec>(mtx, 2, 3, 4,
+                                                          guarded_fn);
             }
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");
             guarded_fn(gen_in_vec<VecType>(mtx, 2),
-                       gen_out_vec<VecType>(mtx, 2));
+                       gen_out_vec<OutVecType>(mtx, 2));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 2 columns");
-            run_strided(mtx, 2, 3, 4, guarded_fn);
+            run_strided<VecType, OutVecType>(mtx, 2, 3, 4, guarded_fn);
         }
         {
             SCOPED_TRACE("Multivector with 40 columns");
             guarded_fn(gen_in_vec<VecType>(mtx, 40),
-                       gen_out_vec<VecType>(mtx, 40));
+                       gen_out_vec<OutVecType>(mtx, 40));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 40 columns");
-            run_strided(mtx, 40, 43, 45, guarded_fn);
+            run_strided<VecType, OutVecType>(mtx, 40, 43, 45, guarded_fn);
         }
     }
 
@@ -933,6 +938,76 @@ TYPED_TEST(Matrix, MixedAdvancedSpMVIsEquivalentToRef)
         this->template forall_vector_scenarios<MixedVec>(
             mtx, [&](auto b, auto x) {
                 auto alpha = this->template gen_scalar<MixedVec>();
+                auto beta = this->template gen_scalar<MixedVec>();
+
+                mtx.ref->apply(alpha.ref, b.ref, alpha.ref, x.ref);
+                mtx.dev->apply(alpha.dev, b.dev, alpha.dev, x.dev);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol());
+            });
+    });
+}
+
+
+TYPED_TEST(Matrix, MixedInputSpMVIsEquivalentToRef)
+{
+    using Vec = typename TestFixture::Vec;
+    using MixedVec = typename TestFixture::MixedVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->template forall_vector_scenarios<MixedVec, Vec>(
+            mtx, [&](auto b, auto x) {
+                mtx.ref->apply(b.ref, x.ref);
+                mtx.dev->apply(b.dev, x.dev);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol());
+            });
+    });
+}
+
+
+TYPED_TEST(Matrix, MixedInputAdvancedSpMVIsEquivalentToRef)
+{
+    using Vec = typename TestFixture::Vec;
+    using MixedVec = typename TestFixture::MixedVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->template forall_vector_scenarios<MixedVec, Vec>(
+            mtx, [&](auto b, auto x) {
+                auto alpha = this->template gen_scalar<MixedVec>();
+                auto beta = this->template gen_scalar<Vec>();
+
+                mtx.ref->apply(alpha.ref, b.ref, alpha.ref, x.ref);
+                mtx.dev->apply(alpha.dev, b.dev, alpha.dev, x.dev);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol());
+            });
+    });
+}
+
+
+TYPED_TEST(Matrix, MixedOutputSpMVIsEquivalentToRef)
+{
+    using Vec = typename TestFixture::Vec;
+    using MixedVec = typename TestFixture::MixedVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->template forall_vector_scenarios<Vec, MixedVec>(
+            mtx, [&](auto b, auto x) {
+                mtx.ref->apply(b.ref, x.ref);
+                mtx.dev->apply(b.dev, x.dev);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol());
+            });
+    });
+}
+
+
+TYPED_TEST(Matrix, MixedOutputAdvancedSpMVIsEquivalentToRef)
+{
+    using Vec = typename TestFixture::Vec;
+    using MixedVec = typename TestFixture::MixedVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->template forall_vector_scenarios<Vec, MixedVec>(
+            mtx, [&](auto b, auto x) {
+                auto alpha = this->template gen_scalar<Vec>();
                 auto beta = this->template gen_scalar<MixedVec>();
 
                 mtx.ref->apply(alpha.ref, b.ref, alpha.ref, x.ref);

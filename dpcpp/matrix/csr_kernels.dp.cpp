@@ -50,11 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "accessor/linop_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -704,13 +704,13 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, val, col_idxs, row_ptrs, b,
+                                         c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -758,14 +758,13 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c,
-                        item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, alpha, val, col_idxs,
+                                         row_ptrs, b, beta, c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -1078,16 +1077,18 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
     // TODO: should we store the value in arithmetic_type or output_type?
     array<arithmetic_type> val_out(exec, grid_num);
 
-    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         const auto column_span =
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));
         const auto b_vals =
-            acc::helper::build_const_accessor<arithmetic_type>(b, column_span);
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
+                                                                   column_span);
         auto c_vals =
-            acc::helper::build_accessor<arithmetic_type>(c, column_span);
+            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
         if (alpha == nullptr && beta == nullptr) {
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
@@ -1160,9 +1161,11 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
-    const auto a_vals = acc::helper::build_const_accessor<arithmetic_type>(a);
-    const auto b_vals = acc::helper::build_const_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
@@ -1208,10 +1211,10 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
         const dim3 csr_block(config::warp_size, warps_in_block, 1);
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         const auto a_vals =
-            acc::helper::build_const_accessor<arithmetic_type>(a);
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
         const auto b_vals =
-            acc::helper::build_const_accessor<arithmetic_type>(b);
-        auto c_vals = acc::helper::build_accessor<arithmetic_type>(c);
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+        auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
         if (alpha) {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
                 csr::kernel::abstract_spmv(
