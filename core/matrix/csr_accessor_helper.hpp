@@ -30,17 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_ACCESSOR_LINOP_HELPER_HPP_
-#define GKO_ACCESSOR_LINOP_HELPER_HPP_
+#ifndef GKO_CORE_MATRIX_CSR_ACCESSOR_HELPER_HPP_
+#define GKO_CORE_MATRIX_CSR_ACCESSOR_HELPER_HPP_
 
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "index_span.hpp"
-#include "reduced_row_major.hpp"
-#include "utils.hpp"
+#include "accessor/index_span.hpp"
+#include "accessor/reduced_row_major.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {
@@ -49,7 +49,7 @@ namespace helper {
 
 
 template <typename ArthType, typename ValueType>
-auto build_accessor(matrix::Dense<ValueType>* input)
+auto build_rrm_accessor(matrix::Dense<ValueType>* input)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
     return range<accessor>(
@@ -62,7 +62,7 @@ auto build_accessor(matrix::Dense<ValueType>* input)
 }
 
 template <typename ArthType, typename ValueType>
-auto build_accessor(matrix::Dense<ValueType>* input, index_span column_span)
+auto build_rrm_accessor(matrix::Dense<ValueType>* input, index_span column_span)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
     assert(column_span.is_valid());
@@ -79,7 +79,7 @@ auto build_accessor(matrix::Dense<ValueType>* input, index_span column_span)
 // use a different name for const to allow the non-const to create const
 // accessor
 template <typename ArthType, typename ValueType>
-auto build_const_accessor(const matrix::Dense<ValueType>* input)
+auto build_const_rrm_accessor(const matrix::Dense<ValueType>* input)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
     return range<accessor>(
@@ -92,8 +92,8 @@ auto build_const_accessor(const matrix::Dense<ValueType>* input)
 }
 
 template <typename ArthType, typename ValueType>
-auto build_const_accessor(const matrix::Dense<ValueType>* input,
-                          index_span column_span)
+auto build_const_rrm_accessor(const matrix::Dense<ValueType>* input,
+                              index_span column_span)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
     assert(column_span.is_valid());
@@ -108,7 +108,7 @@ auto build_const_accessor(const matrix::Dense<ValueType>* input,
 
 
 template <typename ArthType, typename ValueType, typename IndexType>
-auto build_accessor(matrix::Csr<ValueType, IndexType>* input)
+auto build_rrm_accessor(matrix::Csr<ValueType, IndexType>* input)
 {
     using accessor = gko::acc::reduced_row_major<1, ArthType, ValueType>;
     return gko::acc::range<accessor>(
@@ -119,7 +119,7 @@ auto build_accessor(matrix::Csr<ValueType, IndexType>* input)
 
 
 template <typename ArthType, typename ValueType, typename IndexType>
-auto build_const_accessor(const matrix::Csr<ValueType, IndexType>* input)
+auto build_const_rrm_accessor(const matrix::Csr<ValueType, IndexType>* input)
 {
     using accessor = gko::acc::reduced_row_major<1, ArthType, const ValueType>;
     return gko::acc::range<accessor>(
@@ -134,4 +134,4 @@ auto build_const_accessor(const matrix::Csr<ValueType, IndexType>* input)
 }  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_LINOP_HELPER_HPP_
+#endif  // GKO_CORE_MATRIX_CSR_ACCESSOR_HELPER_HPP_

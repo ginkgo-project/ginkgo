@@ -95,7 +95,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         std::array<arithmetic_type, num_rhs> partial_sum;
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            auto val = a_vals(row + i * stride);
+            arithmetic_type val = a_vals(row + i * stride);
             auto col = a->col_at(row, i);
             if (col != invalid_index<IndexType>()) {
 #pragma unroll
@@ -152,7 +152,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
              rhs_base += block_size) {
             partial_sum.fill(zero<arithmetic_type>());
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-                auto val = a_vals(row + i * stride);
+                arithmetic_type val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
                 if (col != invalid_index<IndexType>()) {
 #pragma unroll
@@ -169,7 +169,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
         }
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            auto val = a_vals(row + i * stride);
+            arithmetic_type val = a_vals(row + i * stride);
             auto col = a->col_at(row, i);
             if (col != invalid_index<IndexType>()) {
                 for (size_type j = rounded_rhs; j < num_rhs; j++) {

@@ -616,11 +616,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix1)
 
     this->mtx->apply(alpha, x, beta, y);
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(y,
-                        l({{-11.0, -2.5},
-                           { -1.0,  4.5}}), 0.0);
-    // clang-format on
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
 }
 
 
@@ -633,23 +629,14 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix2)
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec2>({2.0}, this->exec);
-    // clang-format off
     auto x = gko::initialize<Vec1>(
-        {I<T>{2.0, 3.0},
-         I<T>{1.0, -1.5},
-         I<T>{4.0, 2.5}}, this->exec);
-    auto y = gko::initialize<Vec2>(
-        {I<next_T>{1.0, 0.5},
-         I<next_T>{2.0, -1.5}}, this->exec);
-    // clang-format on
+        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec2>({I<next_T>{1.0, 0.5}, I<next_T>{2.0, -1.5}},
+                                   this->exec);
 
     this->mtx->apply(alpha, x, beta, y);
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(y,
-                        l({{-11.0, -2.5},
-                           { -1.0,  4.5}}), 0.0);
-    // clang-format on
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
 }
 
 
@@ -662,23 +649,15 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix3)
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec1>({2.0}, this->exec);
-    // clang-format off
     auto x = gko::initialize<Vec2>(
-        {I<next_T>{2.0, 3.0},
-         I<next_T>{1.0, -1.5},
-         I<next_T>{4.0, 2.5}}, this->exec);
-    auto y = gko::initialize<Vec1>(
-        {I<T>{1.0, 0.5},
-         I<T>{2.0, -1.5}}, this->exec);
-    // clang-format on
+        {I<next_T>{2.0, 3.0}, I<next_T>{1.0, -1.5}, I<next_T>{4.0, 2.5}},
+        this->exec);
+    auto y =
+        gko::initialize<Vec1>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
 
     this->mtx->apply(alpha, x, beta, y);
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(y,
-                        l({{-11.0, -2.5},
-                           { -1.0,  4.5}}), 0.0);
-    // clang-format on
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
 }
 
 

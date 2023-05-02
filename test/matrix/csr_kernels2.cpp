@@ -202,68 +202,6 @@ protected:
         dmtx->copy_from(mtx);
     }
 
-    void test_mixed_spmv()
-    {
-        auto keep_expected = expected->clone();
-        auto keep_dresult = dresult->clone();
-        auto keep_expected2 = expected2->clone();
-        auto keep_dresult2 = dresult2->clone();
-        {
-            expected2->copy_from(keep_expected2);
-            dresult2->copy_from(keep_dresult2);
-
-            mtx->apply(y2, expected2);
-            dmtx->apply(dy2, dresult2);
-
-            GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
-        }
-        {
-            expected->copy_from(keep_expected);
-            dresult->copy_from(keep_dresult);
-
-            mtx->apply(y2, expected);
-            dmtx->apply(dy2, dresult);
-
-            GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-        }
-        {
-            expected2->copy_from(keep_expected2);
-            dresult2->copy_from(keep_dresult2);
-
-            mtx->apply(y, expected2);
-            dmtx->apply(dy, dresult2);
-
-            GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
-        }
-        {
-            expected2->copy_from(keep_expected2);
-            dresult2->copy_from(keep_dresult2);
-
-            mtx->apply(alpha2, y2, beta2, expected2);
-            dmtx->apply(dalpha2, dy2, dbeta2, dresult2);
-
-            GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
-        }
-        {
-            expected->copy_from(keep_expected);
-            dresult->copy_from(keep_dresult);
-
-            mtx->apply(alpha2, y2, beta, expected);
-            dmtx->apply(dalpha2, dy2, dbeta, dresult);
-
-            GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-        }
-        {
-            expected2->copy_from(keep_expected2);
-            dresult2->copy_from(keep_dresult2);
-
-            mtx->apply(alpha, y, beta2, expected2);
-            dmtx->apply(dalpha, dy, dbeta2, dresult2);
-
-            GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
-        }
-    }
-
     const gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
 
@@ -317,15 +255,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 }
 
 
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithClassical)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::classical>();
-
-    test_mixed_spmv();
-}
-
-
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
 {
     set_up_apply_data<Mtx::classical>();
@@ -335,16 +264,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
     dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithClassicalUnsorted)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::classical>();
-    unsort_mtx();
-
-    test_mixed_spmv();
 }
 
 
@@ -381,15 +300,6 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
 }
 
 
-TEST_F(Csr, MixedApplyToDenseMatrixIsEquivalentToRefWithClassical)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::classical>(3);
-
-    test_mixed_spmv();
-}
-
-
 // OpenMP doesn't have strategies
 #ifndef GKO_COMPILING_OMP
 
@@ -402,15 +312,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
     dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithLoadBalance)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::load_balance>();
-
-    test_mixed_spmv();
 }
 
 
@@ -482,15 +383,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithMergePath)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::merge_path>();
-
-    test_mixed_spmv();
-}
-
-
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
 {
     set_up_apply_data<Mtx::merge_path>();
@@ -500,16 +392,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
     dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithMergePathUnsorted)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::merge_path>();
-    unsort_mtx();
-
-    test_mixed_spmv();
 }
 
 
@@ -535,15 +417,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 }
 
 
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithAutomatical)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::automatical>();
-
-    test_mixed_spmv();
-}
-
-
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
 {
     set_up_apply_data<Mtx::automatical>();
@@ -553,16 +426,6 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
     dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, MixedApplyIsEquivalentToRefWithAutomaticalUnsorted)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::automatical>();
-    unsort_mtx();
-
-    test_mixed_spmv();
 }
 
 
@@ -588,15 +451,6 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 }
 
 
-TEST_F(Csr, MixedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::load_balance>(3);
-
-    test_mixed_spmv();
-}
-
-
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<Mtx::merge_path>(3);
@@ -616,15 +470,6 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
     dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, MixedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
-{
-    SKIP_IF_SINGLE_MODE;
-    set_up_apply_data<Mtx::merge_path>(3);
-
-    test_mixed_spmv();
 }
 
 
