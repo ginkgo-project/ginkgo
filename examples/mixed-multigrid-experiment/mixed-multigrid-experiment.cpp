@@ -151,8 +151,8 @@ int main(int argc, char* argv[])
         std::cout << "cycle_mode should be v, w, f";
         return -1;
     }
-    if (mg_mode != "solver" && mg_mode != "cg") {
-        std::cout << "mg_mode should be solver, cg";
+    if (mg_mode != "solver" && mg_mode != "cg" && mg_mode != "preconditioner") {
+        std::cout << "mg_mode should be solver, cg, preconditioner";
         return -1;
     }
     const std::string sm_mode = argc >= 7 ? argv[6] : "jacobi";
@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
     auto cg_iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(3u).on(exec));
+        gko::share(gko::stop::Iteration::build().with_max_iters(700u).on(exec));
     auto cg_tol_stop =
         gko::share(gko::stop::ImplicitResidualNorm<ValueType>::build()
                        .with_baseline(gko::stop::mode::initial_resnorm)
@@ -343,16 +343,18 @@ int main(int argc, char* argv[])
         iter_stop->add_logger(logger);
         tol_stop->add_logger(logger);
         criterion.push_back(tol_stop);
+    } else if (mg_mode == "preconditioner") {
+        iter_stop->add_logger(logger);
     } else if (mg_mode == "cg") {
         cg_iter_stop->add_logger(logger);
         cg_tol_stop->add_logger(logger);
     }
 
     // Create smoother factory (ir with bj)
-    std::shared<gko::LinOpFactory> smoother_gen_d, smoother_gen_f,
+    std::shared_ptr<gko::LinOpFactory> smoother_gen_d, smoother_gen_f,
         smoother_gen_h;
-    std::shared<gko::LinOpFactory> coarsest_solver_gen_d, coarsest_solver_gen_f,
-        coarsest_solver_gen_h;
+    std::shared_ptr<gko::LinOpFactory> coarsest_solver_gen_d,
+        coarsest_solver_gen_f, coarsest_solver_gen_h;
     if (sm_mode == "jacobi") {
         smoother_gen_d = generate_sj_ir<double>(exec, 1u, 1u);
         smoother_gen_f = generate_sj_ir<float>(exec, 1u, 1u);
@@ -791,14 +793,19 @@ int main(int argc, char* argv[])
 
     int warmup = 2;
     int rep = 3;
+    if (mg_mode == "preconditioner") {
+        warmup *= 100;
+        rep *= 100;
+    }
     std::shared_ptr<gko::LinOp> run_solver =
-        (mg_mode == "solver") ? gko::as<gko::LinOp>(solver)
-                              : gko::as<gko::LinOp>(cg_solver);
+        (mg_mode != "cg") ? gko::as<gko::LinOp>(solver)
+                          : gko::as<gko::LinOp>(cg_solver);
     auto x_run = x->clone();
     for (int i = 0; i < warmup; i++) {
         x_run->copy_from(x);
         run_solver->apply(b, x_run);
     }
+    exec->synchronize();
 
     cudaProfilerStart();
     // auto prof =
@@ -828,8 +835,12 @@ int main(int argc, char* argv[])
     std::cout << "Final residual norm sqrt(r^T r): \n";
     write(std::cout, res);
 
-    std::string prefix =
-        (mg_mode == "solver") ? "Multigrid" : "Cg With Multigrid";
+    std::string prefix = "Multigrid";
+    if (mg_mode == "cg") {
+        prefix = "Cg With Multigrid";
+    } else if (mg_mode == "preconditioner") {
+        prefix = "Multigrid preconditioner";
+    }
     // Print solver statistics
     std::cout << prefix
               << " iteration count:     " << logger->get_num_iterations()

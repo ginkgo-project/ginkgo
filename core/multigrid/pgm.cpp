@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 
-
+#define UseCsr 0
 namespace gko {
 namespace multigrid {
 namespace pgm {
@@ -99,11 +99,11 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename ScalarType>
 std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     std::shared_ptr<const Executor> exec,
     const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg, ValueType scalar_val)
+    const gko::array<IndexType>& agg, ScalarType scalar_val)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
@@ -139,7 +139,8 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         exec, std::make_shared<
                   typename matrix::Csr<ValueType, IndexType>::classical>());
     coarse_csr->copy_from(std::move(coarse_coo));
-    auto scalar = initialize<matrix::Dense<ValueType>>({scalar_val}, exec);
+    auto scalar = initialize<matrix::Dense<ValueType>>(
+        {static_cast<ValueType>(scalar_val)}, exec);
     coarse_csr->scale(scalar.get());
     return std::move(coarse_csr);
 }
@@ -236,14 +237,32 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
+    std::shared_ptr<gko::LinOp> prolong_mtx = prolong_row_gather;
+#if UseCsr
+    prolong_mtx = share(gko::matrix::Csr<ValueType, IndexType>::create(
+        exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim,
+        std::make_shared<
+            typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
+                    prolong_mtx->get_col_idxs());
+    exec->run(
+        pgm::make_fill_seq_array(prolong_mtx->get_row_ptrs(), fine_dim + 1));
+#endif
     auto scalar_val = parameters_.scalar;
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim,
-            ValueType{scalar_val}));
+            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim, scalar_val));
     agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
+    std::shared_ptr<gko::LinOp> restrict_mtx = restrict_sparsity;
+#if UseCsr
+    restrict_mtx = share(gko::matrix::Csr<ValueType, IndexType>::create(
+        exec,
+        std::make_shared<
+            typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    restrict_mtx->copy_from(restrict_sparsity.get());
+#endif
     // Construct the coarse matrix
     // TODO: improve it
     auto working_coarse_matrix =
@@ -253,8 +272,7 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
         std::make_shared<
             typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
     coarse_matrix->copy_from(working_coarse_matrix.get());
-    this->set_multigrid_level(prolong_row_gather, coarse_matrix,
-                              restrict_sparsity);
+    this->set_multigrid_level(prolong_mtx, coarse_matrix, restrict_mtx);
     //   after coarse setting
     this->set_working_coarse_op(working_coarse_matrix);
     std::cout << "finish" << std::endl;
