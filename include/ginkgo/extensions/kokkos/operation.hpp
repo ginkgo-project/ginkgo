@@ -85,13 +85,6 @@ struct kokkos_operator {
           args(map_data(std::forward<Args>(args), MemorySpace{})...)
     {}
 
-    template <std::size_t... I>
-    kokkos_operator(Closure&& op, const std::tuple<Args&&...>& args,
-                    std::index_sequence<I...>)
-        : fn(std::forward<Closure>(op)),
-          args(map_data(std::forward<Args>(std::get<I>(args)))...)
-    {}
-
     template <typename... ExecPolicyHandles>
     KOKKOS_INLINE_FUNCTION void operator()(ExecPolicyHandles&&... handles) const
     {
@@ -116,13 +109,14 @@ private:
 
 }  // namespace detail
 
-template <typename MemorySpace, typename Closure, typename... Args,
+template <typename ValueType = void, typename MemorySpace, typename Closure,
+          typename T, std::size_t... I,
           typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
-[[deprecated]] detail::kokkos_operator<MemorySpace, void, Closure, Args...>
-make_operator(MemorySpace, Closure&& cl, std::tuple<Args&&...> args)
+[[deprecated]] detail::kokkos_operator<MemorySpace, ValueType, Closure,
+                                       std::tuple_element_t<I, T>...>
+make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I>...)
 {
-    return {std::forward<Closure>(cl), args,
-            std::make_index_sequence<sizeof...(Args)>{}};
+    return {std::forward<Closure>(cl), std::get<I>(std::forward<T>(args))...};
 }
 
 // template <typename MemorySpace, typename Closure, typename... Args,
@@ -203,21 +197,102 @@ decltype(auto) make_policy_top(I count)
     return make_policy_top<Kokkos::RangePolicy>(count);
 }
 
+
+template <typename Closure>
+struct kokkos_registered_operation : public gko::Operation {
+    kokkos_registered_operation(std::string name, Closure&& op)
+        : name_(std::move(name)), op_(op)
+    {}
+
+    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
+    {
+#ifdef KOKKOS_ENABLE_SERIAL
+        op_(exec);
+#endif
+    }
+
+    void run(std::shared_ptr<const OmpExecutor> exec) const override
+    {
+#ifdef KOKKOS_ENABLE_OPENMP
+        op_(exec);
+#endif
+    }
+
+    void run(std::shared_ptr<const CudaExecutor> exec) const override
+    {
+#ifdef KOKKOS_ENABLE_CUDA
+        op_(exec);
+#endif
+    }
+
+    void run(std::shared_ptr<const HipExecutor> exec) const override
+    {
+#ifdef KOKKOS_ENABLE_HIP
+        op_(exec);
+#endif
+    }
+
+    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+    {
+#ifdef KOKKOS_ENABLE_SYCL
+        op_(exec);
+#endif
+    }
+
+    std::string name_;
+    mutable Closure op_;
+};
+
+
+template <typename Closure>
+kokkos_registered_operation<Closure> make_registered_operation(std::string name,
+                                                               Closure&& op)
+{
+    return {std::move(name), std::forward<Closure>(op)};
+}
+
+
 template <typename Policy, typename Closure, typename... Args,
           typename = std::enable_if_t<std::is_invocable_v<
               Policy, std::shared_ptr<const ReferenceExecutor>>>>
 decltype(auto) parallel_for(const std::string& name, Policy&& policy,
                             Closure&& closure, Args&&... args)
 {
-    return gko::detail::make_register_operation(
-        name.c_str(), [policy_ = std::forward<Policy>(policy),
-                       op_ = std::forward<Closure>(closure), name,
-                       args_ = std::forward_as_tuple(args...)](auto exec) {
-            Kokkos::parallel_for(name, policy_(exec),
-                                 make_operator(create_memory_space(exec),
-                                               std::move(op_), args_));
+    return make_registered_operation(
+        name, [policy_ = std::forward<Policy>(policy),
+               op_ = std::forward<Closure>(closure), name,
+               args_ = std::forward_as_tuple(args...)](auto exec) mutable {
+            Kokkos::parallel_for(
+                name, policy_(exec),
+                make_operator(create_memory_space(exec), std::move(op_),
+                              std::move(args_),
+                              std::make_index_sequence<sizeof...(Args)>{}));
         });
 }
+
+
+template <
+    typename ResultType, typename Policy, typename Closure, typename... Args,
+    typename = std::enable_if_t<
+        std::is_invocable_v<Policy, std::shared_ptr<const ReferenceExecutor>>>>
+decltype(auto) parallel_reduce(const std::string& name, ResultType& result,
+                               Policy&& policy, Closure&& closure,
+                               Args&&... args)
+{
+    return make_registered_operation(
+        name,
+        [policy_ = std::forward<Policy>(policy),
+         op_ = std::forward<Closure>(closure), name,
+         args_ = std::forward_as_tuple(args...), &result](auto exec) mutable {
+            Kokkos::parallel_reduce(
+                name, policy_(exec),
+                make_operator<ResultType>(
+                    create_memory_space(exec), std::move(op_), std::move(args_),
+                    std::make_index_sequence<sizeof...(Args)>{}),
+                result);
+        });
+}
+
 
 // template <typename I, typename Closure, typename... Args,
 //           typename = std::enable_if_t<!std::is_invocable_v<

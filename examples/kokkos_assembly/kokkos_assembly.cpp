@@ -126,7 +126,9 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
                                                      discretization_points * 3);
 
     exec->run(gko::ext::kokkos::parallel_for(
-        "test", gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(0, 10),
+        "test",
+        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
+            0, md.get_num_elems()),
         [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
             const ValueType coefs[] = {-1, 2, -1};
             auto ofs = static_cast<IndexType>((i % 3) - 1);
@@ -181,6 +183,24 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
                   gko::matrix::Dense<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
+    auto exec = rhs->get_executor();
+    exec->run(gko::ext::kokkos::parallel_for(
+        "generate_rhs",
+        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
+            0, discretization_points),
+        [f, u0, u1, discretization_points] GKO_KOKKOS_FN(int i,
+                                                         auto kokkos_rhs) {
+            const ValueType h = 1.0 / (discretization_points + 1);
+            const ValueType xi = ValueType(i + 1) * h;
+            kokkos_rhs(i, 0) = -f(xi) * h * h;
+            if (i == 0) {
+                kokkos_rhs(i, 0) += u0;
+            }
+            if (i == discretization_points - 1) {
+                kokkos_rhs(i, 0) += u1;
+            }
+        },
+        rhs));
     //    Kokkos::parallel_for("generate_rhs", discretization_points,
     //                         gko::ext::kokkos::make_operator(
     //                             [f, u0, u1, discretization_points]
@@ -209,6 +229,20 @@ double calculate_error(int discretization_points,
                        Closure&& correct_u)
 {
     auto error = 0.0;
+    auto exec = u->get_executor();
+    exec->run(gko::ext::kokkos::parallel_reduce(
+        "generate_rhs", error,
+        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
+            0, discretization_points),
+        [discretization_points, correct_u] GKO_KOKKOS_FN(int i, double& lsum,
+                                                         auto kokkos_u) {
+            const auto h = 1.0 / (discretization_points + 1);
+            const auto xi = (i + 1) * h;
+            lsum += Kokkos::abs((kokkos_u(i, 0) - correct_u(xi)) /
+                                Kokkos::abs(correct_u(xi)));
+        },
+        u));
+
     //    Kokkos::parallel_reduce(
     //        "calculate_error", discretization_points,
     //        gko::ext::kokkos::make_reduction_operator(
@@ -252,7 +286,8 @@ int main(int argc, char* argv[])
         argc >= 2 ? std::atoi(argv[1]) : 100u;
 
     // chooses the executor that corresponds to the Kokkos DefaultExecutionSpace
-    auto exec = gko::ext::kokkos::create_default_executor();
+    auto exec = gko::ReferenceExecutor::
+        create();  // gko::ext::kokkos::create_default_executor();
 
     // problem:
     auto correct_u = [] KOKKOS_FUNCTION(ValueType x) { return x * x * x; };
