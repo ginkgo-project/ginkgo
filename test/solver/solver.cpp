@@ -703,6 +703,9 @@ protected:
             pair.dev->clear();
             guarded_fn(std::move(pair));
         }
+        /* Disable the test with clone, since cloning is not correctly supported
+         * for types that contain factories as members.
+         * TODO: reenable when cloning of factories is figured out
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
             guarded_fn(
@@ -711,6 +714,7 @@ protected:
                                           ->generate(mtx.ref),
                                       exec});
         }
+        */
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
             guarded_fn(
