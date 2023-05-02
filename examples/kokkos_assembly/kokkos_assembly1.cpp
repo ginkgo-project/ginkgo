@@ -125,49 +125,27 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
     gko::device_matrix_data<ValueType, IndexType> md(exec, matrix->get_size(),
                                                      discretization_points * 3);
 
-    exec->run(gko::ext::kokkos::parallel_for(
-        "test",
-        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
-            0, md.get_num_elems()),
-        [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
-            const ValueType coefs[] = {-1, 2, -1};
-            auto ofs = static_cast<IndexType>((i % 3) - 1);
-            auto row = static_cast<IndexType>(i / 3);
-            auto col = row + ofs;
-
-            // To prevent branching, a mask is used to set the entry
-            // to zero, if the column is out-of-bounds
-            auto mask =
-                static_cast<IndexType>(0 <= col && col < discretization_points);
-
-            kokkos_md.row_idxs(i) = mask * row;
-            kokkos_md.col_idxs(i) = mask * col;
-            kokkos_md.values(i) = mask * coefs[ofs + 1];
-        },
-        md));
-
     // Create the matrix entries. This also creates zero entries for the
     // first and second row to handle all rows uniformly.
-    //    Kokkos::parallel_for(
-    //        "generate_stencil_matrix", md.get_num_elems(),
-    //        gko::ext::kokkos::make_operator(
-    //            [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
-    //                const ValueType coefs[] = {-1, 2, -1};
-    //                auto ofs = static_cast<IndexType>((i % 3) - 1);
-    //                auto row = static_cast<IndexType>(i / 3);
-    //                auto col = row + ofs;
-    //
-    //                // To prevent branching, a mask is used to set the entry
-    //                // to zero, if the column is out-of-bounds
-    //                auto mask = static_cast<IndexType>(0 <= col &&
-    //                                                   col <
-    //                                                   discretization_points);
-    //
-    //                kokkos_md.row_idxs(i) = mask * row;
-    //                kokkos_md.col_idxs(i) = mask * col;
-    //                kokkos_md.values(i) = mask * coefs[ofs + 1];
-    //            },
-    //            md));
+    Kokkos::parallel_for(
+        "generate_stencil_matrix", md.get_num_elems(),
+        gko::ext::kokkos::make_operator(
+            [discretization_points] GKO_KOKKOS_FN(int i, auto kokkos_md) {
+                const ValueType coefs[] = {-1, 2, -1};
+                auto ofs = static_cast<IndexType>((i % 3) - 1);
+                auto row = static_cast<IndexType>(i / 3);
+                auto col = row + ofs;
+
+                // To prevent branching, a mask is used to set the entry
+                // to zero, if the column is out-of-bounds
+                auto mask = static_cast<IndexType>(0 <= col &&
+                                                   col < discretization_points);
+
+                kokkos_md.row_idxs(i) = mask * row;
+                kokkos_md.col_idxs(i) = mask * col;
+                kokkos_md.values(i) = mask * coefs[ofs + 1];
+            },
+            md));
 
     // Add up duplicate (zero) entries.
     md.sum_duplicates();
@@ -183,41 +161,23 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
                   gko::matrix::Dense<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
-    auto exec = rhs->get_executor();
-    exec->run(gko::ext::kokkos::parallel_for(
-        "generate_rhs",
-        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
-            0, discretization_points),
-        [f, u0, u1, discretization_points] GKO_KOKKOS_FN(int i,
-                                                         auto kokkos_rhs) {
-            const ValueType h = 1.0 / (discretization_points + 1);
-            const ValueType xi = ValueType(i + 1) * h;
-            kokkos_rhs(i, 0) = -f(xi) * h * h;
-            if (i == 0) {
-                kokkos_rhs(i, 0) += u0;
-            }
-            if (i == discretization_points - 1) {
-                kokkos_rhs(i, 0) += u1;
-            }
-        },
-        rhs));
-    //    Kokkos::parallel_for("generate_rhs", discretization_points,
-    //                         gko::ext::kokkos::make_operator(
-    //                             [f, u0, u1, discretization_points]
-    //                             GKO_KOKKOS_FN(
-    //                                 int i, auto kokkos_rhs) {
-    //                                 const ValueType h =
-    //                                     1.0 / (discretization_points + 1);
-    //                                 const ValueType xi = ValueType(i + 1) *
-    //                                 h; kokkos_rhs(i, 0) = -f(xi) * h * h; if
-    //                                 (i == 0) {
-    //                                     kokkos_rhs(i, 0) += u0;
-    //                                 }
-    //                                 if (i == discretization_points - 1) {
-    //                                     kokkos_rhs(i, 0) += u1;
-    //                                 }
-    //                             },
-    //                             rhs));
+
+    Kokkos::parallel_for("generate_rhs", discretization_points,
+                         gko::ext::kokkos::make_operator(
+                             [f, u0, u1, discretization_points] GKO_KOKKOS_FN(
+                                 int i, auto kokkos_rhs) {
+                                 const ValueType h =
+                                     1.0 / (discretization_points + 1);
+                                 const ValueType xi = ValueType(i + 1) * h;
+                                 kokkos_rhs(i, 0) = -f(xi) * h * h;
+                                 if (i == 0) {
+                                     kokkos_rhs(i, 0) += u0;
+                                 }
+                                 if (i == discretization_points - 1) {
+                                     kokkos_rhs(i, 0) += u1;
+                                 }
+                             },
+                             rhs));
 }
 
 
@@ -229,33 +189,19 @@ double calculate_error(int discretization_points,
                        Closure&& correct_u)
 {
     auto error = 0.0;
-    auto exec = u->get_executor();
-    exec->run(gko::ext::kokkos::parallel_reduce(
-        "generate_rhs", error,
-        gko::ext::kokkos::make_policy_top<Kokkos::RangePolicy>(
-            0, discretization_points),
-        [discretization_points, correct_u] GKO_KOKKOS_FN(int i, double& lsum,
-                                                         auto kokkos_u) {
-            const auto h = 1.0 / (discretization_points + 1);
-            const auto xi = (i + 1) * h;
-            lsum += Kokkos::abs((kokkos_u(i, 0) - correct_u(xi)) /
-                                Kokkos::abs(correct_u(xi)));
-        },
-        u));
-
-    //    Kokkos::parallel_reduce(
-    //        "calculate_error", discretization_points,
-    //        gko::ext::kokkos::make_reduction_operator(
-    //            error,
-    //            [discretization_points, correct_u] GKO_KOKKOS_FN(
-    //                int i, double& lsum, auto kokkos_u) {
-    //                const auto h = 1.0 / (discretization_points + 1);
-    //                const auto xi = (i + 1) * h;
-    //                lsum += Kokkos::abs((kokkos_u(i, 0) - correct_u(xi)) /
-    //                                    Kokkos::abs(correct_u(xi)));
-    //            },
-    //            u),
-    //        error);
+    Kokkos::parallel_reduce(
+        "calculate_error", discretization_points,
+        gko::ext::kokkos::make_reduction_operator(
+            error,
+            [discretization_points, correct_u] GKO_KOKKOS_FN(
+                int i, double& lsum, auto kokkos_u) {
+                const auto h = 1.0 / (discretization_points + 1);
+                const auto xi = (i + 1) * h;
+                lsum += Kokkos::abs((kokkos_u(i, 0) - correct_u(xi)) /
+                                    Kokkos::abs(correct_u(xi)));
+            },
+            u),
+        error);
     return error;
 }
 
@@ -286,8 +232,7 @@ int main(int argc, char* argv[])
         argc >= 2 ? std::atoi(argv[1]) : 100u;
 
     // chooses the executor that corresponds to the Kokkos DefaultExecutionSpace
-    auto exec = gko::ReferenceExecutor::
-        create();  // gko::ext::kokkos::create_default_executor();
+    auto exec = gko::ext::kokkos::create_default_executor();
 
     // problem:
     auto correct_u = [] KOKKOS_FUNCTION(ValueType x) { return x * x * x; };

@@ -16,6 +16,9 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <ginkgo/extensions/kokkos/spaces.hpp>
+
+
 #include <Kokkos_Complex.hpp>
 #include <Kokkos_Core.hpp>
 
@@ -152,28 +155,28 @@ struct native_type<gko::device_matrix_data<ValueType, IndexType>, MemorySpace> {
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-typename detail::native_type<T, MemorySpace>::type map_data(T& data,
-                                                            MemorySpace ms = {})
+decltype(auto) map_data(T* data, MemorySpace ms = {})
 {
-    return {data};
+    if constexpr (has_executor_v<T>) {
+        //        ensure_compatibility(data, ms);
+        return typename detail::native_type<T, MemorySpace>::type{*data};
+    } else {
+        return data;
+    }
 }
 
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-typename detail::native_type<T, MemorySpace>::type map_data(T* data,
-                                                            MemorySpace ms = {})
+decltype(auto) map_data(T&& data, MemorySpace ms = {})
 {
-    return {*data};
-}
-
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-typename detail::native_type<T, MemorySpace>::type map_data(T&& data,
-                                                            MemorySpace ms = {})
-{
-    return {std::forward<T>(data)};
+    if constexpr (has_executor_v<T>) {
+        //        ensure_compatibility(data, ms);
+        return typename detail::native_type<T, MemorySpace>::type{
+            std::forward<T>(data)};
+    } else {
+        return std::forward<T>(data);
+    }
 }
 
 

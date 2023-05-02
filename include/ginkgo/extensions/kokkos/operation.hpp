@@ -75,10 +75,8 @@ template <typename MemorySpace, typename ValueType, typename Closure,
           typename... Args>
 struct kokkos_operator {
     using value_type = ValueType;
-    using tuple_type = std::tuple<typename native_type<
-        typename std::remove_pointer<
-            typename std::remove_reference<Args>::type>::type,
-        MemorySpace>::type...>;
+    using tuple_type = std::tuple<decltype(map_data(
+        std::declval<Args>(), std::declval<MemorySpace>()))...>;
 
     kokkos_operator(Closure&& op, Args&&... args)
         : fn(std::forward<Closure>(op)),
@@ -119,22 +117,21 @@ make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I>...)
     return {std::forward<Closure>(cl), std::get<I>(std::forward<T>(args))...};
 }
 
-// template <typename MemorySpace, typename Closure, typename... Args,
-//           typename =
-//           std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
-//[[deprecated]]
-// detail::kokkos_operator<MemorySpace, void, Closure, Args...> make_operator(
-//     MemorySpace, Closure&& cl, Args&&... args)
-//{
-//     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
-// }
+template <typename MemorySpace, typename Closure, typename... Args,
+          typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
+[[deprecated]] detail::kokkos_operator<MemorySpace, void, Closure, Args...>
+make_operator(MemorySpace, Closure&& cl, Args&&... args)
+{
+    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+}
 
-// template <typename Closure, typename... Args>
-// detail::kokkos_operator<Kokkos::DefaultExecutionSpace, void, Closure,
-// Args...> make_operator(Closure&& cl, Args&&... args)
-//{
-//     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
-// }
+template <typename Closure, typename... Args>
+detail::kokkos_operator<typename Kokkos::DefaultExecutionSpace::memory_space,
+                        void, Closure, Args...>
+make_operator(Closure&& cl, Args&&... args)
+{
+    return {std::forward<Closure>(cl), std::forward<Args>(args)...};
+}
 
 
 template <typename MemorySpace, typename ValueType, typename Closure,
@@ -147,8 +144,8 @@ make_reduction_operator(MemorySpace, ValueType, Closure&& cl, Args&&... args)
 }
 
 template <typename ValueType, typename Closure, typename... Args>
-detail::kokkos_operator<Kokkos::DefaultExecutionSpace, ValueType, Closure,
-                        Args...>
+detail::kokkos_operator<typename Kokkos::DefaultExecutionSpace::memory_space,
+                        ValueType, Closure, Args...>
 make_reduction_operator(ValueType, Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
@@ -165,8 +162,8 @@ make_scan_operator(MemorySpace, ValueType, Closure&& cl, Args&&... args)
 }
 
 template <typename ValueType, typename Closure, typename... Args>
-detail::kokkos_operator<Kokkos::DefaultExecutionSpace, ValueType, Closure,
-                        Args...>
+detail::kokkos_operator<typename Kokkos::DefaultExecutionSpace::memory_space,
+                        ValueType, Closure, Args...>
 make_scan_operator(ValueType, Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
@@ -293,18 +290,6 @@ decltype(auto) parallel_reduce(const std::string& name, ResultType& result,
         });
 }
 
-
-// template <typename I, typename Closure, typename... Args,
-//           typename = std::enable_if_t<!std::is_invocable_v<
-//               I, std::shared_ptr<const ReferenceExecutor>>>>
-// decltype(auto) parallel_for(const std::string& name, I count, Closure&&
-// closure,
-//                             Args&&... args)
-//{
-//     return parallel_for(name, make_policy_top(count),
-//                         std::forward<Closure>(closure),
-//                         std::forward<Args>(args)...);
-// }
 
 }  // namespace kokkos
 }  // namespace ext
