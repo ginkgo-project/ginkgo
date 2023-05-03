@@ -789,8 +789,10 @@ public:
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory) override
     {
         auto exec = self()->get_executor();
-        if (new_stop_factory && new_stop_factory->get_executor() != exec) {
-            new_stop_factory = gko::clone(exec, new_stop_factory);
+        if (new_stop_factory && new_stop_factory->get_executor() != exec &&
+            !exec->memory_accessible(new_stop_factory->get_executor())) {
+            GKO_INVALID_STATE(
+                "Cross-executor assignment of factories is currently broken.");
         }
         IterativeBase::set_stop_criterion_factory(new_stop_factory);
     }
