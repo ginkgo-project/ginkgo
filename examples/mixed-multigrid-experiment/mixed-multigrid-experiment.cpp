@@ -257,19 +257,22 @@ int main(int argc, char* argv[])
             }
             scalar = 0.5;
         }
-    }
-    std::cout << "abs max of row max: "
-              << *std::max_element(row_max.begin(), row_max.end()) << std::endl;
-    std::cout << "abs max of col max: "
-              << *std::max_element(col_max.begin(), col_max.end()) << std::endl;
 
-    for (int row = 0; row < A_host->get_size()[0]; row++) {
-        for (auto i = A_host->get_row_ptrs()[row];
-             i < A_host->get_row_ptrs()[row + 1]; i++) {
-            auto col = A_host->get_col_idxs()[i];
+        std::cout << "abs max of row max: "
+                  << *std::max_element(row_max.begin(), row_max.end())
+                  << std::endl;
+        std::cout << "abs max of col max: "
+                  << *std::max_element(col_max.begin(), col_max.end())
+                  << std::endl;
 
-            A_host->get_values()[i] /= std::sqrt(row_max.at(row));
-            A_host->get_values()[i] /= std::sqrt(col_max.at(col));
+        for (int row = 0; row < A_host->get_size()[0]; row++) {
+            for (auto i = A_host->get_row_ptrs()[row];
+                 i < A_host->get_row_ptrs()[row + 1]; i++) {
+                auto col = A_host->get_col_idxs()[i];
+
+                A_host->get_values()[i] /= std::sqrt(row_max.at(row));
+                A_host->get_values()[i] /= std::sqrt(col_max.at(col));
+            }
         }
     }
     auto A = gko::share(A_host->clone(exec));
@@ -451,6 +454,31 @@ int main(int argc, char* argv[])
                     return level >= 1 ? 1 : level;
                 })
                 .with_coarsest_solver(coarsest_solver_gen_f)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -11) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // input and output are double
+                // first smoother needs to be double to avoid casting copy
+                .with_pre_smoother(smoother_gen_d, smoother_gen_d)
+                .with_post_uses_pre(true)
+                .with_mg_level(mg_level_gen_fd, mg_level_gen_fd)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    // The first (index 0) level will use the first
+                    // mg_level_gen, smoother_gen which are the factories with
+                    // ValueType. The rest of levels (>= 1) will use the second
+                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
+                    // MixedType. The rest of levels will use different type
+                    // than the normal multigrid.
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_d)
                 .with_criteria(criterion)
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
@@ -771,7 +799,8 @@ int main(int argc, char* argv[])
                     std::string file = "matrix_" +
                                        std::to_string(mg_level_list.size()) +
                                        ".mtx";
-                    write(std::ofstream(file), csr);
+                    // output matrix
+                    // write(std::ofstream(file), csr);
                     num_stored_elements = csr->get_num_stored_elements();
                 } else if (mixed_mode == 1) {
                     auto csr =
@@ -794,8 +823,7 @@ int main(int argc, char* argv[])
     int warmup = 2;
     int rep = 3;
     if (mg_mode == "preconditioner") {
-        warmup *= 100;
-        rep *= 100;
+        rep = 10;
     }
     std::shared_ptr<gko::LinOp> run_solver =
         (mg_mode != "cg") ? gko::as<gko::LinOp>(solver)

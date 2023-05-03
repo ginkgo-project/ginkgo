@@ -16,8 +16,10 @@ RESULT_FOLDER=$1
 EXECUTOR=$2
 DATA_FOLDER=$3
 MIXED_MODE="0 1 2 3 -1 -2 -21 -22 -23"
-MG_MODE="cg preconditioner"
-SM_MODE="jacobi bj l1cheyb"
+MG_MODE="$4"
+#"cg preconditioner"
+SM_MODE="$5"
+#"jacobi bj l1cheyb"
 run() {
     local matrix="$1"
     local num_levels="$2"
