@@ -1028,6 +1028,9 @@ TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
 {
     using Config = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
+    if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
+        GTEST_SKIP();
+    }
     this->forall_matrix_scenarios([this](auto mtx) {
         auto solver =
             Config::build(this->ref, 0).on(this->exec)->generate(mtx.ref);
@@ -1048,6 +1051,25 @@ TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
         }
         GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver->get_system_matrix()), mtx.ref,
                             0.0);
+    });
+}
+
+
+TYPED_TEST(Solver, CrossExecutorCloneThrows)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        auto solver =
+            Config::build(this->ref, 0).on(this->ref)->generate(mtx.ref);
+
+        if (Config::is_iterative() &&
+            !this->ref->memory_accessible(this->exec)) {
+            ASSERT_THROW(gko::clone(this->exec, solver),
+                         gko::InvalidStateError);
+        } else {
+            ASSERT_NO_THROW(gko::clone(this->exec, solver));
+        }
     });
 }
 
@@ -1113,6 +1135,9 @@ TYPED_TEST(Solver, CopyAssignCrossExecutor)
     using Config = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
     using Precond = typename TestFixture::Precond;
+    if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
+        GTEST_SKIP();
+    }
     this->forall_matrix_scenarios([this](auto mtx) {
         this->forall_solver_scenarios(mtx, [this](auto solver) {
             auto solver2 = Config::build(this->exec, 0)
@@ -1148,6 +1173,9 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
     using Config = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
     using Precond = typename TestFixture::Precond;
+    if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
+        GTEST_SKIP();
+    }
     this->forall_matrix_scenarios([this](auto in_mtx) {
         this->forall_solver_scenarios(in_mtx, [this](auto solver) {
             auto solver2 = Config::build(this->exec, 0)
