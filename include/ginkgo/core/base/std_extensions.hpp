@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_
 
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -67,6 +68,16 @@ struct make_void {
 // Added in C++17
 template <typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;
+
+
+// Disable deprecation warnings when using standard > 2014
+inline bool uncaught_exception() noexcept {
+#if __cplusplus > 201402L
+    return std::uncaught_exceptions() > 0;
+#else
+    return std::uncaught_exception();
+#endif
+}
 
 
 // Kept for backward compatibility.
