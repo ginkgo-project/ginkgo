@@ -84,89 +84,40 @@ trigger_pipeline:
       fi
 
 
-# Build jobs
-# Job with example runs.
-# cuda 9.2 and friends
-build/cuda92/nompi/gcc/all/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-    RUN_EXAMPLES: "ON"
-    CUDA_ARCH: 61
-
-# cuda 10.0 and friends
-# Make sure that our jobs run when using self-installed
-# third-party HWLOC.
-build/cuda100/mvapich2/gcc/all/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    BUILD_MPI: "ON"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    CUDA_ARCH: 35
-
+# cuda 10.1 and friends
+# Build CUDA NVIDIA without omp
 # Make sure that our jobs run when HWLOC is
 # forcibly switched off
-build/cuda100/nompi/clang/all/release/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-# Build CUDA NVIDIA without omp
-build/cuda100/nompi/clang/cuda_wo_omp/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
-# cuda 10.1 and friends
-build/cuda101/nompi/gcc/all/debug/shared:
+build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   extends:
     - .build_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
   variables:
-    BUILD_OMP: "ON"
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+
+# Job with example runs.
+build/cuda101/openmpi/gcc/all/debug/shared:
+  extends:
+    - .build_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
+    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
 build/cuda101/nompi/clang/all/release/static:
@@ -279,7 +230,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
     - .build_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     BUILD_OMP: "ON"
@@ -297,7 +248,7 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
     - .horeka_test_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
@@ -345,7 +296,7 @@ build/cuda110/nompi/intel/cuda/debug/static:
   extends:
     - .build_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     C_COMPILER: "icc"
@@ -364,7 +315,7 @@ test/cuda110/nompi/intel/cuda/debug/static:
   extends:
     - .horeka_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
@@ -393,6 +344,48 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
+
+# nvhpc and friends
+build/nvhpc233/cuda120/nompi/nvcpp/release/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
+  variables:
+    C_COMPILER: "nvc"
+    CXX_COMPILER: "nvc++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
+    BUILD_TYPE: "Release"
+    FAST_TESTS: "ON"
+    BUILD_SHARED_LIBS: "OFF"
+    # disable common gflags warnings
+    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CUDA_ARCH: 61
+
+build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
+  variables:
+    C_COMPILER: "nvc"
+    CXX_COMPILER: "nvc++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+    # disable common gflags warnings
+    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CUDA_ARCH: 61
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
