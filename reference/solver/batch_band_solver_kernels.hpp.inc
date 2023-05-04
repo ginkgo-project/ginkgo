@@ -386,40 +386,14 @@ inline void lower_trsv_update_A01(const int N, const int KL, const int KU,
     }
 }
 
-// template <typename ValueType>
-// void update_part_of_trailing_matrix(const int N, const int KL, const int KU,
-// std::vector<double> & AB_col_major, const int j, const int JB, const int
-// trail_row_start, const int trail_row_end_exclusive, const int
-// trail_col_start, const int trail_col_end_exclusive)
-// {
-//     const int AB_nrows = 2 * KL + KU + 1;
-
-//     for(int trail_row = trail_row_start; trail_row < trail_row_end_exclusive;
-//     trail_row++)
-//     {
-//         for(int trail_col = trail_col_start; trail_col <
-//         trail_col_end_exclusive; trail_col++)
-//         {
-//             ValueType sum = zero<ValueType>();
-//             for(int i = 0; i < JB; i++)
-//             {
-//                 const int c = i + j;
-//                 const int r = i + j;
-//                 sum += AB_col_major[ (KL + KU + trail_row - c) + c * AB_nrows
-//                 ] * AB_col_major[(KL + KU + r - trail_col)  +  trail_col *
-//                 AB_nrows];
-//             }
-//             AB_col_major[(KL + KU + trail_row - trail_col) + trail_col *
-//             AB_nrows] -= sum;
-//         }
-//     }
-// }
-
-template <typename ValueType>
-void update_A11(const int N, const int KL, const int KU,
-                ValueType* const AB_array_entry, const int j, const int JB,
-                const int trail_row_start, const int trail_row_end_exclusive,
-                const int trail_col_start, const int trail_col_end_exclusive)
+template <typename ValueType, typename Callable>
+void update_part_of_trailing_matrix(const int N, const int KL, const int KU,
+                                    ValueType* const AB_array_entry,
+                                    const int trail_row_start,
+                                    const int trail_row_end_exclusive,
+                                    const int trail_col_start,
+                                    const int trail_col_end_exclusive,
+                                    Callable compute_sum)
 {
     const int AB_nrows = 2 * KL + KU + 1;
 
@@ -427,19 +401,56 @@ void update_A11(const int N, const int KL, const int KU,
          trail_row++) {
         for (int trail_col = trail_col_start;
              trail_col < trail_col_end_exclusive; trail_col++) {
-            ValueType sum = zero<ValueType>();
-            for (int i = 0; i < JB; i++) {
-                const int c = i + j;
-                const int r = i + j;
-                sum +=
-                    AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows] *
-                    AB_array_entry[(KL + KU + r - trail_col) +
-                                   trail_col * AB_nrows];
-            }
+            const ValueType sum = compute_sum(trail_row, trail_col);
+
             AB_array_entry[(KL + KU + trail_row - trail_col) +
                            trail_col * AB_nrows] -= sum;
         }
     }
+}
+
+template <typename ValueType>
+void update_A11(const int N, const int KL, const int KU,
+                ValueType* const AB_array_entry, const int j, const int JB,
+                const int I1, const int J1)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    auto compute_sum = [=](const int trail_row, const int trail_col) {
+        ValueType sum = zero<ValueType>();
+        for (int i = 0; i < JB; i++) {
+            const int c = i + j;
+            const int r = i + j;
+            sum += AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows] *
+                   AB_array_entry[(KL + KU + r - trail_col) +
+                                  trail_col * AB_nrows];
+        }
+
+        return sum;
+    };
+
+    update_part_of_trailing_matrix(N, KL, KU, AB_array_entry, j + JB,
+                                   j + JB + I1, j + JB, j + JB + J1,
+                                   compute_sum);
+
+    // for (int trail_row = trail_row_start; trail_row <
+    // trail_row_end_exclusive;
+    //      trail_row++) {
+    //     for (int trail_col = trail_col_start;
+    //          trail_col < trail_col_end_exclusive; trail_col++) {
+    //         ValueType sum = zero<ValueType>();
+    //         for (int i = 0; i < JB; i++) {
+    //             const int c = i + j;
+    //             const int r = i + j;
+    //             sum +=
+    //                 AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows]
+    //                 * AB_array_entry[(KL + KU + r - trail_col) +
+    //                                trail_col * AB_nrows];
+    //         }
+    //         AB_array_entry[(KL + KU + trail_row - trail_col) +
+    //                        trail_col * AB_nrows] -= sum;
+    //     }
+    // }
 }
 
 template <typename ValueType>
@@ -450,20 +461,37 @@ void update_A21(const int N, const int KL, const int KU,
 {
     const int AB_nrows = 2 * KL + KU + 1;
 
-    for (int trail_row = j + JB + I1; trail_row < j + JB + I1 + I2;
-         trail_row++) {
-        for (int trail_col = j + JB; trail_col < j + JB + J1; trail_col++) {
-            ValueType sum = zero<ValueType>();
-            for (int i = 0; i < JB; i++) {
-                const int r = i + j;
-                sum += work20_entry[trail_row - (j + JB + I1) + i * NB] *
-                       AB_array_entry[(KL + KU + r - trail_col) +
-                                      trail_col * AB_nrows];
-            }
-            AB_array_entry[(KL + KU + trail_row - trail_col) +
-                           trail_col * AB_nrows] -= sum;
+    auto compute_sum = [=](const int trail_row, const int trail_col) {
+        ValueType sum = zero<ValueType>();
+
+        for (int i = 0; i < JB; i++) {
+            const int r = i + j;
+            sum += work20_entry[trail_row - (j + JB + I1) + i * NB] *
+                   AB_array_entry[(KL + KU + r - trail_col) +
+                                  trail_col * AB_nrows];
         }
-    }
+
+        return sum;
+    };
+
+    update_part_of_trailing_matrix(N, KL, KU, AB_array_entry, j + JB + I1,
+                                   j + JB + I1 + I2, j + JB, j + JB + J1,
+                                   compute_sum);
+
+    // for (int trail_row = j + JB + I1; trail_row < j + JB + I1 + I2;
+    //      trail_row++) {
+    //     for (int trail_col = j + JB; trail_col < j + JB + J1; trail_col++) {
+    //         ValueType sum = zero<ValueType>();
+    //         for (int i = 0; i < JB; i++) {
+    //             const int r = i + j;
+    //             sum += work20_entry[trail_row - (j + JB + I1) + i * NB] *
+    //                    AB_array_entry[(KL + KU + r - trail_col) +
+    //                                   trail_col * AB_nrows];
+    //         }
+    //         AB_array_entry[(KL + KU + trail_row - trail_col) +
+    //                        trail_col * AB_nrows] -= sum;
+    //     }
+    // }
 }
 
 template <typename ValueType>
@@ -474,24 +502,41 @@ void update_A12(const int N, const int KL, const int KU,
 {
     const int AB_nrows = 2 * KL + KU + 1;
 
-    // update A12
-    for (int trail_row = j + JB; trail_row < j + JB + I1; trail_row++) {
-        for (int trail_col = j + JB + J1; trail_col < j + JB + J1 + J2;
-             trail_col++) {
-            ValueType sum = zero<ValueType>();
+    auto compute_sum = [=](const int trail_row, const int trail_col) {
+        ValueType sum = zero<ValueType>();
 
-            for (int i = 0; i < JB; i++) {
-                const int c = i + j;
-                const int offset_col = j + JB + J1;
-                sum +=
-                    AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows] *
-                    work02_entry[i + (trail_col - offset_col) * NB];
-            }
-
-            AB_array_entry[(KL + KU + trail_row - trail_col) +
-                           trail_col * AB_nrows] -= sum;
+        for (int i = 0; i < JB; i++) {
+            const int c = i + j;
+            const int offset_col = j + JB + J1;
+            sum += AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows] *
+                   work02_entry[i + (trail_col - offset_col) * NB];
         }
-    }
+        return sum;
+    };
+
+    // update A12
+
+    update_part_of_trailing_matrix(N, KL, KU, AB_array_entry, j + JB,
+                                   j + JB + I1, j + JB + J1, j + JB + J1 + J2,
+                                   compute_sum);
+
+    // for (int trail_row = j + JB; trail_row < j + JB + I1; trail_row++) {
+    //     for (int trail_col = j + JB + J1; trail_col < j + JB + J1 + J2;
+    //          trail_col++) {
+    //         ValueType sum = zero<ValueType>();
+
+    //         for (int i = 0; i < JB; i++) {
+    //             const int c = i + j;
+    //             const int offset_col = j + JB + J1;
+    //             sum +=
+    //                 AB_array_entry[(KL + KU + trail_row - c) + c * AB_nrows]
+    //                 * work02_entry[i + (trail_col - offset_col) * NB];
+    //         }
+
+    //         AB_array_entry[(KL + KU + trail_row - trail_col) +
+    //                        trail_col * AB_nrows] -= sum;
+    //     }
+    // }
 }
 
 template <typename ValueType>
@@ -502,23 +547,42 @@ void update_A22(const int N, const int KL, const int KU,
                 const ValueType* work02_entry)
 {
     const int AB_nrows = 2 * KL + KU + 1;
-    // update A22
-    for (int trail_row = j + JB + I1; trail_row < j + JB + I1 + I2;
-         trail_row++) {
-        for (int trail_col = j + JB + J1; trail_col < j + JB + J1 + J2;
-             trail_col++) {
-            ValueType sum = zero<ValueType>();
-            for (int i = 0; i < JB; i++) {
-                const int offset_col = j + JB + J1;
-                const int offset_row = j + JB + I1;
-                sum += work20_entry[(trail_row - offset_row) + i * NB] *
-                       work02_entry[i + (trail_col - offset_col) * NB];
-            }
 
-            AB_array_entry[(KL + KU + trail_row - trail_col) +
-                           trail_col * AB_nrows] -= sum;
+    auto compute_sum = [=](const int trail_row, const int trail_col) {
+        ValueType sum = zero<ValueType>();
+
+        for (int i = 0; i < JB; i++) {
+            const int offset_col = j + JB + J1;
+            const int offset_row = j + JB + I1;
+            sum += work20_entry[(trail_row - offset_row) + i * NB] *
+                   work02_entry[i + (trail_col - offset_col) * NB];
         }
-    }
+
+        return sum;
+    };
+
+    update_part_of_trailing_matrix(N, KL, KU, AB_array_entry, j + JB + I1,
+                                   j + JB + I1 + I2, j + JB + J1,
+                                   j + JB + J1 + J2, compute_sum);
+
+    // update A22
+
+    // for (int trail_row = j + JB + I1; trail_row < j + JB + I1 + I2;
+    //      trail_row++) {
+    //     for (int trail_col = j + JB + J1; trail_col < j + JB + J1 + J2;
+    //          trail_col++) {
+    //         ValueType sum = zero<ValueType>();
+    //         for (int i = 0; i < JB; i++) {
+    //             const int offset_col = j + JB + J1;
+    //             const int offset_row = j + JB + I1;
+    //             sum += work20_entry[(trail_row - offset_row) + i * NB] *
+    //                    work02_entry[i + (trail_col - offset_col) * NB];
+    //         }
+
+    //         AB_array_entry[(KL + KU + trail_row - trail_col) +
+    //                        trail_col * AB_nrows] -= sum;
+    //     }
+    // }
 }
 
 template <typename ValueType>
@@ -676,8 +740,7 @@ inline void factorize_band(const int N, const int KL, const int KU,
             lower_trsv_update_A01(N, KL, KU, AB_array_entry, j, JB, J1);
 
             if (I1 > 0) {
-                update_A11(N, KL, KU, AB_array_entry, j, JB, j + JB,
-                           j + JB + I1, j + JB, j + JB + J1);
+                update_A11(N, KL, KU, AB_array_entry, j, JB, I1, J1);
             }
 
             if (I2 > 0) {
