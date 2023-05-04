@@ -105,7 +105,8 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
           static_cast<int>((static_cast<double>(num_regs_used) * 1.1))) /
          config::warp_size) *
         config::warp_size;
-    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    int max_threads = std::min(max_threads_regs, device_max_threads);
+    max_threads = max_threads <= 1024 ? max_threads : 1024;
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }
 
