@@ -166,71 +166,76 @@ inline void update_trailing_submatrix(const int N, const int KL, const int KU,
 
 namespace unblocked_LU_band_factorization {
 
-template <typename ValueType>
-inline void swap_rows(const int N, const int KL, const int KU,
-                      ValueType* const AB_array_entry,
-                      const int A_affected_col_idx_last,
-                      const int A_diag_row_idx, const int A_pivot_row_idx)
-{
-    const int AB_nrows = 2 * KL + KU + 1;
-    for (int A_col_idx = A_diag_row_idx; A_col_idx <= A_affected_col_idx_last;
-         A_col_idx++) {
-        const int AB_row_idx_1 = KL + KU + A_diag_row_idx - A_col_idx;
-        const int AB_row_idx_2 = KL + KU + A_pivot_row_idx - A_col_idx;
-        const ValueType temp =
-            AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx];
-        AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx] =
-            AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx];
-        AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx] = temp;
-    }
-}
+// template <typename ValueType>
+// inline void swap_rows(const int N, const int KL, const int KU,
+//                       ValueType* const AB_array_entry,
+//                       const int A_affected_col_idx_last,
+//                       const int A_diag_row_idx, const int A_pivot_row_idx)
+// {
+//     const int AB_nrows = 2 * KL + KU + 1;
+//     for (int A_col_idx = A_diag_row_idx; A_col_idx <=
+//     A_affected_col_idx_last;
+//          A_col_idx++) {
+//         const int AB_row_idx_1 = KL + KU + A_diag_row_idx - A_col_idx;
+//         const int AB_row_idx_2 = KL + KU + A_pivot_row_idx - A_col_idx;
+//         const ValueType temp =
+//             AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx];
+//         AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx] =
+//             AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx];
+//         AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx] = temp;
+//     }
+// }
 
-template <typename ValueType>
-inline void scale_column(const int N, const int KL, const int KU,
-                         ValueType* const AB_array_entry, const int AB_col_idx)
-{
-    const int AB_nrows = 2 * KL + KU + 1;
-    const int AB_diag_row_idx = KL + KU;
+// template <typename ValueType>
+// inline void scale_column(const int N, const int KL, const int KU,
+//                          ValueType* const AB_array_entry, const int
+//                          AB_col_idx)
+// {
+//     const int AB_nrows = 2 * KL + KU + 1;
+//     const int AB_diag_row_idx = KL + KU;
 
-    const int AB_row_idx_limit = KL + KU + (N - 1 - AB_col_idx);
-    const ValueType diag_ele =
-        AB_array_entry[AB_diag_row_idx + AB_nrows * AB_col_idx];
-    for (int AB_row_idx = AB_diag_row_idx + 1;
-         AB_row_idx <= std::min(AB_row_idx_limit, AB_diag_row_idx + KL);
-         AB_row_idx++) {
-        AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx] /= diag_ele;
-    }
-}
+//     const int AB_row_idx_limit = KL + KU + (N - 1 - AB_col_idx);
+//     const ValueType diag_ele =
+//         AB_array_entry[AB_diag_row_idx + AB_nrows * AB_col_idx];
+//     for (int AB_row_idx = AB_diag_row_idx + 1;
+//          AB_row_idx <= std::min(AB_row_idx_limit, AB_diag_row_idx + KL);
+//          AB_row_idx++) {
+//         AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx] /= diag_ele;
+//     }
+// }
 
-template <typename ValueType>
-inline void update_trailing_submatrix(const int N, const int KL, const int KU,
-                                      ValueType* const AB_array_entry,
-                                      const int AB_col_idx,
-                                      const int A_diag_row_idx,
-                                      const int A_affected_col_idx_last)
-{
-    const int AB_nrows = 2 * KL + KU + 1;
-    for (int A_col_idx = A_diag_row_idx + 1;
-         A_col_idx <= A_affected_col_idx_last; A_col_idx++) {
-        const int AB_main_row = KL + KU + A_diag_row_idx - A_col_idx;
-        const int AB_col = A_col_idx;
-        const ValueType ele_above =
-            AB_array_entry[AB_main_row + AB_nrows * AB_col];
+// template <typename ValueType>
+// inline void update_trailing_submatrix(const int N, const int KL, const int
+// KU,
+//                                       ValueType* const AB_array_entry,
+//                                       const int AB_col_idx,
+//                                       const int A_diag_row_idx,
+//                                       const int A_affected_col_idx_last)
+// {
+//     const int AB_nrows = 2 * KL + KU + 1;
+//     for (int A_col_idx = A_diag_row_idx + 1;
+//          A_col_idx <= A_affected_col_idx_last; A_col_idx++) {
+//         const int AB_main_row = KL + KU + A_diag_row_idx - A_col_idx;
+//         const int AB_col = A_col_idx;
+//         const ValueType ele_above =
+//             AB_array_entry[AB_main_row + AB_nrows * AB_col];
 
-        for (int A_row_idx = A_diag_row_idx + 1;
-             A_row_idx <= std::min(N - 1, A_diag_row_idx + KL); A_row_idx++) {
-            const int AB_row_idx_for_side_ele =
-                KL + KU + A_row_idx - AB_col_idx;
-            const ValueType ele_side =
-                AB_array_entry[AB_row_idx_for_side_ele + AB_nrows * AB_col_idx];
+//         for (int A_row_idx = A_diag_row_idx + 1;
+//              A_row_idx <= std::min(N - 1, A_diag_row_idx + KL); A_row_idx++)
+//              {
+//             const int AB_row_idx_for_side_ele =
+//                 KL + KU + A_row_idx - AB_col_idx;
+//             const ValueType ele_side =
+//                 AB_array_entry[AB_row_idx_for_side_ele + AB_nrows *
+//                 AB_col_idx];
 
-            const int AB_row_idx_for_this_col_ele =
-                KL + KU + A_row_idx - A_col_idx;
-            AB_array_entry[AB_row_idx_for_this_col_ele +
-                           AB_nrows * A_col_idx] -= ele_above * ele_side;
-        }
-    }
-}
+//             const int AB_row_idx_for_this_col_ele =
+//                 KL + KU + A_row_idx - A_col_idx;
+//             AB_array_entry[AB_row_idx_for_this_col_ele +
+//                            AB_nrows * A_col_idx] -= ele_above * ele_side;
+//         }
+//     }
+// }
 
 
 template <typename ValueType>
@@ -238,6 +243,7 @@ inline void factorize_band(const int N, const int KL, const int KU,
                            ValueType* const AB_array_entry,
                            int* const ipiv_entry)
 {
+    const int AB_nrows = 2 * KL + KU + 1;
     const int KV = KL + KU;
 
     common_band_factorization::set_possible_fill_in_U_part_zero(N, KL, KU,
@@ -258,8 +264,9 @@ inline void factorize_band(const int N, const int KL, const int KU,
         const int A_diag_row_idx = AB_col_idx;
 
         // assert piv not equal to zero
-        assert(AB_array_entry[AB_pivot_row_idx + AB_nrows * AB_col_idx] !=
-               zero<ValueType>());
+        const ValueType piv_ele =
+            AB_array_entry[AB_pivot_row_idx + AB_nrows * AB_col_idx];
+        assert(piv_ele != zero<ValueType>());
 
         // THINK...: reference- LAPACK
         A_affected_col_idx_last = std::max(
@@ -267,19 +274,21 @@ inline void factorize_band(const int N, const int KL, const int KU,
 
         // swap rows
         if (AB_diag_row_idx != AB_pivot_row_idx) {
-            swap_rows(N, KL, KU, AB_array_entry, A_affected_col_idx_last,
-                      A_diag_row_idx, A_pivot_row_idx);
+            common_band_factorization::swap_rows(
+                N, KL, KU, AB_array_entry, AB_col_idx, A_affected_col_idx_last,
+                A_diag_row_idx, A_pivot_row_idx);
         }
 
         // record the swap row info...
         ipiv_entry[AB_col_idx] = A_pivot_row_idx;
 
         // scale A's column
-        scale_column(N, KL, KU, AB_array_entry, AB_col_idx);
+        common_band_factorization::scale_column(N, KL, KU, AB_array_entry,
+                                                AB_col_idx, piv_ele);
 
         // update trailing submatrix
-        update_trailing_submatrix(N, KL, KU, AB_array_entry, AB_col_idx,
-                                  A_diag_row_idx, A_affected_col_idx_last);
+        common_band_factorization::update_trailing_submatrix(
+            N, KL, KU, AB_array_entry, AB_col_idx, A_affected_col_idx_last);
     }
 }
 
