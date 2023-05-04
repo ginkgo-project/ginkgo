@@ -92,7 +92,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
     const int shared_size =
         gko::kernels::batch_band_solver::local_memory_requirement<ValueType>(
-            nrows, nrhs, approach);
+            nrows, nrhs, approach, blocked_solve_panel_size);
 
     assert(workspace_size >= band_mat->get_num_stored_elements());
 

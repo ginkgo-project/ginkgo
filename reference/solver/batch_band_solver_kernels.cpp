@@ -69,12 +69,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_batch = device::get_batch_struct(x);
     const auto b_batch = device::get_batch_struct(b);
 
-    const int local_size_bytes =
-        gko::kernels::batch_band_solver::local_memory_requirement<ValueType>(
-            nrows, nrhs, approach);
-
-    std::vector<unsigned char> local_space(local_size_bytes);
-
     assert(workspace_size >= band_mat->get_num_stored_elements());
 
     if (workspace_size < band_mat->get_num_stored_elements()) {
@@ -91,13 +85,31 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const int KU = static_cast<int>(band_mat->get_num_superdiagonals().at(0));
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        if (approach == gko::solver::batch_band_solve_approach::unblocked) {
+        if (approach == gko::solver::batch_band_solve_approach::unblocked ||
+            (approach == gko::solver::batch_band_solve_approach::blocked &&
+             blocked_solve_panel_size > KL)) {
+            const int local_size_bytes =
+                gko::kernels::batch_band_solver::local_memory_requirement<
+                    ValueType>(
+                    nrows, nrhs,
+                    gko::solver::batch_band_solve_approach::unblocked);
+
+            std::vector<unsigned char> local_space(local_size_bytes);
+
             batch_entry_band_unblocked_solve_impl(ibatch, nbatch, KL, KU,
                                                   batch_band_mat_array, b_batch,
                                                   x_batch, local_space.data());
 
         } else if (approach ==
                    gko::solver::batch_band_solve_approach::blocked) {
+            const int local_size_bytes =
+                gko::kernels::batch_band_solver::local_memory_requirement<
+                    ValueType>(nrows, nrhs,
+                               gko::solver::batch_band_solve_approach::blocked,
+                               blocked_solve_panel_size);
+
+            std::vector<unsigned char> local_space(local_size_bytes);
+
             batch_entry_band_blocked_solve_impl(
                 ibatch, nbatch, KL, KU, batch_band_mat_array,
                 blocked_solve_panel_size, b_batch, x_batch, local_space.data());

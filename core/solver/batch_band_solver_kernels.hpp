@@ -55,13 +55,17 @@ namespace batch_band_solver {
 template <typename ValueType>
 inline int local_memory_requirement(
     const int num_rows, const int num_rhs,
-    const enum gko::solver::batch_band_solve_approach approach)
+    const enum gko::solver::batch_band_solve_approach approach,
+    const int blocked_solve_panel_size = 1)
 {
     if (approach == gko::solver::batch_band_solve_approach::unblocked) {
         return sizeof(ValueType) * 2 * num_rows * num_rhs +
                sizeof(int) * num_rows;
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
-        GKO_NOT_IMPLEMENTED;
+        return sizeof(ValueType) *
+                   (2 * num_rows * num_rhs +
+                    2 * blocked_solve_panel_size * blocked_solve_panel_size) +
+               sizeof(int) * num_rows;
     } else {
         GKO_NOT_IMPLEMENTED;
     }
