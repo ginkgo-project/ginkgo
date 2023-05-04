@@ -289,6 +289,28 @@ void ProfilerHook::on_iteration_complete(
 }
 
 
+void ProfilerHook::on_iteration_complete(const LinOp* solver,
+                                         const size_type& num_iterations,
+                                         const LinOp* residual,
+                                         const LinOp* solution,
+                                         const LinOp* residual_norm) const
+{
+    on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
+                          residual_norm, nullptr, nullptr, false);
+}
+
+
+void ProfilerHook::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm) const
+{
+    on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
+                          residual_norm, implicit_sq_residual_norm, nullptr,
+                          false);
+}
+
+
 bool ProfilerHook::needs_propagation() const { return true; }
 
 

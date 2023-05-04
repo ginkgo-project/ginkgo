@@ -33,6 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 #include <memory>
 
 
@@ -60,7 +71,20 @@ struct DummyLoggedClass : gko::log::EnableLogging<DummyLoggedClass> {
     void apply()
     {
         this->log<gko::log::Logger::iteration_complete>(
+            nullptr, nullptr, nullptr, num_iters, nullptr, nullptr, nullptr,
+            nullptr, false);
+    }
+
+    void deprecated_apply_1()
+    {
+        this->log<gko::log::Logger::iteration_complete>(
             nullptr, num_iters, nullptr, nullptr, nullptr);
+    }
+
+    void deprecated_apply_2()
+    {
+        this->log<gko::log::Logger::iteration_complete>(
+            nullptr, num_iters, nullptr, nullptr, nullptr, nullptr);
     }
 
     std::shared_ptr<const gko::Executor> get_executor() const { return exec; }
@@ -143,6 +167,7 @@ TEST(DummyLogged, CanRemoveLogger)
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
 
+
 struct DummyLogger : gko::log::Logger {
     using Logger = gko::log::Logger;
 
@@ -170,7 +195,7 @@ struct DummyLogger : gko::log::Logger {
 TEST(DummyLogged, CanLogEvents)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto l = std::shared_ptr<DummyLogger>(
+    auto l = std::make_shared<DummyLogger>(
         new DummyLogger(false, gko::log::Logger::iteration_complete_mask));
     DummyLoggedClass c{exec};
     c.add_logger(l);
@@ -181,11 +206,39 @@ TEST(DummyLogged, CanLogEvents)
 }
 
 
+TEST(DummyLogged, CanLogEventsDeprecated1)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::make_shared<DummyLogger>(
+        false, gko::log::Logger::iteration_complete_mask);
+    DummyLoggedClass c{exec};
+    c.add_logger(l);
+
+    c.deprecated_apply_1();
+
+    ASSERT_EQ(num_iters, l->num_iterations_);
+}
+
+
+TEST(DummyLogged, CanLogEventsDeprecated2)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::make_shared<DummyLogger>(
+        false, gko::log::Logger::iteration_complete_mask);
+    DummyLoggedClass c{exec};
+    c.add_logger(l);
+
+    c.deprecated_apply_2();
+
+    ASSERT_EQ(num_iters, l->num_iterations_);
+}
+
+
 TEST(DummyLogged, DoesNotPropagateEventsWhenNotPropagating)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto l = std::shared_ptr<DummyLogger>(
-        new DummyLogger(false, gko::log::Logger::iteration_complete_mask));
+    auto l = std::make_shared<DummyLogger>(
+        false, gko::log::Logger::iteration_complete_mask);
     DummyLoggedClass c{exec};
     exec->add_logger(l);
 
@@ -198,8 +251,8 @@ TEST(DummyLogged, DoesNotPropagateEventsWhenNotPropagating)
 TEST(DummyLogged, PropagatesEventsWhenPropagating)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto l = std::shared_ptr<DummyLogger>(
-        new DummyLogger(true, gko::log::Logger::iteration_complete_mask));
+    auto l = std::make_shared<DummyLogger>(
+        true, gko::log::Logger::iteration_complete_mask);
     DummyLoggedClass c{exec};
     exec->add_logger(l);
 
@@ -213,8 +266,8 @@ TEST(DummyLogged, DoesNotPropagateEventsWhenDisabled)
 {
     auto exec = gko::ReferenceExecutor::create();
     exec->set_log_propagation_mode(gko::log_propagation_mode::never);
-    auto l = std::shared_ptr<DummyLogger>(
-        new DummyLogger(true, gko::log::Logger::iteration_complete_mask));
+    auto l = std::make_shared<DummyLogger>(
+        true, gko::log::Logger::iteration_complete_mask);
     DummyLoggedClass c{exec};
     exec->add_logger(l);
 
@@ -224,4 +277,94 @@ TEST(DummyLogged, DoesNotPropagateEventsWhenDisabled)
 }
 
 
+struct DummyLoggerExtended : gko::log::Logger {
+    using Logger = gko::log::Logger;
+
+    explicit DummyLoggerExtended() : Logger(Logger::iteration_complete_mask) {}
+
+    void on_iteration_complete(
+        const gko::LinOp* solver, const gko::size_type& num_iterations,
+        const gko::LinOp* residual, const gko::LinOp* solution = nullptr,
+        const gko::LinOp* residual_norm = nullptr) const override
+    {
+        this->logged_deprecated_1 = true;
+    }
+
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::size_type& it, const gko::LinOp* r,
+                               const gko::LinOp* x, const gko::LinOp* tau,
+                               const gko::LinOp* implicit_tau_sq) const override
+    {
+        this->logged_deprecated_2 = true;
+    }
+
+    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
+                               const gko::LinOp* x, const gko::size_type& it,
+                               const gko::LinOp* r, const gko::LinOp* tau,
+                               const gko::LinOp* implicit_tau_sq,
+                               const gko::array<gko::stopping_status>* status,
+                               bool stopped) const override
+    {
+        this->logged_current = true;
+    }
+
+    mutable bool logged_deprecated_1 = false;
+    mutable bool logged_deprecated_2 = false;
+    mutable bool logged_current = false;
+};
+
+
+TEST(IterationCompleteOverload, CanLogFirstDeprecated)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::make_shared<DummyLoggerExtended>();
+    DummyLoggedClass c{exec};
+    c.add_logger(l);
+
+    c.deprecated_apply_1();
+
+    ASSERT_TRUE(l->logged_deprecated_1);
+    ASSERT_FALSE(l->logged_deprecated_2);
+    ASSERT_FALSE(l->logged_current);
+}
+
+
+TEST(IterationCompleteOverload, CanLogSecondDeprecated)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::make_shared<DummyLoggerExtended>();
+    DummyLoggedClass c{exec};
+    c.add_logger(l);
+
+    c.deprecated_apply_2();
+
+    ASSERT_FALSE(l->logged_deprecated_1);
+    ASSERT_TRUE(l->logged_deprecated_2);
+    ASSERT_FALSE(l->logged_current);
+}
+
+
+TEST(IterationCompleteOverload, CanLogCurrent)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::make_shared<DummyLoggerExtended>();
+    DummyLoggedClass c{exec};
+    c.add_logger(l);
+
+    c.apply();
+
+    ASSERT_FALSE(l->logged_deprecated_1);
+    ASSERT_FALSE(l->logged_deprecated_2);
+    ASSERT_TRUE(l->logged_current);
+}
+
+
 }  // namespace
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

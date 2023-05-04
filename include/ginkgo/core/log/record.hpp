@@ -78,8 +78,10 @@ struct iteration_complete_data {
         : num_iterations{num_iterations}, all_stopped(all_stopped)
     {
         this->solver = solver->clone();
-        this->right_hand_side = right_hand_side->clone();
         this->solution = solution->clone();
+        if (right_hand_side != nullptr) {
+            this->right_hand_side = right_hand_side->clone();
+        }
         if (residual != nullptr) {
             this->residual = residual->clone();
         }
@@ -400,12 +402,17 @@ public:
         const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
         const array<stopping_status>* status, bool stopped) const override;
 
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
+                          const LinOp* residual, const LinOp* solution,
+                          const LinOp* residual_norm) const override;
 
-    void on_iteration_complete(
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,

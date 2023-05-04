@@ -188,12 +188,17 @@ public:
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
+                          const LinOp* residual, const LinOp* solution,
+                          const LinOp* residual_norm) const override;
 
-    void on_iteration_complete(
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
