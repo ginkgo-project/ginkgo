@@ -608,6 +608,35 @@ protected:
         band_solver->apply(b.get(), this->x.get());
         GKO_ASSERT_BATCH_MTX_NEAR(this->x, expected_sol, 10 * this->eps);
     }
+
+    void test_unblocked_solve_and_blocked_solve_are_eqvt(
+        std::shared_ptr<BBand> mtx, std::shared_ptr<BDense> b,
+        const int blocked_solve_panel_size)
+    {
+        auto x_1 = gko::share(gko::clone(this->exec, b.get()));
+        auto x_2 = gko::share(gko::clone(this->exec, b.get()));
+
+        auto unblocked_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(
+                    gko::solver::batch_band_solve_approach::unblocked)
+                .on(this->exec)
+                ->generate(mtx);
+
+        unblocked_band_solver->apply(b.get(), x_1.get());
+
+        auto blocked_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(
+                    gko::solver::batch_band_solve_approach::blocked)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .on(this->exec)
+                ->generate(mtx);
+
+        blocked_band_solver->apply(b.get(), x_2.get());
+
+        GKO_ASSERT_BATCH_MTX_NEAR(x_1, x_2, 100 * this->eps);
+    }
 };
 
 TYPED_TEST_SUITE(BatchBandSolver, gko::test::ValueTypes);
@@ -627,6 +656,69 @@ TYPED_TEST(BatchBandSolver, UnblockedSolve_KV_more_than_N_minus_1_IsCorrect)
         gko::solver::batch_band_solve_approach::unblocked);
 }
 
+TYPED_TEST(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsCorrect)
+{
+    this->test_solve_is_correct(
+        this->band_mat_1, this->b_1, this->expected_sol_1,
+        gko::solver::batch_band_solve_approach::blocked, 2);
+}
+
+TYPED_TEST(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsCorrect)
+{
+    this->test_solve_is_correct(
+        this->band_mat_2, this->b_2, this->expected_sol_2,
+        gko::solver::batch_band_solve_approach::blocked, 2);
+}
+
+TYPED_TEST(BatchBandSolver,
+           BlockedSolve_Is_Eqvt_To_Unblocked__KV_less_than_N_minus_1)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename gko::remove_complex<value_type>;
+    using BDense = typename TestFixture::BDense;
+    const auto nbatch = 20;
+    const auto nrows = 30;
+    const auto KL = 6;
+    const auto KU = 3;
+
+    auto mtx = gko::share(
+        gko::test::generate_uniform_batch_band_random_matrix<value_type>(
+            nbatch, nrows, KL, KU,
+            std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine,
+            this->exec));
+
+    auto b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
+        nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
+        std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine, true,
+        this->exec));
+
+    this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 4);
+}
+
+TYPED_TEST(BatchBandSolver,
+           BlockedSolve_Is_Eqvt_To_Unblocked_KV_more_than_N_minus_1)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename gko::remove_complex<value_type>;
+    using BDense = typename TestFixture::BDense;
+    const auto nbatch = 20;
+    const auto nrows = 30;
+    const auto KL = 19;
+    const auto KU = 17;
+
+    auto mtx = gko::share(
+        gko::test::generate_uniform_batch_band_random_matrix<value_type>(
+            nbatch, nrows, KL, KU,
+            std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine,
+            this->exec));
+
+    auto b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
+        nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
+        std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine, true,
+        this->exec));
+
+    this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 6);
+}
 
 // TYPED_TEST(BatchBandSolver, Solve_TridiagCase_IsCorrect)
 // {
