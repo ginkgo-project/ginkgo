@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
@@ -79,7 +80,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
+        if (xstd::uncaught_exception()) {
             cublasSetPointerMode(*l_handle, CUBLAS_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_CUBLAS_ERRORS(
@@ -126,7 +127,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
+        if (xstd::uncaught_exception()) {
             cusparseSetPointerMode(l_handle, CUSPARSE_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_CUSPARSE_ERRORS(
