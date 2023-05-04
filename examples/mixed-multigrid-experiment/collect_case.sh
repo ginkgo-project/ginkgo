@@ -27,7 +27,7 @@ for num_levels in 10; do
                     for matrix in ${!list}; do
                         echo "matrix ${matrix} in ${mtx}"
                         line=""
-                        for mixed_mode in 0 1 2 3 -1 -2 -21 -22 -23; do
+                        for mixed_mode in 0 1 2 3 -11 -12 -13 -21 -22 -23; do
                             echo "|_ mixed_mode ${mixed_mode}"
                             # if [[ "${mixed_mode}" != "0" ]]; then
                             #     line="${line}, "

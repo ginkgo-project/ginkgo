@@ -15,7 +15,7 @@ l-shape-const-o-3-l-7
 RESULT_FOLDER=$1
 EXECUTOR=$2
 DATA_FOLDER=$3
-MIXED_MODE="0 1 2 3 -1 -2 -21 -22 -23"
+MIXED_MODE="0 1 2 3 -11 -12 -13 -21 -22 -23"
 MG_MODE="$4"
 #"cg preconditioner"
 SM_MODE="$5"
