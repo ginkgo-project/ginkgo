@@ -146,7 +146,7 @@ __dpct_inline__ void update_p(const int num_rows,
 
 template <typename ValueType>
 __dpct_inline__ void update_x_and_r_small(
-    const int num_rows, const ValueType& rho_old_shared_entry,
+    const int num_rows, const ValueType rho_old_shared_entry,
     const ValueType* const p_shared_entry,
     const ValueType* const Ap_shared_entry, ValueType& alpha_shared_entry,
     ValueType* const x_shared_entry, ValueType* const r_shared_entry,
@@ -169,7 +169,7 @@ __dpct_inline__ void update_x_and_r_small(
 
 template <typename ValueType>
 __dpct_inline__ void update_x_and_r(const int num_rows,
-                                    const ValueType& rho_old_shared_entry,
+                                    const ValueType rho_old_shared_entry,
                                     const ValueType* const p_shared_entry,
                                     const ValueType* const Ap_shared_entry,
                                     ValueType* const x_shared_entry,
@@ -252,15 +252,14 @@ void small_apply_kernel(
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
+    norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+    if (stop.check_converged(norms_res_sh)) {
+        return;
+    }
 
     int iter = 0;
     for (; iter < max_iter; iter++) {
-        norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
-        item_ct1.barrier(sycl::access::fence_space::local_space);
-        if (stop.check_converged(norms_res_sh)) {
-            break;
-        }
-
         // Ap = A * p
         single_matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -282,6 +281,11 @@ void small_apply_kernel(
                                           item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
+        norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+        if (stop.check_converged(norms_res_sh)) {
+            return;
+        }
 
         // beta = rho_new / rho_old
         // p = z + beta * p
@@ -362,15 +366,13 @@ void apply_medium_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
     // stopping criterion object
     StopType stop(tol, &norms_rhs_sh);
+    norms_res_sh = sqrt(abs(rho_old_sh));
+    if (stop.check_converged(&norms_res_sh)) {
+        return;
+    }
 
     int iter = 0;
     for (; iter < max_iter; iter++) {
-        norms_res_sh = sqrt(abs(rho_old_sh));
-        item_ct1.barrier(sycl::access::fence_space::local_space);
-        if (stop.check_converged(&norms_res_sh)) {
-            break;
-        }
-
         // Ap = A * p
         single_matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -381,19 +383,23 @@ void apply_medium_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, x_sh, r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
+
         // z = precond * r
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         //  rho_new =  (r)' * (z)
         compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
+        norms_res_sh = sqrt(abs(rho_new_sh));
+        if (stop.check_converged(&norms_res_sh)) {
+            break;
+        }
 
         // beta = rho_new / rho_old
         // p = z + beta * p
         update_p(nrows, rho_new_sh, rho_old_sh, z_sh, p_sh, item_ct1);
-        item_ct1.barrier(sycl::access::fence_space::local_space);
-
         rho_old_sh = rho_new_sh;
+        // item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
     logger.log_iteration(ibatch, iter, norms_res_sh);
@@ -440,17 +446,7 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     ValueType* Ap_sh;
     ValueType* x_sh;
     ValueType* prec_work_sh;
-    /*
-    if (sconf.n_global == 0){
-      r_sh = slm_values;
-      z_sh = r_sh + sconf.padded_vec_len;
-      p_sh = z_sh + sconf.padded_vec_len;
-      Ap_sh = p_sh + sconf.padded_vec_len;
-      prec_work_sh = Ap_sh + sconf.padded_vec_len;
-      x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-    }
-    else {
-    */
+    //
     if (sconf.n_shared >= 1) {
         r_sh = slm_values;
     } else {
@@ -481,7 +477,6 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     } else {
         x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
     }
-    //}
     // generate preconditioner
     prec_shared.generate(ibatch, A_global_entry, prec_work_sh, item_ct1);
 
@@ -498,15 +493,14 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
     // stopping criterion object
     StopType stop(tol, &norms_rhs_sh);
+    norms_res_sh = sqrt(abs(rho_old_sh));
+    item_ct1.barrier(sycl::access::fence_space::local_space);
+    if (stop.check_converged(&norms_res_sh)) {
+        return;
+    }
 
     int iter = 0;
     for (; iter < max_iter; iter++) {
-        norms_res_sh = sqrt(abs(rho_old_sh));
-        item_ct1.barrier(sycl::access::fence_space::local_space);
-        if (stop.check_converged(&norms_res_sh)) {
-            break;
-        }
-
         // Ap = A * p
         single_matvec_kernel(A_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -523,6 +517,10 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
 
         //  rho_new =  (r)' * (z)
         compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh, item_ct1);
+        norms_res_sh = sqrt(abs(rho_new_sh));
+        if (stop.check_converged(&norms_res_sh)) {
+            break;
+        }
 
         // beta = rho_new / rho_old
         // p = z + beta * p

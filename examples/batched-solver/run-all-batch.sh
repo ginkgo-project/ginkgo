@@ -3,13 +3,14 @@
 #declare -a SOLVERS=("bicgstab" "cg" "direct" "gmres" "idr" "lower_trs" "upper_trs" "richardson")
 #declare -a SOLVERS=("cg" "bicgstab" "gmres" "richardson")
 declare -a SOLVERS=("cg")
-#declare -a BATCH_SIZES=("50" "100" "500" "1000" "5000" "10000" "50000")
-declare -a BATCH_SIZES=("1000" "5000" "10000" "50000" "100000")
-declare -a MAT_SIZES=("16" "32" "64" "128" "256" "512" "768" "1024" "1280" "1536" "1792" "2048")
+declare -a BATCH_SIZES=("128" "256" "512" "1024" "2048" "4096" "8192" "16384" "32768" "65536" "131072" "262144")
+#declare -a BATCH_SIZES=("32768" "65536" "131072" "262144")
+#declare -a BATCH_SIZES=("131072")
+declare -a MAT_SIZES=("16" "32" "64" "128" "256" "512" "1024")
 
-NUM_TILES=1
+NUM_TILES=2
 EXEC="dpcpp"
-VER="opt"
+VER="opt3"
 
 BIN_PREFIX_PATH="${HOME}/ginkgo/build/examples/batched-solver"
 OUTPUT_PATH="../performance"
@@ -18,6 +19,8 @@ mkdir -p $DIR
 
 if [ $NUM_TILES -eq 1 ];  then
     export ZE_AFFINITY_MASK=0.0
+else
+    unset ZE_AFFINITY_MASK
 fi
 
 for SOLVER in "${SOLVERS[@]}" 

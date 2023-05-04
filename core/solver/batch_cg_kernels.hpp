@@ -158,11 +158,11 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
 {
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
-    const int num_priority_vecs = 4;
+    const int num_priority_vecs = 5;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
-    const int num_cg_vecs{6};
+    const int num_cg_vecs{5};
     StorageConfig sconf{false, 0, num_cg_vecs, 0, num_rows};
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
