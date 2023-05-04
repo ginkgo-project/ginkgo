@@ -620,10 +620,13 @@ inline void factorize_band(const int N, const int KL, const int KU,
 
     common_band_factorization::set_possible_fill_in_U_part_zero(N, KL, KU,
                                                                 AB_array_entry);
+    // Do work arrays need to be initialized???
+    for (int i = 0; i < NB * NB; i++) {
+        work20_entry[i] = zero<ValueType>();
+        work02_entry[i] = zero<ValueType>();
+    }
 
     int A_affected_col_idx_last = 0;
-
-    // Do work arrays need to be initialized???
 
     for (int j = 0; j < N; j += NB) {
         const int JB = std::min(NB, N - j);
