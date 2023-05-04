@@ -146,10 +146,7 @@ __dpct_inline__ void compute_norm2_kernel(
 
     val = sycl::reduce_over_group(group, val, sycl::plus<>());
 
-    // if (sg_tid == 0) {
     result = sqrt(val);
-    // }
-    // sg.barrier();
 }
 
 /*

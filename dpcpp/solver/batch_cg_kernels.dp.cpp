@@ -115,6 +115,8 @@ public:
         auto workspace = gko::Array<ValueType>(
             exec_, sconf.gmem_stride_bytes * num_batches / sizeof(ValueType));
         assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+        //    std::cout << "HERE: " << sconf.n_shared << " " <<
+        //    sconf.prec_shared << std::endl;
 
         ValueType* const workspace_data = workspace.get_data();
         auto b_values = b.values;
@@ -129,7 +131,7 @@ public:
             sycl::accessor<real_type, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
                 slm_reals(sycl::range<1>(2), cgh);
-            if (nrows < 64) {
+            if (nrows <= 32) {
                 cgh.parallel_for(
                     sycl_nd_range(grid, block),
                     [=](sycl::nd_item<3> item_ct1)
@@ -156,7 +158,7 @@ public:
                                 nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
                                 item_ct1, workspace_data);
                         });
-            } else if (nrows < 512) {
+            } else if (nrows <= 256 && sconf.n_global == 0) {
                 cgh.parallel_for(
                     sycl_nd_range(grid, block),
                     [=](sycl::nd_item<3> item_ct1)
