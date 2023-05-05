@@ -1036,8 +1036,8 @@ __device__ __forceinline__ void upper_trsv(
         }
 
         // case: A is a diagonal matrix
-        if (KL == 0 & KU == 0)  // could be done - more efficiently of course -
-                                // but the focus here is not this -
+        if (KL == 0 && KU == 0)  // could be done - more efficiently of course -
+                                 // but the focus here is not this -
         // as this path is never used; there's another lightweight
         // implementation for the case of diagonal matrix solver.
         {
