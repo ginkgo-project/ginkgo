@@ -67,6 +67,20 @@ int inline get_thread_block_size_unblocked_banded(const int nrows)
     }
 }
 
+int inline get_thread_block_size_blocked_banded(const int nrows)
+{
+    if (nrows <= 100) {
+        return 64;
+    } else if (nrows <= 200) {
+        return 128;
+    } else if (nrows <= 400) {
+        return 256;
+    } else {
+        return 512;  // otherwise too many reources requested on launch error
+    }
+}
+
+
 // include all depedencies (note: do not remove this comment)
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_band_solver_kernels.hpp.inc"
@@ -90,10 +104,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto KL = static_cast<int>(band_mat->get_num_subdiagonals().at(0));
     const auto KU = static_cast<int>(band_mat->get_num_superdiagonals().at(0));
 
-    const int shared_size =
-        gko::kernels::batch_band_solver::local_memory_requirement<ValueType>(
-            nrows, nrhs, approach, blocked_solve_panel_size);
-
     assert(workspace_size >= band_mat->get_num_stored_elements());
 
     if (workspace_size < band_mat->get_num_stored_elements()) {
@@ -106,7 +116,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), band_arr);
 
-    if (approach == gko::solver::batch_band_solve_approach::unblocked) {
+    if (approach == gko::solver::batch_band_solve_approach::unblocked ||
+        (approach == gko::solver::batch_band_solve_approach::blocked &&
+         blocked_solve_panel_size > KL)) {
+        const int shared_size =
+            gko::kernels::batch_band_solver::local_memory_requirement<
+                ValueType>(nrows, nrhs,
+                           gko::solver::batch_band_solve_approach::unblocked);
+
         dim3 block(get_thread_block_size_unblocked_banded(nrows));
         dim3 grid(nbatch);
 
@@ -117,7 +134,21 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                            as_cuda_type(x->get_values()));
 
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
-        GKO_NOT_IMPLEMENTED;
+        const int shared_size =
+            gko::kernels::batch_band_solver::local_memory_requirement<
+                ValueType>(nrows, nrhs,
+                           gko::solver::batch_band_solve_approach::blocked,
+                           blocked_solve_panel_size);
+
+        dim3 block(get_thread_block_size_blocked_banded(nrows));
+        dim3 grid(nbatch);
+
+        band_solver_blocked_kernel<config::warp_size>
+            <<<grid, block, shared_size>>>(
+                nbatch, nrows, KL, KU, blocked_solve_panel_size,
+                as_cuda_type(band_arr), as_cuda_type(b->get_const_values()),
+                as_cuda_type(x->get_values()));
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }
