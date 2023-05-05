@@ -64,7 +64,9 @@ protected:
         : band_mat_1(get_band_matrix(KL_1, KU_1)),
           band_mat_2(get_band_matrix(KL_2, KU_2)),
           band_mat_3(get_band_matrix(KL_3, KU_3)),
-          band_mat_4(get_band_matrix(KL_4, KU_4))
+          band_mat_4(get_band_matrix(KL_4, KU_4)),
+          band_mat_5(get_band_matrix(KL_5, KU_5)),
+          band_mat_6(get_band_matrix(KL_6, KU_6))
 
     {
         set_up_data();
@@ -84,11 +86,18 @@ protected:
     const size_t KU_3 = 1;
     const size_t KL_4 = 0;
     const size_t KU_4 = 0;
+    const size_t KL_5 = 12;
+    const size_t KU_5 = 0;
+    const size_t KL_6 = 0;
+    const size_t KU_6 = 15;
+
 
     std::shared_ptr<BBand> band_mat_1;
     std::shared_ptr<BBand> band_mat_2;
     std::shared_ptr<BBand> band_mat_3;
     std::shared_ptr<BBand> band_mat_4;
+    std::shared_ptr<BBand> band_mat_5;
+    std::shared_ptr<BBand> band_mat_6;
     std::shared_ptr<BDense> b;
     std::shared_ptr<BDense> x;
     std::shared_ptr<BDiag> left_scale;
@@ -224,7 +233,6 @@ TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentToRef)
    check_if_solve_is_eqvt_to_ref(this->band_mat_1, gko::solver::batch_band_solve_approach::blocked, 3);
 }
 
-
 TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
 {   
    check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::blocked, 4);
@@ -232,22 +240,42 @@ TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
 
 TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentTo_Unblocked)
 {   
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 1);
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 4);
 }
 
 TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentTo_Unblocked)
 {   
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 1);
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 7);
- 
 }
+
+// TEST_F(BatchBandSolver, BandSolverWorksForLowerTriangularBandMat)
+// {   
+//    // check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::unblocked);
+//    // check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::blocked, 3);
+//    // check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_5, 4);
+ 
+// }
+
+// TEST_F(BatchBandSolver, BandSolverWorksForUpperTriangularBandMat)
+// {   
+//     check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::unblocked);
+//     check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::blocked, 3);
+//     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_6, 6);
+ 
+// }
 
 
 // TEST_F(BatchBandSolver, UnblockedSolve_Tridiag_and_Diag_IsEquivalentToRef)
 // {   
 //    check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
 //    check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
-// }
 
+//    check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::blocked, 1);
+//    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_3, 1);
+
+// }
 
 
 #endif

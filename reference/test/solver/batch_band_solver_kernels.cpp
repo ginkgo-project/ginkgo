@@ -660,11 +660,19 @@ TYPED_TEST(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsCorrect)
 {
     this->test_solve_is_correct(
         this->band_mat_1, this->b_1, this->expected_sol_1,
+        gko::solver::batch_band_solve_approach::blocked, 1);
+
+    this->test_solve_is_correct(
+        this->band_mat_1, this->b_1, this->expected_sol_1,
         gko::solver::batch_band_solve_approach::blocked, 2);
 }
 
 TYPED_TEST(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsCorrect)
 {
+    this->test_solve_is_correct(
+        this->band_mat_2, this->b_2, this->expected_sol_2,
+        gko::solver::batch_band_solve_approach::blocked, 1);
+
     this->test_solve_is_correct(
         this->band_mat_2, this->b_2, this->expected_sol_2,
         gko::solver::batch_band_solve_approach::blocked, 2);
@@ -693,6 +701,7 @@ TYPED_TEST(BatchBandSolver,
         this->exec));
 
     this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 4);
+    this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 1);
 }
 
 TYPED_TEST(BatchBandSolver,
@@ -717,30 +726,35 @@ TYPED_TEST(BatchBandSolver,
         std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine, true,
         this->exec));
 
+    this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 1);
     this->test_unblocked_solve_and_blocked_solve_are_eqvt(mtx, b, 6);
 }
 
-// TYPED_TEST(BatchBandSolver, Solve_TridiagCase_IsCorrect)
-// {
-//     this->test_solve_is_correct(
-//         this->band_mat_3, this->b_3, this->expected_sol_3,
-//         gko::solver::batch_band_solve_approach::unblocked);
+TYPED_TEST(BatchBandSolver, Solve_TridiagCase_IsCorrect)
+{
+    this->test_solve_is_correct(
+        this->band_mat_3, this->b_3, this->expected_sol_3,
+        gko::solver::batch_band_solve_approach::unblocked);
 
-//     this->test_solve_is_correct(
-//         this->band_mat_3, this->b_3, this->expected_sol_3,
-//         gko::solver::batch_band_solve_approach::blocked, 2);
-// }
+    this->test_solve_is_correct(
+        this->band_mat_3, this->b_3, this->expected_sol_3,
+        gko::solver::batch_band_solve_approach::blocked, 1);
 
-// TYPED_TEST(BatchBandSolver, Solve_DiagCase_IsCorrect)
-// {
-//     this->test_solve_is_correct(
-//         this->band_mat_4, this->b_4, this->expected_sol_4,
-//         gko::solver::batch_band_solve_approach::unblocked);
+    this->test_solve_is_correct(
+        this->band_mat_3, this->b_3, this->expected_sol_3,
+        gko::solver::batch_band_solve_approach::blocked, 2);
+}
 
-//     this->test_solve_is_correct(
-//         this->band_mat_4, this->b_4, this->expected_sol_4,
-//         gko::solver::batch_band_solve_approach::blocked, 2);
-// }
+TYPED_TEST(BatchBandSolver, Solve_DiagCase_IsCorrect)
+{
+    this->test_solve_is_correct(
+        this->band_mat_4, this->b_4, this->expected_sol_4,
+        gko::solver::batch_band_solve_approach::unblocked);
+
+    this->test_solve_is_correct(
+        this->band_mat_4, this->b_4, this->expected_sol_4,
+        gko::solver::batch_band_solve_approach::blocked, 2);
+}
 
 // TODO: Implement scaling for batched banded matrix format
 
