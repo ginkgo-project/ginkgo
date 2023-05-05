@@ -698,8 +698,6 @@ __device__ __forceinline__ void update_A22(
     const ValueType* const __restrict__ work20_sh_entry,
     const ValueType* const __restrict__ work02_sh_entry)
 {
-    const int AB_nrows = 2 * KL + KU + 1;
-
     const int trail_row_start = j + JB + I1;
     const int trail_row_end_exclusive = j + JB + I1 + I2;
     const int trail_col_start = j + JB + J1;

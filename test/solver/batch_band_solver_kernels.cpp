@@ -181,6 +181,30 @@ protected:
         GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 100 * this->eps);
     }
 
+    void check_if_blocked_solve_and_unblocked_solve_are_eqvt(std::shared_ptr<BBand> band_mtx, 
+        const int blocked_solve_panel_size = 1)
+    {
+        auto d_band_mtx = gko::share(gko::clone(exec, band_mtx.get()));
+        auto d_b = gko::share(gko::clone(exec, this->b.get()));
+        auto d_x_bl = gko::share(gko::clone(exec, this->x.get()));
+        auto d_x_ubl = gko::share(gko::clone(exec, this->x.get()));
+
+        auto d_bl_band_solver = solver_type::build()
+         .with_batch_band_solution_approach(gko::solver::batch_band_solve_approach::blocked)
+         .with_blocked_solve_panel_size(blocked_solve_panel_size)
+         .on(this->exec)->generate(d_band_mtx);
+
+        d_bl_band_solver->apply(d_b.get(), d_x_bl.get());
+
+        auto d_ubl_band_solver = solver_type::build()
+         .with_batch_band_solution_approach(gko::solver::batch_band_solve_approach::unblocked)
+         .on(this->exec)->generate(d_band_mtx);
+
+        d_ubl_band_solver->apply(d_b.get(), d_x_ubl.get());
+
+        GKO_ASSERT_BATCH_MTX_NEAR(d_x_bl, d_x_ubl, 100 * this->eps);
+    }
+
 };
 
 
@@ -193,6 +217,28 @@ TEST_F(BatchBandSolver, UnblockedSolve_KV_less_than_N_minus_1_IsEquivalentToRef)
 TEST_F(BatchBandSolver, UnblockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
 {   
    check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::unblocked);
+}
+
+TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentToRef)
+{   
+   check_if_solve_is_eqvt_to_ref(this->band_mat_1, gko::solver::batch_band_solve_approach::blocked, 3);
+}
+
+
+TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
+{   
+   check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::blocked, 4);
+}
+
+TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentTo_Unblocked)
+{   
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 4);
+}
+
+TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentTo_Unblocked)
+{   
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 7);
+ 
 }
 
 
