@@ -2,3 +2,4 @@ ginkgo_create_common_and_reference_test(matrix MPI_SIZE 3 DISABLE_EXECUTORS dpcp
 ginkgo_create_common_and_reference_test(vector MPI_SIZE 3 DISABLE_EXECUTORS dpcpp)
 
 add_subdirectory(preconditioner)
+add_subdirectory(solver)
