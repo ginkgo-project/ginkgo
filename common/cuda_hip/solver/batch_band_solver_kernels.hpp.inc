@@ -218,82 +218,6 @@ __device__ __forceinline__ void modify_rows_below(
 
 namespace unblocked_LU_band_factorization {
 
-
-template <typename ValueType>
-__device__ __forceinline__ void swap_rows(
-    const int N, const int KL, const int KU,
-    ValueType* const __restrict__ AB_array_entry,
-    const int A_affected_col_idx_last, const int A_diag_row_idx,
-    const int A_pivot_row_idx)
-{
-    const int AB_nrows = 2 * KL + KU + 1;
-
-    // uncoalesced access, also no data locality
-    for (int A_col_idx = A_diag_row_idx + threadIdx.x;
-         A_col_idx <= A_affected_col_idx_last; A_col_idx += blockDim.x) {
-        const int AB_row_idx_1 = KL + KU + A_diag_row_idx - A_col_idx;
-        const int AB_row_idx_2 = KL + KU + A_pivot_row_idx - A_col_idx;
-        const ValueType temp =
-            AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx];
-        AB_array_entry[AB_row_idx_1 + AB_nrows * A_col_idx] =
-            AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx];
-        AB_array_entry[AB_row_idx_2 + AB_nrows * A_col_idx] = temp;
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void modify_rows_below(
-    const int N, const int KL, const int KU,
-    ValueType* const __restrict__ ele_above_sh_arr_entry,
-    const ValueType diag_val, ValueType* const __restrict__ AB_array_entry,
-    const int AB_col_idx, const int A_diag_row_idx,
-    const int A_affected_col_idx_last)
-{
-    const int AB_nrows = 2 * KL + KU + 1;
-
-    // fill the ele_above_sh_arr_entry
-    // this is to reduce uncoalesced global memory reads while updating the
-    // submatrix
-    for (int A_col_idx = A_diag_row_idx + 1 + threadIdx.x;
-         A_col_idx <= A_affected_col_idx_last; A_col_idx += blockDim.x) {
-        const int AB_main_row = KL + KU + A_diag_row_idx - A_col_idx;
-        const auto ele_above =
-            AB_array_entry[AB_main_row +
-                           AB_nrows * A_col_idx];  // uncoalesced accesses but
-                                                   // can't help
-        ele_above_sh_arr_entry[A_col_idx] = ele_above;
-    }
-
-    __syncthreads();
-
-    // each thread handles a row, and the acesses are coalesced AB is in col
-    // major order
-    for (int A_row_idx = A_diag_row_idx + 1 + threadIdx.x;
-         A_row_idx <= min(N - 1, A_diag_row_idx + KL);
-         A_row_idx += blockDim.x) {
-        const int AB_row_idx_for_side_ele =
-            KL + KU + A_row_idx - A_diag_row_idx;
-        // scale the ele in col of diag_ele
-        AB_array_entry[AB_row_idx_for_side_ele + AB_nrows * A_diag_row_idx] /=
-            diag_val;
-        const ValueType ele_side =
-            AB_array_entry[AB_row_idx_for_side_ele +
-                           AB_nrows * A_diag_row_idx];  // coalesced accesses
-
-        for (int A_col_idx = A_diag_row_idx + 1;
-             A_col_idx <= A_affected_col_idx_last; A_col_idx++) {
-            const ValueType ele_above = ele_above_sh_arr_entry[A_col_idx];
-
-            const int AB_row_idx_for_this_col_ele =
-                KL + KU + A_row_idx - A_col_idx;
-            AB_array_entry[AB_row_idx_for_this_col_ele +
-                           AB_nrows * A_col_idx] -=
-                ele_above * ele_side;  // coalesced accesses
-        }
-    }
-}
-
 template <typename Group, typename ValueType>
 __device__ __forceinline__ void factorize_band(
     Group& subwarp_grp, const int N, const int KL, const int KU,
@@ -332,8 +256,9 @@ __device__ __forceinline__ void factorize_band(
 
         // swap rows
         if (AB_diag_row_idx != AB_pivot_row_idx) {
-            swap_rows(N, KL, KU, AB_array_entry, A_affected_col_idx_last,
-                      A_diag_row_idx, A_pivot_row_idx);
+            common_band_factorization::swap_rows(
+                N, KL, KU, AB_array_entry, AB_col_idx, A_affected_col_idx_last,
+                A_diag_row_idx, A_pivot_row_idx);
         }
 
         // record the swap row info...
@@ -343,8 +268,9 @@ __device__ __forceinline__ void factorize_band(
         __syncthreads();
 
         // scale A's column and update trailing matrix
-        modify_rows_below(N, KL, KU, temp_sh_entry, piv_val, AB_array_entry,
-                          AB_col_idx, A_diag_row_idx, A_affected_col_idx_last);
+        common_band_factorization::modify_rows_below(
+            N, KL, KU, temp_sh_entry, piv_val, AB_array_entry, AB_col_idx,
+            A_affected_col_idx_last);
 
         __syncthreads();
     }
