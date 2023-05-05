@@ -143,11 +143,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 block(get_thread_block_size_blocked_banded(nrows));
         dim3 grid(nbatch);
 
-        band_solver_blocked_kernel<config::warp_size>
-            <<<grid, block, shared_size>>>(
-                nbatch, nrows, KL, KU, blocked_solve_panel_size,
-                as_cuda_type(band_arr), as_cuda_type(b->get_const_values()),
-                as_cuda_type(x->get_values()));
+        const int subwarp_size = 8;
+        band_solver_blocked_kernel<subwarp_size><<<grid, block, shared_size>>>(
+            nbatch, nrows, KL, KU, blocked_solve_panel_size,
+            as_cuda_type(band_arr), as_cuda_type(b->get_const_values()),
+            as_cuda_type(x->get_values()));
 
     } else {
         GKO_NOT_IMPLEMENTED;
