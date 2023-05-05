@@ -70,7 +70,7 @@ template <typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;
 
 
-// Disable deprecation warnings when using standard > 2014
+// Disable deprecation warnings when using standard > C++14
 inline bool uncaught_exception() noexcept {
 #if __cplusplus > 201402L
     return std::uncaught_exceptions() > 0;
