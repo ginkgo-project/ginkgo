@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.21)
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_INSTANTIATE)
 add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANTIATE)
@@ -70,11 +71,7 @@ else()
     list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels_stub.hip.cpp)
 endif()
 
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 32)
-else()
-    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 64)
-endif()
+set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 64)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
     set(GKO_HIP_JACOBI_BLOCK_SIZES)
     foreach(blocksize RANGE 1 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
@@ -102,24 +99,14 @@ endforeach()
 string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
 configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
 
-set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
-    HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
-    CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
-    NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS}
-    ${GINKGO_STATIC_OR_SHARED})
+set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES LANGUAGE HIP)
+add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES})
 
 target_include_directories(ginkgo_hip
-    PUBLIC
-        ${HIP_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/.. # for generated headers like jacobi_common.hip.hpp
-        ${GINKGO_HIP_THRUST_PATH}
-        ${HIPBLAS_INCLUDE_DIRS}
-        ${HIPFFT_INCLUDE_DIRS}
-        ${hiprand_INCLUDE_DIRS}
-        ${HIPSPARSE_INCLUDE_DIRS}
-        $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
+        )
+target_compile_definitions(ginkgo_hip PRIVATE GKO_COMPILING_HIP)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
@@ -130,34 +117,11 @@ if (GINKGO_HAVE_ROCTX)
     target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
 endif()
 
-if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    find_package(hip REQUIRED)
-    # To save a bit of pain, we directly link against the `library` instead of
-    # linking against the target.
-    if (CMAKE_BUILD_TYPE)
-        # Check if our configuration is available first
-        string(TOUPPER "${CMAKE_BUILD_TYPE}" UPPER_BUILD_TYPE)
-        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_${UPPER_BUILD_TYPE})
-    endif()
-    if (NOT HIP_LIBAMDHIP64_LIBRARIES)
-        # Fall back to anything
-        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 LOCATION)
-    endif()
-    target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
-elseif(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    find_package(CUDA 10.1 REQUIRED)
-    target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
-endif()
+target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 
 # Try to find everything in /opt/rocm/lib first.
 set(GKO_HIP_RPATH "${ROCM_PATH}/lib" )
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    list(GET CUDA_LIBRARIES 0 CUDA_FIRST_LIB)
-    get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
-    list(APPEND GKO_HIP_RPATH "${GKO_CUDA_LIBDIR}")
-else()
-    list(APPEND GKO_HIP_RPATH "${HIP_PATH}/lib")
-endif()
+list(APPEND GKO_HIP_RPATH "${HIP_PATH}/lib")
 list(APPEND GKO_HIP_RPATH "${HIPBLAS_PATH}/lib" "${HIPRAND_PATH}/lib"
     "${HIPSPARSE_PATH}/lib" "${ROCRAND_PATH}/lib")
 
