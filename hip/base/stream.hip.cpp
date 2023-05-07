@@ -44,7 +44,7 @@ hip_stream::hip_stream(hip_stream&& other)
 {}
 
 
-GKO_HIP_STREAM_STRUCT* hip_stream::get() const { return stream_; }
+ihipStream_t* hip_stream::get() const { return stream_; }
 
 
 }  // namespace gko
