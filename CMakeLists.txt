@@ -52,14 +52,6 @@ set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
 option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
-set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP nvcc compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP CLANG compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_AMDGPU "" CACHE STRING
-    "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for slow-to-compile files. This improves parallel build performance" ON)
 mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
@@ -142,12 +134,6 @@ endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-endif()
-
-if(BUILD_SHARED_LIBS)
-    set(GINKGO_STATIC_OR_SHARED SHARED)
-else()
-    set(GINKGO_STATIC_OR_SHARED STATIC)
 endif()
 
 # Ensure we have a debug postfix
