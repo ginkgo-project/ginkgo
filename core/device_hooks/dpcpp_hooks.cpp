@@ -166,7 +166,7 @@ void DpcppTimer::init_time_point(time_point&) GKO_NOT_COMPILED(dpcpp);
 void DpcppTimer::record(time_point&) GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppTimer::wait(const time_point& time) GKO_NOT_COMPILED(dpcpp);
+void DpcppTimer::wait(time_point& time) GKO_NOT_COMPILED(dpcpp);
 
 
 int64 DpcppTimer::difference(const time_point& start, const time_point& stop)

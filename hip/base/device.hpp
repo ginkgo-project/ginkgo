@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_BASE_DEVICE_HPP_
 #define GKO_HIP_BASE_DEVICE_HPP_
 
+
 #include <ginkgo/core/base/executor.hpp>
 
 namespace gko {

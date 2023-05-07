@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/log/profiler_hook.hpp>
-
-
 #include <string>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 #include "test/utils/executor.hpp"

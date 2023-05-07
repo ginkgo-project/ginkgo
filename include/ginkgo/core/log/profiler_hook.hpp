@@ -370,8 +370,9 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, use a GPU timer or
-     *       enable synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, either use
+     *       Timer::create_for_executor or enable synchronization via
+     *       `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_summary(
         std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
@@ -392,8 +393,9 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, use a GPU timer or
-     *       enable synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, either use
+     *       Timer::create_for_executor or enable synchronization via
+     *       `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_nested_summary(
         std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
