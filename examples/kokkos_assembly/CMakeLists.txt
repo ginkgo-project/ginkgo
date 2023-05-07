@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 project(kokkos-assembly CXX)
 
 # We only need to find Ginkgo if we build this example stand-alone

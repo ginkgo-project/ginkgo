@@ -1,7 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
-
-# Use *_ROOT environment variables for find_package calls
-cmake_policy(SET CMP0074 NEW)
+cmake_minimum_required(VERSION 3.16)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.

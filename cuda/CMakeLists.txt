@@ -114,13 +114,12 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_C
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
-target_include_directories(ginkgo_cuda
-    SYSTEM PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+target_include_directories(ginkgo_cuda SYSTEM PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT} nvtx::nvtx)
+target_link_libraries(ginkgo_cuda PRIVATE CUDA::cudart CUDA::cublas CUDA::cusparse CUDA::curand CUDA::cufft nvtx::nvtx)
 # NVTX3 is header-only and requires dlopen/dlclose in static builds
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${CMAKE_DL_LIBS})
 target_compile_options(ginkgo_cuda
@@ -133,7 +132,7 @@ list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
 get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
 ginkgo_default_includes(ginkgo_cuda)
-ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
+ginkgo_install_library(ginkgo_cuda "${CUDAToolkit_LIBRARY_DIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)

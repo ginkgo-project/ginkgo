@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.16)
 project(custom-logger)
 
 # We only need to find Ginkgo if we build this example stand-alone
