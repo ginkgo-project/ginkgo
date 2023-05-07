@@ -137,7 +137,7 @@ set(GINKGO_OPENMP_FLAGS "@OpenMP_CXX_FLAGS@")
 set(GINKGO_HAVE_TAU "@GINKGO_HAVE_TAU@")
 set(GINKGO_HAVE_VTUNE "@GINKGO_HAVE_VTUNE@")
 set(GINKGO_HAVE_METIS "@GINKGO_HAVE_METIS@")
-set(VTUNE_PATH "@VTUNE_PATH@")
+set(VTune_PATH "@VTune_PATH@")
 
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
