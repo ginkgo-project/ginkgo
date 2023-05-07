@@ -486,6 +486,7 @@ TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
     auto b = gko::initialize<Mtx>({2, -1.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto logger = gko::share(gko::log::ProfilerHook::create_summary(
+        std::make_shared<gko::CpuTimer>(),
         std::make_unique<TestSummaryWriter>()));
     this->exec->add_logger(logger);
 

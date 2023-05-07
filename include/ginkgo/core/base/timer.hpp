@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_PUBLIC_CORE_BASE_TIMER_HPP_
 #define GKO_PUBLIC_CORE_BASE_TIMER_HPP_
 
+
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -87,10 +88,10 @@ private:
 
 class Timer {
 public:
-    /**
-     * Creates a new time_point instance for this timer.
-     */
-    virtual void init_time_point(time_point& time) = 0;
+    virtual ~Timer() = default;
+
+    /** Returns a newly created time point. */
+    time_point create_time_point();
 
     /**
      * Records a time point at the current time.
@@ -98,12 +99,14 @@ public:
     virtual void record(time_point& time) = 0;
 
     /**
-     * Waits until the device reached the given time point.
+     * Waits until all kernels in-process when recording the time point are
+     * finished.
      */
-    virtual void wait(const time_point& time) = 0;
+    virtual void wait(time_point& time) = 0;
 
     /**
-     * Computes the difference between the two time points.
+     * Computes the difference between the two time points in nanoseconds.
+     *
      * @param start  the first time point (earlier)
      * @param end  the second time point (later)
      * @return the difference between the time points in nanoseconds.
@@ -111,68 +114,89 @@ public:
     virtual int64 difference(const time_point& start,
                              const time_point& stop) = 0;
 
+    /**
+     * Creates the timer type most suitable for recording accurate timings of
+     * kernels on the given executor.
+     *
+     * @param exec  the executor to create a Timer for
+     * @return CpuTimer for ReferenceExecutor and OmpExecutor, CudaTimer for
+     *         CudaExecutor, HipTimer for HipExecutor or DpcppTimer for
+     *         DpcppExecutor.
+     */
     static std::unique_ptr<Timer> create_for_executor(
         std::shared_ptr<const Executor> exec);
+
+protected:
+    /** Initializes a new time_point instance for this timer. */
+    virtual void init_time_point(time_point& time) = 0;
 };
 
 
+/** A timer using std::chrono::steady_clock for timing. */
 class CpuTimer : public Timer {
 public:
-    void init_time_point(time_point& time) override;
-
     void record(time_point& time) override;
 
-    void wait(const time_point& time) override;
+    void wait(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
+
+protected:
+    void init_time_point(time_point& time) override;
 };
 
 
+/** A timer using events for timing on a CudaExecutor. */
 class CudaTimer : public Timer {
 public:
-    void init_time_point(time_point& time) override;
-
     void record(time_point& time) override;
 
-    void wait(const time_point& time) override;
+    void wait(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
     CudaTimer(std::shared_ptr<const CudaExecutor> exec);
+
+protected:
+    void init_time_point(time_point& time) override;
 
 private:
     std::shared_ptr<const CudaExecutor> exec_;
 };
 
 
+/** A timer using events for timing on a HipExecutor. */
 class HipTimer : public Timer {
 public:
-    void init_time_point(time_point& time) override;
-
     void record(time_point& time) override;
 
-    void wait(const time_point& time) override;
+    void wait(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
     HipTimer(std::shared_ptr<const HipExecutor> exec);
+
+protected:
+    void init_time_point(time_point& time) override;
 
 private:
     std::shared_ptr<const HipExecutor> exec_;
 };
 
 
+/** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
 class DpcppTimer : public Timer {
 public:
-    void init_time_point(time_point& time) override;
-
     void record(time_point& time) override;
 
-    void wait(const time_point& time) override;
+    void wait(time_point& time) override;
 
     int64 difference(const time_point& start, const time_point& stop) override;
 
     DpcppTimer(std::shared_ptr<const DpcppExecutor> exec);
+
+protected:
+    void init_time_point(time_point& time) override;
 
 private:
     std::shared_ptr<const DpcppExecutor> exec_;

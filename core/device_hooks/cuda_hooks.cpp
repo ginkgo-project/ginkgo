@@ -176,7 +176,7 @@ void CudaTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(cuda);
 void CudaTimer::record(time_point&) GKO_NOT_COMPILED(cuda);
 
 
-void CudaTimer::wait(const time_point& time) GKO_NOT_COMPILED(cuda);
+void CudaTimer::wait(time_point& time) GKO_NOT_COMPILED(cuda);
 
 
 int64 CudaTimer::difference(const time_point& start, const time_point& stop)

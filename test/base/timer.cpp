@@ -50,10 +50,8 @@ class Timer : public CommonTestFixture {};
 TEST_F(Timer, Works)
 {
     auto timer = gko::Timer::create_for_executor(this->exec);
-    gko::time_point start;
-    gko::time_point stop;
-    timer->init_time_point(start);
-    timer->init_time_point(stop);
+    auto start = timer->create_time_point();
+    auto stop = timer->create_time_point();
 
     timer->record(start);
     std::this_thread::sleep_for(std::chrono::seconds{5});

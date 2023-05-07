@@ -177,7 +177,7 @@ void HipTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(hip);
 void HipTimer::record(time_point&) GKO_NOT_COMPILED(hip);
 
 
-void HipTimer::wait(const time_point& time) GKO_NOT_COMPILED(hip);
+void HipTimer::wait(time_point& time) GKO_NOT_COMPILED(hip);
 
 
 int64 HipTimer::difference(const time_point& start, const time_point& stop)

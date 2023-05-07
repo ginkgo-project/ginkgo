@@ -348,6 +348,7 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
     auto range6 = logger->user_range("baz");
 }
 
+
 struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
     void write_nested(const gko::log::ProfilerHook::nested_summary_entry& e,
                       gko::int64 overhead_ns) override

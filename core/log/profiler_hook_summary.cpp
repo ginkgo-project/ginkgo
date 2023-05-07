@@ -129,36 +129,30 @@ void pop_all(Summary& s)
 }
 
 
-struct summary {
-    int64 overhead_ns{};
-    std::vector<std::pair<int64, time_point>> stack;
-    std::vector<time_point> free_list;
-    std::unordered_map<std::string, int64> name_map;
-    std::vector<ProfilerHook::summary_entry> entries;
+struct summary_base {
     std::shared_ptr<Timer> timer;
+    int64 overhead_ns{};
     bool broken{};
     bool check_nesting{};
     std::mutex mutex{};
+    std::vector<time_point> free_list;
 
-    summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
+    summary_base(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
     {
-        push("total");
-        // preallocate 5 nested levels of timers
+        // preallocate some nested levels of timers
         for (int i = 0; i < 10; i++) {
-            free_list.emplace_back();
-            timer->init_time_point(free_list.back());
+            free_list.push_back(this->timer->create_time_point());
         }
     }
 
     time_point get_current_time_point()
     {
-        gko::time_point time;
         if (free_list.empty()) {
-            timer->init_time_point(time);
+            auto time = timer->create_time_point();
             timer->record(time);
             return time;
         } else {
-            time = std::move(free_list.back());
+            auto time = std::move(free_list.back());
             free_list.pop_back();
             timer->record(time);
             return time;
@@ -169,6 +163,18 @@ struct summary {
     {
         free_list.push_back(std::move(time));
     }
+};
+
+
+struct summary : summary_base {
+    std::vector<std::pair<int64, time_point>> stack;
+    std::unordered_map<std::string, int64> name_map;
+    std::vector<ProfilerHook::summary_entry> entries;
+
+    summary(std::shared_ptr<Timer> timer) : summary_base{std::move(timer)}
+    {
+        push("total");
+    }
 
     void push(const char* name)
     {
@@ -177,7 +183,6 @@ struct summary {
         }
         const auto cpu_now = cpu_clock::now();
         std::lock_guard<std::mutex> guard{mutex};
-        auto now = get_current_time_point();
         auto it = name_map.find(name);
         if (it == name_map.end()) {
             const auto new_id = static_cast<int64>(entries.size());
@@ -186,6 +191,7 @@ struct summary {
             entries.back().name = name;
         }
         const auto id = it->second;
+        auto now = get_current_time_point();
         stack.emplace_back(id, std::move(now));
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
@@ -233,7 +239,7 @@ struct summary {
 };
 
 
-struct nested_summary {
+struct nested_summary : summary_base {
     struct entry {
         int64 name_id;
         int64 node_id;
@@ -263,41 +269,16 @@ struct nested_summary {
         }
     };
 
-    int64 overhead_ns{};
     std::vector<partial_entry> stack;
-    std::vector<time_point> free_list;
     std::unordered_map<std::pair<int64, int64>, int64, pair_hash> node_map;
     std::unordered_map<std::string, int64> name_map;
     std::vector<entry> nodes;
     std::vector<std::string> names;
-    std::shared_ptr<Timer> timer;
-    bool broken{};
-    bool check_nesting{};
-    std::mutex mutex{};
 
-    nested_summary(std::shared_ptr<Timer> timer) : timer{std::move(timer)}
+    nested_summary(std::shared_ptr<Timer> timer)
+        : summary_base{std::move(timer)}
     {
         push("total");
-    }
-
-    time_point get_current_time_point()
-    {
-        gko::time_point time;
-        if (free_list.empty()) {
-            timer->init_time_point(time);
-            timer->record(time);
-            return time;
-        } else {
-            time = std::move(free_list.back());
-            free_list.pop_back();
-            timer->record(time);
-            return time;
-        }
-    }
-
-    void release_time_point(time_point time)
-    {
-        free_list.push_back(std::move(time));
     }
 
     int64 get_or_add_name_id(const char* name)
@@ -338,9 +319,9 @@ struct nested_summary {
         }
         const auto cpu_now = cpu_clock::now();
         std::lock_guard<std::mutex> guard{mutex};
-        auto now = get_current_time_point();
         const auto name_id = get_or_add_name_id(name);
         const auto node_id = get_or_add_node_id(name_id);
+        auto now = get_current_time_point();
         stack.emplace_back(name_id, node_id, std::move(now));
         overhead_ns +=
             std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
