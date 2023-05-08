@@ -1,4 +1,4 @@
-#include <ginkgo/ginkgo.hpp>
+/*#include <ginkgo/ginkgo.hpp>
 
 #include <iostream>
 #include "core/factorization/symbolic.hpp"
@@ -62,12 +62,12 @@ void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
         os << (col % 10);
     }
     os << "\n'|' is first, '-' is second, '+' is both, ' ' is none\n";
-}
+}*/
 
 
 int main(int argc, char* argv[])
 {
-    auto exec = gko::ReferenceExecutor::create();
+    /*auto exec = gko::ReferenceExecutor::create();
     auto mtx = gko::share(gko::read<gko::matrix::Csr<>>(std::cin, exec));
     auto perm = gko::reorder::Amd<int>::build().on(exec)->generate(mtx);
     auto arr = gko::make_array_view(exec, perm->get_size()[0],
@@ -89,5 +89,5 @@ int main(int argc, char* argv[])
     reorder_factors->write(data);
     // print_sparsity_pattern(std::cout, data, data);
     std::cout << orig_factors->get_num_stored_elements() << ' '
-              << reorder_factors->get_num_stored_elements() << '\n';
+              << reorder_factors->get_num_stored_elements() << '\n';*/
 }
