@@ -46,6 +46,7 @@ namespace gko {
 namespace kernels {
 namespace batch_band_solver {
 
+
 /**
  * Calculates the amount of in-solver storage needed by batch-band
  * solver.

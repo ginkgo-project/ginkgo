@@ -50,6 +50,15 @@ namespace batch_band_solver {
 
 namespace {
 
+__host__ __device__ bool is_matrix_in_shared_mem(const int nrows)
+{
+    if (nrows <= 300) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 constexpr int default_block_size = 128;
 
 // Block size for optimal performance - Found out by hit and trial
@@ -118,13 +127,30 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), band_arr);
 
+    // int shared_size = 0;
+    // if (is_matrix_in_shared_mem(nrows)) {
+    //     band_arr = band_mat->get_const_band_array();
+    //     shared_size += band_mat->get_num_stored_elements();
+    // } else {
+    //     band_arr = workspace_ptr;
+    //     exec->copy(band_mat->get_num_stored_elements(),
+    //                band_mat->get_const_band_array(), band_arr);
+    // }
+
+    int shared_size = 0;
+    if (is_matrix_in_shared_mem(
+            nrows)) {  // TODO: Avoid extra workspace copy in this case
+        shared_size +=
+            (band_mat->get_num_stored_elements() / nbatch) * sizeof(ValueType);
+    }
+
     auto start = std::chrono::high_resolution_clock::now();
 
 
     if (approach == gko::solver::batch_band_solve_approach::unblocked ||
         (approach == gko::solver::batch_band_solve_approach::blocked &&
          blocked_solve_panel_size > KL)) {
-        const int shared_size =
+        shared_size +=
             gko::kernels::batch_band_solver::local_memory_requirement<
                 ValueType>(nrows, nrhs,
                            gko::solver::batch_band_solve_approach::unblocked);
@@ -139,7 +165,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                            as_cuda_type(x->get_values()));
 
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
-        const int shared_size =
+        shared_size +=
             gko::kernels::batch_band_solver::local_memory_requirement<
                 ValueType>(nrows, nrhs,
                            gko::solver::batch_band_solve_approach::blocked,

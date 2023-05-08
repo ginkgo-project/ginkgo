@@ -1082,8 +1082,17 @@ __global__ void band_solver_unblocked_kernel(const size_type nbatch,
             gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
         ValueType* const __restrict__ x_global_entry =
             gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
-        ValueType* const __restrict__ AB_array_entry =
-            batch_band_array + batch_idx * (N * AB_nrows);
+
+        ValueType* __restrict__ AB_array_entry;
+        if (is_matrix_in_shared_mem(N)) {
+            AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
+            single_copy(N * AB_nrows,
+                        batch_band_array + batch_idx * (N * AB_nrows),
+                        AB_array_entry);
+        } else {
+            AB_array_entry = batch_band_array + batch_idx * (N * AB_nrows);
+        }
+        __syncthreads();
 
         unblocked_LU_band_factorization::factorize_band(
             subwarp_grp, N, KL, KU, AB_array_entry, ipiv_sh_entry,
@@ -1135,8 +1144,20 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
             gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
         ValueType* const __restrict__ x_global_entry =
             gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
-        ValueType* const __restrict__ AB_array_entry =
-            batch_band_array + batch_idx * (N * AB_nrows);
+
+        // ValueType* const __restrict__ AB_array_entry =
+        //     batch_band_array + batch_idx * (N * AB_nrows);
+
+        ValueType* __restrict__ AB_array_entry;
+        if (is_matrix_in_shared_mem(N)) {
+            AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
+            single_copy(N * AB_nrows,
+                        batch_band_array + batch_idx * (N * AB_nrows),
+                        AB_array_entry);
+        } else {
+            AB_array_entry = batch_band_array + batch_idx * (N * AB_nrows);
+        }
+        __syncthreads();
 
         blocked_LU_band_factorization::factorize_band<subwarp_size>(
             N, KL, KU, NB, AB_array_entry, ipiv_sh_entry, work02_sh_entry,
