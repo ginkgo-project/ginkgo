@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -50,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -65,16 +67,28 @@ GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, coo::fill_in_dense);
+GKO_REGISTER_OPERATION(convert_to_bccoo, coo::convert_to_bccoo);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
+GKO_REGISTER_OPERATION(mem_size_bccoo, coo::mem_size_bccoo);
 
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+namespace bccoo {
+
+
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+GKO_REGISTER_OPERATION(get_default_compression, bccoo::get_default_compression);
+
+
+}  // namespace bccoo
 
 
 template <typename ValueType, typename IndexType>
@@ -139,6 +153,59 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(
     Coo<next_precision<ValueType>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Bccoo<ValueType, IndexType>* result) const
+{
+    // Definition of executors
+    auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
+    // Compression. If the initial value is def_value, the default is chosen
+    bccoo::compression compression = result->get_compression();
+    if (result->use_default_compression()) {
+        exec->run(bccoo::make_get_default_compression(&compression));
+    }
+
+    // Block partitioning. If the initial value is 0, the default is chosen
+    IndexType block_size = result->get_block_size();
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
+
+    // Computation of nnz
+    IndexType num_stored_elements = this->get_num_stored_elements();
+
+    // Creating the result
+    size_type mem_size{};
+    if (exec == exec_master) {
+        exec->run(
+            coo::make_mem_size_bccoo(this, block_size, compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, this->get_size(), num_stored_elements, block_size, mem_size,
+            compression);
+        exec->run(coo::make_convert_to_bccoo(this, tmp.get()));
+        *result = *tmp;
+    } else {
+        auto host_coo = this->clone(exec_master);
+        exec_master->run(coo::make_mem_size_bccoo(host_coo.get(), block_size,
+                                                  compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec_master, host_coo->get_size(), num_stored_elements, block_size,
+            mem_size, compression);
+        exec_master->run(coo::make_convert_to_bccoo(host_coo.get(), tmp.get()));
+        *result = *tmp;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }

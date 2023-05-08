@@ -64,6 +64,9 @@ namespace matrix {
 
 
 template <typename ValueType, typename IndexType>
+class Bccoo;
+
+template <typename ValueType, typename IndexType>
 class Coo;
 
 template <typename ValueType, typename IndexType>
@@ -108,6 +111,8 @@ class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public EnableCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
+      public ConvertibleTo<Bccoo<ValueType, int32>>,
+      public ConvertibleTo<Bccoo<ValueType, int64>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
@@ -134,6 +139,8 @@ class Dense
       public ScaledIdentityAddable {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
+    friend class Bccoo<ValueType, int32>;
+    friend class Bccoo<ValueType, int64>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -161,6 +168,10 @@ public:
     using ConvertibleTo<Coo<ValueType, int32>>::move_to;
     using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
     using ConvertibleTo<Coo<ValueType, int64>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, int32>>::move_to;
+    using ConvertibleTo<Bccoo<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Bccoo<ValueType, int64>>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
@@ -301,6 +312,14 @@ public:
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
+
+    void convert_to(Bccoo<ValueType, int32>* result) const override;
+
+    void move_to(Bccoo<ValueType, int32>* result) override;
+
+    void convert_to(Bccoo<ValueType, int64>* result) const override;
+
+    void move_to(Bccoo<ValueType, int64>* result) override;
 
     void convert_to(Coo<ValueType, int32>* result) const override;
 

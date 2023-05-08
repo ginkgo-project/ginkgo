@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -54,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -75,6 +77,7 @@ GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
+GKO_REGISTER_OPERATION(convert_to_bccoo, csr::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
@@ -114,10 +117,21 @@ GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(mem_size_bccoo, csr::mem_size_bccoo);
 
 
 }  // anonymous namespace
 }  // namespace csr
+
+
+namespace bccoo {
+
+
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+GKO_REGISTER_OPERATION(get_default_compression, bccoo::get_default_compression);
+
+
+}  // namespace bccoo
 
 
 template <typename ValueType, typename IndexType>
@@ -249,6 +263,59 @@ void Csr<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
     Csr<next_precision<ValueType>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Bccoo<ValueType, IndexType>* result) const
+{
+    // Definition of executors
+    auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
+    // Compression. If the initial value is def_value, the default is chosen
+    bccoo::compression compression = result->get_compression();
+    if (result->use_default_compression()) {
+        exec->run(bccoo::make_get_default_compression(&compression));
+    }
+
+    // Block partitioning. If the initial value is 0, the default is chosen
+    IndexType block_size = result->get_block_size();
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
+
+    // Computation of nnz
+    IndexType num_stored_elements = this->get_num_stored_elements();
+
+    // Creating the result
+    size_type mem_size{};
+    if (exec == exec_master) {
+        exec->run(
+            csr::make_mem_size_bccoo(this, block_size, compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, this->get_size(), num_stored_elements, block_size, mem_size,
+            compression);
+        exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
+        *result = *tmp;
+    } else {
+        auto host_csr = this->clone(exec_master);
+        exec_master->run(csr::make_mem_size_bccoo(host_csr.get(), block_size,
+                                                  compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec_master, host_csr->get_size(), num_stored_elements, block_size,
+            mem_size, compression);
+        exec_master->run(csr::make_convert_to_bccoo(host_csr.get(), tmp.get()));
+        *result = *tmp;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }

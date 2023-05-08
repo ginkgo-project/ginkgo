@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -171,8 +172,29 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
+template <typename ValueType>
+void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Dense<ValueType>* source,
+                    const size_type block_size,
+                    const matrix::bccoo::compression compress,
+                    size_type* result) GKO_NOT_IMPLEMENTED;
+
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
+void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)

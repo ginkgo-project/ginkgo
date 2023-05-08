@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -56,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 
@@ -91,6 +93,7 @@ GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
+GKO_REGISTER_OPERATION(mem_size_bccoo, dense::mem_size_bccoo);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
@@ -101,6 +104,7 @@ GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(convert_to_bccoo, dense::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
@@ -130,6 +134,69 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
                 dense::make_simple_apply(this, dense_b, dense_x));
         },
         b, x);
+}
+
+
+/* */
+namespace bccoo {
+
+
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+GKO_REGISTER_OPERATION(get_default_compression, bccoo::get_default_compression);
+
+
+}  // namespace bccoo
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
+                              MatrixType* source, const OperationType& op)
+{
+    // Definition of executors
+    auto exec = source->get_executor();
+    auto exec_master = exec->get_master();
+
+    // Compression. If the initial value is def_value, the default is chosen
+    bccoo::compression compression = result->get_compression();
+    if (result->use_default_compression()) {
+        exec->run(bccoo::make_get_default_compression(&compression));
+    }
+
+    // Block partitioning. If the initial value is 0, the default is chosen
+    IndexType block_size = result->get_block_size();
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
+
+    // Computation of nnz
+    const IndexType num_rows = source->get_size()[0];
+    array<IndexType> row_ptrs{exec, (size_type)(num_rows + 1)};
+    exec->run(dense::make_count_nonzeros_per_row(source, row_ptrs.get_data()));
+    exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
+    const IndexType num_stored_nonzeros =
+        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
+    size_type mem_size = 0;
+
+    // Creating the result
+    if (exec == exec_master) {
+        exec->run(dense::make_mem_size_bccoo(source, block_size, compression,
+                                             &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
+            compression);
+        exec->run(op(source, tmp.get()));
+        *result = *tmp;
+    } else {
+        auto host_dense = source->clone(exec_master);
+        exec_master->run(dense::make_mem_size_bccoo(
+            host_dense.get(), block_size, compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec_master, host_dense->get_size(), num_stored_nonzeros,
+            block_size, mem_size, compression);
+        exec_master->run(op(host_dense.get(), tmp.get()));
+        *result = *tmp;
+    }
 }
 
 
@@ -580,6 +647,38 @@ void Dense<ValueType>::convert_to(
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Bccoo<ValueType, int32>* result) const
+{
+    conversion_helper(result, this, [](const auto& in, const auto& out) {
+        return dense::make_convert_to_bccoo(in, out);
+    });
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Bccoo<ValueType, int32>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Bccoo<ValueType, int64>* result) const
+{
+    conversion_helper(result, this, [](const auto& in, const auto& out) {
+        return dense::make_convert_to_bccoo(in, out);
+    });
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Bccoo<ValueType, int64>* result)
 {
     this->convert_to(result);
 }

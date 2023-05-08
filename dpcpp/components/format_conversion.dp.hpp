@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+
+
 namespace coo {
 namespace host_kernel {
 
@@ -90,6 +92,44 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
 
 }  // namespace host_kernel
 }  // namespace coo
+
+
+namespace bccoo {
+namespace host_kernel {
+
+
+/**
+ * @internal
+ *
+ * It calculates the number of warps used in Bccoo Spmv depending on the GPU
+ * architecture and the number of stored elements.
+ */
+template <size_type subgroup_size = config::warp_size>
+size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
+                           const size_type nnz)
+{
+    //    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type nwarps_in_dpcpp = exec->get_num_subgroups();
+    size_type multiple = 8;
+    if (nnz >= 2e8) {
+        multiple = 256;
+    } else if (nnz >= 2e7) {
+        multiple = 32;
+    }
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    if (_tuning_flag) {
+        multiple = _tuned_value;
+    }
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+    return std::min(multiple * nwarps_in_dpcpp,
+                    size_type(ceildiv(nnz, subgroup_size)));
+}
+
+
+}  // namespace host_kernel
+}  // namespace bccoo
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

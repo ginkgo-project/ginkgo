@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -97,6 +98,12 @@ namespace kernels {
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                        const matrix::Csr<ValueType, IndexType>* source, \
                        matrix::Dense<ValueType>* result)
+
+#define GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType>* source, \
+                          matrix::Bccoo<ValueType, IndexType>* result)
+
 
 #define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -247,6 +254,13 @@ namespace kernels {
                           const int64* row_desc, const int32* storage,   \
                           IndexType sample_size, IndexType* result)
 
+//                        const size_type block_size,
+#define GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
+    void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
+                        const matrix::Csr<ValueType, IndexType>* csr, \
+                        const IndexType block_size,                   \
+                        const matrix::bccoo::compression compress,    \
+                        size_type* mem_size)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -261,6 +275,8 @@ namespace kernels {
     GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                   \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                      \
@@ -312,7 +328,9 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType);                    \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);

@@ -78,7 +78,7 @@ inline int convert_sm_ver_to_cores(int major, int minor)
     // If we don't find the values, we use the last valid value by default
     // to allow proper execution
     std::cerr << "MapSMtoCores for SM " << major << "." << minor
-              << "is undefined. The default value of "
+              << " is undefined. The default value of "
               << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
               << std::endl;
 #endif  // GKO_VERBOSE_LEVEL >= 1
