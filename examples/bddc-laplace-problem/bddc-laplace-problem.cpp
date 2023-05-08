@@ -462,22 +462,22 @@ int main(int argc, char* argv[])
                                                      LocalIndexType>::build()
                     .with_symmetric_sparsity(true)
                     .on(exec))
-            .with_num_rhs(5u)
+            //.with_num_rhs(5u)
             .on(exec));
     auto direct_factory = gko::share(
-        // gko::experimental::reorder::ScaledReordered<ValueType,
-        //                                         LocalIndexType>::build()
-        //.with_inner_operator(
-        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
-            .with_factorization(
-                gko::experimental::factorization::Lu<ValueType,
-                                                     LocalIndexType>::build()
-                    .with_symmetric_sparsity(true)
+        gko::experimental::reorder::ScaledReordered<ValueType,
+                                                    LocalIndexType>::build()
+            .with_inner_operator(
+                gko::experimental::solver::Direct<ValueType,
+                                                  LocalIndexType>::build()
+                    .with_factorization(gko::experimental::factorization::Lu<
+                                            ValueType, LocalIndexType>::build()
+                                            .with_symmetric_sparsity(true)
+                                            .on(exec))
                     .on(exec))
-            //        .on(exec))
-            //.with_reordering(
-            //    gko::reorder::Rcm<ValueType,
-            //    LocalIndexType>::build().on(exec))
+            .with_reordering_linop(
+                gko::experimental::reorder::Amd<LocalIndexType>::build().on(
+                    exec))
             .on(exec));
     auto mg_level_factory =
         gko::share(pgm::build().with_deterministic(true).on(exec));
@@ -609,7 +609,7 @@ int main(int argc, char* argv[])
                     .with_interface_dofs(interface_dofs)
                     .with_interface_dof_ranks(interface_dof_ranks)
                     .with_local_solver_factory(direct_factory)
-                    .with_schur_complement_solver_factory(schur_factory)
+                    .with_schur_complement_solver_factory(direct_factory)
                     .with_inner_solver_factory(direct_factory)
                     .with_coarse_solver_factory(cg_factory)  // gmres_factory)
                     .on(exec))

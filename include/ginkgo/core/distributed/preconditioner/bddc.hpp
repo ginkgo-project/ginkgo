@@ -279,6 +279,7 @@ private:
     array<index_type> coarsening_recv_to_local_;
     std::shared_ptr<global_vec_type> coarse_residual_;
     std::shared_ptr<global_vec_type> coarse_solution_;
+    std::shared_ptr<global_vec_type> intermediate_;
     std::vector<std::vector<index_type>> interface_dofs_;
     std::vector<std::vector<index_type>> interface_dof_ranks_;
     array<index_type> coarse_non_local_to_global_;

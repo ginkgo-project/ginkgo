@@ -130,7 +130,6 @@ void restrict_residual1(std::shared_ptr<const DefaultExecutor> exec,
     kernel::restrict_residual<<<restrict_grid_dim, config::warp_size>>>(
         global_rows, global_vals, local_to_local_data, w, local_vals);
 
-    exec->synchronize();
     const auto fill_grid_dim = ceildiv(buf_size, config::warp_size);
     kernel::fill_reordered<<<fill_grid_dim, config::warp_size>>>(
         buf_size, local_to_send_data, static_cast<const IndexType*>(nullptr),

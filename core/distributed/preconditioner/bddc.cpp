@@ -580,9 +580,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         i++;
     }
 
-    // for (auto it = dbcs.begin(); it < dbcs.end(); it++) {
-    //     local_data.nonzeros.emplace_back(*it, *it, one<ValueType>());
-    // }
     std::for_each(dbcs.begin(), dbcs.end(), [&local_data](int i) {
         local_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
@@ -619,9 +616,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         i++;
     }
 
-    // for (auto it = inner_dbcs.begin(); it < inner_dbcs.end(); it++) {
-    //     inner_data.nonzeros.emplace_back(*it, *it, one<ValueType>());
-    // }
     std::for_each(inner_dbcs.begin(), inner_dbcs.end(), [&inner_data](int i) {
         inner_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
@@ -686,14 +680,14 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         array<IndexType>(exec, local_to_local.begin(), local_to_local.end());
     local_idx_to_send_buffer_ = array<IndexType>(
         exec, local_idx_to_send_buffer.begin(), local_idx_to_send_buffer.end());
-    send_sizes_ = array<comm_index_type>(exec->get_master(), send_sizes.begin(),
-                                         send_sizes.end());
-    send_offsets_ = array<comm_index_type>(
-        exec->get_master(), send_offsets.begin(), send_offsets.end());
-    recv_sizes_ = array<comm_index_type>(exec->get_master(), recv_sizes.begin(),
-                                         recv_sizes.end());
-    recv_offsets_ = array<comm_index_type>(
-        exec->get_master(), recv_offsets.begin(), recv_offsets.end());
+    send_sizes_ =
+        array<comm_index_type>(exec, send_sizes.begin(), send_sizes.end());
+    send_offsets_ =
+        array<comm_index_type>(exec, send_offsets.begin(), send_offsets.end());
+    recv_sizes_ =
+        array<comm_index_type>(exec, recv_sizes.begin(), recv_sizes.end());
+    recv_offsets_ =
+        array<comm_index_type>(exec, recv_offsets.begin(), recv_offsets.end());
     send_buffer_ = array<ValueType>(exec, send_offsets.back());
     send_buffer_.fill(zero<ValueType>());
     recv_buffer_ = array<ValueType>(exec, recv_offsets.back());
@@ -726,6 +720,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     }
     local_system_matrix_->copy_from(host_local_system_matrix.get());
     weights_ = clone(exec, host_weights);
+    intermediate_ = global_vec_type::create(
+        exec, comm, gko::dim<2>{global_system_matrix_->get_size()[0], 1},
+        gko::dim<2>{global_system_matrix_->get_local_matrix()->get_size()[0],
+                    1});
 }
 
 
@@ -858,17 +856,13 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
     comm.synchronize();
 
     coarsening_send_sizes_ = array<comm_index_type>(
-        exec->get_master(), coarsening_send_sizes.begin(),
-        coarsening_send_sizes.end());
+        exec, coarsening_send_sizes.begin(), coarsening_send_sizes.end());
     coarsening_send_offsets_ = array<comm_index_type>(
-        exec->get_master(), coarsening_send_offsets.begin(),
-        coarsening_send_offsets.end());
+        exec, coarsening_send_offsets.begin(), coarsening_send_offsets.end());
     coarsening_recv_sizes_ = array<comm_index_type>(
-        exec->get_master(), coarsening_recv_sizes.begin(),
-        coarsening_recv_sizes.end());
+        exec, coarsening_recv_sizes.begin(), coarsening_recv_sizes.end());
     coarsening_recv_offsets_ = array<comm_index_type>(
-        exec->get_master(), coarsening_recv_offsets.begin(),
-        coarsening_recv_offsets.end());
+        exec, coarsening_recv_offsets.begin(), coarsening_recv_offsets.end());
     coarsening_local_to_send_ = array<IndexType>(
         exec, coarsening_local_to_send.begin(), coarsening_local_to_send.end());
     coarsening_recv_to_local_ = array<IndexType>(
@@ -903,10 +897,12 @@ void Bddc<ValueType, IndexType>::generate_coarse_system()
     exec->synchronize();
     comm.synchronize();
 
+
     global_coarse_matrix_ =
         gko::experimental::distributed::Matrix<ValueType, IndexType,
                                                IndexType>::create(exec, comm);
     global_coarse_matrix_->read_distributed(coarse_data, part.get(), false);
+
 
     coarse_non_local_to_global_ = array<IndexType>(
         exec, global_coarse_matrix_->get_non_local_to_global());
@@ -977,19 +973,17 @@ void Bddc<ValueType, IndexType>::restrict_residual(
 
     bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
-        comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                          send_buffer, send_sizes_.get_data(),
-                          send_offsets_.get_data(), recv_buffer,
-                          recv_sizes_.get_data(), recv_offsets_.get_data());
+        comm.all_to_all_v(exec, send_buffer, send_sizes_.get_const_data(),
+                          send_offsets_.get_const_data(), recv_buffer,
+                          recv_sizes_.get_const_data(),
+                          recv_offsets_.get_const_data());
     };
 
-    exec->synchronize();
     exec->run(bddc::make_restrict_residual1(
         as<experimental::distributed::Vector<ValueType>>(global_residual)
             ->get_local_vector(),
         local_to_local_, local_idx_to_send_buffer_, weights_.get(),
         send_buffer_, local_residual_.get()));
-    exec->synchronize();
 
 
     if (use_host_buffer) {
@@ -997,9 +991,8 @@ void Bddc<ValueType, IndexType>::restrict_residual(
         send_buffer_.set_executor(exec->get_master());
     }
 
+    exec->synchronize();
     communicate(send_buffer_.get_data(), recv_buffer_.get_data());
-
-    comm.synchronize();
 
     if (use_host_buffer) {
         recv_buffer_.set_executor(exec);
@@ -1009,8 +1002,6 @@ void Bddc<ValueType, IndexType>::restrict_residual(
     exec->run(bddc::make_restrict_residual2(
         non_local_to_local_, recv_buffer_to_global_, non_local_idxs_,
         recv_buffer_, local_residual_.get()));
-
-    exec->synchronize();
 }
 
 
@@ -1030,25 +1021,21 @@ void Bddc<ValueType, IndexType>::coarsen_residual() const
                           coarsening_recv_offsets_.get_const_data());
     };
 
-    exec->synchronize();
-
     exec->run(bddc::make_coarsen_residual1(
         coarse_local_to_local_, coarsening_local_to_send_,
         local_coarse_residual_.get(), coarsening_send_buffer_,
         coarse_residual_->get_local_values(),
         coarse_solution_->get_local_values()));
 
-    exec->synchronize();
     bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         coarsening_send_buffer_.set_executor(exec->get_master());
         coarsening_recv_buffer_.set_executor(exec->get_master());
     }
 
+    exec->synchronize();
     communicate(coarsening_send_buffer_.get_data(),
                 coarsening_recv_buffer_.get_data());
-
-    comm.synchronize();
 
     if (use_host_buffer) {
         coarsening_send_buffer_.set_executor(exec);
@@ -1085,10 +1072,9 @@ void Bddc<ValueType, IndexType>::prolong_coarse_solution() const
         coarsening_recv_buffer_.set_executor(exec->get_master());
     }
 
+    exec->synchronize();
     communicate(coarsening_recv_buffer_.get_data(),
                 coarsening_send_buffer_.get_data());
-
-    comm.synchronize();
 
     if (use_host_buffer) {
         coarsening_send_buffer_.set_executor(exec);
@@ -1099,8 +1085,6 @@ void Bddc<ValueType, IndexType>::prolong_coarse_solution() const
         coarse_local_to_local_, coarse_solution_->get_local_vector(),
         coarsening_local_to_send_, coarsening_send_buffer_,
         local_intermediate_.get()));
-
-    exec->synchronize();
 
     phi_->apply(local_intermediate_.get(), local_coarse_solution_.get());
 }
@@ -1130,9 +1114,10 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                    recv_buffer_, local_solution_.get()));
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
-        comm.all_to_all_v(exec, send_buffer, recv_sizes_.get_data(),
-                          recv_offsets_.get_data(), recv_buffer,
-                          send_sizes_.get_data(), send_offsets_.get_data());
+        comm.all_to_all_v(exec, send_buffer, recv_sizes_.get_const_data(),
+                          recv_offsets_.get_const_data(), recv_buffer,
+                          send_sizes_.get_const_data(),
+                          send_offsets_.get_const_data());
     };
 
     bool use_host_buffer = mpi::requires_host_buffer(exec, comm);
@@ -1141,9 +1126,8 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         send_buffer_.set_executor(exec->get_master());
     }
 
+    exec->synchronize();
     communicate(recv_buffer_.get_data(), send_buffer_.get_data());
-
-    comm.synchronize();
 
     if (use_host_buffer) {
         recv_buffer_.set_executor(exec);
@@ -1157,50 +1141,21 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                    local_to_local_, local_solution_.get(),
                                    global_solution));
 
-    comm.synchronize();
     if (parameters_.static_condensation) {
-        auto intermediate =
-            clone(as<experimental::distributed::Vector<ValueType>>(dense_b));
-        /*auto nsp =
-            clone(as<experimental::distributed::Vector<ValueType>>(dense_b));
-        nsp->fill(one<ValueType>());
-        auto s_op = initialize<matrix::Dense<ValueType>>({0.}, exec);
-        auto n_op = initialize<matrix::Dense<ValueType>>({-one<ValueType>() *
-        (ValueType)dense_b->get_size()[0]}, exec);
-        dense_x->compute_dot(nsp.get(), s_op.get());
-        s_op->inv_scale(n_op.get());
-        dense_x->add_scaled(s_op.get(), nsp.get());*/
+        intermediate_->copy_from(
+            as<experimental::distributed::Vector<ValueType>>(dense_b));
         global_system_matrix_->apply(neg_one_op_.get(), dense_x, one_op_.get(),
-                                     intermediate.get());
-        auto r1 = intermediate->get_local_vector();
-        /*for (auto i = 0; i < r1->get_size()[0]; i++) {
-            if (local_to_inner_[i] != -1) {
-                inner_residual_->at(local_to_inner_[i], 0) = r1->at(i, 0);
-            }
-        }*/
+                                     intermediate_.get());
+        auto r1 = intermediate_->get_local_vector();
         exec->run(bddc::make_static_condensation1(r1, local_to_inner_,
                                                   inner_residual_.get()));
-
         inner_solution_->fill(zero<ValueType>());
         inner_solver_->apply(inner_residual_.get(), inner_solution_.get());
-
-        /*auto inner_res = clone(exec, inner_residual_.get());
-        inner_system_matrix_->apply(one_op_.get(), inner_solution_.get(),
-                                    neg_one_op_.get(), inner_res.get());
-        auto resnorm = clone(exec->get_master(), one_op_.get());
-        inner_res->compute_norm2(resnorm.get());*/
-        comm.synchronize();
         auto local_vals =
             as<experimental::distributed::Vector<ValueType>>(dense_x)
                 ->get_local_values();
         exec->run(bddc::make_static_condensation2(inner_solution_.get(),
                                                   local_to_inner_, local_vals));
-        /*for (auto i = 0; i < r1->get_size()[0]; i++) {
-            if (local_to_inner_[i] != -1) {
-                local_vals[i] += inner_solution_->at(local_to_inner_[i]);
-            }
-        }*/
-        comm.synchronize();
     }
 }
 
@@ -1233,16 +1188,12 @@ void Bddc<ValueType, IndexType>::generate()
     } else {
         generate_interfaces();
     }
-    comm.synchronize();
     generate_constraints();
-    comm.synchronize();
     schur_complement_solver_ =
         parameters_.schur_complement_solver_factory->generate(
             local_system_matrix_);
     schur_complement_solve();
-    comm.synchronize();
     generate_coarse_system();
-    comm.synchronize();
     coarse_solver_ =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
     local_solver_ =
