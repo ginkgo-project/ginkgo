@@ -157,18 +157,25 @@ protected:
         : EnableBatchLinOp<BatchBandSolver>(
               factory->get_executor(),
               gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)},
-          //   workspace_(factory->get_executor(),
-          //              system_matrix_->get_num_stored_elements()) // TODO:
-          //              Should we downcast it or what???
-          // TODO: Workspace not needed in case band array -> copied to shared
-          // memory- cuda/hip kernels (AVOID: extra workspace copy)
-          workspace_(factory->get_executor(), 50000)
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
         auto exec = factory->get_executor();
+
+        if (auto temp_band =
+                dynamic_cast<const matrix_type*>(system_matrix.get())) {
+            auto ptr = std::shared_ptr<const matrix_type>(
+                temp_band, [](const matrix_type* plain_ptr) {});
+            system_matrix_ = ptr;
+        } else {
+            GKO_BATCHED_NOT_SUPPORTED(
+                "Batched Band solver supports only batch matrix type");
+        }  // TODO: Remove conversion functions
+
+        // TODO: Workspace not needed in case band array -> copied to shared
+        // memory- cuda/hip kernels (AVOID: extra workspace copy)
+        workspace_ = gko::array<value_type>(
+            exec, system_matrix_->get_num_stored_elements());
 
         left_scaling_ = parameters_.left_scaling_op;
         right_scaling_ = parameters_.right_scaling_op;
@@ -209,7 +216,7 @@ protected:
     }
 
 private:
-    std::shared_ptr<const BatchLinOp> system_matrix_{};
+    std::shared_ptr<const matrix_type> system_matrix_{};
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
     mutable gko::array<ValueType> workspace_{};

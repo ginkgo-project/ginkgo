@@ -106,19 +106,7 @@ void BatchBandSolver<ValueType>::apply_impl(const BatchLinOp* b,
     }
     auto exec = this->get_executor();
 
-    const matrix_type* system_matrix_banded_ptr{};
-    std::shared_ptr<matrix_type> sys_mat_banded;
-
-    if (auto temp_band =
-            dynamic_cast<const matrix_type*>(this->system_matrix_.get())) {
-        system_matrix_banded_ptr = temp_band;
-    } else {
-        sys_mat_banded = gko::share(matrix_type::create(exec));
-        as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
-            ->convert_to(sys_mat_banded.get());
-        system_matrix_banded_ptr = sys_mat_banded.get();
-    }
-
+    const matrix_type* system_matrix_banded_ptr = this->system_matrix_.get();
 
     if (!(system_matrix_banded_ptr->get_num_subdiagonals()
               .stores_equal_strides() &&
