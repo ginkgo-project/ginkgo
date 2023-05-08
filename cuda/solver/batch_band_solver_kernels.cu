@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_band_solver_kernels.hpp"
 
+#include <chrono>
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include "core/matrix/batch_struct.hpp"
@@ -116,6 +117,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), band_arr);
 
+    auto start = std::chrono::high_resolution_clock::now();
+
+
     if (approach == gko::solver::batch_band_solve_approach::unblocked ||
         (approach == gko::solver::batch_band_solve_approach::blocked &&
          blocked_solve_panel_size > KL)) {
@@ -152,6 +156,21 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+
+    exec->synchronize();
+    auto stop = std::chrono::high_resolution_clock::now();
+
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+    double total_time_millisec =
+        (double)(std::chrono::duration_cast<std::chrono::microseconds>(stop -
+                                                                       start))
+            .count() /
+        (double)1000;
+
+    std::cout << "\nThe entire internal solve took " << total_time_millisec
+              << " milliseconds." << std::endl;
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
