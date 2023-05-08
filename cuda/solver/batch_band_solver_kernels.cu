@@ -64,7 +64,8 @@ int inline get_thread_block_size_unblocked_banded(const int nrows)
     } else if (nrows <= 300) {
         return 512;
     } else {
-        return 1024;
+        return 512;  // 1024 // otherwise too many reources requested on launch
+                     // error
     }
 }
 
