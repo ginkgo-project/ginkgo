@@ -17,6 +17,9 @@
 #
 # This module will set the following variables in your project:
 #
+# ``VTune_EXECUTABLE``
+#   path to the vtune executable
+#
 # ``VTune_INCLUDE_DIRS``
 #   where to find ittnotify.h
 #
@@ -26,19 +29,22 @@
 # ``VTune_FOUND``
 #   If false, do not try to use the VTune library.
 
-find_path(VTune_INCLUDE_DIR NAMES ittnotify.h HINTS ${VTUNE_PATH}/include)
+find_program(VTune_EXECUTABLE vtune HINTS ${VTune_PATH}/bin64 ${VTune_PATH}/bin32)
+get_filename_component(VTune_EXECUTABLE_DIR "${VTune_EXECUTABLE}" DIRECTORY)
+set(VTune_PATH ${VTune_EXECUTABLE_DIR}/..)
+find_path(VTune_INCLUDE_DIR NAMES ittnotify.h HINTS ${VTune_PATH}/include)
 mark_as_advanced(VTune_INCLUDE_DIR)
 
 if(NOT VTune_LIBRARY)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        find_library(VTune_LIBRARY NAMES ittnotify HINTS ${VTUNE_PATH}/lib64)
+        find_library(VTune_LIBRARY NAMES ittnotify HINTS ${VTune_PATH}/lib64)
     else()
-        find_library(VTune_LIBRARY NAMES ittnotify HINTS ${VTUNE_PATH}/lib32)
+        find_library(VTune_LIBRARY NAMES ittnotify HINTS ${VTune_PATH}/lib32)
     endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(VTune REQUIRED_VARS VTune_LIBRARY VTune_INCLUDE_DIR)
+find_package_handle_standard_args(VTune REQUIRED_VARS VTune_EXECUTABLE VTune_LIBRARY VTune_INCLUDE_DIR)
 
 if(VTune_FOUND)
     set(VTune_LIBRARIES ${VTune_LIBRARY})
