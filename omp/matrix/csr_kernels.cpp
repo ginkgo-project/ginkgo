@@ -54,9 +54,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/components/csr_spgeam.hpp"
 
@@ -72,65 +74,83 @@ namespace omp {
 namespace csr {
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = vals[k];
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+            auto sum = zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                arithmetic_type val = a_vals(k);
+                auto col = col_idxs[k];
+
+                sum += val * b_vals(col, j);
             }
+            c_vals(row, j) = sum;
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Csr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
+    arithmetic_type valpha = alpha->at(0, 0);
+    arithmetic_type vbeta = beta->at(0, 0);
 
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = vals[k];
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+            auto sum = c_vals(row, j) * vbeta;
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                arithmetic_type val = a_vals(k);
+                auto col = col_idxs[k];
+                sum += valpha * val * b_vals(col, j);
             }
+            c_vals(row, j) = sum;
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 

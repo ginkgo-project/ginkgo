@@ -88,17 +88,17 @@ __device__ __forceinline__ void find_next_row(
 
 
 template <unsigned subwarp_size, typename ValueType, typename IndexType,
-          typename Closure>
+          typename output_accessor, typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<subwarp_size>& group, bool force_write,
-    ValueType& val, const IndexType row, ValueType* __restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
+    ValueType& val, const IndexType row, acc::range<output_accessor>& c,
+    const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
     const bool need_write = segment_scan(
         group, row, val, [](ValueType a, ValueType b) { return a + b; });
     if (need_write && force_write) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(val));
+        atomic_add(c->get_storage_address(row, column_id), scale(val));
     }
     if (!need_write || force_write) {
         val = zero<ValueType>();
@@ -106,24 +106,24 @@ __device__ __forceinline__ void warp_atomic_add(
 }
 
 
-template <bool last, unsigned subwarp_size, typename ValueType,
-          typename IndexType, typename Closure>
+template <bool last, unsigned subwarp_size, typename arithmetic_type,
+          typename matrix_accessor, typename IndexType, typename input_accessor,
+          typename output_accessor, typename Closure>
 __device__ __forceinline__ void process_window(
     const group::thread_block_tile<subwarp_size>& group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
     IndexType& row, IndexType& row_end, IndexType& nrow, IndexType& nrow_end,
-    ValueType& temp_val, const ValueType* __restrict__ val,
+    arithmetic_type& temp_val, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, const IndexType column_id, Closure scale)
 {
     const auto curr_row = row;
     find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
                         row_ptrs);
     // segmented scan
     if (group.any(curr_row != row)) {
-        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c, c_stride,
+        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c,
                         column_id, scale);
         nrow = group.shfl(row, subwarp_size - 1);
         nrow_end = group.shfl(row_end, subwarp_size - 1);
@@ -131,7 +131,7 @@ __device__ __forceinline__ void process_window(
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        temp_val += val[ind] * b[col * b_stride + column_id];
+        temp_val += val(ind) * b(col, column_id);
     }
 }
 
@@ -145,14 +145,15 @@ __device__ __forceinline__ IndexType get_warp_start_idx(
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType, typename Closure>
 __device__ __forceinline__ void spmv_kernel(
     const IndexType nwarps, const IndexType num_rows,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride, Closure scale)
+    acc::range<input_accessor> b, acc::range<output_accessor> c, Closure scale)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
     const IndexType column_id = blockIdx.y;
     if (warp_idx >= nwarps) {
@@ -168,7 +169,7 @@ __device__ __forceinline__ void spmv_kernel(
     auto row_end = row_ptrs[row + 1];
     auto nrow = row;
     auto nrow_end = row_end;
-    ValueType temp_val = zero<ValueType>();
+    auto temp_val = zero<arithmetic_type>();
     IndexType ind = start + threadIdx.x;
     find_next_row<true>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
                         row_ptrs);
@@ -178,43 +179,53 @@ __device__ __forceinline__ void spmv_kernel(
     for (; ind < ind_end; ind += wsize) {
         process_window<false>(tile_block, num_rows, data_size, ind, row,
                               row_end, nrow, nrow_end, temp_val, val, col_idxs,
-                              row_ptrs, b, b_stride, c, c_stride, column_id,
-                              scale);
+                              row_ptrs, b, c, column_id, scale);
     }
     process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
                          nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
-                         b_stride, c, c_stride, column_id, scale);
-    warp_atomic_add(tile_block, true, temp_val, row, c, c_stride, column_id,
-                    scale);
+                         c, column_id, scale);
+    warp_atomic_add(tile_block, true, temp_val, row, c, column_id, scale);
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const IndexType nwarps, const IndexType num_rows,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride)
+    acc::range<input_accessor> b, acc::range<output_accessor> c)
 {
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [](const ValueType& x) { return x; });
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    using output_type = typename output_accessor::storage_type;
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+                [](const arithmetic_type& x) {
+                    // using atomic add to accumluate data, so it needs to be
+                    // the output storage type
+                    // TODO: Does it make sense to use atomicCAS when the
+                    // arithmetic_type and output_type are different? It may
+                    // allow the non floating point storage or more precise
+                    // result.
+                    return static_cast<output_type>(x);
+                });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const IndexType nwarps, const IndexType num_rows,
-    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
-    const IndexType* __restrict__ col_idxs,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride)
+    acc::range<input_accessor> b, acc::range<output_accessor> c)
 {
-    ValueType scale_factor = alpha[0];
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [&scale_factor](const ValueType& x) {
-                    return scale_factor * x;
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    using output_type = typename output_accessor::storage_type;
+    const arithmetic_type scale_factor = alpha[0];
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+                [&scale_factor](const arithmetic_type& x) {
+                    return static_cast<output_type>(scale_factor * x);
                 });
 }
 
@@ -241,25 +252,26 @@ __forceinline__ __device__ void merge_path_search(
 }
 
 
-template <typename ValueType, typename IndexType, typename Alpha_op>
+template <typename arithmetic_type, typename IndexType,
+          typename output_accessor, typename Alpha_op>
 __device__ void merge_path_reduce(const IndexType nwarps,
-                                  const ValueType* __restrict__ last_val,
+                                  const arithmetic_type* __restrict__ last_val,
                                   const IndexType* __restrict__ last_row,
-                                  ValueType* __restrict__ c,
-                                  const size_type c_stride, Alpha_op alpha_op)
+                                  acc::range<output_accessor> c,
+                                  Alpha_op alpha_op)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = threadIdx.x;
     const IndexType start = min(tid * cache_lines, nwarps);
     const IndexType end = min((tid + 1) * cache_lines, nwarps);
-    ValueType value = zero<ValueType>();
+    auto value = zero<arithmetic_type>();
     IndexType row = last_row[nwarps - 1];
     if (start < nwarps) {
         value = last_val[start];
         row = last_row[start];
         for (IndexType i = start + 1; i < end; i++) {
             if (last_row[i] != row) {
-                c[row * c_stride] += alpha_op(value);
+                c(row, 0) += alpha_op(value);
                 row = last_row[i];
                 value = last_val[i];
             } else {
@@ -268,30 +280,33 @@ __device__ void merge_path_reduce(const IndexType nwarps,
         }
     }
     __shared__ uninitialized_array<IndexType, spmv_block_size> tmp_ind;
-    __shared__ uninitialized_array<ValueType, spmv_block_size> tmp_val;
+    __shared__ uninitialized_array<arithmetic_type, spmv_block_size> tmp_val;
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row;
     group::this_thread_block().sync();
-    bool last = block_segment_scan_reverse(static_cast<IndexType*>(tmp_ind),
-                                           static_cast<ValueType*>(tmp_val));
+    bool last =
+        block_segment_scan_reverse(static_cast<IndexType*>(tmp_ind),
+                                   static_cast<arithmetic_type*>(tmp_val));
     group::this_thread_block().sync();
     if (last) {
-        c[row * c_stride] += alpha_op(tmp_val[threadIdx.x]);
+        c(row, 0) += alpha_op(tmp_val[threadIdx.x]);
     }
 }
 
 
-template <int items_per_thread, typename ValueType, typename IndexType,
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType,
           typename Alpha_op, typename Beta_op>
 __device__ void merge_path_spmv(
-    const IndexType num_rows, const ValueType* __restrict__ val,
+    const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride,
-    IndexType* __restrict__ row_out, ValueType* __restrict__ val_out,
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out,
     Alpha_op alpha_op, Beta_op beta_op)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     const auto* row_end_ptrs = row_ptrs + 1;
     const auto nnz = row_ptrs[num_rows];
     const IndexType num_merge_items = num_rows + nnz;
@@ -326,26 +341,25 @@ __device__ void merge_path_spmv(
 
     IndexType ind = block_start_y + start_y;
     IndexType row_i = block_start_x + start_x;
-    ValueType value = zero<ValueType>();
+    auto value = zero<arithmetic_type>();
 #pragma unroll
     for (IndexType i = 0; i < items_per_thread; i++) {
         if (row_i < num_rows) {
             if (start_x == block_num_rows || ind < shared_row_ptrs[start_x]) {
-                value += val[ind] * b[col_idxs[ind] * b_stride];
+                value += val(ind) * b(col_idxs[ind], 0);
                 ind++;
             } else {
-                c[row_i * c_stride] =
-                    alpha_op(value) + beta_op(c[row_i * c_stride]);
+                c(row_i, 0) = alpha_op(value) + beta_op(c(row_i, 0));
                 start_x++;
                 row_i++;
-                value = zero<ValueType>();
+                value = zero<arithmetic_type>();
             }
         }
     }
     group::this_thread_block().sync();
     IndexType* tmp_ind = shared_row_ptrs;
-    ValueType* tmp_val =
-        reinterpret_cast<ValueType*>(shared_row_ptrs + spmv_block_size);
+    arithmetic_type* tmp_val =
+        reinterpret_cast<arithmetic_type*>(shared_row_ptrs + spmv_block_size);
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row_i;
     group::this_thread_block().sync();
@@ -354,130 +368,146 @@ __device__ void merge_path_spmv(
         row_out[blockIdx.x] = min(end_x, num_rows - 1);
         val_out[blockIdx.x] = tmp_val[threadIdx.x];
     } else if (last) {
-        c[row_i * c_stride] += alpha_op(tmp_val[threadIdx.x]);
+        c(row_i, 0) += alpha_op(tmp_val[threadIdx.x]);
     }
 }
 
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType* __restrict__ val,
+    const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride,
-    IndexType* __restrict__ row_out, ValueType* __restrict__ val_out)
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out)
 {
+    using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [](ValueType& x) { return x; },
-        [](ValueType& x) { return zero<ValueType>(); });
+        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        [](const type& x) { return x; },
+        [](const type& x) { return zero<type>(); });
 }
 
 
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType* __restrict__ alpha,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType num_rows,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    const ValueType* __restrict__ beta, ValueType* __restrict__ c,
-    const size_type c_stride, IndexType* __restrict__ row_out,
-    ValueType* __restrict__ val_out)
+    acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* __restrict__ beta,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out)
 {
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
+    using type = typename output_accessor::arithmetic_type;
+    const type alpha_val = alpha[0];
+    const type beta_val = beta[0];
     merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [&alpha_val](ValueType& x) { return alpha_val * x; },
-        [&beta_val](ValueType& x) { return beta_val * x; });
+        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        [&alpha_val](const type& x) { return alpha_val * x; },
+        [&beta_val](const type& x) { return beta_val * x; });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename arithmetic_type, typename IndexType,
+          typename output_accessor>
 __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
-    const IndexType nwarps, const ValueType* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, ValueType* __restrict__ c,
-    const size_type c_stride)
+    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
+    const IndexType* __restrict__ last_row, acc::range<output_accessor> c)
 {
-    merge_path_reduce(nwarps, last_val, last_row, c, c_stride,
-                      [](ValueType& x) { return x; });
+    merge_path_reduce(nwarps, last_val, last_row, c,
+                      [](const arithmetic_type& x) { return x; });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename arithmetic_type, typename MatrixValueType,
+          typename IndexType, typename output_accessor>
 __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
-    const IndexType nwarps, const ValueType* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, const ValueType* __restrict__ alpha,
-    ValueType* __restrict__ c, const size_type c_stride)
+    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
+    const IndexType* __restrict__ last_row,
+    const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c)
 {
-    const auto alpha_val = alpha[0];
-    merge_path_reduce(nwarps, last_val, last_row, c, c_stride,
-                      [&alpha_val](ValueType& x) { return alpha_val * x; });
+    const arithmetic_type alpha_val = alpha[0];
+    merge_path_reduce(
+        nwarps, last_val, last_row, c,
+        [&alpha_val](const arithmetic_type& x) { return alpha_val * x; });
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType,
+template <size_type subwarp_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType,
           typename Closure>
 __device__ void device_classical_spmv(const size_type num_rows,
-                                      const ValueType* __restrict__ val,
+                                      acc::range<matrix_accessor> val,
                                       const IndexType* __restrict__ col_idxs,
                                       const IndexType* __restrict__ row_ptrs,
-                                      const ValueType* __restrict__ b,
-                                      const size_type b_stride,
-                                      ValueType* __restrict__ c,
-                                      const size_type c_stride, Closure scale)
+                                      acc::range<input_accessor> b,
+                                      acc::range<output_accessor> c,
+                                      Closure scale)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     auto subwarp_tile =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
     const auto subid = subwarp_tile.thread_rank();
-    const auto column_id = blockIdx.y;
+    // can not use auto for hip because the type is
+    // __HIP_Coordinates<__HIP_BlockIdx>::__Y which is not allowed in accessor
+    // operator()
+    const int column_id = blockIdx.y;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
-        ValueType temp_val = zero<ValueType>();
+        auto temp_val = zero<arithmetic_type>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
              ind += subwarp_size) {
-            temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+            temp_val += val(ind) * b(col_idxs[ind], column_id);
         }
-        auto subwarp_result = reduce(
-            subwarp_tile, temp_val,
-            [](const ValueType& a, const ValueType& b) { return a + b; });
+        auto subwarp_result =
+            reduce(subwarp_tile, temp_val,
+                   [](const arithmetic_type& a, const arithmetic_type& b) {
+                       return a + b;
+                   });
         if (subid == 0) {
-            c[row * c_stride + column_id] =
-                scale(subwarp_result, c[row * c_stride + column_id]);
+            c(row, column_id) = scale(subwarp_result, c(row, column_id));
         }
     }
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subwarp_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
-    const size_type num_rows, const ValueType* __restrict__ val,
+    const size_type num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride)
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c)
 {
+    using type = typename output_accessor::arithmetic_type;
     device_classical_spmv<subwarp_size>(
-        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-        [](const ValueType& x, const ValueType& y) { return x; });
+        num_rows, val, col_idxs, row_ptrs, b, c,
+        [](const type& x, const type& y) { return x; });
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subwarp_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
-    const size_type num_rows, const ValueType* __restrict__ alpha,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, const ValueType* __restrict__ beta,
-    ValueType* __restrict__ c, const size_type c_stride)
+    const size_type num_rows,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* __restrict__ beta,
+    acc::range<output_accessor> c)
 {
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
+    using type = typename output_accessor::arithmetic_type;
+    const type alpha_val = alpha[0];
+    const type beta_val = beta[0];
     device_classical_spmv<subwarp_size>(
-        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-        [&alpha_val, &beta_val](const ValueType& x, const ValueType& y) {
+        num_rows, val, col_idxs, row_ptrs, b, c,
+        [&alpha_val, &beta_val](const type& x, const type& y) {
             return alpha_val * x + beta_val * y;
         });
 }
