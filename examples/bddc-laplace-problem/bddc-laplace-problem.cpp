@@ -472,12 +472,13 @@ int main(int argc, char* argv[])
                                                   LocalIndexType>::build()
                     .with_factorization(gko::experimental::factorization::Lu<
                                             ValueType, LocalIndexType>::build()
-                                            .with_symmetric_sparsity(true)
+                                            //.with_symmetric_sparsity(true)
                                             .on(exec))
                     .on(exec))
+            .with_reordering(
+                gko::reorder::Mc64<ValueType, LocalIndexType>::build().on(exec))
             .with_reordering_linop(
-                gko::experimental::reorder::Amd<LocalIndexType>::build().on(
-                    exec))
+                gko::reorder::Amd<LocalIndexType>::build().on(exec))
             .on(exec));
     auto mg_level_factory =
         gko::share(pgm::build().with_deterministic(true).on(exec));

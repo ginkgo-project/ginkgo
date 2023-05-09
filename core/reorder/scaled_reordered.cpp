@@ -66,6 +66,16 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
                                             cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
+            if (row_permutation_array_.get_num_elems() > 0) {
+                cache_.inner_b->row_permute(&row_permutation_array_,
+                                            cache_.intermediate);
+                std::swap(cache_.inner_b, cache_.intermediate);
+                if (inner_operator_->apply_uses_initial_guess()) {
+                    cache_.inner_x->row_permute(&row_permutation_array_,
+                                                cache_.intermediate);
+                    std::swap(cache_.inner_x, cache_.intermediate);
+                }
+            }
             if (permutation_array_.get_num_elems() > 0) {
                 cache_.inner_b->row_permute(&permutation_array_,
                                             cache_.intermediate);

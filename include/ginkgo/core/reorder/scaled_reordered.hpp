@@ -166,9 +166,9 @@ protected:
         // permute the system matrix accordingly.
         if (parameters_.reordering) {
             auto reordering = parameters_.reordering->generate(system_matrix_);
-            permutation_array_ = reordering->get_permutation_array();
+            row_permutation_array_ = reordering->get_permutation_array();
             system_matrix_ = as<Permutable<index_type>>(system_matrix_)
-                                 ->permute(&permutation_array_);
+                                 ->row_permute(&row_permutation_array_);
         }
 
         if (parameters_.reordering_linop) {
@@ -233,6 +233,7 @@ private:
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};
     array<index_type> permutation_array_{};
+    array<index_type> row_permutation_array_{};
 
     /**
      * Manages three vectors as a cache, so there is no need to allocate them
