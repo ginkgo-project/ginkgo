@@ -213,15 +213,20 @@ TYPED_TEST(IsaiFactory, SetsExcessSolverReductionCorrectly)
     using LowerIsai = typename TestFixture::LowerIsai;
     using UpperIsai = typename TestFixture::UpperIsai;
     using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
 
-    auto a_isai_factory =
-        GeneralIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
-    auto spd_isai_factory =
-        SpdIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
-    auto l_isai_factory =
-        LowerIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
-    auto u_isai_factory =
-        UpperIsai::build().with_excess_solver_reduction(1e-3).on(this->exec);
+    auto a_isai_factory = GeneralIsai::build()
+                              .with_excess_solver_reduction(real_type{1e-3})
+                              .on(this->exec);
+    auto spd_isai_factory = SpdIsai::build()
+                                .with_excess_solver_reduction(real_type{1e-3})
+                                .on(this->exec);
+    auto l_isai_factory = LowerIsai::build()
+                              .with_excess_solver_reduction(real_type{1e-3})
+                              .on(this->exec);
+    auto u_isai_factory = UpperIsai::build()
+                              .with_excess_solver_reduction(real_type{1e-3})
+                              .on(this->exec);
 
     ASSERT_NEAR(a_isai_factory->get_parameters().excess_solver_reduction, 1e-3,
                 r<value_type>::value);

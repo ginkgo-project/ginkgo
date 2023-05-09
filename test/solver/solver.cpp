@@ -837,10 +837,10 @@ protected:
                        gen_out_vec<VecType>(op, 1, 1));
         }
         if (Config::is_iterative() &&
-            op.ref->get_size() == mtx.ref->get_size()) {
+            op.ref->get_size() == gko::transpose(mtx.ref->get_size())) {
             SCOPED_TRACE("Single vector with correct initial guess");
-            auto in = gen_in_vec<VecType>(mtx, 1, 1);
-            auto out = gen_out_vec<VecType>(mtx, 1, 1);
+            auto in = gen_in_vec<VecType>(op, 1, 1);
+            auto out = gen_out_vec<VecType>(op, 1, 1);
             mtx.ref->apply(out.ref, in.ref);
             mtx.dev->apply(out.dev, in.dev);
             guarded_fn(std::move(in), std::move(out));
