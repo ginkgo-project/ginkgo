@@ -54,6 +54,7 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchBand<value_type>;
+using batch_csr = gko::matrix::BatchCsr<value_type>;
 using batch_band_solver = gko::solver::BatchBandSolver<value_type>;
 
 
@@ -149,10 +150,14 @@ int main(int argc, char* argv[])
 
     auto single_batch = mtx_type::create(exec);
     single_batch->read(data);
+    auto single_batch_csr = batch_csr::create(exec);
+    single_batch_csr->read(data);
 
     // We can duplicate the batch a few times if we wish.
     std::shared_ptr<mtx_type> A =
         mtx_type::create(exec, num_duplications, single_batch.get());
+    std::shared_ptr<batch_csr> A_csr =
+        batch_csr::create(exec, num_duplications, single_batch_csr.get());
 
     // Create RHS
     const auto nrows = A->get_size().at(0)[0];
@@ -173,6 +178,7 @@ int main(int argc, char* argv[])
     b->copy_from(host_b.get());
 
     auto x = vec_type::create(exec, b->get_size());
+    auto x_dense_direct_solver = vec_type::create(exec, b->get_size());
 
     // @sect3{Create the batch solver factory}
     // Create a batched solver factory with relevant parameters.
@@ -185,6 +191,10 @@ int main(int argc, char* argv[])
     // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
+
+    auto solver_dense_direct_gen =
+        gko::solver::BatchDirect<value_type>::build().on(exec);
+    auto solver_dense_direct = solver_dense_direct_gen->generate(A_csr);
 
     const int num_rounds = 10;
     const int leave_first = 2;
@@ -218,6 +228,52 @@ int main(int argc, char* argv[])
 
     std::cout << "\nThe entire solve took " << av_time_millisec
               << " milliseconds." << std::endl;
+
+
+    {
+        for (int i = 0; i < leave_first; i++) {
+            // Solve the batch system
+            solver_dense_direct->apply(lend(b), lend(x_dense_direct_solver));
+        }
+
+        exec->synchronize();
+        auto start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < num_rounds; i++) {
+            // Solve the batch system
+            solver_dense_direct->apply(lend(b), lend(x_dense_direct_solver));
+        }
+
+        exec->synchronize();
+        auto stop = std::chrono::high_resolution_clock::now();
+
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+        double total_time_millisec =
+            (double)(std::chrono::duration_cast<std::chrono::microseconds>(
+                         stop - start))
+                .count() /
+            (double)1000;
+
+        double av_time_millisec = total_time_millisec / num_rounds;
+
+        std::cout << "\nThe entire dense direct solve took " << av_time_millisec
+                  << " milliseconds." << std::endl;
+    }
+
+    auto x_host = gko::share(gko::clone(exec->get_master(), x.get()));
+    auto x_dd_host = gko::share(gko::clone(exec->get_master(), x.get()));
+    // for (int i = 0; i < num_total_systems; i++) {
+    //     std::cout << "Batch idx: " << i << std::endl;
+    //     for (int k = 0; k < nrows; k++) {
+    //         std::cout << "x[" << k
+    //                   << "]: " << x_host->get_const_values()[i * nrows + k]
+    //                   << "   " << x_dd_host->get_const_values()[i * nrows +
+    //                   k]
+    //                   << std::endl;
+    //     }
+    // }
 
     std::ofstream timings_file;
     timings_file.open(log_file, std::ofstream::app);
