@@ -1179,3 +1179,413 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
         single_copy(N, x_sh_entry, x_global_entry);
     }
 }
+
+
+namespace temp {
+
+template <typename ValueType>
+__device__ __forceinline__ void copy(const ValueType* const __restrict__ src,
+                                     ValueType* const __restrict__ dst,
+                                     const int N)
+{
+    for (int i = threadIdx.x; i < N; i += blockDim.x) {
+        dst[i] = src[i];
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void lower_trsv(
+    const int N, const int KL, const int KU,
+    const ValueType* const __restrict__ AB_col_major_entry,
+    const int* const __restrict__ ipiv_sh_entry,
+    const ValueType* const __restrict__ b_entry,
+    ValueType* const __restrict__ temp_sh_arr_entry)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+    const int KV = KU + KL;
+
+    // temp_arr = b
+    copy(b_entry, temp_sh_arr_entry, N);
+    __syncthreads();
+
+
+    for (int j = 0; j <= N - 2; j++) {
+        if (threadIdx.x == 0) {
+            ValueType tmp = temp_sh_arr_entry[j];
+            //   printf("\n a: %d, ipiv_sh_entry[%d]: %d\n", j, j,
+            //   ipiv_sh_entry[j]);
+            temp_sh_arr_entry[j] = temp_sh_arr_entry[ipiv_sh_entry[j]];
+            temp_sh_arr_entry[ipiv_sh_entry[j]] = tmp;
+        }
+        __syncthreads();
+
+        for (int A_row_idx = j + 1 + threadIdx.x;
+             A_row_idx <= min(N - 1, j + KL); A_row_idx += blockDim.x) {
+            const int A_col_idx = j;
+            const int AB_row_idx = KL + KU + A_row_idx - A_col_idx;
+            // coalesced accesses
+            temp_sh_arr_entry[A_row_idx] =
+                -1 * AB_col_major_entry[AB_row_idx + A_col_idx * AB_nrows] *
+                    temp_sh_arr_entry[j] +
+                temp_sh_arr_entry[A_row_idx];
+        }
+
+        __syncthreads();
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void upper_trsv(
+    const int N, const int KL, const int KU,
+    const ValueType* const __restrict__ AB_col_major_entry,
+    const ValueType* const __restrict__ temp_sh_arr_entry,
+    ValueType* const __restrict__ x_sh_entry)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+    const int KV = KU + KL;
+
+
+    copy(temp_sh_arr_entry, x_sh_entry, N);
+    __syncthreads();
+
+    if (threadIdx.x == 0) {
+        x_sh_entry[N - 1] /= AB_col_major_entry[KV + (N - 1) * AB_nrows];
+    }
+
+
+    __syncthreads();
+
+    for (int j = N - 1; j > 0; j--) {
+        for (int A_row_idx = j - 1 - threadIdx.x;
+             A_row_idx >= max(0, j - KL - KU); A_row_idx -= blockDim.x) {
+            const int A_col_idx = j;
+            const int AB_row_idx = KL + KU + A_row_idx - A_col_idx;
+            // coalesced accesses
+            if (A_row_idx == j - 1) {
+                x_sh_entry[A_row_idx] =
+                    (-1 *
+                         AB_col_major_entry[AB_row_idx + A_col_idx * AB_nrows] *
+                         x_sh_entry[j] +
+                     x_sh_entry[A_row_idx]) /
+                    AB_col_major_entry[KV + (A_col_idx - 1) * AB_nrows];
+            } else {
+                x_sh_entry[A_row_idx] =
+                    -1 * AB_col_major_entry[AB_row_idx + A_col_idx * AB_nrows] *
+                        x_sh_entry[j] +
+                    x_sh_entry[A_row_idx];
+            }
+        }
+
+        // case: A is a diagonal matrix
+        if (KL == 0 & KU == 0)  // could be done - more efficiently ofcourse -
+                                // but the focus here is not this
+        {
+            if (threadIdx.x == 0) {
+                x_sh_entry[j - 1] /=
+                    AB_col_major_entry[KV + (j - 1) * AB_nrows];
+            }
+        }
+
+        __syncthreads();
+    }
+
+
+    /*
+    //OR
+    //No parallelism
+    // No data locality since AB arr is in col major order....
+    if(threadIdx.x == 0)
+    {
+        for(int A_row_idx = N -1; A_row_idx >= 0; A_row_idx --)
+        {
+            const int A_col_idx_last = min(A_row_idx + KL + KU, N-1);
+            ValueType sum = 0;
+            for(int A_col_idx = A_col_idx_last; A_col_idx > A_row_idx;
+    A_col_idx--)
+            {
+               // sum += A(A_row_idx, A_col_idx) * x(A_col_idx)
+               const int AB_corr_row_idx = KL + KU + A_row_idx - A_col_idx;
+               sum += AB_col_major_entry[ AB_corr_row_idx + A_col_idx * AB_nrows
+    ] * x_sh_entry[A_col_idx];
+            }
+
+            // x(A_row_idx) = (y(A_row_idx) - sum)/A(A_row_idx, A_row_idx);
+            const int AB_row_idx_diag_ele = KL + KU;
+            const ValueType diag_ele = AB_col_major_entry[AB_row_idx_diag_ele  +
+    A_row_idx * AB_nrows ]; x_sh_entry[A_row_idx] =
+    (temp_sh_arr_entry[A_row_idx] - sum)/diag_ele;
+        }
+
+    }
+    */
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void set_U_fill_in_zero(
+    const int N, const int KL, const int KU,
+    ValueType* const __restrict__ AB_col_major_entry)
+{
+    const int KV = KL + KU;
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    for (int AB_col_idx = KU + 1; AB_col_idx <= min(KV, N - 1); AB_col_idx++) {
+        // coalesced accesses
+        for (int AB_row_idx = KV - AB_col_idx + threadIdx.x;
+             AB_row_idx <= KL - 1; AB_row_idx += blockDim.x) {
+            AB_col_major_entry[AB_row_idx + AB_nrows * AB_col_idx] =
+                zero<ValueType>();
+        }
+    }
+
+    for (int AB_col_idx = KV + 1; AB_col_idx <= N - 1; AB_col_idx++) {
+        // coalesced accesses
+        for (int AB_row_idx = 0 + threadIdx.x; AB_row_idx <= KL - 1;
+             AB_row_idx += blockDim.x) {
+            AB_col_major_entry[AB_row_idx + AB_nrows * AB_col_idx] =
+                zero<ValueType>();
+        }
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ int choose_pivot_row(
+    const int N, const int KL, const int KU,
+    ValueType* const __restrict__ AB_col_major_entry, const int AB_col_idx)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+    const int KV = KL + KU;
+
+    int AB_pivot_row_idx = KV;  // KL + KU + A_row_idx - A_col_idx;
+
+    const int AB_row_idx_limit = KL + KU + (N - 1) - AB_col_idx;
+    auto val = abs(zero<ValueType>());
+
+    // uncoalesced accesses but atleast data locality is there
+    for (int AB_row_idx = KV; AB_row_idx <= min(AB_row_idx_limit, KV + KL);
+         AB_row_idx++) {
+        if (abs(AB_col_major_entry[AB_row_idx + AB_nrows * AB_col_idx]) > val) {
+            AB_pivot_row_idx = AB_row_idx;
+            val = abs(AB_col_major_entry[AB_row_idx + AB_nrows * AB_col_idx]);
+        }
+    }
+
+    return AB_pivot_row_idx;
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void SwapRows(
+    const int N, const int KL, const int KU,
+    ValueType* const __restrict__ AB_col_major_entry,
+    const int A_affected_col_idx_last, const int A_diag_row_idx,
+    const int A_pivot_row_idx)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    // uncoalesced access, also no data locality, but can't help...
+    for (int A_col_idx = A_diag_row_idx + threadIdx.x;
+         A_col_idx <= A_affected_col_idx_last; A_col_idx += blockDim.x) {
+        const int AB_row_idx_1 = KL + KU + A_diag_row_idx - A_col_idx;
+        const int AB_row_idx_2 = KL + KU + A_pivot_row_idx - A_col_idx;
+
+        ValueType temp =
+            AB_col_major_entry[AB_row_idx_1 + AB_nrows * A_col_idx];
+        AB_col_major_entry[AB_row_idx_1 + AB_nrows * A_col_idx] =
+            AB_col_major_entry[AB_row_idx_2 + AB_nrows * A_col_idx];
+        AB_col_major_entry[AB_row_idx_2 + AB_nrows * A_col_idx] = temp;
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void Modify_rows_below(
+    const int N, const int KL, const int KU,
+    ValueType* const __restrict__ AB_col_major_entry, const int A_diag_row_idx,
+    const int A_affected_col_idx_last,
+    ValueType* const __restrict__ ele_above_sh_arr_entry,
+    const ValueType& diag_ele)
+{
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    // fill the ele_above_sh_arr_entry
+    // this is to reduce uncoalesced global memory reads while updating the
+    // submatrix
+    for (int A_col_idx = A_diag_row_idx + 1 + threadIdx.x;
+         A_col_idx <= A_affected_col_idx_last; A_col_idx += blockDim.x) {
+        const int AB_main_row = KL + KU + A_diag_row_idx - A_col_idx;
+        ValueType ele_above =
+            AB_col_major_entry[AB_main_row +
+                               AB_nrows * A_col_idx];  // uncoalesced accesses
+                                                       // but can't help
+        ele_above_sh_arr_entry[A_col_idx] = ele_above;
+    }
+
+    __syncthreads();
+
+    // each thread handles a row, and the acesses are coalesced AB is in col
+    // major order
+    for (int A_row_idx = A_diag_row_idx + 1 + threadIdx.x;
+         A_row_idx <= min(N - 1, A_diag_row_idx + KL);
+         A_row_idx += blockDim.x) {
+        const int AB_row_idx_for_side_ele =
+            KL + KU + A_row_idx - A_diag_row_idx;
+        // scale the ele in col of diag_ele
+        AB_col_major_entry[AB_row_idx_for_side_ele +
+                           AB_nrows * A_diag_row_idx] /= diag_ele;
+        ValueType ele_side =
+            AB_col_major_entry[AB_row_idx_for_side_ele +
+                               AB_nrows *
+                                   A_diag_row_idx];  // coalesced accesses
+
+        for (int A_col_idx = A_diag_row_idx + 1;
+             A_col_idx <= A_affected_col_idx_last; A_col_idx++) {
+            const ValueType ele_above = ele_above_sh_arr_entry[A_col_idx];
+
+            const int AB_row_idx_for_this_col_ele =
+                KL + KU + A_row_idx - A_col_idx;
+            AB_col_major_entry[AB_row_idx_for_this_col_ele +
+                               AB_nrows * A_col_idx] -=
+                ele_above * ele_side;  // coalesced accesses
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ void kernel_gbsv_shared_batched(
+    const int batch_size, const int N, const int KL, const int KU,
+    ValueType* const AB_col_major_batched, const ValueType* const b_batched,
+    ValueType* const x_batched)
+{
+    for (int batch_idx = blockIdx.x; batch_idx < batch_size;
+         batch_idx += gridDim.x) {
+        const int AB_nrows = 2 * KL + KU + 1;
+
+        ValueType* const __restrict__ AB_col_major_entry =
+            AB_col_major_batched + batch_idx * AB_nrows * N;
+        const ValueType* const __restrict__ b_entry = b_batched + batch_idx * N;
+        ValueType* const __restrict__ x_entry = x_batched + batch_idx * N;
+
+        extern __shared__ char shared_mem[];
+        ValueType* const __restrict__ AB_col_major_sh_entry =
+            reinterpret_cast<ValueType*>(shared_mem);
+        ValueType* const __restrict__ x_sh_entry =
+            AB_col_major_sh_entry + AB_nrows * N;
+        ValueType* const __restrict__ temp_sh_arr_entry =
+            x_sh_entry + N;  // Will reuse this for vector y in trsvs
+        int* const __restrict__ ipiv_sh_entry =
+            reinterpret_cast<int*>(temp_sh_arr_entry + N);
+
+        const int KV = KL + KU;
+
+        copy(AB_col_major_entry, AB_col_major_sh_entry, AB_nrows * N);
+        __syncthreads();
+
+        //**************************************************start factorization
+        //***********************************************
+
+        // write zeroes into the possible fill-in U part
+        set_U_fill_in_zero(N, KL, KU, AB_col_major_sh_entry);
+        __syncthreads();
+
+        int A_affected_col_idx_last = 0;
+
+        for (int A_diag_row_idx = 0; A_diag_row_idx <= N - 1;
+             A_diag_row_idx++) {
+            const int AB_col_idx = A_diag_row_idx;
+            const int AB_diag_row_idx = KV;
+
+            // TODO: parallel implementation possible of choose pivot row???
+            // choose the pivot row
+            const int AB_pivot_row_idx =
+                choose_pivot_row(N, KL, KU, AB_col_major_sh_entry, AB_col_idx);
+
+            const int A_pivot_row_idx = AB_pivot_row_idx - KV + AB_col_idx;
+
+            const ValueType diag_ele =
+                AB_col_major_sh_entry[AB_pivot_row_idx + AB_nrows * AB_col_idx];
+            // assert piv not equal to zero
+            assert(diag_ele != 0);
+
+            A_affected_col_idx_last =
+                max(A_affected_col_idx_last, min(A_pivot_row_idx + KU, N - 1));
+
+            // swap rows
+            if (AB_diag_row_idx != AB_pivot_row_idx) {
+                SwapRows(N, KL, KU, AB_col_major_sh_entry,
+                         A_affected_col_idx_last, A_diag_row_idx,
+                         A_pivot_row_idx);
+            }
+
+            // record the swap info...
+            if (threadIdx.x == 0) {
+                ipiv_sh_entry[A_diag_row_idx] = A_pivot_row_idx;
+            }
+
+            __syncthreads();
+
+            Modify_rows_below(N, KL, KU, AB_col_major_sh_entry, A_diag_row_idx,
+                              A_affected_col_idx_last, temp_sh_arr_entry,
+                              diag_ele);
+
+            __syncthreads();
+        }
+
+        //************************************************** end of
+        // factorization ***********************************************
+
+        // if(blockIdx.x == 2)
+        // {
+        //     Print_AB(N, KL, KU, AB_col_major_sh_entry);
+        // }
+
+
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~start Triangular
+        // solve~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        // L * U x = b
+        // L * temp = b
+        // U * x = temp
+
+
+        //*********************************************** Lower
+        // trsv*****************************************************************
+
+        lower_trsv(N, KL, KU, AB_col_major_sh_entry, ipiv_sh_entry, b_entry,
+                   temp_sh_arr_entry);
+
+        // if(threadIdx.x == 0 && blockIdx.x == 2)
+        // {
+        //     printf("\n");
+        //     for(int i = 0; i < N; i++)
+        //     {
+        //         printf(" y_gpu[%d]: %g \n", i, temp_sh_arr_entry[i]);
+        //     }
+        // }
+
+        //*********************************************** Upper
+        // trsv*****************************************************************
+
+        upper_trsv(N, KL, KU, AB_col_major_sh_entry, temp_sh_arr_entry,
+                   x_sh_entry);
+
+        __syncthreads();
+
+        // if(threadIdx.x == 0 && blockIdx.x == 2)
+        // {
+        //     printf("\n");
+        //     for(int i = 0; i < N; i++)
+        //     {
+        //         printf(" x_gpu[%d]: %g \n", i, x_sh_entry[i]);
+        //     }
+        // }
+
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end Triangular
+        // solve~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        copy(x_sh_entry, x_entry, N);
+    }
+}
+
+
+}  // namespace temp
