@@ -36,7 +36,8 @@ for num_levels in 10; do
                             suffix="_level${num_levels}_cycle${cycle}_mode${mg_mode}_${sm_mode}"
                             file="${RESULT_FOLDER}/${label}${suffix}.txt"
                             residual_norm=$(tail -n 5 ${file} | head -n 1)
-                            info=$(tail -n 4 ${file} | sed -E 's/[^0-9\.]//g' | tr '\n' ',' | sed -E 's/,$/\n/g')
+                            # delete the line with CRAYBLAS_WARNING from frontier
+                            info=$(sed '/CRAYBLAS_WARNING/d' ${file} | tail -n 4 | sed -E 's/[^0-9\.]//g' | tr '\n' ',' | sed -E 's/,$/\n/g')
                             # line="${line}${label}, ${residual_norm}, ${info}"
                             echo "${label}, ${residual_norm}, ${info}" >> "${output}"
                         done

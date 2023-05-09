@@ -41,14 +41,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <string>
 
-#include <cuda_profiler_api.h>
-
 #define ENABLE_PROFILE 0
+
+#if ENABLE_PROFILE
+#include <cuda_profiler_api.h>
+#endif
 
 template <typename ValueType>
 std::shared_ptr<typename gko::solver::Ir<ValueType>::Factory> generate_sj_ir(
     std::shared_ptr<const gko::Executor> exec, gko::size_type iteration,
-    gko::size_type max_block = 1u)
+    gko::uint32 max_block = 1u)
 {
     using IndexType = int;
     using ir = gko::solver::Ir<ValueType>;
