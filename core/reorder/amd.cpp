@@ -47,9 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 
 
-#include "core/base/allocator.hpp"
-
-
 namespace gko {
 namespace experimental {
 namespace reorder {
@@ -62,49 +59,6 @@ using std::size_t;
 
 
 #include "third_party/SuiteSparse/AMD/Include/amd.h"
-
-template <typename T>
-inline T amd_flip(const T& i)
-{
-    return -i - 2;
-}
-
-/* clear w */
-template <typename IndexType>
-static IndexType cs_wclear(IndexType mark, IndexType lemax, IndexType* w,
-                           IndexType n)
-{
-    IndexType k;
-    if (mark < 2 || (mark + lemax < 0)) {
-        for (k = 0; k < n; k++)
-            if (w[k] != 0) w[k] = 1;
-        mark = 2;
-    }
-    return (mark); /* at this point, w[0..n-1] < mark holds */
-}
-
-/* depth-first search and postorder of a tree rooted at node j */
-template <typename IndexType>
-IndexType cs_tdfs(IndexType j, IndexType k, IndexType* head,
-                  const IndexType* next, IndexType* post, IndexType* stack)
-{
-    IndexType i, p, top = 0;
-    if (!head || !next || !post || !stack) return (-1); /* check inputs */
-    stack[0] = j;    /* place j on the stack */
-    while (top >= 0) /* while (stack is not empty) */
-    {
-        p = stack[top]; /* p = top of stack */
-        i = head[p];    /* i = youngest child of p */
-        if (i == -1) {
-            top--;         /* p has no unordered children left */
-            post[k++] = p; /* node p is the kth postordered node */
-        } else {
-            head[p] = next[i]; /* remove i from children of p */
-            stack[++top] = i;  /* start dfs on child node i */
-        }
-    }
-    return k;
-}
 
 
 void amd_reorder(int32 num_rows, int32* row_ptrs,
@@ -146,13 +100,6 @@ Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
                     const parameters_type& params)
     : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec)),
       parameters_{params}
-{}
-
-
-template <typename IndexType>
-Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
-                    const parameters_type& params)
-    : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec))
 {}
 
 
@@ -241,15 +188,6 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         host_exec, col_idxs_plus_workspace_size + 6 * num_rows};
     host_exec->copy_from(exec, nnz, pattern->get_const_col_idxs(),
                          col_idxs_plus_workspace.get_data());
-<<<<<<< HEAD
-=======
-    exec->run(make_amd_reorder(
-        host_exec, static_cast<IndexType>(num_rows), row_ptrs.get_data(),
-        col_idxs_plus_workspace.get_data(), permutation.get_data()));
-    array<IndexType> result_permutation{exec, num_rows};
-    exec->copy_from(host_exec, num_rows, permutation.get_const_data(),
-                    result_permutation.get_data());
->>>>>>> 185d2a9782 (fixes & tests)
 
     array<IndexType> permutation{host_exec, num_rows};
     array<IndexType> row_lengths{host_exec, num_rows};
@@ -275,7 +213,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
 
     // permutation gets copied to device via gko::array constructor
     return permutation_type::create(exec, dim<2>{num_rows, num_rows},
-                                    std::move(result_permutation));
+                                    std::move(permutation));
 }
 
 
