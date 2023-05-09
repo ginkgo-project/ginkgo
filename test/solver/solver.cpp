@@ -958,7 +958,8 @@ TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
 {
     this->check_residual = false;
     if (!TypeParam::will_not_allocate()) {
-        GTEST_SKIP();
+        GTEST_SKIP()
+            << "Skipping allocation test for types that will not allocate";
     }
     this->forall_matrix_scenarios([this](auto mtx) {
         this->forall_vector_and_solver_scenarios(
@@ -1029,7 +1030,8 @@ TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
     using Config = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
     if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
-        GTEST_SKIP();
+        GTEST_SKIP() << "Skipping cross-executor copy assign for type that "
+                        "stores a factory.";
     }
     this->forall_matrix_scenarios([this](auto mtx) {
         auto solver =
@@ -1136,7 +1138,8 @@ TYPED_TEST(Solver, CopyAssignCrossExecutor)
     using Mtx = typename TestFixture::Mtx;
     using Precond = typename TestFixture::Precond;
     if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
-        GTEST_SKIP();
+        GTEST_SKIP() << "Skipping cross-executor copy assign for type that "
+                        "stores a factory.";
     }
     this->forall_matrix_scenarios([this](auto mtx) {
         this->forall_solver_scenarios(mtx, [this](auto solver) {
@@ -1174,7 +1177,8 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
     using Mtx = typename TestFixture::Mtx;
     using Precond = typename TestFixture::Precond;
     if (!this->ref->memory_accessible(this->exec) && Config::is_iterative()) {
-        GTEST_SKIP();
+        GTEST_SKIP() << "Skipping cross-executor move assign for type that "
+                        "stores a factory.";
     }
     this->forall_matrix_scenarios([this](auto in_mtx) {
         this->forall_solver_scenarios(in_mtx, [this](auto solver) {
