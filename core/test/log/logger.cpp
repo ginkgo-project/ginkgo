@@ -196,7 +196,7 @@ TEST(DummyLogged, CanLogEvents)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto l = std::make_shared<DummyLogger>(
-        new DummyLogger(false, gko::log::Logger::iteration_complete_mask));
+        false, gko::log::Logger::iteration_complete_mask);
     DummyLoggedClass c{exec};
     c.add_logger(l);
 
