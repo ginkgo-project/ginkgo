@@ -537,10 +537,10 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             // using average
             max_length_per_row =
                 a->get_num_stored_elements() / a->get_size()[0];
-            if (std::is_same<MatrixValueType, gko::half>::value) {
-                // we process two elements in one threads
-                max_length_per_row /= 2;
-            }
+            // if (std::is_same<MatrixValueType, gko::half>::value) {
+            //     // we process two elements in one threads
+            //     max_length_per_row /= 2;
+            // }
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
@@ -608,10 +608,10 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             // using average
             max_length_per_row =
                 a->get_num_stored_elements() / a->get_size()[0];
-            if (std::is_same<MatrixValueType, gko::half>::value) {
-                // we process two elements in one threads
-                max_length_per_row /= 2;
-            }
+            // if (std::is_same<MatrixValueType, gko::half>::value) {
+            //     // we process two elements in one threads
+            //     max_length_per_row /= 2;
+            // }
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
