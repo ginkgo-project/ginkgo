@@ -568,6 +568,10 @@ template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
     gko::size_type size, std::array<ValueType, 3> coeffs)
 {
+    if (size == 0) {
+        return {};
+    }
+
     auto lower = coeffs[0];
     auto diag = coeffs[1];
     auto upper = coeffs[2];
