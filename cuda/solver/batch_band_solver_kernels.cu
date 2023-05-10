@@ -160,30 +160,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 block(get_thread_block_size_unblocked_banded(nrows));
         dim3 grid(nbatch);
 
-        // if (is_matrix_in_shared_mem(nrows, KL, KU)) {
-        //     std::cout << "Unblocked shared mem version executed: " <<
-        //     std::endl;
-
-        //     // exp_perf::kernel_gbsv_shared_batched<<<grid, block,
-        //     shared_size>>>(
-        //     //     nbatch, nrows, KL, KU, as_cuda_type(band_arr),
-        //     //     as_cuda_type(b->get_const_values()),
-        //     //     as_cuda_type(x->get_values()));
-
-        //     exp_perf::
-        //     band_solver_unblocked_kernel<<<grid, block, shared_size>>>(
-        //         nbatch, nrows, KL, KU, as_cuda_type(band_arr),
-        //         as_cuda_type(b->get_const_values()),
-        //         as_cuda_type(x->get_values()));
-        // } else {
         band_solver_unblocked_kernel<config::warp_size>
             <<<grid, block, shared_size>>>(nbatch, nrows, KL, KU,
                                            as_cuda_type(band_arr),
                                            as_cuda_type(b->get_const_values()),
                                            as_cuda_type(x->get_values()));
-
-        //}
-
 
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
         shared_size +=
