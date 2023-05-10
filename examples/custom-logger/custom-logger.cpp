@@ -290,11 +290,9 @@ int main(int argc, char* argv[])
     // object needs to be built on.
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(20u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(reduction_factor))
             .on(exec);
 
     // Instantiate a ResidualLogger logger.

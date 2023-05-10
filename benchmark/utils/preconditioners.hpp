@@ -122,7 +122,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 .on(exec));
              return gko::preconditioner::Ic<gko::solver::LowerTrs<etype, itype>,
                                             itype>::build()
-                 .with_factorization_factory(fact)
+                 .with_factorization(fact)
                  .on(exec);
          }},
         {"parict",
@@ -137,7 +137,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::
                  Ilu<gko::solver::LowerTrs<etype, itype>,
                      gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization_factory(fact)
+                     .with_factorization(fact)
                      .on(exec);
          }},
         {"parilu",
@@ -150,7 +150,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::
                  Ilu<gko::solver::LowerTrs<etype, itype>,
                      gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization_factory(fact)
+                     .with_factorization(fact)
                      .on(exec);
          }},
         {"parilut",
@@ -165,7 +165,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::
                  Ilu<gko::solver::LowerTrs<etype, itype>,
                      gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization_factory(fact)
+                     .with_factorization(fact)
                      .on(exec);
          }},
         {"ic",
@@ -174,7 +174,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::factorization::Ic<etype, itype>::build().on(exec));
              return gko::preconditioner::Ic<gko::solver::LowerTrs<etype, itype>,
                                             itype>::build()
-                 .with_factorization_factory(fact)
+                 .with_factorization(fact)
                  .on(exec);
          }},
         {"ilu",
@@ -184,7 +184,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::
                  Ilu<gko::solver::LowerTrs<etype, itype>,
                      gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization_factory(fact)
+                     .with_factorization(fact)
                      .on(exec);
          }},
         {"paric-isai",
@@ -201,8 +201,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::Ic<
                         gko::preconditioner::LowerIsai<etype, itype>,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
                  .on(exec);
          }},
         {"parict-isai",
@@ -221,8 +221,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::Ic<
                         gko::preconditioner::LowerIsai<etype, itype>,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
                  .on(exec);
          }},
         {"parilu-isai",
@@ -244,9 +244,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                         gko::preconditioner::LowerIsai<etype, itype>,
                         gko::preconditioner::UpperIsai<etype, itype>, false,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
-                 .with_u_solver_factory(uisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
+                 .with_u_solver(uisai)
                  .on(exec);
          }},
         {"parilut-isai",
@@ -270,9 +270,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                         gko::preconditioner::LowerIsai<etype, itype>,
                         gko::preconditioner::UpperIsai<etype, itype>, false,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
-                 .with_u_solver_factory(uisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
+                 .with_u_solver(uisai)
                  .on(exec);
          }},
         {"ic-isai",
@@ -286,8 +286,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::preconditioner::Ic<
                         gko::preconditioner::LowerIsai<etype, itype>,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
                  .on(exec);
          }},
         {"ilu-isai",
@@ -306,9 +306,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                         gko::preconditioner::LowerIsai<etype, itype>,
                         gko::preconditioner::UpperIsai<etype, itype>, false,
                         itype>::build()
-                 .with_factorization_factory(fact)
-                 .with_l_solver_factory(lisai)
-                 .with_u_solver_factory(uisai)
+                 .with_factorization(fact)
+                 .with_l_solver(lisai)
+                 .with_u_solver(uisai)
                  .on(exec);
          }},
         {"general-isai",
@@ -326,8 +326,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
                  .with_criteria(gko::stop::ResidualNorm<etype>::build()
-                                    .with_reduction_factor(rc_etype{})
-                                    .on(exec))
+                                    .with_reduction_factor(rc_etype{}))
                  .on(exec);
          }}};
 

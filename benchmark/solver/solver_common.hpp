@@ -239,21 +239,18 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
         return gko::experimental::solver::Direct<etype, itype>::build()
             .with_factorization(
                 gko::experimental::factorization::Cholesky<etype,
-                                                           itype>::build()
-                    .on(exec))
+                                                           itype>::build())
             .on(exec);
     } else if (description == "symm_direct") {
         return gko::experimental::solver::Direct<etype, itype>::build()
             .with_factorization(
                 gko::experimental::factorization::Lu<etype, itype>::build()
-                    .with_symmetric_sparsity(true)
-                    .on(exec))
+                    .with_symmetric_sparsity(true))
             .on(exec);
     } else if (description == "direct") {
         return gko::experimental::solver::Direct<etype, itype>::build()
             .with_factorization(
-                gko::experimental::factorization::Lu<etype, itype>::build().on(
-                    exec))
+                gko::experimental::factorization::Lu<etype, itype>::build())
             .on(exec);
     } else if (description == "overhead") {
         return add_criteria_precond_finalize<gko::Overhead<etype>>(

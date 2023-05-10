@@ -95,14 +95,12 @@ int main(int argc, char* argv[])
     // Create solver factory
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(20u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(reduction_factor))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
+            .with_preconditioner(bj::build().with_max_block_size(8u))
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);

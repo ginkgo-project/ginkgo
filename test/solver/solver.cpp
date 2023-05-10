@@ -101,9 +101,7 @@ struct SimpleSolverTest {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return solver_type::build().with_criteria(
-            gko::stop::Iteration::build()
-                .with_max_iters(iteration_count)
-                .on(exec),
+            gko::stop::Iteration::build().with_max_iters(iteration_count),
             check_residual ? gko::stop::ResidualNorm<value_type>::build()
                                  .with_baseline(gko::stop::mode::absolute)
                                  .with_reduction_factor(1e-30)
@@ -116,8 +114,7 @@ struct SimpleSolverTest {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_preconditioner(precond_type::build().with_max_block_size(1u));
     }
 
     static const gko::LinOp* get_preconditioner(
@@ -185,8 +182,7 @@ struct Idr : SimpleSolverTest<gko::solver::Idr<solver_value_type>> {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_preconditioner(precond_type::build().with_max_block_size(1u));
     }
 };
 
@@ -200,8 +196,7 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
     {
         return SimpleSolverTest<gko::solver::Ir<solver_value_type>>::build(
                    exec, iteration_count, check_residual)
-            .with_solver(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_solver(precond_type::build().with_max_block_size(1u));
     }
 
     static const gko::LinOp* get_preconditioner(
@@ -232,8 +227,7 @@ struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_preconditioner(precond_type::build().with_max_block_size(1u));
     }
 };
 
@@ -254,8 +248,7 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_preconditioner(precond_type::build().with_max_block_size(1u));
     }
 };
 
@@ -277,8 +270,7 @@ struct FGmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec))
+            .with_preconditioner(precond_type::build().with_max_block_size(1u))
             .with_flexible(true);
     }
 };
@@ -300,8 +292,7 @@ struct Gcr : SimpleSolverTest<gko::solver::Gcr<solver_value_type>> {
         gko::size_type iteration_count, bool check_residual = true)
     {
         return build(exec, iteration_count, check_residual)
-            .with_preconditioner(
-                precond_type::build().with_max_block_size(1u).on(exec));
+            .with_preconditioner(precond_type::build().with_max_block_size(1u));
     }
 };
 

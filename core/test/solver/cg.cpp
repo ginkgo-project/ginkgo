@@ -66,10 +66,9 @@ protected:
           cg_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(3u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(gko::remove_complex<T>{1e-6})
-                          .on(exec))
+                          .with_reduction_factor(gko::remove_complex<T>{1e-6}))
                   .on(exec)),
           solver(cg_factory->generate(mtx))
     {}

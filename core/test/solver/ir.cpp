@@ -64,14 +64,12 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          ir_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .on(exec)),
+          ir_factory(Solver::build()
+                         .with_criteria(
+                             gko::stop::Iteration::build().with_max_iters(3u),
+                             gko::stop::ResidualNorm<value_type>::build()
+                                 .with_reduction_factor(r<value_type>::value))
+                         .on(exec)),
           solver(ir_factory->generate(mtx))
     {}
 

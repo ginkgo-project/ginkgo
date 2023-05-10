@@ -68,8 +68,7 @@ public:
         gko::initialize<AbsoluteDense>({6}, exec);
     std::unique_ptr<gko::LinOp> system =
         gko::solver::Ir<T>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec)
             ->generate(gko::initialize<Dense>(I<I<T>>{{1, 2}, {0, 3}}, exec));
     std::unique_ptr<Dense> rhs = gko::initialize<Dense>({15, 25}, exec);

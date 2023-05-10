@@ -154,12 +154,10 @@ int main(int argc, char* argv[])
     // storage type
     auto solver_gen_keep =
         cb_gmres::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::rhs_norm)
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1000u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_baseline(gko::stop::mode::rhs_norm)
+                               .with_reduction_factor(reduction_factor))
             .with_krylov_dim(100u)
             .with_storage_precision(
                 gko::solver::cb_gmres::storage_precision::keep)
@@ -167,12 +165,10 @@ int main(int argc, char* argv[])
 
     auto solver_gen_reduce =
         cb_gmres::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::rhs_norm)
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1000u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_baseline(gko::stop::mode::rhs_norm)
+                               .with_reduction_factor(reduction_factor))
             .with_krylov_dim(100u)
             .with_storage_precision(
                 gko::solver::cb_gmres::storage_precision::reduce1)

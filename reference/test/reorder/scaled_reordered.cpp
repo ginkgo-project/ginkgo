@@ -110,11 +110,9 @@ protected:
           solver_factory(
               Bicgstab::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           tol{r<value_type>::value}
     {

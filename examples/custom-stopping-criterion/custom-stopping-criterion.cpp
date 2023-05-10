@@ -109,13 +109,12 @@ void run_solver(volatile bool* stop_iteration_process,
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    auto solver = bicg::build()
-                      .with_criteria(ByInteraction::build()
-                                         .with_stop_iteration_process(
-                                             stop_iteration_process)
-                                         .on(exec))
-                      .on(exec)
-                      ->generate(A);
+    auto solver =
+        bicg::build()
+            .with_criteria(ByInteraction::build().with_stop_iteration_process(
+                stop_iteration_process))
+            .on(exec)
+            ->generate(A);
     solver->add_logger(gko::log::Stream<ValueType>::create(
         gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(b, x);

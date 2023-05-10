@@ -193,13 +193,11 @@ int main(int argc, char* argv[])
         auto factory =
             gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
                                      gko::preconditioner::UpperIsai<>>::build()
-                .with_factorization_factory(fact_factory)
-                .with_l_solver_factory(gko::preconditioner::LowerIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
-                .with_u_solver_factory(gko::preconditioner::UpperIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
+                .with_factorization(fact_factory)
+                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
+                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
         output(ilu_isai->get_l_solver()->get_approximate_inverse(),
@@ -220,13 +218,11 @@ int main(int argc, char* argv[])
         auto factory =
             gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
                                      gko::preconditioner::UpperIsai<>>::build()
-                .with_factorization_factory(fact_factory)
-                .with_l_solver_factory(gko::preconditioner::LowerIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
-                .with_u_solver_factory(gko::preconditioner::UpperIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
+                .with_factorization(fact_factory)
+                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
+                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
         output(ilu_isai->get_l_solver()->get_approximate_inverse(),
@@ -250,13 +246,11 @@ int main(int argc, char* argv[])
         auto factory =
             gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
                                      gko::preconditioner::UpperIsai<>>::build()
-                .with_factorization_factory(fact_factory)
-                .with_l_solver_factory(gko::preconditioner::LowerIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
-                .with_u_solver_factory(gko::preconditioner::UpperIsai<>::build()
-                                           .with_sparsity_power(sparsity_power)
-                                           .on(exec))
+                .with_factorization(fact_factory)
+                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
+                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
+                                   .with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
         output(ilu_isai->get_l_solver()->get_approximate_inverse(),

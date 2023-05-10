@@ -880,11 +880,9 @@ void AdvectionProblem<dim>::solve()
     auto solver_gen =
         bicgstab::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-12)
-                    .on(exec))
-            .with_preconditioner(bj::build().on(exec))
+                gko::stop::Iteration::build().with_max_iters(1000),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(1e-12))
+            .with_preconditioner(bj::build())
             .on(exec);
     auto solver = solver_gen->generate(gko::give(A));
 

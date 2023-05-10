@@ -289,30 +289,26 @@ protected:
                                  .on(exec)),
           smoother_factory(gko::give(
               Smoother::build()
-                  .with_solver(
-                      InnerSolver::build().with_max_block_size(1u).on(exec))
+                  .with_solver(InnerSolver::build().with_max_block_size(1u))
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                      gko::stop::Iteration::build().with_max_iters(1u))
                   .on(exec))),
           coarsest_factory(
               CoarsestSolver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(4u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           coarsestnext_factory(
               CoarsestNextSolver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec))
+                      gko::stop::Iteration::build().with_max_iters(4u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)))
                   .on(exec)),
           rp_factory(DummyRPFactory::build().on(exec)),
           lo_factory(DummyFactory::build().on(exec)),
@@ -357,14 +353,12 @@ protected:
                 .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
                 .with_mg_level(coarse_factory)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                    gko::stop::Time::build()
-                        .with_time_limit(std::chrono::seconds(6))
-                        .on(exec),
+                    gko::stop::Iteration::build().with_max_iters(4u),
+                    gko::stop::Time::build().with_time_limit(
+                        std::chrono::seconds(6)),
                     gko::stop::ResidualNorm<value_type>::build()
                         .with_baseline(gko::stop::mode::initial_resnorm)
-                        .with_reduction_factor(r<value_type>::value)
-                        .on(exec))
+                        .with_reduction_factor(r<value_type>::value))
                 .with_cycle(cycle)
                 .with_min_coarse_rows(1u)
                 .on(exec));
@@ -382,14 +376,12 @@ protected:
                 .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
                 .with_mg_level(coarse_factory, coarsenext_factory)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(200u).on(exec),
-                    gko::stop::Time::build()
-                        .with_time_limit(std::chrono::seconds(100))
-                        .on(exec),
+                    gko::stop::Iteration::build().with_max_iters(200u),
+                    gko::stop::Time::build().with_time_limit(
+                        std::chrono::seconds(100)),
                     gko::stop::ResidualNorm<value_type>::build()
                         .with_baseline(gko::stop::mode::initial_resnorm)
-                        .with_reduction_factor(r<value_type>::value)
-                        .on(exec))
+                        .with_reduction_factor(r<value_type>::value))
                 .with_cycle(cycle)
                 .with_min_coarse_rows(1u)
                 .on(exec));

@@ -70,20 +70,17 @@ protected:
           gmres_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(3u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
-                          .on(exec))
+                          .with_reduction_factor(reduction_factor))
                   .on(exec)),
           solver(gmres_factory->generate(mtx)),
           gmres_big_factory(
               Big_solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(128u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(128u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
-                          .on(exec))
+                          .with_reduction_factor(reduction_factor))
                   .on(exec)),
           big_solver(gmres_big_factory->generate(mtx))
     {}

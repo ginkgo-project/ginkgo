@@ -222,19 +222,15 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(schwarz::build()
-                                     .with_local_solver_factory(local_solver)
-                                     .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
-            .on(exec)
-            ->generate(A);
+    auto Ainv = solver::build()
+                    .with_preconditioner(
+                        schwarz::build().with_local_solver(local_solver))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(num_iters),
+                        gko::stop::ResidualNorm<ValueType>::build()
+                            .with_reduction_factor(reduction_factor))
+                    .on(exec)
+                    ->generate(A);
     // Add logger to the generated solver to log the iteration count and
     // residual norm
     Ainv->add_logger(logger);

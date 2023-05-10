@@ -72,23 +72,20 @@ protected:
               Solver::build()
                   .with_storage_precision(storage_precision)
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(3u),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
-                          .with_reduction_factor(nc_value_type{1e-6})
-                          .on(exec))
+                          .with_reduction_factor(nc_value_type{1e-6}))
                   .on(exec)),
           solver(cb_gmres_factory->generate(mtx)),
           cb_gmres_big_factory(
               Solver::build()
                   .with_storage_precision(storage_precision)
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(128u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(128u),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
-                          .with_reduction_factor(nc_value_type{1e-6})
-                          .on(exec))
+                          .with_reduction_factor(nc_value_type{1e-6}))
                   .on(exec)),
           big_solver(cb_gmres_big_factory->generate(mtx))
     {}

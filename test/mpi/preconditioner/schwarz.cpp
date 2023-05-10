@@ -197,7 +197,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
         cg::build()
             .with_preconditioner(
                 prec::build()
-                    .with_local_solver_factory(this->local_solver_factory)
+                    .with_local_solver(this->local_solver_factory)
                     .on(this->exec))
             .with_criteria(iter_stop, tol_stop)
             .on(this->exec);
@@ -225,10 +225,9 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
 
-    auto precond_factory =
-        prec::build()
-            .with_local_solver_factory(this->local_solver_factory)
-            .on(this->exec);
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .on(this->exec);
     auto local_precond =
         this->local_solver_factory->generate(this->non_dist_mat);
     auto precond = precond_factory->generate(this->dist_mat);
@@ -249,10 +248,9 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
 
-    auto precond_factory =
-        prec::build()
-            .with_local_solver_factory(this->local_solver_factory)
-            .on(this->exec);
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .on(this->exec);
     auto local_precond =
         this->local_solver_factory->generate(this->non_dist_mat);
     auto precond = precond_factory->generate(this->dist_mat);

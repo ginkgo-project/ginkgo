@@ -81,9 +81,8 @@ TEST_F(IluFactory, KnowsItsExecutor)
 
 TEST_F(IluFactory, CanSetLSolverFactory)
 {
-    auto ilu_factory = ilu_prec_type::build()
-                           .with_l_solver_factory(this->l_factory)
-                           .on(this->exec);
+    auto ilu_factory =
+        ilu_prec_type::build().with_l_solver(this->l_factory).on(this->exec);
 
     ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, this->l_factory);
 }
@@ -91,9 +90,8 @@ TEST_F(IluFactory, CanSetLSolverFactory)
 
 TEST_F(IluFactory, CanSetUSolverFactory)
 {
-    auto ilu_factory = ilu_prec_type::build()
-                           .with_u_solver_factory(this->u_factory)
-                           .on(this->exec);
+    auto ilu_factory =
+        ilu_prec_type::build().with_u_solver(this->u_factory).on(this->exec);
 
     ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, this->u_factory);
 }
@@ -102,7 +100,7 @@ TEST_F(IluFactory, CanSetUSolverFactory)
 TEST_F(IluFactory, CanSetFactorizationFactory)
 {
     auto ilu_factory = ilu_prec_type::build()
-                           .with_factorization_factory(this->fact_factory)
+                           .with_factorization(this->fact_factory)
                            .on(this->exec);
 
     ASSERT_EQ(ilu_factory->get_parameters().factorization_factory,

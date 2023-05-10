@@ -67,7 +67,7 @@ protected:
           mtx(Mtx::create(exec, MPI_COMM_WORLD))
     {
         schwarz = Schwarz::build()
-                      .with_local_solver_factory(jacobi_factory)
+                      .with_local_solver(jacobi_factory)
                       .on(exec)
                       ->generate(mtx);
     }
@@ -83,8 +83,8 @@ protected:
                              gko::ptr_param<const Schwarz> b)
     {
         ASSERT_EQ(a->get_size(), b->get_size());
-        ASSERT_EQ(a->get_parameters().local_solver_factory,
-                  b->get_parameters().local_solver_factory);
+        ASSERT_EQ(a->get_parameters().local_solver,
+                  b->get_parameters().local_solver);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -105,7 +105,7 @@ TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
 
 TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 {
-    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory,
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver,
               this->jacobi_factory);
 }
 
@@ -125,7 +125,7 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver_factory(bj)
+                    .with_local_solver(bj)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -143,7 +143,7 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
     auto tmp = clone(this->schwarz);
     auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver_factory(bj)
+                    .with_local_solver(bj)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -158,7 +158,7 @@ TYPED_TEST(SchwarzFactory, CanBeCleared)
     this->schwarz->clear();
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
 }
 
 

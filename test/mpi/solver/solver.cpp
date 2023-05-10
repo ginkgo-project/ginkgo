@@ -107,9 +107,7 @@ struct SimpleSolverTest {
         std::shared_ptr<const gko::Executor> exec)
     {
         return solver_type::build().with_criteria(
-            gko::stop::Iteration::build()
-                .with_max_iters(iteration_count())
-                .on(exec),
+            gko::stop::Iteration::build().with_max_iters(iteration_count()),
             gko::stop::ResidualNorm<value_type>::build()
                 .with_baseline(gko::stop::mode::absolute)
                 .with_reduction_factor(reduction_factor())
@@ -164,17 +162,11 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
         std::shared_ptr<const gko::Executor> exec)
     {
         return SimpleSolverTest<gko::solver::Ir<solver_value_type>>::build(exec)
-            .with_solver(
-                gko::solver::Cg<value_type>::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build()
-                            .with_max_iters(iteration_count())
-                            .on(exec),
-                        gko::stop::ResidualNorm<value_type>::build()
-                            .with_baseline(gko::stop::mode::absolute)
-                            .with_reduction_factor(2 * reduction_factor())
-                            .on(exec))
-                    .on(exec))
+            .with_solver(gko::solver::Cg<value_type>::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(iteration_count()),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(2 * reduction_factor())))
             .with_relaxation_factor(0.9);
     }
 };

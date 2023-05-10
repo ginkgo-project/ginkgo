@@ -416,8 +416,7 @@ int main(int argc, char* argv[])
         solver::build()
             .with_criteria(
                 gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec),
+                    .with_reduction_factor(reduction_factor),
                 gko::stop::Iteration::build().with_max_iters(max_iters).on(
                     exec))
             .with_preconditioner(preconditioner::create(exec))
