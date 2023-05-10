@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
     }
 
     auto single_batch = mtx_type::create(exec);
-    single_batch->read(data);
+    single_batch->read_band_matrix(data);
     auto single_batch_csr = batch_csr::create(exec);
     single_batch_csr->read(data);
 

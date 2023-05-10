@@ -259,31 +259,91 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 
 
 template <typename ValueType>
-void BatchBand<ValueType>::read(const std::vector<mat_data>& data)
+void BatchBand<ValueType>::read_band_matrix(const std::vector<mat_data>& data)
 {
     read_impl(this, data);
 }
 
 template <typename ValueType>
-void BatchBand<ValueType>::read(const std::vector<mat_data32>& data)
+void BatchBand<ValueType>::read_band_matrix(const std::vector<mat_data32>& data)
 {
     read_impl(this, data);
 }
 
 template <typename ValueType>
-void BatchBand<ValueType>::read(const std::vector<mat_data>& data,
-                                const batch_stride& KLs,
-                                const batch_stride& KUs)
+void BatchBand<ValueType>::read_band_matrix(const std::vector<mat_data>& data,
+                                            const batch_stride& KLs,
+                                            const batch_stride& KUs)
 {
     read_impl(this, data, KLs, KUs);
 }
 
 template <typename ValueType>
-void BatchBand<ValueType>::read(const std::vector<mat_data32>& data,
-                                const batch_stride& KLs,
-                                const batch_stride& KUs)
+void BatchBand<ValueType>::read_band_matrix(const std::vector<mat_data32>& data,
+                                            const batch_stride& KLs,
+                                            const batch_stride& KUs)
 {
     read_impl(this, data, KLs, KUs);
+}
+
+namespace {
+
+template <typename MatrixAssemblyData>
+using MatrixData = matrix_data<typename MatrixAssemblyData::value_type,
+                               typename MatrixAssemblyData::index_type>;
+
+template <typename MatrixAssemblyData>
+std::vector<MatrixData<MatrixAssemblyData>> get_matrix_data_from_assembly_data(
+    const std::vector<MatrixAssemblyData>& assembly_data)
+{
+    using matrix_data_type = MatrixData<MatrixAssemblyData>;
+    auto mat_data = std::vector<matrix_data_type>(assembly_data.size());
+    size_type ind = 0;
+    for (const auto& i : assembly_data) {
+        mat_data[ind] = i.get_ordered_data();
+        ++ind;
+    }
+    return mat_data;
+}
+
+}  // namespace
+
+template <typename ValueType>
+void BatchBand<ValueType>::read_band_matrix(
+    const std::vector<matrix_assembly_data<ValueType, gko::int32>>&
+        assembly_data)
+{
+    auto mat_data = get_matrix_data_from_assembly_data(assembly_data);
+    this->read_band_matrix(mat_data);
+}
+
+template <typename ValueType>
+void BatchBand<ValueType>::read_band_matrix(
+    const std::vector<matrix_assembly_data<ValueType, gko::int64>>&
+        assembly_data)
+{
+    auto mat_data = get_matrix_data_from_assembly_data(assembly_data);
+    this->read_band_matrix(mat_data);
+}
+
+template <typename ValueType>
+void BatchBand<ValueType>::read_band_matrix(
+    const std::vector<matrix_assembly_data<ValueType, gko::int32>>&
+        assembly_data,
+    const batch_stride& KLs, const batch_stride& KUs)
+{
+    auto mat_data = get_matrix_data_from_assembly_data(assembly_data);
+    this->read_band_matrix(mat_data);
+}
+
+template <typename ValueType>
+void BatchBand<ValueType>::read_band_matrix(
+    const std::vector<matrix_assembly_data<ValueType, gko::int64>>&
+        assembly_data,
+    const batch_stride& KLs, const batch_stride& KUs)
+{
+    auto mat_data = get_matrix_data_from_assembly_data(assembly_data);
+    this->read_band_matrix(mat_data);
 }
 
 namespace {

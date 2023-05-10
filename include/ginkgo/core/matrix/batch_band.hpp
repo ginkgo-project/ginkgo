@@ -125,8 +125,6 @@ class BatchBand : public EnableBatchLinOp<BatchBand<ValueType>>,
                   public ConvertibleTo<BatchCsr<ValueType, int32>>,
                   public ConvertibleTo<BatchDense<ValueType>>,
                   public ConvertibleTo<BatchTridiagonal<ValueType>>,
-                  public BatchReadableFromMatrixData<ValueType, int32>,
-                  public BatchReadableFromMatrixData<ValueType, int64>,
                   public BatchWritableToMatrixData<ValueType, int32>,
                   public BatchWritableToMatrixData<ValueType, int64>,
                   public BatchTransposable,
@@ -138,8 +136,6 @@ class BatchBand : public EnableBatchLinOp<BatchBand<ValueType>>,
 public:
     using EnableBatchLinOp<BatchBand>::convert_to;
     using EnableBatchLinOp<BatchBand>::move_to;
-    using BatchReadableFromMatrixData<ValueType, int32>::read;
-    using BatchReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -186,15 +182,33 @@ public:
 
     void move_to(BatchTridiagonal<ValueType>* result) override;
 
-    void read(const std::vector<mat_data>& data) override;
+    void read_band_matrix(const std::vector<mat_data>& data,
+                          const batch_stride& KLs, const batch_stride& KUs);
 
-    void read(const std::vector<mat_data32>& data) override;
+    void read_band_matrix(const std::vector<mat_data32>& data,
+                          const batch_stride& KLs, const batch_stride& KUs);
 
-    void read(const std::vector<mat_data>& data, const batch_stride& KLs,
-              const batch_stride& KUs);
+    void read_band_matrix(const std::vector<mat_data>& data);
 
-    void read(const std::vector<mat_data32>& data, const batch_stride& KLs,
-              const batch_stride& KUs);
+    void read_band_matrix(const std::vector<mat_data32>& data);
+
+    void read_band_matrix(
+        const std::vector<matrix_assembly_data<ValueType, gko::int32>>&
+            assembly_data);
+
+    void read_band_matrix(
+        const std::vector<matrix_assembly_data<ValueType, gko::int64>>&
+            assembly_data);
+
+    void read_band_matrix(
+        const std::vector<matrix_assembly_data<ValueType, gko::int32>>&
+            assembly_data,
+        const batch_stride& KLs, const batch_stride& KUs);
+
+    void read_band_matrix(
+        const std::vector<matrix_assembly_data<ValueType, gko::int64>>&
+            assembly_data,
+        const batch_stride& KLs, const batch_stride& KUs);
 
     void write(std::vector<mat_data>& data) const override;
 

@@ -592,7 +592,7 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixData)
     */
 
     // clang-format off
-    m->read({gko::matrix_data<value_type>{{4, 4},
+    m->read_band_matrix({gko::matrix_data<value_type>{{4, 4},
                                          {{0, 0, 2.0},
                                           {0, 1, 4.0},
                                           {1, 0, 3.0},
@@ -691,7 +691,7 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixAssemblyData)
     data2.set_value(2, 2, 8.0);
 
     auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
-    m->read(data);
+    m->read_band_matrix(data);
 
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
@@ -751,7 +751,7 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixDataWhenKLAndKUAreGivenByTheUser)
     */
 
     // clang-format off
-    m->read({gko::matrix_data<value_type>{{4, 4},
+    m->read_band_matrix({gko::matrix_data<value_type>{{4, 4},
                                          {{0, 0, 2.0},
                                           {0, 1, 4.0},
                                           {1, 0, 3.0},
@@ -772,6 +772,89 @@ TYPED_TEST(BatchBand, CanBeReadFromMatrixDataWhenKLAndKUAreGivenByTheUser)
                                           gko::batch_stride(std::vector<gko::size_type>{2, 1}), 
                                           gko::batch_stride(std::vector<gko::size_type>{2, 1}));
     // clang-format on
+
+    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
+    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
+
+    ASSERT_EQ(m->get_num_subdiagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+    ASSERT_EQ(m->get_num_superdiagonals(),
+              gko::batch_stride(std::vector<gko::size_type>{2, 1}));
+
+    ASSERT_EQ(m->get_num_stored_elements(), 40);
+    ASSERT_EQ(m->get_num_stored_elements(0), 28);
+    ASSERT_EQ(m->get_num_stored_elements(1), 12);
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 0), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 1), value_type{6.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 1), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 0, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 2), value_type{1.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 2), value_type{9.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 2), value_type{5.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 1, 3), value_type{8.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 2, 3), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(0, 3, 3), value_type{6.0});
+
+
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 0), value_type{4.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 0), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 1), value_type{7.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 1), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at_in_reference_to_dense_layout(1, 2, 2), value_type{8.0});
+}
+
+TYPED_TEST(BatchBand,
+           CanBeReadFromMatrixAssemblyDataWhenKLAndKUAreGivenByTheUser)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchBand<value_type>::create(this->exec);
+
+    /*
+
+        first matrix:
+        2  4  0  0
+        3  6  1  8
+        0  0  9  7
+        0  4  5  6
+
+        second matrix:
+        4  3  0
+        3  7  0
+        0  0  8
+
+    */
+
+    gko::matrix_assembly_data<value_type> data1(gko::dim<2>{4, 4});
+    data1.set_value(0, 0, 2.0);
+    data1.set_value(0, 1, 4.0);
+    data1.set_value(1, 0, 3.0);
+    data1.set_value(1, 1, 6.0);
+    data1.set_value(1, 2, 1.0);
+    data1.set_value(1, 3, 8.0);
+    data1.set_value(2, 2, 9.0);
+    data1.set_value(2, 3, 7.0);
+    data1.set_value(3, 1, 4.0);
+    data1.set_value(3, 2, 5.0);
+    data1.set_value(3, 3, 6.0);
+
+    gko::matrix_assembly_data<value_type> data2(gko::dim<2>{3, 3});
+    data2.set_value(0, 0, 4.0);
+    data2.set_value(0, 1, 3.0);
+    data2.set_value(1, 0, 3.0);
+    data2.set_value(1, 1, 7.0);
+    data2.set_value(2, 2, 8.0);
+
+    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
+    m->read_band_matrix(data,
+                        gko::batch_stride(std::vector<gko::size_type>{2, 1}),
+                        gko::batch_stride(std::vector<gko::size_type>{2, 1}));
 
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(4, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 3));
