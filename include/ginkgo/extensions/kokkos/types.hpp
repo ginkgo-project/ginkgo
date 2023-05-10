@@ -162,21 +162,23 @@ struct native_type<gko::device_matrix_data<ValueType, IndexType>, MemorySpace> {
 
 }  // namespace detail
 
+template <typename T, typename MemorySpace>
+using native_type = typename detail::native_type<T, MemorySpace>::type;
+
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-decltype(auto) map_data(T* data, MemorySpace ms = {})
+native_type<T, MemorySpace> map_data(T* data, MemorySpace ms = {})
 {
-    return typename detail::native_type<T, MemorySpace>::type{*data};
+    return {*data};
 }
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-decltype(auto) map_data(T&& data, MemorySpace ms = {})
+native_type<std::remove_reference_t<T>, MemorySpace> map_data(
+    T&& data, MemorySpace ms = {})
 {
-    return
-        typename detail::native_type<std::remove_reference_t<T>,
-                                     MemorySpace>::type{std::forward<T>(data)};
+    return {std::forward<T>(data)};
 }
 
 
