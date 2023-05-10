@@ -328,15 +328,6 @@ void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
     this->set_size(batch_dim<2>());
 }
 
-template <typename ValueType>
-void BatchDense<ValueType>::convert_to(BatchBand<ValueType>* const result) const
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::move_to(BatchBand<ValueType>* const result)
-    GKO_NOT_IMPLEMENTED;
-
 
 namespace {
 

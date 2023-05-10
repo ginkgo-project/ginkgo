@@ -172,13 +172,6 @@ void BatchEll<ValueType, IndexType>::move_to(
     this->convert_to(result);
 }
 
-template <typename ValueType, typename IndexType>
-void BatchEll<ValueType, IndexType>::convert_to(
-    BatchBand<ValueType>* const result) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename IndexType>
-void BatchEll<ValueType, IndexType>::move_to(BatchBand<ValueType>* const result)
-    GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 void BatchEll<ValueType, IndexType>::read(const std::vector<mat_data>& data)

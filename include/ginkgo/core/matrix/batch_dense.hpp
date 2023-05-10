@@ -58,9 +58,6 @@ class BatchDiagonal;
 template <typename ValueType, typename IndexType>
 class BatchCsr;
 
-template <typename ValueType>
-class BatchBand;
-
 /**
  * BatchDense is a batch matrix format which explicitly stores all values of the
  * matrix in each of the batches.
@@ -81,7 +78,6 @@ template <typename ValueType = default_precision>
 class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
                    public EnableCreateMethod<BatchDense<ValueType>>,
                    public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
-                   public ConvertibleTo<BatchBand<ValueType>>,
                    public ConvertibleTo<BatchCsr<ValueType, int32>>,
                    public ConvertibleTo<BatchDiagonal<ValueType>>,
                    public BatchReadableFromMatrixData<ValueType, int32>,
@@ -141,10 +137,6 @@ public:
     void convert_to(BatchDiagonal<ValueType>* result) const override;
 
     void move_to(BatchDiagonal<ValueType>* result) override;
-
-    void convert_to(BatchBand<ValueType>* result) const override;
-
-    void move_to(BatchBand<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
