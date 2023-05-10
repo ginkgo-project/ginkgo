@@ -50,11 +50,13 @@ namespace batch_band_solver {
 
 namespace {
 
+template <typename ValueType>
 __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
                                                  const int KU)
 {
     const int band_nrows = 2 * KL + KU + 1;
-    if (band_nrows * N <= 2500) {
+    const size_type storage_in_bytes = band_nrows * N * sizeof(ValueType);
+    if (storage_in_bytes <= 20000) {
         return true;
     } else {
         return false;
@@ -140,7 +142,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     // }
 
     int shared_size = 0;
-    if (is_matrix_in_shared_mem(
+    if (is_matrix_in_shared_mem<ValueType>(
             nrows, KL, KU)) {  // TODO: Avoid extra workspace copy in this case
         shared_size +=
             (band_mat->get_num_stored_elements() / nbatch) * sizeof(ValueType);

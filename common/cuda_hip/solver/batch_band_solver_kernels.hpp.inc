@@ -1084,7 +1084,7 @@ __global__ void band_solver_unblocked_kernel(const size_type nbatch,
             gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
 
         ValueType* __restrict__ AB_array_entry;
-        if (is_matrix_in_shared_mem(N, KL, KU)) {
+        if (is_matrix_in_shared_mem<ValueType>(N, KL, KU)) {
             AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
             single_copy(N * AB_nrows,
                         batch_band_array + batch_idx * (N * AB_nrows),
@@ -1149,7 +1149,7 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
         //     batch_band_array + batch_idx * (N * AB_nrows);
 
         ValueType* __restrict__ AB_array_entry;
-        if (is_matrix_in_shared_mem(N, KL, KU)) {
+        if (is_matrix_in_shared_mem<ValueType>(N, KL, KU)) {
             AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
             single_copy(N * AB_nrows,
                         batch_band_array + batch_idx * (N * AB_nrows),
