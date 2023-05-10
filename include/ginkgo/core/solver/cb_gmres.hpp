@@ -153,8 +153,11 @@ public:
         return parameters_.storage_precision;
     }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    class Factory;
+
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {
         /**
          * Determines which storage type is used.
          */
@@ -162,29 +165,11 @@ public:
             storage_precision, cb_gmres::storage_precision::reduce1);
 
         /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
-
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-
-        /**
          * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
     };
+
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 

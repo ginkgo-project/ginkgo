@@ -35,11 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
@@ -856,6 +858,153 @@ private:
                 system_matrix->get_executor(), system_matrix->get_size());
         }
     }
+};
+
+
+struct iterative_solver_factory_parameters {
+    /**
+     * Stopping criteria to be used by the solver.
+     */
+    std::vector<std::shared_ptr<const stop::CriterionFactory>> criteria{};
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_iterative_solver_factory_parameters
+    : enable_parameters_type<Parameters, Factory>,
+      iterative_solver_factory_parameters {
+    /**
+     * Provides stopping criteria via stop::CriterionFactory instances to be
+     * used by the iterative solver in a fluent interface.
+     */
+    template <typename... Args>
+    Parameters& with_criteria(Args... value)
+    {
+        this->criterion_generators = {build_generator(std::move(value))...};
+        return *self();
+    }
+
+    /**
+     * @copydoc enable_solver_factory_parameters<Parameters, Factory>::on
+     *
+     * @note This variant instantiates stopping criteria that were provided
+     *       without calling `.on(exec)` before generating the factory.
+     */
+    std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+    {
+        auto copy = *self();
+        copy.criteria.clear();
+        for (auto& generator : criterion_generators) {
+            copy.criteria.push_back(generator(exec));
+        }
+        auto factory =
+            copy.enable_parameters_type<Parameters, Factory>::on(exec);
+        return factory;
+    }
+
+private:
+    GKO_ENABLE_SELF(Parameters);
+
+    std::function<std::shared_ptr<const stop::CriterionFactory>(
+        std::shared_ptr<const Executor>)>
+    build_generator(std::shared_ptr<const stop::CriterionFactory> criterion)
+    {
+        return
+            [criterion](std::shared_ptr<const Executor>) { return criterion; };
+    }
+
+    template <typename CriterionParameters,
+              typename = decltype(std::declval<CriterionParameters>().on(
+                  std::shared_ptr<const Executor>{}))>
+    std::function<std::shared_ptr<const stop::CriterionFactory>(
+        std::shared_ptr<const Executor>)>
+    build_generator(CriterionParameters criterion_parameters)
+    {
+        return [criterion_parameters](std::shared_ptr<const Executor> exec) {
+            return criterion_parameters.on(exec);
+        };
+    }
+
+    std::vector<std::function<std::shared_ptr<const stop::CriterionFactory>(
+        std::shared_ptr<const Executor>)>>
+        criterion_generators;
+};
+
+
+struct preconditioned_iterative_solver_factory_parameters {
+    /**
+     * The preconditioner to be used by the iterative solver. By default, no
+     * preconditioner is used.
+     */
+    std::shared_ptr<const LinOpFactory> preconditioner{nullptr};
+
+    /**
+     * Already generated preconditioner. If one is provided, the factory
+     * `preconditioner` will be ignored.
+     */
+    std::shared_ptr<const LinOp> generated_preconditioner{nullptr};
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_preconditioned_iterative_solver_factory_parameters
+    : enable_iterative_solver_factory_parameters<Parameters, Factory>,
+      preconditioned_iterative_solver_factory_parameters {
+    /**
+     *
+     */
+    Parameters& with_preconditioner(
+        std::shared_ptr<const LinOpFactory> preconditioner)
+    {
+        this->preconditioner_generator =
+            [preconditioner](std::shared_ptr<const Executor>)
+            -> std::shared_ptr<const LinOpFactory> { return preconditioner; };
+        return *self();
+    }
+
+    template <typename PreconditionerParameters,
+              typename = decltype(std::declval<PreconditionerParameters>().on(
+                  std::shared_ptr<const Executor>{}))>
+    Parameters& with_preconditioner(
+        PreconditionerParameters preconditioner_parameters)
+    {
+        this->preconditioner_generator =
+            [preconditioner_parameters](std::shared_ptr<const Executor> exec)
+            -> std::shared_ptr<const LinOpFactory> {
+            return preconditioner_parameters.on(exec);
+        };
+        return *self();
+    }
+
+    /**
+     *
+     */
+    Parameters& with_generated_preconditioner(
+        std::shared_ptr<const LinOp> generated_preconditioner)
+    {
+        this->generated_preconditioner = std::move(generated_preconditioner);
+        return *self();
+    }
+
+    /**
+     *
+     */
+    std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+    {
+        auto parameters_copy = *self();
+        if (preconditioner_generator) {
+            parameters_copy.preconditioner = preconditioner_generator(exec);
+        }
+        return parameters_copy.enable_iterative_solver_factory_parameters<
+            Parameters, Factory>::on(exec);
+    }
+
+private:
+    GKO_ENABLE_SELF(Parameters);
+
+    std::function<std::shared_ptr<const LinOpFactory>(
+        std::shared_ptr<const Executor>)>
+        preconditioner_generator;
 };
 
 

@@ -215,14 +215,12 @@ public:
      */
     void set_cycle(multigrid::cycle cycle) { parameters_.cycle = cycle; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
+    class Factory;
+
+    struct parameters_type
+        : public enable_iterative_solver_factory_parameters<parameters_type,
+                                                            Factory> {
         /**
          * MultigridLevel Factory list
          */
