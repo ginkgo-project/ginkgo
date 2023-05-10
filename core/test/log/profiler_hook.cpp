@@ -202,8 +202,7 @@ TEST(ProfilerHook, LogsIteration)
     auto alpha = gko::share(gko::initialize<Vec>({1.0}, exec));
     auto solver =
         gko::solver::Ir<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec)
             ->generate(mtx);
     logger->set_object_name(solver, "solver");

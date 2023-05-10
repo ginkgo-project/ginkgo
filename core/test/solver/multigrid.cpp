@@ -153,11 +153,10 @@ protected:
         multigrid_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                    gko::stop::Iteration::build().with_max_iters(3u),
                     gko::stop::ResidualNorm<value_type>::build()
                         .with_baseline(gko::stop::mode::initial_resnorm)
-                        .with_reduction_factor(gko::remove_complex<T>{1e-6})
-                        .on(exec))
+                        .with_reduction_factor(gko::remove_complex<T>{1e-6}))
                 .with_max_levels(2u)
                 .with_coarsest_solver(lo_factory)
                 .with_pre_smoother(lo_factory)
@@ -427,28 +426,25 @@ TYPED_TEST(Multigrid, ThrowWhenNullMgLevel)
 TYPED_TEST(Multigrid, ThrowWhenMgLevelContainsNullptr)
 {
     using Solver = typename TestFixture::Solver;
-    auto factory = Solver::build()
-                       .with_max_levels(1u)
-                       .with_min_coarse_rows(2u)
-                       .with_criteria(this->criterion)
-                       .with_mg_level(this->rp_factory, nullptr)
-                       .on(this->exec);
+    auto factory_parameters = Solver::build()
+                                  .with_max_levels(1u)
+                                  .with_min_coarse_rows(2u)
+                                  .with_criteria(this->criterion)
+                                  .with_mg_level(this->rp_factory, nullptr);
 
-    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+    ASSERT_THROW(factory_parameters.on(this->exec), gko::NotSupported);
 }
 
 
 TYPED_TEST(Multigrid, ThrowWhenEmptyMgLevelList)
 {
     using Solver = typename TestFixture::Solver;
-    auto factory =
-        Solver::build()
-            .with_max_levels(1u)
-            .with_min_coarse_rows(2u)
-            .with_mg_level(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .with_criteria(this->criterion)
-            .on(this->exec);
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_min_coarse_rows(2u)
+                       .with_mg_level()
+                       .with_criteria(this->criterion)
+                       .on(this->exec);
 
     ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
 }

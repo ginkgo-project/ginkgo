@@ -76,13 +76,11 @@ protected:
           gmres_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(4u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .with_krylov_dim(3u)
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -96,20 +94,16 @@ protected:
           gmres_factory_big(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           gmres_factory_big2(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},

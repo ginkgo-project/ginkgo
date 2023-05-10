@@ -606,8 +606,7 @@ TYPED_TEST(Stream, CatchesLinopFactoryGenerateStarted)
         gko::log::Logger::linop_factory_generate_started_mask, out);
     auto factory =
         gko::solver::Bicgstab<TypeParam>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto input = factory->generate(gko::matrix::Dense<TypeParam>::create(exec));
     std::stringstream ptrstream_factory;
@@ -633,8 +632,7 @@ TYPED_TEST(Stream, CatchesLinopFactoryGenerateCompleted)
         gko::log::Logger::linop_factory_generate_completed_mask, out);
     auto factory =
         gko::solver::Bicgstab<TypeParam>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto input = factory->generate(gko::matrix::Dense<TypeParam>::create(exec));
     auto output =
@@ -815,8 +813,7 @@ TYPED_TEST(Stream, CatchesIterationsWithVerbose)
 
     auto factory =
         gko::solver::Bicgstab<TypeParam>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);

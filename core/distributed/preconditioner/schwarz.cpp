@@ -102,8 +102,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
-    if (parameters_.local_solver_factory) {
-        this->local_solver_ = parameters_.local_solver_factory->generate(
+    if (parameters_.local_solver) {
+        this->local_solver_ = parameters_.local_solver->generate(
             as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                  GlobalIndexType>>(
                 system_matrix)
