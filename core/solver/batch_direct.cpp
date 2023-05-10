@@ -109,72 +109,20 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
-    if (!acsr) {
-        GKO_NOT_SUPPORTED(system_matrix_);
-    }
-
-    const size_type num_rhs = dense_b->get_size().at(0)[1];
-    const size_type num_batches = dense_b->get_num_batch_entries();
-    const int num_rows = acsr->get_size().at()[0];
-
     const bool to_scale =
         parameters_.left_scaling_op && parameters_.right_scaling_op;
-    std::shared_ptr<BDense> adense = BDense::create(
-        exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
-    std::shared_ptr<BDense> bt = BDense::create(
-        exec, batch_dim<>(num_batches, dim<2>(num_rhs, num_rows)));
-
-    // delete the scaled CSR copy at the end
-    {
-        // Both of these branches work, but the else branch might be
-        //  faster in general.
-#if 0
-        auto b_scaled = Vector::create(exec);
-        b_scaled->copy_from(dense_b);
-        auto a_scaled_smart = Mtx::create(exec);
-        const Mtx *a_scaled{};
-        if (to_scale) {
-            a_scaled_smart->copy_from(acsr);
-            exec->run(batch_direct::make_pre_diag_scale_system(
-                as<BDiag>(parameters_.left_scaling_op.get()),
-                as<BDiag>(parameters_.right_scaling_op.get()), a_scaled_smart.get(),
-                b_scaled.get()));
-            a_scaled = a_scaled_smart.get();
-        } else {
-            a_scaled = acsr;
-        }
-
-        adense = convert_and_transpose(exec, a_scaled);
-        bt = std::dynamic_pointer_cast<BDense>(
-            gko::share(b_scaled->transpose()));
-#else
-        auto a1 = BDense::create(exec);
-        acsr->convert_to(a1.get());
-        if (to_scale) {
-            exec->run(batch_direct::make_pre_diag_scale_system_transpose(
-                a1.get(), dense_b, as<BDiag>(parameters_.left_scaling_op.get()),
-                as<BDiag>(parameters_.right_scaling_op.get()), adense.get(),
-                bt.get()));
-        } else {
-            gko::as<BDense>(a1->transpose())->move_to(adense.get());
-            gko::as<BDense>(dense_b->transpose())->move_to(bt.get());
-        }
-#endif
-    }
+    GKO_ASSERT(to_scale == false);
 
     log::BatchLogData<ValueType> logdata;  //< Useless
 
-    exec->run(batch_direct::make_apply(adense.get(), bt.get(), logdata));
+    auto bt =
+        std::dynamic_pointer_cast<BDense>(gko::share(dense_b->transpose()));
 
-    if (to_scale) {
-        exec->run(batch_direct::make_transpose_scale_copy(
-            as<BDiag>(parameters_.right_scaling_op.get()), bt.get(), dense_x));
-    } else {
-        auto btt =
-            std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
-        dense_x->copy_from(btt.get());
-    }
+    exec->run(batch_direct::make_apply(this->dense_system_matrix_.get(),
+                                       bt.get(), logdata));
+
+    auto btt = std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
+    dense_x->copy_from(btt.get());
 }
 
 

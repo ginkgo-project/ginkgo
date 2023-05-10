@@ -125,11 +125,36 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        auto exec = factory->get_executor();
+        using Mtx = matrix::BatchCsr<ValueType, int32>;
+        using BDense = matrix::BatchDense<ValueType>;
+        using BDiag = matrix::BatchDiagonal<ValueType>;
+        using Vector = matrix::BatchDense<ValueType>;
+        using real_type = remove_complex<ValueType>;
+
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
+        const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
+        if (!acsr) {
+            GKO_NOT_SUPPORTED(system_matrix_);
+        }
+
+        const size_type num_batches = acsr->get_num_batch_entries();
+        const int num_rows = acsr->get_size().at()[0];
+
+        const bool to_scale =
+            parameters_.left_scaling_op && parameters_.right_scaling_op;
+        GKO_ASSERT(to_scale == false);
+        dense_system_matrix_ = gko::share(BDense::create(
+            exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows))));
+        std::shared_ptr<BDense> a1 = BDense::create(
+            exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
+        acsr->convert_to(a1.get());
+        gko::as<BDense>(a1->transpose())->move_to(dense_system_matrix_.get());
     }
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
+    std::shared_ptr<matrix::BatchDense<ValueType>> dense_system_matrix_{};
 };
 
 
