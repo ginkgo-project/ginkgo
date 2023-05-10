@@ -6,7 +6,7 @@ if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.4.0 REQUIRED)
 endif()
 
-add_executable(batched-band-solver batched-band-solver.cpp)
+add_executable(batched-band-solver batched-band-solver-1.cpp)
 target_link_libraries(batched-band-solver Ginkgo::ginkgo)
 
 foreach(ibatch RANGE 0 1)
