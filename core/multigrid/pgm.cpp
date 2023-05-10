@@ -243,10 +243,14 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
         exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim,
         std::make_shared<
             typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    auto prolong_csr =
+        gko::as<gko::matrix::Csr<ValueType, IndexType>>(prolong_mtx);
     exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_mtx->get_col_idxs());
+                    prolong_csr->get_col_idxs());
     exec->run(
-        pgm::make_fill_seq_array(prolong_mtx->get_row_ptrs(), fine_dim + 1));
+        pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(), fine_dim + 1));
+    exec->run(pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
+                                   one<ValueType>()));
 #endif
     auto scalar_val = parameters_.scalar;
     auto restrict_sparsity =
