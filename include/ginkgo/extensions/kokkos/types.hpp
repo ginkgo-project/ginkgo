@@ -40,97 +40,105 @@ struct native_type<std::complex<T>, MemorySpace> {
     using type = Kokkos::complex<T>;
 };
 
+template <typename T, typename MemorySpace>
+struct native_type<const std::complex<T>, MemorySpace> {
+    using type = const Kokkos::complex<T>;
+};
+
+
+template <typename ValueType, typename MemorySpace>
+struct array {
+    array(ValueType* data, size_type size) : view(data, size) {}
+
+    template <typename T,
+              std::enable_if_t<!std::is_const_v<ValueType> &&
+                                   std::is_same_v<const T, ValueType>,
+                               bool> = true>
+    array(gko::array<T>& arr) : view(arr.get_data(), arr.get_num_elems())
+    {
+        ensure_compatibility(arr, MemorySpace{});
+    }
+
+    template <typename T,
+              std::enable_if_t<std::is_const_v<ValueType> &&
+                                   std::is_same_v<const T, ValueType>,
+                               bool> = true>
+    array(const gko::array<T>& arr)
+        : view(arr.get_const_data(), arr.get_num_elems())
+    {
+        ensure_compatibility(arr, MemorySpace{});
+    }
+
+    template <typename I>
+    KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I& i) const
+    {
+        return view(i);
+    }
+
+    Kokkos::View<typename native_type<ValueType, MemorySpace>::type*,
+                 MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        view;
+};
+
 
 template <typename ValueType, typename MemorySpace>
 struct native_type<gko::array<ValueType>, MemorySpace> {
-    struct type {
-        type(gko::array<ValueType>& arr)
-            : view(arr.get_data(), arr.get_num_elems())
-        {}
-
-        type(ValueType* data, gko::size_type num_elements)
-            : view(data, num_elements)
-        {}
-
-        template <typename I>
-        KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I& i) const
-        {
-            return view(i);
-        }
-
-        Kokkos::View<typename native_type<ValueType, MemorySpace>::type*,
-                     MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            view;
-    };
+    using type = array<ValueType, MemorySpace>;
 };
 
 
 template <typename ValueType, typename MemorySpace>
 struct native_type<const gko::array<ValueType>, MemorySpace> {
-    struct type {
-        type(const gko::array<ValueType>& arr)
-            : view(arr.get_const_data(), arr.get_num_elems())
-        {}
-
-        type(const ValueType* data, gko::size_type num_elements)
-            : view(data, num_elements)
-        {}
-
-        template <typename I>
-        KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I& i) const
-        {
-            return view(i);
-        }
-
-        Kokkos::View<const typename native_type<ValueType, MemorySpace>::type*,
-                     MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            view;
-    };
+    using type = array<const ValueType, MemorySpace>;
 };
 
+
+template <typename ValueType, typename MemorySpace>
+struct dense {
+    template <typename T, std::enable_if_t<!std::is_const_v<ValueType> &&
+                                               std::is_same_v<T, ValueType>,
+                                           bool> = true>
+    dense(gko::matrix::Dense<T>& mtx)
+        : values(mtx.get_values(),
+                 Kokkos::LayoutStride{mtx.get_size()[0], 1, mtx.get_size()[1],
+                                      mtx.get_stride()})
+    {
+        ensure_compatibility(mtx, MemorySpace{});
+    }
+
+    template <typename T,
+              std::enable_if_t<std::is_const_v<ValueType> &&
+                                   std::is_same_v<const T, ValueType>,
+                               bool> = true>
+    dense(const gko::matrix::Dense<T>& mtx)
+        : values(mtx.get_const_values(),
+                 Kokkos::LayoutStride{mtx.get_size()[0], 1, mtx.get_size()[1],
+                                      mtx.get_stride()})
+    {
+        ensure_compatibility(mtx, MemorySpace{});
+    }
+
+    template <typename I1, typename I2>
+    KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I1& i1,
+                                                     const I2& i2) const
+    {
+        return values(i1, i2);
+    }
+
+    Kokkos::View<typename native_type<ValueType, MemorySpace>::type**,
+                 Kokkos::LayoutStride, MemorySpace,
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        values;
+};
 
 template <typename ValueType, typename MemorySpace>
 struct native_type<gko::matrix::Dense<ValueType>, MemorySpace> {
-    struct type {
-        type(gko::matrix::Dense<ValueType>& mtx)
-            : values(mtx.get_values(), mtx.get_size()[0], mtx.get_size()[1])
-        {}
-
-        template <typename I1, typename I2>
-        KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I1& i1,
-                                                         const I2& i2) const
-        {
-            return values(i1, i2);
-        }
-
-        Kokkos::View<typename native_type<ValueType, MemorySpace>::type**,
-                     Kokkos::LayoutRight, MemorySpace,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            values;
-    };
+    using type = dense<ValueType, MemorySpace>;
 };
-
 
 template <typename ValueType, typename MemorySpace>
 struct native_type<const gko::matrix::Dense<ValueType>, MemorySpace> {
-    struct type {
-        type(const gko::matrix::Dense<ValueType>& mtx)
-            : values(mtx.get_const_values(), mtx.get_size()[0],
-                     mtx.get_size()[1])
-        {}
-
-        template <typename I1, typename I2>
-        KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I1& i1,
-                                                         const I2& i2) const
-        {
-            return values(i1, i2);
-        }
-
-        Kokkos::View<const typename native_type<ValueType, MemorySpace>::type**,
-                     Kokkos::LayoutRight, MemorySpace,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            values;
-    };
+    using type = dense<const ValueType, MemorySpace>;
 };
 
 
@@ -141,7 +149,9 @@ struct native_type<gko::device_matrix_data<ValueType, IndexType>, MemorySpace> {
             : row_idxs(md.get_row_idxs(), md.get_num_elems()),
               col_idxs(md.get_col_idxs(), md.get_num_elems()),
               values(md.get_values(), md.get_num_elems())
-        {}
+        {
+            ensure_compatibility(md, MemorySpace{});
+        }
 
         typename native_type<gko::array<IndexType>, MemorySpace>::type row_idxs;
         typename native_type<gko::array<IndexType>, MemorySpace>::type col_idxs;
@@ -157,26 +167,16 @@ template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
 decltype(auto) map_data(T* data, MemorySpace ms = {})
 {
-    if constexpr (has_executor_v<T>) {
-        //        ensure_compatibility(data, ms);
-        return typename detail::native_type<T, MemorySpace>::type{*data};
-    } else {
-        return data;
-    }
+    return typename detail::native_type<T, MemorySpace>::type{*data};
 }
-
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
 decltype(auto) map_data(T&& data, MemorySpace ms = {})
 {
-    if constexpr (has_executor_v<T>) {
-        //        ensure_compatibility(data, ms);
-        return typename detail::native_type<T, MemorySpace>::type{
-            std::forward<T>(data)};
-    } else {
-        return std::forward<T>(data);
-    }
+    return
+        typename detail::native_type<std::remove_reference_t<T>,
+                                     MemorySpace>::type{std::forward<T>(data)};
 }
 
 
