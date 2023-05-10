@@ -112,7 +112,7 @@ using classical_kernels =
 using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
-
+namespace kernel {
 template <size_type subwarp_size, typename AccessType, typename input_accessor,
           typename output_accessor, typename IndexType, typename Closure>
 __device__ void device_classical_spmv(
@@ -152,7 +152,7 @@ __device__ void device_classical_spmv(
         }
     }
 }
-
+}  // namespace kernel
 
 #include "common/cuda_hip/matrix/csr_common.hpp.inc"
 #include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
