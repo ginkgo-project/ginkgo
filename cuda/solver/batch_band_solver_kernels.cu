@@ -161,13 +161,20 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 grid(nbatch);
 
         if (is_matrix_in_shared_mem(nrows, KL, KU)) {
+            std::cout << "Unblocked shared mem version executed: " << std::endl;
             temp::kernel_gbsv_shared_batched<<<grid, block, shared_size>>>(
                 nbatch, nrows, KL, KU, as_cuda_type(band_arr),
                 as_cuda_type(b->get_const_values()),
                 as_cuda_type(x->get_values()));
         } else {
-            band_solver_unblocked_kernel<config::warp_size>
-                <<<grid, block, shared_size>>>(
+            // exp_perf::band_solver_unblocked_kernel<config::warp_size>
+            //     <<<grid, block, shared_size>>>(
+            //         nbatch, nrows, KL, KU, as_cuda_type(band_arr),
+            //         as_cuda_type(b->get_const_values()),
+            //         as_cuda_type(x->get_values()));
+
+            exp_perf::
+                band_solver_unblocked_kernel<<<grid, block, shared_size>>>(
                     nbatch, nrows, KL, KU, as_cuda_type(band_arr),
                     as_cuda_type(b->get_const_values()),
                     as_cuda_type(x->get_values()));
