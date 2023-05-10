@@ -224,20 +224,7 @@ typename native_execution_space<ExecType>::type create_execution_space(
 }
 
 
-template <typename T, typename = void>
-struct [[deprecated]] has_executor : std::false_type {};
-
-template <typename T>
-struct [[deprecated]] has_executor<
-    T, std::void_t<decltype(std::declval<T>().get_executor())>>
-    : std::true_type {};
-
-template <typename T>
-constexpr bool has_executor_v = has_executor<T>::value;
-
-
-template <typename MemorySpace, typename T,
-          std::enable_if_t<has_executor_v<T>, bool> = true>
+template <typename MemorySpace, typename T>
 void ensure_compatibility(T&& obj, MemorySpace space)
 {
     if (!check_compatibility(space, obj.get_executor().get())) {
@@ -245,11 +232,6 @@ void ensure_compatibility(T&& obj, MemorySpace space)
                          "Executor type and memory space are incompatible");
     }
 }
-
-template <typename MemorySpace, typename T,
-          std::enable_if_t<!has_executor_v<T>, bool> = true>
-void ensure_compatibility(T&&, MemorySpace)
-{}
 
 
 }  // namespace kokkos
