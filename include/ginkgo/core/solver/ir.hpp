@@ -177,26 +177,20 @@ public:
      */
     Ir(Ir&&);
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
 
+    struct parameters_type
+        : enable_iterative_solver_factory_parameters<parameters_type, Factory> {
         /**
          * Inner solver factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            solver, nullptr);
+        std::shared_ptr<const LinOpFactory> solver{};
 
         /**
          * Already generated solver. If one is provided, the factory `solver`
          * will be ignored.
          */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_solver, nullptr);
+        std::shared_ptr<const LinOp> generated_solver{};
 
         /**
          * Relaxation factor for Richardson iteration
@@ -210,6 +204,57 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
+
+        /**
+         *
+         */
+        parameters_type& with_solver(std::shared_ptr<const LinOpFactory> solver)
+        {
+            this->solver_generator = [solver](std::shared_ptr<const Executor>)
+                -> std::shared_ptr<const LinOpFactory> { return solver; };
+            return *this;
+        }
+
+        template <typename SolverParameters,
+                  typename = decltype(std::declval<SolverParameters>().on(
+                      std::shared_ptr<const Executor>{}))>
+        parameters_type& with_solver(SolverParameters solver_parameters)
+        {
+            this->solver_generator =
+                [solver_parameters](std::shared_ptr<const Executor> exec)
+                -> std::shared_ptr<const LinOpFactory> {
+                return solver_parameters.on(exec);
+            };
+            return *this;
+        }
+
+        /**
+         *
+         */
+        parameters_type& with_generated_solver(
+            std::shared_ptr<const LinOp> generated_solver)
+        {
+            this->generated_solver = std::move(generated_solver);
+            return *this;
+        }
+
+        /**
+         *
+         */
+        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+        {
+            auto parameters_copy = *this;
+            if (solver_generator) {
+                parameters_copy.solver = solver_generator(exec);
+            }
+            return parameters_copy.enable_iterative_solver_factory_parameters<
+                parameters_type, Factory>::on(exec);
+        }
+
+    private:
+        std::function<std::shared_ptr<const LinOpFactory>(
+            std::shared_ptr<const Executor>)>
+            solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -319,8 +364,7 @@ auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
     return Ir<ValueType>::build()
         .with_solver(factory)
         .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(iteration))
         .on(exec);
 }
 
@@ -344,8 +388,7 @@ auto build_smoother(std::shared_ptr<const LinOp> solver,
     return Ir<ValueType>::build()
         .with_generated_solver(solver)
         .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(iteration))
         .on(exec);
 }
 

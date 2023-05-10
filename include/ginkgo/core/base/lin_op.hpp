@@ -1119,8 +1119,7 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)                                      \
-        const->const std::decay_t<decltype(*this)>&                          \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
@@ -1170,8 +1169,7 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)                                      \
-        const->const std::decay_t<decltype(*this)>&                          \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
     {                                                                        \
         GKO_NOT_IMPLEMENTED;                                                 \
         return *this;                                                        \
@@ -1184,8 +1182,7 @@ public:                                                                      \
     mutable _name{_default};                                                 \
                                                                              \
     template <typename Arg>                                                  \
-    auto with_##_name(Arg&& _value)                                          \
-        const->const std::decay_t<decltype(*this)>&                          \
+    auto with_##_name(Arg&& _value)->std::decay_t<decltype(*this)>&          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Arg>(_value)};                       \
@@ -1199,8 +1196,7 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)                                      \
-        const->const std::decay_t<decltype(*this)>&                          \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \

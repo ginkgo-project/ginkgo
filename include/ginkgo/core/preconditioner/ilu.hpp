@@ -131,25 +131,150 @@ public:
         Ilu<typename USolverType::transposed_type,
             typename LSolverType::transposed_type, ReverseApply, IndexType>;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    class Factory;
+
+    struct parameters_type
+        : public enable_parameters_type<parameters_type, Factory> {
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<typename l_solver_type::Factory>
-            GKO_FACTORY_PARAMETER_SCALAR(l_solver_factory, nullptr);
+        std::shared_ptr<const typename l_solver_type::Factory>
+            l_solver_factory{};
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<typename u_solver_type::Factory>
-            GKO_FACTORY_PARAMETER_SCALAR(u_solver_factory, nullptr);
+        std::shared_ptr<const typename u_solver_type::Factory>
+            u_solver_factory{};
 
         /**
          * Factory for the factorization
          */
-        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            factorization_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> factorization_factory{};
+
+        [[deprecated("use with_l_solver instead")]] parameters_type&
+        with_l_solver_factory(
+            std::shared_ptr<const typename l_solver_type::Factory> factory)
+        {
+            return with_l_solver(std::move(factory));
+        }
+
+        parameters_type& with_l_solver(
+            std::shared_ptr<const typename l_solver_type::Factory> factory)
+        {
+            this->l_solver_generator =
+                [factory](std::shared_ptr<const Executor>)
+                -> std::shared_ptr<const typename l_solver_type::Factory> {
+                return factory;
+            };
+            return *this;
+        }
+
+        template <typename SolverParameters,
+                  typename = decltype(std::declval<SolverParameters>().on(
+                      std::shared_ptr<const Executor>{}))>
+        parameters_type& with_l_solver(SolverParameters parameters)
+        {
+            this->l_solver_generator =
+                [parameters](std::shared_ptr<const Executor> exec)
+                -> std::shared_ptr<const typename l_solver_type::Factory> {
+                return parameters.on(exec);
+            };
+            return *this;
+        }
+
+        [[deprecated("use with_u_solver instead")]] parameters_type&
+        with_u_solver_factory(
+            std::shared_ptr<const typename u_solver_type::Factory> factory)
+        {
+            return with_u_solver(std::move(factory));
+        }
+
+        parameters_type& with_u_solver(
+            std::shared_ptr<const typename u_solver_type::Factory> factory)
+        {
+            this->u_solver_generator =
+                [factory](std::shared_ptr<const Executor>)
+                -> std::shared_ptr<const typename u_solver_type::Factory> {
+                return factory;
+            };
+            return *this;
+        }
+
+        template <typename SolverParameters,
+                  typename = decltype(std::declval<SolverParameters>().on(
+                      std::shared_ptr<const Executor>{}))>
+        parameters_type& with_u_solver(SolverParameters parameters)
+        {
+            this->u_solver_generator =
+                [parameters](std::shared_ptr<const Executor> exec)
+                -> std::shared_ptr<const typename u_solver_type::Factory> {
+                return parameters.on(exec);
+            };
+            return *this;
+        }
+
+        [[deprecated("use with_factorization instead")]] parameters_type&
+        with_factorization_factory(std::shared_ptr<const LinOpFactory> factory)
+        {
+            return with_factorization(std::move(factory));
+        }
+
+        parameters_type& with_factorization(
+            std::shared_ptr<const LinOpFactory> factory)
+        {
+            this->factorization_generator =
+                [factory](std::shared_ptr<const Executor>)
+                -> std::shared_ptr<const LinOpFactory> { return factory; };
+            return *this;
+        }
+
+        template <
+            typename FactorizationParameters,
+            typename = decltype(std::declval<FactorizationParameters>().on(
+                std::shared_ptr<const Executor>{}))>
+        parameters_type& with_factorization(FactorizationParameters parameters)
+        {
+            this->factorization_generator =
+                [parameters](std::shared_ptr<const Executor> exec)
+                -> std::shared_ptr<const LinOpFactory> {
+                return parameters.on(exec);
+            };
+            return *this;
+        }
+
+        /**
+         *
+         */
+        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+        {
+            auto parameters_copy = *this;
+            if (l_solver_generator) {
+                parameters_copy.l_solver_factory = l_solver_generator(exec);
+            }
+            if (u_solver_generator) {
+                parameters_copy.u_solver_factory = u_solver_generator(exec);
+            }
+            if (factorization_generator) {
+                parameters_copy.factorization_factory =
+                    factorization_generator(exec);
+            }
+            return parameters_copy
+                .enable_parameters_type<parameters_type, Factory>::on(exec);
+        }
+
+    private:
+        std::function<std::shared_ptr<const typename l_solver_type::Factory>(
+            std::shared_ptr<const Executor>)>
+            l_solver_generator;
+
+        std::function<std::shared_ptr<const typename u_solver_type::Factory>(
+            std::shared_ptr<const Executor>)>
+            u_solver_generator;
+
+        std::function<std::shared_ptr<const LinOpFactory>(
+            std::shared_ptr<const Executor>)>
+            factorization_generator;
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
@@ -393,12 +518,10 @@ protected:
             static_cast<unsigned int>(mtx->get_size()[0])};
 
         return SolverType::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(default_max_iters)
-                               .on(exec),
-                           gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(default_reduce_residual)
-                               .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(default_max_iters),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(default_reduce_residual))
             .on(exec)
             ->generate(mtx);
     }
