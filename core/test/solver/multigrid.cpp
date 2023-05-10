@@ -153,11 +153,10 @@ protected:
         multigrid_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                    gko::stop::Iteration::build().with_max_iters(3u),
                     gko::stop::ResidualNorm<value_type>::build()
                         .with_baseline(gko::stop::mode::initial_resnorm)
-                        .with_reduction_factor(gko::remove_complex<T>{1e-6})
-                        .on(exec))
+                        .with_reduction_factor(gko::remove_complex<T>{1e-6}))
                 .with_max_levels(2u)
                 .with_coarsest_solver(lo_factory)
                 .with_pre_smoother(lo_factory)

@@ -67,23 +67,19 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
-          gcr_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
-                          .on(exec))
-                  .on(exec)),
+          gcr_factory(Solver::build()
+                          .with_criteria(
+                              gko::stop::Iteration::build().with_max_iters(3u),
+                              gko::stop::ResidualNorm<value_type>::build()
+                                  .with_reduction_factor(reduction_factor))
+                          .on(exec)),
           solver(gcr_factory->generate(mtx)),
           gcr_big_factory(
               Big_solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(128u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(128u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
-                          .on(exec))
+                          .with_reduction_factor(reduction_factor))
                   .on(exec)),
           big_solver(gcr_big_factory->generate(mtx))
     {}

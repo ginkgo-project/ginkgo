@@ -131,8 +131,7 @@ int main(int argc, char* argv[])
     // iterative refinement with two iterations and an Ic solver.
     auto ic_gen = gko::share(
         ic::build()
-            .with_factorization_factory(
-                gko::factorization::Ic<ValueType, int>::build().on(exec))
+            .with_factorization(gko::factorization::Ic<ValueType, int>::build())
             .on(exec));
     auto smoother_gen = gko::share(
         gko::solver::build_smoother(ic_gen, 2u, static_cast<ValueType>(0.9)));
@@ -160,8 +159,7 @@ int main(int argc, char* argv[])
             .with_mg_level(mg_level_gen)
             .with_coarsest_solver(coarsest_gen)
             .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     // Create solver factory
     auto solver_gen = cg::build()

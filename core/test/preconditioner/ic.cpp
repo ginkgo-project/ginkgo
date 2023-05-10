@@ -77,9 +77,8 @@ TEST_F(IcFactory, KnowsItsExecutor)
 
 TEST_F(IcFactory, CanSetLSolverFactory)
 {
-    auto ic_factory = ic_prec_type::build()
-                          .with_l_solver_factory(this->l_factory)
-                          .on(this->exec);
+    auto ic_factory =
+        ic_prec_type::build().with_l_solver(this->l_factory).on(this->exec);
 
     ASSERT_EQ(ic_factory->get_parameters().l_solver_factory, this->l_factory);
 }
@@ -88,7 +87,7 @@ TEST_F(IcFactory, CanSetLSolverFactory)
 TEST_F(IcFactory, CanSetFactorizationFactory)
 {
     auto ic_factory = ic_prec_type::build()
-                          .with_factorization_factory(this->fact_factory)
+                          .with_factorization(this->fact_factory)
                           .on(this->exec);
 
     ASSERT_EQ(ic_factory->get_parameters().factorization_factory,

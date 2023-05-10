@@ -71,19 +71,17 @@ protected:
         exec_bicgstab_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(exec),
+                    gko::stop::Iteration::build().with_max_iters(246u),
                     gko::stop::ResidualNorm<value_type>::build()
-                        .with_reduction_factor(::r<value_type>::value)
-                        .on(exec))
+                        .with_reduction_factor(::r<value_type>::value))
                 .on(exec);
 
         ref_bicgstab_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::Iteration::build().with_max_iters(246u),
                     gko::stop::ResidualNorm<value_type>::build()
-                        .with_reduction_factor(::r<value_type>::value)
-                        .on(ref))
+                        .with_reduction_factor(::r<value_type>::value))
                 .on(ref);
     }
 

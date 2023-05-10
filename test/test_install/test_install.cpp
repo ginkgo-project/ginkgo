@@ -104,11 +104,9 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
     auto solver_gen =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+                gko::stop::Iteration::build().with_max_iters(num_iters),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(
+                    reduction_factor))
             .on(exec);
 #if HAS_REFERENCE
     A->read(A_raw);
@@ -126,11 +124,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
     auto solver_gen_ref =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec_ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec_ref))
+                gko::stop::Iteration::build().with_max_iters(num_iters),
+                idualNorm<>::build().with_reduction_factor(reduction_factor))
             .on(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
     solver_gen->generate(A_ref)->apply(b, x_ref);
@@ -480,8 +475,7 @@ int main()
         using Solver = gko::solver::Ir<>;
         auto test =
             Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec);
     }
 

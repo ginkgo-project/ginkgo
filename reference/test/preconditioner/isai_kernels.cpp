@@ -82,16 +82,13 @@ protected:
         : exec{gko::ReferenceExecutor::create()},
           excess_solver_factory(
               excess_solver_type::build()
-                  .with_preconditioner(
-                      bj::build().with_max_block_size(16u).on(exec))
+                  .with_preconditioner(bj::build().with_max_block_size(16u))
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(1000u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(1000u),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::rhs_norm)
                           .with_reduction_factor(
-                              gko::remove_complex<value_type>{1e-6})
-                          .on(exec))
+                              gko::remove_complex<value_type>{1e-6}))
                   .on(exec)),
           a_dense{gko::initialize<Dense>({{2, 1, 2}, {1, -2, 3}, {-1, 1, 1}},
                                          exec)},

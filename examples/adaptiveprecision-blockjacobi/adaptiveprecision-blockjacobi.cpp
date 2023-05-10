@@ -111,18 +111,14 @@ int main(int argc, char* argv[])
     const RealValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(10000u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(10000u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(reduction_factor))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            .with_preconditioner(bj::build()
-                                     .with_max_block_size(16u)
-                                     .with_storage_optimization(
-                                         gko::precision_reduction::autodetect())
-                                     .on(exec))
+            .with_preconditioner(
+                bj::build().with_max_block_size(16u).with_storage_optimization(
+                    gko::precision_reduction::autodetect()))
             .on(exec);
     // Create solver
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =

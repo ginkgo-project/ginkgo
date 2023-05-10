@@ -65,15 +65,12 @@ protected:
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           // Richardson iteration, converges since
           // | relaxation_factor * lambda - 1 | < 1
-          ir_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(30u).on(
-                          exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .on(exec))
+          ir_factory(Solver::build()
+                         .with_criteria(
+                             gko::stop::Iteration::build().with_max_iters(30u),
+                             gko::stop::ResidualNorm<value_type>::build()
+                                 .with_reduction_factor(r<value_type>::value))
+                         .on(exec))
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;

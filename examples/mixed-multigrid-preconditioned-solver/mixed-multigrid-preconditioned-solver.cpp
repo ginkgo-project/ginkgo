@@ -140,15 +140,13 @@ int main(int argc, char* argv[])
         ir::build()
             .with_solver(inner_solver_gen)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
     auto smoother_gen_f = gko::share(
         ir_f::build()
             .with_solver(inner_solver_gen_f)
             .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
     // Create MultigridLevel factory
     auto mg_level_gen =
@@ -160,15 +158,13 @@ int main(int argc, char* argv[])
         ir::build()
             .with_solver(inner_solver_gen)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
     auto coarsest_gen_f = gko::share(
         ir_f::build()
             .with_solver(inner_solver_gen_f)
             .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
@@ -193,8 +189,7 @@ int main(int argc, char* argv[])
                 .with_coarsest_solver(coarsest_gen_f)
                 .with_default_initial_guess(
                     gko::solver::initial_guess_mode::zero)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec);
     } else {
         multigrid_gen =
@@ -207,8 +202,7 @@ int main(int argc, char* argv[])
                 .with_coarsest_solver(coarsest_gen)
                 .with_default_initial_guess(
                     gko::solver::initial_guess_mode::zero)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec);
     }
     // Create solver factory

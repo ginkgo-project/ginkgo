@@ -44,12 +44,10 @@ int main()
     // Create the solver
     auto solver =
         gko::solver::Cg<>::build()
-            .with_preconditioner(gko::preconditioner::Jacobi<>::build().on(gpu))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build())
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(20u).on(gpu),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-15)
-                    .on(gpu))
+                gko::stop::Iteration::build().with_max_iters(20u),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(1e-15))
             .on(gpu);
     // Solve system
     solver->generate(give(A))->apply(b, x);

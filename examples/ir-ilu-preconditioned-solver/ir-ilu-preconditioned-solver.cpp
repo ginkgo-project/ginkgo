@@ -120,18 +120,16 @@ int main(int argc, char* argv[])
     auto trisolve_factory =
         ir::build()
             .with_solver(bj_factory)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(sweeps).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(sweeps))
             .on(exec);
 
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the previously defined iterative
     // refinement method.
-    auto ilu_pre_factory =
-        gko::preconditioner::Ilu<ir, ir>::build()
-            .with_l_solver_factory(gko::clone(trisolve_factory))
-            .with_u_solver_factory(gko::clone(trisolve_factory))
-            .on(exec);
+    auto ilu_pre_factory = gko::preconditioner::Ilu<ir, ir>::build()
+                               .with_l_solver(gko::clone(trisolve_factory))
+                               .with_u_solver(gko::clone(trisolve_factory))
+                               .on(exec);
 
     // Use incomplete factors to generate ILU preconditioner
     auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));

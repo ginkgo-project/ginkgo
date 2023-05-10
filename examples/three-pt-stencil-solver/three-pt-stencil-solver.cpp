@@ -217,13 +217,11 @@ void solve_system(const std::string& executor_string,
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(gko::size_type(dp))
-                               .on(exec),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                               gko::size_type(dp)),
                            gko::stop::ResidualNorm<ValueType>::build()
-                               .with_reduction_factor(reduction_factor)
-                               .on(exec))
-            .with_preconditioner(bj::build().on(exec))
+                               .with_reduction_factor(reduction_factor))
+            .with_preconditioner(bj::build())
             .on(exec);
     auto solver = solver_gen->generate(gko::give(matrix));
 

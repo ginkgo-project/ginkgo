@@ -569,21 +569,18 @@ void Multigrid::generate()
                     using absolute_value_type = remove_complex<value_type>;
                     return solver::Gmres<value_type>::build()
                         .with_criteria(
-                            stop::Iteration::build()
-                                .with_max_iters(matrix->get_size()[0])
-                                .on(exec),
+                            stop::Iteration::build().with_max_iters(
+                                matrix->get_size()[0]),
                             stop::ResidualNorm<value_type>::build()
                                 .with_reduction_factor(
                                     std::numeric_limits<
                                         absolute_value_type>::epsilon() *
-                                    absolute_value_type{10})
-                                .on(exec))
+                                    absolute_value_type{10}))
                         .with_krylov_dim(
                             std::min(size_type(100), matrix->get_size()[0]))
                         .with_preconditioner(
                             preconditioner::Jacobi<value_type>::build()
-                                .with_max_block_size(1u)
-                                .on(exec))
+                                .with_max_block_size(1u))
                         .on(exec)
                         ->generate(matrix);
                 } else {
@@ -591,8 +588,7 @@ void Multigrid::generate()
                                                         int32>::build()
                         .with_factorization(
                             experimental::factorization::Lu<value_type,
-                                                            int32>::build()
-                                .on(exec))
+                                                            int32>::build())
                         .on(exec)
                         ->generate(matrix);
                 }

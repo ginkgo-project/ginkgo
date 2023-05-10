@@ -185,13 +185,11 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     // Generate solver and solve the system
     cg::build()
-        .with_criteria(gko::stop::Iteration::build()
-                           .with_max_iters(discretization_points)
-                           .on(exec),
-                       gko::stop::ResidualNorm<ValueType>::build()
-                           .with_reduction_factor(reduction_factor)
-                           .on(exec))
-        .with_preconditioner(bj::build().on(exec))
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(discretization_points),
+            gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(
+                reduction_factor))
+        .with_preconditioner(bj::build())
         .on(exec)
         ->generate(clone(exec, matrix))  // copy the matrix to the executor
         ->apply(rhs, u);

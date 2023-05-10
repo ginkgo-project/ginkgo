@@ -126,17 +126,15 @@ int main(int argc, char* argv[])
     // Create smoother factory (ir with bj)
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(bj::build().with_max_block_size(1u).on(exec))
+            .with_solver(bj::build().with_max_block_size(1u))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
     auto smoother_gen2 = gko::share(
         ir2::build()
-            .with_solver(bj2::build().with_max_block_size(1u).on(exec))
+            .with_solver(bj2::build().with_max_block_size(1u))
             .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
     // Create RestrictProlong factory
     auto mg_level_gen =
@@ -146,17 +144,15 @@ int main(int argc, char* argv[])
     // Create CoarsesSolver factory
     auto coarsest_solver_gen = gko::share(
         ir::build()
-            .with_solver(bj::build().with_max_block_size(1u).on(exec))
+            .with_solver(bj::build().with_max_block_size(1u))
             .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
     auto coarsest_solver_gen2 = gko::share(
         ir2::build()
-            .with_solver(bj2::build().with_max_block_size(1u).on(exec))
+            .with_solver(bj2::build().with_max_block_size(1u))
             .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;

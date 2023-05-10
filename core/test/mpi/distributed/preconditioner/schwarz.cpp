@@ -67,7 +67,7 @@ protected:
           mtx(Mtx::create(exec, MPI_COMM_WORLD))
     {
         schwarz = Schwarz::build()
-                      .with_local_solver_factory(jacobi_factory)
+                      .with_local_solver(jacobi_factory)
                       .on(exec)
                       ->generate(mtx);
     }
@@ -125,7 +125,7 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver_factory(bj)
+                    .with_local_solver(bj)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -143,7 +143,7 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
     auto tmp = clone(this->schwarz);
     auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver_factory(bj)
+                    .with_local_solver(bj)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
