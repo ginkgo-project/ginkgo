@@ -291,7 +291,7 @@ TYPED_TEST(BatchBand, CanBeConstructedFromExistingData)
 
             AB_1 =  
                     *  *   *  *
-                    *  *   *  *
+                    *  *   *  +
                     *  *   5  7
                     *  3   8  2
                     2  9  -1  9
@@ -403,7 +403,7 @@ TYPED_TEST(BatchBand, CanBeConstructedFromExistingConstData)
 
             band_arr_A_1 =  
                     *  *   *  *
-                    *  *   *  *
+                    *  *   *  +
                     *  *   5  7
                     *  3   8  2
                     2  9  -1  9
@@ -496,7 +496,7 @@ TYPED_TEST(BatchBand, CanBeConstructedFromBatchBandMatricesByDuplication)
         0  0  1  9
 
     band A_0 arr:
-        *  *  *  *
+        *  *  *  +
         *  *  6  5
         *  4  1  4
         3  9  2  9
@@ -509,7 +509,7 @@ TYPED_TEST(BatchBand, CanBeConstructedFromBatchBandMatricesByDuplication)
         0  0  8  9 
 
     Band A_1 arr:
-        *  *  *  *
+        *  *  *  +
         *  *  8  6
         *  6  4  9
         5  2  1  9

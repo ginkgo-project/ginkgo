@@ -103,6 +103,10 @@ class BatchTridiagonal;
  * In short, the element at position: (i,j) in the dense layout is stored at
  * position: (KL + KU + i - j, j) in the band layout, for max(0, j - KU)  <= i
  * <=  min(N-1 , j + KL). The elements marked by * and + need not be set.
+ * The positions marked by * are never accessed during the banded solves,
+ * while the positions marked by + are used to store the fill-in possibly
+ * generated as a result of the pivoting in the banded matrix factorization
+ * process.
  *
  * @note We choose to store the band array in a colum major order to enable
  * efficient memory accesses during the banded solves.
@@ -658,6 +662,11 @@ protected:
     //                         compute_batch_mem(this->get_size(), KL_, KU_))
     //                         //Results in seg. fault??
     {
+        GKO_ASSERT(input->get_size().stores_equal_sizes() &&
+                   input->get_num_subdiagonals().stores_equal_strides() &&
+                   input->get_num_superdiagonals().stores_equal_strides());
+        // NOTE: Currently, this works only for a uniform batch
+
         band_array_col_major_ = gko::array<value_type>(
             exec, compute_batch_mem(this->get_size(), KL_, KU_));
 
