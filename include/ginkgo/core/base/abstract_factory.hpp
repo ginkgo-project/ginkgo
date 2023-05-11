@@ -274,6 +274,60 @@ protected:
 };
 
 
+template <typename FactoryType>
+class deferred_factory_parameter {
+public:
+    deferred_factory_parameter() = default;
+
+    template <typename ConcreteFactoryType,
+              std::enable_if_t<std::is_base_of<
+                  FactoryType,
+                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+    deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
+    {
+        generator_ =
+            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
+                std::shared_ptr<const Executor>) { return factory; };
+    }
+
+    template <typename ConcreteFactoryType, typename Deleter,
+              std::enable_if_t<std::is_base_of<
+                  FactoryType,
+                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+    deferred_factory_parameter(
+        std::unique_ptr<ConcreteFactoryType, Deleter> factory)
+    {
+        generator_ =
+            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
+                std::shared_ptr<const Executor>) { return factory; };
+    }
+
+    template <typename ParametersType,
+              typename = decltype(std::declval<ParametersType>().on(
+                  std::shared_ptr<const Executor>{}))>
+    deferred_factory_parameter(ParametersType parameters)
+    {
+        generator_ = [parameters](std::shared_ptr<const Executor> exec)
+            -> std::shared_ptr<const FactoryType> {
+            return parameters.on(exec);
+        };
+    }
+
+    std::shared_ptr<const FactoryType> on(
+        std::shared_ptr<const Executor> exec) const
+    {
+        return generator_(exec);
+    }
+
+    explicit operator bool() const { return bool(generator_); }
+
+private:
+    std::function<std::shared_ptr<const FactoryType>(
+        std::shared_ptr<const Executor>)>
+        generator_;
+};
+
+
 }  // namespace gko
 
 

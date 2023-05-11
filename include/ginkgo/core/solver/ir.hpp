@@ -208,23 +208,10 @@ public:
         /**
          *
          */
-        parameters_type& with_solver(std::shared_ptr<const LinOpFactory> solver)
+        parameters_type& with_solver(
+            deferred_factory_parameter<LinOpFactory> solver)
         {
-            this->solver_generator = [solver](std::shared_ptr<const Executor>)
-                -> std::shared_ptr<const LinOpFactory> { return solver; };
-            return *this;
-        }
-
-        template <typename SolverParameters,
-                  typename = decltype(std::declval<SolverParameters>().on(
-                      std::shared_ptr<const Executor>{}))>
-        parameters_type& with_solver(SolverParameters solver_parameters)
-        {
-            this->solver_generator =
-                [solver_parameters](std::shared_ptr<const Executor> exec)
-                -> std::shared_ptr<const LinOpFactory> {
-                return solver_parameters.on(exec);
-            };
+            this->solver_generator = std::move(solver);
             return *this;
         }
 
@@ -245,16 +232,14 @@ public:
         {
             auto parameters_copy = *this;
             if (solver_generator) {
-                parameters_copy.solver = solver_generator(exec);
+                parameters_copy.solver = solver_generator.on(exec);
             }
             return parameters_copy.enable_iterative_solver_factory_parameters<
                 parameters_type, Factory>::on(exec);
         }
 
     private:
-        std::function<std::shared_ptr<const LinOpFactory>(
-            std::shared_ptr<const Executor>)>
-            solver_generator;
+        deferred_factory_parameter<LinOpFactory> solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
