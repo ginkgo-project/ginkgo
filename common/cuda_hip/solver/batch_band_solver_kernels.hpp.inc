@@ -71,7 +71,7 @@ __device__ __forceinline__ int naive_find_pivot_row_index(
     const int AB_row_idx_limit = KL + KU + (N - AB_col_idx - 1);
     ValueType piv_val = AB_array_entry[AB_piv_row_idx + AB_nrows * AB_col_idx];
 
-    // uncoalesced accesses but atleast data locality is there
+    // uncoalesced accesses but atleast has data locality
     for (int AB_row_idx = KV; AB_row_idx <= min(AB_row_idx_limit, KV + KL);
          AB_row_idx++) {
         const auto val = AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx];
@@ -187,7 +187,7 @@ __device__ __forceinline__ void modify_rows_below(
 
     __syncthreads();
 
-    // each thread handles a row, and the acesses are coalesced AB is in col
+    // each thread handles a row, and the accesses are coalesced - AB is in col
     // major order
     for (int A_row_idx = A_diag_row_idx + 1 + threadIdx.x;
          A_row_idx <= min(N - 1, A_diag_row_idx + KL);
@@ -238,7 +238,6 @@ __device__ __forceinline__ void factorize_band(
     for (int AB_col_idx = 0; AB_col_idx <= N - 1; AB_col_idx++) {
         const int AB_diag_row_idx = KV;
 
-        // __syncthreads(); Not required here
         const int AB_pivot_row_idx =
             common_band_factorization::find_pivot_row_index(
                 subwarp_grp, N, KL, KU, AB_array_entry, AB_col_idx);
@@ -349,28 +348,6 @@ __device__ __forceinline__ void lower_trsv_update_A01(
     const int J1)
 {
     const int AB_nrows = 2 * KL + KU + 1;
-    /*
-    //dense lower trsv-> sequential
-    for(int A_col = j + JB + threadIdx.x; A_col < j + JB + J1; A_col +=
-    blockDim.x)
-    {
-        for(int A_row = j; A_row < j + JB; A_row++)
-        {
-            ValueType sum = zero<ValueType>();
-
-            for(int i = 0; i < A_row - j; i++)
-            {
-                // In first-> no data locality, but in second: there is data
-    locality sum += AB_array_entry[ (KL + KU +   i + j   - A_col)  +  AB_nrows *
-    A_col ] * AB_array_entry[ (KL + KU +  A_row - (i + j) ) + AB_nrows * (i +
-    j)];
-            }
-
-            AB_array_entry[(KL + KU + A_row - A_col)  +  AB_nrows * A_col] -=
-    sum; //data locality
-        }
-    }*/
-
 
     auto subwarpgrp =
         group::tiled_partition<subwarpgrp_size>(group::this_thread_block());
@@ -416,24 +393,6 @@ __device__ __forceinline__ void lower_trsv_update_work02(
 {
     const int AB_nrows = 2 * KL + KU + 1;
 
-    /*
-    for(int c = 0 + threadIdx.x; c < J2; c += blockDim.x)
-    {
-        for(int r = 0; r < JB ; r++)
-        {
-            ValueType sum = zero<ValueType>();
-
-            for(int i = 0; i < r; i++)
-            {
-                const int A_col = i + j;
-                sum += AB_array_entry[ (KL + KU + (r + j) - A_col ) + AB_nrows *
-    A_col  ] * work02_sh_entry[i + c * NB];
-            }
-
-            work02_sh_entry[r + c * NB] -= sum;
-        }
-    }
-    */
     auto subwarpgrp =
         group::tiled_partition<subwarpgrp_size>(group::this_thread_block());
 
@@ -474,6 +433,10 @@ __device__ __forceinline__ void update_part_of_trailing_matrix(
     const int trail_row_end_exclusive, const int trail_col_start,
     const int trail_col_end_exclusive, Callable compute_sum)
 {
+    // Blocks update by matrix-matrix multiplications- all elements of the
+    // resultant block computed in parallel using a subwarp to perform a dot
+    // product
+
     const int AB_nrows = 2 * KL + KU + 1;
 
     auto subwarpgrp =
@@ -525,7 +488,7 @@ __device__ __forceinline__ void update_A11(
                            Group& subwarp_grp) {
         ValueType temp = zero<ValueType>();
 
-        // coalesced accesses: second AB, but first AB --> uncoalesced accesses
+        // coalesced accesses: second AB, but first AB: uncoalesced accesses
         for (int k = subwarp_grp.thread_rank(); k < JB;
              k += subwarp_grp.size()) {
             const int c = k + j;
@@ -561,7 +524,7 @@ __device__ __forceinline__ void update_A21(
     auto compute_sum = [=](const int trail_row, const int trail_col,
                            Group& subwarp_grp) {
         ValueType temp = zero<ValueType>();
-        // coalesced accesses: AB, but work20 -> coalesced accesses
+        // coalesced accesses: AB, work20: coalesced accesses
         for (int k = subwarp_grp.thread_rank(); k < JB;
              k += subwarp_grp.size()) {
             const int r = k + j;
@@ -599,7 +562,7 @@ __device__ __forceinline__ void update_A12(
                            Group& subwarp_grp) {
         ValueType temp = zero<ValueType>();
 
-        // uncoalesced accesses: AB, but work02 --> coalesced accesses
+        // uncoalesced accesses: AB, work02 - coalesced accesses
         for (int k = subwarp_grp.thread_rank(); k < JB;
              k += subwarp_grp.size()) {
             const int c = k + j;
@@ -684,17 +647,18 @@ __device__ __forceinline__ void factorize_band(
         const int JB = min(NB, N - j);
 
         /*
-         *      The active part of the matrix is partitioned
+         *          The active part of the matrix is partitioned:
          *
          *              A00   A01   A02
          *              A10   A11   A12
          *              A20   A21   A22
          *
          *           Here A00, A10 and A20 denote the current block of JB
-         * columns which is about to be factorized. The number of rows in the
-         *           partitioning are JB, I1, I2 respectively, and the numbers
-         *           of columns are JB, J1, J1. The superdiagonal elements of
-         * A02 and the subdiagonal elements of A20 lie outside the band.
+         *           columns which is about to be factorized. The number of rows
+         *           in the partitions are JB, I1, I2 respectively, and the
+         *           number of columns are JB, J1, J1. The superdiagonal
+         *           elements of A02 and the subdiagonal elements of A20
+         *           lie outside the band.
          *
          */
 
@@ -707,7 +671,6 @@ __device__ __forceinline__ void factorize_band(
         // Factorize the current block of JB columns
         for (int jj = j; jj < j + JB; jj++) {
             // find pivot row
-            // __syncthreads(); Not required here
             const int AB_pivot_row_idx =
                 common_band_factorization::find_pivot_row_index(
                     subwarp_grp, N, KL, KU, AB_array_entry, jj);
@@ -736,7 +699,7 @@ __device__ __forceinline__ void factorize_band(
                         A_pivot_row_idx);
                 } else {
                     // for cols. j to jj - 1 --> do in work20
-                    // Uncoalesced accesses, and also no data locality
+                    // Uncoalesced accesses, also no data locality
                     for (int A_col_idx = j + threadIdx.x; A_col_idx <= jj - 1;
                          A_col_idx += blockDim.x) {
                         const int AB_row_idx1 = KL + KU + jj - A_col_idx;
@@ -811,8 +774,7 @@ __device__ __forceinline__ void factorize_band(
         }
 
         if (J2 > 0) {
-            // Copy part of A02 into the work array WORK02 (guess its lower
-            // triangular)
+            // Copy part of A02 into the work array WORK02
             for (int A_col = j + JB + J1 + subwarp_id; A_col < j + JB + J1 + J2;
                  A_col += total_num_subwarp_grps) {
                 const int A_row_start = max(0, A_col - KL - KU);
@@ -846,7 +808,7 @@ __device__ __forceinline__ void factorize_band(
 
             __syncthreads();
 
-            // Copy part of A02 back into place (guess, its lower triangular)
+            // Copy part of A02 back into place
             for (int A_col = j + JB + J1 + subwarp_id; A_col < j + JB + J1 + J2;
                  A_col += total_num_subwarp_grps) {
                 const int A_row_start = max(0, A_col - KL - KU);
@@ -1001,7 +963,6 @@ __device__ __forceinline__ void upper_trsv(
     const ValueType* const __restrict__ y_sh_entry,
     ValueType* const __restrict__ x_sh_entry)
 {
-    // naive_upper_trsv(N, KL, KU, AB_array_entry, y_sh_entry, x_sh_entry);
     const int AB_nrows = 2 * KL + KU + 1;
     const int KV = KL + KU;
 
@@ -1103,8 +1064,6 @@ __global__ void band_solver_unblocked_kernel(const size_type nbatch,
                 N, KL, KU, ipiv_sh_entry, AB_array_entry, b_global_entry,
                 temp_sh_entry);
 
-        // __syncthreads(); Not required here since lower_trsv has a syncthreads
-
         unblocked_and_blocked_band_solver_common::upper_trsv(
             N, KL, KU, AB_array_entry, temp_sh_entry, x_sh_entry);
 
@@ -1145,9 +1104,6 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
         ValueType* const __restrict__ x_global_entry =
             gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
 
-        // ValueType* const __restrict__ AB_array_entry =
-        //     batch_band_array + batch_idx * (N * AB_nrows);
-
         ValueType* __restrict__ AB_array_entry;
         if (is_matrix_in_shared_mem<ValueType>(N, KL, KU)) {
             AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
@@ -1167,8 +1123,6 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
             accommodate_partial_row_swaps_lower_trsv(
                 N, KL, KU, ipiv_sh_entry, AB_array_entry, b_global_entry,
                 temp_sh_entry);
-
-        // __syncthreads(); Not required here since lower_trsv has a syncthreads
 
         unblocked_and_blocked_band_solver_common::upper_trsv(
             N, KL, KU, AB_array_entry, temp_sh_entry, x_sh_entry);
