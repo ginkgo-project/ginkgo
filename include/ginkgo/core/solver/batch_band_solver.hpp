@@ -126,7 +126,6 @@ public:
         /**
          * The approach to be used to solve the batched banded system.
          *
-         *
          */
         batch_band_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
             batch_band_solution_approach, batch_band_solve_approach::unblocked);
@@ -135,6 +134,10 @@ public:
          * Panel size in the blocked banded solve.
          *
          * Note: This parameter is used only in the case of blocked solve.
+         *
+         * Note: In case the blocked_solve_panel_size set by the user is greater
+         * than number of sub-diagonals in the band matirx, the unblocked
+         * version of the solver is used, despite the approach set by the user.
          *
          */
         int GKO_FACTORY_PARAMETER_SCALAR(blocked_solve_panel_size, 1);
@@ -164,13 +167,15 @@ protected:
 
         if (auto temp_band =
                 dynamic_cast<const matrix_type*>(system_matrix.get())) {
+            // TODO: Avoid this way of creating a shared pointer
+            // (there would be a probalem if the src ptr is emptied
             auto ptr = std::shared_ptr<const matrix_type>(
                 temp_band, [](const matrix_type* plain_ptr) {});
             system_matrix_ = ptr;
         } else {
             GKO_BATCHED_NOT_SUPPORTED(
                 "Batched Band solver supports only batch matrix type");
-        }  // TODO: Remove conversion functions
+        }
 
         // TODO: Workspace not needed in case band array -> copied to shared
         // memory- cuda/hip kernels (AVOID: extra workspace copy)

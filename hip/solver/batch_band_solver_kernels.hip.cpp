@@ -77,8 +77,8 @@ int inline get_thread_block_size_unblocked_banded(const int nrows)
     } else if (nrows <= 300) {
         return 512;
     } else {
-        return 512;  // 1024 // otherwise too many reources requested on launch
-                     // error
+        return 512;  // 1024 - works for a few cases // otherwise too many
+                     // reources requested on launch error
     }
 }
 
@@ -120,12 +120,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto KU = static_cast<int>(band_mat->get_num_superdiagonals().at(0));
 
     assert(workspace_size >= band_mat->get_num_stored_elements());
-
-    if (workspace_size < band_mat->get_num_stored_elements()) {
-        std::cout << " file: " << __FILE__ << " line: " << __LINE__
-                  << " workspace size is not enough" << std::endl;
-        exit(0);
-    }
 
     ValueType* const band_arr = workspace_ptr;
     exec->copy(band_mat->get_num_stored_elements(),

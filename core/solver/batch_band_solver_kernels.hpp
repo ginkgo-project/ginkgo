@@ -52,7 +52,10 @@ namespace batch_band_solver {
  * solver.
  *
  */
-// TODO: Band matrix in shared memory.... for smaller nrows.
+// Note: For the case of Cuda/Hip, in case the band matrix is to be stored in
+// the shared memory, the amount of local memory required for that is computed
+// separately and added to the value returned by this function to get the total
+// in-solver local storage.
 template <typename ValueType>
 inline int local_memory_requirement(
     const int num_rows, const int num_rhs,

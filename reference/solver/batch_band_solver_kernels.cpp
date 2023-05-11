@@ -71,12 +71,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
     assert(workspace_size >= band_mat->get_num_stored_elements());
 
-    if (workspace_size < band_mat->get_num_stored_elements()) {
-        std::cout << " file: " << __FILE__ << " line: " << __LINE__
-                  << " workspace size is not enough" << std::endl;
-        exit(0);
-    }
-
     ValueType* const batch_band_mat_array = workspace_ptr;
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), batch_band_mat_array);
