@@ -110,8 +110,8 @@ protected:
         0  0  9  6  1         1       28
 
         Corresponding band array:
-        *  *  *  *  *
-        *  *  *  *  *
+        *  *  *  +  +
+        *  *  +  +  +
         *  3  5  8  2
         2  1  9  4  1
         4  5  8  6  *
@@ -126,8 +126,8 @@ protected:
         0  0  5  6  3         2        52
 
         Corresponding band array:
-        *  *  *  *  *
-        *  *  *  *  *
+        *  *  *  +  +
+        *  *  +  +  +
         *  8  5  4  1
         9  3  1  2  3
         4  7  8  6  *
@@ -236,7 +236,7 @@ protected:
         Corresponding band array:
 
         *  *  *  *  *
-        *  *  *  *  *
+        *  *  *  *  +
         *  *  *  7  5
         *  *  1  0  3
         *  3  5  8  2
@@ -255,7 +255,7 @@ protected:
         Corresponding band array:
 
         *  *  *  *  *
-        *  *  *  *  *
+        *  *  *  *  +
         *  *  *  3  4
         *  *  0  1  2
         *  8  5  4  1
@@ -387,7 +387,7 @@ protected:
 
         Corresponding band array:
 
-        *  *  *  *  *
+        *  *  +  +  +
         *  3  5  8  2
         2  1  9  4  1
         4  5  8  6  *
@@ -402,7 +402,7 @@ protected:
 
         Corresponding band array:
 
-        *  *  *  *  *
+        *  *  +  +  +
         *  8  5  4  1
         9  3  1  2  3
         4  7  8  6  *
@@ -756,7 +756,8 @@ TYPED_TEST(BatchBandSolver, Solve_DiagCase_IsCorrect)
         gko::solver::batch_band_solve_approach::blocked, 2);
 }
 
-// TODO: Implement scaling for batched banded matrix format
+// TODO: Implement scaling for batched banded matrix format and add tests for
+// scaled band solve
 
 // TYPED_TEST(BatchBandSolver,
 // UnblockedSolve_KV_less_than_N_minus_1_WithScalingIsCorrect)

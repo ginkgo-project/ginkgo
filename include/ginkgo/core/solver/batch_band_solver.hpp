@@ -56,6 +56,7 @@ enum class batch_band_solve_approach { unblocked, blocked };
 
 /**
  * Solves a batch of band linear systems.
+ * The algorithm is based on the LAPACK's general band solver.
  *
  * @tparam ValueType  precision of matrix elements
  *
