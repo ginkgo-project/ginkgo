@@ -150,11 +150,15 @@ protected:
             exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
         acsr->convert_to(a1.get());
         gko::as<BDense>(a1->transpose())->move_to(dense_system_matrix_.get());
+
+        workspace_dense_matrix_ =
+            gko::share(gko::clone(exec, dense_system_matrix_.get()));
     }
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<matrix::BatchDense<ValueType>> dense_system_matrix_{};
+    std::shared_ptr<matrix::BatchDense<ValueType>> workspace_dense_matrix_{};
 };
 
 

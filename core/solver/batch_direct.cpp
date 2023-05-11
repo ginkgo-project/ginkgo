@@ -118,7 +118,11 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
     auto bt =
         std::dynamic_pointer_cast<BDense>(gko::share(dense_b->transpose()));
 
-    exec->run(batch_direct::make_apply(this->dense_system_matrix_.get(),
+    exec->copy(dense_system_matrix_->get_num_stored_elements(),
+               dense_system_matrix_->get_const_values(),
+               workspace_dense_matrix_->get_values());
+
+    exec->run(batch_direct::make_apply(this->workspace_dense_matrix_.get(),
                                        bt.get(), logdata));
 
     auto btt = std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
