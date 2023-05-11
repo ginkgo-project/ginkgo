@@ -1,7 +1,8 @@
-<a name="Batched Band Solver with Data Read from Files"></a>
-<h1>Using batched band solver with data read from files</h1>
-This example shows how to use Ginkgo batched band solver with data coming from
-files. A specific directory structure is assumed; it should be general enough
-for the use cases that Ginkgo batched functionality is intended for.
+<a name="Batched Band Solver"></a>
+<h1>Using batched band solver</h1>
 
-The size of all the matrices in the batch is assumed to be the same.
+This example shows how to use Ginkgo batched banded solvers with data coming from an
+application. The "application" in this case is just a function in the example
+itself; nevertheless, the steps to be taken are shown.
+
+The size and the number of sub and super diagonals of all the matrices in the batch is assumed to be the same.
