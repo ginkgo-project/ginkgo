@@ -302,7 +302,8 @@ int main(int argc, char* argv[])
     }
 
     auto x_host = gko::share(gko::clone(exec->get_master(), x.get()));
-    auto x_dd_host = gko::share(gko::clone(exec->get_master(), x.get()));
+    auto x_dd_host =
+        gko::share(gko::clone(exec->get_master(), x_dense_direct_solver.get()));
     for (int i = 0; i < num_systems; i++) {
         std::cout << "Batch idx: " << i << std::endl;
         for (int k = 0; k < nrows; k++) {
