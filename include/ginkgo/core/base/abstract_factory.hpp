@@ -279,6 +279,8 @@ class deferred_factory_parameter {
 public:
     deferred_factory_parameter() = default;
 
+    deferred_factory_parameter(std::nullptr_t) {}
+
     template <typename ConcreteFactoryType,
               std::enable_if_t<std::is_base_of<
                   FactoryType,
@@ -316,6 +318,9 @@ public:
     std::shared_ptr<const FactoryType> on(
         std::shared_ptr<const Executor> exec) const
     {
+        if (!(*this)) {
+            GKO_NOT_SUPPORTED(*this);
+        }
         return generator_(exec);
     }
 

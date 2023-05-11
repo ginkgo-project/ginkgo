@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     multigrid_gen =
         mg::build()
-            .with_mg_level(pgm::build().with_deterministic(true).on(exec))
+            .with_mg_level(pgm::build().with_deterministic(true))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     const gko::remove_complex<ValueType> tolerance = 1e-8;
