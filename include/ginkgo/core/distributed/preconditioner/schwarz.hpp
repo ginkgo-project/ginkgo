@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -93,8 +94,25 @@ public:
         /**
          * Local solver factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            local_solver_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> local_solver{};
+
+        parameters_type& with_local_solver(
+            deferred_factory_parameter<LinOpFactory> solver)
+        {
+            this->local_solver_generator = std::move(solver);
+            return *this;
+        }
+
+        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+        {
+            auto copy = *this;
+            copy.local_solver = local_solver_generator.on(exec);
+            return copy.enable_parameters_type<parameters_type, Factory>::on(
+                exec);
+        }
+
+    private:
+        deferred_factory_parameter<LinOpFactory> local_solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

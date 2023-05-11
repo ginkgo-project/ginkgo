@@ -83,8 +83,8 @@ protected:
                              gko::ptr_param<const Schwarz> b)
     {
         ASSERT_EQ(a->get_size(), b->get_size());
-        ASSERT_EQ(a->get_parameters().local_solver_factory,
-                  b->get_parameters().local_solver_factory);
+        ASSERT_EQ(a->get_parameters().local_solver,
+                  b->get_parameters().local_solver);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -105,7 +105,7 @@ TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
 
 TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 {
-    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory,
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver,
               this->jacobi_factory);
 }
 
@@ -158,7 +158,7 @@ TYPED_TEST(SchwarzFactory, CanBeCleared)
     this->schwarz->clear();
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->schwarz->get_parameters().local_solver_factory, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
 }
 
 
