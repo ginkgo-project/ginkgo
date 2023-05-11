@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -1576,6 +1577,49 @@ TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseSpd)
     GKO_ASSERT_MTX_NEAR(lower_t,
                         gko::as<Csr>(this->spd_sparse_inv->conj_transpose()),
                         r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, IsExactInverseOnFullSparsitySet)
+{
+    using Isai = typename TestFixture::GeneralIsai;
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = gko::share(gko::test::generate_tridiag_matrix<Csr>(
+        12, gko::to_std_array<value_type>(-1, 2, -1), this->exec));
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
+        12, gko::to_std_array<value_type>(-1, 2, -1), this->exec);
+
+    auto isai = Isai::build()
+                    .with_sparsity_power(static_cast<int>(mtx->get_size()[0]))
+                    .on(this->exec)
+                    ->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(inv_mtx, isai->get_approximate_inverse(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, IsExactInverseOnFullSparsitySetLarge)
+{
+    using Isai = typename TestFixture::GeneralIsai;
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = gko::share(gko::test::generate_tridiag_matrix<Csr>(
+        33, gko::to_std_array<value_type>(-1, 2, -1), this->exec));
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
+        33, gko::to_std_array<value_type>(-1, 2, -1), this->exec);
+
+    auto isai = Isai::build()
+                    .with_sparsity_power(static_cast<int>(mtx->get_size()[0]))
+                    .with_excess_solver_reduction(r<value_type>::value)
+                    .on(this->exec)
+                    ->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(inv_mtx, isai->get_approximate_inverse(),
+                        5 * r<value_type>::value);
 }
 
 

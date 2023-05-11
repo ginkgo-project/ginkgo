@@ -187,6 +187,22 @@ public:
         const LinOp* implicit_sq_residual_norm,
         const array<stopping_status>* status, bool stopped) const override;
 
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
+                          const LinOp* residual, const LinOp* solution,
+                          const LinOp* residual_norm) const override;
+
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution,
+        const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm) const override;
+
     bool needs_propagation() const override;
 
     /**

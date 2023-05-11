@@ -422,6 +422,77 @@ protected:
                                            one_changed, all_converged);
     }
 
+public:
+    static constexpr size_type iteration_complete{21};
+    static constexpr mask_type iteration_complete_mask{mask_type{1} << 21};
+
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 21 && (21 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & (mask_type{1} << 21)) {
+            this->on_iteration_complete(std::forward<Params>(params)...);
+        }
+    }
+
+protected:
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
+     */
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x = nullptr,
+                          const LinOp* tau = nullptr) const
+    {}
+
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
+     */
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x, const LinOp* tau,
+                          const LinOp* implicit_tau_sq) const
+    {
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+        this->on_iteration_complete(solver, it, r, x, tau);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+    }
+
     /**
      * Register the `iteration_complete` event which logs every completed
      * iterations.
@@ -437,56 +508,28 @@ protected:
      * @param stopped  whether all right hand sides have stopped (invalid if
      *                 status is not provided)
      */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
-                              const LinOp* b, const LinOp* x,
-                              const size_type& it, const LinOp* r,
-                              const LinOp* tau, const LinOp* implicit_tau_sq,
-                              const array<stopping_status>* status,
-                              bool stopped)
-protected:
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param it  the current iteration count
-     * @param r  the residual
-     * @param x  the solution vector (optional)
-     * @param tau  the residual norm (optional)
-     *
-     * @note The on_iteration_complete function that this macro declares is
-     * deprecated. Please use the one with the additional implicit_tau_sq
-     * parameter as below.
-     */
-    [[deprecated(
-        "Please use the version with the additional implicit_tau_sq, status "
-        "and stopped parameter.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x = nullptr,
-                          const LinOp* tau = nullptr) const
+    virtual void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                                       const LinOp* x, const size_type& it,
+                                       const LinOp* r, const LinOp* tau,
+                                       const LinOp* implicit_tau_sq,
+                                       const array<stopping_status>* status,
+                                       bool stopped) const
     {
-        this->on_iteration_complete(solver, nullptr, x, it, r, tau, nullptr,
-                                    nullptr, false);
-    }
-
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param it  the current iteration count
-     * @param r  the residual
-     * @param x  the solution vector (optional)
-     * @param tau  the residual norm (optional)
-     * @param implicit_tau_sq  the implicit residual norm squared (optional)
-     */
-    [[deprecated(
-        "Please use the version with the additional status and stopped "
-        "parameter.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x, const LinOp* tau,
-                          const LinOp* implicit_tau_sq) const
-    {
-        this->on_iteration_complete(solver, nullptr, x, it, r, tau,
-                                    implicit_tau_sq, nullptr, false);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
     }
 
 public:

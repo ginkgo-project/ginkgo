@@ -563,14 +563,39 @@ void Multigrid::generate()
             auto exec = this->get_executor();
             // default coarse grid solver, direct LU
             // TODO: maybe remove fixed index type
-            auto gen_default_solver = [&] {
-                return experimental::solver::Direct<value_type, int32>::build()
-                    .with_factorization(
-                        experimental::factorization::Lu<value_type,
+            auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
+                // TODO: unify when dpcpp supports direct solver
+                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    return solver::Gmres<value_type>::build()
+                        .with_criteria(
+                            stop::Iteration::build()
+                                .with_max_iters(matrix->get_size()[0])
+                                .on(exec),
+                            stop::ResidualNorm<value_type>::build()
+                                .with_reduction_factor(
+                                    std::numeric_limits<
+                                        absolute_value_type>::epsilon() *
+                                    absolute_value_type{10})
+                                .on(exec))
+                        .with_krylov_dim(
+                            std::min(size_type(100), matrix->get_size()[0]))
+                        .with_preconditioner(
+                            preconditioner::Jacobi<value_type>::build()
+                                .with_max_block_size(1u)
+                                .on(exec))
+                        .on(exec)
+                        ->generate(matrix);
+                } else {
+                    return experimental::solver::Direct<value_type,
                                                         int32>::build()
-                            .on(exec))
-                    .on(exec)
-                    ->generate(matrix);
+                        .with_factorization(
+                            experimental::factorization::Lu<value_type,
+                                                            int32>::build()
+                                .on(exec))
+                        .on(exec)
+                        ->generate(matrix);
+                }
             };
             if (parameters_.coarsest_solver.size() == 0) {
                 coarsest_solver_ = gen_default_solver();

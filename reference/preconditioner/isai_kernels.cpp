@@ -139,16 +139,31 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 const auto col = i_cols[i_begin + i];
                 const auto m_begin = m_row_ptrs[col];
                 const auto m_size = m_row_ptrs[col + 1] - m_begin;
+                // Loop over all matches that are within the sparsity pattern of
+                // the original matrix instead of the larger pattern of the
+                // inverse because any match outside the narrower sparsity
+                // pattern results in a zero entry
                 forall_matching(
                     m_cols + m_begin, m_size, i_cols + i_begin, i_size,
                     [&](IndexType, IndexType m_idx, IndexType i_idx) {
-                        if (m_cols[m_idx + m_begin] < row && col == row) {
-                            rhs_one_idx++;
-                        }
                         if (tri) {
                             dense_system(i, i_idx) = m_vals[m_idx + m_begin];
                         } else {
                             dense_system(i_idx, i) = m_vals[m_idx + m_begin];
+                        }
+                    });
+                const auto i_transposed_row_begin = i_row_ptrs[col];
+                const auto i_transposed_row_size =
+                    i_row_ptrs[col + 1] - i_transposed_row_begin;
+                // Loop over all matches that are within the sparsity pattern of
+                // the inverse
+                forall_matching(
+                    i_cols + i_transposed_row_begin, i_transposed_row_size,
+                    i_cols + i_begin, i_size,
+                    [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                        if (i_cols[m_idx + i_transposed_row_begin] < row &&
+                            col == row) {
+                            rhs_one_idx++;
                         }
                     });
             }
