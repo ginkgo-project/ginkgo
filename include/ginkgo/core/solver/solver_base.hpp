@@ -880,7 +880,9 @@ struct enable_iterative_solver_factory_parameters
     template <typename... Args>
     Parameters& with_criteria(Args... value)
     {
-        this->criterion_generators = {build_generator(std::move(value))...};
+        this->criterion_generators = {
+            deferred_factory_parameter<stop::CriterionFactory>{
+                std::move(value)}...};
         return *self();
     }
 
@@ -895,7 +897,7 @@ struct enable_iterative_solver_factory_parameters
         auto copy = *self();
         copy.criteria.clear();
         for (auto& generator : criterion_generators) {
-            copy.criteria.push_back(generator(exec));
+            copy.criteria.push_back(generator.on(exec));
         }
         auto factory =
             copy.enable_parameters_type<Parameters, Factory>::on(exec);
@@ -905,28 +907,7 @@ struct enable_iterative_solver_factory_parameters
 private:
     GKO_ENABLE_SELF(Parameters);
 
-    std::function<std::shared_ptr<const stop::CriterionFactory>(
-        std::shared_ptr<const Executor>)>
-    build_generator(std::shared_ptr<const stop::CriterionFactory> criterion)
-    {
-        return
-            [criterion](std::shared_ptr<const Executor>) { return criterion; };
-    }
-
-    template <typename CriterionParameters,
-              typename = decltype(std::declval<CriterionParameters>().on(
-                  std::shared_ptr<const Executor>{}))>
-    std::function<std::shared_ptr<const stop::CriterionFactory>(
-        std::shared_ptr<const Executor>)>
-    build_generator(CriterionParameters criterion_parameters)
-    {
-        return [criterion_parameters](std::shared_ptr<const Executor> exec) {
-            return criterion_parameters.on(exec);
-        };
-    }
-
-    std::vector<std::function<std::shared_ptr<const stop::CriterionFactory>(
-        std::shared_ptr<const Executor>)>>
+    std::vector<deferred_factory_parameter<stop::CriterionFactory>>
         criterion_generators;
 };
 
@@ -954,25 +935,9 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      *
      */
     Parameters& with_preconditioner(
-        std::shared_ptr<const LinOpFactory> preconditioner)
+        deferred_factory_parameter<LinOpFactory> preconditioner)
     {
-        this->preconditioner_generator =
-            [preconditioner](std::shared_ptr<const Executor>)
-            -> std::shared_ptr<const LinOpFactory> { return preconditioner; };
-        return *self();
-    }
-
-    template <typename PreconditionerParameters,
-              typename = decltype(std::declval<PreconditionerParameters>().on(
-                  std::shared_ptr<const Executor>{}))>
-    Parameters& with_preconditioner(
-        PreconditionerParameters preconditioner_parameters)
-    {
-        this->preconditioner_generator =
-            [preconditioner_parameters](std::shared_ptr<const Executor> exec)
-            -> std::shared_ptr<const LinOpFactory> {
-            return preconditioner_parameters.on(exec);
-        };
+        this->preconditioner_generator = std::move(preconditioner);
         return *self();
     }
 
@@ -993,7 +958,7 @@ struct enable_preconditioned_iterative_solver_factory_parameters
     {
         auto parameters_copy = *self();
         if (preconditioner_generator) {
-            parameters_copy.preconditioner = preconditioner_generator(exec);
+            parameters_copy.preconditioner = preconditioner_generator.on(exec);
         }
         return parameters_copy.enable_iterative_solver_factory_parameters<
             Parameters, Factory>::on(exec);
@@ -1002,9 +967,7 @@ struct enable_preconditioned_iterative_solver_factory_parameters
 private:
     GKO_ENABLE_SELF(Parameters);
 
-    std::function<std::shared_ptr<const LinOpFactory>(
-        std::shared_ptr<const Executor>)>
-        preconditioner_generator;
+    deferred_factory_parameter<LinOpFactory> preconditioner_generator;
 };
 
 

@@ -136,61 +136,29 @@ public:
 
         [[deprecated("use with_l_solver instead")]] parameters_type&
         with_l_solver_factory(
-            std::shared_ptr<const typename l_solver_type::Factory> factory)
+            deferred_factory_parameter<typename l_solver_type::Factory> solver)
         {
-            return with_l_solver(std::move(factory));
+            return with_l_solver(std::move(solver));
         }
 
         parameters_type& with_l_solver(
-            std::shared_ptr<const typename l_solver_type::Factory> factory)
+            deferred_factory_parameter<typename l_solver_type::Factory> solver)
         {
-            this->l_solver_generator =
-                [factory](std::shared_ptr<const Executor>)
-                -> std::shared_ptr<const typename l_solver_type::Factory> {
-                return factory;
-            };
-            return *this;
-        }
-
-        template <typename SolverParameters,
-                  typename = decltype(std::declval<SolverParameters>().on(
-                      std::shared_ptr<const Executor>{}))>
-        parameters_type& with_l_solver(SolverParameters parameters)
-        {
-            this->l_solver_generator =
-                [parameters](std::shared_ptr<const Executor> exec)
-                -> std::shared_ptr<const typename l_solver_type::Factory> {
-                return parameters.on(exec);
-            };
+            this->l_solver_generator = std::move(solver);
             return *this;
         }
 
         [[deprecated("use with_factorization instead")]] parameters_type&
-        with_factorization_factory(std::shared_ptr<const LinOpFactory> factory)
+        with_factorization_factory(
+            deferred_factory_parameter<LinOpFactory> factorization)
         {
-            return with_factorization(std::move(factory));
+            return with_factorization(std::move(factorization));
         }
 
         parameters_type& with_factorization(
-            std::shared_ptr<const LinOpFactory> factory)
+            deferred_factory_parameter<LinOpFactory> factorization)
         {
-            this->factorization_generator =
-                [factory](std::shared_ptr<const Executor>)
-                -> std::shared_ptr<const LinOpFactory> { return factory; };
-            return *this;
-        }
-
-        template <
-            typename FactorizationParameters,
-            typename = decltype(std::declval<FactorizationParameters>().on(
-                std::shared_ptr<const Executor>{}))>
-        parameters_type& with_factorization(FactorizationParameters parameters)
-        {
-            this->factorization_generator =
-                [parameters](std::shared_ptr<const Executor> exec)
-                -> std::shared_ptr<const LinOpFactory> {
-                return parameters.on(exec);
-            };
+            this->factorization_generator = std::move(factorization);
             return *this;
         }
 
@@ -201,24 +169,21 @@ public:
         {
             auto parameters_copy = *this;
             if (l_solver_generator) {
-                parameters_copy.l_solver_factory = l_solver_generator(exec);
+                parameters_copy.l_solver_factory = l_solver_generator.on(exec);
             }
             if (factorization_generator) {
                 parameters_copy.factorization_factory =
-                    factorization_generator(exec);
+                    factorization_generator.on(exec);
             }
             return parameters_copy
                 .enable_parameters_type<parameters_type, Factory>::on(exec);
         }
 
     private:
-        std::function<std::shared_ptr<const typename l_solver_type::Factory>(
-            std::shared_ptr<const Executor>)>
+        deferred_factory_parameter<typename l_solver_type::Factory>
             l_solver_generator;
 
-        std::function<std::shared_ptr<const LinOpFactory>(
-            std::shared_ptr<const Executor>)>
-            factorization_generator;
+        deferred_factory_parameter<LinOpFactory> factorization_generator;
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ic, parameters, Factory);
