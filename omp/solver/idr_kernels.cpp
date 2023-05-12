@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
 namespace gko {
@@ -143,7 +144,6 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
                 array<stopping_status>* stop_status)
 {
-#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
     if (nrhs == 0) {
         return;
     }
@@ -178,11 +178,15 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
 
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
-#pragma omp parallel for reduction(add : dot)
-            for (size_type j = 0; j < num_cols; j++) {
-                dot += subspace_vectors->at(row, j) *
-                       conj(subspace_vectors->at(i, j));
-            }
+            run_kernel_reduction(
+                exec,
+                [](auto col, auto row1, auto row2, auto subspace_vectors) {
+                    return subspace_vectors(row1, col) *
+                           conj(subspace_vectors(row2, col));
+                },
+                GKO_KERNEL_REDUCE_SUM(ValueType), &dot, num_cols,
+                static_cast<int64>(row), static_cast<int64>(i),
+                subspace_vectors);
 #pragma omp parallel for
             for (size_type j = 0; j < num_cols; j++) {
                 subspace_vectors->at(row, j) -=
@@ -191,10 +195,13 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
         }
 
         auto norm = zero<remove_complex<ValueType>>();
-#pragma omp parallel for reduction(+ : norm)
-        for (size_type j = 0; j < num_cols; j++) {
-            norm += squared_norm(subspace_vectors->at(row, j));
-        }
+        run_kernel_reduction(
+            exec,
+            [](auto col, auto row, auto subspace_vectors) {
+                return squared_norm(subspace_vectors(row, col));
+            },
+            GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), &norm, num_cols,
+            static_cast<int64>(row), subspace_vectors);
 
         norm = sqrt(norm);
 

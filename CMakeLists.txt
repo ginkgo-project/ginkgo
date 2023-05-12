@@ -125,8 +125,6 @@ endif()
 # The math with optimization level -O2 doesn't follow IEEE standard, so we
 # enable that back as well.
 if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
-    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
-    set(GINKGO_BUILD_OMP OFF)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
 endif()
 
