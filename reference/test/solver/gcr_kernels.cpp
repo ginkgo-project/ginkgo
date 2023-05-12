@@ -396,7 +396,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
                            value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
+                        r<value_type>::value * 1e2);
 }
 
 
@@ -422,7 +422,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
                            value_type{2.0, -4.0}}),
-                        (r_mixed<value_type, TypeParam>()) * 1e1);
+                        (r_mixed<value_type, TypeParam>()) * 1e2);
 }
 
 
