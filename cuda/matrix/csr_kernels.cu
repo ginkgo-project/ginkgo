@@ -407,10 +407,9 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
         cusparse::destroy(vecc);
     } else {
 #if CUDA_VERSION >= 11060
-        if (b->get_size()[1] == 1 && exec->get_major_version() >= 7) {
+        if (b->get_size()[1] == 1) {
             // cusparseSpMM seems to take the single strided vector as column
-            // major without considering stride and row major (SM >= 70 and
-            // cuda 11.6)
+            // major without considering stride and row major (cuda 11.6)
             return false;
         }
 #endif  // CUDA_VERSION >= 11060
