@@ -105,7 +105,6 @@ __dpct_inline__ bool segment_scan(
         }
         add_val = group.shfl_down(add_val, i);
         if (group.thread_rank() < subgroup_size - i) {
-            //            *val += add_val;
             *val = op(*val, add_val);
         }
     }

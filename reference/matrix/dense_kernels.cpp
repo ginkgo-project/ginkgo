@@ -413,6 +413,7 @@ void fill_in_matrix_data(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
 
+
 template <typename ValueType>
 void compute_squared_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType>* x,

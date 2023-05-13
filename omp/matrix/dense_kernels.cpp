@@ -179,7 +179,6 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::bccoo::compression compress,
                     size_type* result) GKO_NOT_IMPLEMENTED;
 
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
 
 

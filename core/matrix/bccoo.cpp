@@ -89,7 +89,7 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(this->is_initialized);
+    GKO_ASSERT(this->is_initialized());
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -104,7 +104,7 @@ void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                              const LinOp* beta, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(this->is_initialized);
+    GKO_ASSERT(this->is_initialized());
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -119,7 +119,7 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(this->is_initialized);
+    GKO_ASSERT(this->is_initialized());
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -135,7 +135,7 @@ void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* alpha,
                                               const LinOp* b, LinOp* x) const
 {
     // This routine doesn't make sense for non initialized objects
-    GKO_ASSERT(this->is_initialized);
+    GKO_ASSERT(this->is_initialized());
 
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
@@ -513,7 +513,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         auto tmp =
             Bccoo::create(exec_master, data.size, std::move(chunk),
                           std::move(offsets), std::move(rows), nnz, block_size);
-        this->copy_from(std::move(tmp));
+        this->move_from(tmp);
     } else {
         // Creation of some components of Bccoo
         array<IndexType> rows(exec_master, num_blocks);
@@ -607,7 +607,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             Bccoo::create(exec_master, data.size, std::move(chunk),
                           std::move(offsets), std::move(types), std::move(cols),
                           std::move(rows), nnz, block_size);
-        this->copy_from(std::move(tmp));
+        this->move_from(tmp);
     }
 }
 
@@ -704,7 +704,7 @@ Bccoo<ValueType, IndexType>::extract_diagonal() const
             auto tmp = Diagonal<ValueType>::create(exec_master, diag_size);
             exec_master->run(
                 bccoo::make_extract_diagonal(host_bccoo.get(), lend(tmp)));
-            diag->copy_from(std::move(tmp));
+            diag->move_from(tmp);
         }
     }
     return diag;

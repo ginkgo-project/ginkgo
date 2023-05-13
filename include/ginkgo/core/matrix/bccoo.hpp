@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {
@@ -372,15 +373,10 @@ public:
      */
     bool is_initialized() const
     {
-        //        return (this->use_default_compression() != true &&
-        //        this->get_block_size() > 0;
         return (compression_ != bccoo::compression::def_value &&
                 block_size_ > 0);
     }
 
-    // TODO: It could be better to use
-    // TODO:        b = Bccoo * x + b
-    // TODO: It would be easier to understand
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -482,6 +478,7 @@ protected:
           block_size_{block_size},
           compression_{compression}
     {}
+
     /**
      * Creates an uninitialized BCCOO matrix of the specified sizes.
      *

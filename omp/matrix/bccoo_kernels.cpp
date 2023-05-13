@@ -81,7 +81,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 void get_default_compression(std::shared_ptr<const OmpExecutor> exec,
                              compression* compression)
 {
-    *compression = compression::element;
+    *compression = matrix::bccoo::compression::element;
 }
 
 

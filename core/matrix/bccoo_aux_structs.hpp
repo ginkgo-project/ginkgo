@@ -122,17 +122,18 @@ struct compr_blk_idxs {
           row_diff(0),
           col_diff(0),
           shf_row(idxs.shf),
-          shf_col(idxs.shf),
-          shf_val(idxs.shf),
           rows_cols(type_blk & type_mask_rows_cols)
     {
-        shf_col +=
+        shf_col =
+            idxs.shf +
             ((rows_cols & type_mask_rows_multiple)
                  ? ((rows_cols & type_mask_rows_16bits) ? sizeof(uint16) : 1) *
                        block_size
                  : 0);
-        shf_val = shf_col + block_size * ((rows_cols & type_mask_cols_8bits) ? 1
-                                          : (rows_cols & type_mask_cols_16bits)
+        shf_val =
+            shf_col + block_size * ((rows_cols & type_mask_cols_8bits)
+                                        ? 1
+                                        : (rows_cols & type_mask_cols_16bits)
                                               ? sizeof(uint16)
                                               : sizeof(uint32));
     }

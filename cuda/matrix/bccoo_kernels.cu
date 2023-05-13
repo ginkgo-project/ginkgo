@@ -100,7 +100,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 void get_default_compression(std::shared_ptr<const CudaExecutor> exec,
                              compression* compression)
 {
-    *compression = compression::block;
+    *compression = matrix::bccoo::compression::block;
 }
 
 

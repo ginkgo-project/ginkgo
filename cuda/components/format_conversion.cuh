@@ -81,10 +81,8 @@ namespace kernel {
  */
 template <typename IndexType>
 __global__ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
-                                         // size_type num_nonzeros,
                                          IndexType num_nonzeros,
                                          IndexType* __restrict__ ptrs,
-                                         // size_type length);
                                          IndexType length);
 
 
@@ -141,10 +139,8 @@ namespace kernel {
  */
 template <typename IndexType>
 __global__ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
-                                         // size_type num_nonzeros,
                                          IndexType num_nonzeros,
                                          IndexType* __restrict__ ptrs,
-                                         // size_type length);
                                          IndexType length);
 
 

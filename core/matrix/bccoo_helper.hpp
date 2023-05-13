@@ -584,27 +584,27 @@ inline void write_chunk_blk(compr_idxs<IndexType>& idxs_src,
     ValueType_res val_res;
     if (blk_idxs_src.is_multi_row()) {
         if (blk_idxs_src.is_row_16bits()) {
-            get_set_value_chunk_and_increment<uint16>(
-                chunk_data_res, idxs_res.shf, chunk_data_src, idxs_src.shf,
-                block_size_local_src);
+            copy_array_chunk_and_increment<uint16>(chunk_data_res, idxs_res.shf,
+                                                   chunk_data_src, idxs_src.shf,
+                                                   block_size_local_src);
         } else {
-            get_set_value_chunk_and_increment<uint8>(
-                chunk_data_res, idxs_res.shf, chunk_data_src, idxs_src.shf,
-                block_size_local_src);
+            copy_array_chunk_and_increment<uint8>(chunk_data_res, idxs_res.shf,
+                                                  chunk_data_src, idxs_src.shf,
+                                                  block_size_local_src);
         }
     }
     if (blk_idxs_src.is_column_8bits()) {
-        get_set_value_chunk_and_increment<uint8>(chunk_data_res, idxs_res.shf,
-                                                 chunk_data_src, idxs_src.shf,
-                                                 block_size_local_src);
+        copy_array_chunk_and_increment<uint8>(chunk_data_res, idxs_res.shf,
+                                              chunk_data_src, idxs_src.shf,
+                                              block_size_local_src);
     } else if (blk_idxs_src.is_column_16bits()) {
-        get_set_value_chunk_and_increment<uint16>(chunk_data_res, idxs_res.shf,
-                                                  chunk_data_src, idxs_src.shf,
-                                                  block_size_local_src);
+        copy_array_chunk_and_increment<uint16>(chunk_data_res, idxs_res.shf,
+                                               chunk_data_src, idxs_src.shf,
+                                               block_size_local_src);
     } else {
-        get_set_value_chunk_and_increment<uint32>(chunk_data_res, idxs_res.shf,
-                                                  chunk_data_src, idxs_src.shf,
-                                                  block_size_local_src);
+        copy_array_chunk_and_increment<uint32>(chunk_data_res, idxs_res.shf,
+                                               chunk_data_src, idxs_src.shf,
+                                               block_size_local_src);
     }
     if (true) {
         for (IndexType i = 0; i < block_size_local_res; i++) {
