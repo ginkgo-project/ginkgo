@@ -171,7 +171,10 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectSize)
 TYPED_TEST(MatrixGenerator, OutputHasCorrectNonzeroAverageAndDeviation)
 {
     using T = typename TestFixture::value_type;
-    // the nonzeros only needs to check the real part
+    // this test only tests integer distributions, so only test real types
+    if (gko::is_complex<T>()) {
+        GTEST_SKIP();
+    }
     this->template check_average_and_deviation<T>(
         begin(this->nnz_per_row_sample), end(this->nnz_per_row_sample), 50.0,
         5.0, [](T val) { return gko::real(val); });
