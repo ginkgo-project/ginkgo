@@ -298,7 +298,7 @@ void abstract_spmv(
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     using output_type = typename output_accessor::storage_type;
-    const arithmetic_type scale_factor = alpha[0];
+    const arithmetic_type scale_factor = static_cast<arithmetic_type>(alpha[0]);
     spmv_kernel(
         nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
         [&scale_factor](const arithmetic_type& x) {
@@ -513,8 +513,8 @@ void abstract_merge_path_spmv(
     sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const type alpha_val = static_cast<type>(alpha[0]);
+    const type beta_val = static_cast<type>(beta[0]);
     merge_path_spmv<items_per_thread>(
         num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
         [&alpha_val](const type& x) { return alpha_val * x; },
@@ -605,7 +605,7 @@ void abstract_reduce(
     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
     uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
-    const arithmetic_type alpha_val = alpha[0];
+    const arithmetic_type alpha_val = static_cast<arithmetic_type>(alpha[0]);
     merge_path_reduce(
         nwarps, last_val, last_row, c,
         [&alpha_val](const arithmetic_type& x) { return alpha_val * x; },
@@ -705,13 +705,13 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, val, col_idxs, row_ptrs, b,
-                                         c, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
+                });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -736,8 +736,8 @@ void abstract_classical_spmv(
     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const type alpha_val = static_cast<type>(alpha[0]);
+    const type beta_val = static_cast<type>(beta[0]);
     device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
@@ -759,13 +759,14 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, alpha, val, col_idxs,
-                                         row_ptrs, b, beta, c, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c,
+                        item_ct1);
+                });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -1347,7 +1348,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if constexpr (onemkl::is_supported<ValueType>::value &&
+        if constexpr (onemkl::is_supported<MatrixValueType>::value &&
                       std::is_same<MatrixValueType, InputValueType>::value &&
                       std::is_same<MatrixValueType, OutputValueType>::value) {
             oneapi::mkl::sparse::matrix_handle_t mat_handle;
@@ -1409,7 +1410,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if constexpr (onemkl::is_supported<ValueType>::value &&
+        if constexpr (onemkl::is_supported<MatrixValueType>::value &&
                       std::is_same<MatrixValueType, InputValueType>::value &&
                       std::is_same<MatrixValueType, OutputValueType>::value) {
             oneapi::mkl::sparse::matrix_handle_t mat_handle;

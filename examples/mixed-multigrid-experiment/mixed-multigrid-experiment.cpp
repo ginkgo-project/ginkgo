@@ -782,7 +782,7 @@ int main(int argc, char* argv[])
     }
 
     int warmup = 2;
-    int rep = 3;
+    int rep = 5;
     if (mg_mode == "preconditioner") {
         rep = 10;
     }
