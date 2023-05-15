@@ -59,6 +59,26 @@ __device__ __forceinline__ void set_possible_fill_in_zero_in_U_part(
     }
 }
 
+template <typename ValueType>
+__device__ __forceinline__ void set_possible_fill_in_zero_in_U_part(
+    const int N, const int KL, const int KU,
+    ValueType* const __restrict__ AB_array_entry)
+{
+    const int KV = KL + KU;
+    const int AB_nrows = 2 * KL + KU + 1;
+
+    // set all fill-in elements: zero
+    // col: 0,1,2,..., KU : no fill-in possible in U part
+
+    for (int AB_col_idx = KU + 1; AB_col_idx <= N - 1; AB_col_idx++) {
+        for (int AB_row_idx = KL - 1 - threadIdx.x;
+             AB_row_idx >= max(0, KV - AB_col_idx); AB_row_idx -= blockDim.x) {
+            AB_array_entry[AB_row_idx + AB_nrows * AB_col_idx] =
+                zero<ValueType>();  // coalesced accesses
+        }
+    }
+}
+
 
 template <typename ValueType>
 __device__ __forceinline__ int naive_find_pivot_row_index(
@@ -230,7 +250,7 @@ __device__ __forceinline__ void factorize_band(
 
     // write zeroes into the possible fill-in U part
     common_band_factorization::set_possible_fill_in_zero_in_U_part(
-        subwarp_grp, N, KL, KU, AB_array_entry);
+        N, KL, KU, AB_array_entry);
     __syncthreads();
 
     int A_affected_col_idx_last = 0;

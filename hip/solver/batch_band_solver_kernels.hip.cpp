@@ -74,12 +74,11 @@ int inline get_thread_block_size_unblocked_banded(const int nrows)
         return 128;
     } else if (nrows <= 200) {
         return 256;
-    } else if (nrows <= 300) {
-        return 512;
     } else {
-        return 512;  // 1024 - works for a few cases // otherwise too many
-                     // reources requested on launch error
+        return 512;
     }
+    // too many resources requested on launch -
+    //  error for 1024 block size
 }
 
 int inline get_thread_block_size_blocked_banded(const int nrows)
@@ -91,10 +90,10 @@ int inline get_thread_block_size_blocked_banded(const int nrows)
     } else if (nrows <= 400) {
         return 256;
     } else {
-        return 512;  // otherwise too many reources requested on launch error
+        return 512;  // too many reources requested on launch - error for block
+                     // size 1024
     }
 }
-
 
 // include all depedencies (note: do not remove this comment)
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
