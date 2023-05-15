@@ -202,8 +202,8 @@ int main(int argc, char* argv[])
 
     std::vector<gko::matrix_data<value_type>> data;
     A->write(data);
-    auto A_csr = gko::share(batch_csr::create(exec));
-    A_csr->read(data);
+    //  auto A_csr = gko::share(batch_csr::create(exec));
+    //  A_csr->read(data);
 
     // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
@@ -231,12 +231,12 @@ int main(int argc, char* argv[])
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
 
-    auto solver_dense_direct_gen =
-        gko::solver::BatchDirect<value_type>::build().on(exec);
-    auto solver_dense_direct = solver_dense_direct_gen->generate(A_csr);
+    // auto solver_dense_direct_gen =
+    //     gko::solver::BatchDirect<value_type>::build().on(exec);
+    // auto solver_dense_direct = solver_dense_direct_gen->generate(A_csr);
 
-    const int num_rounds = 10;
-    const int leave_first = 2;
+    const int num_rounds = 1;
+    const int leave_first = 1;
 
     for (int i = 0; i < leave_first; i++) {
         // Solve the batch system
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
     std::cout << "\nThe entire solve took " << av_time_millisec
               << " milliseconds." << std::endl;
 
-
+    /*
     {
         for (int i = 0; i < leave_first; i++) {
             // Solve the batch system
@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
                       << std::endl;
         }
     }
-
+    */
     std::ofstream timings_file;
     timings_file.open(log_file, std::ofstream::app);
     timings_file << num_systems << "  " << av_time_millisec << " \n";

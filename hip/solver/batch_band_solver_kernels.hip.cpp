@@ -144,11 +144,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 block(get_thread_block_size_unblocked_banded(nrows));
         dim3 grid(nbatch);
 
+        // TODO: Find optimal subwarp size
         hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(band_solver_unblocked_kernel<config::warp_size>),
-            grid, block, shared_size, 0, nbatch, nrows, KL, KU,
-            as_hip_type(band_arr), as_hip_type(b->get_const_values()),
-            as_hip_type(x->get_values()));
+            HIP_KERNEL_NAME(band_solver_unblocked_kernel<8>), grid, block,
+            shared_size, 0, nbatch, nrows, KL, KU, as_hip_type(band_arr),
+            as_hip_type(b->get_const_values()), as_hip_type(x->get_values()));
 
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
         shared_size +=

@@ -37,7 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
 
@@ -133,13 +135,9 @@ protected:
         using real_type = remove_complex<ValueType>;
 
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-        const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
-        if (!acsr) {
-            GKO_NOT_SUPPORTED(system_matrix_);
-        }
 
-        const size_type num_batches = acsr->get_num_batch_entries();
-        const int num_rows = acsr->get_size().at()[0];
+        const size_type num_batches = system_matrix_->get_num_batch_entries();
+        const int num_rows = system_matrix_->get_size().at()[0];
 
         const bool to_scale =
             parameters_.left_scaling_op && parameters_.right_scaling_op;
@@ -148,7 +146,23 @@ protected:
             exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows))));
         std::shared_ptr<BDense> a1 = BDense::create(
             exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
-        acsr->convert_to(a1.get());
+
+        if (const auto amat =
+                dynamic_cast<const matrix::BatchCsr<ValueType, int32>*>(
+                    system_matrix_.get())) {
+            amat->convert_to(a1.get());
+        } else if (const auto amat =
+                       dynamic_cast<const matrix::BatchEll<ValueType, int32>*>(
+                           system_matrix_.get())) {
+            amat->convert_to(a1.get());
+        } else if (const auto amat =
+                       dynamic_cast<const matrix::BatchDense<ValueType>*>(
+                           system_matrix_.get())) {
+            amat->convert_to(a1.get());
+        } else {
+            GKO_NOT_SUPPORTED(system_matrix_.get());
+        }
+
         gko::as<BDense>(a1->transpose())->move_to(dense_system_matrix_.get());
 
         workspace_dense_matrix_ =

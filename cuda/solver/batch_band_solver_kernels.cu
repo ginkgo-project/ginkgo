@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_band_solver_kernels.hpp"
 
-#include <chrono>
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include "core/matrix/batch_struct.hpp"
@@ -56,7 +55,8 @@ __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
 {
     const int band_nrows = 2 * KL + KU + 1;
     const size_type storage_in_bytes = band_nrows * N * sizeof(ValueType);
-    if (storage_in_bytes <= 20000) {
+    if (storage_in_bytes <= 20000)  // TODO: Find an optimal value
+    {
         return true;
     } else {
         return false;
@@ -135,9 +135,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             (band_mat->get_num_stored_elements() / nbatch) * sizeof(ValueType);
     }
 
-    auto start = std::chrono::high_resolution_clock::now();
-
-
     if (approach == gko::solver::batch_band_solve_approach::unblocked ||
         (approach == gko::solver::batch_band_solve_approach::blocked &&
          blocked_solve_panel_size > KL)) {
@@ -149,11 +146,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 block(get_thread_block_size_unblocked_banded(nrows));
         dim3 grid(nbatch);
 
-        band_solver_unblocked_kernel<config::warp_size>
-            <<<grid, block, shared_size>>>(nbatch, nrows, KL, KU,
-                                           as_cuda_type(band_arr),
-                                           as_cuda_type(b->get_const_values()),
-                                           as_cuda_type(x->get_values()));
+        band_solver_unblocked_kernel<8><<<grid, block, shared_size>>>(
+            nbatch, nrows, KL, KU, as_cuda_type(band_arr),
+            as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()));
 
     } else if (approach == gko::solver::batch_band_solve_approach::blocked) {
         shared_size +=
@@ -174,21 +169,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
-
-    exec->synchronize();
-    auto stop = std::chrono::high_resolution_clock::now();
-
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-
-    double total_time_millisec =
-        (double)(std::chrono::duration_cast<std::chrono::microseconds>(stop -
-                                                                       start))
-            .count() /
-        (double)1000;
-
-    std::cout << "\nThe entire internal solve took " << total_time_millisec
-              << " milliseconds." << std::endl;
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }

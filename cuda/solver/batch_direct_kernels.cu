@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_direct_kernels.hpp"
 
 
-#include <chrono>
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/components/thread_ids.cuh"
@@ -104,8 +103,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(matrices), nrhs, b_stride, as_cuda_type(b_t->get_values()),
         as_cuda_type(vectors));
 
-    auto start = std::chrono::high_resolution_clock::now();
-
     auto handle = exec->get_cublas_handle();
     cublas::batch_getrf(handle, n, matrices, lda, pivot_array, info_array,
                         nbatch);
@@ -126,22 +123,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 #if (CUDA_VERSION >= 11040)
     exec->synchronize();
 #endif
-
-    exec->synchronize();
-    auto stop = std::chrono::high_resolution_clock::now();
-
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-
-    double total_time_millisec =
-        (double)(std::chrono::duration_cast<std::chrono::microseconds>(stop -
-                                                                       start))
-            .count() /
-        (double)1000;
-
-    std::cout << "\nThe entire dense direct internal solve took "
-              << total_time_millisec << " milliseconds." << std::endl;
-
 
     exec->free(matrices);
     exec->free(vectors);
