@@ -139,33 +139,47 @@ void BatchBandSolver<ValueType>::apply_impl(const BatchLinOp* b,
     auto KL = system_matrix_banded_ptr->get_num_subdiagonals().at(0);
     auto KU = system_matrix_banded_ptr->get_num_superdiagonals().at(0);
 
-    // if (KL == 0 && KU == 0) {
-    //     // TODO: lightweight implementation - batch diagonal solve
-    //     GKO_NOT_IMPLEMENTED;
-    // } else if (KL <= 1 && KU <= 1) {
-    //     // call batch tridiagonal solver
-    //     auto sys_mat_tridiag =
-    //         gko::share(gko::matrix::BatchTridiagonal<ValueType>::create(exec));
-    //     as<ConvertibleTo<gko::matrix::BatchTridiagonal<ValueType>>>(
-    //         this->system_matrix_.get())
-    //         ->convert_to(
-    //             sys_mat_tridiag.get());  // TODO: Implement batch band to
-    //             batch
-    //                                      // tridiagonal conversion function
+// Both the branches work, but the "if" branch might be faster for the case of
+// diagonal and tridiagonal systems.
+#if 0
+   
+    if (KL == 0 && KU == 0) {
+        // TODO: lightweight implementation - batch diagonal solve
+        GKO_NOT_IMPLEMENTED;
+    } else if (KL <= 1 && KU <= 1) {
+        // call batch tridiagonal solver
+        auto sys_mat_tridiag =
+            gko::share(gko::matrix::BatchTridiagonal<ValueType>::create(exec));
+        as<ConvertibleTo<gko::matrix::BatchTridiagonal<ValueType>>>(
+            this->system_matrix_.get())
+            ->convert_to(
+                sys_mat_tridiag.get());  
+                // TODO: Implement batch band to batch tridiagonal conversion function 
+                // (and maybe move the conversion into the solver generate step)
 
-    //     auto tridiag_solver_factory =
-    //         gko::solver::BatchTridiagonalSolver<ValueType>::build().on(exec);
-    //     auto tridiag_solver =
-    //     tridiag_solver_factory->generate(sys_mat_tridiag);
-    //     tridiag_solver->apply(b_scaled_ptr, dense_x);
-    // } else {
+        auto tridiag_solver_factory =
+            gko::solver::BatchTridiagonalSolver<ValueType>::build().on(exec);
+        auto tridiag_solver =
+        tridiag_solver_factory->generate(sys_mat_tridiag);
+        tridiag_solver->apply(b_scaled_ptr, dense_x);
+    }
+    else {
     exec->run(batch_band_solver::make_apply(
         system_matrix_banded_ptr, b_scaled_ptr, dense_x,
         this->workspace_.get_num_elems(), this->workspace_.get_data(),
         parameters_.batch_band_solution_approach,
         parameters_.blocked_solve_panel_size));
-    //}
+    }
 
+#else
+
+    exec->run(batch_band_solver::make_apply(
+        system_matrix_banded_ptr, b_scaled_ptr, dense_x,
+        this->workspace_.get_num_elems(), this->workspace_.get_data(),
+        parameters_.batch_band_solution_approach,
+        parameters_.blocked_solve_panel_size));
+
+#endif
 
     if (to_scale) {
         as<const BDiag>(this->parameters_.right_scaling_op)

@@ -128,6 +128,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     int shared_size = 0;
     if (is_matrix_in_shared_mem<ValueType>(
             nrows, KL, KU)) {  // TODO: Avoid extra workspace copy in this case
+        // So either have a kernel prototype that accepts const band array
+        // pointer or use const cast.
         shared_size +=
             (band_mat->get_num_stored_elements() / nbatch) * sizeof(ValueType);
     }

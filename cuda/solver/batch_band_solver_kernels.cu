@@ -125,19 +125,12 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(band_mat->get_num_stored_elements(),
                band_mat->get_const_band_array(), band_arr);
 
-    // int shared_size = 0;
-    // if (is_matrix_in_shared_mem(nrows)) {
-    //     band_arr = band_mat->get_const_band_array();
-    //     shared_size += band_mat->get_num_stored_elements();
-    // } else {
-    //     band_arr = workspace_ptr;
-    //     exec->copy(band_mat->get_num_stored_elements(),
-    //                band_mat->get_const_band_array(), band_arr);
-    // }
-
     int shared_size = 0;
     if (is_matrix_in_shared_mem<ValueType>(
-            nrows, KL, KU)) {  // TODO: Avoid extra workspace copy in this case
+            nrows, KL,
+            KU)) {  // TODO: Avoid the unnecessary workspace copy in this case:
+                    // So either have a kernel prototype which accepts const
+                    // band array pointer or use const cast.
         shared_size +=
             (band_mat->get_num_stored_elements() / nbatch) * sizeof(ValueType);
     }
