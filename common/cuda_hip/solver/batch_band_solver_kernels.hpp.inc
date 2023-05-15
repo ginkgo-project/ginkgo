@@ -1031,28 +1031,39 @@ __global__ void band_solver_unblocked_kernel(const size_type nbatch,
     for (int batch_idx = blockIdx.x; batch_idx < nbatch;
          batch_idx += gridDim.x) {
         extern __shared__ char local_mem_sh[];
+
+        char* shared_mem_pointer = local_mem_sh;
+
         ValueType* const __restrict__ x_sh_entry =
-            reinterpret_cast<ValueType*>(local_mem_sh);
+            reinterpret_cast<ValueType*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(x_sh_entry + N);
+
         ValueType* const __restrict__ temp_sh_entry =
             reinterpret_cast<ValueType*>(
-                x_sh_entry + N);  // Will reuse this for vector y in trsv
-        int* const __restrict__ ipiv_sh_entry =
-            reinterpret_cast<int*>(temp_sh_entry + N);
-
-        const ValueType* const __restrict__ b_global_entry =
-            gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
-        ValueType* const __restrict__ x_global_entry =
-            gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
+                shared_mem_pointer);  // Will reuse this for vector y in trsv
+        shared_mem_pointer = reinterpret_cast<char*>(temp_sh_entry + N);
 
         ValueType* __restrict__ AB_array_entry;
         if (is_matrix_in_shared_mem<ValueType>(N, KL, KU)) {
-            AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
+            AB_array_entry = reinterpret_cast<ValueType*>(shared_mem_pointer);
+            shared_mem_pointer =
+                reinterpret_cast<char*>(AB_array_entry + N * AB_nrows);
             single_copy(N * AB_nrows,
                         batch_band_array + batch_idx * (N * AB_nrows),
                         AB_array_entry);
         } else {
             AB_array_entry = batch_band_array + batch_idx * (N * AB_nrows);
         }
+
+        int* const __restrict__ ipiv_sh_entry =
+            reinterpret_cast<int*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(ipiv_sh_entry + N);
+
+        const ValueType* const __restrict__ b_global_entry =
+            gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
+        ValueType* const __restrict__ x_global_entry =
+            gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
+
         __syncthreads();
 
         unblocked_LU_band_factorization::factorize_band(
@@ -1088,31 +1099,46 @@ __global__ void band_solver_blocked_kernel(const size_type nbatch, const int N,
     for (int batch_idx = blockIdx.x; batch_idx < nbatch;
          batch_idx += gridDim.x) {
         extern __shared__ char local_mem_sh[];
+        char* shared_mem_pointer = local_mem_sh;
+
         ValueType* const __restrict__ x_sh_entry =
-            reinterpret_cast<ValueType*>(local_mem_sh);
+            reinterpret_cast<ValueType*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(x_sh_entry + N);
+
         ValueType* const __restrict__ temp_sh_entry =
-            x_sh_entry + N;  // Will reuse this for vector y in trsv
+            reinterpret_cast<ValueType*>(
+                shared_mem_pointer);  // Will reuse this for vector y in trsv
+        shared_mem_pointer = reinterpret_cast<char*>(temp_sh_entry + N);
 
-        ValueType* const __restrict__ work02_sh_entry = temp_sh_entry + N;
+        ValueType* const __restrict__ work02_sh_entry =
+            reinterpret_cast<ValueType*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(work02_sh_entry + NB * NB);
+
         ValueType* const __restrict__ work20_sh_entry =
-            work02_sh_entry + NB * NB;
-        int* const __restrict__ ipiv_sh_entry =
-            reinterpret_cast<int*>(work20_sh_entry + NB * NB);
-
-        const ValueType* const __restrict__ b_global_entry =
-            gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
-        ValueType* const __restrict__ x_global_entry =
-            gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
+            reinterpret_cast<ValueType*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(work20_sh_entry + NB * NB);
 
         ValueType* __restrict__ AB_array_entry;
         if (is_matrix_in_shared_mem<ValueType>(N, KL, KU)) {
-            AB_array_entry = reinterpret_cast<ValueType*>(ipiv_sh_entry + N);
+            AB_array_entry = reinterpret_cast<ValueType*>(shared_mem_pointer);
+            shared_mem_pointer =
+                reinterpret_cast<char*>(AB_array_entry + N * AB_nrows);
             single_copy(N * AB_nrows,
                         batch_band_array + batch_idx * (N * AB_nrows),
                         AB_array_entry);
         } else {
             AB_array_entry = batch_band_array + batch_idx * (N * AB_nrows);
         }
+
+        int* const __restrict__ ipiv_sh_entry =
+            reinterpret_cast<int*>(shared_mem_pointer);
+        shared_mem_pointer = reinterpret_cast<char*>(ipiv_sh_entry + N);
+
+        const ValueType* const __restrict__ b_global_entry =
+            gko::batch::batch_entry_ptr(b, 1, N, batch_idx);
+        ValueType* const __restrict__ x_global_entry =
+            gko::batch::batch_entry_ptr(x, 1, N, batch_idx);
+
         __syncthreads();
 
         blocked_LU_band_factorization::factorize_band<subwarp_size>(
