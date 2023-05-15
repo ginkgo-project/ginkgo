@@ -640,6 +640,46 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
+template <size_type subgroup_size, typename AccessType, typename input_accessor,
+          typename output_accessor, typename IndexType, typename Closure>
+void device_classical_spmv(
+    const size_type num_rows,
+    acc::range<acc::reduced_row_major<1u, AccessType, const __half>> val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, Closure scale, sycl::nd_item<3> item_ct1)
+{
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    auto subgroup_tile = group::tiled_partition<subgroup_size>(
+        group::this_thread_block(item_ct1));
+    const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1);
+    const auto subid = subgroup_tile.thread_rank() * 2;
+    const auto column_id = item_ct1.get_group(1);
+    auto row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
+    for (; row < num_rows; row += subrow) {
+        const auto ind_end = row_ptrs[row + 1];
+        auto temp_val = zero<arithmetic_type>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subgroup_size * 2) {
+            temp_val += val(ind) * b(col_idxs[ind], column_id);
+            if (ind + 1 < ind_end) {
+                temp_val += val(ind + 1) * b(col_idxs[ind + 1], column_id);
+            }
+        }
+        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+            subgroup_tile, temp_val,
+            [](const arithmetic_type& a, const arithmetic_type& b) {
+                return a + b;
+            });
+        // TODO: check the barrier
+        subgroup_tile.sync();
+        if (subid == 0) {
+            c(row, column_id) = scale(subgroup_result, c(row, column_id));
+        }
+    }
+}
+
+
 template <size_type subgroup_size, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType,
           typename Closure>
@@ -705,13 +745,13 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, val, col_idxs, row_ptrs, b,
+                                         c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -759,14 +799,13 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c,
-                        item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, alpha, val, col_idxs,
+                                         row_ptrs, b, beta, c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -1339,6 +1378,10 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
         // using average
         max_length_per_row = a->get_num_stored_elements() / a->get_size()[0];
+        if (std::is_same<MatrixValueType, gko::half>::value) {
+            // we process two elements in one threads
+            max_length_per_row /= 2;
+        }
         max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
@@ -1460,6 +1503,10 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
         // using average
         max_length_per_row = a->get_num_stored_elements() / a->get_size()[0];
+        if (std::is_same<MatrixValueType, gko::half>::value) {
+            // we process two elements in one threads
+            max_length_per_row /= 2;
+        }
         max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),

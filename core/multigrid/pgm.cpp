@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/pgm_kernels.hpp"
 
 #define UseCsr 0
+#define RemoveZero 0
 namespace gko {
 namespace multigrid {
 namespace pgm {
@@ -142,6 +143,12 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     auto scalar = initialize<matrix::Dense<ValueType>>(
         {static_cast<ValueType>(scalar_val)}, exec);
     coarse_csr->scale(scalar.get());
+#if RemoveZero
+    gko::matrix_data<ValueType, IndexType> data;
+    coarse_csr->write(data);
+    data.remove_zeros();
+    coarse_csr->read(data);
+#endif
     return std::move(coarse_csr);
 }
 
