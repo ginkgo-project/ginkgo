@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/pgm_kernels.hpp"
 
 #define UseCsr 0
-#define RemoveZero 0
+#define RemoveZero 1
 namespace gko {
 namespace multigrid {
 namespace pgm {
@@ -143,12 +143,6 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     auto scalar = initialize<matrix::Dense<ValueType>>(
         {static_cast<ValueType>(scalar_val)}, exec);
     coarse_csr->scale(scalar.get());
-#if RemoveZero
-    gko::matrix_data<ValueType, IndexType> data;
-    coarse_csr->write(data);
-    data.remove_zeros();
-    coarse_csr->read(data);
-#endif
     return std::move(coarse_csr);
 }
 
@@ -191,6 +185,18 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
             convert_to_with_sorting<fine_csr_type>(exec, pgm_op, true);
         this->set_fine_op(op);
     }
+#if RemoveZero
+    {
+        auto tmp = this->get_fine_op();
+        gko::matrix_data<ValueType, IndexType> data;
+        as<fine_csr_type>(tmp)->write(data);
+        data.remove_zeros();
+        auto new_tmp = share(fine_csr_type::create(
+            exec, std::make_shared<typename fine_csr_type::classical>()));
+        new_tmp->read(data);
+        this->set_fine_op(new_tmp);
+    }
+#endif
     // Initial agg = -1
     exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                    -one<IndexType>()));
@@ -283,6 +289,14 @@ void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
         std::make_shared<
             typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
     coarse_matrix->copy_from(working_coarse_matrix.get());
+#if RemoveZero
+    {
+        gko::matrix_data<ValueType, IndexType> data;
+        coarse_matrix->write(data);
+        data.remove_zeros();
+        coarse_matrix->read(data);
+    }
+#endif
     this->set_multigrid_level(prolong_mtx, coarse_matrix, restrict_mtx);
     //   after coarse setting
     this->set_working_coarse_op(working_coarse_matrix);
