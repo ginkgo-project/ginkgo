@@ -74,6 +74,12 @@ namespace detail {
 template <typename MemorySpace, typename ValueType, typename Closure,
           typename... Args>
 struct kokkos_operator {
+    static_assert(
+        std::is_same_v<MemorySpace,
+                       typename Kokkos::DefaultExecutionSpace::memory_space>,
+        "Kokkos extension only supports the default memory space at the "
+        "moment.");
+
     using value_type = ValueType;
     using tuple_type = std::tuple<decltype(map_data(
         std::declval<Args>(), std::declval<MemorySpace>()))...>;
@@ -119,8 +125,8 @@ make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I>...)
 
 template <typename MemorySpace, typename Closure, typename... Args,
           typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
-[[deprecated]] detail::kokkos_operator<MemorySpace, void, Closure, Args...>
-make_operator(MemorySpace, Closure&& cl, Args&&... args)
+detail::kokkos_operator<MemorySpace, void, Closure, Args...> make_operator(
+    MemorySpace, Closure&& cl, Args&&... args)
 {
     return {std::forward<Closure>(cl), std::forward<Args>(args)...};
 }
