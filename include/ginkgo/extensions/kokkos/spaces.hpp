@@ -42,7 +42,7 @@ struct native_execution_space<gko::CudaExecutor> {
 #endif
 #ifdef KOKKOS_ENABLE_HIP
 template <>
-struct native_execution_space<gko::HipError> {
+struct native_execution_space<gko::HipExecutor> {
     using type = Kokkos::HIP;
 };
 #endif
@@ -77,7 +77,7 @@ struct native_memory_space<gko::CudaExecutor> {
 #endif
 #ifdef KOKKOS_ENABLE_HIP
 template <>
-struct native_memory_space<gko::HipError> {
+struct native_memory_space<gko::HipExecutor> {
     using type = Kokkos::HIPSpace;
 };
 #endif
