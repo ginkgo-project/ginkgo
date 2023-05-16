@@ -227,7 +227,6 @@ protected:
         auto num_rows = system_matrix->get_size()[0];
         array<IndexType> permutation_array{exec, perm_ptr, perm_ptr + num_rows};
         this->set_permutation_array(permutation_array);
-        std::cout << this->get_permutation_array().get_num_elems() << std::endl;
         // Copy back results to original executor if necessary.
         if (ref != exec) {
             auto perm = share(PermutationMatrix::create(exec, dim));

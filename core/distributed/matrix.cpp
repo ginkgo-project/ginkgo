@@ -202,17 +202,21 @@ inline void communicate_overlap(
     auto send_buffer = build_send_buffer(exec, comm, data, partition);
 
     // build send pattern
-    auto [send_sizes, send_offsets] =
+    std::vector<comm_index_type> send_sizes, send_offsets;
+    std::tie(send_sizes, send_offsets) =
         build_send_pattern<ValueType, LocalIndexType, GlobalIndexType>(
             send_buffer, partition);
 
     // build receive pattern
-    auto [recv_sizes, recv_offsets] =
+    std::vector<comm_index_type> recv_sizes, recv_offsets;
+    std::tie(recv_sizes, recv_offsets) =
         build_receive_pattern<LocalIndexType, GlobalIndexType>(
             exec, comm, send_sizes, partition);
 
     // split nonzero entries into buffers
-    auto [send_row, send_col, send_val] =
+    std::vector<GlobalIndexType> send_row, send_col;
+    std::vector<ValueType> send_val;
+    std::tie(send_row, send_col, send_val) =
         split_nonzero_entries<ValueType, GlobalIndexType>(send_buffer);
 
     // communicate buffers

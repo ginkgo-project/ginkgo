@@ -241,15 +241,19 @@ inline void communicate_overlap(
     auto send_buffer = build_send_buffer(exec, comm, data, partition);
 
     // build send pattern
-    auto [send_sizes, send_offsets] =
+    std::vector<comm_index_type> send_sizes, send_offsets;
+    std::tie(send_sizes, send_offsets) =
         build_send_pattern<ValueType, IndexType>(send_buffer, partition);
 
     // build receive pattern
-    auto [recv_sizes, recv_offsets] =
+    std::vector<comm_index_type> recv_sizes, recv_offsets;
+    std::tie(recv_sizes, recv_offsets) =
         build_receive_pattern<IndexType>(exec, comm, send_sizes, partition);
 
     // split nonzero entries into buffers
-    auto [send_row, send_col, send_val] =
+    std::vector<IndexType> send_row, send_col;
+    std::vector<ValueType> send_val;
+    std::tie(send_row, send_col, send_val) =
         split_nonzero_entries<ValueType, IndexType>(send_buffer);
 
     // communicate buffers
@@ -521,10 +525,13 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         local_idx_to_send_buffer.emplace_back(std::get<1>(send_pattern[i]));
     }
 
-    auto [send_sizes, send_offsets] =
+    std::vector<comm_index_type> send_sizes, send_offsets;
+    std::tie(send_sizes, send_offsets) =
         build_send_pattern<ValueType, IndexType>(send_pattern, partition);
-    auto [recv_sizes, recv_offsets] =
-        build_receive_pattern<IndexType>(host, comm, send_sizes, partition);
+
+    std::vector<comm_index_type> recv_sizes, recv_offsets;
+    std::tie(recv_sizes, recv_offsets) =
+        build_receive_pattern<IndexType>(exec, comm, send_sizes, partition);
 
     std::vector<IndexType> send_buffer(send_pattern.size());
     std::vector<IndexType> global_idxs(recv_offsets.back());
@@ -620,29 +627,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         inner_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
 
-    /*matrix_data<ValueType, IndexType> outer_data{
-        dim<2>{outer_idxs.size(), outer_idxs.size()}};
-    i = 0;
-    idx = 0;
-    nnz = mat_data.nonzeros[idx];
-    while (i < outer_idxs.size()) {
-        while (nnz.row < outer_idxs[i]) {
-            idx++;
-            nnz = mat_data.nonzeros[idx];
-        }
-        while (nnz.row == outer_idxs[i] && idx < mat_data.nonzeros.size()) {
-            auto found =
-                std::find(outer_idxs.begin(), outer_idxs.end(), nnz.column);
-            if (found != outer_idxs.end()) {
-                auto j = std::distance(outer_idxs.begin(), found);
-                outer_data.nonzeros.emplace_back(i, j, nnz.value);
-            }
-            idx++;
-            nnz = mat_data.nonzeros[idx];
-        }
-        i++;
-    }*/
-
     for (auto interface = 0; interface < num_interfaces; interface++) {
         IndexType interface_size =
             interface_dofs_[interfaces_[interface]].size();
@@ -651,7 +635,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                 local_rows.begin(),
                 std::find(local_rows.begin(), local_rows.end(),
                           interface_dofs_[interfaces_[interface]][dof]));
-            auto val = one<ValueType>() / ValueType{interface_size};
+            auto val = one<ValueType>() / ValueType(interface_size);
             auto i = local_rows.size() + interface;
             local_data.nonzeros.emplace_back(i, j, val);
             local_data.nonzeros.emplace_back(j, i, val);
@@ -715,7 +699,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         for (auto idx = start; idx < stop; idx++) {
             weights_v[col_idxs[idx]] =
                 one<ValueType>() /
-                ValueType{interface_dof_ranks_[interfaces_[interface]].size()};
+                ValueType(interface_dof_ranks_[interfaces_[interface]].size());
         }
     }
     local_system_matrix_->copy_from(host_local_system_matrix.get());
@@ -1100,6 +1084,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 
     auto part = global_system_matrix_->get_row_partition();
     restrict_residual(dense_b);
+
     coarsen_residual();
     coarse_solver_->apply(coarse_residual_.get(), coarse_solution_.get());
 
