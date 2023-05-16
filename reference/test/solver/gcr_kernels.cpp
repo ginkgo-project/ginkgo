@@ -119,7 +119,6 @@ protected:
                                    exec))
     {
         auto small_size = gko::dim<2>{3, 2};
-        constexpr gko::size_type small_restart{2};
         small_b = gko::initialize<Mtx>(
             {I<T>{1., 2.}, I<T>{3., 4.}, I<T>{5., 6.}}, exec);
         small_x = Mtx::create(exec, small_size);
