@@ -228,12 +228,33 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+
     const unsigned int discretization_points =
-        argc >= 2 ? std::atoi(argv[1]) : 100u;
+        argc >= 3 ? std::atoi(argv[2]) : 100u;
 
     // chooses the executor that corresponds to the Kokkos DefaultExecutionSpace
-    auto exec = gko::ReferenceExecutor::
-        create();  // gko::ext::kokkos::create_default_executor();
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  false);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 false,
+                                                 gko::allocation_mode::device);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+    auto exec = exec_map.at(executor_string)();
 
     // problem:
     auto correct_u = [] KOKKOS_FUNCTION(ValueType x) { return x * x * x; };
