@@ -142,7 +142,7 @@ bool check_compatibility(MemorySpace, const gko::Executor* exec)
     if (auto p = dynamic_cast<const gko::CudaExecutor*>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
-    if (auto p = dynamic_cast<const gko::HipError*>(exec)) {
+    if (auto p = dynamic_cast<const gko::HipExecutor*>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
     if (auto p = dynamic_cast<const gko::DpcppExecutor*>(exec)) {
@@ -155,7 +155,8 @@ bool check_compatibility(MemorySpace, const gko::Executor* exec)
 std::shared_ptr<Executor> create_default_host_executor()
 {
 #ifdef KOKKOS_ENABLE_SERIAL
-    if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::Serial>::value) {
+    if (std::is_same<Kokkos::DefaultHostExecutionSpace,
+                     Kokkos::Serial>::value) {
         return ReferenceExecutor::create();
     }
 #endif
@@ -190,7 +191,7 @@ std::shared_ptr<Executor> create_executor(ExecSpace)
 #endif
 #ifdef KOKKOS_ENABLE_HIP
     if (std::is_same<ExecSpace, Kokkos::HIP>::value) {
-        return HipExecutpr::create(Kokkos::device_id(),
+        return HipExecutor::create(Kokkos::device_id(),
                                    create_default_host_executor());
     }
 #endif
