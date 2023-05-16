@@ -134,7 +134,7 @@ private:
            std::get<I>(std::forward<tuple_type>(args))...);
     }
 
-    Closure fn;
+    mutable Closure fn;
     mutable tuple_type args;
 };
 
@@ -237,7 +237,7 @@ struct kokkos_registered_operation : public gko::Operation {
 
     void run(std::shared_ptr<const ReferenceExecutor> exec) const override
     {
-#ifdef KOKKOS_ENABLE_SERIAL
+#if defined(KOKKOS_ENABLE_SERIAL) && !defined(KOKKOS_ENABLE_CUDA)
         std::cout << "Running SERIAL" << std::endl;
         op_(exec);
 #else
@@ -247,7 +247,7 @@ struct kokkos_registered_operation : public gko::Operation {
 
     void run(std::shared_ptr<const OmpExecutor> exec) const override
     {
-#ifdef KOKKOS_ENABLE_OPENMP
+#if defined(KOKKOS_ENABLE_OPENMP) && !defined(KOKKOS_ENABLE_CUDA)
         std::cout << "Running OPENMP" << std::endl;
         op_(exec);
 #else
