@@ -26,30 +26,55 @@ struct native_execution_space;
 template <>
 struct native_execution_space<gko::ReferenceExecutor> {
     using type = Kokkos::Serial;
+
+    static type create(std::shared_ptr<const gko::ReferenceExecutor> exec)
+    {
+        return {};
+    }
 };
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
 template <>
 struct native_execution_space<gko::OmpExecutor> {
     using type = Kokkos::OpenMP;
+
+    static type create(std::shared_ptr<const gko::OmpExecutor> exec)
+    {
+        return {};
+    }
 };
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
 template <>
 struct native_execution_space<gko::CudaExecutor> {
     using type = Kokkos::Cuda;
+
+    static type create(std::shared_ptr<const gko::CudaExecutor> exec)
+    {
+        return {exec->get_stream(), false};
+    }
 };
 #endif
 #ifdef KOKKOS_ENABLE_HIP
 template <>
 struct native_execution_space<gko::HipExecutor> {
     using type = Kokkos::HIP;
+
+    static type create(std::shared_ptr<const gko::HipExecutor> exec)
+    {
+        return {exec->get_stream(), false};
+    }
 };
 #endif
 #ifdef KOKKOS_ENABLE_SYCL
 template <>
 struct native_execution_space<gko::DpcppExecutor> {
     using type = Kokkos::Experimental::SYCL;
+
+    static type create(std::shared_ptr<const gko::DpcppExecutor> exec)
+    {
+        return {*exec->get_queue()};
+    }
 };
 #endif
 
@@ -217,11 +242,12 @@ typename native_memory_space<ExecType>::type create_memory_space(
 {
     return {};
 }
+
 template <typename ExecType>
 typename native_execution_space<ExecType>::type create_execution_space(
     const std::shared_ptr<const ExecType>& exec)
 {
-    return {};
+    return native_execution_space<ExecType>::create(exec);
 }
 
 

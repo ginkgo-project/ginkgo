@@ -180,9 +180,9 @@ template <template <class...> class Policy, typename... PolicyArgs,
           typename ExecType, typename... InitArgs>
 decltype(auto) make_policy(std::shared_ptr<ExecType> exec, InitArgs&&... args)
 {
-    return Policy<
-        typename native_execution_space<std::remove_cv_t<ExecType>>::type,
-        PolicyArgs...>(std::forward<InitArgs>(args)...);
+    using native = native_execution_space<std::remove_cv_t<ExecType>>;
+    return Policy<typename native::type, PolicyArgs...>(
+        native::create(exec), std::forward<InitArgs>(args)...);
 }
 
 template <template <class...> class Policy, typename... PolicyArgs,
