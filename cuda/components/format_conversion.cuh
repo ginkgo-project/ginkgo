@@ -179,7 +179,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_cuda,
-                    size_type(ceildiv(nnz, config::warp_size)));
+                    static_cast<size_type>(ceildiv(nnz, config::warp_size)));
 }
 
 

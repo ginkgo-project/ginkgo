@@ -133,7 +133,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_hip,
-                    size_type(ceildiv(nnz, config::warp_size)));
+                    static_cast<size_type>(ceildiv(nnz, config::warp_size)));
 }
 
 
@@ -152,10 +152,8 @@ namespace kernel {
  */
 template <typename IndexType>
 __global__ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
-                                         // size_type num_nonzeros,
                                          IndexType num_nonzeros,
                                          IndexType* __restrict__ ptrs,
-                                         // size_type length);
                                          IndexType length);
 
 

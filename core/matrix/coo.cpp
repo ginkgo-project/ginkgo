@@ -190,7 +190,7 @@ void Coo<ValueType, IndexType>::convert_to(
             exec, this->get_size(), num_stored_elements, block_size, mem_size,
             compression);
         exec->run(coo::make_convert_to_bccoo(this, tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else {
         auto host_coo = this->clone(exec_master);
         exec_master->run(coo::make_mem_size_bccoo(host_coo.get(), block_size,
@@ -199,7 +199,7 @@ void Coo<ValueType, IndexType>::convert_to(
             exec_master, host_coo->get_size(), num_stored_elements, block_size,
             mem_size, compression);
         exec_master->run(coo::make_convert_to_bccoo(host_coo.get(), tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     }
 }
 

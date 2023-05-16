@@ -293,26 +293,26 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
     // Try to remove static_cast
     if (source->get_num_stored_elements() > 0) {
         if (source->use_element_compression()) {
-            std::memcpy((result->get_rows()), (source->get_const_rows()),
+            std::memcpy(result->get_rows(), source->get_const_rows(),
                         source->get_num_blocks() * sizeof(IndexType));
             const size_type* offsets_data_src = source->get_const_offsets();
             size_type* offsets_data_res = result->get_offsets();
-            std::memcpy((offsets_data_res), (offsets_data_src),
+            std::memcpy(offsets_data_res, offsets_data_src,
                         (source->get_num_blocks() + 1) * sizeof(size_type));
             const uint8* chunk_data_src = source->get_const_chunk();
             uint8* chunk_data_res = result->get_chunk();
-            std::memcpy((chunk_data_res), (chunk_data_src),
+            std::memcpy(chunk_data_res, chunk_data_src,
                         source->get_num_bytes() * sizeof(uint8));
         } else {
-            std::memcpy((result->get_rows()), (source->get_const_rows()),
+            std::memcpy(result->get_rows(), source->get_const_rows(),
                         source->get_num_blocks() * sizeof(IndexType));
-            std::memcpy((result->get_cols()), (source->get_const_cols()),
+            std::memcpy(result->get_cols(), source->get_const_cols(),
                         source->get_num_blocks() * sizeof(IndexType));
-            std::memcpy((result->get_types()), (source->get_const_types()),
+            std::memcpy(result->get_types(), source->get_const_types(),
                         source->get_num_blocks() * sizeof(uint8));
-            std::memcpy((result->get_offsets()), (source->get_const_offsets()),
+            std::memcpy(result->get_offsets(), source->get_const_offsets(),
                         (source->get_num_blocks() + 1) * sizeof(size_type));
-            std::memcpy((result->get_chunk()), (source->get_const_chunk()),
+            std::memcpy(result->get_chunk(), source->get_const_chunk(),
                         source->get_num_bytes() * sizeof(uint8));
         }
     }

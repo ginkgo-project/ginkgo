@@ -61,10 +61,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-#define BCCOO_BLOCK_SIZE_TESTED 1
-
-
 namespace {
+
+
+constexpr static int BCCOO_BLOCK_SIZE_TESTED = 1;
 
 
 template <typename ValueIndexType>

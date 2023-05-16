@@ -54,11 +54,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace gko::matrix::bccoo;
 
 
-#define BCCOO_BLOCK_SIZE_TESTED 1
-#define BCCOO_BLOCK_SIZE_COPIED 5
-
-
 namespace {
+
+
+constexpr static int BCCOO_BLOCK_SIZE_TESTED = 1;
+constexpr static int BCCOO_BLOCK_SIZE_COPIED = 3;
 
 
 template <typename ValueIndexType>

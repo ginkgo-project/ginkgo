@@ -540,15 +540,12 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        // for (size_type row = 0; row < num_rows; ++row) {
         for (IndexType row = 0; row < num_rows; ++row) {
-            // for (size_type col = 0; col < num_cols; ++col) {
             for (IndexType col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Writing (row,col,val) to result
                     matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
                                                        row - idxs.row, idxs);
-                    // size_type col_src_res =
                     IndexType col_src_res =
                         matrix::bccoo::put_position_newrow_mat_data(
                             row, col, chunk_data, idxs);
@@ -588,9 +585,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;
         }
-        // for (size_type row = 0; row < num_rows; ++row) {
         for (IndexType row = 0; row < num_rows; ++row) {
-            // for (size_type col = 0; col < num_cols; ++col) {
             for (IndexType col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
                     // Analyzing the impact of (row,col,val) in the block

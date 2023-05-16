@@ -44,11 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace gko::matrix::bccoo;
 
 
-#define BCCOO_BLOCK_SIZE_TESTED 1
-#define BCCOO_BLOCK_SIZE_COPIED 3
-
-
 namespace {
+
+
+constexpr static int BCCOO_BLOCK_SIZE_TESTED = 1;
+constexpr static int BCCOO_BLOCK_SIZE_COPIED = 3;
 
 
 template <typename ValueIndexType>
@@ -169,8 +169,6 @@ protected:
             col = i % 3 + i / 3;
             type = (((block_size == 2) || (block_size >= 4)) &&
                     (i + block_size > 2))
-                       // ? 5
-                       // : 4;
                        ? (type_mask_cols_8bits | type_mask_rows_multiple)
                        : type_mask_cols_8bits;
             EXPECT_EQ(rows_data[i], row);
@@ -511,8 +509,8 @@ TYPED_TEST(Bccoo, CanBeCopiedElmElm)
     copy->copy_from(this->mtx_elm.get());
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    *((value_type*)(this->mtx_elm->get_chunk() + (2 + sizeof(value_type)))) =
-        5.0;
+    set_value_chunk<value_type>(this->mtx_elm->get_chunk(),
+                                2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(copy.get());
 }
 
@@ -528,8 +526,8 @@ TYPED_TEST(Bccoo, CanBeCopiedElmBlk)
     copy->copy_from(this->mtx_elm.get());
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    *((value_type*)(this->mtx_elm->get_chunk() + (2 + sizeof(value_type)))) =
-        5.0;
+    set_value_chunk<value_type>(this->mtx_elm->get_chunk(),
+                                2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(copy.get());
 }
 
@@ -545,9 +543,9 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkElm)
     copy->copy_from(this->mtx_blk.get());
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
-    *((value_type*)(this->mtx_blk->get_chunk() +
-                    (this->mtx_blk->get_num_bytes() - sizeof(value_type)))) =
-        5.0;
+    set_value_chunk<value_type>(
+        this->mtx_blk->get_chunk(),
+        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(copy.get());
 }
 
@@ -563,9 +561,9 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkBlk)
     copy->copy_from(this->mtx_blk.get());
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
-    *((value_type*)(this->mtx_blk->get_chunk() +
-                    (this->mtx_blk->get_num_bytes() - sizeof(value_type)))) =
-        5.0;
+    set_value_chunk<value_type>(
+        this->mtx_blk->get_chunk(),
+        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(copy.get());
 }
 
@@ -577,7 +575,7 @@ TYPED_TEST(Bccoo, CanBeMovedElm)
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             compression::element);
 
-    copy->copy_from(std::move(this->mtx_elm));
+    copy->move_from(this->mtx_elm);
 
     this->assert_equal_to_original_mtx_elm(copy.get());
 }
@@ -590,7 +588,7 @@ TYPED_TEST(Bccoo, CanBeMovedBlk)
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             compression::block);
 
-    copy->copy_from(std::move(this->mtx_blk));
+    copy->move_from(this->mtx_blk);
 
     this->assert_equal_to_original_mtx_blk(copy.get());
 }
@@ -605,10 +603,11 @@ TYPED_TEST(Bccoo, CanBeClonedElm)
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
 
-    reinterpret_cast<value_type*>(this->mtx_blk->get_chunk() +
-                                  (2 + sizeof(value_type)))[0] = 5.0;
+    set_value_chunk<value_type>(this->mtx_blk->get_chunk(),
+                                2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(dynamic_cast<Mtx*>(clone.get()));
 }
+
 
 TYPED_TEST(Bccoo, CanBeClonedBlk)
 {
@@ -618,13 +617,13 @@ TYPED_TEST(Bccoo, CanBeClonedBlk)
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
 
-    reinterpret_cast<value_type*>(
-        this->mtx_blk->get_chunk() +
-        (this->mtx_blk->get_num_bytes() - sizeof(value_type)))[0] = 5.0;
+    set_value_chunk<value_type>(
+        this->mtx_blk->get_chunk(),
+        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(dynamic_cast<Mtx*>(clone.get()));
 }
 
-// TODO: To clear but mantaining the compression??
+
 TYPED_TEST(Bccoo, CanBeClearedElm)
 {
     this->mtx_elm->clear();
@@ -633,7 +632,6 @@ TYPED_TEST(Bccoo, CanBeClearedElm)
 }
 
 
-// TODO: To clear but mantaining the compression??
 TYPED_TEST(Bccoo, CanBeClearedBlk)
 {
     this->mtx_blk->clear();

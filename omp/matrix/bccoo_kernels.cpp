@@ -1049,7 +1049,6 @@ void compute_absolute(
             }
         } else {
             // For block compression objects
-            // size_type num_stored_elements_src =
             IndexType num_stored_elements_src =
                 source->get_num_stored_elements();
             // First, the non chunk vectors are copied

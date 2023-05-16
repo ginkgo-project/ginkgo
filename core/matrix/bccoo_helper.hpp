@@ -56,24 +56,9 @@ namespace bccoo {
  */
 
 
-#define WITH_LUT 1
-
-
 constexpr uint8 type_mask_value_is_in_lut = 0x80;
 constexpr uint8 type_mask_get_column_with_lut = 0x7F;
 constexpr uint8 type_mask_get_column_without_lut = 0xFF;
-
-#ifdef WITH_LUT
-
-constexpr uint8 cst_mark_end_row = 0xFF;
-constexpr uint8 cst_mark_size_big_row = 0x7E;
-constexpr uint8 cst_mark_size_medium_row = 0x7D;
-
-constexpr uint8 cst_max_size_small_idxs_row = 0xFF;
-constexpr uint8 cst_max_size_small_row = 0x7C;
-constexpr int cst_max_size_medium_row = 0xFFFF;
-
-#else
 
 constexpr uint8 cst_mark_end_row = 0xFF;
 constexpr uint8 cst_mark_size_big_row = 0xFE;
@@ -82,8 +67,6 @@ constexpr uint8 cst_mark_size_medium_row = 0xFD;
 constexpr uint8 cst_max_size_small_idxs_row = 0xFF;
 constexpr uint8 cst_max_size_small_row = 0xFC;
 constexpr int cst_max_size_medium_row = 0xFFFF;
-
-#endif
 
 
 /*
@@ -408,7 +391,7 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
         blk_idxs.col_frst = col;
     }
     if (row != blk_idxs.row_frst) {
-        blk_idxs.set_multi_row();
+        blk_idxs.rows_cols |= type_mask_rows_multiple;
         if (row > (blk_idxs.row_frst + blk_idxs.row_diff)) {
             blk_idxs.row_diff = row - blk_idxs.row_frst;
         }

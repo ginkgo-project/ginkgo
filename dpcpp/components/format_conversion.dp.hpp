@@ -119,7 +119,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_dpcpp,
-                    size_type(ceildiv(nnz, subgroup_size)));
+                    static_cast<size_type>(ceildiv(nnz, subgroup_size)));
 }
 
 

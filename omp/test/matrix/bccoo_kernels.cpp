@@ -90,7 +90,7 @@ protected:
     void set_up_apply_data_elm(int num_vectors = 1)
     {
         mtx_elm = Mtx::create(ref, 0, gko::matrix::bccoo::compression::element);
-        mtx_elm->copy_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
+        mtx_elm->move_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
         expected = gen_mtx(mtx_size[0], num_vectors, 1);
         y = gen_mtx(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -105,7 +105,7 @@ protected:
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
-        mtx_blk->copy_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
+        mtx_blk->move_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
         expected = gen_mtx(mtx_size[0], num_vectors, 1);
         y = gen_mtx(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -151,13 +151,6 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRefElm)
     mtx_elm->apply(y.get(), expected.get());
     dmtx_elm->apply(dy.get(), dresult.get());
 
-    if (mtx_elm->use_block_compression()) {
-        std::cout << "Elm_ref_error: " << std::endl;
-    }
-    if (dmtx_elm->use_block_compression()) {
-        std::cout << "Elm__omp_error: " << std::endl;
-    }
-
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
@@ -168,13 +161,6 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRefBlk)
 
     mtx_blk->apply(y.get(), expected.get());
     dmtx_blk->apply(dy.get(), dresult.get());
-
-    if (mtx_blk->use_element_compression()) {
-        std::cout << "Blk_ref_error: " << std::endl;
-    }
-    if (dmtx_blk->use_element_compression()) {
-        std::cout << "Blk__omp_error: " << std::endl;
-    }
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

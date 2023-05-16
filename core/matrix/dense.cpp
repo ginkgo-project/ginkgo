@@ -185,7 +185,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
             exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
             compression);
         exec->run(op(source, tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else {
         auto host_dense = source->clone(exec_master);
         exec_master->run(dense::make_mem_size_bccoo(
@@ -194,7 +194,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
             exec_master, host_dense->get_size(), num_stored_nonzeros,
             block_size, mem_size, compression);
         exec_master->run(op(host_dense.get(), tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     }
 }
 

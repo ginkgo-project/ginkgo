@@ -61,10 +61,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-#define BCCOO_BLOCK_SIZE_TESTED 1
-
-
 namespace {
+
+
+constexpr static int BCCOO_BLOCK_SIZE_TESTED = 1;
 
 
 template <typename T>
@@ -1107,8 +1107,6 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
         col = i % 3 + i / 3;
         type =
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2))
-                // ? 5
-                // : 4;
                 ? (gko::matrix::bccoo::type_mask_cols_8bits |
                    gko::matrix::bccoo::type_mask_rows_multiple)
                 : gko::matrix::bccoo::type_mask_cols_8bits;
@@ -1336,8 +1334,6 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
         col = i % 3 + i / 3;
         type =
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2))
-                // ? 5
-                // : 4;
                 ? (gko::matrix::bccoo::type_mask_cols_8bits |
                    gko::matrix::bccoo::type_mask_rows_multiple)
                 : gko::matrix::bccoo::type_mask_cols_8bits;
@@ -1566,8 +1562,6 @@ TYPED_TEST(Dense, MovesToBccooBlk64)
         col = i % 3 + i / 3;
         type =
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2))
-                // ? 5
-                // : 4;
                 ? (gko::matrix::bccoo::type_mask_cols_8bits |
                    gko::matrix::bccoo::type_mask_rows_multiple)
                 : gko::matrix::bccoo::type_mask_cols_8bits;

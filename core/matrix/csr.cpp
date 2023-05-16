@@ -299,7 +299,7 @@ void Csr<ValueType, IndexType>::convert_to(
             exec, this->get_size(), num_stored_elements, block_size, mem_size,
             compression);
         exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else {
         auto host_csr = this->clone(exec_master);
         exec_master->run(csr::make_mem_size_bccoo(host_csr.get(), block_size,
@@ -308,7 +308,7 @@ void Csr<ValueType, IndexType>::convert_to(
             exec_master, host_csr->get_size(), num_stored_elements, block_size,
             mem_size, compression);
         exec_master->run(csr::make_convert_to_bccoo(host_csr.get(), tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     }
 }
 

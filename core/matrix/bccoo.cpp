@@ -191,7 +191,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
         // In case of the source matrix was empty, the result is also empty
         auto tmp = Bccoo<ValueType, IndexType>::create(exec, block_size_res,
                                                        compress_res);
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else if (exec == exec_master) {
         // The standard copy calculates the size in bytes of the chunk,
         // before of the object creation and the conversion
@@ -201,7 +201,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
             exec, this->get_size(), num_stored_elements, block_size_res,
             mem_size_res, compress_res);
         exec->run(bccoo::make_convert_to_bccoo(this, tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else {
         // If the executor of "this" is not the master, the conversion is made
         // in master, and then is moved to the corresponding executor
@@ -214,23 +214,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
             block_size_res, mem_size_res, compress_res);
         exec_master->run(
             bccoo::make_convert_to_bccoo(host_bccoo.get(), tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     }
-    // Other alternative could be that make_mem_size_bccoo inicializes
-    // the internal vectors whose size is num_blocks_res:
-    // const auto num_blocks_res = ceildiv(num_stored_elements, block_size_res);
-    // array<IndexType> rows(exec, num_blocks_res);
-    // array<IndexType> cols(exec,
-    //		(compress_src == bccoo::compression::block) *
-    //                           num_blocks_res);
-    // array<uint8> types(exec,
-    // 		(compress_src == bccoo::compression::block) *
-    //                           num_blocks_res);
-    // array<IndexType> offsets(exec, num_blocks_res + 1);
-    // And use an alternative definition of make_mem_size_bccoo:
-    // exec->run(bccoo::make_mem_size_bccoo(this, rows.get_data(),
-    // 		cols.get_data(), types.get_data(), offsets.get_data(),
-    // 		num_blocks_res, block_size_res, &mem_size_res));
 }
 
 
@@ -283,7 +268,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
         // In case of the source matrix was empty, the result is also empty
         auto tmp = Bccoo<new_precision, IndexType>::create(exec, block_size_res,
                                                            compress_res);
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else if (exec == exec_master) {
         exec->run(bccoo::make_mem_size_bccoo(this, compress_res, block_size_res,
                                              &mem_size_res));
@@ -293,7 +278,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
             exec, this->get_size(), num_stored_elements, block_size_res,
             mem_size_res, compress_res);
         exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     } else {
         auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
         *host_bccoo = *this;
@@ -306,7 +291,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
             block_size_res, mem_size_res, compress_res);
         exec_master->run(
             bccoo::make_convert_to_next_precision(host_bccoo.get(), tmp.get()));
-        *result = *tmp;
+        *result = std::move(*tmp);
     }
 }
 
@@ -697,13 +682,13 @@ Bccoo<ValueType, IndexType>::extract_diagonal() const
         if ((exec == exec_master) || this->use_block_compression()) {
             // If the block compression is used, the conversion could be
             // directly done on all executors
-            exec->run(bccoo::make_extract_diagonal(this, lend(diag)));
+            exec->run(bccoo::make_extract_diagonal(this, diag.get()));
         } else {
             auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
             *host_bccoo = *this;
             auto tmp = Diagonal<ValueType>::create(exec_master, diag_size);
             exec_master->run(
-                bccoo::make_extract_diagonal(host_bccoo.get(), lend(tmp)));
+                bccoo::make_extract_diagonal(host_bccoo.get(), tmp.get()));
             diag->move_from(tmp);
         }
     }
@@ -773,7 +758,7 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
                                              num_bytes, compress);
             exec_master->run(
                 bccoo::make_compute_absolute(host_bccoo.get(), tmp.get()));
-            *abs_bccoo = *tmp;
+            *abs_bccoo = std::move(*tmp);
         }
         return abs_bccoo;
     }
