@@ -54,7 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(KOKKOS_ENABLE_HIP)
 #define GKO_KOKKOS_HIP_FN __device__
+#if !defined(GKO_KOKKOS_FN)
 #define GKO_KOKKOS_FN GKO_KOKKOS_HIP_FN
+#endif
 #if !defined(GKO_KOKKOS_DEVICE_FN)
 #define GKO_KOKKOS_DEVICE_FN GKO_KOKKOS_HIP_FN
 #endif
@@ -106,12 +108,6 @@ namespace detail {
 template <typename MemorySpace, typename ValueType, typename Closure,
           typename... Args>
 struct kokkos_operator {
-    static_assert(
-        std::is_same_v<MemorySpace,
-                       typename Kokkos::DefaultExecutionSpace::memory_space>,
-        "Kokkos extension only supports the default memory space at the "
-        "moment.");
-
     using value_type = ValueType;
     using tuple_type = std::tuple<decltype(map_data(
         std::declval<Args>(), std::declval<MemorySpace>()))...>;
@@ -148,8 +144,8 @@ private:
 template <typename ValueType = void, typename MemorySpace, typename Closure,
           typename T, std::size_t... I,
           typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
-[[deprecated]] detail::kokkos_operator<MemorySpace, ValueType, Closure,
-                                       std::tuple_element_t<I, T>...>
+detail::kokkos_operator<MemorySpace, ValueType, Closure,
+                        std::tuple_element_t<I, T>...>
 make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I>...)
 {
     return {std::forward<Closure>(cl), std::get<I>(std::forward<T>(args))...};
@@ -242,35 +238,50 @@ struct kokkos_registered_operation : public gko::Operation {
     void run(std::shared_ptr<const ReferenceExecutor> exec) const override
     {
 #ifdef KOKKOS_ENABLE_SERIAL
+        std::cout << "Running SERIAL" << std::endl;
         op_(exec);
+#else
+        GKO_NOT_IMPLEMENTED;
 #endif
     }
 
     void run(std::shared_ptr<const OmpExecutor> exec) const override
     {
 #ifdef KOKKOS_ENABLE_OPENMP
+        std::cout << "Running OPENMP" << std::endl;
         op_(exec);
+#else
+        GKO_NOT_IMPLEMENTED;
 #endif
     }
 
     void run(std::shared_ptr<const CudaExecutor> exec) const override
     {
 #ifdef KOKKOS_ENABLE_CUDA
+        std::cout << "Running CUDA" << std::endl;
         op_(exec);
+#else
+        GKO_NOT_IMPLEMENTED;
 #endif
     }
 
     void run(std::shared_ptr<const HipExecutor> exec) const override
     {
 #ifdef KOKKOS_ENABLE_HIP
+        std::cout << "Running HIP" << std::endl;
         op_(exec);
+#else
+        GKO_NOT_IMPLEMENTED;
 #endif
     }
 
     void run(std::shared_ptr<const DpcppExecutor> exec) const override
     {
 #ifdef KOKKOS_ENABLE_SYCL
+        std::cout << "Running SYCL" << std::endl;
         op_(exec);
+#else
+        GKO_NOT_IMPLEMENTED;
 #endif
     }
 
