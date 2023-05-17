@@ -238,11 +238,6 @@ public:
     using factory = Factory;
 
     /**
-     * Loggers to be attached to the factory and generated object.
-     */
-    std::vector<std::shared_ptr<const log::Logger>> loggers{};
-
-    /**
      * Provides the loggers to be added to the factory and its generated
      * objects in a fluent interface.
      */
@@ -271,6 +266,11 @@ public:
 
 protected:
     GKO_ENABLE_SELF(ConcreteParametersType);
+
+    /**
+     * Loggers to be attached to the factory and generated object.
+     */
+    std::vector<std::shared_ptr<const log::Logger>> loggers{};
 };
 
 
