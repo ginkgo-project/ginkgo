@@ -53,9 +53,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #if defined(KOKKOS_ENABLE_HIP)
-#define GKO_KOKKOS_HIP_FN __device__
+#define GKO_KOKKOS_HIP_FN __host__ __device__
 #if !defined(GKO_KOKKOS_FN)
 #define GKO_KOKKOS_FN GKO_KOKKOS_HIP_FN
+#else
+#error "Only exactly one enabled device backend (CUDA, HIP, SYCL) is allowed."
 #endif
 #if !defined(GKO_KOKKOS_DEVICE_FN)
 #define GKO_KOKKOS_DEVICE_FN GKO_KOKKOS_HIP_FN
@@ -65,7 +67,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(KOKKOS_ENABLE_SYCL)
 #define GKO_KOKKOS_SYCL_FN
+#if !defined(GKO_KOKKOS_FN)
 #define GKO_KOKKOS_FN GKO_KOKKOS_SYCL_FN
+#else
+#error "Only exactly one enabled device backend (CUDA, HIP, SYCL) is allowed."
+#endif
 #if !defined(GKO_KOKKOS_DEVICE_FN)
 #define GKO_KOKKOS_DEVICE_FN GKO_KOKKOS_SYCL_FN
 #endif
