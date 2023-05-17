@@ -180,7 +180,8 @@ void HipTimer::record(time_point&) GKO_NOT_COMPILED(hip);
 void HipTimer::wait(time_point& time) GKO_NOT_COMPILED(hip);
 
 
-int64 HipTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds HipTimer::difference_async(const time_point& start,
+                                                    const time_point& stop)
     GKO_NOT_COMPILED(hip);
 
 

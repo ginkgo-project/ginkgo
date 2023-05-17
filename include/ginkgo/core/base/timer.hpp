@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_TIMER_HPP_
 
 
+#include <chrono>
+
+
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -47,8 +50,6 @@ class time_point {
 public:
     ~time_point();
 
-    time_point();
-
     time_point(time_point&&);
 
     time_point& operator=(time_point&&);
@@ -58,6 +59,8 @@ public:
     time_point& operator=(const time_point&) = delete;
 
 private:
+    time_point();
+
     friend class Timer;
     friend class CpuTimer;
     friend class CudaTimer;
@@ -86,11 +89,29 @@ private:
 };
 
 
+/**
+ * Represents a generic timer that can be used to record time points and measure
+ * time differences on host or device streams.
+ * To keep the runtime overhead of timing minimal, time points need to be
+ * allocated beforehand using Timer::create_time_point:
+ * ```
+ * auto begin = timer->create_time_point();
+ * auto end = timer->create_time_point();
+ * // ...
+ * timer->record(begin);
+ * run_expensive_operation();
+ * timer->record(end);
+ * auto elapsed = timer->difference(begin, end);
+ * ```
+ */
 class Timer {
 public:
     virtual ~Timer() = default;
 
-    /** Returns a newly created time point. */
+    /**
+     * Returns a newly created time point.
+     * Time points may only be used with the timer they were created with.
+     */
     time_point create_time_point();
 
     /**
@@ -106,13 +127,27 @@ public:
 
     /**
      * Computes the difference between the two time points in nanoseconds.
+     * The function synchronizes with `stop` before computing the difference.
      *
      * @param start  the first time point (earlier)
      * @param end  the second time point (later)
      * @return the difference between the time points in nanoseconds.
      */
-    virtual int64 difference(const time_point& start,
-                             const time_point& stop) = 0;
+    std::chrono::nanoseconds difference(time_point& start, time_point& stop);
+
+    /**
+     * Computes the difference between the two time points in nanoseconds.
+     * This asynchronous version does not synchronize itself, so the time points
+     * need to have been synchronized with, i.e. `timer->wait(stop)` needs to
+     * have been called. The version is intended for more advanced users who
+     * want to measure the overhead of timing functionality separately.
+     *
+     * @param start  the first time point (earlier)
+     * @param end  the second time point (later)
+     * @return the difference between the time points in nanoseconds.
+     */
+    virtual std::chrono::nanoseconds difference_async(
+        const time_point& start, const time_point& stop) = 0;
 
     /**
      * Creates the timer type most suitable for recording accurate timings of
@@ -139,7 +174,8 @@ public:
 
     void wait(time_point& time) override;
 
-    int64 difference(const time_point& start, const time_point& stop) override;
+    std::chrono::nanoseconds difference_async(const time_point& start,
+                                              const time_point& stop) override;
 
 protected:
     void init_time_point(time_point& time) override;
@@ -153,7 +189,8 @@ public:
 
     void wait(time_point& time) override;
 
-    int64 difference(const time_point& start, const time_point& stop) override;
+    std::chrono::nanoseconds difference_async(const time_point& start,
+                                              const time_point& stop) override;
 
     CudaTimer(std::shared_ptr<const CudaExecutor> exec);
 
@@ -172,7 +209,8 @@ public:
 
     void wait(time_point& time) override;
 
-    int64 difference(const time_point& start, const time_point& stop) override;
+    std::chrono::nanoseconds difference_async(const time_point& start,
+                                              const time_point& stop) override;
 
     HipTimer(std::shared_ptr<const HipExecutor> exec);
 
@@ -191,7 +229,8 @@ public:
 
     void wait(time_point& time) override;
 
-    int64 difference(const time_point& start, const time_point& stop) override;
+    std::chrono::nanoseconds difference_async(const time_point& start,
+                                              const time_point& stop) override;
 
     DpcppTimer(std::shared_ptr<const DpcppExecutor> exec);
 
