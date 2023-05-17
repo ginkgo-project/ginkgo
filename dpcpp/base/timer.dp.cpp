@@ -77,7 +77,8 @@ void DpcppTimer::wait(time_point& time)
 }
 
 
-int64 DpcppTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
+                                                      const time_point& stop)
 {
     GKO_ASSERT(start.type_ == time_point::type::dpcpp);
     GKO_ASSERT(stop.type_ == time_point::type::dpcpp);
@@ -88,7 +89,7 @@ int64 DpcppTimer::difference(const time_point& start, const time_point& stop)
     auto start_time =
         stop.data_.dpcpp_event
             ->get_profiling_info<sycl::info::event_profiling::command_end>();
-    return static_cast<int64>(stop_time - start_time);
+    return std::chrono::nanoseconds{static_cast<int64>(stop_time - start_time)};
 }
 
 

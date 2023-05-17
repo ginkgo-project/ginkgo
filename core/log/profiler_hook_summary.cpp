@@ -131,7 +131,7 @@ void pop_all(Summary& s)
 
 struct summary_base {
     std::shared_ptr<Timer> timer;
-    int64 overhead_ns{};
+    std::chrono::nanoseconds overhead{};
     bool broken{};
     bool check_nesting{};
     std::mutex mutex{};
@@ -193,10 +193,7 @@ struct summary : summary_base {
         const auto id = it->second;
         auto now = get_current_time_point();
         stack.emplace_back(id, std::move(now));
-        overhead_ns +=
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                cpu_clock::now() - cpu_now)
-                .count();
+        overhead += cpu_clock::now() - cpu_now;
     }
 
     void pop(const char* name, bool allow_pop_root = false)
@@ -216,20 +213,17 @@ struct summary : summary_base {
         // measurement
         timer->wait(now);
         const auto cpu_now3 = cpu_clock::now();
-        const auto elapsed_ns = timer->difference(partial_entry.second, now);
+        const auto elapsed = timer->difference_async(partial_entry.second, now);
         release_time_point(std::move(partial_entry.second));
         release_time_point(std::move(now));
         entry.count++;
-        entry.inclusive_ns += elapsed_ns;
-        entry.exclusive_ns += elapsed_ns;
+        entry.inclusive += elapsed;
+        entry.exclusive += elapsed;
         if (!stack.empty()) {
-            entries[stack.back().first].exclusive_ns -= elapsed_ns;
+            entries[stack.back().first].exclusive -= elapsed;
         }
         const auto cpu_now4 = cpu_clock::now();
-        overhead_ns +=
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now))
-                .count();
+        overhead += (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now);
     }
 
     const std::string& get_top_name() const
@@ -244,7 +238,7 @@ struct nested_summary : summary_base {
         int64 name_id;
         int64 node_id;
         int64 parent_id;
-        int64 elapsed_ns{};
+        std::chrono::nanoseconds elapsed{};
         int64 count{};
 
         entry(int64 name_id, int64 node_id, int64 parent_id)
@@ -323,10 +317,7 @@ struct nested_summary : summary_base {
         const auto node_id = get_or_add_node_id(name_id);
         auto now = get_current_time_point();
         stack.emplace_back(name_id, node_id, std::move(now));
-        overhead_ns +=
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                cpu_clock::now() - cpu_now)
-                .count();
+        overhead += cpu_clock::now() - cpu_now;
     }
 
     void pop(const char* name, bool allow_pop_root = false)
@@ -346,16 +337,13 @@ struct nested_summary : summary_base {
         const auto cpu_now2 = cpu_clock::now();
         timer->wait(now);
         const auto cpu_now3 = cpu_clock::now();
-        const auto elapsed_ns = timer->difference(partial_entry.start, now);
+        const auto elapsed = timer->difference_async(partial_entry.start, now);
         release_time_point(std::move(partial_entry.start));
         release_time_point(std::move(now));
         node.count++;
-        node.elapsed_ns += elapsed_ns;
+        node.elapsed += elapsed;
         const auto cpu_now4 = cpu_clock::now();
-        overhead_ns +=
-            std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-                (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now))
-                .count();
+        overhead += (cpu_now4 - cpu_now3) + (cpu_now2 - cpu_now);
     }
 
     const std::string& get_top_name() const
@@ -395,7 +383,7 @@ ProfilerHook::nested_summary_entry build_tree(const nested_summary& summary)
                           ProfilerHook::nested_summary_entry& entry) -> void {
         const auto& summary_node = summary.nodes[node_permutation[permuted_id]];
         entry.name = summary.names[summary_node.name_id];
-        entry.elapsed_ns = summary_node.elapsed_ns;
+        entry.elapsed = summary_node.elapsed;
         entry.count = summary_node.count;
         const auto child_range = child_ranges[summary_node.node_id];
         for (auto i = child_range.first; i < child_range.second; i++) {
@@ -422,7 +410,7 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
                                             std::move(writer)}](summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
-            writer->write(ptr->entries, ptr->overhead_ns);
+            writer->write(ptr->entries, ptr->overhead);
             delete ptr;
         }};
     data->check_nesting = debug_check_nesting;
@@ -444,7 +432,7 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_nested_summary(
             nested_summary* ptr) {
             // clean up open ranges
             pop_all(*ptr);
-            writer->write_nested(build_tree(*ptr), ptr->overhead_ns);
+            writer->write_nested(build_tree(*ptr), ptr->overhead);
             delete ptr;
         }};
     data->check_nesting = debug_check_nesting;

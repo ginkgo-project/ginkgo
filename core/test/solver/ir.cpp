@@ -461,7 +461,7 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
 
 struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
     void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
-               gko::int64 overhead_ns) override
+               std::chrono::nanoseconds overhead) override
     {
         int matched = 0;
         for (const auto& data : e) {

@@ -277,12 +277,12 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        int64 inclusive_ns{};
+        std::chrono::nanoseconds inclusive{};
         /**
          * The total runtime of all invocations of the range in nanoseconds,
          * excluding the runtime of all nested ranges.
          */
-        int64 exclusive_ns{};
+        std::chrono::nanoseconds exclusive{};
         /** The total number of invocations of the range. */
         int64 count{};
     };
@@ -291,7 +291,7 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        int64 elapsed_ns{};
+        std::chrono::nanoseconds elapsed{};
         /** The total number of invocations of the range. */
         int64 count{};
         /** The nested ranges inside this range. */
@@ -307,11 +307,10 @@ public:
          * Callback to write out the summary results.
          *
          * @param entries  the vector of ranges with runtime and count.
-         * @param overhead_ns  an estimate of the profiler overhead in
-         *                     nanoseconds.
+         * @param overhead  an estimate of the profiler overhead
          */
         virtual void write(const std::vector<summary_entry>& entries,
-                           int64 overhead_ns) = 0;
+                           std::chrono::nanoseconds overhead) = 0;
     };
 
     /** Recieves the results from ProfilerHook::create_nested_summary(). */
@@ -323,11 +322,10 @@ public:
          * Callback to write out the summary results.
          *
          * @param root  the root range with runtime and count.
-         * @param overhead_ns  an estimate of the profiler overhead in
-         *                     nanoseconds.
+         * @param overhead  an estimate of the profiler overhead
          */
         virtual void write_nested(const nested_summary_entry& root,
-                                  int64 overhead_ns) = 0;
+                                  std::chrono::nanoseconds overhead) = 0;
     };
 
     /**
@@ -348,10 +346,10 @@ public:
                            std::string header = "Runtime summary");
 
         void write(const std::vector<summary_entry>& entries,
-                   int64 overhead_ns) override;
+                   std::chrono::nanoseconds overhead) override;
 
         void write_nested(const nested_summary_entry& root,
-                          int64 overhead_ns) override;
+                          std::chrono::nanoseconds overhead) override;
 
     private:
         std::ostream* output_;

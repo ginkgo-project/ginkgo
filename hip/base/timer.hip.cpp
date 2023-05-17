@@ -75,7 +75,8 @@ void HipTimer::wait(time_point& time)
 }
 
 
-int64 HipTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds HipTimer::difference_async(const time_point& start,
+                                                    const time_point& stop)
 {
     detail::hip_scoped_device_id_guard guard{exec_->get_device_id()};
     GKO_ASSERT(start.type_ == time_point::type::hip);
@@ -84,7 +85,7 @@ int64 HipTimer::difference(const time_point& start, const time_point& stop)
     float ms{};
     GKO_ASSERT_NO_HIP_ERRORS(
         hipEventElapsedTime(&ms, start.data_.hip_event, stop.data_.hip_event));
-    return static_cast<int64>(ms * double{1e6});
+    return std::chrono::nanoseconds{static_cast<int64>(ms * double{1e6})};
 }
 
 

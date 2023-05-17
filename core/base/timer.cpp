@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <memory>
+#include <utility>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -72,7 +73,8 @@ time_point::~time_point()
 
 
 time_point::time_point(time_point&& other)
-    : type_{std::exchange(other.type_, type::cpu)}, data_{other.data_}
+    : type_{std::exchange(other.type_, type::cpu)},
+      data_{std::exchange(other.data_, decltype(data_){})}
 {}
 
 
@@ -93,6 +95,13 @@ time_point Timer::create_time_point()
 }
 
 
+std::chrono::nanoseconds Timer::difference(time_point& start, time_point& stop)
+{
+    this->wait(stop);
+    return this->difference_async(start, stop);
+}
+
+
 void CpuTimer::init_time_point(time_point& time)
 {
     time.type_ = time_point::type::cpu;
@@ -109,11 +118,11 @@ void CpuTimer::record(time_point& time)
 void CpuTimer::wait(time_point& time) {}
 
 
-int64 CpuTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds CpuTimer::difference_async(const time_point& start,
+                                                    const time_point& stop)
 {
     return std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
-               stop.data_.chrono - start.data_.chrono)
-        .count();
+        stop.data_.chrono - start.data_.chrono);
 }
 
 

@@ -76,7 +76,8 @@ void CudaTimer::wait(time_point& time)
 }
 
 
-int64 CudaTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds CudaTimer::difference_async(const time_point& start,
+                                                     const time_point& stop)
 {
     detail::cuda_scoped_device_id_guard guard{exec_->get_device_id()};
     GKO_ASSERT(start.type_ == time_point::type::cuda);
@@ -85,7 +86,7 @@ int64 CudaTimer::difference(const time_point& start, const time_point& stop)
     float ms{};
     GKO_ASSERT_NO_CUDA_ERRORS(cudaEventElapsedTime(&ms, start.data_.cuda_event,
                                                    stop.data_.cuda_event));
-    return static_cast<int64>(ms * double{1e6});
+    return std::chrono::nanoseconds{static_cast<int64>(ms * double{1e6})};
 }
 
 

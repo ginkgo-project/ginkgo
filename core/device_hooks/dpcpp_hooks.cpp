@@ -169,7 +169,8 @@ void DpcppTimer::record(time_point&) GKO_NOT_COMPILED(dpcpp);
 void DpcppTimer::wait(time_point& time) GKO_NOT_COMPILED(dpcpp);
 
 
-int64 DpcppTimer::difference(const time_point& start, const time_point& stop)
+std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
+                                                      const time_point& stop)
     GKO_NOT_COMPILED(dpcpp);
 
 

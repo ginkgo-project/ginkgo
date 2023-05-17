@@ -47,6 +47,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Timer : public CommonTestFixture {};
 
 
+TEST_F(Timer, WorksAsync)
+{
+    auto timer = gko::Timer::create_for_executor(this->exec);
+    auto start = timer->create_time_point();
+    auto stop = timer->create_time_point();
+
+    timer->record(start);
+    std::this_thread::sleep_for(std::chrono::seconds{5});
+    timer->record(stop);
+    timer->wait(stop);
+
+    ASSERT_GT(timer->difference_async(start, stop), std::chrono::seconds{1});
+}
+
+
 TEST_F(Timer, Works)
 {
     auto timer = gko::Timer::create_for_executor(this->exec);
@@ -57,5 +72,5 @@ TEST_F(Timer, Works)
     std::this_thread::sleep_for(std::chrono::seconds{5});
     timer->record(stop);
 
-    ASSERT_GT(timer->difference(start, stop), 1'000'000'000);
+    ASSERT_GT(timer->difference(start, stop), std::chrono::seconds{1});
 }

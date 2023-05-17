@@ -68,7 +68,7 @@ void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
 
 struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
     void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
-               gko::int64 overhead_ns) override
+               std::chrono::nanoseconds overhead) override
     {
         /*
          * total(
@@ -98,15 +98,15 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
         ASSERT_EQ(e[5].count, 1);
         ASSERT_EQ(e[6].name, "bazzzz");
         ASSERT_EQ(e[6].count, 1);
-        ASSERT_EQ(e[0].inclusive_ns, e[0].exclusive_ns + e[1].inclusive_ns);
-        ASSERT_EQ(e[1].inclusive_ns, e[1].exclusive_ns + e[2].inclusive_ns +
-                                         e[3].inclusive_ns + e[6].inclusive_ns);
-        ASSERT_EQ(e[2].inclusive_ns, e[2].exclusive_ns);
-        ASSERT_EQ(e[3].inclusive_ns,
-                  e[3].exclusive_ns + e[4].inclusive_ns + e[5].inclusive_ns);
-        ASSERT_EQ(e[4].inclusive_ns, e[4].exclusive_ns);
-        ASSERT_EQ(e[5].inclusive_ns, e[5].exclusive_ns);
-        ASSERT_EQ(e[6].inclusive_ns, e[6].exclusive_ns);
+        ASSERT_EQ(e[0].inclusive, e[0].exclusive + e[1].inclusive);
+        ASSERT_EQ(e[1].inclusive, e[1].exclusive + e[2].inclusive +
+                                      e[3].inclusive + e[6].inclusive);
+        ASSERT_EQ(e[2].inclusive, e[2].exclusive);
+        ASSERT_EQ(e[3].inclusive,
+                  e[3].exclusive + e[4].inclusive + e[5].inclusive);
+        ASSERT_EQ(e[4].inclusive, e[4].exclusive);
+        ASSERT_EQ(e[5].inclusive, e[5].exclusive);
+        ASSERT_EQ(e[6].inclusive, e[6].exclusive);
     }
 };
 
@@ -145,7 +145,7 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
 
 struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
     void write_nested(const gko::log::ProfilerHook::nested_summary_entry& e,
-                      gko::int64 overhead_ns) override
+                      std::chrono::nanoseconds overhead) override
     {
         /*
          * total(
