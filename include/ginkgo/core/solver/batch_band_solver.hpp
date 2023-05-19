@@ -168,18 +168,16 @@ protected:
 
         if (auto temp_band =
                 dynamic_cast<const matrix_type*>(system_matrix.get())) {
-            // TODO: Avoid this way of creating a shared pointer
-            // (there would be a probalem if the src ptr is emptied
+            // TODO: Avoid creating shared pointer this way
+            // (there would be a problem if the src ptr is emptied)
             auto ptr = std::shared_ptr<const matrix_type>(
                 temp_band, [](const matrix_type* plain_ptr) {});
             system_matrix_ = ptr;
         } else {
             GKO_BATCHED_NOT_SUPPORTED(
-                "Batched Band solver supports only batch matrix type");
+                "Batched Band solver supports only batch band matrix type");
         }
 
-        // TODO: Workspace not needed in case band array -> copied to shared
-        // memory- cuda/hip kernels (AVOID: extra workspace copy)
         workspace_ = gko::array<value_type>(
             exec, system_matrix_->get_num_stored_elements());
 

@@ -49,15 +49,16 @@ namespace batch_band_solver {
 
 namespace {
 
-// TODO: Decide according to the max. shared memory available
+// FIXME: Decide according to the max. dynamic shared memory available
+// (and don't forget to take into account the storage requirements given by
+// the function gko::kernels::batch_band_solver::local_memory_requirement)
 template <typename ValueType>
 __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
                                                  const int KU)
 {
     const int band_nrows = 2 * KL + KU + 1;
     const size_type storage_in_bytes = band_nrows * N * sizeof(ValueType);
-    if (storage_in_bytes <=
-        20000) {  // TODO: Find out experimentally an optimal value
+    if (storage_in_bytes <= 20000) {
         return true;
     } else {
         return false;
@@ -66,7 +67,6 @@ __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
 
 constexpr int default_block_size = 128;
 
-// TODO: Tune for optimal performance
 int inline get_thread_block_size_unblocked_banded(const int nrows)
 {
     if (nrows <= 50) {
@@ -145,7 +145,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         dim3 block(get_thread_block_size_unblocked_banded(nrows));
         dim3 grid(nbatch);
 
-        // TODO: Find optimal subwarp size
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(band_solver_unblocked_kernel<8>), grid, block,
             shared_size, 0, nbatch, nrows, KL, KU, as_hip_type(band_arr),

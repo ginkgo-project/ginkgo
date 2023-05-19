@@ -49,14 +49,16 @@ namespace batch_band_solver {
 
 namespace {
 
-// TODO: Decide according to the max. shared memory available
+// FIXME: Decide according to the max. dynamic shared memory available
+// (and don't forget to take into account the storage requirements given by
+// the function gko::kernels::batch_band_solver::local_memory_requirement)
 template <typename ValueType>
 __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
                                                  const int KU)
 {
     const int band_nrows = 2 * KL + KU + 1;
     const size_type storage_in_bytes = band_nrows * N * sizeof(ValueType);
-    if (storage_in_bytes <= 20000)  // TODO: Find an optimal value
+    if (storage_in_bytes <= 20000)  // Found by hit and trial
     {
         return true;
     } else {
