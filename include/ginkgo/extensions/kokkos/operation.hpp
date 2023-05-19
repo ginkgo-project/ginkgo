@@ -152,7 +152,7 @@ template <typename ValueType = void, typename MemorySpace, typename Closure,
           typename = std::enable_if_t<Kokkos::is_memory_space_v<MemorySpace>>>
 detail::kokkos_operator<MemorySpace, ValueType, Closure,
                         std::tuple_element_t<I, T>...>
-make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I>...)
+make_operator(MemorySpace, Closure&& cl, T&& args, std::index_sequence<I...>)
 {
     return {std::forward<Closure>(cl), std::get<I>(std::forward<T>(args))...};
 }
