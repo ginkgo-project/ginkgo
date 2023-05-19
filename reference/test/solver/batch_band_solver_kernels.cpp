@@ -50,8 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-// TODO: ADD tests for cases when the band matrix is actually - a diagonal or a
-// tridiagonal matrix
 
 template <typename T>
 class BatchBandSolver : public ::testing::Test {

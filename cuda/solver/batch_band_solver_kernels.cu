@@ -49,6 +49,7 @@ namespace batch_band_solver {
 
 namespace {
 
+// TODO: Decide according to the max. shared memory available
 template <typename ValueType>
 __host__ __device__ bool is_matrix_in_shared_mem(const int N, const int KL,
                                                  const int KU)

@@ -86,7 +86,7 @@ protected:
     const size_t KU_3 = 1;
     const size_t KL_4 = 0;
     const size_t KU_4 = 0;
-    const size_t KL_5 = 12;
+    const size_t KL_5 = 2;
     const size_t KU_5 = 0;
     const size_t KL_6 = 0;
     const size_t KU_6 = 15;
@@ -250,32 +250,31 @@ TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentTo_Unblo
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 7);
 }
 
-// TEST_F(BatchBandSolver, BandSolverWorksForLowerTriangularBandMat)
-// {   
-//    // check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::unblocked);
-//    // check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::blocked, 3);
-//    // check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_5, 4);
+TEST_F(BatchBandSolver, BandSolverWorksForLowerTriangularBandMat)
+{   
+   check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::unblocked);
+   check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::blocked, 3);
+   check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_5, 4);
  
-// }
+}
 
-// TEST_F(BatchBandSolver, BandSolverWorksForUpperTriangularBandMat)
-// {   
-//     check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::unblocked);
-//     check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::blocked, 3);
-//     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_6, 6);
+TEST_F(BatchBandSolver, BandSolverWorksForUpperTriangularBandMat)
+{   
+    check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::unblocked);
+    check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::blocked, 3);
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_6, 6);
  
-// }
+}
 
 
-// TEST_F(BatchBandSolver, UnblockedSolve_Tridiag_and_Diag_IsEquivalentToRef)
-// {   
-//    check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
-//    check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
-
-//    check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::blocked, 1);
-//    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_3, 1);
-
-// }
+TEST_F(BatchBandSolver, UnblockedSolve_Tridiag_and_Diag_IsEquivalentToRef)
+{   
+   check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
+   check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
+   check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::blocked, 1);
+   check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::blocked, 2);
+   check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_3, 1);
+}
 
 //TODO: Add tests for scaled solves
 

@@ -658,9 +658,6 @@ protected:
           KU_{gko::batch_stride(
               input->get_num_batch_entries() * num_duplications,
               input->get_num_superdiagonals().at(0))}
-    //   band_array_col_major_(exec,
-    //                         compute_batch_mem(this->get_size(), KL_, KU_))
-    //                         //Results in seg. fault??
     {
         GKO_ASSERT(input->get_size().stores_equal_sizes() &&
                    input->get_num_subdiagonals().stores_equal_strides() &&
