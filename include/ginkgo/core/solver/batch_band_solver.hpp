@@ -166,17 +166,8 @@ protected:
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
         auto exec = factory->get_executor();
 
-        if (auto temp_band =
-                dynamic_cast<const matrix_type*>(system_matrix.get())) {
-            // TODO: Avoid creating shared pointer this way
-            // (there would be a problem if the src ptr is emptied)
-            auto ptr = std::shared_ptr<const matrix_type>(
-                temp_band, [](const matrix_type* plain_ptr) {});
-            system_matrix_ = ptr;
-        } else {
-            GKO_BATCHED_NOT_SUPPORTED(
-                "Batched Band solver supports only batch band matrix type");
-        }
+        system_matrix_ = gko::as<matrix_type, BatchLinOp>(system_matrix);
+        // Note: "Batched Band solver supports only the batch band matrix type"
 
         workspace_ = gko::array<value_type>(
             exec, system_matrix_->get_num_stored_elements());
