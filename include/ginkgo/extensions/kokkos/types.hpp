@@ -200,6 +200,38 @@ using native_type = typename detail::native_type<T, MemorySpace>::type;
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+native_type<T, MemorySpace> map_data(std::unique_ptr<T>& data,
+                                     MemorySpace ms = {})
+{
+    return {*data};
+}
+
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+native_type<const T, MemorySpace> map_data(const std::unique_ptr<T>& data,
+                                           MemorySpace ms = {})
+{
+    return {*data};
+}
+
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+native_type<T, MemorySpace> map_data(std::shared_ptr<T>& data,
+                                     MemorySpace ms = {})
+{
+    return {*data};
+}
+
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+native_type<const T, MemorySpace> map_data(const std::shared_ptr<T>& data,
+                                           MemorySpace ms = {})
+{
+    return {*data};
+}
+
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
 native_type<T, MemorySpace> map_data(T* data, MemorySpace ms = {})
 {
     return {*data};
