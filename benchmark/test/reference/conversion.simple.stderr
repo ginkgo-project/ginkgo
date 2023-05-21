@@ -1,17 +1,47 @@
-This is Ginkgo 1.5.0 (develop)
-    running with core module 1.5.0 (develop)
+This is Ginkgo 1.6.0 (develop)
+    running with core module 1.6.0 (develop)
 Running on reference(0)
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The formats are coo,csr
+Benchmarking conversions. 
 Running test case
 {
     "size": 100,
     "stencil": "7pt",
-    "conversion": {}
+    "conversions": {}
 }
-Matrix is of size (125, 125), 725
-	Running conversion: coo-read
-	Running conversion: coo-csr
-	Running conversion: csr-read
-	Running conversion: csr-coo
+Matrix is of size (125, 125)
+Current state:
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "conversions": {
+            "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        }
+    }
+]
+Current state:
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "conversions": {
+            "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-coo": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        }
+    }
+]
