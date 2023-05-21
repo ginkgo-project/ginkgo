@@ -8,7 +8,6 @@ import pathlib
 import sys
 sourcepath = pathlib.Path("@CMAKE_CURRENT_SOURCE_DIR@")
 binpath = pathlib.Path("@PROJECT_BINARY_DIR@")
-projectroot = "@PROJECT_SOURCE_DIR@"
 generate = False
 if len(sys.argv) > 2 and sys.argv[2] == "--generate":
     generate = True
@@ -67,7 +66,6 @@ def determinize_text(input, denumberify_paths=[], remove_paths=[], ignore_patter
     output_lines = []
     patterns = [re.compile(pattern) for pattern in ignore_patterns]
     for line in lines:
-        line = line.replace(projectroot, "ginkgo")
         for pattern, replacement in replace_patterns:
             line = re.sub(pattern, replacement, line)
         keep = True
@@ -98,7 +96,7 @@ def compare_output(args, expected_stdout, expected_stderr, stdin="", launcher_fl
     ]
     typename_patterns = [
         ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
-        ("Operation .* does not support [^\"]*", "Operation does not support")
+        ("what\\(\\): .*", "what(): <removed>")
     ]
     if generate:
         open(expected_stdout, "w").write("\n".join(determinize_text(

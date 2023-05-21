@@ -42,7 +42,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -81,7 +81,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -128,7 +128,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -357,7 +357,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -520,7 +520,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -641,7 +641,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -770,7 +770,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -984,7 +984,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -1139,7 +1139,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -1302,7 +1302,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -1567,7 +1567,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
@@ -1756,7 +1756,7 @@ Error when processing test case
         }
     }
 }
-what(): ginkgo/include/ginkgo/core/base/utils_helper.hpp:368: Operation does not support
+what(): <removed>
 Current state:
 [
     {
