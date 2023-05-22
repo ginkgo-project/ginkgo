@@ -63,11 +63,14 @@ Parameters for a benchmark case are:
     std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information);
-
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
+
+    if (rank == 0) {
+        std::string extra_information =
+            "The operations are " + FLAGS_operations;
+        print_general_information(extra_information);
+    }
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 

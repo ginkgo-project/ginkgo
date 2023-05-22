@@ -5,227 +5,82 @@ Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are copy,axpy,scalRunning test case
 {
-    "n": DEBUG: begin n = 100 
+    "n": 100,
+    "blasDEBUG: begin n = 100 
 DEBUG: begin copy
-100,
-    "blaDEBUG: begin allocate
-DEBUG: end   s": {}
+": {}
 }
 DEBUG: begin n = 100 
+DEBUG: begin copy
 DEBUG: begin allocate
+DEBUG: end   allocate
 DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-copy
-DEBUG: begin allocateDEBUG: begin allocate
-DEBUG: end   allocate
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_ranges_from_global_sizeDEBUG: begin n = 100 
+DEBUG: begin copy
+DEBUG: begin allocate
 DEBUG: end   allocate
 
 DEBUG: begin allocate
-DEBUG: end   DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   allocate
+DEBUG: begin allocate
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin allocate
-allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguousDEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin partition::build_starting_indicesDEBUG: begin n = 100 
-DEBUG: begin copy
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin partition::build_ranges_from_global_size
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
-DEBUG: end   allocate
-
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::fill_array
-
-DEBUG: end   partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
+DEBUG: end   DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin DEBUG: begin components::fill_array
-DEBUG: end   components::fill_arrayallocate
-DEBUG: end   allocate
-allocate
-DEBUG: end   allocate
-DEBUG: begin components::fill_array
-
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin allocate
-DEBUG: end   DEBUG: end   DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin allocatecomponents::fill_array
-allocate
-DEBUG: begin 
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin freeDEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin allocate
-components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin freeDEBUG: end   allocate
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin 
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: begin allocate
 DEBUG: end   allocateDEBUG: end   allocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   free
-DEBUG: end   free
-DEBUG: begin 
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
 DEBUG: end   allocate
-components::fill_array
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin partition::build_from_contiguous
 DEBUG: end   partition::build_from_contiguous
 DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indicescopy
-DEBUG: end   copy
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-
-DEBUG: begin copy
-DEBUG: end   copyDEBUG: begin free
-DEBUG: end   free
-DEBUG: begin DEBUG: end   allocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copyDEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
-DEBUG: begin components::fill_arrayallocate
-DEBUG: end   allocate
-DEBUG: begin DEBUG: begin dense::fill
-DEBUG: end   
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copyDEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin partition::build_from_contiguous
 DEBUG: end   partition::build_from_contiguous
@@ -233,275 +88,320 @@ DEBUG: begin partition::build_starting_indices
 DEBUG: end   partition::build_starting_indices
 DEBUG: begin copy
 DEBUG: end   copy
+DEBUG: end   copy
+DEBUG: begin free
+
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   DEBUG: begin free
+DEBUG: end   freefree
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
 free
-DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-dense::fill
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: end   allocate
+DEBUG: begin 
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   freeDEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   copy
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   copy
-DEBUG: begin axpy
-DEBUG: begin allocate
-DEBUG: end   copy
-Current state:
-[
-    DEBUG: begin axpy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_ranges_from_global_size
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
 DEBUG: begin allocate
-DEBUG: end   
 DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin {
-        "n": 10allocate
 DEBUG: begin partition::build_ranges_from_global_size
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
+DEBUG: end   DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin allocate
 partition::build_ranges_from_global_size
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin 0,
-       DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
 allocate
+DEBUG: begin allocate
+DEBUG: end   allocateDEBUG: end   allocate
+DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin allocate
-DEBUG: end    "blas": {
-   DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
+DEBUG: end   allocate
 DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
 DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
+DEBUG: end   components::fill_arrayDEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array       components::fill_array
-DEBUG: end   components::fill_array
+DEBUG: end   DEBUG: end   allocate
 DEBUG: begin components::fill_array
 DEBUG: end   
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
-  "copy": {
-  components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+components::fill_array
+DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin partition::build_from_contiguous
 DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indicesDEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin free              "ti
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin free
-
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocateme": 0.000013,
- DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
-DEBUG: end   
-DEBUG: end   allocate
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end         allocate
-DEBUG: begin free
-free
-DEBUG: begin free
-DEBUG: end   free
-         "flopDEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   freeDEBUG: begin free
-DEBUG: end   free
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin s": 7692307.692307693,
-    allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate        
-DEBUG: begin free
-DEBUG: end   free
-    "DEBUG: begin allocate
-DEBUG: end   allocate
-
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin bandwidth":DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array 1230allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   76923.076923DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   partition::build_starting_indices09,
- components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   
-DEBUG: begin copy
-DEBUG: end   copy
 components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
-DEBUG: end   DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-               "rcomponents::fill_array
+DEBUG: end   components::fill_array
 DEBUG: begin partition::build_from_contiguous
 DEBUG: end   partition::build_from_contiguous
 DEBUG: begin partition::build_starting_indices
 DEBUG: end   partition::build_starting_indices
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
 DEBUG: begin copy
-DEBUG: end   copyDEBUG: begin allocate
-DEBUG: end   allocate
+DEBUG: end   partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin free
 DEBUG: end   free
+DEBUG: begin copy
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill
-DEBUG: end   epetitions": 1,
-                "completed": t
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin freecopy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   DEBUG: end   allocate
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin freedense::fill
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   free
+
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
-rue
-  
+free
+DEBUG: end   free
+DEBUG: begin dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: begin free
+DEBUG: end   DEBUG: begin free
+DEBUG: end   free
+free
+DEBUG: begin free
+DEBUG: end   DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
-DEBUG: end   DEBUG: begin dense::add_scaled
-DEBUG: end   dense::add_scaled
-          }
+DEBUG: end   free
+DEBUG: end   copy
+Current state:
+[
   free
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-      }
-   DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
- }
-]
+DEBUG: end   copy
 DEBUG: begin axpy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: end   copy
+DEBUG: begin axpy
 DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate  {
+        "n": DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_ranges_from_global_size
+DEBUG: begin allocate
+DEBUG: end   
 DEBUG: end   allocate
 DEBUG: begin partition::build_ranges_from_global_size
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin DEBUG: begin dense::add_scaled
-DEBUG: end   dense::add_scaled
 allocate
+DEBUG: begin allocate
+DEBUG: end   DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin allocate
+100,
+        "blas": {
+           allocateDEBUG: end   allocate
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
+DEBUG: begin  "copy": {
+     
+DEBUG: begin allocate
+components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin           DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copy
+ "time": 0.0000components::fill_array
+DEBUG: end   components::fill_arrayDEBUG: end   copy
+DEBUG: begin free
+08,
+       
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin partition::build_from_contiguous
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+         "flops": 12DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin 500000.0,
+   partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin freefree
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+          
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   DEBUG: end   partition::build_ranges_from_global_size
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin    "bandwidth": 200000000.0,
+         copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array       "repetitiDEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguousons": 1,
+   DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size         
+DEBUG: end   partition::build_ranges_from_global_size
+
 DEBUG: end   partition::build_from_contiguous
 DEBUG: begin partition::build_starting_indices
 DEBUG: end   partition::build_starting_indices
@@ -512,10 +412,110 @@ DEBUG: end   free
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin allocate
+    "completed": tDEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+rue
+  DEBUG: end   allocate
+DEBUG: begin allocateDEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin           }
+   
+DEBUG: end   allocate
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_arrayfree
+DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin      }
+    }
+]
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin 
+DEBUG: begin axpy
+DEBUG: begin allocatecomponents::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copypartition::build_ranges_from_global_size
+DEBUG: begin allocate
+DEBUG: end   
+DEBUG: end   copyDEBUG: begin dense::add_scaled
+DEBUG: end   dense::add_scaled
+allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin 
+DEBUG: begin allocate
+DEBUG: end   components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_arrayallocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+free
+DEBUG: end   DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+copy
+DEBUG: begin free
+DEBUG: end   DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+free
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin DEBUG: begin dense::add_scaled
+DEBUG: end   dense::add_scaled
+free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
@@ -573,137 +573,137 @@ DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   axpy
 DEBUG: begin DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   axpy
-DEBUG: begin scal
-scal
-DEBUG: begin allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: end   axpy
-Current state:
-[
-    {
-     DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
-DEBUG: begin allocate
-   "n": 100,
-    allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate    "blasallocate
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   ": {
- DEBUG: end   components::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_arraycomponents::fill_array
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-           "co
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin partition::build_from_contiguous
-DEBUG: end   partition::build_from_contiguous
-DEBUG: begin partition::build_starting_indices
-DEBUG: end   py": {partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin partition::build_starting_indices
-DEBUG: begin copy
-DEBUG: end   copy
-             free
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
-DEBUG: end   
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin allocate
-   "tiallocate
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   allocate
-DEBUG: begin free
-DEBUG: end   free
-me": 0.000013,
- DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
 DEBUG: end   freeDEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
+
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   free
+DEBUG: end   axpy
+DEBUG: begin scal
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin DEBUG: end   free
+DEBUG: end   axpy
+DEBUG: begin scal
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   free
+DEBUG: end   axpy
+allocate
+DEBUG: end   allocate
+DEBUG: begin partition::build_ranges_from_global_sizeallocate
+DEBUG: begin partition::build_ranges_from_global_size
+DEBUG: end   partition::build_ranges_from_global_sizeCurrent state:
+[
+    {
+   
+DEBUG: end   partition::build_ranges_from_global_size
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin 
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end        "n"allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocateallocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::fill_array: 10
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
 DEBUG: end   
-DEBUG: begin dense::fill
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+0,
+ components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin partition::build_from_contiguous
+DEBUG: end   partition::build_from_contiguous
+DEBUG: begin partition::build_starting_indices
+DEBUG: end   partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   copy       "blas": {
+  DEBUG: end   partition::build_starting_indices
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin copy       
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: begin free
+DEBUG: end   free
+   "copy": {
+DEBUG: end   allocate
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin freefree
+DEBUG: begin free
+
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   
+       DEBUG: end   free
+DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
-               "flops":DEBUG: begin dense::fill
+DEBUG: begin dense::fill       
 DEBUG: end   dense::fill
 DEBUG: begin dense::scale
-DEBUG: end   dense::scale
- 7692307.692307693,
-     dense::fill
+DEBUG: end   dense::scalefree
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+  "ti
 DEBUG: begin dense::scale
 DEBUG: end   dense::scale
-           "bandwidth": 123076923.07692309,
+me": 0.000008,
+                "flops": 12500000.0,
+                "bandwidth": 200000000.0,
                 "repetitions": 1,
                 "completed": true
             },
             "axpy": {
-                "time": 0.000017,
-                "flops": 11764705.88235294,
-                "bandwidth": 141176470.5882353,
+                "time": 0.00002,
+                "flops": 10000000.0,
+                "bandwidth": 119999999.99999999,
                 "repetitions": 1,
                 "completed": true
             }
@@ -759,46 +759,46 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin dense::scale
 DEBUG: end   dense::scale
+DEBUG: begin free
+DEBUG: end   freeDEBUG: begin free
+DEBUG: end   free
 DEBUG: begin freeDEBUG: begin free
-
 DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: end   DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   scal
-DEBUG: end   n = 100 scal
+DEBUG: end   n = 100 
+
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: end   scal
 Current state:
 [
     {
-        "n":scal
+        "n": 100,
+      
+DEBUG: end   free
+DEBUG: end   scal
 DEBUG: end   n = 100 
-
- 100,
-        "blas": {
+  "blas": {
             "copy": {
-                "time": 0.000013,
-                "flops": 7692307.692307693,
-                "bandwidth": 123076923.07692309,
+                "time": 0.000008,
+                "flops": 12500000.0,
+                "bandwidth": 200000000.0,
                 "repetitions": 1,
                 "completed": true
             },
             "axpy": {
-                "time": 0.000017,
-                "flops": 11764705.88235294,
-                "bandwidth": 141176470.5882353,
+                "time": 0.00002,
+                "flops": 10000000.0,
+                "bandwidth": 119999999.99999999,
                 "repetitions": 1,
                 "completed": true
             },
             "scal": {
-                "time": 0.000007,
-                "flops": 14285714.285714285,
-                "bandwidth": 228571428.57142857,
+                "time": 0.000006,
+                "flops": 16666666.666666666,
+                "bandwidth": 266666666.66666666,
                 "repetitions": 1,
                 "completed": true
             }
