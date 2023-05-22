@@ -6,14 +6,14 @@
         "comm_pattern": "stencil",
         "spmv": {
             "csr-csr": {
-                "storage": 2316,
+                "storage": 6420,
                 "max_relative_norm2": 1.0,
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true
             }
         },
-        "nnz": 135,
+        "nnz": 144,
         "optimal": {
             "spmv": "csr-csr"
         }
