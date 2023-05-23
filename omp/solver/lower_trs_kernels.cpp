@@ -48,6 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
+#include "omp/components/atomic.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -97,24 +101,34 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();
     auto vals = matrix->get_const_values();
+    const auto num_rows = matrix->get_size()[0];
+    const auto num_rhs = b->get_size()[1];
+    dense::fill(exec, x, nan<ValueType>());
 
-#pragma omp parallel for
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
+#pragma omp parallel for schedule(monotonic : auto) collapse(2)
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type j = 0; j < num_rhs; ++j) {
             auto diag = one<ValueType>();
-            x->at(row, j) = b->at(row, j);
+            auto val = b->at(row, j);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col < row) {
-                    x->at(row, j) -= vals[k] * x->at(col, j);
+                    ValueType xval{};
+                    while (is_nan(xval = atomic_load(x->at(col, j)))) {
+                    }
+                    val -= vals[k] * xval;
                 }
                 if (col == row) {
                     diag = vals[k];
                 }
             }
             if (!unit_diag) {
-                x->at(row, j) /= diag;
+                val /= diag;
             }
+            if (is_nan(val)) {
+                val = zero<ValueType>();
+            }
+            atomic_store(x->at(row, j), val);
         }
     }
 }

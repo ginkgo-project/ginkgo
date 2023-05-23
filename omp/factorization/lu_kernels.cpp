@@ -104,7 +104,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = factors->get_const_row_ptrs();
     const auto cols = factors->get_const_col_idxs();
     const auto vals = factors->get_values();
-    // TODO parallelize
+    vector<int> ready(num_rows, {exec});
+#pragma omp parallel for schedule(monotonic : auto)
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_diag = diag_idxs[row];
@@ -112,6 +113,11 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             row_ptrs, cols, lookup_offsets, lookup_storage, lookup_descs, row};
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
             const auto dep = cols[lower_nz];
+            bool ready_flag{};
+            while (!ready_flag) {
+#pragma omp atomic read acquire
+                ready_flag = ready[dep];
+            }
             const auto dep_diag_idx = diag_idxs[dep];
             const auto dep_diag = vals[dep_diag_idx];
             const auto dep_end = row_ptrs[dep + 1];
@@ -124,6 +130,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 vals[nz] -= scale * val;
             }
         }
+#pragma omp atomic write release
+        ready[row] = true;
     }
 }
 

@@ -50,7 +50,7 @@ template <typename ValueType,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
 void atomic_add(ValueType& out, ValueType val)
 {
-#pragma omp atomic
+#pragma omp atomic update relaxed
     out += val;
 }
 
@@ -61,10 +61,59 @@ void atomic_add(ValueType& out, ValueType val)
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
     auto values = reinterpret_cast<gko::remove_complex<ValueType>*>(&out);
-#pragma omp atomic
+#pragma omp atomic update relaxed
     values[0] += real(val);
-#pragma omp atomic
+#pragma omp atomic update relaxed
     values[1] += imag(val);
+}
+
+
+template <typename ValueType,
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+ValueType atomic_load(const ValueType& val)
+{
+    ValueType out{};
+#pragma omp atomic read relaxed
+    out = val;
+    return out;
+}
+
+template <typename ValueType,
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+ValueType atomic_load(const ValueType& val)
+{
+    remove_complex<ValueType> r{};
+    remove_complex<ValueType> i{};
+    // The C++ standard explicitly allows casting complex<double>* to double*
+    // [complex.numbers.general]
+    auto values = reinterpret_cast<const remove_complex<ValueType>*>(&val);
+#pragma omp atomic read relaxed
+    r = values[0];
+#pragma omp atomic read relaxed
+    i = values[1];
+    return ValueType{r, i};
+}
+
+
+template <typename ValueType,
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+void atomic_store(ValueType& out, ValueType val)
+{
+#pragma omp atomic write relaxed
+    out = val;
+}
+
+template <typename ValueType,
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+void atomic_store(ValueType& out, ValueType val)
+{
+    // The C++ standard explicitly allows casting complex<double>* to double*
+    // [complex.numbers.general]
+    auto values = reinterpret_cast<remove_complex<ValueType>*>(&out);
+#pragma omp atomic write relaxed
+    values[0] = real(val);
+#pragma omp atomic write relaxed
+    values[1] = imag(val);
 }
 
 
