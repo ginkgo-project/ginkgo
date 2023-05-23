@@ -149,7 +149,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-void destroy_event(sycl::event* event) GKO_NOT_COMPILED(cuda);
+void destroy_event(sycl::event* event) GKO_NOT_COMPILED(dpcpp);
 
 
 }  // namespace dpcpp
