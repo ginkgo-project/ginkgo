@@ -42,7 +42,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-class ProfilerHook : public CommonTestFixture {};
+class ProfilerHook : public CommonTestFixture {
+#ifdef GKO_COMPILING_DPCPP
+    ProfilerHook()
+    {
+        // require profiling capability
+        const auto property = dpcpp_queue_property::in_order |
+                              dpcpp_queue_property::enable_profiling;
+        if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
+            exec = gko::DpcppExecutor::create(0, ref, "gpu", property);
+        } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+            exec = gko::DpcppExecutor::create(0, ref, "cpu", property);
+        } else {
+            throw std::runtime_error{"No suitable DPC++ devices"};
+        }
+    }
+#endif
+};
 
 
 void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
