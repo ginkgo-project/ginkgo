@@ -144,6 +144,7 @@ public:
      *
      * @param start  the first time point (earlier)
      * @param end  the second time point (later)
+     *
      * @return the difference between the time points in nanoseconds.
      */
     virtual std::chrono::nanoseconds difference_async(
@@ -154,6 +155,7 @@ public:
      * kernels on the given executor.
      *
      * @param exec  the executor to create a Timer for
+     *
      * @return CpuTimer for ReferenceExecutor and OmpExecutor, CudaTimer for
      *         CudaExecutor, HipTimer for HipExecutor or DpcppTimer for
      *         DpcppExecutor.

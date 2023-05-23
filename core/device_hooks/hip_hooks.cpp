@@ -192,7 +192,7 @@ namespace hip {
 void reset_device(int device_id) GKO_NOT_COMPILED(hip);
 
 
-void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(cuda);
+void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
 
 
 }  // namespace hip
