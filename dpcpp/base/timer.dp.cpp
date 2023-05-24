@@ -87,7 +87,7 @@ std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
         stop.data_.dpcpp_event
             ->get_profiling_info<sycl::info::event_profiling::command_start>();
     auto start_time =
-        stop.data_.dpcpp_event
+        start.data_.dpcpp_event
             ->get_profiling_info<sycl::info::event_profiling::command_end>();
     return std::chrono::nanoseconds{static_cast<int64>(stop_time - start_time)};
 }
