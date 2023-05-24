@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+time_point::data_union::data_union() : chrono{} {}
+
+
 time_point::time_point() : type_{type::cpu}, data_{} {}
 
 
