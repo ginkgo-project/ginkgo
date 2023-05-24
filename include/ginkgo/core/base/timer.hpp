@@ -80,11 +80,13 @@ private:
     };
 
     type type_;
-    union {
+    union data_union {
         CUevent_st* cuda_event;
         GKO_HIP_EVENT_STRUCT* hip_event;
         sycl::event* dpcpp_event;
         std::chrono::steady_clock::time_point chrono;
+
+        data_union();
     } data_;
 };
 
