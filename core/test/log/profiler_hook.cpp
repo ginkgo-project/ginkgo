@@ -412,7 +412,7 @@ TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
     std::vector<ProfilerHook::summary_entry> entries;
     entries.push_back({"empty", 0ns, 0ns, 0});  // division by zero
     entries.push_back({"short", 1ns, 0ns, 1});
-    entries.push_back({"shortish", 1'200ns, 1'000ns, 1});
+    entries.push_back({"shortish", 1200ns, 1000ns, 1});
     entries.push_back({"medium", 1ms, 500us, 4});  // check division by count
     entries.push_back({"long", 120s, 60s, 1});
     entries.push_back({"eternal", 24h, 24h, 1});
