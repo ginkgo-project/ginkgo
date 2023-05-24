@@ -61,7 +61,8 @@ void HipTimer::init_time_point(time_point& time)
 void HipTimer::record(time_point& time)
 {
     detail::hip_scoped_device_id_guard guard{exec_->get_device_id()};
-    GKO_ASSERT(time.type_ == time_point::type::hip);
+    // HIP assertions are broken
+    // GKO_ASSERT(time.type_ == time_point::type::hip);
     GKO_ASSERT_NO_HIP_ERRORS(
         hipEventRecord(time.data_.hip_event, exec_->get_stream()));
 }
@@ -70,7 +71,8 @@ void HipTimer::record(time_point& time)
 void HipTimer::wait(time_point& time)
 {
     detail::hip_scoped_device_id_guard guard{exec_->get_device_id()};
-    GKO_ASSERT(time.type_ == time_point::type::hip);
+    // HIP assertions are broken
+    // GKO_ASSERT(time.type_ == time_point::type::hip);
     GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(time.data_.hip_event));
 }
 
@@ -79,8 +81,9 @@ std::chrono::nanoseconds HipTimer::difference_async(const time_point& start,
                                                     const time_point& stop)
 {
     detail::hip_scoped_device_id_guard guard{exec_->get_device_id()};
-    GKO_ASSERT(start.type_ == time_point::type::hip);
-    GKO_ASSERT(stop.type_ == time_point::type::hip);
+    // HIP assertions are broken
+    // GKO_ASSERT(start.type_ == time_point::type::hip);
+    // GKO_ASSERT(stop.type_ == time_point::type::hip);
     GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(stop.data_.hip_event));
     float ms{};
     GKO_ASSERT_NO_HIP_ERRORS(
