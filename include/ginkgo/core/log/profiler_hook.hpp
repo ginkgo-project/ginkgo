@@ -277,12 +277,12 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        std::chrono::nanoseconds inclusive{};
+        std::chrono::nanoseconds inclusive{0};
         /**
          * The total runtime of all invocations of the range in nanoseconds,
          * excluding the runtime of all nested ranges.
          */
-        std::chrono::nanoseconds exclusive{};
+        std::chrono::nanoseconds exclusive{0};
         /** The total number of invocations of the range. */
         int64 count{};
     };
@@ -291,7 +291,7 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        std::chrono::nanoseconds elapsed{};
+        std::chrono::nanoseconds elapsed{0};
         /** The total number of invocations of the range. */
         int64 count{};
         /** The nested ranges inside this range. */
