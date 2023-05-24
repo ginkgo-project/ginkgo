@@ -220,6 +220,7 @@ public:
             3);
 
         dist_mat = dist_mtx_type::create(exec, comm);
+        dist_mat_default = dist_mtx_type::create(exec, comm);
         dist_mat_large = dist_mtx_type::create(exec, comm);
         x = dist_vec_type::create(ref, comm);
         y = dist_vec_type::create(ref, comm);
@@ -236,6 +237,8 @@ public:
             // clang-format on
         };
         dist_mat->read_distributed(mat_input, this->row_part, this->col_part);
+        dist_mat_default->read_distributed(mat_input, this->row_part,
+                                           this->col_part, true);
         csr_mat->read(mat_input);
 
         alpha = gko::test::generate_random_matrix<dense_vec_type>(
@@ -276,9 +279,9 @@ public:
                             r<value_type>::value);
     }
 
-    void init_large(gko::size_type num_rows, gko::size_type num_cols)
+    void init_large(gko::size_type num_rows, gko::size_type num_cols,
+                    bool disable_sparse_comm)
     {
-        auto rank = comm.rank();
         int num_parts = comm.size();
         auto vec_md = gko::test::generate_random_matrix_data<value_type,
                                                              global_index_type>(
@@ -307,8 +310,8 @@ public:
         col_part_large =
             part_type::build_from_mapping(exec, col_mapping, num_parts);
 
-        dist_mat_large->read_distributed(mat_md, row_part_large,
-                                         col_part_large);
+        dist_mat_large->read_distributed(mat_md, row_part_large, col_part_large,
+                                         disable_sparse_comm);
         csr_mat->read(mat_md);
 
         x->read_distributed(vec_md, col_part_large);
@@ -326,6 +329,7 @@ public:
     std::unique_ptr<part_type> col_part_large;
 
     std::unique_ptr<dist_mtx_type> dist_mat;
+    std::unique_ptr<dist_mtx_type> dist_mat_default;
     std::unique_ptr<dist_mtx_type> dist_mat_large;
     std::unique_ptr<csr_mtx_type> csr_mat;
 
@@ -353,11 +357,22 @@ TYPED_TEST(Matrix, CanApplyToSingleVector)
     auto rank = this->comm.rank();
     this->x->read_distributed(vec_md, this->col_part);
     this->y->read_distributed(vec_md, this->row_part);
-    this->y->fill(gko::zero<value_type>());
+    {
+        SCOPED_TRACE("Sparse Comm");
+        this->y->fill(gko::zero<value_type>());
 
-    this->dist_mat->apply(this->x, this->y);
+        this->dist_mat->apply(this->x, this->y);
 
-    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
+    {
+        SCOPED_TRACE("Default Comm");
+        this->y->fill(gko::zero<value_type>());
+
+        this->dist_mat_default->apply(this->x, this->y);
+
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
 }
 
 
@@ -372,11 +387,22 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectors)
     auto rank = this->comm.rank();
     this->x->read_distributed(vec_md, this->col_part);
     this->y->read_distributed(vec_md, this->row_part);
-    this->y->fill(gko::zero<value_type>());
+    {
+        SCOPED_TRACE("Sparse Comm");
+        this->y->fill(gko::zero<value_type>());
 
-    this->dist_mat->apply(this->x, this->y);
+        this->dist_mat->apply(this->x, this->y);
 
-    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
+    {
+        SCOPED_TRACE("Default Comm");
+        this->y->fill(gko::zero<value_type>());
+
+        this->dist_mat_default->apply(this->x, this->y);
+
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
 }
 
 
@@ -392,57 +418,80 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     this->alpha = gko::initialize<dense_vec_type>({2.0}, this->exec);
     this->beta = gko::initialize<dense_vec_type>({-3.0}, this->exec);
     this->x->read_distributed(vec_md, this->col_part);
-    this->y->read_distributed(vec_md, this->row_part);
+    {
+        SCOPED_TRACE("Sparse Comm");
+        this->y->fill(gko::zero<value_type>());
 
-    this->dist_mat->apply(this->alpha, this->x, this->beta,
-                          this->y);
+        this->dist_mat->apply(this->alpha, this->x, this->beta, this->y);
 
-    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
+    {
+        SCOPED_TRACE("Default Comm");
+        this->y->fill(gko::zero<value_type>());
+
+        this->dist_mat_default->apply(this->alpha, this->x, this->beta,
+                                      this->y);
+
+        GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    }
 }
 
 
 TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
 {
     using value_type = typename TestFixture::value_type;
-    this->init_large(100, 1);
+    for (auto disable_sparse_comm : {true, false}) {
+        SCOPED_TRACE("Using Sparse Comm: " +
+                     std::to_string(disable_sparse_comm));
+        this->init_large(100, 1, disable_sparse_comm);
 
-    this->dist_mat_large->apply(this->x, this->y);
-    this->csr_mat->apply(this->dense_x, this->dense_y);
+        this->dist_mat_large->apply(this->x, this->y);
+        this->csr_mat->apply(this->dense_x, this->dense_y);
 
-    this->assert_local_vector_equal_to_global_vector(
-        this->y.get(), this->dense_y.get(), this->row_part_large.get(),
-        this->comm.rank());
+        this->assert_local_vector_equal_to_global_vector(
+            this->y.get(), this->dense_y.get(), this->row_part_large.get(),
+            this->comm.rank());
+    }
 }
 
 
 TYPED_TEST(Matrix, CanApplyToMultipleVectorsLarge)
 {
     using value_type = typename TestFixture::value_type;
-    this->init_large(100, 17);
+    for (auto disable_sparse_comm : {true, false}) {
+        SCOPED_TRACE("Using Sparse Comm: " +
+                     std::to_string(disable_sparse_comm));
+        this->init_large(100, 17, disable_sparse_comm);
 
-    this->dist_mat_large->apply(this->x, this->y);
-    this->csr_mat->apply(this->dense_x, this->dense_y);
+        this->dist_mat_large->apply(this->x, this->y);
+        this->csr_mat->apply(this->dense_x, this->dense_y);
 
-    this->assert_local_vector_equal_to_global_vector(
-        this->y.get(), this->dense_y.get(), this->row_part_large.get(),
-        this->comm.rank());
+        this->assert_local_vector_equal_to_global_vector(
+            this->y.get(), this->dense_y.get(), this->row_part_large.get(),
+            this->comm.rank());
+    }
 }
 
 
 TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
 {
     using value_type = typename TestFixture::value_type;
-    this->init_large(100, 17);
-    this->csr_mat->apply(this->alpha.get(), this->dense_x.get(),
-                         this->beta.get(), this->dense_y.get());
+    for (auto disable_sparse_comm : {true, false}) {
+        SCOPED_TRACE("Using Sparse Comm: " +
+                     std::to_string(disable_sparse_comm));
+        this->init_large(100, 17, disable_sparse_comm);
+        this->csr_mat->apply(this->alpha.get(), this->dense_x.get(),
+                             this->beta.get(), this->dense_y.get());
 
-    this->dist_mat_large->apply(this->alpha, this->x,
-                                this->beta, this->y);
-    this->csr_mat->apply(this->alpha, this->dense_x, this->beta, this->dense_y);
+        this->dist_mat_large->apply(this->alpha, this->x, this->beta, this->y);
+        this->csr_mat->apply(this->alpha, this->dense_x, this->beta,
+                             this->dense_y);
 
-    this->assert_local_vector_equal_to_global_vector(
-        this->y.get(), this->dense_y.get(), this->row_part_large.get(),
-        this->comm.rank());
+        this->assert_local_vector_equal_to_global_vector(
+            this->y.get(), this->dense_y.get(), this->row_part_large.get(),
+            this->comm.rank());
+    }
 }
 
 

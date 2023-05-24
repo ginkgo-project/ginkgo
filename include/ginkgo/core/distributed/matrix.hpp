@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/lin_op.hpp>
 
 
+#include <optional>
+
+
 namespace gko {
 namespace detail {
 
@@ -304,7 +307,7 @@ public:
         const device_matrix_data<value_type, global_index_type>& data,
         ptr_param<const Partition<local_index_type, global_index_type>>
             partition,
-        bool neighbor_comm = false);
+        bool disable_sparse_comm = false);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -319,7 +322,7 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         ptr_param<const Partition<local_index_type, global_index_type>>
             partition,
-        bool neighbor_comm = false);
+        bool disable_sparse_comm = false);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -342,7 +345,7 @@ public:
             row_partition,
         ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition,
-        bool neighbor_comm = false);
+        bool disable_sparse_comm = false);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -359,7 +362,7 @@ public:
             row_partition,
         ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition,
-        bool neighbor_comm = false);
+        bool disable_sparse_comm = false);
 
     /**
      * Get read access to the stored local matrix.
@@ -561,7 +564,7 @@ private:
     gko::detail::DenseCache<value_type> recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
-    mpi::communicator neighbor_comm_;
+    std::optional<mpi::communicator> neighbor_comm_;
 };
 
 

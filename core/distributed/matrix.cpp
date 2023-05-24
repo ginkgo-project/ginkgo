@@ -100,8 +100,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)},
-      neighbor_comm_(setup_empty_neighborhood_communicator(comm))
+      non_local_mtx_{non_local_matrix_template->clone(exec)}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -222,7 +221,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
         col_partition,
-    bool neighbor_comm)
+    bool disable_sparse_comm)
 {
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
@@ -308,7 +307,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec);
     }
 
-    this->enable_neighborhood_communication();
+    if (!disable_sparse_comm) {
+        this->enable_neighborhood_communication();
+    }
 }
 
 
@@ -319,12 +320,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
         col_partition,
-    bool neighbor_comm)
+    bool disable_sparse_comm)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        row_partition, col_partition, neighbor_comm);
+        row_partition, col_partition, disable_sparse_comm);
 }
 
 
@@ -332,12 +333,12 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     ptr_param<const Partition<local_index_type, global_index_type>> partition,
-    bool neighbor_comm)
+    bool disable_sparse_comm)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        partition, partition, neighbor_comm);
+        partition, partition, disable_sparse_comm);
 }
 
 
@@ -345,9 +346,9 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     ptr_param<const Partition<local_index_type, global_index_type>> partition,
-    bool neighbor_comm)
+    bool disable_sparse_comm)
 {
-    this->read_distributed(data, partition, partition, neighbor_comm);
+    this->read_distributed(data, partition, partition, disable_sparse_comm);
 }
 
 
@@ -380,18 +381,25 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     auto recv_ptr = use_host_buffer ? host_recv_buffer_->get_values()
                                     : recv_buffer_->get_values();
     exec->synchronize();
+    if (neighbor_comm_) {
+        return neighbor_comm_->i_neighor_all_to_all_v(
+            use_host_buffer ? exec->get_master() : exec, send_ptr,
+            send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
+    } else {
 #ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
-    neighbor_comm_.neighor_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec, send_ptr,
-        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
-        recv_sizes_.data(), recv_offsets_.data(), type.get());
-    return {};
+        comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
+                          send_sizes_.data(), send_offsets_.data(), type.get(),
+                          recv_ptr, recv_sizes_.data(), recv_offsets_.data(),
+                          type.get());
+        return {};
 #else
-    return neighbor_comm_.i_neighor_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec, send_ptr,
-        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
-        recv_sizes_.data(), recv_offsets_.data(), type.get());
+        return comm.i_all_to_all_v(
+            use_host_buffer ? exec->get_master() : exec, send_ptr,
+            send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
 #endif
+    }
 }
 
 
@@ -503,7 +511,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
-        neighbor_comm_ = other.neighbor_comm_.duplicate();
+        if (other.neighbor_comm_) {
+            neighbor_comm_ = other.neighbor_comm_->duplicate();
+        } else {
+            neighbor_comm_.reset();
+        }
     }
     return *this;
 }
@@ -528,7 +540,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
-        neighbor_comm_ = std::move(other.neighbor_comm_);
+        neighbor_comm_ = std::exchange(other.neighbor_comm_, std::nullopt);
     }
     return *this;
 }
