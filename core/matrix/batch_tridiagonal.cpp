@@ -81,25 +81,6 @@ void BatchTridiagonal<ValueType>::move_to(
 }
 
 
-template <typename ValueType>
-void BatchTridiagonal<ValueType>::convert_to(
-    BatchCsr<ValueType, int32>* const result) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
-void BatchTridiagonal<ValueType>::move_to(
-    BatchCsr<ValueType, int32>* const result) GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType>
-void BatchTridiagonal<ValueType>::convert_to(
-    BatchDense<ValueType>* const result) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
-void BatchTridiagonal<ValueType>::move_to(BatchDense<ValueType>* const result)
-    GKO_NOT_IMPLEMENTED;
-
-
 namespace {
 
 template <typename MatrixType, typename MatrixData>
@@ -133,6 +114,7 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
                 zero<typename MatrixType::value_type>();
         }
 
+        GKO_ASSERT(data[batch_entry_idx].nonzeros.size() <= 3 * size);
         while (ind < data[batch_entry_idx].nonzeros.size()) {
             const auto row = data[batch_entry_idx].nonzeros[ind].row;
             const auto col = data[batch_entry_idx].nonzeros[ind].column;

@@ -52,13 +52,6 @@ namespace gko {
 namespace matrix {
 
 
-template <typename ValueType, typename IndexType>
-class BatchCsr;
-
-template <typename ValueType>
-class BatchDense;
-
-
 /**
  * BatchTridiagonal is a matrix format that holds a collection of tridiagonal
  * matrices.
@@ -84,8 +77,6 @@ class BatchTridiagonal
     : public EnableBatchLinOp<BatchTridiagonal<ValueType>>,
       public EnableCreateMethod<BatchTridiagonal<ValueType>>,
       public ConvertibleTo<BatchTridiagonal<next_precision<ValueType>>>,
-      public ConvertibleTo<BatchCsr<ValueType, int32>>,
-      public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, int32>,
       public BatchReadableFromMatrixData<ValueType, int64>,
       public BatchWritableToMatrixData<ValueType, int32>,
@@ -134,14 +125,6 @@ public:
         BatchTridiagonal<next_precision<ValueType>>* result) const override;
 
     void move_to(BatchTridiagonal<next_precision<ValueType>>* result) override;
-
-    void convert_to(BatchCsr<ValueType, index_type>* result) const override;
-
-    void move_to(BatchCsr<ValueType, index_type>* result) override;
-
-    void convert_to(BatchDense<ValueType>* result) const override;
-
-    void move_to(BatchDense<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
@@ -497,6 +480,7 @@ protected:
           super_diagonal_(exec, compute_batch_mem_per_diag(this->get_size()))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(this);
+        GKO_ASSERT(this->get_size().stores_equal_sizes() == true);
 
         num_elems_per_diagonal_of_the_batch_cumul_ =
             compute_num_elems_per_diagonal_of_the_batch_cumul(

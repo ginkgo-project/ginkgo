@@ -43,7 +43,7 @@ __device__ __forceinline__ void broadcast(
     piv_d = subwarp_grp.shfl(my_d, target_lane);
 }
 
-namespace WM_pGE_approach1 {
+namespace wm_pge_approach1 {
 
 template <typename ValueType, typename Group>
 __device__ __forceinline__ void WM_step(Group& subwarp_grp,
@@ -223,10 +223,10 @@ __device__ __forceinline__ void backward_substitution(
     }
 }
 
-}  // namespace WM_pGE_approach1
+}  // namespace wm_pge_approach1
 
 template <int subwarp_size, typename ValueType>
-__global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
+__global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_1(
     const int num_WM_steps, const size_type nbatch, const int nrows,
     const ValueType* const __restrict__ a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
@@ -252,7 +252,7 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
 
         if (final_group_size > tile_size) {
             printf(
-                "\n Number of WM steps ans subwarp size should satisfy the "
+                "\n Number of WM steps and subwarp size should satisfy the "
                 "inequality: pow(2, WM_steps) <=  tile_size, where tile_size = "
                 "subwarp_size");
             assert(false);
@@ -284,7 +284,7 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
             if (tile_id < num_tiles - 1 || is_last_tile_similar) {
                 // Phase-1 of the alogithm- WM phase
                 int curr_group_size = 1;
-                WM_pGE_approach1::WM_phase(num_WM_steps, subwarpgrp, my_a, my_b,
+                wm_pge_approach1::WM_phase(num_WM_steps, subwarpgrp, my_a, my_b,
                                            my_c, my_d, curr_group_size);
                 // In each WM step, the adjacent groups are merged
                 // independently.
@@ -295,13 +295,13 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
                 // transformed system to eliminate the bottom spikes
                 assert(curr_group_size == final_group_size);
 
-                WM_pGE_approach1::Forward_full_GE_phase(
+                wm_pge_approach1::Forward_full_GE_phase(
                     subwarpgrp, nrows, my_row_idx, tile_size, final_group_size,
                     c_last_row_of_prev_group, d_last_row_of_prev_group, my_a,
                     my_b, my_c, my_d, c + batch_idx * nrows,
                     d + batch_idx * nrows);
             } else {
-                WM_pGE_approach1::Forward_full_GE_phase(
+                wm_pge_approach1::Forward_full_GE_phase(
                     subwarpgrp, nrows, my_row_idx,
                     row_idx_end_tile - row_idx_st_tile, 1,
                     c_last_row_of_prev_group, d_last_row_of_prev_group, my_a,
@@ -323,13 +323,13 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
             const int my_row_idx = row_idx_st_tile + lane;
 
             if (tile_id == num_tiles - 1 && !is_last_tile_similar) {
-                WM_pGE_approach1::backward_substitution(
+                wm_pge_approach1::backward_substitution(
                     subwarpgrp, nrows, my_row_idx,
                     row_idx_end_tile - row_idx_st_tile, 1, x_first_higher_group,
                     c + batch_idx * nrows, d + batch_idx * nrows,
                     x + batch_idx * nrows);
             } else {
-                WM_pGE_approach1::backward_substitution(
+                wm_pge_approach1::backward_substitution(
                     subwarpgrp, nrows, my_row_idx, tile_size, final_group_size,
                     x_first_higher_group, c + batch_idx * nrows,
                     d + batch_idx * nrows, x + batch_idx * nrows);
@@ -339,7 +339,7 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_1(
 }
 
 
-namespace WM_pGE_approach2 {
+namespace wm_pge_approach2 {
 
 template <int x, typename T>
 struct get_corres_vector_type {};
@@ -724,17 +724,17 @@ __device__ __forceinline__ void backward_substitution(
 }
 
 
-}  // namespace WM_pGE_approach2
+}  // namespace wm_pge_approach2
 
 
 template <typename ValueType, int subwarp_size>
-__global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
+__global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_2(
     const int num_WM_steps, const size_type nbatch, const int nrows,
     const ValueType* const __restrict__ a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
-    using Valuetype2 = WM_pGE_approach2::ValueType2<ValueType>;
+    using Valuetype2 = wm_pge_approach2::ValueType2<ValueType>;
 
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -820,7 +820,7 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
             if (tile_id < num_tiles - 1 || is_last_tile_similar) {
                 // Phase-1 of the alogithm- WM phase
                 int curr_group_size = 1;
-                WM_pGE_approach2::WM_phase(
+                wm_pge_approach2::WM_phase(
                     num_WM_steps, subwarpgrp, my_a_1, my_b_1, my_c_1, my_d_1,
                     my_a_2, my_b_2, my_c_2, my_d_2, curr_group_size);
                 // In each WM step, the adjacent groups are merged
@@ -832,14 +832,14 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
                 // transformed system to eliminate the bottom spikes
                 assert(curr_group_size == final_group_size);
 
-                WM_pGE_approach2::Forward_full_GE_phase(
+                wm_pge_approach2::Forward_full_GE_phase(
                     subwarpgrp, nrows, my_row_idx_1, tile_size,
                     final_group_size, c_last_row_of_prev_group,
                     d_last_row_of_prev_group, my_a_1, my_b_1, my_c_1, my_d_1,
                     my_a_2, my_b_2, my_c_2, my_d_2, c + batch_idx * nrows,
                     d + batch_idx * nrows);
             } else {
-                WM_pGE_approach2::Forward_full_GE_phase(
+                wm_pge_approach2::Forward_full_GE_phase(
                     subwarpgrp, nrows, my_row_idx_1,
                     row_idx_end_tile - row_idx_st_tile, 1,
                     c_last_row_of_prev_group, d_last_row_of_prev_group, my_a_1,
@@ -861,13 +861,13 @@ __global__ __launch_bounds__(default_block_size) void WM_pGE_kernel_approach_2(
             const int my_row_idx_1 = row_idx_st_tile + 2 * lane;
 
             if (tile_id == num_tiles - 1 && !is_last_tile_similar) {
-                WM_pGE_approach2::backward_substitution(
+                wm_pge_approach2::backward_substitution(
                     subwarpgrp, nrows, my_row_idx_1,
                     row_idx_end_tile - row_idx_st_tile, 1, x_first_higher_group,
                     c + batch_idx * nrows, d + batch_idx * nrows,
                     x + batch_idx * nrows);
             } else {
-                WM_pGE_approach2::backward_substitution(
+                wm_pge_approach2::backward_substitution(
                     subwarpgrp, nrows, my_row_idx_1, tile_size,
                     final_group_size, x_first_higher_group,
                     c + batch_idx * nrows, d + batch_idx * nrows,

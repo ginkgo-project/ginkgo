@@ -55,7 +55,7 @@ namespace batch_tridiagonal_solver {
 
 #define GKO_CUDA_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE 1, 2, 4, 8, 16, 32
 
-using batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes =
+using batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes =
     syn::value_list<int, GKO_CUDA_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE>;
 
 namespace {
@@ -71,9 +71,9 @@ constexpr int default_block_size =
 
 namespace {
 
-template <int compiled_WM_pGE_subwarp_size, typename ValueType>
-void WM_pGE_app1_helper(
-    syn::value_list<int, compiled_WM_pGE_subwarp_size>,
+template <int compiled_wm_pge_subwarp_size, typename ValueType>
+void wm_pge_app1_helper(
+    syn::value_list<int, compiled_wm_pge_subwarp_size>,
     const int number_WM_steps, const size_type nbatch, const int nrows,
     const int nrhs, const ValueType* const tridiag_mat_subdiags,
     const ValueType* const tridiag_mat_maindiags,
@@ -81,7 +81,7 @@ void WM_pGE_app1_helper(
     ValueType* const x,
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
-    constexpr auto subwarp_size = compiled_WM_pGE_subwarp_size;
+    constexpr auto subwarp_size = compiled_wm_pge_subwarp_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
 
@@ -89,7 +89,7 @@ void WM_pGE_app1_helper(
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
-    WM_pGE_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
+    wm_pge_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
         number_WM_steps, nbatch, nrows, as_cuda_type(tridiag_mat_subdiags),
         as_cuda_type(tridiag_mat_maindiags),
         as_cuda_type(tridiag_mat_superdiags), as_cuda_type(rhs),
@@ -99,12 +99,12 @@ void WM_pGE_app1_helper(
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_app1_helper,
-                                    WM_pGE_app1_helper);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_wm_pge_app1_helper,
+                                    wm_pge_app1_helper);
 
-template <int compiled_WM_pGE_subwarp_size, typename ValueType>
-void WM_pGE_app2_helper(
-    syn::value_list<int, compiled_WM_pGE_subwarp_size>,
+template <int compiled_wm_pge_subwarp_size, typename ValueType>
+void wm_pge_app2_helper(
+    syn::value_list<int, compiled_wm_pge_subwarp_size>,
     const int number_WM_steps, const size_type nbatch, const int nrows,
     const int nrhs, const ValueType* const tridiag_mat_subdiags,
     const ValueType* const tridiag_mat_maindiags,
@@ -112,7 +112,7 @@ void WM_pGE_app2_helper(
     ValueType* const x,
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
-    constexpr auto subwarp_size = compiled_WM_pGE_subwarp_size;
+    constexpr auto subwarp_size = compiled_wm_pge_subwarp_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
 
@@ -122,7 +122,7 @@ void WM_pGE_app2_helper(
 
     using CuValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 
-    WM_pGE_kernel_approach_2<CuValueType, subwarp_size>
+    wm_pge_kernel_approach_2<CuValueType, subwarp_size>
         <<<grid, block, shared_size>>>(number_WM_steps, nbatch, nrows,
                                        as_cuda_type(tridiag_mat_subdiags),
                                        as_cuda_type(tridiag_mat_maindiags),
@@ -132,9 +132,9 @@ void WM_pGE_app2_helper(
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-template <int compiled_WM_pGE_subwarp_size, typename T>
-void WM_pGE_app2_helper(
-    syn::value_list<int, compiled_WM_pGE_subwarp_size>,
+template <int compiled_wm_pge_subwarp_size, typename T>
+void wm_pge_app2_helper(
+    syn::value_list<int, compiled_wm_pge_subwarp_size>,
     const int number_WM_steps, const size_type nbatch, const int nrows,
     const int nrhs, const std::complex<T>* const tridiag_mat_subdiags,
     const std::complex<T>* const tridiag_mat_maindiags,
@@ -143,12 +143,12 @@ void WM_pGE_app2_helper(
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
     throw std::runtime_error(
-        "WM_pGE approach 2 does not yet work with complex data types");
+        "wm_pge approach 2 does not yet work with complex data types");
 }
 
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_WM_pGE_app2_helper,
-                                    WM_pGE_app2_helper);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_wm_pge_app2_helper,
+                                    wm_pge_app2_helper);
 
 template <typename ValueType>
 void perform_workspace_copies(
@@ -183,16 +183,16 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::BatchDense<ValueType>* const rhs,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
            ValueType* const workspace_ptr, const int number_WM_steps,
-           const int user_given_WM_pGE_subwarp_size,
+           const int user_given_wm_pge_subwarp_size,
            const enum gko::solver::batch_tridiag_solve_approach approach,
-           double& millisec_subtract)
+           double& preprocess_time)
 {
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
     const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
     assert(nrhs == 1);
 
-    if (approach == gko::solver::batch_tridiag_solve_approach::WM_pGE_app1) {
+    if (approach == gko::solver::batch_tridiag_solve_approach::wm_pge_app1) {
         ValueType* tridiag_mat_superdiags;
         ValueType* rhs_vals;
 
@@ -200,11 +200,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                  workspace_ptr, tridiag_mat_superdiags,
                                  rhs_vals);
 
-        select_WM_pGE_app1_helper(
-            batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_WM_pGE_subwarp_size) {
-                return user_given_WM_pGE_subwarp_size ==
-                       compiled_WM_pGE_subwarp_size;
+        select_wm_pge_app1_helper(
+            batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
+            [&](int compiled_wm_pge_subwarp_size) {
+                return user_given_wm_pge_subwarp_size ==
+                       compiled_wm_pge_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
             nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
@@ -212,7 +212,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             rhs_vals, x->get_values(), approach);
 
     } else if (approach ==
-               gko::solver::batch_tridiag_solve_approach::WM_pGE_app2) {
+               gko::solver::batch_tridiag_solve_approach::wm_pge_app2) {
         ValueType* tridiag_mat_superdiags;
         ValueType* rhs_vals;
 
@@ -220,11 +220,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                  workspace_ptr, tridiag_mat_superdiags,
                                  rhs_vals);
 
-        select_WM_pGE_app2_helper(
-            batch_WM_pGE_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_WM_pGE_subwarp_size) {
-                return user_given_WM_pGE_subwarp_size ==
-                       compiled_WM_pGE_subwarp_size;
+        select_wm_pge_app2_helper(
+            batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
+            [&](int compiled_wm_pge_subwarp_size) {
+                return user_given_wm_pge_subwarp_size ==
+                       compiled_wm_pge_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
             nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
@@ -256,7 +256,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =
             std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        millisec_subtract +=
+        preprocess_time +=
             static_cast<double>(
                 std::chrono::duration_cast<std::chrono::microseconds>(stop -
                                                                       start)

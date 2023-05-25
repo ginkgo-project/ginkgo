@@ -48,6 +48,8 @@ inline void batch_entry_tridiagonal_thomas_solve_impl(
     const gko::batch_dense::BatchEntry<ValueType> x_entry =
         gko::batch::batch_entry(x, ibatch);
 
+    // super and sub-diagonals point to the original matrix and are immuatable.
+    // the main diagonal is copied and updated within the algorithm.
     const auto a_entry = tridiag_mat_subdiags + ibatch * nrows;
     auto b_entry = tridiag_mat_maindiags + ibatch * nrows;
     const auto c_entry = tridiag_mat_superdiags + ibatch * nrows;

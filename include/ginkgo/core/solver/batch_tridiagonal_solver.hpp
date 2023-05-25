@@ -51,10 +51,10 @@ namespace solver {
  * The approach to be used to solve the batched trdiagonal system on CUDA/HIP
  * executor.
  *
- * Both "WM_pGE_app1" and "WM_pGE_app2" are based on the Wang and Mou parallel
+ * Both "wm_pge_app1" and "wm_pge_app2" are based on the Wang and Mou parallel
  * Gaussian Elimination algorithm. The only difference between the two lies is
- * the parallel scheme; in "WM_pGE_app1" each thread of the subwarp operates on
- * a single row of the matrix tile, while in "WM_pGE_2", each thread of the
+ * the parallel scheme; in "wm_pge_app1" each thread of the subwarp operates on
+ * a single row of the matrix tile, while in "wm_pge_2", each thread of the
  * subwarp handles two adjacent rows of the matrix tile.
  *
  * The approach- "vendor_provided" makes use of the "gtsv2StridedBatched"
@@ -62,8 +62,8 @@ namespace solver {
  *
  */
 enum class batch_tridiag_solve_approach {
-    WM_pGE_app1,
-    WM_pGE_app2,
+    wm_pge_app1,
+    wm_pge_app2,
     vendor_provided
 };
 
@@ -129,15 +129,12 @@ public:
      * allocation in n steps.
      *
      */
-    double get_time_in_millisec_to_be_subtracted() const
-    {
-        return millisec_to_be_subtracted_;
-    }
+    double get_preprocess_time() const { return preprocess_time_; }
 
 
-    void set_time_in_millisec_to_be_subtracted(const double time)
+    void initialize_preprocess_time(const double time)
     {
-        millisec_to_be_subtracted_ = time;
+        preprocess_time_ = time;
     }
 
     std::unique_ptr<BatchLinOp> transpose() const override;
@@ -172,7 +169,7 @@ public:
          */
         batch_tridiag_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
             batch_tridiagonal_solution_approach,
-            batch_tridiag_solve_approach::WM_pGE_app1);
+            batch_tridiag_solve_approach::wm_pge_app1);
 
         /**
          * Number of WM steps in the WM-pGE algorithm.
@@ -185,14 +182,14 @@ public:
         /**
          * The subwarp size to be used in the WM-pGE algorithm.
          *
-         * Note: The tile size used in WM_pGE_app1 would be equal to the subwarp
-         * size set here, while the tile size in WM_pGE_app2 would be 2 *
+         * Note: The tile size used in wm_pge_app1 would be equal to the subwarp
+         * size set here, while the tile size in wm_pge_app2 would be 2 *
          * subwarp size.
          *
          * Note: This parameter is used only in the case of CUDA/HIP executor.
          *
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(WM_pGE_subwarp_size, 4);
+        int GKO_FACTORY_PARAMETER_SCALAR(wm_pge_subwarp_size, 4);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchTridiagonalSolver, parameters,
                                     Factory);
@@ -218,7 +215,7 @@ protected:
           workspace_(factory->get_executor(),
                      2 * system_matrix_->get_num_batch_entries() *
                          system_matrix_->get_size().at(0)[0]),
-          millisec_to_be_subtracted_{0}
+          preprocess_time_{0}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
@@ -267,7 +264,7 @@ private:
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
     mutable gko::array<ValueType> workspace_{};
-    mutable double millisec_to_be_subtracted_{};
+    mutable double preprocess_time_{};
 };
 
 

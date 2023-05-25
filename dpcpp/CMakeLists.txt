@@ -38,7 +38,6 @@ target_sources(ginkgo_dpcpp
     matrix/batch_dense_kernels.dp.cpp
     matrix/batch_diagonal_kernels.dp.cpp
     matrix/batch_ell_kernels.dp.cpp
-    matrix/batch_tridiagonal_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
     matrix/dense_kernels.dp.cpp

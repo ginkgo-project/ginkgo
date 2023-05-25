@@ -58,11 +58,13 @@ protected:
     using BDense = gko::matrix::BatchDense<value_type>;
     using Dense = BDense::unbatch_type;
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
-   
+
     BatchTridiagonalSolver()
-        : tridiag_mat(gko::test::generate_uniform_batch_tridiagonal_random_matrix<value_type>(nbatch, 
-        nrows, std::uniform_int_distribution<>(nrows, nrows), std::normal_distribution<real_type>(0.0, 1.0), 
-        rand_engine, ref))
+        : tridiag_mat(
+              gko::test::generate_uniform_batch_tridiagonal_random_matrix<
+                  value_type>(nbatch, nrows,
+                              std::normal_distribution<real_type>(0.0, 1.0),
+                              rand_engine, ref))
     {
         set_up_data();
     }
@@ -86,7 +88,7 @@ protected:
             nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
             ref));
-        
+
         x = gko::share(BDense::create(
             ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
 
@@ -102,54 +104,63 @@ protected:
                 nbatch, nrows, nrows,
                 std::uniform_int_distribution<>(nrows, nrows),
                 std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                true, ref));        
+                true, ref));
     }
 
-    void check_if_solve_is_eqvt_to_ref(const enum gko::solver::batch_tridiag_solve_approach approach, const int num_WM_steps = 2, 
-    const int WM_pGE_subwarp_size = 32)
+    void check_if_solve_is_eqvt_to_ref(
+        const enum gko::solver::batch_tridiag_solve_approach approach,
+        const int num_WM_steps = 2, const int wm_pge_subwarp_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
-        auto d_tridiag_mtx = gko::share(gko::clone(exec, this->tridiag_mat.get()));
+        auto d_tridiag_mtx =
+            gko::share(gko::clone(exec, this->tridiag_mat.get()));
         auto d_b = gko::share(gko::clone(exec, this->b.get()));
         auto d_x = gko::share(gko::clone(exec, this->x.get()));
 
-        auto d_tridiag_solver = solver_type::build()
-        .with_batch_tridiagonal_solution_approach(approach)
-        .with_num_WM_steps(num_WM_steps)
-        .with_WM_pGE_subwarp_size(WM_pGE_subwarp_size)
-        .on(exec)->generate(d_tridiag_mtx);
+        auto d_tridiag_solver =
+            solver_type::build()
+                .with_batch_tridiagonal_solution_approach(approach)
+                .with_num_WM_steps(num_WM_steps)
+                .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
+                .on(exec)
+                ->generate(d_tridiag_mtx);
         d_tridiag_solver->apply(d_b.get(), d_x.get());
 
-        auto tridiag_solver = solver_type::build().on(ref)->generate(this->tridiag_mat);
+        auto tridiag_solver =
+            solver_type::build().on(ref)->generate(this->tridiag_mat);
         tridiag_solver->apply(b.get(), x.get());
 
         GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
     }
 
-    void check_if_solve_with_scaling_solve_is_eqvt_to_ref(const enum gko::solver::batch_tridiag_solve_approach approach,
-    const int num_WM_steps = 2, 
-    const int WM_pGE_subwarp_size = 32)
+    void check_if_solve_with_scaling_solve_is_eqvt_to_ref(
+        const enum gko::solver::batch_tridiag_solve_approach approach,
+        const int num_WM_steps = 2, const int wm_pge_subwarp_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
-        auto d_tridiag_mtx = gko::share(gko::clone(exec, this->tridiag_mat.get()));
+        auto d_tridiag_mtx =
+            gko::share(gko::clone(exec, this->tridiag_mat.get()));
         auto d_b = gko::share(gko::clone(exec, this->b.get()));
         auto d_x = gko::share(gko::clone(exec, this->x.get()));
         auto d_left_scale = gko::share(gko::clone(exec, left_scale.get()));
         auto d_right_scale = gko::share(gko::clone(exec, right_scale.get()));
 
-        auto d_tridiag_solver = solver_type::build()
-        .with_batch_tridiagonal_solution_approach(approach)
-        .with_num_WM_steps(num_WM_steps)
-        .with_WM_pGE_subwarp_size(WM_pGE_subwarp_size)
-        .with_left_scaling_op(left_scale)
-        .with_right_scaling_op(right_scale)
-        .on(exec)->generate(d_tridiag_mtx);
+        auto d_tridiag_solver =
+            solver_type::build()
+                .with_batch_tridiagonal_solution_approach(approach)
+                .with_num_WM_steps(num_WM_steps)
+                .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
+                .with_left_scaling_op(left_scale)
+                .with_right_scaling_op(right_scale)
+                .on(exec)
+                ->generate(d_tridiag_mtx);
         d_tridiag_solver->apply(d_b.get(), d_x.get());
 
         auto tridiag_solver = solver_type::build()
-        .with_left_scaling_op(left_scale)
-        .with_right_scaling_op(right_scale)
-        .on(ref)->generate(this->tridiag_mat);
+                                  .with_left_scaling_op(left_scale)
+                                  .with_right_scaling_op(right_scale)
+                                  .on(ref)
+                                  ->generate(this->tridiag_mat);
         tridiag_solver->apply(b.get(), x.get());
 
         GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
@@ -158,41 +169,55 @@ protected:
 
 
 TEST_F(BatchTridiagonalSolver, App1SolveIsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 5, 32);
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 3, 16);
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 2, 4);
+{
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 5, 32);
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 3, 16);
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 2, 4);
 }
 
 TEST_F(BatchTridiagonalSolver, App2SolveIsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 6, 32);
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 4, 16);
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 2, 8);
+{
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 6, 32);
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 4, 16);
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 2, 8);
 }
 
 TEST_F(BatchTridiagonalSolver, VendorProvidedSolveIsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::vendor_provided);
+{
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::vendor_provided);
 }
 
-//TODO: Implement scaling for batched tridiagonal
+// TODO: Implement scaling for batched tridiagonal
 // TEST_F(BatchTridiagonalSolver, App1SolveWithScalingIsEquivalentToRef)
-// {   
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 5, 32);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 3, 16);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app1, 2, 4);
+// {
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    5, 32);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    3, 16);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    2, 4);
 // }
 
 // TEST_F(BatchTridiagonalSolver, App2SolveWithScalingIsEquivalentToRef)
-// {   
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 6, 32);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 4, 16);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::WM_pGE_app2, 2, 8);
+// {
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    6, 32);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    4, 16);
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    2, 8);
 // }
 
-// TEST_F(BatchTridiagonalSolver, VendorProvidedSolveWithScalingIsEquivalentToRef)
-// {   
+// TEST_F(BatchTridiagonalSolver,
+// VendorProvidedSolveWithScalingIsEquivalentToRef)
+// {
 //    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::vendor_provided);
 // }
 

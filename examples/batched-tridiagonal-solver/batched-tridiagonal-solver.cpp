@@ -121,16 +121,16 @@ int main(int argc, char* argv[])
     // Number of WM steps
     const int number_WM_steps = argc >= 7 ? std::atoi(argv[6]) : 2;
 
-    // WM_pGE subwarp size
+    // wm_pge subwarp size
     const int subwarp_size = argc >= 8 ? std::atoi(argv[7]) : 16;
 
     // Approach
     enum gko::solver::batch_tridiag_solve_approach approach;
-    const std::string approach_str = argc >= 9 ? argv[8] : "WM_pGE_app1";
-    if (approach_str == std::string("WM_pGE_app1")) {
-        approach = gko::solver::batch_tridiag_solve_approach::WM_pGE_app1;
-    } else if (approach_str == std::string("WM_pGE_app2")) {
-        approach = gko::solver::batch_tridiag_solve_approach::WM_pGE_app2;
+    const std::string approach_str = argc >= 9 ? argv[8] : "wm_pge_app1";
+    if (approach_str == std::string("wm_pge_app1")) {
+        approach = gko::solver::batch_tridiag_solve_approach::wm_pge_app1;
+    } else if (approach_str == std::string("wm_pge_app2")) {
+        approach = gko::solver::batch_tridiag_solve_approach::wm_pge_app2;
     } else if (approach_str == std::string("vendor_provided")) {
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
     auto solver_gen = batch_tridiag_solver::build()
                           .with_batch_tridiagonal_solution_approach(approach)
                           .with_num_WM_steps(number_WM_steps)
-                          .with_WM_pGE_subwarp_size(subwarp_size)
+                          .with_wm_pge_subwarp_size(subwarp_size)
                           .on(exec);
 
     // @sect3{Generate and solve}
@@ -198,7 +198,7 @@ int main(int argc, char* argv[])
     }
 
     exec->synchronize();
-    solver->set_time_in_millisec_to_be_subtracted(0.0);
+    solver->initialize_preprocess_time(0.0);
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < num_rounds; i++) {
@@ -223,10 +223,10 @@ int main(int argc, char* argv[])
         std::cout << "\n\nThe total time before subtraction: "
                   << total_time_millisec << " millisec " << std::endl;
 
-        total_time_millisec -= solver->get_time_in_millisec_to_be_subtracted();
+        total_time_millisec -= solver->get_preprocess_time();
         std::cout << "\n\nThe total time subtracted (time taken up by buffer "
                      "size calculation + allocations): "
-                  << solver->get_time_in_millisec_to_be_subtracted()
+                  << solver->get_preprocess_time()
                   << " and now finally time is: " << total_time_millisec
                   << " millisec " << std::endl;
     }

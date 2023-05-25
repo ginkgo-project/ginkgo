@@ -32,7 +32,6 @@ set(GINKGO_HIP_SOURCES
     matrix/batch_diagonal_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp
-    matrix/batch_tridiagonal_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp

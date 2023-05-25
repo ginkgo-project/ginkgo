@@ -141,13 +141,13 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
 /**
  * Generates a batch of random tridiagonal matrices.
  */
-template <typename ValueType, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename ValueType, typename ValueDistribution, typename Engine,
+          typename... MatrixArgs>
 std::unique_ptr<gko::matrix::BatchTridiagonal<ValueType>>
 generate_uniform_batch_tridiagonal_random_matrix(
     const size_type batch_size, const size_type mat_size,
-    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
-    Engine&& engine, std::shared_ptr<const Executor> exec)
+    ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec)
 {
     using value_type = ValueType;
     auto mtx = gko::matrix::BatchTridiagonal<value_type>::create(

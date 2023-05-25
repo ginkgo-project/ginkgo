@@ -43,24 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/kernel_declaration.hpp"
 
-namespace gko {
-namespace kernels {
-namespace batch_tridiagonal {
-
 // TODO: Kernel prototypes
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES
-
-}  // namespace batch_tridiagonal
-
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_tridiagonal,
-                                        GKO_DECLARE_ALL_AS_TEMPLATES);
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-}  // namespace kernels
-}  // namespace gko
 
 
 #endif  // GKO_CORE_MATRIX_BATCH_TRIDIAGONAL_KERNELS_HPP_

@@ -62,7 +62,6 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_uniform_batch_tridiagonal_random_matrix<
               value_type>(nbatch, nrows,
-                          std::uniform_int_distribution<>(nrows, nrows),
                           std::normal_distribution<real_type>(0.0, 1.0),
                           rand_engine, exec)),
           batchtridiagsolver_factory(Solver::build().on(exec)),
@@ -76,9 +75,9 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchtridiagsolver_factory;
     const int num_WM_steps = 2;
-    const int WM_pGE_subwarp_size = 16;
+    const int wm_pge_subwarp_size = 16;
     const enum gko::solver::batch_tridiag_solve_approach approach =
-        gko::solver::batch_tridiag_solve_approach::WM_pGE_app2;
+        gko::solver::batch_tridiag_solve_approach::wm_pge_app2;
     std::unique_ptr<gko::BatchLinOp> solver;
 };
 
@@ -180,16 +179,16 @@ TYPED_TEST(BatchTridiagonalSolver, CanSetCriteriaInFactory)
     auto batch_tridiag_solver_factory =
         Solver::build()
             .with_num_WM_steps(2)
-            .with_WM_pGE_subwarp_size(16)
+            .with_wm_pge_subwarp_size(16)
             .with_batch_tridiagonal_solution_approach(
-                gko::solver::batch_tridiag_solve_approach::WM_pGE_app2)
+                gko::solver::batch_tridiag_solve_approach::wm_pge_app2)
             .on(this->exec);
     auto solver = batch_tridiag_solver_factory->generate(this->mtx);
 
     ASSERT_EQ(solver->get_parameters().num_WM_steps, 2);
-    ASSERT_EQ(solver->get_parameters().WM_pGE_subwarp_size, 16);
+    ASSERT_EQ(solver->get_parameters().wm_pge_subwarp_size, 16);
     ASSERT_EQ(solver->get_parameters().batch_tridiagonal_solution_approach,
-              gko::solver::batch_tridiag_solve_approach::WM_pGE_app2);
+              gko::solver::batch_tridiag_solve_approach::wm_pge_app2);
 }
 
 

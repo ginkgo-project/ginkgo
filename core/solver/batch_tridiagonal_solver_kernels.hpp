@@ -64,9 +64,9 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
                const matrix::BatchDense<_type>* const b,                      \
                matrix::BatchDense<_type>* const x, const int workspace_size,  \
                _type* const workspace_ptr, const int num_WM_steps,            \
-               const int WM_pGE_subwarp_size,                                 \
+               const int wm_pge_subwarp_size,                                 \
                const enum gko::solver::batch_tridiag_solve_approach approach, \
-               double& millisec_subtract)
+               double& preprocess_time)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
