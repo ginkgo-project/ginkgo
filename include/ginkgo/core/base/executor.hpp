@@ -129,6 +129,7 @@ inline namespace _V1 {
 
 
 class queue;
+class event;
 
 
 }  // namespace _V1
@@ -139,6 +140,7 @@ namespace sycl {
 
 
 class queue;
+class event;
 
 
 }  // namespace sycl
@@ -176,15 +178,20 @@ struct cusparseContext;
 
 struct CUstream_st;
 
+struct CUevent_st;
+
 struct hipblasContext;
 
 struct hipsparseContext;
 
 #if GINKGO_HIP_PLATFORM_HCC
 struct ihipStream_t;
+struct ihipEvent_t;
 #define GKO_HIP_STREAM_STRUCT ihipStream_t
+#define GKO_HIP_EVENT_STRUCT ihipEvent_t
 #else
 #define GKO_HIP_STREAM_STRUCT CUstream_st
+#define GKO_HIP_EVENT_STRUCT CUevent_st
 #endif
 
 

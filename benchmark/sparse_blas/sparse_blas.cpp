@@ -120,8 +120,8 @@ void apply_sparse_blas(const char* operation_name,
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
             auto gen_logger = create_operations_logger(
-                FLAGS_nested_names, test_case[operation_name]["components"],
-                allocator, 1);
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                test_case[operation_name]["components"], allocator, 1);
             exec->add_logger(gen_logger);
             op->run();
             exec->remove_logger(gen_logger);

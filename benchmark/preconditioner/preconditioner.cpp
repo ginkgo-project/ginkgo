@@ -202,7 +202,7 @@ void run_preconditioner(const char* precond_name,
             std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto gen_logger = create_operations_logger(
-                    FLAGS_nested_names,
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
                     this_precond_data["generate"]["components"], allocator,
                     ic_gen.get_num_repetitions());
                 exec->add_logger(gen_logger);
@@ -219,8 +219,9 @@ void run_preconditioner(const char* precond_name,
             }
 
             auto apply_logger = create_operations_logger(
-                FLAGS_nested_names, this_precond_data["apply"]["components"],
-                allocator, ic_apply.get_num_repetitions());
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                this_precond_data["apply"]["components"], allocator,
+                ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
             if (exec->get_master() != exec) {
                 exec->get_master()->add_logger(apply_logger);

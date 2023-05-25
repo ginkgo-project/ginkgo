@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
@@ -164,6 +165,38 @@ hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
 
 
 GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);
+
+
+HipTimer::HipTimer(std::shared_ptr<const HipExecutor> exec)
+    GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::record(time_point&) GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::wait(time_point& time) GKO_NOT_COMPILED(hip);
+
+
+std::chrono::nanoseconds HipTimer::difference_async(const time_point& start,
+                                                    const time_point& stop)
+    GKO_NOT_COMPILED(hip);
+
+
+namespace kernels {
+namespace hip {
+
+
+void reset_device(int device_id) GKO_NOT_COMPILED(hip);
+
+
+void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
+
+
+}  // namespace hip
+}  // namespace kernels
 
 
 namespace log {
