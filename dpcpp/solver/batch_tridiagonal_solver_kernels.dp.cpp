@@ -43,7 +43,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
-           ValueType* const workspace_ptr, const int num_WM_steps,
+           ValueType* const workspace_ptr, const int num_recursive_steps,
            const int wm_pge_subwarp_size,
            const enum gko::solver::batch_tridiag_solve_approach approach,
            double&) GKO_NOT_IMPLEMENTED;

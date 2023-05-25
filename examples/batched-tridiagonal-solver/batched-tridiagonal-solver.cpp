@@ -63,12 +63,12 @@ int main(int argc, char* argv[])
     std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr
-            << "Usage: " << argv[0]
-            << " [executor] [dir_path] [problem_name] [num_systems] "
-               "[num_duplications] "
-               "[num_WM_steps] [subwarp_size] [tridiag approach] [file_timings]"
-            << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " [executor] [dir_path] [problem_name] [num_systems] "
+                     "[num_duplications] "
+                     "[num_recursive_steps] [subwarp_size] [tridiag approach] "
+                     "[file_timings]"
+                  << std::endl;
         std::exit(-1);
     }
 
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
     // Create a batched solver factory with relevant parameters.
     auto solver_gen = batch_tridiag_solver::build()
                           .with_batch_tridiagonal_solution_approach(approach)
-                          .with_num_WM_steps(number_WM_steps)
+                          .with_num_recursive_steps(number_WM_steps)
                           .with_wm_pge_subwarp_size(subwarp_size)
                           .on(exec);
 

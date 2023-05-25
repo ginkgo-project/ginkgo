@@ -104,12 +104,12 @@ __device__ __forceinline__ void WM_step(Group& subwarp_grp,
 }
 
 template <typename ValueType, typename Group>
-__device__ __forceinline__ void WM_phase(const int num_WM_steps,
+__device__ __forceinline__ void WM_phase(const int num_recursive_steps,
                                          Group& subwarp_grp, ValueType& my_a,
                                          ValueType& my_b, ValueType& my_c,
                                          ValueType& my_d, int& curr_group_size)
 {
-    for (int i = 0; i < num_WM_steps; i++) {
+    for (int i = 0; i < num_recursive_steps; i++) {
         WM_step(subwarp_grp, curr_group_size, my_a, my_b, my_c, my_d);
         curr_group_size *= 2;
         subwarp_grp.sync();
@@ -227,7 +227,7 @@ __device__ __forceinline__ void backward_substitution(
 
 template <int subwarp_size, typename ValueType>
 __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_1(
-    const int num_WM_steps, const size_type nbatch, const int nrows,
+    const int num_recursive_steps, const size_type nbatch, const int nrows,
     const ValueType* const __restrict__ a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     ValueType* const __restrict__ d, ValueType* const __restrict__ x)
@@ -248,7 +248,7 @@ __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_1(
         const auto tile_size = subwarp_size;
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
-        const int final_group_size = pow(2, num_WM_steps);
+        const int final_group_size = pow(2, num_recursive_steps);
 
         if (final_group_size > tile_size) {
             printf(
@@ -284,8 +284,9 @@ __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_1(
             if (tile_id < num_tiles - 1 || is_last_tile_similar) {
                 // Phase-1 of the alogithm- WM phase
                 int curr_group_size = 1;
-                wm_pge_approach1::WM_phase(num_WM_steps, subwarpgrp, my_a, my_b,
-                                           my_c, my_d, curr_group_size);
+                wm_pge_approach1::WM_phase(num_recursive_steps, subwarpgrp,
+                                           my_a, my_b, my_c, my_d,
+                                           curr_group_size);
                 // In each WM step, the adjacent groups are merged
                 // independently.
 
@@ -474,7 +475,7 @@ __device__ __forceinline__ void WM_step(Group& subwarp_grp,
 }
 
 template <typename ValueType, typename Group>
-__device__ __forceinline__ void WM_phase(const int num_WM_steps,
+__device__ __forceinline__ void WM_phase(const int num_recursive_steps,
                                          Group& subwarp_grp, ValueType& my_a_1,
                                          ValueType& my_b_1, ValueType& my_c_1,
                                          ValueType& my_d_1, ValueType& my_a_2,
@@ -482,7 +483,7 @@ __device__ __forceinline__ void WM_phase(const int num_WM_steps,
                                          ValueType& my_d_2,
                                          int& curr_group_size)
 {
-    for (int i = 0; i < num_WM_steps; i++) {
+    for (int i = 0; i < num_recursive_steps; i++) {
         WM_step(subwarp_grp, curr_group_size, my_a_1, my_b_1, my_c_1, my_d_1,
                 my_a_2, my_b_2, my_c_2, my_d_2);
         curr_group_size *= 2;
@@ -729,7 +730,7 @@ __device__ __forceinline__ void backward_substitution(
 
 template <typename ValueType, int subwarp_size>
 __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_2(
-    const int num_WM_steps, const size_type nbatch, const int nrows,
+    const int num_recursive_steps, const size_type nbatch, const int nrows,
     const ValueType* const __restrict__ a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
     ValueType* const __restrict__ d, ValueType* const __restrict__ x)
@@ -752,7 +753,7 @@ __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_2(
         const auto tile_size = 2 * subwarp_size;
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
-        const int final_group_size = pow(2, num_WM_steps);
+        const int final_group_size = pow(2, num_recursive_steps);
         if (final_group_size > tile_size) {
             printf(
                 "\n Number of WM steps ans subwarp size should satisfy the "
@@ -821,8 +822,8 @@ __global__ __launch_bounds__(default_block_size) void wm_pge_kernel_approach_2(
                 // Phase-1 of the alogithm- WM phase
                 int curr_group_size = 1;
                 wm_pge_approach2::WM_phase(
-                    num_WM_steps, subwarpgrp, my_a_1, my_b_1, my_c_1, my_d_1,
-                    my_a_2, my_b_2, my_c_2, my_d_2, curr_group_size);
+                    num_recursive_steps, subwarpgrp, my_a_1, my_b_1, my_c_1,
+                    my_d_1, my_a_2, my_b_2, my_c_2, my_d_2, curr_group_size);
                 // In each WM step, the adjacent groups are merged
                 // independently.
 

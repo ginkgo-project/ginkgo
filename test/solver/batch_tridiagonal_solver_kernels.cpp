@@ -109,7 +109,7 @@ protected:
 
     void check_if_solve_is_eqvt_to_ref(
         const enum gko::solver::batch_tridiag_solve_approach approach,
-        const int num_WM_steps = 2, const int wm_pge_subwarp_size = 32)
+        const int num_recursive_steps = 2, const int wm_pge_subwarp_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
         auto d_tridiag_mtx =
@@ -120,7 +120,7 @@ protected:
         auto d_tridiag_solver =
             solver_type::build()
                 .with_batch_tridiagonal_solution_approach(approach)
-                .with_num_WM_steps(num_WM_steps)
+                .with_num_recursive_steps(num_recursive_steps)
                 .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
                 .on(exec)
                 ->generate(d_tridiag_mtx);
@@ -135,7 +135,7 @@ protected:
 
     void check_if_solve_with_scaling_solve_is_eqvt_to_ref(
         const enum gko::solver::batch_tridiag_solve_approach approach,
-        const int num_WM_steps = 2, const int wm_pge_subwarp_size = 32)
+        const int num_recursive_steps = 2, const int wm_pge_subwarp_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
         auto d_tridiag_mtx =
@@ -148,7 +148,7 @@ protected:
         auto d_tridiag_solver =
             solver_type::build()
                 .with_batch_tridiagonal_solution_approach(approach)
-                .with_num_WM_steps(num_WM_steps)
+                .with_num_recursive_steps(num_recursive_steps)
                 .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
                 .with_left_scaling_op(left_scale)
                 .with_right_scaling_op(right_scale)

@@ -63,7 +63,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
                const matrix::BatchTridiagonal<_type>* const tridiag_mat,      \
                const matrix::BatchDense<_type>* const b,                      \
                matrix::BatchDense<_type>* const x, const int workspace_size,  \
-               _type* const workspace_ptr, const int num_WM_steps,            \
+               _type* const workspace_ptr, const int num_recursive_steps,     \
                const int wm_pge_subwarp_size,                                 \
                const enum gko::solver::batch_tridiag_solve_approach approach, \
                double& preprocess_time)

@@ -64,7 +64,7 @@ std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::transpose() const
             as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
         .with_right_scaling_op(share(
             as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
-        .with_num_WM_steps(parameters_.num_WM_steps)
+        .with_num_recursive_steps(parameters_.num_recursive_steps)
         .with_wm_pge_subwarp_size(parameters_.wm_pge_subwarp_size)
         .with_batch_tridiagonal_solution_approach(
             parameters_.batch_tridiagonal_solution_approach)
@@ -85,7 +85,7 @@ std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::conj_transpose()
         .with_right_scaling_op(
             share(as<BatchTransposable>(this->get_right_scaling_op())
                       ->conj_transpose()))
-        .with_num_WM_steps(parameters_.num_WM_steps)
+        .with_num_recursive_steps(parameters_.num_recursive_steps)
         .with_wm_pge_subwarp_size(parameters_.wm_pge_subwarp_size)
         .with_batch_tridiagonal_solution_approach(
             parameters_.batch_tridiagonal_solution_approach)
@@ -143,7 +143,7 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     exec->run(batch_tridiagonal_solver::make_apply(
         system_matrix_tridiagonal.get(), b_scaled_ptr, dense_x,
         this->workspace_.get_num_elems(), this->workspace_.get_data(),
-        parameters_.num_WM_steps, parameters_.wm_pge_subwarp_size,
+        parameters_.num_recursive_steps, parameters_.wm_pge_subwarp_size,
         parameters_.batch_tridiagonal_solution_approach,
         this->preprocess_time_));
 

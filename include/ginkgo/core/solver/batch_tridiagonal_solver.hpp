@@ -177,7 +177,7 @@ public:
          * Note: This parameter is used only in the case of CUDA/HIP executor.
          *
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(num_WM_steps, 1);
+        int GKO_FACTORY_PARAMETER_SCALAR(num_recursive_steps, 1);
 
         /**
          * The subwarp size to be used in the WM-pGE algorithm.
