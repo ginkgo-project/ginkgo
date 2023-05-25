@@ -87,13 +87,10 @@ inline constexpr bool is_gpu_aware()
 int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type) \
-    template <>                                     \
-    struct type_impl<input_type> {                  \
-        static MPI_Datatype get_type()              \
-        {                                           \
-            return mpi_type;                        \
-        }                                           \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
+    template <>                                             \
+    struct type_impl<input_type> {                          \
+        static MPI_Datatype get_type() { return mpi_type; } \
     }
 
 /**
@@ -1442,11 +1439,12 @@ public:
     }
 
 
-    request neighor_all_to_all_v(
-        std::shared_ptr<const Executor> exec, const void* send_buffer,
-        const int* send_counts, const int* send_offsets, MPI_Datatype send_type,
-        void* recv_buffer, const int* recv_counts, const int* recv_offsets,
-        MPI_Datatype recv_type) const
+    void neighor_all_to_all_v(std::shared_ptr<const Executor> exec,
+                              const void* send_buffer, const int* send_counts,
+                              const int* send_offsets, MPI_Datatype send_type,
+                              void* recv_buffer, const int* recv_counts,
+                              const int* recv_offsets,
+                              MPI_Datatype recv_type) const
     {
         auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Neighbor_alltoallv(

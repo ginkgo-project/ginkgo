@@ -418,6 +418,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     this->alpha = gko::initialize<dense_vec_type>({2.0}, this->exec);
     this->beta = gko::initialize<dense_vec_type>({-3.0}, this->exec);
     this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
     {
         SCOPED_TRACE("Sparse Comm");
         this->y->read_distributed(vec_md, this->row_part);
@@ -441,7 +442,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
 TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
 {
     using value_type = typename TestFixture::value_type;
-    for (auto disable_sparse_comm : {true, false}) {
+    for (auto disable_sparse_comm : {false, true}) {
         SCOPED_TRACE("Disable Sparse Comm: " +
                      std::to_string(disable_sparse_comm));
         this->init_large(100, 1, disable_sparse_comm);
