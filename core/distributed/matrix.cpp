@@ -175,22 +175,23 @@ void Matrix<ValueType, LocalIndexType,
     }
 
     MPI_Comm graph;
-    MPI_Dist_graph_create(comm.get(), 1, &source, &degree, destinations.data(),
-                          weight.data(), MPI_INFO_NULL, true, &graph);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create(
+        comm.get(), 1, &source, &degree, destinations.data(), weight.data(),
+        MPI_INFO_NULL, true, &graph));
 
     comm_index_type num_in_neighbors;
     comm_index_type num_out_neighbors;
     int weighted;
-    MPI_Dist_graph_neighbors_count(graph, &num_in_neighbors, &num_out_neighbors,
-                                   &weighted);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors_count(
+        graph, &num_in_neighbors, &num_out_neighbors, &weighted));
 
     std::vector<comm_index_type> out_neighbors(num_out_neighbors);
     std::vector<comm_index_type> in_neighbors(num_in_neighbors);
     std::vector<comm_index_type> out_weight(num_out_neighbors);
     std::vector<comm_index_type> in_weight(num_in_neighbors);
-    MPI_Dist_graph_neighbors(graph, num_in_neighbors, in_neighbors.data(),
-                             in_weight.data(), num_out_neighbors,
-                             out_neighbors.data(), out_weight.data());
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors(
+        graph, num_in_neighbors, in_neighbors.data(), in_weight.data(),
+        num_out_neighbors, out_neighbors.data(), out_weight.data()));
 
     neighbor_comm_ = mpi::communicator{graph}.duplicate();
 
@@ -420,12 +421,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
-            auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
             auto exec = this->get_executor();
+            auto comm = this->get_communicator();
             auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
@@ -453,13 +454,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
-            auto comm = this->get_communicator();
             auto req = this->communicate(dense_b->get_local_vector());
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x);
             req.wait();
 
             auto exec = this->get_executor();
+            auto comm = this->get_communicator();
             auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
