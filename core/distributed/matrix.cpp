@@ -307,7 +307,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec);
     }
 
-    if (!disable_sparse_comm) {
+    if (disable_sparse_comm) {
+        neighbor_comm_ = std::nullopt;
+    } else {
         this->enable_neighborhood_communication();
     }
 }
