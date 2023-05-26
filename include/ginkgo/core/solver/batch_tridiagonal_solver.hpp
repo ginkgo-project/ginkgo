@@ -51,19 +51,19 @@ namespace solver {
  * The approach to be used to solve the batched trdiagonal system on CUDA/HIP
  * executor.
  *
- * Both "wm_pge_app1" and "wm_pge_app2" are based on the Wang and Mou parallel
- * Gaussian Elimination algorithm. The only difference between the two lies is
- * the parallel scheme; in "wm_pge_app1" each thread of the subwarp operates on
- * a single row of the matrix tile, while in "wm_pge_2", each thread of the
- * subwarp handles two adjacent rows of the matrix tile.
+ * Both "recursive_app1" and "recursive_app2" are based on the Wang and Mou
+ * parallel Gaussian Elimination algorithm. The only difference between the two
+ * lies is the parallel scheme; in "recursive_app1" each thread of the subwarp
+ * operates on a single row of the matrix tile, while in "recursive_2", each
+ * thread of the subwarp handles two adjacent rows of the matrix tile.
  *
  * The approach- "vendor_provided" makes use of the "gtsv2StridedBatched"
  * function provided by cuSparse/hipSparse.
  *
  */
 enum class batch_tridiag_solve_approach {
-    wm_pge_app1,
-    wm_pge_app2,
+    recursive_app1,
+    recursive_app2,
     vendor_provided
 };
 
@@ -169,7 +169,7 @@ public:
          */
         batch_tridiag_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
             batch_tridiagonal_solution_approach,
-            batch_tridiag_solve_approach::wm_pge_app1);
+            batch_tridiag_solve_approach::recursive_app1);
 
         /**
          * Number of WM steps in the WM-pGE algorithm.
@@ -180,16 +180,16 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(num_recursive_steps, 1);
 
         /**
-         * The subwarp size to be used in the WM-pGE algorithm.
-         *
-         * Note: The tile size used in wm_pge_app1 would be equal to the subwarp
-         * size set here, while the tile size in wm_pge_app2 would be 2 *
+         * The tile size to be used in the WM-pGE algorithm, that controls used
          * subwarp size.
+         *
+         * Note: For approach 1, subwarp_size = tile_size, while for approach 2,
+         * subwarp_size = tile_size / 2
          *
          * Note: This parameter is used only in the case of CUDA/HIP executor.
          *
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(wm_pge_subwarp_size, 4);
+        int GKO_FACTORY_PARAMETER_SCALAR(tile_size, 4);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchTridiagonalSolver, parameters,
                                     Factory);

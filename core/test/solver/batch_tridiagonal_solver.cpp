@@ -75,9 +75,9 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchtridiagsolver_factory;
     const int num_recursive_steps = 2;
-    const int wm_pge_subwarp_size = 16;
+    const int tile_size = 16;
     const enum gko::solver::batch_tridiag_solve_approach approach =
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app2;
+        gko::solver::batch_tridiag_solve_approach::recursive_app2;
     std::unique_ptr<gko::BatchLinOp> solver;
 };
 
@@ -179,16 +179,16 @@ TYPED_TEST(BatchTridiagonalSolver, CanSetCriteriaInFactory)
     auto batch_tridiag_solver_factory =
         Solver::build()
             .with_num_recursive_steps(2)
-            .with_wm_pge_subwarp_size(16)
+            .with_tile_size(16)
             .with_batch_tridiagonal_solution_approach(
-                gko::solver::batch_tridiag_solve_approach::wm_pge_app2)
+                gko::solver::batch_tridiag_solve_approach::recursive_app2)
             .on(this->exec);
     auto solver = batch_tridiag_solver_factory->generate(this->mtx);
 
     ASSERT_EQ(solver->get_parameters().num_recursive_steps, 2);
-    ASSERT_EQ(solver->get_parameters().wm_pge_subwarp_size, 16);
+    ASSERT_EQ(solver->get_parameters().tile_size, 16);
     ASSERT_EQ(solver->get_parameters().batch_tridiagonal_solution_approach,
-              gko::solver::batch_tridiag_solve_approach::wm_pge_app2);
+              gko::solver::batch_tridiag_solve_approach::recursive_app2);
 }
 
 

@@ -119,18 +119,18 @@ int main(int argc, char* argv[])
     const size_type num_duplications = argc >= 6 ? std::atoi(argv[5]) : 10;
 
     // Number of WM steps
-    const int number_WM_steps = argc >= 7 ? std::atoi(argv[6]) : 2;
+    const int number_recursive_steps = argc >= 7 ? std::atoi(argv[6]) : 2;
 
     // wm_pge subwarp size
     const int subwarp_size = argc >= 8 ? std::atoi(argv[7]) : 16;
 
     // Approach
     enum gko::solver::batch_tridiag_solve_approach approach;
-    const std::string approach_str = argc >= 9 ? argv[8] : "wm_pge_app1";
-    if (approach_str == std::string("wm_pge_app1")) {
-        approach = gko::solver::batch_tridiag_solve_approach::wm_pge_app1;
-    } else if (approach_str == std::string("wm_pge_app2")) {
-        approach = gko::solver::batch_tridiag_solve_approach::wm_pge_app2;
+    const std::string approach_str = argc >= 9 ? argv[8] : "recursive_app1";
+    if (approach_str == std::string("recursive_app1")) {
+        approach = gko::solver::batch_tridiag_solve_approach::recursive_app1;
+    } else if (approach_str == std::string("recursive_app2")) {
+        approach = gko::solver::batch_tridiag_solve_approach::recursive_app2;
     } else if (approach_str == std::string("vendor_provided")) {
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
@@ -181,8 +181,8 @@ int main(int argc, char* argv[])
     // Create a batched solver factory with relevant parameters.
     auto solver_gen = batch_tridiag_solver::build()
                           .with_batch_tridiagonal_solution_approach(approach)
-                          .with_num_recursive_steps(number_WM_steps)
-                          .with_wm_pge_subwarp_size(subwarp_size)
+                          .with_num_recursive_steps(number_recursive_steps)
+                          .with_tile_size(subwarp_size)
                           .on(exec);
 
     // @sect3{Generate and solve}

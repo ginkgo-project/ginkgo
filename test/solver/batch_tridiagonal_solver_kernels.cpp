@@ -109,7 +109,7 @@ protected:
 
     void check_if_solve_is_eqvt_to_ref(
         const enum gko::solver::batch_tridiag_solve_approach approach,
-        const int num_recursive_steps = 2, const int wm_pge_subwarp_size = 32)
+        const int num_recursive_steps = 2, const int tile_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
         auto d_tridiag_mtx =
@@ -121,7 +121,7 @@ protected:
             solver_type::build()
                 .with_batch_tridiagonal_solution_approach(approach)
                 .with_num_recursive_steps(num_recursive_steps)
-                .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
+                .with_tile_size(tile_size)
                 .on(exec)
                 ->generate(d_tridiag_mtx);
         d_tridiag_solver->apply(d_b.get(), d_x.get());
@@ -135,7 +135,7 @@ protected:
 
     void check_if_solve_with_scaling_solve_is_eqvt_to_ref(
         const enum gko::solver::batch_tridiag_solve_approach approach,
-        const int num_recursive_steps = 2, const int wm_pge_subwarp_size = 32)
+        const int num_recursive_steps = 2, const int tile_size = 32)
     {
         using solver_type = gko::solver::BatchTridiagonalSolver<value_type>;
         auto d_tridiag_mtx =
@@ -149,7 +149,7 @@ protected:
             solver_type::build()
                 .with_batch_tridiagonal_solution_approach(approach)
                 .with_num_recursive_steps(num_recursive_steps)
-                .with_wm_pge_subwarp_size(wm_pge_subwarp_size)
+                .with_tile_size(tile_size)
                 .with_left_scaling_op(left_scale)
                 .with_right_scaling_op(right_scale)
                 .on(exec)
@@ -171,21 +171,21 @@ protected:
 TEST_F(BatchTridiagonalSolver, App1SolveIsEquivalentToRef)
 {
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 5, 32);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, 5, 32);
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 3, 16);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, 3, 16);
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app1, 2, 4);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, 2, 4);
 }
 
 TEST_F(BatchTridiagonalSolver, App2SolveIsEquivalentToRef)
 {
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 6, 32);
+        gko::solver::batch_tridiag_solve_approach::recursive_app2, 6, 32);
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 4, 16);
+        gko::solver::batch_tridiag_solve_approach::recursive_app2, 4, 16);
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::wm_pge_app2, 2, 8);
+        gko::solver::batch_tridiag_solve_approach::recursive_app2, 2, 8);
 }
 
 TEST_F(BatchTridiagonalSolver, VendorProvidedSolveIsEquivalentToRef)
@@ -197,21 +197,21 @@ TEST_F(BatchTridiagonalSolver, VendorProvidedSolveIsEquivalentToRef)
 // TODO: Implement scaling for batched tridiagonal
 // TEST_F(BatchTridiagonalSolver, App1SolveWithScalingIsEquivalentToRef)
 // {
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app1,
 //    5, 32);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app1,
 //    3, 16);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app1,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app1,
 //    2, 4);
 // }
 
 // TEST_F(BatchTridiagonalSolver, App2SolveWithScalingIsEquivalentToRef)
 // {
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app2,
 //    6, 32);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app2,
 //    4, 16);
-//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::wm_pge_app2,
+//    check_if_solve_with_scaling_solve_is_eqvt_to_ref(gko::solver::batch_tridiag_solve_approach::recursive_app2,
 //    2, 8);
 // }
 

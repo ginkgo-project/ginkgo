@@ -55,7 +55,7 @@ namespace batch_tridiagonal_solver {
 
 #define GKO_CUDA_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE 1, 2, 4, 8, 16, 32
 
-using batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes =
+using batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes =
     syn::value_list<int, GKO_CUDA_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE>;
 
 namespace {
@@ -71,17 +71,17 @@ constexpr int default_block_size =
 
 namespace {
 
-template <int compiled_wm_pge_subwarp_size, typename ValueType>
-void wm_pge_app1_helper(
-    syn::value_list<int, compiled_wm_pge_subwarp_size>,
-    const int number_WM_steps, const size_type nbatch, const int nrows,
-    const int nrhs, const ValueType* const tridiag_mat_subdiags,
+template <int compiled_tile_size, typename ValueType>
+void recursive_app1_helper(
+    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
+    const size_type nbatch, const int nrows, const int nrhs,
+    const ValueType* const tridiag_mat_subdiags,
     const ValueType* const tridiag_mat_maindiags,
     ValueType* const tridiag_mat_superdiags, ValueType* const rhs,
     ValueType* const x,
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
-    constexpr auto subwarp_size = compiled_wm_pge_subwarp_size;
+    constexpr auto subwarp_size = compiled_tile_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
 
@@ -89,9 +89,9 @@ void wm_pge_app1_helper(
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
-    wm_pge_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
-        number_WM_steps, nbatch, nrows, as_cuda_type(tridiag_mat_subdiags),
-        as_cuda_type(tridiag_mat_maindiags),
+    recursive_kernel_approach_1<subwarp_size><<<grid, block, shared_size>>>(
+        number_recursive_steps, nbatch, nrows,
+        as_cuda_type(tridiag_mat_subdiags), as_cuda_type(tridiag_mat_maindiags),
         as_cuda_type(tridiag_mat_superdiags), as_cuda_type(rhs),
         as_cuda_type(x));
 
@@ -99,20 +99,20 @@ void wm_pge_app1_helper(
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_wm_pge_app1_helper,
-                                    wm_pge_app1_helper);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_recursive_app1_helper,
+                                    recursive_app1_helper);
 
-template <int compiled_wm_pge_subwarp_size, typename ValueType>
-void wm_pge_app2_helper(
-    syn::value_list<int, compiled_wm_pge_subwarp_size>,
-    const int number_WM_steps, const size_type nbatch, const int nrows,
-    const int nrhs, const ValueType* const tridiag_mat_subdiags,
+template <int compiled_tile_size, typename ValueType>
+void recursive_app2_helper(
+    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
+    const size_type nbatch, const int nrows, const int nrhs,
+    const ValueType* const tridiag_mat_subdiags,
     const ValueType* const tridiag_mat_maindiags,
     ValueType* const tridiag_mat_superdiags, ValueType* const rhs,
     ValueType* const x,
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
-    constexpr auto subwarp_size = compiled_wm_pge_subwarp_size;
+    constexpr auto subwarp_size = compiled_tile_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
 
@@ -122,8 +122,8 @@ void wm_pge_app2_helper(
 
     using CuValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 
-    wm_pge_kernel_approach_2<CuValueType, subwarp_size>
-        <<<grid, block, shared_size>>>(number_WM_steps, nbatch, nrows,
+    recursive_kernel_approach_2<CuValueType, subwarp_size>
+        <<<grid, block, shared_size>>>(number_recursive_steps, nbatch, nrows,
                                        as_cuda_type(tridiag_mat_subdiags),
                                        as_cuda_type(tridiag_mat_maindiags),
                                        as_cuda_type(tridiag_mat_superdiags),
@@ -132,11 +132,11 @@ void wm_pge_app2_helper(
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
-template <int compiled_wm_pge_subwarp_size, typename T>
-void wm_pge_app2_helper(
-    syn::value_list<int, compiled_wm_pge_subwarp_size>,
-    const int number_WM_steps, const size_type nbatch, const int nrows,
-    const int nrhs, const std::complex<T>* const tridiag_mat_subdiags,
+template <int compiled_tile_size, typename T>
+void recursive_app2_helper(
+    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
+    const size_type nbatch, const int nrows, const int nrhs,
+    const std::complex<T>* const tridiag_mat_subdiags,
     const std::complex<T>* const tridiag_mat_maindiags,
     std::complex<T>* const tridiag_mat_superdiags, std::complex<T>* const rhs,
     std::complex<T>* const x,
@@ -147,8 +147,8 @@ void wm_pge_app2_helper(
 }
 
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_wm_pge_app2_helper,
-                                    wm_pge_app2_helper);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_recursive_app2_helper,
+                                    recursive_app2_helper);
 
 template <typename ValueType>
 void perform_workspace_copies(
@@ -182,8 +182,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::BatchTridiagonal<ValueType>* const tridiag_mat,
            const matrix::BatchDense<ValueType>* const rhs,
            matrix::BatchDense<ValueType>* const x, const int workspace_size,
-           ValueType* const workspace_ptr, const int number_WM_steps,
-           const int user_given_wm_pge_subwarp_size,
+           ValueType* const workspace_ptr, const int number_recursive_steps,
+           const int user_given_tile_size,
            const enum gko::solver::batch_tridiag_solve_approach approach,
            double& preprocess_time)
 {
@@ -192,7 +192,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
     assert(nrhs == 1);
 
-    if (approach == gko::solver::batch_tridiag_solve_approach::wm_pge_app1) {
+    if (approach == gko::solver::batch_tridiag_solve_approach::recursive_app1) {
         ValueType* tridiag_mat_superdiags;
         ValueType* rhs_vals;
 
@@ -200,19 +200,18 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                  workspace_ptr, tridiag_mat_superdiags,
                                  rhs_vals);
 
-        select_wm_pge_app1_helper(
-            batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_wm_pge_subwarp_size) {
-                return user_given_wm_pge_subwarp_size ==
-                       compiled_wm_pge_subwarp_size;
+        select_recursive_app1_helper(
+            batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
+            [&](int compiled_tile_size) {
+                return user_given_tile_size == compiled_tile_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
-            nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
+            nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
             tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
             rhs_vals, x->get_values(), approach);
 
     } else if (approach ==
-               gko::solver::batch_tridiag_solve_approach::wm_pge_app2) {
+               gko::solver::batch_tridiag_solve_approach::recursive_app2) {
         ValueType* tridiag_mat_superdiags;
         ValueType* rhs_vals;
 
@@ -220,14 +219,13 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                                  workspace_ptr, tridiag_mat_superdiags,
                                  rhs_vals);
 
-        select_wm_pge_app2_helper(
-            batch_wm_pge_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_wm_pge_subwarp_size) {
-                return user_given_wm_pge_subwarp_size ==
-                       compiled_wm_pge_subwarp_size;
+        select_recursive_app2_helper(
+            batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
+            [&](int compiled_tile_size) {
+                return user_given_tile_size == compiled_tile_size / 2;
             },
-            syn::value_list<int>(), syn::type_list<>(), number_WM_steps, nbatch,
-            nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
+            nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
             tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
             rhs_vals, x->get_values(), approach);
 
