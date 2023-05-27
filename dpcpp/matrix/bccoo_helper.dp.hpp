@@ -106,8 +106,6 @@ inline GKO_ATTRIBUTES void loop_block_multi_row_spmv(
     compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
     const size_type jump_in_blk, Closure scale, sycl::nd_item<3> item_ct1)
 {
-    //    auto next_row = blk_idxs.row_frst;
-    //    auto last_row = blk_idxs.row_frst;
     ValueType temp_val = zero<ValueType>();
     ValueType val;
     bool new_value = false;

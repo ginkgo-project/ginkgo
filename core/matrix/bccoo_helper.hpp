@@ -55,11 +55,6 @@ namespace bccoo {
  *  Constants to manage bccoo objects
  */
 
-/*
-constexpr uint8 type_mask_value_is_in_lut = 0x80;
-constexpr uint8 type_mask_get_column_with_lut = 0x7F;
-constexpr uint8 type_mask_get_column_without_lut = 0xFF;
-*/
 constexpr uint8 cst_mark_end_row = 0xFF;
 constexpr uint8 cst_mark_size_big_row = 0xFE;
 constexpr uint8 cst_mark_size_medium_row = 0xFD;

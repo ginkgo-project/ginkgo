@@ -155,7 +155,6 @@ TYPED_TEST(Bccoo, MovesToPrecisionElm)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    //    this->mtx_elm->move_to(tmp.get());
     this->mtx_elm->convert_to(tmp.get());
     tmp->move_to(res.get());
 
@@ -177,7 +176,6 @@ TYPED_TEST(Bccoo, MovesToPrecisionBlk)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    //    this->mtx_blk->move_to(tmp.get());
     this->mtx_blk->convert_to(tmp.get());
     tmp->move_to(res.get());
 

@@ -92,12 +92,6 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    /*
-    #pragma omp parallel for
-        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-            c->at(i) = zero<ValueType>();
-        }
-    */
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
@@ -113,13 +107,6 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    /*
-        ValueType beta_val = beta->at(0, 0);
-    #pragma omp parallel for
-        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-            c->at(i) *= beta_val;
-        }
-    */
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
@@ -784,14 +771,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     const IndexType num_blks = source->get_num_blocks();
 
     // First, result is initialized to zero
-    /*
-    #pragma omp parallel for default(shared)
-        for (IndexType row = 0; row < num_rows; row++) {
-            for (IndexType col = 0; col < num_cols; col++) {
-                result->at(row, col) = zero<ValueType>();
-            }
-        }
-    */
     dense::fill(exec, result, zero<ValueType>());
 
     if (source->use_element_compression()) {

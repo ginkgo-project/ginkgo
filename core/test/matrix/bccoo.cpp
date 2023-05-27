@@ -72,18 +72,14 @@ protected:
                            {0, 0, 1.0},
                            {0, 1, 3.0},
                            {0, 2, 2.0},
-                           //                        {1, 0, 0.0},
                            {1, 1, 5.0},
-                           //                        {1, 2, 0.0}
                        }});
         mtx_blk->read({{2, 3},
                        {
                            {0, 0, 1.0},
                            {0, 1, 3.0},
                            {0, 2, 2.0},
-                           //                        {1, 0, 0.0},
                            {1, 1, 5.0},
-                           //                        {1, 2, 0.0}
                        }});
     }
 
@@ -666,9 +662,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
                  {0, 0, 1.0},
                  {0, 1, 3.0},
                  {0, 2, 2.0},
-                 //              {1, 0, 0.0},
                  {1, 1, 5.0},
-                 //              {1, 2, 0.0}
              }});
 
     this->assert_equal_to_original_mtx_elm(m.get());
@@ -687,9 +681,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
                  {0, 0, 1.0},
                  {0, 1, 3.0},
                  {0, 2, 2.0},
-                 //              {1, 0, 0.0},
                  {1, 1, 5.0},
-                 //              {1, 2, 0.0}
              }});
 
     this->assert_equal_to_original_mtx_blk(m.get());
@@ -707,9 +699,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    //    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    //    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
@@ -728,9 +718,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    //    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    //    data.set_value(1, 2, 0.0);
 
     m->read(data);
 

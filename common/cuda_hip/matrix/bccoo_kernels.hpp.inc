@@ -195,9 +195,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
-// template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
-    //__device__ void extract_kernel(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
@@ -266,19 +264,6 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
     }
 }
 
-/*
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_extract(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, const uint8* __restrict__ chk,
-    const size_type* __restrict__ off, const uint8* __restrict__ typ,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    ValueType* __restrict__ diag)
-{
-    extract_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
-                   row, diag);
-}
-*/
 
 /**
  * The device function of BCCOO compute_absolute_inplace
@@ -325,57 +310,6 @@ __device__ void absolute_inplace_kernel(
         loop_block_absolute<IndexType, ValueType>(chunk_data, blk_idxs,
                                                   start_in_blk, jump_in_blk,
                                                   block_size_local, comp_abs);
-        //        if (blk_idxs.is_multi_row()) {
-        //            loop_block_multi_row_absolute<IndexType, ValueType>(
-        //                   chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-        //                   block_size_local, comp_abs);
-        /*
-                    if (blk_idxs.is_row_16bits()) {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row_absolute<uint16, uint8,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else if
-           (blk_idxs.is_column_16bits()) { loop_block_multi_row_absolute<uint16,
-           uint16, IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else {
-                            loop_block_multi_row_absolute<uint16, uint32,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs);
-                        }
-                    } else {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row_absolute<uint8, uint8,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else if
-           (blk_idxs.is_column_16bits()) { loop_block_multi_row_absolute<uint8,
-           uint16, IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else {
-                            loop_block_multi_row_absolute<uint8, uint32,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs);
-                        }
-                    }
-        */
-        //        } else {
-        //            loop_block_single_row_absolute<IndexType, ValueType>(
-        //               chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-        //               block_size_local, comp_abs);
-        /*
-                    if (blk_idxs.is_column_8bits()) {
-                        loop_block_single_row_absolute<uint8, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    } else if (blk_idxs.is_column_16bits()) {
-                        loop_block_single_row_absolute<uint16, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    } else {
-                        loop_block_single_row_absolute<uint32, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    }
-        */
-        //        }
     }
 }
 
@@ -461,7 +395,6 @@ __device__ void absolute_kernel(
         rows_data_res[blk] = rows_data_src[blk];
         cols_data_res[blk] = cols_data_src[blk];
         types_data_res[blk] = types_data_src[blk];
-        //        offsets_data_res[blk] =
         size_type offsets_data_res_blk =
             offsets_data_src[blk] -
             ((blk == 0)
@@ -469,7 +402,6 @@ __device__ void absolute_kernel(
                  : (blk - 1) * block_size *
                        (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
 
-        //        compr_idxs<IndexType> idxs_res(blk, offsets_data_res[blk]);
         compr_idxs<IndexType> idxs_res(blk, offsets_data_res_blk);
         compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
                                                block_size_local, idxs_res,
@@ -583,12 +515,9 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
-// template <int subwarp_size = config::warp_size, typename ValueType,
-//          typename IndexType>
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
-    //__device__ void fill_in_coo_kernel(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
@@ -664,21 +593,6 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
     }
 }
 
-/*
-template <int subwarp_size = config::warp_size, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, const uint8* __restrict__ chk,
-    const size_type* __restrict__ off, const uint8* __restrict__ typ,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    IndexType* __restrict__ row_idx, IndexType* __restrict__ col_idx,
-    ValueType* __restrict__ values)
-{
-    fill_in_coo_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
-                       row, row_idx, col_idx, values);
-}
-*/
 
 /**
  * The global function of BCCOO abstract_fill_in_dense
@@ -698,12 +612,9 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
-// template <int subwarp_size = config::warp_size, typename ValueType,
-//          typename IndexType>
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
-    //__device__ void fill_in_dense_kernel(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
@@ -773,54 +684,5 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
     }
 }
 
-/*
-template <int subwarp_size = config::warp_size, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, const uint8* __restrict__ chk,
-    const size_type* __restrict__ off, const uint8* __restrict__ typ,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    IndexType stride, ValueType* __restrict__ result)
-{
-    fill_in_dense_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ,
-                         col, row, stride, result);
-}
-*/
-/*
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
-    const IndexType* __restrict__ idxs, IndexType num_nonzeros,
-    IndexType* __restrict__ ptrs, IndexType length)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx == 0) {
-        ptrs[0] = 0;
-        ptrs[length - 1] = num_nonzeros;
-    }
-
-    if (0 < tidx && tidx < num_nonzeros) {
-        if (idxs[tidx - 1] < idxs[tidx]) {
-            for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
-                ptrs[i] = tidx;
-            }
-        }
-    }
-}
-*/
-/*
-template <typename ValueType>
-__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType* __restrict__ result)
-{
-    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-*/
 
 }  // namespace kernel
