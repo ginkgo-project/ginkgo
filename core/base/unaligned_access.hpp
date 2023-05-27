@@ -70,7 +70,7 @@ void set_value_chunk(void* ptr, size_type start, T value)
  *
  * @param ptr    the starting pointer
  * @param start  the offset
- * @param pos    the component of the vector
+ * @param pos    the component position of the vector
  * @param value  the value
  */
 template <typename T>
@@ -128,7 +128,7 @@ T get_value_chunk(const void* ptr, size_type start)
  *
  * @param ptr    the starting pointer
  * @param start  the offset
- * @param pos    the component of the vector
+ * @param pos    the component position of the vector
  *
  * @return the value in the m-th byte of ptr, which is adjusting to T class.
  */

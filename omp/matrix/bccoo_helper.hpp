@@ -55,7 +55,7 @@ namespace bccoo {
 
 
 /*
- *  Routines for mananing bccoo objects
+ *  Routines for managing bccoo objects
  */
 
 

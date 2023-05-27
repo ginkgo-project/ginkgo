@@ -397,8 +397,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const ValueType* values = csr->get_const_values();
         auto num_rows = csr->get_size()[0];
         auto num_cols = csr->get_size()[1];
-        // TODO: Also compute internally and return this value
-        auto num_stored_elements = 0;
+        // TODO: Compute internally num_stored_elements and return
         matrix::bccoo::compr_idxs<IndexType> idxs;
         matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
         for (IndexType i = 0; i < num_rows; i++) {

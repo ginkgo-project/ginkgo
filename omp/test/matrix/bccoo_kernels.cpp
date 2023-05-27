@@ -116,12 +116,12 @@ protected:
         dalpha = gko::clone(omp, alpha);
         dbeta = gko::clone(omp, beta);
     }
-
-    struct matrix_pair {
-        std::unique_ptr<Mtx> ref;
-        std::unique_ptr<Mtx> omp;
-    };
-
+    /*
+        struct matrix_pair {
+            std::unique_ptr<Mtx> ref;
+            std::unique_ptr<Mtx> omp;
+        };
+    */
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 

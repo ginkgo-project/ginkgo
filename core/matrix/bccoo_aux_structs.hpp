@@ -97,11 +97,8 @@ struct compr_blk_idxs {
     size_type shf_row;   // shift in chunk where the rows vector starts
     size_type shf_col;   // shift in chunk where the cols vector starts
     size_type shf_val;   // shift in chunk where the vals vector starts
-    //    bool mul_row;        // determines if the block includes elements
-    //                         // of several rows
-    uint8
-        rows_cols;  // combination of several bool conditions: multi_row,
-                    // 		row_16_bits, column_16_bits, column_8_bits
+    uint8 rows_cols;     // combination of several bool conditions: multi_row,
+                         // row_16_bits, column_16_bits, column_8_bits
 
     GKO_ATTRIBUTES compr_blk_idxs()
         : row_frst(0),

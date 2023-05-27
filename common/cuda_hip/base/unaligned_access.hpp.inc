@@ -57,7 +57,7 @@ __device__ void set_value_chunk(void* ptr, size_type start, T value)
  *
  * @param ptr    the starting pointer
  * @param start  the offset
- * @param pos    the component of the vector
+ * @param pos    the component position of the vector
  * @param value  the value
  */
 template <typename T>
@@ -97,7 +97,7 @@ __device__ T get_value_chunk(const void* ptr, size_type start)
  *
  * @param ptr    the starting pointer
  * @param start  the offset
- * @param pos    the component of the vector
+ * @param pos    the component position of the vector
  *
  * @return the value of type T at pos-th component of array<T> starting
  *         at byte start from ptr.

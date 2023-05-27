@@ -125,8 +125,6 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
 
 }  // namespace host_kernel
 }  // namespace bccoo
-
-
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

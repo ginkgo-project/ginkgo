@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/unaligned_access.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/bccoo_memsize_convert.hpp"
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -87,9 +88,12 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) = zero<ValueType>();
-    }
+    /*
+        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
+            c->at(i) = zero<ValueType>();
+        }
+    */
+    dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -104,10 +108,13 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    ValueType beta_val = beta->at(0, 0);
-    for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) *= beta_val;
-    }
+    /*
+        ValueType beta_val = beta->at(0, 0);
+        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
+            c->at(i) *= beta_val;
+        }
+    */
+    dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
 
@@ -291,6 +298,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
 void convert_to_next_precision(
     std::shared_ptr<const ReferenceExecutor> exec,
@@ -431,7 +439,9 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
-                if (row_prv < idxs.row) row_ptrs[idxs.row] = i + j;
+                if (row_prv < idxs.row) {
+                    row_ptrs[idxs.row] = i + j;
+                }
                 col_idxs[i + j] = idxs.col;
                 values[i + j] = val;
                 row_prv = idxs.row;

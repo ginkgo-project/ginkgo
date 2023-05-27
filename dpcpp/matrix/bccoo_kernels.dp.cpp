@@ -522,7 +522,9 @@ void absolute_kernel(const IndexType nnz, const IndexType num_blks,
     const IndexType jump_in_blk =
         item_ct1.get_local_range().get(1) * subgroup_size;
 
-    offsets_data_res[0] = 0;
+    if (start_blk == 0) {
+        offsets_data_res[0] = 0;
+    }
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
@@ -535,14 +537,16 @@ void absolute_kernel(const IndexType nnz, const IndexType num_blks,
         rows_data_res[blk] = rows_data_src[blk];
         cols_data_res[blk] = cols_data_src[blk];
         types_data_res[blk] = types_data_src[blk];
-        offsets_data_res[blk] =
+        //        offsets_data_res[blk] =
+        size_type offsets_data_res_blk =
             offsets_data_src[blk] -
             ((blk == 0)
                  ? 0
                  : (blk - 1) * block_size *
                        (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
 
-        compr_idxs<IndexType> idxs_res(blk, offsets_data_res[blk]);
+        //        compr_idxs<IndexType> idxs_res(blk, offsets_data_res[blk]);
+        compr_idxs<IndexType> idxs_res(blk, offsets_data_res_blk);
         compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
                                                block_size_local, idxs_res,
                                                types_data_res[blk]);
@@ -868,7 +872,7 @@ void abstract_fill_in_dense(
 
 GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_dense, abstract_fill_in_dense);
 
-
+/*
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
                               IndexType num_nonzeros,
@@ -891,8 +895,8 @@ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
 }
 
 GKO_ENABLE_DEFAULT_HOST(convert_row_idxs_to_ptrs, convert_row_idxs_to_ptrs);
-
-
+*/
+/*
 template <typename ValueType, typename IndexType>
 void initialize_zero_dense(IndexType num_rows, IndexType num_cols,
                            IndexType stride, ValueType* __restrict__ result,
@@ -906,7 +910,7 @@ void initialize_zero_dense(IndexType num_rows, IndexType num_cols,
 }
 
 GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
-
+*/
 
 }  // namespace kernel
 
@@ -972,17 +976,23 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (a->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(),
-                                  nnz, num_blocks_matrix, block_size, num_lines,
-                                  a->get_const_chunk(), a->get_const_offsets(),
-                                  a->get_const_types(), a->get_const_cols(),
-                                  a->get_const_rows(), b->get_const_values(),
-                                  (IndexType)b->get_stride(), c->get_values(),
-                                  (IndexType)c->get_stride());
+            kernel::abstract_spmv(
+                bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
+                num_blocks_matrix, block_size, num_lines, a->get_const_chunk(),
+                a->get_const_offsets(), a->get_const_types(),
+                a->get_const_cols(), a->get_const_rows(), b->get_const_values(),
+                //                                  (IndexType)b->get_stride(),
+                //                                  c->get_values(),
+                static_cast<IndexType>(b->get_stride()), c->get_values(),
+                //                                  (IndexType)c->get_stride());
+                static_cast<IndexType>(c->get_stride()));
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -1010,18 +1020,24 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (a->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_spmv(bccoo_grid, bccoo_block, 0, exec->get_queue(),
-                                  nnz, num_blocks_matrix, block_size, num_lines,
-                                  alpha->get_const_values(),
-                                  a->get_const_chunk(), a->get_const_offsets(),
-                                  a->get_const_types(), a->get_const_cols(),
-                                  a->get_const_rows(), b->get_const_values(),
-                                  (IndexType)b->get_stride(), c->get_values(),
-                                  (IndexType)c->get_stride());
+            kernel::abstract_spmv(
+                bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
+                num_blocks_matrix, block_size, num_lines,
+                alpha->get_const_values(), a->get_const_chunk(),
+                a->get_const_offsets(), a->get_const_types(),
+                a->get_const_cols(), a->get_const_rows(), b->get_const_values(),
+                //                                  (IndexType)b->get_stride(),
+                //                                  c->get_values(),
+                static_cast<IndexType>(b->get_stride()), c->get_values(),
+                //                                  (IndexType)c->get_stride());
+                static_cast<IndexType>(c->get_stride()));
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -1083,7 +1099,10 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -1103,7 +1122,7 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
 
-
+/*
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
                               const IndexType* idxs, IndexType num_nonzeros,
@@ -1117,7 +1136,7 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
                                      exec->get_queue(), idxs, num_nonzeros,
                                      ptrs, length);
 }
-
+*/
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
@@ -1142,7 +1161,10 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -1154,8 +1176,11 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                 source->get_const_rows(), row_idxs.get_data(),
                 result->get_col_idxs(), result->get_values());
 
-            convert_row_idxs_to_ptrs(exec, row_idxs.get_data(), nnz, row_ptrs,
-                                     num_rows + 1);
+            //            convert_row_idxs_to_ptrs(exec, row_idxs.get_data(),
+            //            nnz, row_ptrs,
+            //                                     num_rows + 1);
+            components::convert_idxs_to_ptrs(exec, row_idxs.get_data(), nnz,
+                                             num_rows + 1, row_ptrs);
         } else {
             GKO_NOT_SUPPORTED(source);
         }
@@ -1185,15 +1210,19 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                               config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(num_cols, block_size_mat.x),
                              ceildiv(num_rows, block_size_mat.y), 1);
-    kernel::initialize_zero_dense(init_grid_dim, block_size_mat, 0,
-                                  exec->get_queue(), num_rows, num_cols, stride,
-                                  (result->get_values()));
+    //    kernel::initialize_zero_dense(init_grid_dim, block_size_mat, 0,
+    //                                  exec->get_queue(), num_rows, num_cols,
+    //                                  stride, (result->get_values()));
+    dense::fill(exec, result, zero<ValueType>());
 
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -1228,7 +1257,10 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (orig->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -1262,7 +1294,10 @@ void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,
         // If there is work to compute
         if (matrix->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             // Use it to help compiler to interpret the template
@@ -1299,7 +1334,10 @@ void compute_absolute(
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
             // Use it to help compiler to interpret the template

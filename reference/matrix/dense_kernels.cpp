@@ -460,7 +460,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         // For element compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
-        auto num_nonzeros = 0;  // TODO: Also compute and return this value
+        // TODO: Compute num_nonzeros and return
         matrix::bccoo::compr_idxs<size_type> idxs;
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
@@ -481,7 +481,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         // For block compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
-        auto num_nonzeros = 0;  // TODO: Also compute and return this value
+        // TODO: Compute num_nonzeros and return
         matrix::bccoo::compr_idxs<size_type> idxs;
         matrix::bccoo::compr_blk_idxs<size_type> blk_idxs;
         for (size_type row = 0; row < num_rows; ++row) {
@@ -513,7 +513,6 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
 
 
@@ -524,7 +523,6 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     if (result->use_element_compression()) {
         // For element compression objects
-        // size_type block_size = result->get_block_size();
         IndexType block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
         size_type* offsets_data = result->get_offsets();
@@ -534,8 +532,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_cols = source->get_size()[1];
 
         auto num_stored_elements = result->get_num_stored_elements();
-        // matrix::bccoo::compr_idxs idxs = {};
-        matrix::bccoo::compr_idxs<IndexType> idxs;
+        matrix::bccoo::compr_idxs<IndexType> idxs = {};
 
         if (num_stored_elements > 0) {
             offsets_data[0] = 0;

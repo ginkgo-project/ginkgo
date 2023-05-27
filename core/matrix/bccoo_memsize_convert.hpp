@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/unaligned_access.hpp"
+#include "core/matrix/bccoo_helper.hpp"
 
 
 namespace gko {
@@ -67,6 +68,7 @@ inline void mem_size_bccoo_elm_elm(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_element_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -110,6 +112,7 @@ inline void mem_size_bccoo_elm_blk(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_element_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -161,6 +164,7 @@ inline void mem_size_bccoo_blk_elm(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_block_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -214,6 +218,7 @@ inline void mem_size_bccoo_blk_blk(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_block_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -289,6 +294,7 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->get_compression() == result->get_compression());
 
     // Try to remove static_cast
     if (source->get_num_stored_elements() > 0) {
@@ -332,6 +338,8 @@ void convert_to_bccoo_elm_elm(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_element_compression());
+    GKO_ASSERT(result->use_element_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -388,6 +396,8 @@ void convert_to_bccoo_elm_blk(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_element_compression());
+    GKO_ASSERT(result->use_block_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -463,6 +473,8 @@ void convert_to_bccoo_blk_elm(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_block_compression());
+    GKO_ASSERT(result->use_element_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
@@ -531,6 +543,8 @@ void convert_to_bccoo_blk_blk(
 {
     // This routine only is useful for master executor
     GKO_ASSERT(exec == exec->get_master());
+    GKO_ASSERT(source->use_block_compression());
+    GKO_ASSERT(result->use_block_compression());
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();

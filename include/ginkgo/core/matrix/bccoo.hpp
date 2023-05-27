@@ -40,8 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
 /**
  * @brief The matrix namespace.
  *
@@ -79,7 +77,7 @@ enum class compression { def_value, element, block };
  * The use of element compression allows that a specific compression
  * criteria was applied to each element of a block, whereas
  * the block compression forces that all elements in a block use
- * the same criteria, which can lead to a lowered compression ratio.
+ * the same criteria, which can lead to a lower compression ratio.
  *
  * In the element compression, the elements are sorted first by row
  * and then column indexes. Then, tuples of (lev_compress, column, value)
@@ -104,10 +102,14 @@ enum class compression { def_value, element, block };
  * alternatives can be used for the column indices.
  * In fact, there are four additional vectors joint with the 1D array of bytes,
  * containing, respectively, the starting point of each block in the array of
- * bytes, the minimum of the row indexes in the block, the mininum of the row
- * indexes in the block, and one byte per block including his main features,
+ * bytes, the minimum of the row indexes in the block, the mininum of the column
+ * indexes in the block, and one byte per block including its main features,
  * such as if it is s multirow block and the compression level of the column
  * indices.
+ *
+ * Read the next papers for more details:
+ *   https://doi.org/10.1007/978-3-030-71593-9_7
+ *   https://doi.org/10.1002/cpe.6515
  *
  * The BCCOO LinOp supports different operations:
  *

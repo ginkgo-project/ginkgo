@@ -115,7 +115,6 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     spmv2(exec, a, b, c);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV_KERNEL);
 
 
@@ -151,7 +150,10 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (a->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -162,8 +164,14 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
                 as_hip_type(a->get_const_rows()),
-                as_hip_type(b->get_const_values()), (IndexType)b->get_stride(),
-                as_hip_type(c->get_values()), (IndexType)c->get_stride());
+                //                as_hip_type(b->get_const_values()),
+                //                (IndexType)b->get_stride(),
+                as_hip_type(b->get_const_values()),
+                static_cast<IndexType>(b->get_stride()),
+                //                as_hip_type(c->get_values()),
+                //                (IndexType)c->get_stride());
+                as_hip_type(c->get_values()),
+                static_cast<IndexType>(c->get_stride()));
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -192,7 +200,10 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (a->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, b_ncols);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -204,8 +215,14 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
                 as_hip_type(a->get_const_rows()),
-                as_hip_type(b->get_const_values()), (IndexType)b->get_stride(),
-                as_hip_type(c->get_values()), (IndexType)c->get_stride());
+                //                as_hip_type(b->get_const_values()),
+                //                (IndexType)b->get_stride(),
+                as_hip_type(b->get_const_values()),
+                static_cast<IndexType>(b->get_stride()),
+                //                as_hip_type(c->get_values()),
+                //                (IndexType)c->get_stride());
+                as_hip_type(c->get_values()),
+                static_cast<IndexType>(c->get_stride()));
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -225,6 +242,7 @@ void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
@@ -233,6 +251,7 @@ void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_next_precision(
@@ -265,7 +284,10 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -288,7 +310,7 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
 
-
+/*
 template <typename IndexType>
 inline void convert_row_idxs_to_ptrs(std::shared_ptr<const HipExecutor> exec,
                                      const IndexType* idxs,
@@ -300,7 +322,7 @@ inline void convert_row_idxs_to_ptrs(std::shared_ptr<const HipExecutor> exec,
     kernel::convert_row_idxs_to_ptrs<<<grid_dim, default_block_size>>>(
         as_hip_type(idxs), num_nonzeros, as_hip_type(ptrs), length);
 }
-
+*/
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
@@ -325,7 +347,10 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -340,8 +365,11 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(result->get_col_idxs()),
                 as_hip_type(result->get_values()));
 
-            convert_row_idxs_to_ptrs(exec, row_idxs.get_data(), nnz, row_ptrs,
-                                     num_rows + 1);
+            //            convert_row_idxs_to_ptrs(exec, row_idxs.get_data(),
+            //            nnz, row_ptrs,
+            //                                     num_rows + 1);
+            components::convert_idxs_to_ptrs(exec, row_idxs.get_data(), nnz,
+                                             num_rows + 1, row_ptrs);
         } else {
             GKO_NOT_SUPPORTED(source);
         }
@@ -371,14 +399,18 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                               config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(num_cols, block_size_mat.x),
                              ceildiv(num_rows, block_size_mat.y), 1);
-    kernel::initialize_zero_dense<<<init_grid_dim, block_size_mat>>>(
-        num_rows, num_cols, stride, as_hip_type(result->get_values()));
+    //    kernel::initialize_zero_dense<<<init_grid_dim, block_size_mat>>>(
+    //        num_rows, num_cols, stride, as_hip_type(result->get_values()));
+    dense::fill(exec, result, zero<ValueType>());
 
     if (nwarps > 0) {
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -415,7 +447,10 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (orig->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -451,7 +486,10 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
         // If there is work to compute
         if (matrix->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
@@ -490,7 +528,10 @@ void compute_absolute(
         // If there is work to compute
         if (source->use_block_compression()) {
             IndexType num_blocks_grid = std::min(
-                num_blocks_matrix, (IndexType)ceildiv(nwarps, warps_in_block));
+                //                num_blocks_matrix, (IndexType)ceildiv(nwarps,
+                //                warps_in_block));
+                num_blocks_matrix,
+                static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 

@@ -50,7 +50,7 @@ namespace dpcpp {
 /**
  * @internal
  *
- * Compute a segement scan using add operation (+) of a subgroup_size. Each
+ * Compute a segment scan using add operation (+) of a subgroup_size. Each
  * segment performs suffix sum. Works on the source array and returns whether
  * the thread is the first element of its segment with same `ind`.
  */
@@ -82,7 +82,7 @@ __dpct_inline__ bool segment_scan(
 /**
  * @internal
  *
- * Compute a segement scan using add operation (+) of a subgroup_size. Each
+ * Compute a segment scan using the given `op` of a subgroup_size. Each
  * segment performs suffix sum. Works on the source array and returns whether
  * the thread is the first element of its segment with same `ind`.
  */

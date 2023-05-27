@@ -153,7 +153,7 @@ namespace host_kernel {
 /**
  * @internal
  *
- * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * It calculates the number of warps used in Bccoo Spmv depending on the GPU
  * architecture and the number of stored elements.
  */
 template <size_type subwarp_size = config::warp_size>

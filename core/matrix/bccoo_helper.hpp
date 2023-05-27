@@ -55,41 +55,46 @@ namespace bccoo {
  *  Constants to manage bccoo objects
  */
 
-
+/*
 constexpr uint8 type_mask_value_is_in_lut = 0x80;
 constexpr uint8 type_mask_get_column_with_lut = 0x7F;
 constexpr uint8 type_mask_get_column_without_lut = 0xFF;
-
+*/
 constexpr uint8 cst_mark_end_row = 0xFF;
 constexpr uint8 cst_mark_size_big_row = 0xFE;
 constexpr uint8 cst_mark_size_medium_row = 0xFD;
 
 constexpr uint8 cst_max_size_small_idxs_row = 0xFF;
-constexpr uint8 cst_max_size_small_row = 0xFC;
-constexpr int cst_max_size_medium_row = 0xFFFF;
+constexpr uint8 cst_max_col_diff_small = 0xFC;
+constexpr uint16 cst_max_col_diff_medium = 0xFFFF;
+constexpr uint32 cst_max_col_diff_large = 0xFFFFFFFF;
 
 
 /*
- *  Routines for mananing bccoo objects
+ *  Methods for managing bccoo objects
  */
 
 
+// Adapts idxs assuming that col_src_res was added
 template <typename IndexType>
 inline void cnt_next_position(const IndexType col_src_res,
                               compr_idxs<IndexType>& idxs)
 
 {
-    if (col_src_res <= cst_max_size_small_row) {
+    if (col_src_res <= cst_max_col_diff_small) {
         idxs.shf++;
-    } else if (col_src_res <= cst_max_size_medium_row) {
+    } else if (col_src_res <= cst_max_col_diff_medium) {
         idxs.shf += sizeof(uint16) + 1;
-    } else {
+    } else if (col_src_res <= cst_max_col_diff_large) {
         idxs.shf += sizeof(uint32) + 1;
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
     idxs.col += col_src_res;
 }
 
 
+// Adapts idxs assuming that col_src_res and val were added
 template <typename IndexType, typename ValueType>
 inline void cnt_next_position_value(const IndexType col_src_res,
                                     const ValueType val,
@@ -101,6 +106,7 @@ inline void cnt_next_position_value(const IndexType col_src_res,
 }
 
 
+// From chunk_data and ind, adapts idxs and gets idxs.col
 template <typename IndexType>
 inline void get_next_position(const uint8* chunk_data, const uint8 ind,
                               compr_idxs<IndexType>& idxs)
@@ -118,6 +124,7 @@ inline void get_next_position(const uint8* chunk_data, const uint8 ind,
 }
 
 
+// From chunk_data and ind, adapts idxs and gets idxs.col and val
 template <typename IndexType, typename ValueType>
 inline void get_next_position_value(const uint8* chunk_data, const uint8 ind,
                                     compr_idxs<IndexType>& idxs, ValueType& val)
@@ -128,6 +135,8 @@ inline void get_next_position_value(const uint8* chunk_data, const uint8 ind,
 }
 
 
+// From chunk_data and ind, adapts idxs and gets idxs.col and val
+// Then applies finalize_op on val, writing it on chunk_data and returning it
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_next_position_value_put(uint8* chunk_data, const uint8 ind,
                                         compr_idxs<IndexType>& idxs,
@@ -141,29 +150,33 @@ inline void get_next_position_value_put(uint8* chunk_data, const uint8 ind,
 }
 
 
+// Writes col_src_res on chunk_data, and update idxs
 template <typename IndexType>
 inline void put_next_position(uint8* chunk_data, const IndexType col_src_res,
                               compr_idxs<IndexType>& idxs)
 {
-    if (col_src_res <= cst_max_size_small_row) {
+    if (col_src_res <= cst_max_col_diff_small) {
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf, col_src_res);
         idxs.col += col_src_res;
-    } else if (col_src_res <= cst_max_size_medium_row) {
+    } else if (col_src_res <= cst_max_col_diff_medium) {
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_size_medium_row);
         set_value_chunk_and_increment<uint16>(chunk_data, idxs.shf,
                                               col_src_res);
         idxs.col += col_src_res;
-    } else {
+    } else if (col_src_res <= cst_max_col_diff_large) {
         set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                              cst_mark_size_big_row);
         set_value_chunk_and_increment<uint32>(chunk_data, idxs.shf,
                                               col_src_res);
         idxs.col += col_src_res;
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
 
+// Writes col_src_res and val on chunk_data, and update idxs
 template <typename IndexType, typename ValueType>
 inline void put_next_position_value(uint8* chunk_data,
                                     const IndexType col_src_res,
@@ -176,6 +189,7 @@ inline void put_next_position_value(uint8* chunk_data,
 }
 
 
+// Detects if a new block appearing when a Bccoo is read, adapting idxs
 template <typename IndexType>
 inline void get_detect_newblock(const IndexType* rows_data,
                                 const size_type* offsets_data,
@@ -189,6 +203,8 @@ inline void get_detect_newblock(const IndexType* rows_data,
 }
 
 
+// Detects if a new block appearing when a Bccoo is written, adapting idxs
+// If true, rows_data is updated
 template <typename IndexType>
 inline void put_detect_newblock(IndexType* rows_data,
                                 const IndexType row_src_res,
@@ -202,6 +218,9 @@ inline void put_detect_newblock(IndexType* rows_data,
 }
 
 
+// Detects if a new block appearing when a Bccoo is written, adapting idxs
+// If true, rows_data is updated
+// If a new row within a block is detected, chunk_data is updated
 template <typename IndexType>
 inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
                                 const size_type row_src_res,
@@ -220,6 +239,8 @@ inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
 }
 
 
+// Detects if a new block appearing when a Bccoo is written, adapting idxs
+// Both new block and new row within a block are considered
 template <typename IndexType>
 inline void cnt_detect_newblock(const IndexType row_src_res,
                                 compr_idxs<IndexType>& idxs)
@@ -235,6 +256,8 @@ inline void cnt_detect_newblock(const IndexType row_src_res,
 }
 
 
+// Detects if a new block appearing when a Bccoo is read, adapting idxs
+// If true and a new row is also detected, rows_ptrs is updated
 template <typename IndexType>
 inline void get_detect_newblock_csr(const IndexType* rows_data,
                                     const size_type* offsets_data,
@@ -252,6 +275,8 @@ inline void get_detect_newblock_csr(const IndexType* rows_data,
 }
 
 
+// Adapts idxs, assuming (row,col) position is added and returning the column
+// difference
 template <typename IndexType>
 inline IndexType cnt_position_newrow_mat_data(const IndexType row_mat_data,
                                               const IndexType col_mat_data,
@@ -266,6 +291,7 @@ inline IndexType cnt_position_newrow_mat_data(const IndexType row_mat_data,
 }
 
 
+// Detects the position of the next position, updating idxs and returning ind
 template <typename IndexType>
 inline uint8 get_position_newrow(const uint8* chunk_data,
                                  compr_idxs<IndexType>& idxs)
@@ -281,6 +307,8 @@ inline uint8 get_position_newrow(const uint8* chunk_data,
 }
 
 
+// Detects the position of the next position, updating idxs and returning ind
+// Also writes row_ptrs per each new row
 template <typename IndexType>
 inline uint8 get_position_newrow_csr(const uint8* chunk_data,
                                      IndexType* row_ptrs, IndexType pos,
@@ -298,6 +326,8 @@ inline uint8 get_position_newrow_csr(const uint8* chunk_data,
 }
 
 
+// Detects the position of the next position, updating idxs_src and returning
+// ind_src Also writes in chunk_data_res and rows_data_res, updating idxs_res
 template <typename IndexType>
 inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
                                      compr_idxs<IndexType>& idxs_src,
@@ -324,6 +354,8 @@ inline uint8 get_position_newrow_put(const uint8* chunk_data_src,
 }
 
 
+// Writes chunk_data, assuming (row,col) position is added, updating idxs
+// and returning the column differenc
 template <typename IndexType>
 inline size_type put_position_newrow_mat_data(const IndexType row_mat_data,
                                               const IndexType col_mat_data,
@@ -340,6 +372,7 @@ inline size_type put_position_newrow_mat_data(const IndexType row_mat_data,
 }
 
 
+// Detects if a block is complete, updating idxs
 template <typename IndexType>
 inline void get_detect_endblock(const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
@@ -351,6 +384,7 @@ inline void get_detect_endblock(const IndexType block_size,
 }
 
 
+// Detects if a block is complete, updating idxs and writing in offsets_data
 template <typename IndexType>
 inline void put_detect_endblock(size_type* offsets_data,
                                 const IndexType block_size,
@@ -364,6 +398,7 @@ inline void put_detect_endblock(size_type* offsets_data,
 }
 
 
+// Detects if a block is complete, updating idxs
 template <typename IndexType>
 inline void cnt_detect_endblock(const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
@@ -376,10 +411,11 @@ inline void cnt_detect_endblock(const IndexType block_size,
 
 
 /*
- *  Routines for managing block compression objects
+ *  Methods for managing block compression objects
  */
 
 
+// Updates blk_idxs, assuming that (row,col) is added
 template <typename IndexType>
 inline void proc_block_indices(const IndexType row, const IndexType col,
                                const compr_idxs<IndexType>& idxs,
@@ -405,6 +441,7 @@ inline void proc_block_indices(const IndexType row, const IndexType col,
 }
 
 
+// Adapts idxs according to values in blk_idxs
 template <typename IndexType, typename ValueType>
 inline void cnt_block_indices(const IndexType block_size,
                               const compr_blk_idxs<IndexType>& blk_idxs,
@@ -416,17 +453,20 @@ inline void cnt_block_indices(const IndexType block_size,
                          : sizeof(uint8)) *
                     block_size;
     }
-    if (blk_idxs.col_diff <= cst_max_size_small_row) {
+    if (blk_idxs.col_diff <= cst_max_col_diff_small) {
         idxs.shf += block_size * sizeof(uint8);
-    } else if (blk_idxs.col_diff <= cst_max_size_medium_row) {
+    } else if (blk_idxs.col_diff <= cst_max_col_diff_medium) {
         idxs.shf += block_size * sizeof(uint16);
-    } else {
+    } else if (blk_idxs.col_diff <= cst_max_col_diff_large) {
         idxs.shf += block_size * sizeof(uint32);
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
     idxs.shf += sizeof(ValueType) * block_size;
 }
 
 
+// Adapts idxs and blk_idxs, returning val from chunk_data
 template <typename IndexType, typename ValueType>
 inline void get_block_position_value(const uint8* chunk_data,
                                      compr_blk_idxs<IndexType>& blk_idxs,
@@ -459,6 +499,8 @@ inline void get_block_position_value(const uint8* chunk_data,
 }
 
 
+// Adapts idxs and blk_idxs, getting val from chunk_data
+// Then applies finalize_op on val, writing it on chunk_data and returning it
 template <typename IndexType, typename ValueType, typename Callable>
 inline void get_block_position_value_put(uint8* chunk_data,
                                          compr_blk_idxs<IndexType>& blk_idxs,
@@ -492,6 +534,8 @@ inline void get_block_position_value_put(uint8* chunk_data,
 }
 
 
+// Writes (rows_blk, cols_blk, vals_blk) on chunk_data, updating idxs and
+// blk_idxs and returning type in which the formats are described
 template <typename IndexType, typename ValueType>
 inline uint8 write_chunk_blk_type(compr_idxs<IndexType>& idxs,
                                   const compr_blk_idxs<IndexType>& blk_idxs,
@@ -522,26 +566,28 @@ inline uint8 write_chunk_blk_type(compr_idxs<IndexType>& idxs,
         }
         type_blk |= type_mask_rows_multiple;
     }
-    if (blk_idxs.col_diff <= cst_max_size_small_row) {
+    if (blk_idxs.col_diff <= cst_max_col_diff_small) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint8 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
             set_value_chunk_and_increment<uint8>(chunk_data, idxs.shf,
                                                  col_diff);
         }
         type_blk |= type_mask_cols_8bits;
-    } else if (blk_idxs.col_diff <= cst_max_size_medium_row) {
+    } else if (blk_idxs.col_diff <= cst_max_col_diff_medium) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint16 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
             set_value_chunk_and_increment<uint16>(chunk_data, idxs.shf,
                                                   col_diff);
         }
         type_blk |= type_mask_cols_16bits;
-    } else {
+    } else if (blk_idxs.col_diff <= cst_max_col_diff_large) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
             uint32 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
             set_value_chunk_and_increment<uint32>(chunk_data, idxs.shf,
                                                   col_diff);
         }
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
     for (IndexType j = 0; j < idxs.nblk; j++) {
         ValueType val = vals_blk.get_const_data()[j];
@@ -552,6 +598,9 @@ inline uint8 write_chunk_blk_type(compr_idxs<IndexType>& idxs,
 }
 
 
+// Copy [rows_blk, cols_blk, vals_blk] from chunk_data_src to chunk_data_res,
+//		but applying finalize_op() on vals_blk.
+// The corresponding idxs and blk_idxs are updated
 template <typename IndexType, typename ValueType_src, typename ValueType_res,
           typename Callable>
 inline void write_chunk_blk(compr_idxs<IndexType>& idxs_src,

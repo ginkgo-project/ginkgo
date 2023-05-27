@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/components/csr_spgeam.hpp"
 
@@ -555,23 +556,205 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
-
+/*
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
                     const IndexType block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
+*/
+template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* csr,
+                    const IndexType block_size,
+                    const matrix::bccoo::compression compress,
+                    size_type* mem_size)
+{
+    if (compress == matrix::bccoo::compression::element) {
+        // For element compression objects
+        const IndexType* row_ptrs = csr->get_const_row_ptrs();
+        const IndexType* col_idxs = csr->get_const_col_idxs();
+        const ValueType* values = csr->get_const_values();
+        const IndexType num_rows = csr->get_size()[0];
+        const IndexType num_stored_elements = csr->get_num_stored_elements();
+        matrix::bccoo::compr_idxs<IndexType> idxs;
+        for (IndexType i = 0; i < num_rows; i++) {
+            for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                // Counting bytes to write (row,col,val) on result
+                const IndexType row = i;
+                const IndexType col = col_idxs[j];
+                const ValueType val = values[j];
+                matrix::bccoo::cnt_detect_newblock(row - idxs.row, idxs);
+                IndexType col_src_res =
+                    matrix::bccoo::cnt_position_newrow_mat_data(row, col, idxs);
+                matrix::bccoo::cnt_next_position_value(col_src_res, val, idxs);
+                matrix::bccoo::cnt_detect_endblock(block_size, idxs);
+            }
+        }
+        *mem_size = idxs.shf;
+    } else {
+        // For block compression objects
+        const IndexType* row_ptrs = csr->get_const_row_ptrs();
+        const IndexType* col_idxs = csr->get_const_col_idxs();
+        const ValueType* values = csr->get_const_values();
+        auto num_rows = csr->get_size()[0];
+        auto num_cols = csr->get_size()[1];
+        // TODO: Compute internally num_stored_elements and return
+        auto num_stored_elements = 0;
+        matrix::bccoo::compr_idxs<IndexType> idxs;
+        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
+        for (IndexType i = 0; i < num_rows; i++) {
+            for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                const IndexType row = i;
+                const IndexType col = col_idxs[j];
+                const ValueType val = values[j];
+                matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
+                                                             blk_idxs);
+                idxs.nblk++;
+                if (idxs.nblk == block_size) {
+                    // Counting bytes to write block on result
+                    matrix::bccoo::cnt_block_indices<IndexType, ValueType>(
+                        block_size, blk_idxs, idxs);
+                    idxs.blk++;
+                    idxs.nblk = 0;
+                    blk_idxs = {};
+                }
+            }
+        }
+        if (idxs.nblk > 0) {
+            // Counting bytes to write block on result
+            matrix::bccoo::cnt_block_indices<IndexType, ValueType>(
+                block_size, blk_idxs, idxs);
+            idxs.blk++;
+            idxs.nblk = 0;
+            blk_idxs = {};
+        }
+        *mem_size = idxs.shf;
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL);
 
-
+/*
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
+*/
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+{
+    if (result->use_element_compression()) {
+        // For element compression objects
+        IndexType block_size = result->get_block_size();
+        IndexType* rows_data = result->get_rows();
+        size_type* offsets_data = result->get_offsets();
+        uint8* chunk_data = result->get_chunk();
+
+        const IndexType* row_ptrs = source->get_const_row_ptrs();
+        const IndexType* col_idxs = source->get_const_col_idxs();
+        const ValueType* values = source->get_const_values();
+        const IndexType num_rows = source->get_size()[0];
+        const IndexType num_stored_elements = source->get_num_stored_elements();
+        matrix::bccoo::compr_idxs<IndexType> idxs;
+        if (num_stored_elements > 0) {
+            offsets_data[0] = 0;
+        }
+        for (IndexType i = 0; i < num_rows; i++) {
+            for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                const IndexType row = i;
+                const IndexType col = col_idxs[j];
+                const ValueType val = values[j];
+                // Writing (row,col,val) to result
+                matrix::bccoo::put_detect_newblock(chunk_data, rows_data,
+                                                   row - idxs.row, idxs);
+                IndexType col_src_res =
+                    matrix::bccoo::put_position_newrow_mat_data(
+                        row, col, chunk_data, idxs);
+                matrix::bccoo::put_next_position_value(
+                    chunk_data, col - idxs.col, val, idxs);
+                matrix::bccoo::put_detect_endblock(offsets_data, block_size,
+                                                   idxs);
+            }
+        }
+        if (idxs.nblk > 0) {
+            offsets_data[idxs.blk + 1] = idxs.shf;
+        }
+    } else {
+        // For block compression objects
+        const IndexType* row_ptrs = source->get_const_row_ptrs();
+        const IndexType* col_idxs = source->get_const_col_idxs();
+        const ValueType* values = source->get_const_values();
+        auto num_rows = source->get_size()[0];
+        auto num_cols = source->get_size()[1];
+
+        auto* rows_data = result->get_rows();
+        auto* cols_data = result->get_cols();
+        auto* types_data = result->get_types();
+        auto* offsets_data = result->get_offsets();
+        auto* chunk_data = result->get_chunk();
+
+        auto num_stored_elements = result->get_num_stored_elements();
+        auto block_size = result->get_block_size();
+
+        matrix::bccoo::compr_idxs<IndexType> idxs;
+        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
+        uint8 type_blk = {};
+        ValueType val;
+
+        array<IndexType> rows_blk(exec, block_size);
+        array<IndexType> cols_blk(exec, block_size);
+        array<ValueType> vals_blk(exec, block_size);
+
+        if (num_stored_elements > 0) {
+            offsets_data[0] = 0;
+        }
+        for (IndexType i = 0; i < num_rows; i++) {
+            for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                const IndexType row = i;
+                const IndexType col = col_idxs[j];
+                const ValueType val = values[j];
+                // Analyzing the impact of (row,col,val) in the block
+                matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
+                                                             blk_idxs);
+                rows_blk.get_data()[idxs.nblk] = row;
+                cols_blk.get_data()[idxs.nblk] = col;
+                vals_blk.get_data()[idxs.nblk] = val;
+                idxs.nblk++;
+                if (idxs.nblk == block_size) {
+                    // Writing block on result
+                    type_blk = matrix::bccoo::write_chunk_blk_type(
+                        idxs, blk_idxs, rows_blk, cols_blk, vals_blk,
+                        chunk_data);
+                    rows_data[idxs.blk] = blk_idxs.row_frst;
+                    cols_data[idxs.blk] = blk_idxs.col_frst;
+                    types_data[idxs.blk] = type_blk;
+                    offsets_data[++idxs.blk] = idxs.shf;
+                    idxs.nblk = 0;
+                    blk_idxs = {};
+                }
+            }
+        }
+        if (idxs.nblk > 0) {
+            // Writing block on result
+            type_blk = matrix::bccoo::write_chunk_blk_type(
+                idxs, blk_idxs, rows_blk, cols_blk, vals_blk, chunk_data);
+            rows_data[idxs.blk] = blk_idxs.row_frst;
+            cols_data[idxs.blk] = blk_idxs.col_frst;
+            types_data[idxs.blk] = type_blk;
+            offsets_data[++idxs.blk] = idxs.shf;
+            idxs.nblk = 0;
+            blk_idxs = {};
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL);

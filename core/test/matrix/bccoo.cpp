@@ -68,23 +68,28 @@ protected:
               exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::block))
     {
         mtx_elm->read({{2, 3},
-                       {{0, 0, 1.0},
-                        {0, 1, 3.0},
-                        {0, 2, 2.0},
-                        {1, 0, 0.0},
-                        {1, 1, 5.0},
-                        {1, 2, 0.0}}});
+                       {
+                           {0, 0, 1.0},
+                           {0, 1, 3.0},
+                           {0, 2, 2.0},
+                           //                        {1, 0, 0.0},
+                           {1, 1, 5.0},
+                           //                        {1, 2, 0.0}
+                       }});
         mtx_blk->read({{2, 3},
-                       {{0, 0, 1.0},
-                        {0, 1, 3.0},
-                        {0, 2, 2.0},
-                        {1, 0, 0.0},
-                        {1, 1, 5.0},
-                        {1, 2, 0.0}}});
+                       {
+                           {0, 0, 1.0},
+                           {0, 1, 3.0},
+                           {0, 2, 2.0},
+                           //                        {1, 0, 0.0},
+                           {1, 1, 5.0},
+                           //                        {1, 2, 0.0}
+                       }});
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx_elm, mtx_blk;
+    std::unique_ptr<Mtx> mtx_elm;
+    std::unique_ptr<Mtx> mtx_blk;
 
     void assert_equal_to_original_mtx_elm(const Mtx* m)
     {
@@ -188,24 +193,28 @@ protected:
 
         switch (block_size) {
         case 1:
+            // block 0
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
 
+            // block 1
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
+            // block 2
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
+            // block 3
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
@@ -214,6 +223,7 @@ protected:
 
             break;
         case 2:
+            // block 0
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(chunk_data[ind], 0x01);
@@ -226,6 +236,7 @@ protected:
                       value_type{3.0});
             ind += sizeof(value_type);
 
+            // block 1
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(chunk_data[ind], 0x01);
@@ -245,6 +256,7 @@ protected:
 
             break;
         case 3:
+            // block 0
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(chunk_data[ind], 0x01);
@@ -262,6 +274,7 @@ protected:
                       value_type{2.0});
             ind += sizeof(value_type);
 
+            // block 1
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
@@ -270,6 +283,7 @@ protected:
 
             break;
         default:
+            // block 0
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
             EXPECT_EQ(chunk_data[ind], 0x00);
@@ -648,12 +662,14 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
                          compression::element);
 
     m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+             {
+                 {0, 0, 1.0},
+                 {0, 1, 3.0},
+                 {0, 2, 2.0},
+                 //              {1, 0, 0.0},
+                 {1, 1, 5.0},
+                 //              {1, 2, 0.0}
+             }});
 
     this->assert_equal_to_original_mtx_elm(m.get());
 }
@@ -667,12 +683,14 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
                          compression::block);
 
     m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+             {
+                 {0, 0, 1.0},
+                 {0, 1, 3.0},
+                 {0, 2, 2.0},
+                 //              {1, 0, 0.0},
+                 {1, 1, 5.0},
+                 //              {1, 2, 0.0}
+             }});
 
     this->assert_equal_to_original_mtx_blk(m.get());
 }
@@ -689,9 +707,9 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
+    //    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
+    //    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
@@ -710,9 +728,9 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
+    //    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
+    //    data.set_value(1, 2, 0.0);
 
     m->read(data);
 

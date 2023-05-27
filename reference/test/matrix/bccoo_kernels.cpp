@@ -58,7 +58,6 @@ namespace {
 
 
 constexpr static int BCCOO_BLOCK_SIZE_TESTED = 1;
-constexpr static int BCCOO_BLOCK_SIZE_COPIED = 3;
 
 
 template <typename ValueIndexType>
@@ -156,7 +155,8 @@ TYPED_TEST(Bccoo, MovesToPrecisionElm)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx_elm->move_to(tmp.get());
+    //    this->mtx_elm->move_to(tmp.get());
+    this->mtx_elm->convert_to(tmp.get());
     tmp->move_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_elm, res, residual);
@@ -177,7 +177,8 @@ TYPED_TEST(Bccoo, MovesToPrecisionBlk)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx_blk->move_to(tmp.get());
+    //    this->mtx_blk->move_to(tmp.get());
+    this->mtx_blk->convert_to(tmp.get());
     tmp->move_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_blk, res, residual);
@@ -383,7 +384,7 @@ TYPED_TEST(Bccoo, MovesToCsrElm)
     auto csr_mtx_elm_m =
         Csr::create(this->mtx_elm->get_executor(), csr_s_merge);
 
-    this->mtx_elm->move_to(csr_mtx_elm_c.get());
+    this->mtx_elm->clone()->move_to(csr_mtx_elm_c.get());
     this->mtx_elm->move_to(csr_mtx_elm_m.get());
 
     auto v = csr_mtx_elm_c->get_const_values();
@@ -419,7 +420,7 @@ TYPED_TEST(Bccoo, MovesToCsrBlk)
     auto csr_mtx_blk_m =
         Csr::create(this->mtx_blk->get_executor(), csr_s_merge);
 
-    this->mtx_blk->move_to(csr_mtx_blk_c.get());
+    this->mtx_blk->clone()->move_to(csr_mtx_blk_c.get());
     this->mtx_blk->move_to(csr_mtx_blk_m.get());
 
     auto v = csr_mtx_blk_c->get_const_values();

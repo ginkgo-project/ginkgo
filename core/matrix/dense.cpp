@@ -178,7 +178,9 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     size_type mem_size = 0;
 
     // Creating the result
-    if (exec == exec_master) {
+    //    if (exec == exec_master) {
+    if (std::dynamic_pointer_cast<const ReferenceExecutor>(exec) ==
+        exec_master) {
         exec->run(dense::make_mem_size_bccoo(source, block_size, compression,
                                              &mem_size));
         auto tmp = Bccoo<ValueType, IndexType>::create(

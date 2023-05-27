@@ -106,19 +106,20 @@ inline GKO_ATTRIBUTES void loop_block_multi_row_spmv(
     compr_blk_idxs<IndexType>& blk_idxs, const size_type start_in_blk,
     const size_type jump_in_blk, Closure scale, sycl::nd_item<3> item_ct1)
 {
-    auto next_row = blk_idxs.row_frst;
-    auto last_row = blk_idxs.row_frst;
+    //    auto next_row = blk_idxs.row_frst;
+    //    auto last_row = blk_idxs.row_frst;
     ValueType temp_val = zero<ValueType>();
     ValueType val;
     bool new_value = false;
     const auto tile_block = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
 
-    last_row = blk_idxs.row_frst +
-               get_value_chunk<IndexTypeRow>(
-                   chunk_data, blk_idxs.shf_row + (block_size_local - 1) *
-                                                      sizeof(IndexTypeRow));
-    next_row =
+    auto last_row =
+        blk_idxs.row_frst +
+        get_value_chunk<IndexTypeRow>(
+            chunk_data,
+            blk_idxs.shf_row + (block_size_local - 1) * sizeof(IndexTypeRow));
+    auto next_row =
         blk_idxs.row_frst +
         get_value_chunk<IndexTypeRow>(
             chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));

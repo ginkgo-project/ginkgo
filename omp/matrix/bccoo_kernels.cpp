@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/bccoo_memsize_convert.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "omp/components/atomic.hpp"
 #include "omp/matrix/bccoo_helper.hpp"
 
@@ -90,11 +92,13 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-#pragma omp parallel for
-    for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) = zero<ValueType>();
-    }
-
+    /*
+    #pragma omp parallel for
+        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
+            c->at(i) = zero<ValueType>();
+        }
+    */
+    dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -109,12 +113,14 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    ValueType beta_val = beta->at(0, 0);
-#pragma omp parallel for
-    for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) *= beta_val;
-    }
-
+    /*
+        ValueType beta_val = beta->at(0, 0);
+    #pragma omp parallel for
+        for (IndexType i = 0; i < c->get_num_stored_elements(); i++) {
+            c->at(i) *= beta_val;
+        }
+    */
+    dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
 
@@ -133,7 +139,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(shared)
         {
             IndexType num_cols = b->get_size()[1];
-            array<ValueType> sumV_array(exec, num_cols);
+            array<ValueType> sum_v_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -145,10 +151,10 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 IndexType row_old = 0;
                 ValueType val;
 
-                ValueType* sumV = sumV_array.get_data();
+                ValueType* sum_v = sum_v_array.get_data();
                 // The auxiliary vector is initialized to zero
                 for (IndexType j = 0; j < num_cols; j++) {
-                    sumV[j] = zero<ValueType>();
+                    sum_v[j] = zero<ValueType>();
                 }
 
                 compr_idxs<IndexType> idxs(blk, offsets_data[blk],
@@ -161,13 +167,13 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
                         for (IndexType j = 0; j < num_cols; j++) {
-                            atomic_add(c->at(row_old, j), sumV[j]);
-                            sumV[j] = zero<ValueType>();
+                            atomic_add(c->at(row_old, j), sum_v[j]);
+                            sum_v[j] = zero<ValueType>();
                         }
                         new_elm = false;
                     }
                     for (IndexType j = 0; j < num_cols; j++) {
-                        sumV[j] += val * b->at(idxs.col, j);
+                        sum_v[j] += val * b->at(idxs.col, j);
                     }
                     new_elm = true;
                 }
@@ -175,7 +181,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     // If some values are processed and not accumulated,
                     // the computed values have to be accumulated to c
                     for (IndexType j = 0; j < num_cols; j++) {
-                        atomic_add(c->at(idxs.row, j), sumV[j]);
+                        atomic_add(c->at(idxs.row, j), sum_v[j]);
                     }
                 }
             }
@@ -185,7 +191,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(shared)
         {
             IndexType num_cols = b->get_size()[1];
-            array<ValueType> sumV_array(exec, num_cols);
+            array<ValueType> sum_v_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -199,10 +205,10 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 const IndexType num_stored_elements =
                     a->get_num_stored_elements();
 
-                ValueType* sumV = sumV_array.get_data();
+                ValueType* sum_v = sum_v_array.get_data();
                 // The auxiliary vector is initialized to zero
                 for (IndexType j = 0; j < num_cols; j++) {
-                    sumV[j] = zero<ValueType>();
+                    sum_v[j] = zero<ValueType>();
                 }
 
                 const IndexType block_size_local = std::min(
@@ -217,44 +223,44 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                         if (blk_idxs.is_column_8bits()) {
                             loop_block_multi_row<uint16, uint8, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         } else if (blk_idxs.is_column_16bits()) {
                             loop_block_multi_row<uint16, uint16, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         } else {
                             loop_block_multi_row<uint16, uint32, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         }
                     } else {
                         if (blk_idxs.is_column_8bits()) {
                             loop_block_multi_row<uint8, uint8, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         } else if (blk_idxs.is_column_16bits()) {
                             loop_block_multi_row<uint8, uint16, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         } else {
                             loop_block_multi_row<uint8, uint32, IndexType>(
                                 chunk_data, block_size_local, b, c, idxs,
-                                blk_idxs, sumV);
+                                blk_idxs, sum_v);
                         }
                     }
                 } else {
                     if (blk_idxs.is_column_8bits()) {
                         loop_block_single_row<uint8, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
-                            sumV);
+                            sum_v);
                     } else if (blk_idxs.is_column_16bits()) {
                         loop_block_single_row<uint16, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
-                            sumV);
+                            sum_v);
                     } else {
                         loop_block_single_row<uint32, IndexType>(
                             chunk_data, block_size_local, b, c, idxs, blk_idxs,
-                            sumV);
+                            sum_v);
                     }
                 }
             }
@@ -279,7 +285,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(shared)
         {
             const IndexType num_cols = b->get_size()[1];
-            array<ValueType> sumV_array(exec, num_cols);
+            array<ValueType> sum_v_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -293,10 +299,10 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 IndexType row_old = 0;
                 ValueType val;
 
-                ValueType* sumV = sumV_array.get_data();
+                ValueType* sum_v = sum_v_array.get_data();
                 // The auxiliary vector is initialized to zero
                 for (IndexType j = 0; j < num_cols; j++) {
-                    sumV[j] = zero<ValueType>();
+                    sum_v[j] = zero<ValueType>();
                 }
 
                 compr_idxs<IndexType> idxs(blk, offsets_data[blk],
@@ -309,13 +315,13 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
                         for (IndexType j = 0; j < num_cols; j++) {
-                            atomic_add(c->at(row_old, j), sumV[j]);
-                            sumV[j] = zero<ValueType>();
+                            atomic_add(c->at(row_old, j), sum_v[j]);
+                            sum_v[j] = zero<ValueType>();
                         }
                         new_elm = false;
                     }
                     for (IndexType j = 0; j < num_cols; j++) {
-                        sumV[j] += alpha_val * val * b->at(idxs.col, j);
+                        sum_v[j] += alpha_val * val * b->at(idxs.col, j);
                     }
                     new_elm = true;
                 }
@@ -323,7 +329,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     // If some values are processed and not accumulated,
                     // the computed values have to be accumulated to c
                     for (IndexType j = 0; j < num_cols; j++) {
-                        atomic_add(c->at(idxs.row, j), sumV[j]);
+                        atomic_add(c->at(idxs.row, j), sum_v[j]);
                     }
                 }
             }
@@ -332,7 +338,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(shared)
         {
             const IndexType num_cols = b->get_size()[1];
-            array<ValueType> sumV_array(exec, num_cols);
+            array<ValueType> sum_v_array(exec, num_cols);
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -347,10 +353,10 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     a->get_num_stored_elements();
                 const ValueType alpha_val = alpha->at(0, 0);
 
-                ValueType* sumV = sumV_array.get_data();
+                ValueType* sum_v = sum_v_array.get_data();
                 // The auxiliary vector is initialized to zero
                 for (IndexType j = 0; j < num_cols; j++) {
-                    sumV[j] = zero<ValueType>();
+                    sum_v[j] = zero<ValueType>();
                 }
 
                 const IndexType block_size_local = std::min(
@@ -365,44 +371,44 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                         if (blk_idxs.is_column_8bits()) {
                             loop_block_multi_row<uint16, uint8, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         } else if (blk_idxs.is_column_16bits()) {
                             loop_block_multi_row<uint16, uint16, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         } else {
                             loop_block_multi_row<uint16, uint32, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         }
                     } else {
                         if (blk_idxs.is_column_8bits()) {
                             loop_block_multi_row<uint8, uint8, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         } else if (blk_idxs.is_column_16bits()) {
                             loop_block_multi_row<uint8, uint16, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         } else {
                             loop_block_multi_row<uint8, uint32, IndexType>(
                                 chunk_data, block_size_local, alpha_val, b, c,
-                                idxs, blk_idxs, sumV);
+                                idxs, blk_idxs, sum_v);
                         }
                     }
                 } else {
                     if (blk_idxs.is_column_8bits()) {
                         loop_block_single_row<uint8, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
-                            blk_idxs, sumV);
+                            blk_idxs, sum_v);
                     } else if (blk_idxs.is_column_16bits()) {
                         loop_block_single_row<uint16, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
-                            blk_idxs, sumV);
+                            blk_idxs, sum_v);
                     } else {
                         loop_block_single_row<uint32, IndexType>(
                             chunk_data, block_size_local, alpha_val, b, c, idxs,
-                            blk_idxs, sumV);
+                            blk_idxs, sum_v);
                     }
                 }
             }
@@ -697,10 +703,10 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const IndexType num_blks = source->get_num_blocks();
     const IndexType num_rows = source->get_size()[0];
     const IndexType num_cols = source->get_size()[1];
-
     array<IndexType> rows_array(exec, nnz);
     IndexType* row_idxs = rows_array.get_data();
 
+    // convert to Coo first and then convert row idx to ptr for Csr.
     if (source->use_element_compression()) {
         // For element compression objects
         // Each block is computed separately
@@ -778,12 +784,15 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     const IndexType num_blks = source->get_num_blocks();
 
     // First, result is initialized to zero
-#pragma omp parallel for default(shared)
-    for (IndexType row = 0; row < num_rows; row++) {
-        for (IndexType col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
+    /*
+    #pragma omp parallel for default(shared)
+        for (IndexType row = 0; row < num_rows; row++) {
+            for (IndexType col = 0; col < num_cols; col++) {
+                result->at(row, col) = zero<ValueType>();
+            }
         }
-    }
+    */
+    dense::fill(exec, result, zero<ValueType>());
 
     if (source->use_element_compression()) {
         // For element compression objects
