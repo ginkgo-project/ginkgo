@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/dense_kernels.hpp"

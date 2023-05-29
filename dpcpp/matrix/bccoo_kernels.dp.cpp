@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/bccoo_aux_structs.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -257,14 +258,17 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void extract_kernel(const IndexType nnz, const IndexType num_blks,
-                    const IndexType block_size, const IndexType num_lines,
-                    const uint8* __restrict__ chunk_data,
-                    const size_type* __restrict__ offsets_data,
-                    const uint8* __restrict__ types_data,
-                    const IndexType* __restrict__ cols_data,
-                    const IndexType* __restrict__ rows_data,
-                    ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
+// template <typename ValueType, typename IndexType>
+void abstract_extract(
+    const IndexType nnz, const IndexType num_blks,
+    // void extract_kernel(const IndexType nnz, const IndexType num_blks,
+    const IndexType block_size, const IndexType num_lines,
+    const uint8* __restrict__ chunk_data,
+    const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, ValueType* __restrict__ diag,
+    sycl::nd_item<3> item_ct1)
 {
     const IndexType column_id = item_ct1.get_group(1);
     const IndexType start_blk = item_ct1.get_group(2);
@@ -329,7 +333,7 @@ void extract_kernel(const IndexType nnz, const IndexType num_blks,
     }
 }
 
-
+/*
 template <typename ValueType, typename IndexType>
 void abstract_extract(const IndexType nnz, const IndexType num_blks,
                       const IndexType block_size, const IndexType num_lines,
@@ -343,7 +347,7 @@ void abstract_extract(const IndexType nnz, const IndexType num_blks,
     extract_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
                    row, diag, item_ct1);
 }
-
+*/
 GKO_ENABLE_DEFAULT_HOST(abstract_extract, abstract_extract);
 
 
@@ -660,19 +664,22 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
  */
+// template <int subgroup_size = config::warp_size, typename ValueType,
+//           typename IndexType>
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void fill_in_coo_kernel(const IndexType nnz, const IndexType num_blks,
-                        const IndexType block_size, const IndexType num_lines,
-                        const uint8* __restrict__ chunk_data,
-                        const size_type* __restrict__ offsets_data,
-                        const uint8* __restrict__ types_data,
-                        const IndexType* __restrict__ cols_data,
-                        const IndexType* __restrict__ rows_data,
-                        IndexType* __restrict__ rows_idxs,
-                        IndexType* __restrict__ cols_idxs,
-                        ValueType* __restrict__ values,
-                        sycl::nd_item<3> item_ct1)
+// void fill_in_coo_kernel(
+void abstract_fill_in_coo(const IndexType nnz, const IndexType num_blks,
+                          const IndexType block_size, const IndexType num_lines,
+                          const uint8* __restrict__ chunk_data,
+                          const size_type* __restrict__ offsets_data,
+                          const uint8* __restrict__ types_data,
+                          const IndexType* __restrict__ cols_data,
+                          const IndexType* __restrict__ rows_data,
+                          IndexType* __restrict__ rows_idxs,
+                          IndexType* __restrict__ cols_idxs,
+                          ValueType* __restrict__ values,
+                          sycl::nd_item<3> item_ct1)
 {
     const IndexType column_id = item_ct1.get_group(1);
     const IndexType start_blk = item_ct1.get_group(2);
@@ -743,7 +750,7 @@ void fill_in_coo_kernel(const IndexType nnz, const IndexType num_blks,
     }
 }
 
-
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void abstract_fill_in_coo(
@@ -757,7 +764,7 @@ void abstract_fill_in_coo(
     fill_in_coo_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ, col,
                        row, row_idx, col_idx, values, item_ct1);
 }
-
+*/
 GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_coo, abstract_fill_in_coo);
 
 
@@ -781,15 +788,19 @@ GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_coo, abstract_fill_in_coo);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void fill_in_dense_kernel(const IndexType nnz, const IndexType num_blks,
-                          const IndexType block_size, const IndexType num_lines,
-                          const uint8* __restrict__ chunk_data,
-                          const size_type* __restrict__ offsets_data,
-                          const uint8* __restrict__ types_data,
-                          const IndexType* __restrict__ cols_data,
-                          const IndexType* __restrict__ rows_data,
-                          IndexType stride, ValueType* __restrict__ result,
-                          sycl::nd_item<3> item_ct1)
+// template <int subgroup_size = config::warp_size, typename ValueType,
+//           typename IndexType>
+//  void fill_in_dense_kernel(
+void abstract_fill_in_dense(const IndexType nnz, const IndexType num_blks,
+                            const IndexType block_size,
+                            const IndexType num_lines,
+                            const uint8* __restrict__ chunk_data,
+                            const size_type* __restrict__ offsets_data,
+                            const uint8* __restrict__ types_data,
+                            const IndexType* __restrict__ cols_data,
+                            const IndexType* __restrict__ rows_data,
+                            IndexType stride, ValueType* __restrict__ result,
+                            sycl::nd_item<3> item_ct1)
 {
     const IndexType column_id = item_ct1.get_group(1);
     const IndexType start_blk = item_ct1.get_group(2);
@@ -854,7 +865,7 @@ void fill_in_dense_kernel(const IndexType nnz, const IndexType num_blks,
     }
 }
 
-
+/*
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void abstract_fill_in_dense(
@@ -867,7 +878,7 @@ void abstract_fill_in_dense(
     fill_in_dense_kernel(nnz, num_blks, block_size, num_lines, chk, off, typ,
                          col, row, stride, result, item_ct1);
 }
-
+*/
 GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_dense, abstract_fill_in_dense);
 
 

@@ -91,7 +91,7 @@ protected:
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
-        mtx_blk->copy_from(gen_mtx(532, 231));
+        mtx_blk->move_from(gen_mtx(532, 231));
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);

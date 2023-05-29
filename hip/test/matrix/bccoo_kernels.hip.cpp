@@ -89,7 +89,7 @@ protected:
     void set_up_apply_data_blk(int num_vectors = 1)
     {
         mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
-        mtx_blk->copy_from(gen_mtx(532, 231));
+        mtx_blk->move_from(gen_mtx(532, 231));
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -255,7 +255,7 @@ TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data_blk();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = gko::clone(cuda, complex_b);
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(hip, complex_x);
 
@@ -271,7 +271,7 @@ TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
 {
     set_up_apply_data_blk();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = gko::clone(cuda, complex_b);
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(hip, complex_x);
 
