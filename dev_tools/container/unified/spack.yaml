@@ -9,16 +9,18 @@ spack:
     # ginkgo examples and features
     - papi +sde
     - perfstubs
-    - tau ^elfutils -nls # avoid missing libintl.so
+    - tau
     - kokkos
     - "hwloc @2.0:"
     - benchmark
     - opencv +videoio
+    - python
     # ginkgo_mpi
     - "openmpi @4.1: +cuda"
     # development environment
     - valgrind
     - gdb +source-highlight +tui +python
+    - git
     - ccache
     - llvm
     # ginkgo_cuda
@@ -37,9 +39,21 @@ spack:
     - intel-oneapi-tbb
     - intel-oneapi-dpl
     - intel-oneapi-dpct
+    # build dependencies of the above packages,
+    # which would otherwise be missing from the cache
+    - pkgconf
+    - libsigsegv
+    - util-macros
+    - diffutils
+    - m4
+    - libtool
+    - bison
+    - autoconf
+    - automake
+    - texinfo
   view:
     default:
-      root: /root/spack-env/
+      root: /spack/env/
       # we need to exclude CUDA from the view,
       # since it contains Thrust, which conflicts with rocThrust
       exclude: ["cuda"]
