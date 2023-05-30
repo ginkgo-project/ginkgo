@@ -15,10 +15,12 @@ namespace experimental {
 namespace reorder {
 namespace suitesparse_wrapper {
 
+
 #include "AMD/Source/amd_2.c"
 #include "AMD/Source/amd_defaults.c"
 #include "AMD/Source/amd_post_tree.c"
 #include "AMD/Source/amd_postorder.c"
+
 
 }  // namespace suitesparse_wrapper
 }  // namespace reorder
