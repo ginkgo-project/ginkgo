@@ -52,9 +52,12 @@ namespace experimental {
 namespace reorder {
 namespace suitesparse_wrapper {
 
+
 using std::int32_t;
 using std::int64_t;
 using std::size_t;
+
+
 #include "third_party/SuiteSparse/AMD/Include/amd.h"
 
 
@@ -178,8 +181,11 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
     host_exec->copy_from(exec, num_rows + 1, pattern->get_const_row_ptrs(),
                          row_ptrs.get_data());
     const auto nnz = row_ptrs.get_data()[num_rows];
-    array<IndexType> col_idxs_plus_workspace{host_exec,
-                                             nnz + nnz / 5 + 8 * num_rows};
+    // we use this much space for the column index workspace, the rest for
+    // row workspace
+    const auto col_idxs_plus_workspace_size = nnz + nnz / 5 + 2 * num_rows;
+    array<IndexType> col_idxs_plus_workspace{
+        host_exec, col_idxs_plus_workspace_size + 6 * num_rows};
     host_exec->copy_from(exec, nnz, pattern->get_const_col_idxs(),
                          col_idxs_plus_workspace.get_data());
 
@@ -189,9 +195,6 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         row_lengths.get_data()[row] =
             row_ptrs.get_data()[row + 1] - row_ptrs.get_data()[row];
     }
-    // we use this much space for the column index workspace, the rest for
-    // row workspace
-    const auto col_idxs_plus_workspace_size = nnz + nnz / 5 + 2 * num_rows;
     // different temporary workspace arrays for amd
     const auto last = permutation.get_data();
     const auto nv =
