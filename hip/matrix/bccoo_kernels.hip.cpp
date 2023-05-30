@@ -454,8 +454,8 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_absolute_inplace<hip_type<ValueType>,
-                                              hip_type<IndexType>>
+            kernel::abstract_absolute_inplace<
+                config::warp_size, hip_type<ValueType>, hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(matrix->get_chunk()),
@@ -494,7 +494,8 @@ void compute_absolute(
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_absolute<hip_type<ValueType>, hip_type<IndexType>>
+            kernel::abstract_absolute<config::warp_size, hip_type<ValueType>,
+                                      hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(source->get_const_chunk()),
