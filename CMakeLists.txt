@@ -248,14 +248,22 @@ if(GINKGO_BUILD_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
     endif()
 
-    try_run(uses_openmpi gko_result_unused
+    # use try_compile instead of try_run to prevent cross-compiling issues
+    try_compile(uses_openmpi
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
+        COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
         LINK_LIBRARIES MPI::MPI_CXX
-        RUN_OUTPUT_VARIABLE openmpi_version
+        OUTPUT_VARIABLE output
         )
     if(uses_openmpi)
-        if(openmpi_version VERSION_LESS "4.1")
+        try_compile(valid_openmpi_version
+            ${Ginkgo_BINARY_DIR}
+            ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
+            COMPILE_DEFINITIONS -DCHECK_OPEN_MPI_VERSION=1
+            LINK_LIBRARIES MPI::MPI_CXX
+            )
+        if(NOT valid_openmpi_version)
             message(WARNING
                 "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
                 "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "

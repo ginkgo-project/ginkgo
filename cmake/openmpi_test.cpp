@@ -38,11 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main()
 {
-#if defined(OPEN_MPI) && OPEN_MPI
-    std::printf("%d.%d.%d", OMPI_MAJOR_VERSION, OMPI_MINOR_VERSION,
-                OMPI_RELEASE_VERSION);
-    return 1;
+#if CHECK_HAS_OPEN_MPI && defined(OPEN_MPI) && OPEN_MPI
+    static_assert(true);
+#elif CHECK_OPEN_MPI_VERSION
+    static_assert(OMPI_MAJOR_VERSION >= 4 && OMPI_MINOR_VERSION >= 1);
 #else
-    return 0;
+    static_assert(false);
 #endif
+    return 1;
 }
