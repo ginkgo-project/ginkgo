@@ -241,7 +241,7 @@ if(GINKGO_BUILD_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
     endif()
 
-    try_compile(uses_openmpi gko_result_unused
+    try_compile(uses_openmpi
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
         COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
