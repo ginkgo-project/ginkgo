@@ -396,7 +396,6 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
                 blk_idxs_res.shf_val +
                 block_size_local * sizeof(remove_complex<ValueType>);
         }
-
         if (blk_idxs_src.is_multi_row()) {
             if (blk_idxs_src.is_row_16bits()) {
                 if (blk_idxs_src.is_column_8bits()) {

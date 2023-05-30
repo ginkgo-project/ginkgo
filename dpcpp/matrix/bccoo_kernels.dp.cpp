@@ -354,20 +354,13 @@ GKO_ENABLE_DEFAULT_HOST(abstract_extract, abstract_extract);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-//          typename IndexType, typename Closure>
-// template <typename ValueType, typename IndexType>
-void abstract_absolute_inplace(const ValueType val,
-                               // void absolute_inplace_kernel(
-                               const IndexType nnz, const IndexType num_blks,
-                               const IndexType block_size,
-                               const IndexType num_lines,
-                               uint8* __restrict__ chunk_data,
-                               const size_type* __restrict__ offsets_data,
-                               const uint8* __restrict__ types_data,
-                               const IndexType* __restrict__ cols_data,
-                               const IndexType* __restrict__ rows_data,
-                               sycl::nd_item<3> item_ct1)
-//                             Closure comp_abs, sycl::nd_item<3> item_ct1)
+void abstract_absolute_inplace(
+    const ValueType val, const IndexType nnz, const IndexType num_blks,
+    const IndexType block_size, const IndexType num_lines,
+    uint8* __restrict__ chunk_data, const size_type* __restrict__ offsets_data,
+    const uint8* __restrict__ types_data,
+    const IndexType* __restrict__ cols_data,
+    const IndexType* __restrict__ rows_data, sycl::nd_item<3> item_ct1)
 
 {
     const IndexType column_id = item_ct1.get_group(1);
@@ -388,66 +381,9 @@ void abstract_absolute_inplace(const ValueType val,
         loop_block_absolute<IndexType, ValueType>(
             chunk_data, blk_idxs, start_in_blk, jump_in_blk, block_size_local,
             [](ValueType x) { return abs(x); });
-        /*
-                if (blk_idxs.is_multi_row()) {
-                    if (blk_idxs.is_row_16bits()) {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row_absolute<uint16, uint8,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else if
-           (blk_idxs.is_column_16bits()) { loop_block_multi_row_absolute<uint16,
-           uint16, IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else {
-                            loop_block_multi_row_absolute<uint16, uint32,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs);
-                        }
-                    } else {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row_absolute<uint8, uint8,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else if
-           (blk_idxs.is_column_16bits()) { loop_block_multi_row_absolute<uint8,
-           uint16, IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs); } else {
-                            loop_block_multi_row_absolute<uint8, uint32,
-           IndexType, ValueType>( chunk_data, blk_idxs, start_in_blk,
-           jump_in_blk, block_size_local, comp_abs);
-                        }
-                    }
-                } else {
-                    if (blk_idxs.is_column_8bits()) {
-                        loop_block_single_row_absolute<uint8, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    } else if (blk_idxs.is_column_16bits()) {
-                        loop_block_single_row_absolute<uint16, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    } else {
-                        loop_block_single_row_absolute<uint32, IndexType,
-           ValueType>( chunk_data, blk_idxs, start_in_blk, jump_in_blk,
-                            block_size_local, comp_abs);
-                    }
-                }
-        */
     }
 }
 
-/*
-template <typename ValueType, typename IndexType>
-void abstract_absolute_inplace(
-    const ValueType val, const IndexType nnz, const IndexType num_blks,
-    const IndexType block_size, const IndexType num_lines,
-    uint8* __restrict__ chk, const size_type* __restrict__ off,
-    const uint8* __restrict__ typ, const IndexType* __restrict__ col,
-    const IndexType* __restrict__ row, sycl::nd_item<3> item_ct1)
-{
-    absolute_inplace_kernel<config::warp_size, ValueType, IndexType>(
-        nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
-        [](ValueType x) { return abs(x); }, item_ct1);
-}
-*/
 GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
 
 
@@ -485,22 +421,20 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-//          typename IndexType, typename Closure>
-// template <typename ValueType, typename IndexType>
-void abstract_absolute(
-    const ValueType val,
-    // void absolute_kernel(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, const uint8* __restrict__ chunk_data_src,
-    const size_type* __restrict__ offsets_data_src,
-    const uint8* __restrict__ types_data_src,
-    const IndexType* __restrict__ cols_data_src,
-    const IndexType* __restrict__ rows_data_src,
-    uint8* __restrict__ chunk_data_res,
-    size_type* __restrict__ offsets_data_res,
-    uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
-    IndexType* __restrict__ rows_data_res,  // Closure comp_abs,
-    sycl::nd_item<3> item_ct1)
+void abstract_absolute(const ValueType val, const IndexType nnz,
+                       const IndexType num_blks, const IndexType block_size,
+                       const IndexType num_lines,
+                       const uint8* __restrict__ chunk_data_src,
+                       const size_type* __restrict__ offsets_data_src,
+                       const uint8* __restrict__ types_data_src,
+                       const IndexType* __restrict__ cols_data_src,
+                       const IndexType* __restrict__ rows_data_src,
+                       uint8* __restrict__ chunk_data_res,
+                       size_type* __restrict__ offsets_data_res,
+                       uint8* __restrict__ types_data_res,
+                       IndexType* __restrict__ cols_data_res,
+                       IndexType* __restrict__ rows_data_res,
+                       sycl::nd_item<3> item_ct1)
 {
     const IndexType column_id = item_ct1.get_group(1);
     const IndexType start_blk = item_ct1.get_group(2);
@@ -513,7 +447,7 @@ void abstract_absolute(
 
     auto comp_abs = [](ValueType x) { return abs(x); };
 
-    if (start_blk == 0) {
+    if (start_blk == 0 && start_in_blk == 0) {
         offsets_data_res[0] = 0;
     }
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
@@ -539,10 +473,11 @@ void abstract_absolute(
         compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
                                                block_size_local, idxs_res,
                                                types_data_res[blk]);
-        offsets_data_res[blk + 1] =
-            blk_idxs_res.shf_val +
-            block_size_local * sizeof(remove_complex<ValueType>);
-
+        if (start_in_blk == 0) {
+            offsets_data_res[blk + 1] =
+                blk_idxs_res.shf_val +
+                block_size_local * sizeof(remove_complex<ValueType>);
+        }
         if (blk_idxs_src.is_multi_row()) {
             if (blk_idxs_src.is_row_16bits()) {
                 if (blk_idxs_src.is_column_8bits()) {
@@ -612,24 +547,6 @@ void abstract_absolute(
     }
 }
 
-/*
-template <typename ValueType, typename IndexType>
-void abstract_absolute(
-    const ValueType val, const IndexType nnz, const IndexType num_blks,
-    const IndexType block_size, const IndexType num_lines,
-    const uint8* __restrict__ chk_src, const size_type* __restrict__ off_src,
-    const uint8* __restrict__ typ_src, const IndexType* __restrict__ col_src,
-    const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
-    size_type* __restrict__ off_res, uint8* __restrict__ typ_res,
-    IndexType* __restrict__ col_res, IndexType* __restrict__ row_res,
-    sycl::nd_item<3> item_ct1)
-{
-    absolute_kernel<config::warp_size, ValueType, IndexType>(
-        nnz, num_blks, block_size, num_lines, chk_src, off_src, typ_src,
-        col_src, row_src, chk_res, off_res, typ_res, col_res, row_res,
-        [](ValueType x) { return abs(x); }, item_ct1);
-}
-*/
 GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
 
 
