@@ -122,13 +122,13 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
     const auto num_rows = system_matrix->get_size()[0];
-    using complex_scalar = matrix::Dense<std::complex<double>>;
-    using real_scalar = matrix::Dense<double>;
-    using complex_identity = matrix::Identity<std::complex<double>>;
-    using real_identity = matrix::Identity<double>;
-    using complex_mtx = matrix::Csr<std::complex<double>, IndexType>;
-    using real_mtx = matrix::Csr<double, IndexType>;
-    using sparsity_mtx = matrix::SparsityCsr<double, IndexType>;
+    using complex_scalar = matrix::Dense<std::complex<float>>;
+    using real_scalar = matrix::Dense<float>;
+    using complex_identity = matrix::Identity<std::complex<float>>;
+    using real_identity = matrix::Identity<float>;
+    using complex_mtx = matrix::Csr<std::complex<float>, IndexType>;
+    using real_mtx = matrix::Csr<float, IndexType>;
+    using sparsity_mtx = matrix::SparsityCsr<float, IndexType>;
     std::unique_ptr<LinOp> converted;
     // extract row pointers and column indices
     IndexType* d_row_ptrs{};
@@ -143,7 +143,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         }
         if (!parameters_.skip_symmetrize) {
             auto scalar =
-                initialize<complex_scalar>({one<std::complex<double>>()}, exec);
+                initialize<complex_scalar>({one<std::complex<float>>()}, exec);
             auto id = complex_identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
             conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
@@ -159,7 +159,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
             conv_csr->sort_by_column_index();
         }
         if (!parameters_.skip_symmetrize) {
-            auto scalar = initialize<real_scalar>({one<double>()}, exec);
+            auto scalar = initialize<real_scalar>({one<float>()}, exec);
             auto id = real_identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
             conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
