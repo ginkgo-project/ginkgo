@@ -564,6 +564,7 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size)
 {
+    // This is the same code as in reference executor
     if (compress == matrix::bccoo::compression::element) {
         // For element compression objects
         const IndexType* row_ptrs = csr->get_const_row_ptrs();
@@ -637,6 +638,7 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
 {
+    // This is the same code as in reference executor
     if (result->use_element_compression()) {
         // For element compression objects
         IndexType block_size = result->get_block_size();
@@ -741,7 +743,6 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL);

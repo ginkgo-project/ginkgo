@@ -266,7 +266,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
 
 
 /**
- * The device function of BCCOO compute_absolute_inplace
+ * The global function of BCCOO compute_absolute_inplace
  *
  * @param nnz  the number of nonzeros in the matrix
  * @param num_blks  the number of blocks in the matrix
@@ -277,22 +277,20 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
  * @param rows_data  the array where the initial row of each block is
- * @param comp_abs  the function to apply to obtain the solution
  *
  * @tparam subwarp_size   size of the subwarp
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
- * @tparam Closure  type of the function used to write the result
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
-          typename IndexType, typename Closure>
-__device__ void absolute_inplace_kernel(
+          typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, uint8* __restrict__ chunk_data,
     const size_type* __restrict__ offsets_data,
     const uint8* __restrict__ types_data,
     const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, Closure comp_abs)
+    const IndexType* __restrict__ rows_data)
 {
     const IndexType column_id = blockIdx.y;
     const IndexType start_blk = blockIdx.x;
@@ -307,28 +305,15 @@ __device__ void absolute_inplace_kernel(
         compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
-        loop_block_absolute<IndexType, ValueType>(chunk_data, blk_idxs,
-                                                  start_in_blk, jump_in_blk,
-                                                  block_size_local, comp_abs);
+        loop_block_absolute<IndexType, ValueType>(
+            chunk_data, blk_idxs, start_in_blk, jump_in_blk, block_size_local,
+            [](ValueType x) { return abs(x); });
     }
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, uint8* __restrict__ chk,
-    const size_type* __restrict__ off, const uint8* __restrict__ typ,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row)
-{
-    absolute_inplace_kernel<config::warp_size, ValueType, IndexType>(
-        nnz, num_blks, block_size, num_lines, chk, off, typ, col, row,
-        [](ValueType x) { return abs(x); });
-}
-
-
 /**
- * The device function of BCCOO compute_absolute
+ * The global function of BCCOO compute_absolute
  *
  * @param nnz  the number of nonzeros in the matrix
  * @param num_blks  the number of blocks in the matrix
@@ -352,16 +337,14 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
  * result is
  * @param rows_data_res  the array where the initial row of each block of result
  * is
- * @param comp_abs  the function to apply to obtain the solution
  *
  * @tparam subwarp_size   size of the subwarp
  * @tparam ValueType  type of values stored in the matrix
  * @tparam IndexType  type of matrix indexes stored in the structure
- * @tparam Closure  type of the function used to write the result
  */
 template <int subwarp_size = config::warp_size, typename ValueType,
-          typename IndexType, typename Closure>
-__device__ void absolute_kernel(
+          typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ chunk_data_src,
     const size_type* __restrict__ offsets_data_src,
@@ -371,7 +354,7 @@ __device__ void absolute_kernel(
     uint8* __restrict__ chunk_data_res,
     size_type* __restrict__ offsets_data_res,
     uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
-    IndexType* __restrict__ rows_data_res, Closure comp_abs)
+    IndexType* __restrict__ rows_data_res)
 {
     const IndexType column_id = blockIdx.y;
     const IndexType start_blk = blockIdx.x;
@@ -380,7 +363,9 @@ __device__ void absolute_kernel(
     const IndexType start_in_blk = threadIdx.y * subwarp_size + threadIdx.x;
     const IndexType jump_in_blk = blockDim.y * subwarp_size;
 
-    if (start_blk == 0) {
+    auto comp_abs = [](ValueType x) { return abs(x); };
+
+    if (start_blk == 0 && start_in_blk == 0) {
         offsets_data_res[0] = 0;
     }
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
@@ -406,9 +391,11 @@ __device__ void absolute_kernel(
         compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
                                                block_size_local, idxs_res,
                                                types_data_res[blk]);
-        offsets_data_res[blk + 1] =
-            blk_idxs_res.shf_val +
-            block_size_local * sizeof(remove_complex<ValueType>);
+        if (start_in_blk == 0) {
+            offsets_data_res[blk + 1] =
+                blk_idxs_res.shf_val +
+                block_size_local * sizeof(remove_complex<ValueType>);
+        }
 
         if (blk_idxs_src.is_multi_row()) {
             if (blk_idxs_src.is_row_16bits()) {
@@ -477,23 +464,6 @@ __device__ void absolute_kernel(
             }
         }
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
-    const IndexType nnz, const IndexType num_blks, const IndexType block_size,
-    const IndexType num_lines, const uint8* __restrict__ chk_src,
-    const size_type* __restrict__ off_src, const uint8* __restrict__ typ_src,
-    const IndexType* __restrict__ col_src,
-    const IndexType* __restrict__ row_src, uint8* __restrict__ chk_res,
-    size_type* __restrict__ off_res, uint8* __restrict__ typ_res,
-    IndexType* __restrict__ col_res, IndexType* __restrict__ row_res)
-{
-    absolute_kernel<config::warp_size, ValueType, IndexType>(
-        nnz, num_blks, block_size, num_lines, chk_src, off_src, typ_src,
-        col_src, row_src, chk_res, off_res, typ_res, col_res, row_res,
-        [](ValueType x) { return abs(x); });
 }
 
 

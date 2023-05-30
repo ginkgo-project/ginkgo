@@ -207,38 +207,6 @@ __forceinline__ __device__ void loop_block_absolute(
 }
 
 
-template <typename IndexType, typename ValueType, typename Closure>
-__forceinline__ __device__ void loop_block_single_row_absolute(
-    uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    Closure finalize_op)
-{
-    for (IndexType pos = start_in_blk; pos < block_size_local;
-         pos += jump_in_blk) {
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
-        auto new_val = finalize_op(val);
-        set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos, new_val);
-    }
-}
-
-
-template <typename IndexType, typename ValueType, typename Closure>
-__forceinline__ __device__ void loop_block_multi_row_absolute(
-    uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
-    IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    Closure finalize_op)
-{
-    for (IndexType pos = start_in_blk; pos < block_size_local;
-         pos += jump_in_blk) {
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
-        auto new_val = finalize_op(val);
-        set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos, new_val);
-    }
-}
-
-
 template <typename IndexTypeCol, typename IndexType, typename ValueTypeSrc,
           typename ValueTypeRes, typename Closure>
 __forceinline__ __device__ void loop_block_single_row_absolute(

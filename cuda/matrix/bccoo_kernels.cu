@@ -450,8 +450,8 @@ void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_absolute_inplace<cuda_type<ValueType>,
-                                              cuda_type<IndexType>>
+            kernel::abstract_absolute_inplace<
+                config::warp_size, cuda_type<ValueType>, cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_cuda_type(matrix->get_chunk()),
@@ -490,7 +490,7 @@ void compute_absolute(
             const dim3 bccoo_grid(num_blocks_grid, 1);
             IndexType num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
 
-            kernel::abstract_absolute<cuda_type<ValueType>,
+            kernel::abstract_absolute<config::warp_size, cuda_type<ValueType>,
                                       cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,

@@ -364,6 +364,7 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size)
 {
+    // This is the same code as in reference executor
     if (compress == matrix::bccoo::compression::element) {
         // For element compression objects
         const IndexType* row_idxs = coo->get_const_row_idxs();
@@ -432,6 +433,7 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Coo<ValueType, IndexType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
 {
+    // This is the same code as in reference executor
     if (result->use_element_compression()) {
         // For element compression objects
         IndexType block_size = result->get_block_size();
