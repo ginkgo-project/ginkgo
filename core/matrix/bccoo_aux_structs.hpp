@@ -129,8 +129,10 @@ struct compr_blk_idxs {
                  ? ((rows_cols & type_mask_rows_16bits) ? sizeof(uint16) : 1) *
                        block_size
                  : 0);
-        shf_val = shf_col + block_size * ((rows_cols & type_mask_cols_8bits) ? 1
-                                          : (rows_cols & type_mask_cols_16bits)
+        shf_val =
+            shf_col + block_size * ((rows_cols & type_mask_cols_8bits)
+                                        ? 1
+                                        : (rows_cols & type_mask_cols_16bits)
                                               ? sizeof(uint16)
                                               : sizeof(uint32));
     }
