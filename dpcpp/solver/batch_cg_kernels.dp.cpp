@@ -99,7 +99,7 @@ public:
 
         size_type shmem_per_blk =
             device.get_info<sycl::info::device::local_mem_size>() -
-            3 * sizeof(ValueType) - 2 * sizeof(real_type);
+            (group_size + 3) * sizeof(ValueType) - 2 * sizeof(real_type);
         const auto matrix_size = a.get_entry_storage();
         const int shared_gap =
             nrows;  // TODO: check if it is neccessary to align
