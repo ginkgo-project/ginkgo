@@ -30,15 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/stream.hpp>
+#include <ginkgo/core/base/device.hpp>
 
 
 #include <hip/hip_runtime.h>
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 
 #include "hip/base/scoped_device_id.hip.hpp"

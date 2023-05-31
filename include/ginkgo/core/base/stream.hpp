@@ -121,4 +121,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_STREAM_HPP_

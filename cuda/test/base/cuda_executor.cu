@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/stream.hpp>
 
-
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
