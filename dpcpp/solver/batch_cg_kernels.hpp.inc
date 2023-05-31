@@ -282,9 +282,8 @@ void small_apply_kernel(
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
         norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
-        item_ct1.barrier(sycl::access::fence_space::local_space);
         if (stop.check_converged(norms_res_sh)) {
-            return;
+            break;
         }
 
         // beta = rho_new / rho_old
