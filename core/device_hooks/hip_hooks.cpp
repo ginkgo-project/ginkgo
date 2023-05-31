@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
-#include "ginkgo/core/base/memory.hpp"
 
 
 namespace gko {

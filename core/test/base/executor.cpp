@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <thread>
 #include <type_traits>
-#include "ginkgo/core/base/memory.hpp"
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -47,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/memory.hpp>
 
 
 namespace {

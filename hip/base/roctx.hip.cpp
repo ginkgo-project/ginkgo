@@ -30,10 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <hip/hip_runtime.h>
+
+
 #include <ginkgo/config.hpp>
 
 
-#include <hip/hip_runtime.h>
 #if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
 #include <roctx.h>
 #endif

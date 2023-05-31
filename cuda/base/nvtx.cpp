@@ -30,10 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <cuda_runtime.h>
+
+
 #include <ginkgo/config.hpp>
 
 
-#include <cuda_runtime.h>
 #ifdef GKO_LEGACY_NVTX
 #include <nvToolsExt.h>
 #else
