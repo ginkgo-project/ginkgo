@@ -153,17 +153,16 @@ __dpct_inline__ void update_x_and_r_small(
     sycl::nd_item<3> item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
-    ValueType alpha;
     if (sg.get_group_id() == 0) {
         compute_dot_product_sg_kernel(num_rows, p_shared_entry, Ap_shared_entry,
                                       alpha_shared_entry, item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::local_space);
-    alpha = rho_old_shared_entry / alpha_shared_entry;
+    alpha_shared_entry = rho_old_shared_entry / alpha_shared_entry;
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
-        x_shared_entry[li] += alpha * p_shared_entry[li];
-        r_shared_entry[li] -= alpha * Ap_shared_entry[li];
+        x_shared_entry[li] += alpha_shared_entry * p_shared_entry[li];
+        r_shared_entry[li] -= alpha_shared_entry * Ap_shared_entry[li];
     }
 }
 
@@ -172,21 +171,21 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
                                     const ValueType rho_old_shared_entry,
                                     const ValueType* const p_shared_entry,
                                     const ValueType* const Ap_shared_entry,
+                                    ValueType& alpha_shared_entry,
                                     ValueType* const x_shared_entry,
                                     ValueType* const r_shared_entry,
                                     sycl::nd_item<3> item_ct1)
 {
     auto group = item_ct1.get_group();
 
-    ValueType alpha;
-    compute_dot_product_kernel(num_rows, p_shared_entry, Ap_shared_entry, alpha,
-                               item_ct1);
-    alpha = rho_old_shared_entry / alpha;
+    compute_dot_product_kernel(num_rows, p_shared_entry, Ap_shared_entry,
+                               alpha_shared_entry, item_ct1);
+    alpha_shared_entry = rho_old_shared_entry / alpha_shared_entry;
 
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
-        x_shared_entry[li] += alpha * p_shared_entry[li];
-        r_shared_entry[li] -= alpha * Ap_shared_entry[li];
+        x_shared_entry[li] += alpha_shared_entry * p_shared_entry[li];
+        r_shared_entry[li] -= alpha_shared_entry * Ap_shared_entry[li];
     }
 }
 
@@ -331,6 +330,7 @@ void apply_medium_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     // variables are stored in reg. mem, not on SLM
     ValueType rho_old_sh;
     ValueType rho_new_sh;
+    ValueType alpha_sh;
     remove_complex<ValueType> norms_rhs_sh;
     remove_complex<ValueType> norms_res_sh;
 
@@ -379,7 +379,8 @@ void apply_medium_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
         // r = r - alpha * Ap
-        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, x_sh, r_sh, item_ct1);
+        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, alpha_sh, x_sh, r_sh,
+                       item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
 
@@ -434,6 +435,7 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
     // variables are stored in reg. mem, not on SLM
     ValueType rho_old_sh;
     ValueType rho_new_sh;
+    ValueType alpha_sh;
     remove_complex<ValueType> norms_rhs_sh;
     remove_complex<ValueType> norms_res_sh;
 
@@ -507,7 +509,8 @@ void apply_large_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
         // r = r - alpha * Ap
-        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, x_sh, r_sh, item_ct1);
+        update_x_and_r(nrows, rho_old_sh, p_sh, Ap_sh, alpha_sh, x_sh, r_sh,
+                       item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // z = precond * r
