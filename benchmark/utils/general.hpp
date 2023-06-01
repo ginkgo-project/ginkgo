@@ -104,8 +104,8 @@ DEFINE_bool(profile, false,
 
 DEFINE_string(
     profiler_hook, "none",
-    "Which profiler annotation mode to use, if any. Options are nvtx, roctx, "
-    "vtune, tau, debug, auto (choose based on executor).");
+    "Which profiler annotation mode to use, if any. Options are "
+    "none, nvtx, roctx, vtune, tau, debug, auto (choose based on executor).");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
