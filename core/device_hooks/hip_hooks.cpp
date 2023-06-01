@@ -64,13 +64,21 @@ void HipAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(hip);
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, GKO_HIP_STREAM_STRUCT* stream)
-    GKO_NOT_COMPILED(hip);
+{
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, std::move(master),
+                        std::make_shared<HipAllocator>(), stream));
+}
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master,
     std::shared_ptr<HipAllocatorBase> alloc, GKO_HIP_STREAM_STRUCT* stream)
-    GKO_NOT_COMPILED(hip);
+{
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, std::move(master),
+                        std::make_shared<HipAllocator>(), stream));
+}
 
 
 void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
