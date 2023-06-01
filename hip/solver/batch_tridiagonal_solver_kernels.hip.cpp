@@ -32,7 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_tridiagonal_solver_kernels.hpp"
 
+
 #include <chrono>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/exception.hip.hpp"

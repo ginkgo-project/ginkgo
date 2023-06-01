@@ -32,9 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_tridiagonal_solver_kernels.hpp"
 
+
 #include <chrono>
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"

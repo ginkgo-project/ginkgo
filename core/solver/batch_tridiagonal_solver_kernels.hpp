@@ -34,10 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_TRIDIAGONAL_SOLVER_KERNELS_HPP_
 
 
+#include <ginkgo/core/solver/batch_tridiagonal_solver.hpp>
+
+
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/batch_tridiagonal.hpp>
-#include <ginkgo/core/solver/batch_tridiagonal_solver.hpp>
+
 
 #include "core/base/kernel_declaration.hpp"
 

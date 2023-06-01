@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 
+
 #include "core/base/kernel_declaration.hpp"
 
 // TODO: Kernel prototypes

@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_tridiagonal.hpp>
 
+
 #include "core/test/utils/assertions.hpp"
 
 
