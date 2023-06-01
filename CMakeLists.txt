@@ -22,6 +22,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
+option(GINKGO_BUILD_EXTENSIONS "Build Ginkgo's extension" ON)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
@@ -278,6 +279,9 @@ if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
     find_package(RapidJSON 1.1.0 QUIET)
 endif()
+if(GINKGO_BUILD_EXTENSIONS)
+    find_package(nlohmann_json 3.11.2 QUIET)
+endif()
 if(GINKGO_BUILD_HWLOC)
     find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
 endif()
@@ -333,6 +337,10 @@ endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
+endif()
+
+if(GINKGO_BUILD_EXTENSIONS)
+    add_subdirectory(extensions)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
