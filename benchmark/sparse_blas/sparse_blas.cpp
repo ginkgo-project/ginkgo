@@ -170,13 +170,7 @@ int main(int argc, char* argv[])
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
     }
-    auto annotate =
-        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    };
+    auto annotate = annotate_functor{profiler_hook};
 
     auto operations = split(FLAGS_operations, ',');
 
@@ -193,11 +187,6 @@ int main(int argc, char* argv[])
             }
             auto& sp_blas_case = test_case[benchmark_name];
             std::clog << "Running test case: " << test_case << std::endl;
-            // annotate the test case
-            // This string needs to outlive `test_case_range` to make sure we
-            // don't use its const char* c_str() after it was freed.
-            auto test_case_str = generator.describe_config(test_case);
-            auto test_case_range = annotate(test_case_str.c_str());
             auto data = generator.generate_matrix_data(test_case);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "
@@ -210,6 +199,9 @@ int main(int argc, char* argv[])
 
             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size());
             mtx->read(data);
+            // annotate the test case
+            auto test_case_range =
+                annotate(generator.describe_config(test_case));
             for (const auto& operation_name : operations) {
                 if (FLAGS_overwrite ||
                     !sp_blas_case.HasMember(operation_name.c_str())) {
