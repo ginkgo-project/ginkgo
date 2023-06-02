@@ -453,7 +453,7 @@ public:
 
     profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
 
-    profiling_scope_guard& operator=(profiling_scope_guard&&);
+    profiling_scope_guard& operator=(profiling_scope_guard&&) = delete;
 
 private:
     bool empty_;
