@@ -70,7 +70,7 @@ struct DefaultSystemGenerator {
     static std::string describe_config(rapidjson::Value& config)
     {
         if (config.HasMember("filename")) {
-            return config.GetString();
+            return config["filename"].GetString();
         } else if (config.HasMember("stencil")) {
             std::stringstream ss;
             ss << "stencil(" << config["size"].GetInt64() << ","
@@ -192,7 +192,7 @@ struct DistributedDefaultSystemGenerator {
     std::string describe_config(rapidjson::Value& config) const
     {
         if (config.HasMember("filename")) {
-            return config.GetString();
+            return config["filename"].GetString();
         } else if (config.HasMember("stencil")) {
             std::stringstream ss;
             ss << "stencil(" << config["size"].GetInt64() << ","
