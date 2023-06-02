@@ -7,7 +7,7 @@ ENV PATH="${PATH}:/spack/bin"
     
 RUN spack compiler find && \
     spack external find --not-buildable opencv openssh perl llvm cmake ninja && \
-    spack env create ginkgo && spack bootstrap now
+    spack env create ginkgo && spack bootstrap now && spack gpg create buildcache build@cache
 
 COPY spack.yaml /spack/var/spack/environments/ginkgo/spack.yaml
 COPY packages.yaml /spack/etc/spack/packages.yaml
@@ -17,16 +17,14 @@ ENV OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 RUN --mount=type=cache,target=/cache \
     . /spack/share/spack/setup-env.sh && \
-    if [ -f "/cache/key" ]; then \
-        echo Reusing existing buildcache && \
-        spack --debug gpg trust /cache/key && \
+    if [ -d "/cache/build_cache" ]; then \
+        echo Reusing buildcache && \
         spack mirror add buildcache /cache && \
-        spack --debug buildcache keys --install --trust; \
-    else \
-        echo Creating new buildcache && \
-        spack --debug gpg create buildcache build@cache && \
-        spack --debug gpg export --secret /cache/key; \
+        spack buildcache keys --install --trust; \
     fi && \
     spack env activate ginkgo && \
     spack install --use-cache --reuse && \
     spack buildcache create -a /cache
+
+# remove the generated key to prevent malicious package injection
+RUN rm -rf /spack/opt/spack/gpg
