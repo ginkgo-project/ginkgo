@@ -322,7 +322,7 @@ int main(int argc, char* argv[])
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-9;
-    const unsigned mg_iter = mg_mode == "solver" ? 100u : 1u;
+    const unsigned mg_iter = mg_mode == "solver" ? 700u : 1u;
     const gko::solver::initial_guess_mode initial_mode =
         mg_mode == "solver" ? gko::solver::initial_guess_mode::provided
                             : gko::solver::initial_guess_mode::zero;

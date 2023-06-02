@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/pgm_kernels.hpp"
 
 #define UseCsr 0
-#define RemoveZero 1
+#define RemoveZero 0
 namespace gko {
 namespace multigrid {
 namespace pgm {
