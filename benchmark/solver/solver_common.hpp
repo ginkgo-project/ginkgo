@@ -614,13 +614,7 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
     }
-    auto annotate =
-        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    };
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -640,10 +634,8 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             // annotate the test case
-            // This string needs to outlive `test_case_range` to make sure we
-            // don't use its const char* c_str() after it was freed.
-            auto test_case_str = system_generator.describe_config(test_case);
-            auto test_case_range = annotate(test_case_str.c_str());
+            auto test_case_range =
+                annotate(system_generator.describe_config(test_case));
 
             if (do_print) {
                 std::clog << "Running test case: " << test_case << std::endl;

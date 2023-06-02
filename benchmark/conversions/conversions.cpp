@@ -135,13 +135,7 @@ int main(int argc, char* argv[])
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
     }
-    auto annotate =
-        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    };
+    auto annotate = annotate_functor{profiler_hook};
 
     DefaultSystemGenerator<> generator{};
 
@@ -174,10 +168,7 @@ int main(int argc, char* argv[])
                   << data.size[1] << ")" << std::endl;
         add_or_set_member(test_case, "size", data.size[0], allocator);
         // annotate the test case
-        // This string needs to outlive `test_case_range` to make sure we
-        // don't use its const char* c_str() after it was freed.
-        auto test_case_str = generator.describe_config(test_case);
-        auto test_case_range = annotate(test_case_str.c_str());
+        auto test_case_range = annotate(generator.describe_config(test_case));
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =

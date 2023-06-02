@@ -527,13 +527,7 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
     }
-    auto annotate =
-        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    };
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -555,10 +549,7 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
                 std::clog << "Running test case: " << test_case << std::endl;
             }
             // annotate the test case
-            // This string needs to outlive `test_case_range` to make sure we
-            // don't use its const char* c_str() after it was freed.
-            auto test_case_str = describe(test_case);
-            auto test_case_range = annotate(test_case_str.c_str());
+            auto test_case_range = annotate(describe(test_case));
             for (const auto& operation_name : operations) {
                 {
                     auto operation_range = annotate(operation_name.c_str());
