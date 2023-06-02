@@ -87,7 +87,7 @@ DEFINE_string(double_buffer, "",
 DEFINE_string(
     input, "",
     "If set, the value is used as the input for the benchmark (if set to a "
-    "string ending with ]) or as input file path (otherwise).");
+    "json string ending with ]) or as input file path (otherwise).");
 
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
@@ -100,7 +100,8 @@ DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
 
 DEFINE_bool(profile, false,
             "If set, enables profiler mode: 1 repetition, 0 warmup "
-            "repetitions, profiler_hook=auto (if it is not otherwise set)");
+            "repetitions, detailed=false, profiler_hook=auto (if it is not "
+            "otherwise set)");
 
 DEFINE_string(
     profiler_hook, "none",
@@ -170,6 +171,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     if (FLAGS_profile) {
         FLAGS_repetitions = "1";
         FLAGS_warmup = 0;
+        FLAGS_detailed = false;
         if (FLAGS_profiler_hook == "none") {
             FLAGS_profiler_hook = "auto";
         }
