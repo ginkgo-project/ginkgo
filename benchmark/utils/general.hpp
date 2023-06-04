@@ -84,6 +84,11 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_string(
+    input, "",
+    "If set, the value is used as the input for the benchmark (if set to a "
+    "json string ending with ]) or as input file path (otherwise).");
+
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
@@ -92,6 +97,16 @@ DEFINE_bool(keep_errors, true,
             "JSON output");
 
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
+
+DEFINE_bool(profile, false,
+            "If set, enables profiler mode: 1 repetition, 0 warmup "
+            "repetitions, detailed=false, profiler_hook=auto (if it is not "
+            "otherwise set)");
+
+DEFINE_string(
+    profiler_hook, "none",
+    "Which profiler annotation mode to use, if any. Options are "
+    "none, nvtx, roctx, vtune, tau, debug, auto (choose based on executor).");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
@@ -153,6 +168,14 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+    if (FLAGS_profile) {
+        FLAGS_repetitions = "1";
+        FLAGS_warmup = 0;
+        FLAGS_detailed = false;
+        if (FLAGS_profiler_hook == "none") {
+            FLAGS_profiler_hook = "auto";
+        }
+    }
 }
 
 /**
@@ -181,6 +204,70 @@ void print_general_information(const std::string& extra)
 }
 
 
+std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    using gko::log::ProfilerHook;
+    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
+        hook_map{
+            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
+            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
+            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
+            {"roctx", [] { return ProfilerHook::create_roctx(); }},
+            {"tau", [] { return ProfilerHook::create_tau(); }},
+            {"vtune", [] { return ProfilerHook::create_vtune(); }},
+            {"debug", [] {
+                 return ProfilerHook::create_custom(
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: begin " << name << '\n';
+                     },
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: end   " << name << '\n';
+                     });
+             }}};
+    return hook_map.at(FLAGS_profiler_hook)();
+}
+
+
+struct owning_profiling_scope_guard {
+    std::string name;
+    gko::log::profiling_scope_guard guard;
+
+    owning_profiling_scope_guard() = default;
+
+    owning_profiling_scope_guard(std::string name_,
+                                 gko::log::ProfilerHook* profiler_hook)
+        : name(std::move(name_)), guard{profiler_hook->user_range(name.c_str())}
+    {}
+};
+
+
+struct annotate_functor {
+    owning_profiling_scope_guard operator()(std::string name) const
+    {
+        if (profiler_hook) {
+            return owning_profiling_scope_guard{std::move(name),
+                                                profiler_hook.get()};
+        }
+        return {};
+    }
+
+    gko::log::profiling_scope_guard operator()(const char* name) const
+    {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    }
+
+    annotate_functor(std::shared_ptr<gko::log::ProfilerHook> profiler_hook)
+        : profiler_hook{std::move(profiler_hook)}
+    {}
+
+    std::shared_ptr<gko::log::ProfilerHook> profiler_hook;
+};
+
+
 // Returns a random number engine
 std::default_random_engine& get_engine()
 {
@@ -199,6 +286,26 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
         tokens.push_back(token);
     }
     return tokens;
+}
+
+
+// returns the stream to be used as input of the application
+std::istream& get_input_stream()
+{
+    static auto stream = []() -> std::unique_ptr<std::istream> {
+        std::string input_str(FLAGS_input);
+        if (input_str.empty()) {
+            return nullptr;
+        }
+        if (input_str.back() == ']') {
+            return std::make_unique<std::stringstream>(input_str);
+        }
+        return std::make_unique<std::ifstream>(input_str);
+    }();
+    if (stream) {
+        return *stream;
+    }
+    return std::cin;
 }
 
 

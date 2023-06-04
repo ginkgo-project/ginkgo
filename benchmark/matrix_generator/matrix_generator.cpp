@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     std::clog << gko::version_info::get() << std::endl;
 
     auto engine = get_engine();
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document configurations;
     configurations.ParseStream(jcin);
 

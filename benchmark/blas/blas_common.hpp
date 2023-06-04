@@ -434,6 +434,28 @@ dimensions parse_dims(rapidjson::Value& test_case)
 }
 
 
+std::string describe(rapidjson::Value& test_case)
+{
+    std::stringstream ss;
+    auto optional_output = [&](const char* name) {
+        if (test_case.HasMember(name) && test_case[name].IsInt64()) {
+            ss << name << " = " << test_case[name].GetInt64() << " ";
+        }
+    };
+    optional_output("n");
+    optional_output("k");
+    optional_output("m");
+    optional_output("r");
+    optional_output("stride");
+    optional_output("stride_x");
+    optional_output("stride_y");
+    optional_output("stride_A");
+    optional_output("stride_B");
+    optional_output("stride_C");
+    return ss.str();
+}
+
+
 template <typename OpMap>
 void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
                 std::shared_ptr<Timer> timer, const OpMap& operation_map,
@@ -501,6 +523,11 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
 {
     auto operations = split(FLAGS_operations, ',');
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -521,10 +548,14 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
             if (do_print) {
                 std::clog << "Running test case: " << test_case << std::endl;
             }
-
+            // annotate the test case
+            auto test_case_range = annotate(describe(test_case));
             for (const auto& operation_name : operations) {
-                apply_blas(operation_name.c_str(), exec, timer, operation_map,
-                           test_case, allocator);
+                {
+                    auto operation_range = annotate(operation_name.c_str());
+                    apply_blas(operation_name.c_str(), exec, timer,
+                               operation_map, test_case, allocator);
+                }
 
                 if (do_print) {
                     std::clog << "Current state:" << std::endl
@@ -537,5 +568,8 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
             std::cerr << "Error setting up benchmark, what(): " << e.what()
                       << std::endl;
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }

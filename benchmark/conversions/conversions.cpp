@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto formats = split(FLAGS_formats, ',');
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -131,6 +131,13 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
+
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         std::clog << "Benchmarking conversions. " << std::endl;
@@ -146,7 +153,7 @@ int main(int argc, char* argv[])
         std::clog << "Running test case: " << test_case << std::endl;
         gko::matrix_data<etype, itype> data;
         try {
-            data = DefaultSystemGenerator<>::generate_matrix_data(test_case);
+            data = generator.generate_matrix_data(test_case);
         } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
@@ -160,6 +167,8 @@ int main(int argc, char* argv[])
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << ")" << std::endl;
         add_or_set_member(test_case, "size", data.size[0], allocator);
+        // annotate the test case
+        auto test_case_range = annotate(generator.describe_config(test_case));
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =
@@ -175,10 +184,13 @@ int main(int argc, char* argv[])
                         conversion_case.HasMember(conversion_name.c_str())) {
                         continue;
                     }
-
-                    convert_matrix(matrix_from.get(), format_to.c_str(),
-                                   conversion_name.c_str(), exec, test_case,
-                                   allocator);
+                    {
+                        auto conversion_range =
+                            annotate(conversion_name.c_str());
+                        convert_matrix(matrix_from.get(), format_to.c_str(),
+                                       conversion_name.c_str(), exec, test_case,
+                                       allocator);
+                    }
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                 }
@@ -201,6 +213,9 @@ int main(int argc, char* argv[])
                           << e.what() << std::endl;
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

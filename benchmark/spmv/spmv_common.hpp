@@ -160,6 +160,11 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                         std::shared_ptr<Timer> timer, bool do_print)
 {
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -181,6 +186,10 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
             if (do_print) {
                 std::clog << "Running test case: " << test_case << std::endl;
             }
+            // annotate the test case
+            auto test_case_range =
+                annotate(system_generator.describe_config(test_case));
+
             auto data = system_generator.generate_matrix_data(test_case);
 
             auto nrhs = FLAGS_nrhs;
@@ -213,9 +222,12 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 exec->synchronize();
             }
             for (const auto& format_name : formats) {
-                apply_spmv(format_name.c_str(), exec, system_generator, timer,
-                           data, b.get(), x.get(), answer.get(), test_case,
-                           allocator);
+                {
+                    auto format_range = annotate(format_name.c_str());
+                    apply_spmv(format_name.c_str(), exec, system_generator,
+                               timer, data, b.get(), x.get(), answer.get(),
+                               test_case, allocator);
+                }
                 if (do_print) {
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
@@ -245,6 +257,9 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 add_or_set_member(test_case, "error", msg_value, allocator);
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }
 

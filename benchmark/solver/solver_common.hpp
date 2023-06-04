@@ -610,6 +610,11 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -628,6 +633,10 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                        })) {
                 continue;
             }
+            // annotate the test case
+            auto test_case_range =
+                annotate(system_generator.describe_config(test_case));
+
             if (do_print) {
                 std::clog << "Running test case: " << test_case << std::endl;
             }
@@ -660,16 +669,20 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                               allocator);
             auto precond_solver_name = begin(precond_solvers);
             for (const auto& solver_name : solvers) {
+                auto solver_range = annotate(solver_name.c_str());
                 for (const auto& precond_name : preconds) {
                     if (do_print) {
                         std::clog
                             << "\tRunning solver: " << *precond_solver_name
                             << std::endl;
                     }
-                    solve_system(solver_name, precond_name,
-                                 precond_solver_name->c_str(), exec, timer,
-                                 system_matrix, b.get(), x.get(), test_case,
-                                 allocator);
+                    {
+                        auto precond_range = annotate(precond_name.c_str());
+                        solve_system(solver_name, precond_name,
+                                     precond_solver_name->c_str(), exec, timer,
+                                     system_matrix, b.get(), x.get(), test_case,
+                                     allocator);
+                    }
                     if (do_print) {
                         backup_results(test_cases);
                     }
@@ -685,6 +698,9 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                 add_or_set_member(test_case, "error", msg_value, allocator);
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }
 

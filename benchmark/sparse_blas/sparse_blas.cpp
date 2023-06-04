@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -166,8 +166,15 @@ int main(int argc, char* argv[])
     print_general_information(extra_information);
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     auto operations = split(FLAGS_operations, ',');
+
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -180,8 +187,7 @@ int main(int argc, char* argv[])
             }
             auto& sp_blas_case = test_case[benchmark_name];
             std::clog << "Running test case: " << test_case << std::endl;
-            auto data =
-                DefaultSystemGenerator<>::generate_matrix_data(test_case);
+            auto data = generator.generate_matrix_data(test_case);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
@@ -193,11 +199,17 @@ int main(int argc, char* argv[])
 
             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size());
             mtx->read(data);
+            // annotate the test case
+            auto test_case_range =
+                annotate(generator.describe_config(test_case));
             for (const auto& operation_name : operations) {
                 if (FLAGS_overwrite ||
                     !sp_blas_case.HasMember(operation_name.c_str())) {
-                    apply_sparse_blas(operation_name.c_str(), exec, mtx.get(),
-                                      sp_blas_case, allocator);
+                    {
+                        auto operation_range = annotate(operation_name.c_str());
+                        apply_sparse_blas(operation_name.c_str(), exec,
+                                          mtx.get(), sp_blas_case, allocator);
+                    }
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                     backup_results(test_cases);
@@ -214,6 +226,9 @@ int main(int argc, char* argv[])
                 add_or_set_member(test_case, "error", msg_value, allocator);
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

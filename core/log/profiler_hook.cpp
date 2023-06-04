@@ -438,6 +438,11 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
 }
 
 
+profiling_scope_guard::profiling_scope_guard()
+    : empty_{true}, name_{}, category_{profile_event_category::internal}
+{}
+
+
 /**
  * Scope guard that annotates its scope with the provided profiler hooks.
  */
@@ -461,8 +466,7 @@ profiling_scope_guard::profiling_scope_guard(profiling_scope_guard&& other)
     : empty_{std::exchange(other.empty_, true)},
       name_{std::exchange(other.name_, nullptr)},
       category_{other.category_},
-      end_{
-          std::exchange(other.end_, [](const char*, profile_event_category) {})}
+      end_{std::move(other.end_)}
 {}
 
 

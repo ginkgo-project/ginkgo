@@ -427,6 +427,9 @@ private:
  */
 class profiling_scope_guard {
 public:
+    /** Creates an empty (moved-from) scope guard. */
+    profiling_scope_guard();
+
     /**
      * Creates the scope guard
      *
