@@ -59,24 +59,6 @@ DEBUG: end   allocate
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
-DEBUG: begin apply(<typename>)
-DEBUG: begin coo::spmv
-DEBUG: end   coo::spmv
-DEBUG: end   apply(<typename>)
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: begin coo
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -86,52 +68,6 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin copy(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: end   copy(<typename>)
-DEBUG: begin apply(<typename>)
-DEBUG: begin coo::spmv
-DEBUG: end   coo::spmv
-DEBUG: end   apply(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::compute_norm2_dispatch
-DEBUG: end   dense::compute_norm2_dispatch
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::add_scaled
-DEBUG: end   dense::add_scaled
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::compute_norm2_dispatch
-DEBUG: end   dense::compute_norm2_dispatch
-DEBUG: begin copy(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: end   copy(<typename>)
-DEBUG: begin copy(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: end   copy(<typename>)
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -159,7 +95,6 @@ Current state:
         "spmv": {
             "coo": {
                 "storage": 11600,
-                "max_relative_norm2": 1.0,
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true
