@@ -6,7 +6,6 @@
         "spmv": {
             "coo": {
                 "storage": 11600,
-                "max_relative_norm2": 1.0,
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true

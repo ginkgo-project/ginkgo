@@ -6,20 +6,12 @@
         "preconditioner": {
             "none": {
                 "generate": {
-                    "components": {
-                        "generate(<typename>)": 1.0,
-                        "overhead": 1.0
-                    },
+                    "components": {},
                     "time": 1.0,
                     "repetitions": 1
                 },
                 "apply": {
-                    "components": {
-                        "apply(<typename>)": 1.0,
-                        "copy(<typename>)": 1.0,
-                        "dense::copy": 1.0,
-                        "overhead": 1.0
-                    },
+                    "components": {},
                     "time": 1.0,
                     "repetitions": 1
                 },
