@@ -60,6 +60,15 @@ ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)
 target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
+# TODO FIXME: Currently nvhpc 22.7+ optimizations break the reference jacobi's custom
+# precision implementation (mantissa segmentation)
+#
+# We compile with -O1 to disable the offending optimization. As a side effect,
+# it also improves compile time.
+if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
+    set_source_files_properties(preconditioner/jacobi_kernels.cpp PROPERTIES COMPILE_FLAGS "-O1")
+endif()
+
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_reference "")
 endif()
