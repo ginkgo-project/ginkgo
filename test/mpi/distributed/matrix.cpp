@@ -420,7 +420,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     this->x->read_distributed(vec_md, this->col_part);
     {
         SCOPED_TRACE("Sparse Comm");
-        this->y->fill(gko::zero<value_type>());
+        this->y->read_distributed(vec_md, this->row_part);
 
         this->dist_mat->apply(this->alpha, this->x, this->beta, this->y);
 
@@ -428,7 +428,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     }
     {
         SCOPED_TRACE("Default Comm");
-        this->y->fill(gko::zero<value_type>());
+        this->y->read_distributed(vec_md, this->row_part);
 
         this->dist_mat_default->apply(this->alpha, this->x, this->beta,
                                       this->y);
@@ -442,7 +442,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
 {
     using value_type = typename TestFixture::value_type;
     for (auto disable_sparse_comm : {true, false}) {
-        SCOPED_TRACE("Using Sparse Comm: " +
+        SCOPED_TRACE("Disable Sparse Comm: " +
                      std::to_string(disable_sparse_comm));
         this->init_large(100, 1, disable_sparse_comm);
 
@@ -481,8 +481,6 @@ TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
         SCOPED_TRACE("Using Sparse Comm: " +
                      std::to_string(disable_sparse_comm));
         this->init_large(100, 17, disable_sparse_comm);
-        this->csr_mat->apply(this->alpha.get(), this->dense_x.get(),
-                             this->beta.get(), this->dense_y.get());
 
         this->dist_mat_large->apply(this->alpha, this->x, this->beta, this->y);
         this->csr_mat->apply(this->alpha, this->dense_x, this->beta,
