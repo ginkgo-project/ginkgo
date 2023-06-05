@@ -209,7 +209,6 @@ TEST_F(SparsityCsr, SortUnsortedMatrix64IsEquivalentToRef)
     auto dmtx64 = Mtx64::create(exec);
     gko::matrix_data<value_type, index_type> data;
     gko::matrix_data<value_type, gko::int64> data64;
-    mtx->sort_by_column_index();
     mtx->write(data);
     data64.size = data.size;
     for (auto entry : data.nonzeros) {
