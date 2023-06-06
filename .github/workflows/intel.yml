@@ -37,7 +37,7 @@ jobs:
         cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DCMAKE_CXX_COMPILER=dpcpp -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_DPCPP_SINGLE_MODE=ON
         make -j8
-        SYCL_DEVICE_FILTER=level_zero ctest -j10 --output-on-failure
+        ONEAPI_DEVICE_SELECTOR=level_zero:gpu ctest -j10 --output-on-failure
 
     - name: install
       run: |
