@@ -124,115 +124,45 @@ public:
         auto max_iters = opts_.max_its;
         auto res_tol = opts_.residual_tol;
 
-        (exec_->get_queue())->submit([&](sycl::handler& cgh) {
-            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_values(sycl::range<1>(shared_size + 3), cgh);
-            sycl::accessor<real_type, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_reals(sycl::range<1>(2), cgh);
-            if (nrows <= 32) {
+        auto launch_apply_kernel = [&]<const int SIMDLEN,
+                                       const bool vecs_shared_all,
+                                       const bool sg_kernel_only>() {
+            (exec_->get_queue())->submit([&](sycl::handler& cgh) {
+                sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                               sycl::access::target::local>
+                    slm_values(sycl::range<1>(shared_size), cgh);
+
                 cgh.parallel_for(
                     sycl_nd_range(grid, block),
-                    [=](sycl::nd_item<3> item_ct1)
-                        [[intel::reqd_sub_group_size(16)]] {
-                            auto group = item_ct1.get_group();
-                            auto batch_id = group.get_group_linear_id();
-                            const auto a_global_entry =
-                                gko::batch::batch_entry(a, batch_id);
-                            const ValueType* const b_global_entry =
-                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const x_global_entry =
-                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                            batch_id);
+                    [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                        SIMDLEN)]] {
+                        auto batch_id = item_ct1.get_group_linear_id();
+                        const auto a_global_entry =
+                            gko::batch::batch_entry(a, batch_id);
+                        const ValueType* const b_global_entry =
+                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                        batch_id);
+                        ValueType* const x_global_entry =
+                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                        batch_id);
+                        apply_kernel<StopType, vecs_shared_all, sg_kernel_only>(
+                            sconf, max_iters, res_tol, logger, prec,
+                            a_global_entry, b_global_entry, x_global_entry,
+                            nrows, a.num_nnz,
+                            static_cast<ValueType*>(slm_values.get_pointer()),
+                            item_ct1, workspace_data);
+                    });
+            });
+        };
 
-                            ValueType* const slm_values_ptr =
-                                slm_values.get_pointer();
-                            real_type* const slm_reals_ptr =
-                                slm_reals.get_pointer();
-
-                            small_apply_kernel<StopType>(
-                                sconf, max_iters, res_tol, logger, prec,
-                                a_global_entry, b_global_entry, x_global_entry,
-                                nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
-                                item_ct1, workspace_data);
-                        });
-            } else if (nrows <= 256 && sconf.n_global == 0) {
-                cgh.parallel_for(
-                    sycl_nd_range(grid, block),
-                    [=](sycl::nd_item<3> item_ct1)
-                        [[intel::reqd_sub_group_size(32)]] {
-                            auto group = item_ct1.get_group();
-                            auto batch_id = group.get_group_linear_id();
-                            const auto a_global_entry =
-                                gko::batch::batch_entry(a, batch_id);
-                            const ValueType* const b_global_entry =
-                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const x_global_entry =
-                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                            batch_id);
-
-                            ValueType* const slm_values_ptr =
-                                slm_values.get_pointer();
-                            real_type* const slm_reals_ptr =
-                                slm_reals.get_pointer();
-
-                            small_apply_kernel<StopType>(
-                                sconf, max_iters, res_tol, logger, prec,
-                                a_global_entry, b_global_entry, x_global_entry,
-                                nrows, a.num_nnz, slm_values_ptr, slm_reals_ptr,
-                                item_ct1, workspace_data);
-                        });
-            } else if (sconf.n_global == 0) {
-                cgh.parallel_for(
-                    sycl_nd_range(grid, block),
-                    [=](sycl::nd_item<3> item_ct1)
-                        [[intel::reqd_sub_group_size(subgroup_size)]] {
-                            auto group = item_ct1.get_group();
-                            auto batch_id = group.get_group_linear_id();
-                            const auto a_global_entry =
-                                gko::batch::batch_entry(a, batch_id);
-                            const ValueType* const b_global_entry =
-                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const x_global_entry =
-                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const slm_values_ptr =
-                                slm_values.get_pointer();
-                            apply_medium_kernel<StopType>(
-                                sconf, max_iters, res_tol, logger, prec,
-                                a_global_entry, b_global_entry, x_global_entry,
-                                nrows, a.num_nnz, slm_values_ptr, item_ct1,
-                                workspace_data);
-                        });
-            } else {
-                cgh.parallel_for(
-                    sycl_nd_range(grid, block),
-                    [=](sycl::nd_item<3> item_ct1)
-                        [[intel::reqd_sub_group_size(subgroup_size)]] {
-                            auto group = item_ct1.get_group();
-                            auto batch_id = group.get_group_linear_id();
-                            const auto a_global_entry =
-                                gko::batch::batch_entry(a, batch_id);
-                            const ValueType* const b_global_entry =
-                                gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const x_global_entry =
-                                gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                            batch_id);
-                            ValueType* const slm_values_ptr =
-                                slm_values.get_pointer();
-                            apply_large_kernel<StopType>(
-                                sconf, max_iters, res_tol, logger, prec,
-                                a_global_entry, b_global_entry, x_global_entry,
-                                nrows, a.num_nnz, slm_values_ptr, item_ct1,
-                                workspace_data);
-                        });
-            }
-        });
+        if (nrows <= 32)
+            launch_apply_kernel<16, 1, 1>();
+        else if (nrows <= 256 && sconf.n_global == 0)
+            launch_apply_kernel<32, 1, 1>();
+        else if (sconf.n_global == 0)
+            launch_apply_kernel<32, 1, 0>();
+        else
+            launch_apply_kernel<32, 0, 0>();
     }
 
 private:
