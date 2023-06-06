@@ -113,6 +113,10 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
+if (GINKGO_EXTENSION_KOKKOS)
+    include(cmake/extensions/kokkos.cmake)
+endif ()
+
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()

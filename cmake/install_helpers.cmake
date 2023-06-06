@@ -5,6 +5,7 @@ include(GNUInstallDirs)
 set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo/Modules")
+set(GINKGO_INSTALL_EXTENSIONS_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/extensions")
 
 # This function adds the correct RPATH properties to a Ginkgo target.
 #
@@ -94,28 +95,32 @@ function(ginkgo_install)
             )
         # We only use hwloc and not netloc
         install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            )
+                DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
+                )
         install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            )
-    endif()
+                DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
+                )
+    endif ()
 
     # Install CMake modules
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules/"
-        DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
-        FILES_MATCHING PATTERN "*.cmake"
-        )
+            DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
+            FILES_MATCHING PATTERN "*.cmake"
+            )
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/extensions/"
+            DESTINATION "${GINKGO_INSTALL_EXTENSIONS_DIR}"
+            FILES_MATCHING PATTERN "*.cmake"
+            )
 
     # export targets
     export(EXPORT Ginkgo
-        NAMESPACE Ginkgo::
-        FILE "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
-        )
+            NAMESPACE Ginkgo::
+            FILE "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
+            )
 
     # export configuration file for importing
     write_basic_package_version_file(
-        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+            "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         VERSION "${PROJECT_VERSION}"
         COMPATIBILITY SameMajorVersion
         )
