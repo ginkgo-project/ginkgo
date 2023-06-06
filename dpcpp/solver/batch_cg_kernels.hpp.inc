@@ -32,16 +32,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-template <const bool sg_kernels_only, typename BatchMatrixType_entry,
-          typename PrecType, typename ValueType>
+template <const bool sg_kernels_only, typename PrecType, typename ValueType,
+          typename BatchMatrixType>
 __dpct_inline__ void initialize(
-    const int num_rows, const BatchMatrixType_entry& A_global_entry,
-    const ValueType* const b_global_entry,
-    const ValueType* const x_global_entry, ValueType* const x_shared_entry,
-    ValueType* const r_shared_entry, const PrecType& prec_shared,
-    ValueType* const z_shared_entry, ValueType& rho_old,
-    ValueType* const p_shared_entry, gko::remove_complex<ValueType>& rhs_norms,
-    sycl::nd_item<3> item_ct1)
+    const int num_rows, const BatchMatrixType& A_global_entry,
+    const ValueType* const __restrict__ b_global_entry,
+    const ValueType* const __restrict__ x_global_entry,
+    ValueType* const __restrict__ x_shared_entry,
+    ValueType* const __restrict__ r_shared_entry, const PrecType& prec_shared,
+    ValueType* const __restrict__ z_shared_entry, ValueType& rho_old,
+    ValueType* const __restrict__ p_shared_entry,
+    gko::remove_complex<ValueType>& rhs_norms, sycl::nd_item<3> item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
     auto group = item_ct1.get_group();
@@ -91,12 +92,11 @@ __dpct_inline__ void initialize(
 
 
 template <typename ValueType>
-__dpct_inline__ void update_p(const int num_rows,
-                              const ValueType& rho_new_shared_entry,
-                              const ValueType& rho_old_shared_entry,
-                              const ValueType* const z_shared_entry,
-                              ValueType* const p_shared_entry,
-                              sycl::nd_item<3> item_ct1)
+__dpct_inline__ void update_p(
+    const int num_rows, const ValueType& rho_new_shared_entry,
+    const ValueType& rho_old_shared_entry,
+    const ValueType* const __restrict__ z_shared_entry,
+    ValueType* const __restrict__ p_shared_entry, sycl::nd_item<3> item_ct1)
 {
     const ValueType beta = rho_new_shared_entry / rho_old_shared_entry;
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
@@ -106,14 +106,12 @@ __dpct_inline__ void update_p(const int num_rows,
 }
 
 template <const int sg_kernels_only, typename ValueType>
-__dpct_inline__ void update_x_and_r(const int num_rows,
-                                    const ValueType rho_old_shared_entry,
-                                    const ValueType* const p_shared_entry,
-                                    const ValueType* const Ap_shared_entry,
-                                    ValueType& alpha_shared_entry,
-                                    ValueType* const x_shared_entry,
-                                    ValueType* const r_shared_entry,
-                                    sycl::nd_item<3> item_ct1)
+__dpct_inline__ void update_x_and_r(
+    const int num_rows, const ValueType rho_old_shared_entry,
+    const ValueType* const __restrict__ p_shared_entry,
+    const ValueType* const __restrict__ Ap_shared_entry,
+    ValueType& alpha_shared_entry, ValueType* const __restrict__ x_shared_entry,
+    ValueType* const __restrict__ r_shared_entry, sycl::nd_item<3> item_ct1)
 {
     auto group = item_ct1.get_group();
     auto sg = item_ct1.get_sub_group();
@@ -143,15 +141,15 @@ __dpct_inline__ void update_x_and_r(const int num_rows,
 template <typename StopType, const bool vecs_shared_all,
           const bool sg_kernels_only, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
-                  const int max_iter, const gko::remove_complex<ValueType> tol,
-                  LogType logger, PrecType prec_shared,
-                  const BatchMatrixType A_global_entry,
-                  const ValueType* const __restrict__ b_global_entry,
-                  ValueType* const __restrict__ x_global_entry,
-                  const size_type nrows, const size_type nnz,
-                  ValueType* slm_values, sycl::nd_item<3> item_ct1,
-                  ValueType* const __restrict__ workspace = nullptr)
+__dpct_inline__ void apply_kernel(
+    const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, LogType logger,
+    PrecType prec_shared, const BatchMatrixType& A_global_entry,
+    const ValueType* const __restrict__ b_global_entry,
+    ValueType* const __restrict__ x_global_entry, const size_type nrows,
+    const size_type nnz, ValueType* const __restrict__ slm_values,
+    sycl::nd_item<3> item_ct1,
+    ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
