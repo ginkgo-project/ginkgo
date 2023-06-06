@@ -30,10 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-//
-// Created by marcel on 26.04.23.
-//
-
 #ifndef GINKGO_TYPES_HPP
 #define GINKGO_TYPES_HPP
 
@@ -132,8 +128,8 @@ struct dense {
                                            bool> = true>
     dense(gko::matrix::Dense<T>& mtx)
         : values(mtx.get_values(),
-                 Kokkos::LayoutStride{mtx.get_size()[0], 1, mtx.get_size()[1],
-                                      mtx.get_stride()})
+                 Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
+                                      mtx.get_size()[1], 1})
     {
         ensure_compatibility(mtx, MemorySpace{});
     }
@@ -144,8 +140,8 @@ struct dense {
                                bool> = true>
     dense(const gko::matrix::Dense<T>& mtx)
         : values(mtx.get_const_values(),
-                 Kokkos::LayoutStride{mtx.get_size()[0], 1, mtx.get_size()[1],
-                                      mtx.get_stride()})
+                 Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
+                                      mtx.get_size()[1], 1})
     {
         ensure_compatibility(mtx, MemorySpace{});
     }
