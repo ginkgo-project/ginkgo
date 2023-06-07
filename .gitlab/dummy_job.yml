@@ -1,0 +1,6 @@
+test/dummy_job:
+  stage: test
+  extends:
+    - .use_status-job-settings
+  script:
+    - echo "dummy job avoids the empty child pipeline issue"

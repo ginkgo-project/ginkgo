@@ -1,0 +1,8 @@
+stages:
+    - test
+  
+include:
+  - local: '.gitlab/image.yml'
+  - local: '.gitlab/rules.yml'
+  - local: '.gitlab/scripts.yml'
+  - local: '.gitlab/variables.yml'
