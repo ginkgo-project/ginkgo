@@ -330,11 +330,12 @@ void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
-    array<bool> is_sorted_device_array{exec, {true}};
+    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = array<bool>{exec, cpu_array};
     const auto num_rows = to_check->get_size()[0];
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto cols = to_check->get_const_col_idxs();
-    auto is_sorted_device = is_sorted_device_array.get_data();
+    auto is_sorted_device = gpu_array.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -350,7 +351,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = exec->copy_val_to_host(is_sorted_device);
+    cpu_array = gpu_array;
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
