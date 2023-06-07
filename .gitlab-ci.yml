@@ -602,7 +602,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/cpu/release/static:
+build/dpcpp/2022-1/cpu/release/static:
   extends:
     - .build_and_test_template
     - .default_variables

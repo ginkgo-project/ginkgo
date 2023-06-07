@@ -89,7 +89,7 @@
     - gpu
 
 .use_gko-oneapi-cpu:
-  image: ginkgohub/oneapi:latest
+  image: ginkgohub/oneapi:2022.1
   tags:
     - private_ci
     - fairrs
