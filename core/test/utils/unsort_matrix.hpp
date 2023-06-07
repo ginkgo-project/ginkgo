@@ -58,8 +58,6 @@ void unsort_matrix(MtxPtr&& mtx, RandomEngine&& engine)
 {
     using value_type = typename gko::detail::pointee<MtxPtr>::value_type;
     using index_type = typename gko::detail::pointee<MtxPtr>::index_type;
-    const auto exec = mtx->get_executor();
-    const auto master = exec->get_master();
     matrix_data<value_type, index_type> data;
     mtx->write(data);
     auto& nonzeros = data.nonzeros;
