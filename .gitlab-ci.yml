@@ -84,6 +84,22 @@ trigger_pipeline:
       fi
 
 
+# Build jobs
+# Job with example runs.
+# cuda 9.2 and friends
+build/cuda92/nompi/gcc/all/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 61
+
 # cuda 10.1 and friends
 # Build CUDA NVIDIA without omp
 # Make sure that our jobs run when HWLOC is
