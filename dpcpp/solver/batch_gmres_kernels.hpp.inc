@@ -37,7 +37,8 @@ namespace {
 //        tile_t &swork =
 //        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(wrk_grp);
 
-template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
+template <const bool sg_kernel_all, typename BatchMatrixType_entry,
+          typename PrecType, typename ValueType>
 __dpct_inline__ void initialize(
     const int restart, const BatchMatrixType_entry& a_global_entry,
     const ValueType* const b_global_entry,
@@ -67,12 +68,19 @@ __dpct_inline__ void initialize(
                                   r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
-    if (sg_id == 0) {
-        compute_norm2_sg_kernel(a_global_entry.num_rows, b_global_entry,
-                                rhs_norms, item_ct1);
-    } else if (sg_id == 1) {
-        compute_norm2_sg_kernel(a_global_entry.num_rows, r_shared_entry,
-                                res_norms, item_ct1);
+    if constexpr (sg_kernel_all) {
+        if (sg_id == 0) {
+            compute_norm2_sg_kernel(a_global_entry.num_rows, b_global_entry,
+                                    rhs_norms, item_ct1);
+        } else if (sg_id == 1) {
+            compute_norm2_sg_kernel(a_global_entry.num_rows, r_shared_entry,
+                                    res_norms, item_ct1);
+        }
+    } else {
+        compute_norm2_kernel(a_global_entry.num_rows, b_global_entry, rhs_norms,
+                             item_ct1);
+        compute_norm2_kernel(a_global_entry.num_rows, r_shared_entry, res_norms,
+                             item_ct1);
     }
 
     // z = precond * r
@@ -95,11 +103,13 @@ __dpct_inline__ void initialize(
 }
 
 
-template <typename ValueType>
+template <const bool sg_kernel_all, typename ValueType>
 __dpct_inline__ void update_v_naught_and_s(
     const int num_rows, const int restart,
     const ValueType* const z_shared_entry, ValueType* const V_shared_entry,
-    ValueType* const s_shared_entry, sycl::nd_item<3> item_ct1)
+    ValueType* const s_shared_entry,
+    typename gko::remove_complex<ValueType>& tmp_norm,
+    sycl::nd_item<3> item_ct1)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
@@ -108,15 +118,14 @@ __dpct_inline__ void update_v_naught_and_s(
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
 
-    using tile_t = real_type;
-    tile_t& tmp_norm =
-        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(
-            item_ct1.get_group());
-
-    if (sg_id == 0) {
-        compute_norm2_sg_kernel(num_rows, z_shared_entry, tmp_norm, item_ct1);
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    if constexpr (sg_kernel_all) {
+        if (sg_id == 0) {
+            compute_norm2_sg_kernel(num_rows, z_shared_entry, tmp_norm,
+                                    item_ct1);
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+    } else
+        compute_norm2_kernel(num_rows, z_shared_entry, tmp_norm, item_ct1);
 
     for (int li = tid; li < num_rows; li += group_size) {
         V_shared_entry[li] = z_shared_entry[li] / tmp_norm;
@@ -131,7 +140,8 @@ __dpct_inline__ void update_v_naught_and_s(
 }
 
 
-template <typename BatchMatrixType_entry, typename ValueType, typename PrecType>
+template <const bool sg_kernel_all, typename BatchMatrixType_entry,
+          typename ValueType, typename PrecType>
 __dpct_inline__ void arnoldi(const BatchMatrixType_entry& a_global_entry,
                              const int inner_iter,
                              ValueType* const __restrict__ V_shared_entry,
@@ -140,6 +150,7 @@ __dpct_inline__ void arnoldi(const BatchMatrixType_entry& a_global_entry,
                              ValueType* const __restrict__ w_shared_entry,
                              ValueType* const __restrict__ helper_shared_entry,
                              const PrecType& prec_shared,
+                             typename gko::remove_complex<ValueType>& tmp_norm,
                              sycl::nd_item<3> item_ct1)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -159,31 +170,48 @@ __dpct_inline__ void arnoldi(const BatchMatrixType_entry& a_global_entry,
     prec_shared.apply(num_rows, helper_shared_entry, w_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
-    for (int k = 0; k <= inner_iter; k++) {
-        const ValueType* const v_k_sh = V_shared_entry + k * num_rows;
-        ValueType* const h_k_i_sh = H_shared_entry + k * h_stride + inner_iter;
+    if constexpr (sg_kernel_all) {
+        for (int k = 0; k <= inner_iter; k++) {
+            const ValueType* const v_k_sh = V_shared_entry + k * num_rows;
+            ValueType* const h_k_i_sh =
+                H_shared_entry + k * h_stride + inner_iter;
 
+            if (sg_id == 0) {
+                compute_dot_product_sg_kernel(num_rows, w_shared_entry, v_k_sh,
+                                              h_k_i_sh[0], item_ct1);
+            }
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+
+            for (int li = tid; li < num_rows; li += group_size) {
+                w_shared_entry[li] -= h_k_i_sh[0] * v_k_sh[li];
+            }
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+        }
         if (sg_id == 0) {
-            compute_dot_product_sg_kernel(num_rows, w_shared_entry, v_k_sh,
-                                          h_k_i_sh[0], item_ct1);
+            compute_norm2_sg_kernel(num_rows, w_shared_entry, tmp_norm,
+                                    item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
+    } else {
+        for (int k = 0; k <= inner_iter; k++) {
+            const ValueType* const v_k_sh = V_shared_entry + k * num_rows;
+            ValueType* const h_k_i_sh =
+                H_shared_entry + k * h_stride + inner_iter;
 
-        for (int li = tid; li < num_rows; li += group_size) {
-            w_shared_entry[li] -= h_k_i_sh[0] * v_k_sh[li];
+            compute_dot_product_kernel(num_rows, w_shared_entry, v_k_sh,
+                                       h_k_i_sh[0], item_ct1);
+
+            for (int li = tid; li < num_rows; li += group_size) {
+                w_shared_entry[li] -= h_k_i_sh[0] * v_k_sh[li];
+            }
+            item_ct1.barrier(sycl::access::fence_space::local_space);
+        }
+        if (sg_id == 0) {
+            compute_norm2_sg_kernel(num_rows, w_shared_entry, tmp_norm,
+                                    item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
-
-    using tile_t = real_type;
-    tile_t& tmp_norm =
-        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(
-            item_ct1.get_group());
-
-    if (sg_id == 0) {
-        compute_norm2_sg_kernel(num_rows, w_shared_entry, tmp_norm, item_ct1);
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
 
     if (tid == sg_size) {
         H_shared_entry[(inner_iter + 1) * h_stride + inner_iter] = tmp_norm;
@@ -293,7 +321,8 @@ __dpct_inline__ void update_x(
 }  // unnamed namespace
 
 
-template <typename StopType, typename PrecType, typename LogType,
+template <typename StopType, const bool vecs_shared_all,
+          const bool sg_kernel_all, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void apply_kernel(
     const gko::kernels::batch_gmres::StorageConfig sconf, const int max_iter,
@@ -315,105 +344,106 @@ __dpct_inline__ void apply_kernel(
 
     const int gmem_offset =
         ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
-    ValueType* prec_work_sh;
-    if (sconf.prec_shared) {
-        prec_work_sh = local_mem_sh;
-    } else {
-        prec_work_sh = workspace + gmem_offset;
-    }
 
+    ValueType* prec_work_sh;
     ValueType* r_sh;
     ValueType* z_sh;
     ValueType* w_sh;
     ValueType* x_sh;
     ValueType* helper_sh;
-
-    if (sconf.n_shared >= 1 && sconf.prec_shared) {
-        r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-    } else if (sconf.n_shared == 0 && sconf.prec_shared) {
-        r_sh = workspace + gmem_offset;
-    } else {
-        r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-    }
-    if (sconf.n_shared == 1) {
-        z_sh = workspace + gmem_offset;
-    } else {
-        z_sh = r_sh + sconf.padded_vec_len;
-    }
-    if (sconf.n_shared == 2) {
-        w_sh = workspace + gmem_offset;
-    } else {
-        w_sh = z_sh + sconf.padded_vec_len;
-    }
-    if (sconf.n_shared == 3) {
-        x_sh = workspace + gmem_offset;
-    } else {
-        x_sh = w_sh + sconf.padded_vec_len;
-    }
-    if (sconf.n_shared == 4) {
-        helper_sh = workspace + gmem_offset;
-    } else {
-        helper_sh = x_sh + sconf.padded_vec_len;
-    }
-
     ValueType* cs_sh;
-    ValueType* sn_sh;  // = cs_sh + restart;
-    ValueType* y_sh;   // = sn_sh + restart;
-    ValueType* s_sh;   // = y_sh + restart;
-    if (sconf.n_shared == 5 && sconf.rot_shared) {
+    ValueType* sn_sh;
+    ValueType* y_sh;
+    ValueType* s_sh;
+    ValueType* H_sh;
+    ValueType* V_sh;
+
+    if constexpr (vecs_shared_all) {
+        prec_work_sh = local_mem_sh;
+        r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
+        z_sh = r_sh + sconf.padded_vec_len;
+        w_sh = z_sh + sconf.padded_vec_len;
+        x_sh = w_sh + sconf.padded_vec_len;
+        helper_sh = x_sh + sconf.padded_vec_len;
         cs_sh = helper_sh + sconf.padded_vec_len;
         sn_sh = cs_sh + restart;
         y_sh = sn_sh + restart;
         s_sh = y_sh + restart;
-    } else {
-        cs_sh = workspace + gmem_offset;
-        sn_sh = cs_sh + restart;
-        y_sh = sn_sh + restart;
-        s_sh = y_sh + restart;
-    }
-
-    // Krylov subspace basis vectors
-    // storage:row-major order , subspace basis vectors corr. to each rhs
-    // are stored in a single col. one after the other-(on paper). This
-    // allows for efficient memory access And to get vi : that is ith basis
-    // vector for each rhs: vi_entry{  &V[i* V_entry.stride * nrows],
-    // V_entry.stride , nrows, nrhs}; So if nrhs=1, effectively the cols.
-    // are stored contiguously in memory one after the other.
-    // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
-    //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
-    ValueType* V_sh;
-    if (sconf.n_shared == 5 && sconf.subspace_shared) {
         V_sh = s_sh + (restart + 1);
-    } else {
-        V_sh = workspace + gmem_offset;
-    }
-
-    // Hessenberg matrix
-    // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
-    //     H_sh, static_cast<size_type>(nrhs * restart), restart + 1,
-    //     nrhs * restart};
-    // storage:row-major ,  entry (i,j) for different RHSs are placed after
-    // the other in a row - when drawn on paper, (and the same is true for
-    // actual storage as the storage order is row-major) to get entry (i,j)
-    // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
-    ValueType* H_sh;
-    if (sconf.n_shared == 5 && sconf.hess_shared) {
         H_sh = V_sh + nrows * (restart + 1);
     } else {
-        H_sh = workspace + gmem_offset;
+        if (sconf.prec_shared) {
+            prec_work_sh = local_mem_sh;
+        } else {
+            prec_work_sh = workspace + gmem_offset;
+        }
+        if (sconf.n_shared >= 1 && sconf.prec_shared) {
+            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
+        } else if (sconf.n_shared == 0 && sconf.prec_shared) {
+            r_sh = workspace + gmem_offset;
+        } else {
+            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
+        }
+        if (sconf.n_shared == 1) {
+            z_sh = workspace + gmem_offset;
+        } else {
+            z_sh = r_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 2) {
+            w_sh = workspace + gmem_offset;
+        } else {
+            w_sh = z_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 3) {
+            x_sh = workspace + gmem_offset;
+        } else {
+            x_sh = w_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 4) {
+            helper_sh = workspace + gmem_offset;
+        } else {
+            helper_sh = x_sh + sconf.padded_vec_len;
+        }
+        if (sconf.n_shared == 5 && sconf.rot_shared) {
+            cs_sh = helper_sh + sconf.padded_vec_len;
+            sn_sh = cs_sh + restart;
+            y_sh = sn_sh + restart;
+            s_sh = y_sh + restart;
+        } else {
+            cs_sh = workspace + gmem_offset;
+            sn_sh = cs_sh + restart;
+            y_sh = sn_sh + restart;
+            s_sh = y_sh + restart;
+        }
+        if (sconf.n_shared == 5 && sconf.subspace_shared) {
+            V_sh = s_sh + (restart + 1);
+        } else {
+            V_sh = workspace + gmem_offset;
+        }
+        if (sconf.n_shared == 5 && sconf.hess_shared) {
+            H_sh = V_sh + nrows * (restart + 1);
+        } else {
+            H_sh = workspace + gmem_offset;
+        }
     }
 
-
-    // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
-    //     prec_work_sh + PrecType::dynamic_work_size(nrows, nnz));
-    // real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-    // real_type *const norms_tmp_sh = norms_res_sh + nrhs;
-    using tile_t_small = real_type[2];
-    tile_t_small& norms_sh =
-        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t_small>(
-            group);
-    real_type* norms_rhs_sh = &norms_sh[0];
-    real_type* norms_res_sh = &norms_sh[1];
+    real_type* norms_rhs_sh;
+    real_type* norms_res_sh;
+    real_type* norms_tmp_sh;
+    if constexpr (sg_kernel_all) {
+        using tile_real_t = real_type[3];
+        tile_real_t& norms_sh =
+            *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_real_t>(
+                group);
+        norms_rhs_sh = &norms_sh[0];
+        norms_res_sh = &norms_sh[1];
+        norms_tmp_sh = &norms_sh[2];
+    } else {
+        real_type norms_sh[3];
+        norms_rhs_sh = &norms_sh[0];
+        norms_res_sh = &norms_sh[1];
+        norms_tmp_sh = &norms_sh[2];
+    }
 
     // Stride of Hessenberg matrix
     const auto h_stride = static_cast<size_type>(restart);
@@ -426,9 +456,10 @@ __dpct_inline__ void apply_kernel(
     // z = precond*r
     // compute residual norms
     // initialize V, H, cs, sn with zeroes
-    initialize(restart, a_global_entry, b_global_entry, x_global_entry, x_sh,
-               r_sh, prec_shared, z_sh, V_sh, H_sh, cs_sh, sn_sh,
-               norms_rhs_sh[0], norms_res_sh[0], item_ct1);
+    initialize<sg_kernel_all>(restart, a_global_entry, b_global_entry,
+                              x_global_entry, x_sh, r_sh, prec_shared, z_sh,
+                              V_sh, H_sh, cs_sh, sn_sh, norms_rhs_sh[0],
+                              norms_res_sh[0], item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // stopping criterion object
@@ -446,7 +477,8 @@ __dpct_inline__ void apply_kernel(
         // KrylovBasis_0 = z/norm(z)
         // s -> fill with zeroes
         // s(0) = norm(z)
-        update_v_naught_and_s(nrows, restart, z_sh, V_sh, s_sh, item_ct1);
+        update_v_naught_and_s<sg_kernel_all>(nrows, restart, z_sh, V_sh, s_sh,
+                                             norms_tmp_sh[0], item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         bool inner_loop_break_flag = false;
@@ -461,8 +493,9 @@ __dpct_inline__ void apply_kernel(
             // end
             // Hessenburg(i+1, i) = norm(w)
             // KrylovBasis_i+1 = w / Hessenburg(i+1,i)
-            arnoldi(a_global_entry, inner_iter, V_sh, H_sh, h_stride, w_sh,
-                    helper_sh, prec_shared, item_ct1);
+            arnoldi<sg_kernel_all>(a_global_entry, inner_iter, V_sh, H_sh,
+                                   h_stride, w_sh, helper_sh, prec_shared,
+                                   norms_tmp_sh[0], item_ct1);
             item_ct1.barrier(sycl::access::fence_space::local_space);
 
             for (int k = 0; k < inner_iter; k++) {
@@ -493,10 +526,13 @@ __dpct_inline__ void apply_kernel(
             item_ct1.barrier(sycl::access::fence_space::local_space);
 
             // estimate of residual norms
-            if (tid == 0) {
+            if constexpr (sg_kernel_all) {
+                if (tid == 0) {
+                    norms_res_sh[0] = abs(s_sh[(inner_iter + 1)]);
+                }
+                item_ct1.barrier(sycl::access::fence_space::local_space);
+            } else
                 norms_res_sh[0] = abs(s_sh[(inner_iter + 1)]);
-            }
-            item_ct1.barrier(sycl::access::fence_space::local_space);
 
             total_iter++;
 
@@ -527,9 +563,12 @@ __dpct_inline__ void apply_kernel(
             static_cast<ValueType>(1.0), r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        if (sg_id == 0) {
-            compute_norm2_sg_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
-        }
+        if constexpr (sg_kernel_all) {
+            if (sg_id == 0) {
+                compute_norm2_sg_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
+            }
+        } else
+            compute_norm2_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
 
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -541,7 +580,7 @@ __dpct_inline__ void apply_kernel(
     logger.log_iteration(ibatch, total_iter, norms_res_sh[0]);
 }
 
-
+/*
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void small_apply_kernel(
@@ -721,8 +760,10 @@ __dpct_inline__ void small_apply_kernel(
             static_cast<ValueType>(1.0), r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        if (sg_id == 0) {
-            compute_norm2_sg_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
+        if constexpr(sg_kernel_all){
+            if (sg_id == 0) {
+                compute_norm2_sg_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
+            }
         }
 
         prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
@@ -734,3 +775,4 @@ __dpct_inline__ void small_apply_kernel(
 
     logger.log_iteration(ibatch, total_iter, norms_res_sh[0]);
 }
+*/
