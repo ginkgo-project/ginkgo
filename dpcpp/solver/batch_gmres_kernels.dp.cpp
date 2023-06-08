@@ -67,6 +67,10 @@ namespace batch_gmres {
 template <typename T>
 using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
+int get_larger_power(int value, int guess = 32)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
 
 template <typename ValueType>
 class KernelCaller {
@@ -77,6 +81,54 @@ public:
                  const BatchGmresOptions<remove_complex<value_type>> opts)
         : exec_{exec}, opts_{opts}
     {}
+
+    template <typename StopType, const int simd_len, const bool vecs_shared_all,
+              const bool sg_kernel_all, typename PrecType, typename LogType,
+              typename BatchMatrixType>
+    __dpct_inline__ void launch_apply_kernel(
+        const gko::kernels::batch_gmres::StorageConfig& sconf, LogType& logger,
+        PrecType& prec, const BatchMatrixType a,
+        const ValueType* const __restrict__ b_values,
+        ValueType* const __restrict__ x_values,
+        ValueType* const __restrict__ workspace, const int& group_size,
+        const size_t& shared_size) const
+    {
+        auto nrows = a.num_rows;
+
+        const dim3 block(group_size);
+        const dim3 grid(a.num_batch);
+
+        auto max_iters = opts_.max_its;
+        auto res_tol = opts_.residual_tol;
+        auto restart = opts_.restart_num;
+
+        (exec_->get_queue())->submit([&](sycl::handler& cgh) {
+            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                           sycl::access::target::local>
+                slm_values(sycl::range<1>(shared_size), cgh);
+
+            cgh.parallel_for(
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                    simd_len)]] [[intel::kernel_args_restrict]] {
+                    auto batch_id = item_ct1.get_group_linear_id();
+                    const auto a_global_entry =
+                        gko::batch::batch_entry(a, batch_id);
+                    const ValueType* const b_global_entry =
+                        gko::batch::batch_entry_ptr(b_values, 1, nrows,
+                                                    batch_id);
+                    ValueType* const x_global_entry =
+                        gko::batch::batch_entry_ptr(x_values, 1, nrows,
+                                                    batch_id);
+                    apply_kernel<StopType, vecs_shared_all, sg_kernel_all>(
+                        sconf, max_iters, res_tol, restart, logger, prec,
+                        a_global_entry, b_global_entry, x_global_entry, nrows,
+                        a.num_nnz,
+                        static_cast<ValueType*>(slm_values.get_pointer()),
+                        item_ct1, workspace);
+                });
+        });
+    }
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
@@ -94,88 +146,52 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        constexpr int subgroup_size = config::warp_size;
-        GKO_ASSERT(group_size >= 2 * subgroup_size);
-
-        const dim3 block(group_size);
-        const dim3 grid(nbatch);
+        if (group_size > 2 * nrows) group_size = get_larger_power(nrows);
 
         size_type slm_size =
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - 3 * sizeof(real_type);  // for shared-norms
-
-        if (shmem_per_blk < 0) shmem_per_blk = 0;
-        assert(block_size >= 2 * config::warp_size);
+            slm_size - group_size * sizeof(ValueType) -
+            3 * sizeof(real_type);  // for shared-norms and
+        // reduce_over_group
 
         const size_t prec_size =
-            PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
-            sizeof(value_type);
-        const size_t subspace_size =
-            a.num_rows * (restart + 1) * sizeof(value_type);
-        const size_t hess_size = restart * (restart + 1) * sizeof(value_type);
-        const size_t rot_size =
-            (3 * restart + (restart + 1)) * sizeof(value_type);
+            PrecType::dynamic_work_size(shared_gap, a.num_nnz);
+        const size_t subspace_size = a.num_rows * (restart + 1);
+        const size_t hess_size = restart * (restart + 1);
+        const size_t rot_size = (3 * restart + (restart + 1));
         const auto sconf =
             gko::kernels::batch_gmres::compute_shared_storage<PrecType,
                                                               value_type>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs, restart);
-        const size_t shared_size =
-            sconf.n_shared * shared_gap +
-            ((sconf.rot_shared ? rot_size : 0) +
-             (sconf.prec_shared ? prec_size : 0) +
-             (sconf.subspace_shared ? subspace_size : 0) +
-             (sconf.hess_shared ? hess_size : 0)) /
-                sizeof(value_type);
-        GKO_ASSERT(shared_size * sizeof(value_type) <= shmem_per_blk);
+        const size_t shared_size = sconf.n_shared * shared_gap +
+                                   (sconf.rot_shared ? rot_size : 0) +
+                                   (sconf.prec_shared ? prec_size : 0) +
+                                   (sconf.subspace_shared ? subspace_size : 0) +
+                                   (sconf.hess_shared ? hess_size : 0);
         auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         ValueType* const workspace_data = workspace.get_data();
-        auto b_values = b.values;
-        auto x_values = x.values;
-        auto max_iters = opts_.max_its;
-        auto res_tol = opts_.residual_tol;
 
-        (exec_->get_queue())->submit([&](sycl::handler& cgh) {
-            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_values(sycl::range<1>(shared_size), cgh);
-
-            cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1)
-                    [[intel::reqd_sub_group_size(subgroup_size)]] {
-                        auto group = item_ct1.get_group();
-                        auto batch_id = group.get_group_linear_id();
-                        const auto a_global_entry =
-                            gko::batch::batch_entry(a, batch_id);
-                        const ValueType* const b_global_entry =
-                            gko::batch::batch_entry_ptr(b_values, 1, nrows,
-                                                        batch_id);
-                        ValueType* const x_global_entry =
-                            gko::batch::batch_entry_ptr(x_values, 1, nrows,
-                                                        batch_id);
-                        ValueType* const slm_values_ptr =
-                            slm_values.get_pointer();
-
-                        if (sconf.gmem_stride_bytes == 0) {
-                            small_apply_kernel<StopType>(
-                                sconf, max_iters, res_tol, restart, logger,
-                                prec, a_global_entry, b_global_entry,
-                                x_global_entry, nrows, a.num_nnz,
-                                slm_values_ptr, item_ct1);
-                        } else {
-                            apply_kernel<StopType>(
-                                sconf, max_iters, res_tol, restart, logger,
-                                prec, a_global_entry, b_global_entry,
-                                x_global_entry, nrows, a.num_nnz,
-                                slm_values_ptr, item_ct1, workspace_data);
-                        }
-                    });
-        });
+        if (nrows <= 32)
+            launch_apply_kernel<StopType, 16, 1, 1>(
+                sconf, logger, prec, a, b.values, x.values, workspace_data,
+                group_size, shared_size);
+        else if (nrows <= 256 && sconf.n_global == 0)
+            launch_apply_kernel<StopType, 32, 1, 1>(
+                sconf, logger, prec, a, b.values, x.values, workspace_data,
+                group_size, shared_size);
+        else if (sconf.n_global == 0)
+            launch_apply_kernel<StopType, 32, 1, 0>(
+                sconf, logger, prec, a, b.values, x.values, workspace_data,
+                group_size, shared_size);
+        else
+            launch_apply_kernel<StopType, 32, 0, 0>(
+                sconf, logger, prec, a, b.values, x.values, workspace_data,
+                group_size, shared_size);
     }
 
 private:
