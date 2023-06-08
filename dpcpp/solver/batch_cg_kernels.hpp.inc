@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-template <const bool sg_kernels_only, typename PrecType, typename ValueType,
+template <const bool sg_kernel_all, typename PrecType, typename ValueType,
           typename BatchMatrixType>
 __dpct_inline__ void initialize(
     const int num_rows, const BatchMatrixType& A_global_entry,
@@ -70,7 +70,7 @@ __dpct_inline__ void initialize(
 
     // Compute norms of rhs
     // and rho_old = r' * z
-    if constexpr (sg_kernels_only) {
+    if constexpr (sg_kernel_all) {
         if (sg_id == 0)
             compute_norm2_sg_kernel(num_rows, b_global_entry, rhs_norms,
                                     item_ct1);
@@ -105,7 +105,7 @@ __dpct_inline__ void update_p(
     }
 }
 
-template <const int sg_kernels_only, typename ValueType>
+template <const int sg_kernel_all, typename ValueType>
 __dpct_inline__ void update_x_and_r(
     const int num_rows, const ValueType rho_old_shared_entry,
     const ValueType* const __restrict__ p_shared_entry,
@@ -115,7 +115,7 @@ __dpct_inline__ void update_x_and_r(
 {
     auto group = item_ct1.get_group();
     auto sg = item_ct1.get_sub_group();
-    if constexpr (sg_kernels_only) {
+    if constexpr (sg_kernel_all) {
         if (sg.get_group_id() == 0)
             compute_dot_product_sg_kernel(num_rows, p_shared_entry,
                                           Ap_shared_entry, alpha_shared_entry,
@@ -139,7 +139,7 @@ __dpct_inline__ void update_x_and_r(
 
 
 template <typename StopType, const bool vecs_shared_all,
-          const bool sg_kernels_only, typename PrecType, typename LogType,
+          const bool sg_kernel_all, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void apply_kernel(
     const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
@@ -168,12 +168,12 @@ __dpct_inline__ void apply_kernel(
     ValueType* alpha_sh;
     real_type* norms_rhs_sh;
     real_type* norms_res_sh;
-    if constexpr (sg_kernels_only) {
+    if constexpr (sg_kernel_all) {
         using tile_value_t = ValueType[3];
         tile_value_t& values =
             *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_value_t>(
                 group);
-        using tile_real_t = real_type[3];
+        using tile_real_t = real_type[2];
         tile_real_t& reals =
             *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_real_t>(
                 group);
@@ -248,9 +248,9 @@ __dpct_inline__ void apply_kernel(
     // z = precond*r
     // rho_old = r' * z (' is for hermitian transpose)
     // p = z
-    initialize<sg_kernels_only>(nrows, A_global_entry, b_global_entry,
-                                x_global_entry, x_sh, r_sh, prec_shared, z_sh,
-                                rho_old_sh[0], p_sh, norms_rhs_sh[0], item_ct1);
+    initialize<sg_kernel_all>(nrows, A_global_entry, b_global_entry,
+                              x_global_entry, x_sh, r_sh, prec_shared, z_sh,
+                              rho_old_sh[0], p_sh, norms_rhs_sh[0], item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // stopping criterion object
@@ -269,8 +269,8 @@ __dpct_inline__ void apply_kernel(
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
         // r = r - alpha * Ap
-        update_x_and_r<sg_kernels_only>(nrows, rho_old_sh[0], p_sh, Ap_sh,
-                                        alpha_sh[0], x_sh, r_sh, item_ct1);
+        update_x_and_r<sg_kernel_all>(nrows, rho_old_sh[0], p_sh, Ap_sh,
+                                      alpha_sh[0], x_sh, r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
 
@@ -279,16 +279,18 @@ __dpct_inline__ void apply_kernel(
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         //  rho_new =  (r)' * (z)
-        if constexpr (sg_kernels_only) {
+        if constexpr (sg_kernel_all) {
             if (sg_id == 0)
                 compute_dot_product_sg_kernel(nrows, r_sh, z_sh, rho_new_sh[0],
                                               item_ct1);
             item_ct1.barrier(sycl::access::fence_space::local_space);
+            if (sg.leader()) norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
+            item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
             compute_dot_product_kernel(nrows, r_sh, z_sh, rho_new_sh[0],
                                        item_ct1);
+            norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
         }
-        norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
         if (stop.check_converged(norms_res_sh)) {
             break;
         }
@@ -296,8 +298,11 @@ __dpct_inline__ void apply_kernel(
         // beta = rho_new / rho_old
         // p = z + beta * p
         update_p(nrows, rho_new_sh[0], rho_old_sh[0], z_sh, p_sh, item_ct1);
-        rho_old_sh[0] = rho_new_sh[0];
-        // item_ct1.barrier(sycl::access::fence_space::local_space);
+        if constexpr (sg_kernel_all) {
+            if (sg.leader()) rho_old_sh[0] = rho_new_sh[0];
+        } else {
+            rho_old_sh[0] = rho_new_sh[0];
+        }
     }
 
     logger.log_iteration(ibatch, iter, norms_res_sh[0]);
