@@ -1423,7 +1423,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAutomatically)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3, 4);
 
     this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
@@ -1457,7 +1457,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAutomatically)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3, 4);
 
     this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
@@ -1469,8 +1469,8 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAutomatically)
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
-    EXPECT_EQ(n, 0);
-    EXPECT_EQ(p, 3);
+    EXPECT_EQ(hybrid_mtx->get_ell_num_stored_elements_per_row(), 0);
+    EXPECT_EQ(hybrid_mtx->get_ell_stride(), 3);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 0);
     EXPECT_EQ(r[2], 0);
@@ -1491,7 +1491,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 1,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
     this->mtx4->move_to(hybrid_mtx);
@@ -1528,7 +1528,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 1,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
     this->mtx4->convert_to(hybrid_mtx);
@@ -1565,7 +1565,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideByPercent40)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3, 2,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
     this->mtx4->move_to(hybrid_mtx);
@@ -1602,7 +1602,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideByPercent40)
     using T = typename TestFixture::value_type;
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx =
-        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
+        Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3, 2,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
     this->mtx4->convert_to(hybrid_mtx);

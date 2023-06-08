@@ -91,6 +91,11 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<Hybrid>::operator=(other);
         auto exec = this->get_executor();
+        this->resize(other.get_size(),
+                     other.get_ell_num_stored_elements_per_row(),
+                     other.get_coo_num_stored_elements());
+        // need to make sure the COO and ELL storage is aliased to
+        // this Hybrid's storage.
         *coo_ = *other.coo_;
         *ell_ = *other.ell_;
         strategy_ = other.strategy_;
@@ -106,9 +111,22 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<Hybrid>::operator=(std::move(other));
         auto exec = this->get_executor();
-        *coo_ = std::move(*other.coo_);
-        *ell_ = std::move(*other.ell_);
+        value_storage_ = std::move(other.value_storage_);
+        index_storage_ = std::move(other.index_storage_);
+        this->setup_alias(
+            this->get_size(), other.get_ell_num_stored_elements_per_row(),
+            other.get_ell_stride(), other.get_coo_num_stored_elements());
         strategy_ = other.strategy_;
+        // reset other
+        other.ell_->set_size({});
+        other.ell_->values_.clear();
+        other.ell_->col_idxs_.clear();
+        other.ell_->stride_ = 0;
+        other.ell_->num_stored_elements_per_row_ = 0;
+        other.coo_->set_size({});
+        other.coo_->values_.clear();
+        other.coo_->row_idxs_.clear();
+        other.coo_->col_idxs_.clear();
     }
     return *this;
 }
@@ -164,12 +182,16 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
     Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
+    result->resize(this->get_size(),
+                   this->get_ell_num_stored_elements_per_row(),
+                   this->get_coo_num_stored_elements());
+    // need to make sure the target storage is allocated and aliased to this
+    // Hybrid's storage.
     this->ell_->convert_to(result->ell_);
     this->coo_->convert_to(result->coo_);
     // TODO set strategy correctly
     // There is no way to correctly clone the strategy like in
     // Csr::convert_to
-    result->set_size(this->get_size());
 }
 
 
@@ -242,13 +264,96 @@ void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 
 
 template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, size[1], std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0], {},
+             std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
+             std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride, size_type num_nonzeros,
+                                     std::shared_ptr<strategy_type> strategy)
+    : EnableLinOp<Hybrid>(exec, size),
+      value_storage_{exec, num_nonzeros + stride * num_stored_elements_per_row},
+      index_storage_{exec,
+                     2 * num_nonzeros + stride * num_stored_elements_per_row},
+      coo_(coo_type::create(exec)),
+      ell_(ell_type::create(exec)),
+      strategy_(std::move(strategy))
+{
+    this->setup_alias(size, num_stored_elements_per_row, stride, num_nonzeros);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::setup_alias(dim<2> new_size,
+                                               size_type ell_row_nnz,
+                                               size_type ell_stride,
+                                               size_type coo_nnz)
+{
+    const auto exec = this->get_executor();
+    const auto values = value_storage_.get_data();
+    const auto indices = index_storage_.get_data();
+    const auto ell_storage = ell_stride * ell_row_nnz;
+    coo_->set_size(new_size);
+    coo_->values_ = make_array_view(exec, coo_nnz, values);
+    coo_->row_idxs_ = make_array_view(exec, coo_nnz, indices);
+    coo_->col_idxs_ = make_array_view(exec, coo_nnz, indices + coo_nnz);
+    ell_->set_size(new_size);
+    ell_->num_stored_elements_per_row_ = ell_row_nnz;
+    ell_->stride_ = ell_stride;
+    ell_->values_ = make_array_view(exec, ell_storage, values + coo_nnz);
+    ell_->col_idxs_ = make_array_view(exec, ell_storage, indices + 2 * coo_nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::resize(dim<2> new_size,
                                           size_type ell_row_nnz,
                                           size_type coo_nnz)
 {
-    this->set_size(new_size);
-    ell_->resize(new_size, ell_row_nnz);
-    coo_->resize(new_size, coo_nnz);
+    if (this->get_size() != new_size ||
+        this->get_coo_num_stored_elements() != coo_nnz ||
+        this->get_ell_num_stored_elements_per_row() != ell_row_nnz) {
+        this->set_size(new_size);
+        const auto ell_stride = new_size[0];
+        const auto ell_storage = ell_stride * ell_row_nnz;
+        value_storage_.resize_and_reset(ell_storage + coo_nnz);
+        index_storage_.resize_and_reset(ell_storage + 2 * coo_nnz);
+        this->setup_alias(new_size, ell_row_nnz, ell_stride, coo_nnz);
+    }
 }
 
 
@@ -366,10 +471,12 @@ Hybrid<ValueType, IndexType>::compute_absolute() const
     auto exec = this->get_executor();
 
     auto abs_hybrid = absolute_type::create(
-        exec, this->get_size(), this->get_strategy<absolute_type>());
+        exec, this->get_size(), this->get_ell_num_stored_elements_per_row(),
+        this->get_ell_stride(), this->get_coo_num_stored_elements(),
+        this->get_strategy<absolute_type>());
 
-    abs_hybrid->ell_->move_from(ell_->compute_absolute());
-    abs_hybrid->coo_->move_from(coo_->compute_absolute());
+    abs_hybrid->ell_->copy_from(ell_->compute_absolute().get());
+    abs_hybrid->coo_->copy_from(coo_->compute_absolute().get());
 
     return abs_hybrid;
 }

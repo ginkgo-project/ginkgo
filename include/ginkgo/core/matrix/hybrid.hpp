@@ -674,11 +674,9 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -689,11 +687,9 @@ protected:
      * @param size  size of the matrix
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, size[1], std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -705,13 +701,10 @@ protected:
      *                                      row
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0],
-                 {}, std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           size_type num_stored_elements_per_row,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -725,10 +718,7 @@ protected:
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
            size_type num_stored_elements_per_row, size_type stride,
-           std::shared_ptr<strategy_type> strategy)
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
-                 std::move(strategy))
-    {}
+           std::shared_ptr<strategy_type> strategy);
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -741,17 +731,14 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride,
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : EnableLinOp<Hybrid>(exec, size),
-          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
-                                stride)),
-          coo_(coo_type::create(exec, size, num_nonzeros)),
-          strategy_(std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           size_type num_stored_elements_per_row, size_type stride,
+           size_type num_nonzeros = {},
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
+
+    void setup_alias(dim<2> new_size, size_type ell_row_nnz,
+                     size_type ell_stride, size_type coo_nnz);
 
     /**
      * Resizes the matrix to the given dimensions and storage sizes.
@@ -759,9 +746,6 @@ protected:
      * @param new_size  the new matrix dimensions
      * @param ell_row_nnz  the number of non-zeros per row stored in ELL
      * @param coo_nnz  the number of non-zeros stored in COO
-     *
-     * @see Ell::resize(dim<2>, size_type)
-     * @see Coo::resize(dim<2>, size_type)
      */
     void resize(dim<2> new_size, size_type ell_row_nnz, size_type coo_nnz);
 
@@ -771,8 +755,10 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::unique_ptr<ell_type> ell_;
+    array<value_type> value_storage_;
+    array<index_type> index_storage_;
     std::unique_ptr<coo_type> coo_;
+    std::unique_ptr<ell_type> ell_;
     std::shared_ptr<strategy_type> strategy_;
 };
 
