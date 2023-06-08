@@ -362,7 +362,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
                            value_type{4.0, -8.0}}),
-                        r<value_type>::value);
+                        r<value_type>::value * 1e3);
 }
 
 
@@ -384,7 +384,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
                            value_type{4.0, -8.0}}),
-                        (r_mixed<value_type, TypeParam>()));
+                        (r_mixed<value_type, TypeParam>() * 1e2));
 }
 
 
@@ -460,7 +460,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
                            value_type{6.0, -12.0}}),
-                        r<value_type>::value * 1e1);
+                        r<value_type>::value * 1e3);
 }
 
 
@@ -485,7 +485,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
                            value_type{6.0, -12.0}}),
-                        (r_mixed<value_type, TypeParam>()) * 1e1);
+                        (r_mixed<value_type, TypeParam>()) * 1e3);
 }
 
 

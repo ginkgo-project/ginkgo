@@ -518,18 +518,24 @@ protected:
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_suppress 1445
+#endif  // __NVCOMPILER
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 5211, 4973, 4974)
-#endif
+#endif  // _MSC_VER
         this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
-#endif
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_warning 1445
+#endif  // __NVCOMPILER
 #ifdef _MSC_VER
 #pragma warning(pop)
-#endif
+#endif  // _MSC_VER
     }
 
 public:

@@ -183,7 +183,7 @@ public:
     template <typename Derived, typename Deleter>
     [[deprecated(
         "This function will be removed in a future release, the replacement "
-        "will copy instead of move. If a move in intended, use move_to "
+        "will copy instead of move. If a move is intended, use move_from "
         "instead.")]] std::
         enable_if_t<
             std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,

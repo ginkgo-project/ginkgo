@@ -54,6 +54,8 @@ namespace detail {
 
 template <typename IndexType>
 struct symbolic_nonzero_hash {
+    symbolic_nonzero_hash() = default;
+
     explicit symbolic_nonzero_hash(size_type num_cols) noexcept
         : num_cols_{num_cols}
     {}

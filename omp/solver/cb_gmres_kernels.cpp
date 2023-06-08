@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 
 
@@ -60,7 +61,8 @@ namespace {
 
 
 template <typename ValueType, typename Accessor3d>
-void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
+void finish_arnoldi_CGS(std::shared_ptr<const OmpExecutor> exec,
+                        matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3d krylov_bases,
                         matrix::Dense<ValueType>* hessenberg_iter,
                         matrix::Dense<ValueType>* buffer_iter,
@@ -71,11 +73,6 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
     const rc_vtype eta = 1.0 / sqrt(2.0);
-#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(infnc:rc_vtype \
-                              : omp_out =    \
-                                    (omp_out >= omp_in ? omp_out : omp_in))
 
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
@@ -83,10 +80,14 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
         }
 
         auto nrm = zero<rc_vtype>();
-#pragma omp parallel for reduction(addnc : nrm)
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            nrm += squared_norm(next_krylov_basis->at(j, i));
-        }
+        run_kernel_reduction(
+            exec,
+            [](auto row, auto col, auto next_krylov_basis) {
+                return squared_norm(next_krylov_basis(row, col));
+            },
+            GKO_KERNEL_REDUCE_SUM(rc_vtype), &nrm,
+            next_krylov_basis->get_size()[0], static_cast<int64>(i),
+            next_krylov_basis);
         arnoldi_norm->at(0, i) = eta * sqrt(nrm);
         // nrmP = norm(next_krylov_basis)
 #pragma omp parallel for
@@ -113,13 +114,22 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
         // end
         nrm = zero<rc_vtype>();
         auto inf = zero<rc_vtype>();
-#pragma omp parallel for reduction(addnc : nrm) reduction(infnc : inf)
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            nrm += squared_norm(next_krylov_basis->at(j, i));
-            inf = (inf >= abs(next_krylov_basis->at(j, i)))
-                      ? inf
-                      : abs(next_krylov_basis->at(j, i));
-        }
+        auto result_pair = std::make_pair(nrm, inf);
+        run_kernel_reduction(
+            exec,
+            [](auto row, auto col, auto next_krylov_basis) {
+                const auto val = next_krylov_basis(row, col);
+                return std::make_pair(squared_norm(val), abs(val));
+            },
+            [](auto a, auto b) {
+                return std::make_pair(a.first + b.first,
+                                      std::max(a.second, b.second));
+            },
+            [](auto a) { return a; }, std::make_pair(rc_vtype{}, rc_vtype{}),
+            &result_pair, next_krylov_basis->get_size()[0],
+            static_cast<int64>(i), next_krylov_basis);
+        nrm = result_pair.first;
+        inf = result_pair.second;
         arnoldi_norm->at(1, i) = sqrt(nrm);
         if (has_scalar) {
             arnoldi_norm->at(2, i) = inf;
@@ -156,13 +166,22 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
             // end
             nrm = zero<rc_vtype>();
             inf = zero<rc_vtype>();
-#pragma omp parallel for reduction(addnc : nrm) reduction(infnc : inf)
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                nrm += squared_norm(next_krylov_basis->at(j, i));
-                inf = (inf >= abs(next_krylov_basis->at(j, i)))
-                          ? inf
-                          : abs(next_krylov_basis->at(j, i));
-            }
+            run_kernel_reduction(
+                exec,
+                [](auto row, auto col, auto next_krylov_basis) {
+                    const auto val = next_krylov_basis(row, col);
+                    return std::make_pair(squared_norm(val), abs(val));
+                },
+                [](auto a, auto b) {
+                    return std::make_pair(a.first + b.first,
+                                          std::max(a.second, b.second));
+                },
+                [](auto a) { return a; },
+                std::make_pair(rc_vtype{}, rc_vtype{}), &result_pair,
+                next_krylov_basis->get_size()[0], static_cast<int64>(i),
+                next_krylov_basis);
+            nrm = result_pair.first;
+            inf = result_pair.second;
             arnoldi_norm->at(1, i) = sqrt(nrm);
             if (has_scalar) {
                 arnoldi_norm->at(2, i) = inf;
@@ -365,18 +384,22 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
         auto res_norm = zero<rc_vtype>();
         auto res_inf = zero<rc_vtype>();
 
-#pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(infnc:rc_vtype \
-                              : omp_out =    \
-                                    (omp_out >= omp_in ? omp_out : omp_in))
-
-#pragma omp parallel for reduction(addnc : res_norm) reduction(infnc : res_inf)
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            res_norm += squared_norm(residual->at(i, j));
-            res_inf = (res_inf >= abs(residual->at(i, j)))
-                          ? res_inf
-                          : abs(residual->at(i, j));
-        }
+        auto result_pair = std::make_pair(res_norm, res_inf);
+        run_kernel_reduction(
+            exec,
+            [](auto row, auto col, auto residual) {
+                const auto val = residual(row, col);
+                return std::make_pair(squared_norm(val), abs(val));
+            },
+            [](auto a, auto b) {
+                return std::make_pair(a.first + b.first,
+                                      std::max(a.second, b.second));
+            },
+            [](auto a) { return a; }, std::make_pair(rc_vtype{}, rc_vtype{}),
+            &result_pair, next_krylov_basis->get_size()[0],
+            static_cast<int64>(j), residual);
+        res_norm = result_pair.first;
+        res_inf = result_pair.second;
         residual_norm->at(0, j) = sqrt(res_norm);
         if (has_scalar) {
             arnoldi_norm->at(2, j) = res_inf;
@@ -440,7 +463,7 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
             (1 - static_cast<size_type>(
                      stop_status->get_const_data()[i].has_stopped()));
     }
-    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
+    finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data());
     givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
