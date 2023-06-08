@@ -77,21 +77,17 @@ public:
     {}
 
     template <typename StopType, const int simd_len, const bool vecs_shared_all,
-              const bool sg_kernels_only, typename PrecType, typename LogType,
+              const bool sg_kernel_all, typename PrecType, typename LogType,
               typename BatchMatrixType>
     __dpct_inline__ void launch_apply_kernel(
         const gko::kernels::batch_cg::StorageConfig& sconf, LogType& logger,
         PrecType& prec, const BatchMatrixType a,
         const ValueType* const __restrict__ b_values,
         ValueType* const __restrict__ x_values,
-        ValueType* const __restrict__ workspace,
-        const size_t& shared_size) const
+        ValueType* const __restrict__ workspace, const int& group_size,
+        const int& shared_size) const
     {
         auto nrows = a.num_rows;
-        int group_size =
-            (exec_->get_queue()->get_device())
-                .get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > 2 * nrows) group_size = get_larger_power(nrows);
 
         const dim3 block(group_size);
         const dim3 grid(a.num_batch);
@@ -117,7 +113,7 @@ public:
                     ValueType* const x_global_entry =
                         gko::batch::batch_entry_ptr(x_values, 1, nrows,
                                                     batch_id);
-                    apply_kernel<StopType, vecs_shared_all, sg_kernels_only>(
+                    apply_kernel<StopType, vecs_shared_all, sg_kernel_all>(
                         sconf, max_iters, res_tol, logger, prec, a_global_entry,
                         b_global_entry, x_global_entry, nrows, a.num_nnz,
                         static_cast<ValueType*>(slm_values.get_pointer()),
@@ -140,6 +136,8 @@ public:
         auto device = exec_->get_queue()->get_device();
         int group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
+        if (group_size > 2 * nrows) group_size = get_larger_power(nrows);
+
         size_type shmem_per_blk =
             device.get_info<sycl::info::device::local_mem_size>() -
             (group_size + 3) * sizeof(ValueType) - 2 * sizeof(real_type);
@@ -162,19 +160,19 @@ public:
         if (nrows <= 32)
             launch_apply_kernel<StopType, 16, 1, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
-                shared_size);
+                group_size, shared_size);
         else if (nrows <= 256 && sconf.n_global == 0)
             launch_apply_kernel<StopType, 32, 1, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
-                shared_size);
+                group_size, shared_size);
         else if (sconf.n_global == 0)
             launch_apply_kernel<StopType, 32, 1, 0>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
-                shared_size);
+                group_size, shared_size);
         else
             launch_apply_kernel<StopType, 32, 0, 0>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
-                shared_size);
+                group_size, shared_size);
     }
 
 private:
