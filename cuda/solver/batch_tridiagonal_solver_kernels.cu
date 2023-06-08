@@ -76,17 +76,17 @@ constexpr int default_block_size =
 
 namespace {
 
-template <int compiled_tile_size, typename ValueType>
+template <int compiled_subwarp_size, typename ValueType>
 void recursive_app1_helper(
-    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
-    const size_type nbatch, const int nrows, const int nrhs,
-    const ValueType* const tridiag_mat_subdiags,
+    syn::value_list<int, compiled_subwarp_size>,
+    const int number_recursive_steps, const size_type nbatch, const int nrows,
+    const int nrhs, const ValueType* const tridiag_mat_subdiags,
     const ValueType* const tridiag_mat_maindiags,
     ValueType* const tridiag_mat_superdiags, ValueType* const rhs,
     ValueType* const x,
     const enum gko::solver::batch_tridiag_solve_approach approach)
 {
-    constexpr auto subwarp_size = compiled_tile_size;
+    constexpr auto subwarp_size = compiled_subwarp_size;
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
 
@@ -227,7 +227,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         select_recursive_app2_helper(
             batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
             [&](int compiled_tile_size) {
-                return user_given_tile_size == compiled_tile_size / 2;
+                return user_given_tile_size == compiled_tile_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
             nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
