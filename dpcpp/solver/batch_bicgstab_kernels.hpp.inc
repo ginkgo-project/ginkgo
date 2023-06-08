@@ -105,9 +105,7 @@ __dpct_inline__ void update_p(const int num_rows, const ValueType& rho_new,
          r += item_ct1.get_local_range().size()) {
         p_shared_entry[r] =
             r_shared_entry[r] +
-            beta *
-                (p_shared_entry[r] -
-                 omega * v_shared_entry[r]);  // TODO: splitting cals into two
+            beta * (p_shared_entry[r] - omega * v_shared_entry[r]);
     }
 }
 
@@ -126,10 +124,10 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
             compute_dot_product_sg_kernel(num_rows, r_hat_shared_entry,
                                           v_shared_entry, alpha, item_ct1);
         }
-        item_ct1.barrier(sycl::access::fence_space::local_space);  // TODO
         if (tid == 0) {
             alpha = rho_new / alpha;
         }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
         compute_dot_product_kernel(num_rows, r_hat_shared_entry, v_shared_entry,
                                    alpha, item_ct1);
@@ -194,7 +192,7 @@ __dpct_inline__ void update_x_and_r(
     for (int r = item_ct1.get_local_linear_id(); r < num_rows;
          r += item_ct1.get_local_range().size()) {
         x_shared_entry[r] = x_shared_entry[r] + alpha * p_hat_shared_entry[r] +
-                            omega * s_hat_shared_entry[r];  // TODO
+                            omega * s_hat_shared_entry[r];
         r_shared_entry[r] = s_shared_entry[r] - omega * t_shared_entry[r];
     }
 }
@@ -406,7 +404,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::StorageConfig sconf,
         // alpha = rho_new / < r_hat , v>
         compute_alpha<sg_kernel_all>(nrows, rho_new_sh[0], r_hat_sh, v_sh,
                                      alpha_sh[0], item_ct1);
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        // item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // s = r - alpha*v
         update_s(nrows, r_sh, alpha_sh[0], v_sh, s_sh, item_ct1);
@@ -439,7 +437,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::StorageConfig sconf,
         // omega = <t,s> / <t,t>
         compute_omega<sg_kernel_all>(nrows, t_sh, s_sh, temp_sh[0], omega_sh[0],
                                      item_ct1);
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        //        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // x = x + alpha*p_hat + omega *s_hat
         // r = s - omega * t
@@ -464,5 +462,4 @@ void apply_kernel(const gko::kernels::batch_bicgstab::StorageConfig sconf,
 
     // copy x back to global memory
     copy_kernel(nrows, x_sh, x_global_entry, item_ct1);
-    item_ct1.barrier(sycl::access::fence_space::local_space);
 }
