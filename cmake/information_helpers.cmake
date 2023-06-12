@@ -103,7 +103,7 @@ macro(ginkgo_interface_information)
     get_target_property(GINKGO_INTERFACE_LINK_LIBRARIES ginkgo INTERFACE_LINK_LIBRARIES)
     ginkgo_interface_libraries_recursively("${GINKGO_INTERFACE_LINK_LIBRARIES}")
     # Format and store the interface libraries found
-    # remove duplicates on the reversed list to keep the dependecy in the end of list.
+    # remove duplicates on the reversed list to keep the dependency in the end of list.
     list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_DUPLICATES GINKGO_INTERFACE_LIBS_FOUND)
     list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)

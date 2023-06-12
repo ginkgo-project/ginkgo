@@ -55,7 +55,7 @@ namespace acc {
  * constructor parameters for this class to the range (it will forward it to
  * this class).
  *
- * @warning For backward compatability reasons, a specialization is provided
+ * @warning For backward compatibility reasons, a specialization is provided
  *          for dimensionality == 2.
  *
  * @tparam ValueType  type of values this accessor returns

@@ -240,7 +240,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(ResidualNorm, SelfCalulatesThrowWithoutMatrix)
+TYPED_TEST(ResidualNorm, SelfCalculatesThrowWithoutMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
@@ -297,7 +297,7 @@ TYPED_TEST(ResidualNorm, SelfCalulatesThrowWithoutMatrix)
 }
 
 
-TYPED_TEST(ResidualNorm, RelativeSelfCalulatesThrowWithoutRhs)
+TYPED_TEST(ResidualNorm, RelativeSelfCalculatesThrowWithoutRhs)
 {
     // only relative residual norm allows generation without rhs.
     using Mtx = typename TestFixture::Mtx;
@@ -322,7 +322,7 @@ TYPED_TEST(ResidualNorm, RelativeSelfCalulatesThrowWithoutRhs)
 }
 
 
-TYPED_TEST(ResidualNorm, SelfCalulatesAndWaitsTillResidualGoal)
+TYPED_TEST(ResidualNorm, SelfCalculatesAndWaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;

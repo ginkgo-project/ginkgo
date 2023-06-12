@@ -123,7 +123,7 @@ protected:
         value_type* v = m->get_values();
         index_type* c = m->get_col_idxs();
         index_type* r = m->get_row_ptrs();
-        // It keeps an explict zero
+        // It keeps an explicit zero
         /*
          *  1    3   2
          * {0}   5   0

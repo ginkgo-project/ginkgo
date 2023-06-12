@@ -99,7 +99,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 // This constant controls how many nodes can be dequeued from the
 // UbfsLinearQueue at once at most. Increasing it reduces lock contention and
-// "unneccesary work", but disturbs queue ordering, generating extra work.
+// "unnecessary work", but disturbs queue ordering, generating extra work.
 constexpr int32 chunk_bound = 512;
 
 
@@ -633,7 +633,7 @@ vector<IndexType> compute_level_offsets(std::shared_ptr<const OmpExecutor> exec,
 }
 
 
-// Signal value to which the entire permutation is intialized.
+// Signal value to which the entire permutation is initialized.
 // Threads spin on this value, until it is replaced by another value,
 // written by another thread.
 constexpr int32 perm_untouched = -1;
@@ -697,7 +697,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
 
                     // Will not be written by multiple threads, but can be read
                     // while written. This is only necessary to guarantee the
-                    // abscence of reads-while-writes.
+                    // absence of reads-while-writes.
                     IndexType neighbour_level;
 #pragma omp atomic read
                     neighbour_level = levels[neighbour];

@@ -197,7 +197,7 @@ enum class cycle_mode {
     first_of_cycle = 2,
 
     /**
-     * current procees is the end one of the cycle
+     * current process is the end one of the cycle
      */
     end_of_cycle = 4
 };

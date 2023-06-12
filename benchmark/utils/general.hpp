@@ -179,7 +179,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
 }
 
 /**
- * Print general benchmark informations using the common available parameters
+ * Print general benchmark information using the common available parameters
  *
  * @param extra  describes benchmark specific extra parameters to output
  */
