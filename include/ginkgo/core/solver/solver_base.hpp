@@ -537,7 +537,8 @@ class
     // clang-format off
     [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
     // clang-format on
-    : public detail::SolverBaseLinOp {
+    : public detail::SolverBaseLinOp
+{
 public:
     using detail::SolverBaseLinOp::SolverBaseLinOp;
 
