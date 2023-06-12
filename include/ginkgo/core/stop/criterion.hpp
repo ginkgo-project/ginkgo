@@ -259,7 +259,7 @@ using CriterionFactory = AbstractFactory<Criterion, CriterionArgs>;
  * template parameters to enable a subclass of CriterionFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
+ *                          [CRTP parameter]
  * @tparam ConcreteCriterion  the concrete Criterion type which this factory
  *                            produces, needs to have a constructor which takes
  *                            a const ConcreteFactory *, and a

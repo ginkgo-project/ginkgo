@@ -71,7 +71,7 @@ namespace gko {
 
 /**
  * The machine topology class represents the hierarchical topology of a machine,
- * including NUMA nodes, cores and PCI Devices. Various infomation of the
+ * including NUMA nodes, cores and PCI Devices. Various information of the
  * machine are gathered with the help of the Hardware Locality library (hwloc).
  *
  * This class also provides functionalities to bind objects in the topology to

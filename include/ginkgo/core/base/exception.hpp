@@ -73,7 +73,7 @@ namespace gko {
  *     try {
  *         auto y = apply(A, x);
  *     } catch(Error e) {
- *         // an error occured, write the message to screen and exit
+ *         // an error occurred, write the message to screen and exit
  *         std::cout << e.what() << std::endl;
  *         return -1;
  *     }
@@ -160,7 +160,7 @@ public:
      *
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
-     * @param func  The name of the function where the error occured
+     * @param func  The name of the function where the error occurred
      * @param obj_type  The object type on which the requested operation
                        cannot be performed.
      */
@@ -513,7 +513,7 @@ public:
  * Error that denotes issues between block sizes and matrix dimensions
  *
  * \tparam IndexType  Type of index used by the linear algebra object that is
- *                    incompatible with the requried block size.
+ *                    incompatible with the required block size.
  */
 template <typename IndexType>
 class BlockSizeError : public Error {

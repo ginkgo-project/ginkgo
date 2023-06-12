@@ -109,7 +109,7 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
  *
  * The usage will be the following
  * Set the method with bits Cfg = ConfigSet<b_0, b_1, ..., b_k>
- * Encode the given infomation encoded = Cfg::encode(x_0, x_1, ..., x_k)
+ * Encode the given information encoded = Cfg::encode(x_0, x_1, ..., x_k)
  * Decode the specific position information x_t = Cfg::decode<t>(encoded)
  * The encoded result will use 32 bits to record
  * rrrrr0..01....1...k..k, which 1/2/.../k means the bits store the information

@@ -58,7 +58,7 @@ class generic_scoped_device_id_guard {
 public:
     generic_scoped_device_id_guard() = default;
 
-    // TODO: this should be a purely virtual funtion, but somehow that leads to
+    // TODO: this should be a purely virtual function, but somehow that leads to
     // linker errors
     virtual ~generic_scoped_device_id_guard() = default;
 

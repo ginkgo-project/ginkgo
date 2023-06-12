@@ -14,7 +14,7 @@ Final residual norm sqrt(r^T r):
 Multigrid iteration count:     9
 Multigrid generation time [ms]: 3.35361
 Multigrid execution time [ms]: 10.048
-Multigrid execution time per iteraion[ms]: 1.11644
+Multigrid execution time per iteration[ms]: 1.11644
 
 @endcode
 

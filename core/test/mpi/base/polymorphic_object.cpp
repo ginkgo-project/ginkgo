@@ -152,7 +152,7 @@ class EnableDistributedPolymorphicObject : public testing::Test {
 protected:
     std::shared_ptr<gko::ReferenceExecutor> ref{
         gko::ReferenceExecutor::create()};
-    // TDOD: We can't rely on Omp module being available in this test!
+    // TODO: We can't rely on Omp module being available in this test!
     std::shared_ptr<gko::OmpExecutor> omp{gko::OmpExecutor::create()};
     gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
     gko::experimental::mpi::communicator split_comm{comm.get(), comm.rank() < 2,
