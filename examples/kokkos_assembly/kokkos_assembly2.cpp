@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+#include "ginkgo/extensions.hpp"
 #include "ginkgo/ginkgo.hpp"
 
 
@@ -208,8 +209,6 @@ double calculate_error(int discretization_points,
 
 int main(int argc, char* argv[])
 {
-    Kokkos::ScopeGuard kokkos(argc, argv);
-
     // Some shortcuts
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
@@ -255,6 +254,9 @@ int main(int argc, char* argv[])
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
     auto exec = exec_map.at(executor_string)();
+
+    // initializes kokkos with settings from the executor
+    auto kokkos = gko::ext::kokkos::create_scope_guard(exec);
 
     // problem:
     auto correct_u = [] KOKKOS_FUNCTION(ValueType x) { return x * x * x; };
