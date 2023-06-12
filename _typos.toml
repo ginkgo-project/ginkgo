@@ -8,4 +8,7 @@ tht = "tht"
 automatical = "automatical"
 strat = "strat"
 entrie = "entrie"
-set_complex_subpsace = "set_complex_subpsace"
+agregate = "agregate" # since that script name is already in ginkgo-data repo
+
+[default.extend-identifiers]
+set_complex_subpsace = "set_complex_subpsace" # remove when deprecated function is gone
