@@ -215,7 +215,7 @@ Supported systems and requirements:
 + Add reduce_add for arrays ([#831](https://github.com/ginkgo-project/ginkgo/pull/831))
 + Add utility to simplify Dense View creation from an existing Dense vector ([#1136](https://github.com/ginkgo-project/ginkgo/pull/1136)).
 + Add a custom transpose implementation for Fbcsr and Csr transpose for unsupported vendor types ([#1123](https://github.com/ginkgo-project/ginkgo/pull/1123))
-+ Make IDR random initilization deterministic ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
++ Make IDR random initialization deterministic ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
 + Move the algorithm choice for triangular solvers from Csr::strategy_type to a factory parameter ([#1088](https://github.com/ginkgo-project/ginkgo/pull/1088))
 + Update CUDA archCoresPerSM ([#1175](https://github.com/ginkgo-project/ginkgo/pull/1116))
 + Add kernels for Csr sparsity pattern lookup ([#994](https://github.com/ginkgo-project/ginkgo/pull/994))
@@ -620,7 +620,7 @@ page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
 
 
 ### Additions
-+ Upper and lower triangular solvers ([#327](https://github.com/ginkgo-project/ginkgo/issues/327), [#336](https://github.com/ginkgo-project/ginkgo/issues/336), [#341](https://github.com/ginkgo-project/ginkgo/issues/341), [#342](https://github.com/ginkgo-project/ginkgo/issues/342)) 
++ Upper and lower triangular solvers ([#327](https://github.com/ginkgo-project/ginkgo/issues/327), [#336](https://github.com/ginkgo-project/ginkgo/issues/336), [#341](https://github.com/ginkgo-project/ginkgo/issues/341), [#342](https://github.com/ginkgo-project/ginkgo/issues/342))
 + New factorization support in Ginkgo, and addition of the ParILU
   algorithm ([#305](https://github.com/ginkgo-project/ginkgo/issues/305), [#315](https://github.com/ginkgo-project/ginkgo/issues/315), [#319](https://github.com/ginkgo-project/ginkgo/issues/319), [#324](https://github.com/ginkgo-project/ginkgo/issues/324))
 + New ILU preconditioner ([#348](https://github.com/ginkgo-project/ginkgo/issues/348), [#353](https://github.com/ginkgo-project/ginkgo/issues/353))
@@ -632,7 +632,7 @@ page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
 + Allow benchmarking CuSPARSE spmv formats through Ginkgo's benchmarks ([#303](https://github.com/ginkgo-project/ginkgo/issues/303))
 + New benchmark for sparse matrix format conversions ([#312](https://github.com/ginkgo-project/ginkgo/issues/312)[#317](https://github.com/ginkgo-project/ginkgo/issues/317))
 + Add conversions between CSR and Hybrid formats ([#302](https://github.com/ginkgo-project/ginkgo/issues/302), [#310](https://github.com/ginkgo-project/ginkgo/issues/310))
-+ Support for sorting rows in the CSR format by column idices ([#322](https://github.com/ginkgo-project/ginkgo/issues/322))
++ Support for sorting rows in the CSR format by column indices ([#322](https://github.com/ginkgo-project/ginkgo/issues/322))
 + Addition of a CUDA COO SpMM kernel for improved performance ([#345](https://github.com/ginkgo-project/ginkgo/issues/345))
 + Addition of a LinOp to handle perturbations of the form (identity + scalar *
   basis * projector) ([#334](https://github.com/ginkgo-project/ginkgo/issues/334))
@@ -845,35 +845,35 @@ About
 
 Ginkgo 1.0.0 is brought to you by:
 
-**Karlsruhe Institute of Technology**, Germany  
-**Universitat Jaume I**, Spain  
-**University of Tennessee, Knoxville**, US   
+**Karlsruhe Institute of Technology**, Germany
+**Universitat Jaume I**, Spain
+**University of Tennessee, Knoxville**, US
 
 These universities, along with various project grants, supported the development team and provided resources needed for the development of Ginkgo.
 
 Ginkgo 1.0.0 contains contributions from:
 
-**Hartwig Anzt**, Karlsruhe Institute of Technology  
-**Yenchen Chen**, National Taiwan University  
-**Terry Cojean**, Karlsruhe Institute of Technology  
-**Goran Flegar**, Universitat Jaume I  
-**Fritz Göbel**, Karlsruhe Institute of Technology  
-**Thomas Grützmacher**, Karlsruhe Institute of Technology  
-**Pratik Nayak**, Karlsruhe Institue of Technologgy  
-**Tobias Ribizel**, Karlsruhe Institute of Technology  
-**Yuhsiang Tsai**, National Taiwan University  
+**Hartwig Anzt**, Karlsruhe Institute of Technology
+**Yenchen Chen**, National Taiwan University
+**Terry Cojean**, Karlsruhe Institute of Technology
+**Goran Flegar**, Universitat Jaume I
+**Fritz Göbel**, Karlsruhe Institute of Technology
+**Thomas Grützmacher**, Karlsruhe Institute of Technology
+**Pratik Nayak**, Karlsruhe Institute of Technology
+**Tobias Ribizel**, Karlsruhe Institute of Technology
+**Yuhsiang Tsai**, National Taiwan University
 
 Supporting materials are provided by the following individuals:
 
-**David Rogers** - the Ginkgo logo  
-**Frithjof Fleischhammer** - the Ginkgo website  
+**David Rogers** - the Ginkgo logo
+**Frithjof Fleischhammer** - the Ginkgo website
 
 The development team is grateful to the following individuals for discussions and comments:
- 
-**Erik Boman**  
-**Jelena Držaić**  
-**Mike Heroux**  
-**Mark Hoemmen**  
-**Timo Heister**    
-**Jens Saak**  
+
+**Erik Boman**
+**Jelena Držaić**
+**Mike Heroux**
+**Mark Hoemmen**
+**Timo Heister**
+**Jens Saak**
 

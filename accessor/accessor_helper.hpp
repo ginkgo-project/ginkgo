@@ -78,7 +78,7 @@ struct row_major_helper_s {
         const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>& stride,
         IndexType first, Indices&&... idxs)
     {
-        // The ASSERT size check must NOT be indexed with `dim_idx` directy,
+        // The ASSERT size check must NOT be indexed with `dim_idx` directly,
         // otherwise, it leads to a linker error. The reason is likely that
         // `std::array<size_type, N>::operator[](const size_type &)` uses a
         // reference. Since `dim_idx` is constexpr (and not defined in a

@@ -243,7 +243,7 @@ to_arithmetic_type(const Ref& ref)
  * @internal
  * Struct used for testing if an implicit cast is present. The constructor only
  * takes an OutType, so any argument of a type that is not implicitly
- * convertable to OutType is incompatible.
+ * convertible to OutType is incompatible.
  */
 template <typename OutType>
 struct test_for_implicit_cast {

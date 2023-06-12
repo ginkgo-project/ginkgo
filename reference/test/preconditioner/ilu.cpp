@@ -301,7 +301,7 @@ TYPED_TEST(Ilu, SolvesCustomTypeDefaultFactorySingleRhs)
         ilu_prec_type::build().on(this->exec)->generate(this->mtx);
     preconditioner->apply(b, x);
 
-    // Since it uses Bicgstab with default parmeters, the result will not be
+    // Since it uses Bicgstab with default parameters, the result will not be
     // accurate
     GKO_ASSERT_MTX_NEAR(x, l({-0.125, 0.25, 1.0}), 1e-1);
 }

@@ -792,7 +792,7 @@ public:
     void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
 
     /**
-     * Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).
+     * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
      *               by alpha. If it is a Dense row vector of values,

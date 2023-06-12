@@ -1,0 +1,10 @@
+[files]
+extend-exclude = ["third_party/*", "*.svg"]
+
+[default.extend-words]
+dout = "dout"
+nd = "nd"
+tht = "tht"
+automatical = "automatical"
+strat = "strat"
+entrie = "entrie"

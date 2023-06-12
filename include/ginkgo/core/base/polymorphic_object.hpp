@@ -59,8 +59,8 @@ namespace gko {
  * @note Most of the public methods of this class should not be overridden
  *       directly, and are thus not virtual. Instead, there are equivalent
  *       protected methods (ending in <method_name>_impl) that should be
- *       overridden instead. This allows polymorphic objects to implement default
- *       behavior around virtual methods (parameter checking, type casting).
+ *       overridden instead. This allows polymorphic objects to implement
+ * default behavior around virtual methods (parameter checking, type casting).
  *
  * @see EnablePolymorphicObject if you wish to implement a concrete polymorphic
  *      object and have sensible defaults generated automatically.

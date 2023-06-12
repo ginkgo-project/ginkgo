@@ -255,7 +255,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
             ++tail_offset;
         }
 
-        // Get the neigbours of the next vertex,
+        // Get the neighbours of the next vertex,
         // check if they have already been visited,
         // if no, insert them to sort.
         auto prev_head_offset = head_offset;

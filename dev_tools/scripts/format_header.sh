@@ -266,7 +266,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
             echo "${line}" >> "${CONTENT}"
             SKIP="false"
             if [[ "${line}" =~ $START_BLOCK_REX ]]; then
-                # keep everythin in #if block and /* block
+                # keep everything in #if block and /* block
                 IN_BLOCK=$((IN_BLOCK+1))
                 if [ -z "${ALARM}" ]; then
                     ALARM="set"
@@ -291,13 +291,13 @@ if [ "${ALARM}" = "true" ]; then
     echo "Warning $1: sorting is probably incorrect"
 fi
 
-# Wrtie license
+# Write license
 echo "/*${GINKGO_LICENSE_BEACON}" > "$1"
 cat LICENSE >> "$1"
 echo "${GINKGO_LICENSE_BEACON}*/" >> "$1"
 echo "" >> "$1"
 
-# Wrtie the definition of header according to path
+# Write the definition of header according to path
 if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
     IFNDEF="#ifndef ${HEADER_DEF}"
     DEFINE="#define ${HEADER_DEF}"
