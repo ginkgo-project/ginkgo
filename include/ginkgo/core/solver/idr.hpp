@@ -162,6 +162,18 @@ public:
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
+     * @deprecated Please use set_complex_subspace instead
+     */
+    [[deprecated("Use set_complex_subspace instead")]]
+    void set_complex_subpsace(const bool other)
+    {
+        set_complex_subspace(other);
+    }
+
+    /**
+     * Sets the complex_subspace parameter of the solver.
+     *
+     * @param other  the new complex_subspace parameter
      */
     void set_complex_subspace(const bool other)
     {
