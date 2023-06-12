@@ -56,10 +56,11 @@ using CriterionFactory = ::gko::stop::CriterionFactory;
 using Logger = ::gko::log::Logger;
 
 
-#define ENUM_EXECUTER(_expand, _sep)                        \
-    _expand(CudaExecutor) _sep _expand(DpcppExecutor)       \
-        _sep _expand(HipExecutor) _sep _expand(OmpExecutor) \
-            _sep _expand(ReferenceExecutor) ENUM_EXECUTER_USER(_expand, _sep)
+#define ENUM_EXECUTER(_expand, _sep)                  \
+    _expand(CudaExecutor) _sep _expand(DpcppExecutor) \
+    _sep _expand(HipExecutor)                         \
+    _sep _expand(OmpExecutor)                         \
+    _sep _expand(ReferenceExecutor) ENUM_EXECUTER_USER(_expand, _sep)
 
 #define ENUM_LINOP(_expand, _sep) _expand(Csr) _sep _expand(Isai)
 

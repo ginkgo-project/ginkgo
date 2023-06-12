@@ -66,11 +66,13 @@ TEST(GetString, GetStringFromTypeList)
     ASSERT_EQ(get_string(type_list<int, double>{}), "int,double");
 }
 
+
 TEST(GetString, GetStringFromComplex)
 {
     ASSERT_EQ(get_string<std::complex<float>>(), "complex<float>");
     ASSERT_EQ(get_string<std::complex<double>>(), "complex<double>");
 }
+
 
 TEST(GetString, GetStringFromBase)
 {

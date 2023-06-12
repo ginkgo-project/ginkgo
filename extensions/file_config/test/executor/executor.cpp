@@ -40,26 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 
 
-// #define ENUM_EXECUTER_USER(_expand, _sep) _sep _expand(TestExecutor)
-
-
-#include "file_config/base/generic_constructor.hpp"
-#include "file_config/base/types.hpp"
-
-
-namespace gko {
-namespace extensions {
-namespace file_config {
-
-
-// IMPLEMENT_EMPTY_BRIDGE(RM_Executor, TestExecutor);
-
-
-}
-}  // namespace extensions
-}  // namespace gko
-
-
 #include "file_config/file_config.hpp"
 
 
@@ -75,18 +55,6 @@ TEST(ReferenceExecutor, CreateCorrectExecutor)
 
     ASSERT_NE(exec_ptr.get(), nullptr);
 }
-
-// TEST(ReferenceExecutor, CreateCorrectCustomExecutor)
-// {
-//     auto data = nlohmann::json::parse(R"(
-//         {"base": "TestExecutor"}
-//     )");
-
-//     auto ptr =
-//         gko::extensions::file_config::create_from_config<gko::Executor>(data);
-
-//     ASSERT_EQ(ptr.get(), nullptr);
-// }
 
 
 TEST(ReferenceExecutor, ManagerCreateCorrectExecutor)

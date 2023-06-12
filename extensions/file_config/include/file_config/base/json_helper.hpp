@@ -211,8 +211,6 @@ inline std::shared_ptr<T> get_pointer(const nlohmann::json& item,
             assert(false);
         }
     } else {
-        // assert(false);
-        // TODO: manager
         if (item.is_string()) {
             std::cout << "search item" << std::endl;
             std::string opt = item.get<std::string>();
@@ -279,8 +277,6 @@ inline std::shared_ptr<const LinOp> get_pointer<const LinOp>(
             assert(false);
         }
     } else {
-        // TODO: manager
-        // assert(false);
         if (item.is_string()) {
             std::string opt = item.get<std::string>();
             if (opt == std::string("given")) {

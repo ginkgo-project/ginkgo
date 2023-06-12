@@ -58,8 +58,6 @@ struct Generic<gko::log::Convergence<ValueType>> {
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        // auto exec_ptr =
-        //     get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto mask_value = get_mask_value_with_default(
             item, "enabled_events", gko::log::Logger::all_events_mask);
         auto ptr = gko::log::Convergence<ValueType>::create(mask_value);

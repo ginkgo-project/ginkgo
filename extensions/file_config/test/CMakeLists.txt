@@ -12,9 +12,9 @@ function(gkoext_file_config_create_test test_name)
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
-    # if (GINKGO_CHECK_CIRCULAR_DEPS)
-    #     target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
-    # endif()
+    if (GINKGO_CHECK_CIRCULAR_DEPS)
+        target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+    endif()
     target_link_libraries(${TEST_TARGET_NAME} PRIVATE Ginkgo::ginkgo file_config GTest::Main GTest::GTest nlohmann_json::nlohmann_json ${ARGN})
     add_test(NAME ${REL_BINARY_DIR}/${test_name}
         COMMAND ${TEST_TARGET_NAME}

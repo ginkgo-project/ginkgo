@@ -62,7 +62,7 @@ struct Generic<gko::CudaExecutor> {
         std::cout << "Cuda" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto ptr = CudaExecutor::create(device_id, ReferenceExecutor::create());
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
@@ -82,7 +82,7 @@ struct Generic<gko::HipExecutor> {
         std::cout << "Hip" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto ptr = HipExecutor::create(device_id, ReferenceExecutor::create());
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
@@ -105,7 +105,7 @@ struct Generic<gko::DpcppExecutor> {
             get_value_with_default(item, "device_type", std::string("all"));
         auto ptr = DpcppExecutor::create(device_id, ReferenceExecutor::create(),
                                          device_type);
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
@@ -124,7 +124,7 @@ struct Generic<gko::ReferenceExecutor> {
     {
         std::cout << "Reference" << std::endl;
         auto ptr = ReferenceExecutor::create();
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
@@ -143,7 +143,7 @@ struct Generic<gko::OmpExecutor> {
     {
         std::cout << "Omp" << std::endl;
         auto ptr = OmpExecutor::create();
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

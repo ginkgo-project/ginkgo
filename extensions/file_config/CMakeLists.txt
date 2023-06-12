@@ -12,7 +12,6 @@ target_sources(file_config_custom
 
 
 target_link_libraries(file_config_custom PUBLIC nlohmann_json::nlohmann_json Ginkgo::ginkgo)
-# target_include_directories(file_config_custom PUBLIC "include")
 target_include_directories(file_config_custom PUBLIC 
     $<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}/extensions/file_config/include>
     $<INSTALL_INTERFACE:include/extensions/file_config>

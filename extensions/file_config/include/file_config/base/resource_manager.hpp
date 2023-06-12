@@ -52,6 +52,7 @@ namespace gko {
 namespace extensions {
 namespace file_config {
 
+
 using ExecutorMap = std::unordered_map<std::string, std::shared_ptr<Executor>>;
 using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
 using LinOpFactoryMap =
@@ -328,7 +329,6 @@ inline void ResourceManager::build_item(const nlohmann::json& item)
     std::string name = item.at("name").get<std::string>();
     std::string base = get_base_class(item["base"].get<std::string>());
 
-    // if (base == std::string{})
     {
         auto ptr =
             create_from_config<Executor>(item, base, nullptr, nullptr, this);

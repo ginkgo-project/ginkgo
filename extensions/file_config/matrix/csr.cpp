@@ -90,7 +90,7 @@ struct Generic<gko::matrix::Csr<ValueType, IndexType>> {
             ptr->read(data);
         }
 
-        // add_logger(ptr, item, exec, linop, manager);
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

@@ -217,7 +217,8 @@ std::shared_ptr<T> create_from_config(
 
 /**
  * create_from_config is another overloading to implement the function after
- * selection on enum map.
+ * selection on enum map. This is the major implementation to select different
+ * template type from base class.
  *
  * @tparam T  the enum type
  * @tparam base  the enum item

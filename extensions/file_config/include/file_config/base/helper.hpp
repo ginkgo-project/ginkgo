@@ -67,13 +67,33 @@ namespace file_config {
  *       contains name.
  */
 template <typename T>
-std::shared_ptr<T> call(const nlohmann::json& item,
-                        std::shared_ptr<const Executor> exec,
-                        std::shared_ptr<const LinOp> linop,
-                        ResourceManager* manager)
+inline typename std::enable_if<!is_on_linopfactory<T>::value &&
+                                   !is_on_criterionfactory<T>::value,
+                               std::shared_ptr<T>>::type
+call(const nlohmann::json& item, std::shared_ptr<const Executor> exec,
+     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     if (manager == nullptr) {
-        return GenericHelper<T>::build(item, exec, linop, manager);
+        return Generic<T>::build(item, exec, linop, manager);
+    } else {
+        std::cout << exec.get() << std::endl;
+        return manager->build_item<T>(item, exec, linop);
+    }
+}
+
+// In dpcpp, GenericHelper static function does not instantiate the
+// corresponding Generic function. We use inline function to instantiate all
+// possible template
+template <typename T>
+inline typename std::enable_if<is_on_linopfactory<T>::value ||
+                                   is_on_criterionfactory<T>::value,
+                               std::shared_ptr<T>>::type
+call(const nlohmann::json& item, std::shared_ptr<const Executor> exec,
+     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
+{
+    if (manager == nullptr) {
+        return Generic<T, typename T::base_type>::build(item, exec, linop,
+                                                        manager);
     } else {
         std::cout << exec.get() << std::endl;
         return manager->build_item<T>(item, exec, linop);

@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <exception>
+
+
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -52,10 +55,18 @@ namespace extensions {
 namespace file_config {
 
 
-IMPLEMENT_EMPTY_BRIDGE(RM_Executor, TestExecutor);
-
-
+template <>
+inline std::shared_ptr<Executor>
+create_from_config<RM_Executor, RM_Executor::TestExecutor, Executor>(
+    const nlohmann::json& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
+{
+    throw std::runtime_error("TestExecutor");
+    return nullptr;
 }
+
+
+}  // namespace file_config
 }  // namespace extensions
 }  // namespace gko
 
@@ -70,8 +81,8 @@ TEST(ReferenceExecutor, CreateCorrectCustomExecutor)
         {"base": "TestExecutor"}
     )");
 
-    auto ptr =
-        gko::extensions::file_config::create_from_config<gko::Executor>(data);
 
-    ASSERT_EQ(ptr.get(), nullptr);
+    ASSERT_THROW(
+        gko::extensions::file_config::create_from_config<gko::Executor>(data),
+        std::runtime_error);
 }

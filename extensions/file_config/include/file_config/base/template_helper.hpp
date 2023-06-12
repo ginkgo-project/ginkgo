@@ -45,6 +45,7 @@ namespace extensions {
 namespace file_config {
 
 
+// return the input string without space
 inline std::string remove_space(const std::string& str)
 {
     std::string nospace = str;
@@ -54,6 +55,8 @@ inline std::string remove_space(const std::string& str)
     return nospace;
 }
 
+
+// get the base class of input
 inline std::string get_base_class(const std::string& str)
 {
     auto langle_pos = str.find("<");
@@ -61,6 +64,7 @@ inline std::string get_base_class(const std::string& str)
 }
 
 
+// get the template string in the first pair of <>
 inline std::string get_base_template(const std::string& str)
 {
     auto langle_pos = str.find("<");
@@ -74,6 +78,7 @@ inline std::string get_base_template(const std::string& str)
 }
 
 
+//  find the position of separator `,` of input string
 inline std::size_t find_template_sep(const std::string& str,
                                      std::size_t pos = 0)
 {
@@ -90,6 +95,8 @@ inline std::size_t find_template_sep(const std::string& str,
 }
 
 
+// Base on the base_template and type_template to decide the final template
+// string. The base_template has higher priority than type_template.
 inline std::string combine_template(const std::string& base_template,
                                     const std::string& type_template)
 {

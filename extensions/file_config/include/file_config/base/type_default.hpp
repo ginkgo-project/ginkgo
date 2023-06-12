@@ -50,24 +50,29 @@ namespace file_config {
 // denote the type we have the default supported list
 enum class handle_type { ValueType, IndexType };
 
+
+// tt_list_g::type will give the tt_list<supported types>
+template <handle_type enum_item>
+struct tt_list_g;
+
 #define TT_LIST_G_PARTIAL(_enum, ...)      \
     template <>                            \
     struct tt_list_g<handle_type::_enum> { \
         using type = tt_list<__VA_ARGS__>; \
     }
 
-// tt_list_g::type will give the tt_list<supported types>
-template <handle_type enum_item>
-struct tt_list_g;
-
-TT_LIST_G_PARTIAL(ValueType, double, float, std::complex<float>,
-                  std::complex<double>);
+TT_LIST_G_PARTIAL(ValueType, double, float, std::complex<double>,
+                  std::complex<float>);
 TT_LIST_G_PARTIAL(IndexType, int32, int64);
 
 
 template <handle_type T>
 using tt_list_g_t = typename tt_list_g<T>::type;
 
+
+// return the default template
+template <handle_type enum_item>
+inline std::string get_default_string();
 
 #define GET_DEFAULT_STRING_PARTIAL(_enum, _type)                             \
     template <>                                                              \
@@ -78,9 +83,6 @@ using tt_list_g_t = typename tt_list_g<T>::type;
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-// return the default template
-template <handle_type enum_item>
-inline std::string get_default_string();
 
 GET_DEFAULT_STRING_PARTIAL(ValueType, double);
 GET_DEFAULT_STRING_PARTIAL(IndexType, int);

@@ -172,7 +172,7 @@ inline std::string get_string(type_list<K>)
  */
 template <typename K, typename... Rest>
 inline typename std::enable_if<(sizeof...(Rest) > 0), std::string>::type
-    get_string(type_list<K, Rest...>)
+get_string(type_list<K, Rest...>)
 {
     return get_string<K>() + "," + get_string(type_list<Rest...>());
 }
