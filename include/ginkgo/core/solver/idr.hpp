@@ -163,7 +163,7 @@ public:
      *
      * @param other  the new complex_subspace parameter
      */
-    void set_complex_subpsace(const bool other)
+    void set_complex_subspace(const bool other)
     {
         parameters_.complex_subspace = other;
     }

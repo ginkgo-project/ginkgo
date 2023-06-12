@@ -244,7 +244,7 @@ protected:
             self(), alpha, b, beta, x);
     }
 
-    // TODO: should we provide the defaule implementation?
+    // TODO: should we provide the default implementation?
     /**
      * The class should override this method and must modify the input vectors
      * according to the initial_guess_mode

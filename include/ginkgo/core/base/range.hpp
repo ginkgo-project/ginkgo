@@ -276,7 +276,7 @@ using head_t = typename head<T...>::type;
  * `x` an `y` are ranges, and `alpha` is a scalar.
  * Range operations are optimized for memory access, and the above code does not
  * allocate additional storage for intermediate ranges `alpha * x`
- * or `aplha * x + y`. In fact, the entire computation is done during the
+ * or `alpha * x + y`. In fact, the entire computation is done during the
  * assignment, and the results of operations `+` and `*` only register the data,
  * and the types of operations that will be computed once the results are
  * needed.
@@ -295,7 +295,7 @@ using head_t = typename head<T...>::type;
  *
  * __`mmul` is not a highly-optimized BLAS-3 version of the matrix
  * multiplication.__ The current design of ranges and accessors prevents that,
- * so if you need a high-perfromance matrix multiplication, you should use one
+ * so if you need a high-performance matrix multiplication, you should use one
  * of the libraries that provide that, or implement your own
  * (you can use pointwise range operations to help simplify that). However,
  * range design might get improved in the future to allow efficient
@@ -710,17 +710,17 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(bitwise_not, operator~,
 // common unary functions
 GKO_ENABLE_UNARY_RANGE_OPERATION(zero_operation, zero,
                                  accessor::detail::zero_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(one_operaton, one,
+GKO_ENABLE_UNARY_RANGE_OPERATION(one_operation, one,
                                  accessor::detail::one_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(abs_operaton, abs,
+GKO_ENABLE_UNARY_RANGE_OPERATION(abs_operation, abs,
                                  accessor::detail::abs_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(real_operaton, real,
+GKO_ENABLE_UNARY_RANGE_OPERATION(real_operation, real,
                                  accessor::detail::real_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(imag_operaton, imag,
+GKO_ENABLE_UNARY_RANGE_OPERATION(imag_operation, imag,
                                  accessor::detail::imag_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(conj_operaton, conj,
+GKO_ENABLE_UNARY_RANGE_OPERATION(conj_operation, conj,
                                  accessor::detail::conj_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm_operaton, squared_norm,
+GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm_operation, squared_norm,
                                  accessor::detail::squared_norm_operation);
 
 namespace accessor {
@@ -961,9 +961,9 @@ GKO_ENABLE_BINARY_RANGE_OPERATION(right_shift, operator>>,
                                   accessor::detail::right_shift);
 
 // common binary functions
-GKO_ENABLE_BINARY_RANGE_OPERATION(max_operaton, max,
+GKO_ENABLE_BINARY_RANGE_OPERATION(max_operation, max,
                                   accessor::detail::max_operation);
-GKO_ENABLE_BINARY_RANGE_OPERATION(min_operaton, min,
+GKO_ENABLE_BINARY_RANGE_OPERATION(min_operation, min,
                                   accessor::detail::min_operation);
 
 

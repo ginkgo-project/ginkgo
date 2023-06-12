@@ -420,7 +420,7 @@ TYPED_TEST(Idr, CanSetComplexSubspaceAgain)
 
     auto solver = idr_factory->generate(this->mtx);
 
-    solver->set_complex_subpsace(false);
+    solver->set_complex_subspace(false);
 
     ASSERT_EQ(solver->get_complex_subspace(), false);
 }

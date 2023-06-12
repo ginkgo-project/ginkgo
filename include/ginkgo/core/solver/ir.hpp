@@ -306,7 +306,7 @@ struct workspace_traits<Ir<ValueType>> {
  * limited stop criterion(iterations and relacation_factor).
  *
  * @param factory  the shared pointer of factory
- * @param iteration  the maximum number of iteraion, which default is 1
+ * @param iteration  the maximum number of iteration, which default is 1
  * @param relaxation_factor  the relaxation factor for Richardson
  *
  * @return the pointer of Ir(Richardson)
@@ -329,7 +329,7 @@ auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
  * limited stop criterion(iterations and relacation_factor).
  *
  * @param solver  the shared pointer of solver
- * @param iteration  the maximum number of iteraion, which default is 1
+ * @param iteration  the maximum number of iteration, which default is 1
  * @param relaxation_factor  the relaxation factor for Richardson
  *
  * @return the pointer of Ir(Richardson)

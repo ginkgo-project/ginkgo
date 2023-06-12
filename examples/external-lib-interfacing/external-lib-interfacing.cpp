@@ -1324,7 +1324,7 @@ void GradientEstimation::estimate_cell(
 // <code>set_thread_limit</code>, the default value from the Intel Threading
 // Building Blocks (TBB) library is used. If the call to
 // <code>set_thread_limit</code> is omitted, the number of threads will be
-// chosen by TBB indepently of DEAL_II_NUM_THREADS.
+// chosen by TBB independently of DEAL_II_NUM_THREADS.
 int main()
 {
     try {

@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // Declare a user controled boolean for the iteration process
+    // Declare a user controlled boolean for the iteration process
     volatile bool stop_iteration_process{};
 
     // Create a new a thread to launch the solver

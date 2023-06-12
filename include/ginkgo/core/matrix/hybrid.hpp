@@ -279,7 +279,7 @@ public:
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
         auto get_percentage() const { return percent_; }
 
@@ -314,14 +314,14 @@ public:
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
         auto get_percentage() const { return strategy_.get_percentage(); }
 
         /**
          * Get the ratio setting
          *
-         * @retrun ratio
+         * @return ratio
          */
         auto get_ratio() const { return ratio_; }
 
@@ -356,7 +356,7 @@ public:
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
         auto get_percentage() const { return strategy_.get_percentage(); }
 
