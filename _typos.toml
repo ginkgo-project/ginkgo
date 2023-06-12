@@ -12,3 +12,4 @@ agregate = "agregate" # since that script name is already in ginkgo-data repo
 
 [default.extend-identifiers]
 set_complex_subpsace = "set_complex_subpsace" # remove when deprecated function is gone
+HSA_HEADER = "HSA_HEADER"
