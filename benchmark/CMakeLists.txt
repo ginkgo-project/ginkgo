@@ -33,7 +33,7 @@ function(ginkgo_benchmark_hipsparse_linops type def)
     # use Thrust C++ device just for compilation, we don't use thrust::complex in the benchmarks
     target_compile_definitions(hipsparse_linops_${type} PUBLIC -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
     target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE
-        ${HAS_HEADER} ${HIP_INCLUDE_DIRS}
+        ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
         ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
     target_link_libraries(hipsparse_linops_${type} Ginkgo::ginkgo ${HIPSPARSE_LIBRARIES})
 endfunction()
@@ -133,7 +133,7 @@ if (GINKGO_BUILD_HIP)
     add_library(hip_timer utils/hip_timer.hip.cpp)
     EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
     set_target_properties(hip_timer PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
-    target_include_directories(hip_timer SYSTEM PRIVATE ${HAS_HEADER} ${HIP_INCLUDE_DIRS})
+    target_include_directories(hip_timer SYSTEM PRIVATE ${HSA_HEADER} ${HIP_INCLUDE_DIRS})
     target_link_libraries(hip_timer ginkgo)
 endif()
 
