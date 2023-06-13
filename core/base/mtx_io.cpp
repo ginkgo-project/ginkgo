@@ -845,7 +845,8 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
         throw GKO_STREAM_ERROR(
             "cannot read into this format, would assign complex to real");
     }
-    matrix_data<ValueType, IndexType> result(gko::dim<2>{static_cast<size_type>(num_rows), static_cast<size_type>(num_cols)});
+    matrix_data<ValueType, IndexType> result(gko::dim<2>{
+        static_cast<size_type>(num_rows), static_cast<size_type>(num_cols)});
     result.nonzeros.resize(num_entries);
     constexpr auto entry_binary_size =
         sizeof(FileValueType) + 2 * sizeof(FileIndexType);
