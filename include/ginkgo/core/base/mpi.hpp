@@ -118,6 +118,7 @@ GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
 GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_FLOAT_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
+GKO_REGISTER_MPI_TYPE(bool, MPI_C_BOOL);
 
 
 /**
@@ -726,6 +727,16 @@ public:
     {
         auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
+                                            type_impl<ReduceType>::get_type(),
+                                            operation, root_rank, this->get()));
+    }
+
+    template <typename ReduceType>
+    void reduce(std::shared_ptr<const Executor> exec, ReduceType* recv_buffer,
+                int count, MPI_Op operation, int root_rank) const
+    {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(MPI_IN_PLACE, recv_buffer, count,
                                             type_impl<ReduceType>::get_type(),
                                             operation, root_rank, this->get()));
     }
