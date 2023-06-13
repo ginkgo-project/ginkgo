@@ -35,7 +35,7 @@ Supported systems and requirements:
   + GCC: 5.5+
   + clang: 3.9+
   + Intel compiler: 2018+
-  + Apple LLVM: 8.0+
+  + Apple Clang: 14.0 is tested. Earlier versions might also work.
   + NVHPC: 22.7+
   + Cray Compiler: 14.0.1+
   + CUDA module: CUDA 9.2+ or NVHPC 22.7+
