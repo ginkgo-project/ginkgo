@@ -37,6 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
+#include <ginkgo/config/parser.hpp>
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/combination.hpp>
@@ -155,6 +157,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 #include <ginkgo/core/synthesizer/containers.hpp>
+
+#include <json.hpp>
 
 
 #endif  // GKO_GINKGO_HPP_

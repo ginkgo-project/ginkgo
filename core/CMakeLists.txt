@@ -15,6 +15,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/timer.cpp
     base/version.cpp
+    config_parser.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
