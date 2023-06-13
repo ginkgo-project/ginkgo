@@ -368,6 +368,8 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    // there's one value larger than half range
+    SKIP_IF_HALF(value_type);
     auto square_size = this->mtx_square->get_size();
     auto mtx_lu = Csr::create(this->ref, square_size);
     this->mtx_l2->apply(this->mtx_u, mtx_lu);
@@ -396,6 +398,8 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     auto mtx_u_coo = Coo::create(this->ref, square_size);

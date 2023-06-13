@@ -6,12 +6,14 @@
 
 
 #include <bitset>
+#include <complex>
 #include <string>
 
 
 #include <gtest/gtest.h>
-#include <complex>
-#include "ginkgo/core/base/math.hpp"
+
+
+#include <ginkgo/core/base/math.hpp>
 
 namespace {
 
