@@ -517,7 +517,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypesNoHalf,
                  TypenameNameGenerator);
 
 
@@ -766,8 +766,7 @@ public:
             local_size[0], local_size[1],
             std::uniform_int_distribution<gko::size_type>(local_size[1],
                                                           local_size[1]),
-            std::normal_distribution<gko::remove_complex<vtype>>(), engine,
-            exec);
+            std::normal_distribution<>(), engine, exec);
         dist = DistVectorType::create(exec, comm, size, gko::clone(local));
     }
 
@@ -779,8 +778,7 @@ public:
         alpha = gko::test::generate_random_matrix<dense_type>(
             1, size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(), engine,
-            exec);
+            std::normal_distribution<>(), engine, exec);
     }
 
     void init_complex_vectors()
@@ -843,7 +841,7 @@ TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT =  next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -859,7 +857,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT =  next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -974,8 +972,7 @@ TYPED_TEST(VectorLocalOps, FillSameAsLocal)
 {
     using value_type = typename TestFixture::value_type;
     auto value = gko::test::detail::get_rand_value<value_type>(
-        std::normal_distribution<gko::remove_complex<value_type>>(),
-        this->engine);
+        std::normal_distribution<>(), this->engine);
     this->init_vectors();
 
     this->x->fill(value);

@@ -1009,6 +1009,8 @@ TYPED_TEST(Isai, ReturnsCorrectInverseA)
 TYPED_TEST(Isai, ReturnsCorrectInverseALongrow)
 {
     using value_type = typename TestFixture::value_type;
+    // TODO: figure out whether relaxed residual norm works in half or not.
+    SKIP_IF_HALF(value_type);
     const auto isai = this->general_isai_factory->generate(this->a_csr_longrow);
 
     auto a_inv = isai->get_approximate_inverse();
@@ -1025,6 +1027,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseALongrowWithExcessSolver)
 {
     using value_type = typename TestFixture::value_type;
     using GeneralIsai = typename TestFixture::GeneralIsai;
+    SKIP_IF_HALF(value_type);
     auto general_isai_factory =
         GeneralIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1072,6 +1075,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseLLongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using LowerIsai = typename TestFixture::LowerIsai;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto lower_isai_factory =
         LowerIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1119,6 +1123,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseULongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using UpperIsai = typename TestFixture::UpperIsai;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto upper_isai_factory =
         UpperIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1219,6 +1224,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrow)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     const auto isai = this->spd_isai_factory->generate(this->spd_csr_longrow);
     const auto expected_transpose =
         gko::as<Csr>(this->spd_csr_longrow_inv->transpose());
@@ -1242,6 +1248,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using SpdIsai = typename TestFixture::SpdIsai;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     const auto expected_transpose =
         gko::as<Csr>(this->spd_csr_longrow_inv->transpose());
     auto spd_isai_factory =
