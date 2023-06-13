@@ -57,7 +57,10 @@ protected:
     std::unique_ptr<typename Solver::Factory> idr_factory_precision;
 };
 
-TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
+// Solves((Conj)Trans)DenseSystem((Mixed)Complex) does not work in some default
+// random generator from different environments. All tests will SKIP half, so we
+// do not test half here.
+TYPED_TEST_SUITE(Idr, gko::test::ValueTypesNoHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Idr, SolvesDenseSystem)
@@ -76,7 +79,8 @@ TYPED_TEST(Idr, SolvesDenseSystem)
 
 TYPED_TEST(Idr, SolvesDenseSystemMixed)
 {
-    using value_type = next_precision<typename TestFixture::value_type>;
+    using T = typename TestFixture::value_type;
+    using value_type = next_precision<T>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -91,6 +95,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixed)
 
 TYPED_TEST(Idr, SolvesDenseSystemComplex)
 {
+    using T = typename TestFixture::value_type;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->idr_factory->generate(this->mtx);
@@ -112,8 +117,8 @@ TYPED_TEST(Idr, SolvesDenseSystemComplex)
 
 TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
 {
-    using value_type =
-        gko::to_complex<next_precision<typename TestFixture::value_type>>;
+    using T = typename TestFixture::value_type;
+    using value_type = gko::to_complex<next_precision<T>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -137,6 +142,7 @@ TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
+    // intermediate value is too small to represent in half
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver_factory =
         Solver::build()
@@ -233,6 +239,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
     using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
+    SKIP_IF_HALF(typename TestFixture::value_type);
     auto solver = this->idr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -300,6 +307,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsUsingAdvancedApply)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
+    SKIP_IF_HALF(T);
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->idr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
