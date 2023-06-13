@@ -503,7 +503,7 @@ using next_precision = typename detail::next_precision_impl<T>::type;
 
 #define SKIP_IF_HALF(type)                                                   \
     if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
-        GTEST_SKIP() << "Skip due to single mode";                           \
+        GTEST_SKIP() << "Skip due to half mode";                             \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \

@@ -522,17 +522,22 @@ public:
               typename = std::enable_if_t<std::is_scalar<T>::value &&
                                           std::is_scalar<U>::value>>
     explicit complex(const T& real, const U& imag)
-        : complex(static_cast<value_type>(real), static_cast<value_type>(imag))
+        : real_(static_cast<value_type>(real)),
+          imag_(static_cast<value_type>(imag))
     {}
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
-    complex(const T& real) : complex(static_cast<value_type>(real))
+    complex(const T& real)
+        : real_(static_cast<value_type>(real)),
+          imag_(static_cast<value_type>(0.f))
     {}
 
+    // When using complex(real, imag), MSVC with CUDA try to recognize the
+    // complex is a member not constructor.
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
     explicit complex(const complex<T>& other)
-        : complex(static_cast<value_type>(other.real()),
-                  static_cast<value_type>(other.imag()))
+        : real_(static_cast<value_type>(other.real())),
+          imag_(static_cast<value_type>(other.imag()))
     {}
 
     // explicit complex(const complex<value_type>& other) = default;
