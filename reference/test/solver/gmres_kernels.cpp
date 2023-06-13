@@ -724,6 +724,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     auto gmres_factory_restart =
         Solver::build()

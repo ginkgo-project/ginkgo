@@ -77,7 +77,8 @@ make_temporary_conversion(Ptr&& matrix)
     using Pointee = detail::pointee<Ptr>;
     using Dense = matrix::Dense<ValueType>;
     using NextDense = matrix::Dense<next_precision<ValueType>>;
-    using NextNextDense = matrix::Dense<next_precision<next_precision<ValueType>>>;
+    using NextNextDense =
+        matrix::Dense<next_precision<next_precision<ValueType>>>;
     using MaybeConstDense =
         std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
     auto result = detail::temporary_conversion<

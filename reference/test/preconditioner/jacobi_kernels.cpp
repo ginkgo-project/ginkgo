@@ -594,11 +594,14 @@ TYPED_TEST(Jacobi, SelectsCorrectBlockPrecisions)
 
     auto prec =
         bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    auto precision2 = std::is_same<gko::remove_complex<T>, float>::value
-                          ? gko::precision_reduction(0, 0)   // float
-                          : gko::precision_reduction(0, 1);  // double
-    EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));  // u * cond = ~1.2e-3
-    ASSERT_EQ(prec[1], precision2);                      // u * cond = ~2.0e-3
+    auto precision1 = std::is_same<gko::remove_complex<T>, gko::half>::value
+                          ? gko::precision_reduction(2, 0)
+                          : gko::precision_reduction(0, 2);
+    auto precision2 = std::is_same<gko::remove_complex<T>, double>::value
+                          ? gko::precision_reduction(0, 1)   // double
+                          : gko::precision_reduction(0, 0);  // float, half
+    EXPECT_EQ(prec[0], precision1);  // u * cond = ~1.2e-3
+    ASSERT_EQ(prec[1], precision2);  // u * cond = ~2.0e-3
 }
 
 
@@ -639,6 +642,9 @@ TYPED_TEST(Jacobi, AvoidsPrecisionsThatOverflow)
     auto precision = std::is_same<gko::remove_complex<T>, float>::value
                          ? gko::precision_reduction(0, 2)   // float
                          : gko::precision_reduction(1, 1);  // double
+    if (std::is_same<gko::remove_complex<T>, gko::half>::value) {
+        precision = gko::precision_reduction(2, 0);
+    }
     EXPECT_EQ(prec[0], precision);
     ASSERT_EQ(prec[1], precision);
 }

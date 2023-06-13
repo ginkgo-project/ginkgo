@@ -249,8 +249,7 @@ void Papi<ValueType>::on_criterion_check_completed(
             auto tmp_res_norm = Vector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
             dense_r->compute_norm2(tmp_res_norm);
-            residual_norm_d =
-                static_cast<double>(real(tmp_res_norm->at(0, 0)));
+            residual_norm_d = static_cast<double>(real(tmp_res_norm->at(0, 0)));
         });
     }
 

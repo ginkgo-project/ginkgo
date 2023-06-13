@@ -280,7 +280,7 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 {
     using T = typename TestFixture::value_type;
     using Dense = typename TestFixture::mtx_type;
-    auto dist = std::normal_distribution<gko::remove_complex<T>>(0, 1);
+    auto dist = std::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto diag = gko::test::detail::get_rand_value<T>(dist, engine);
@@ -304,18 +304,23 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
 {
     using T = typename TestFixture::value_type;
     using Dense = typename TestFixture::mtx_type;
-    auto dist = std::normal_distribution<gko::remove_complex<T>>(0, 1);
+    auto dist = std::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
     // make diagonally dominant
     auto diag = std::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
                 std::abs(lower) + std::abs(upper);
+    gko::size_type size = 50;
+    if (std::is_same<gko::half, gko::remove_complex<T>>::value) {
+        // half precision can only handle small matrix
+        size = 5;
+    }
 
     auto mtx = gko::test::generate_tridiag_matrix<Dense>(
-        50, {lower, diag, upper}, this->exec);
+        size, {lower, diag, upper}, this->exec);
     auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
-        50, {lower, diag, upper}, this->exec);
+        size, {lower, diag, upper}, this->exec);
 
     auto result = Dense::create(this->exec, mtx->get_size());
     inv_mtx->apply(mtx, result);

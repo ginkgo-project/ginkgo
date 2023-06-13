@@ -105,6 +105,7 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         target_compile_options(ginkgo_cuda
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+        target_compile_options(ginkgo_cuda PRIVATE -Xcompiler="/bigobj")
     else()
         target_compile_options(ginkgo_cuda
             PRIVATE

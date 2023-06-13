@@ -438,7 +438,7 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT =  next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
@@ -464,7 +464,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT =  next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);

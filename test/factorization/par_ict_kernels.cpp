@@ -155,6 +155,8 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     this->mtx_l_ani->convert_to(mtx_l_coo);

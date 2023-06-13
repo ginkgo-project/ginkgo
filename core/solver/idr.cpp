@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
@@ -70,6 +71,10 @@ std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_subspace_dim(this->get_subspace_dim())
+        .with_kappa(this->get_kappa())
+        .with_deterministic(this->get_deterministic())
+        .with_complex_subspace(this->get_complex_subspace())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -83,6 +88,10 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_subspace_dim(this->get_subspace_dim())
+        .with_kappa(this->get_kappa())
+        .with_deterministic(this->get_deterministic())
+        .with_complex_subspace(this->get_complex_subspace())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));

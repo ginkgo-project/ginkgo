@@ -127,8 +127,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    arithmetic_type valpha = alpha->at(0, 0);
-    arithmetic_type vbeta = beta->at(0, 0);
+    arithmetic_type valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
+    arithmetic_type vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
 
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);

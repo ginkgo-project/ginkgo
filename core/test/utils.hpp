@@ -65,10 +65,18 @@ namespace test {
 
 using ValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<gko::half, float, std::complex<float>>;
+    ::testing::Types<gko::half, float, std::complex<gko::half>,
+                     std::complex<float>>;
 #else
     ::testing::Types<gko::half, float, double, std::complex<gko::half>,
                      std::complex<float>, std::complex<double>>;
+#endif
+
+using ValueTypesNoHalf =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>>;
+#else
+    ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
 #endif
 
 using ComplexValueTypes =
@@ -137,14 +145,12 @@ using ValueIndexTypes =
                      std::tuple<float, gko::int32>,
                      std::tuple<std::complex<gko::half>, gko::int32>,
                      std::tuple<std::complex<float>, gko::int32>,
-
                      std::tuple<float, gko::int64>,
                      std::tuple<std::complex<float>, gko::int64>>;
 #else
     ::testing::Types<
         std::tuple<gko::half, gko::int32>, std::tuple<float, gko::int32>,
         std::tuple<double, gko::int32>,
-        std::tuple<std::complex<gko::half>, gko::int32>,
         std::tuple<std::complex<gko::half>, gko::int32>,
         std::tuple<std::complex<float>, gko::int32>,
         std::tuple<std::complex<double>, gko::int32>,
@@ -367,7 +373,7 @@ using next_precision = typename detail::next_precision_impl<T>::type;
 
 #define SKIP_IF_HALF(type)                                                   \
     if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
-        GTEST_SKIP() << "Skip due to single mode";                           \
+        GTEST_SKIP() << "Skip due to half mode";                             \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
