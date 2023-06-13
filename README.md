@@ -41,7 +41,7 @@ For Ginkgo core library:
     *   _gcc 5.5+_
     *   _clang 3.9+_
     *   _Intel compiler 2019+_
-    *   _Apple LLVM 8.0+_
+    *   _Apple Clang 14.0_ is tested. Earlier versions might also work.
     *   _Cray Compiler 14.0.1+_
     *   _NVHPC Compiler 22.7+_
 
