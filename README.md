@@ -65,7 +65,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 The Ginkgo DPC++ module has the following __additional__ requirements:
 
 * _OneAPI 2021.3+_
-* Set `dpcpp` as the `CMAKE_CXX_COMPILER`
+* Set `dpcpp` or `icpx` as the `CMAKE_CXX_COMPILER`
 * `c++17` is used to compile Ginkgo
 * The following oneAPI packages should be available:
     * oneMKL
