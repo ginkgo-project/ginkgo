@@ -197,7 +197,9 @@ void Matrix<ValueType, LocalIndexType,
         out_weight.data()));
 
     // compress communication info
+    std::vector<comm_index_type> comp_send_sizes(num_out_neighbors);
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
+    std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
     std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
 
     bool reordered = comm.rank() != neighbor_comm_->rank();
@@ -210,16 +212,18 @@ void Matrix<ValueType, LocalIndexType,
 
     for (int r = 0; r < in_neighbors.size(); ++r) {
         comp_recv_offsets[r] = recv_offsets_[in_neighbors[r]];
+        comp_recv_sizes[r] = recv_sizes_[in_neighbors[r]];
     }
     comp_recv_offsets.back() = recv_offsets_.back();
     for (int r = 0; r < out_neighbors.size(); ++r) {
         comp_send_offsets[r] = send_offsets_[out_neighbors[r]];
+        comp_send_sizes[r] = send_sizes_[in_neighbors[r]];
     }
     comp_send_offsets.back() = send_offsets_.back();
 
-    recv_sizes_ = std::move(in_weight);
+    recv_sizes_ = std::move(comp_recv_sizes);
     recv_offsets_ = std::move(comp_recv_offsets);
-    send_sizes_ = std::move(out_weight);
+    send_sizes_ = std::move(comp_send_sizes);
     send_offsets_ = std::move(comp_send_offsets);
 }
 
