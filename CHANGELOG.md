@@ -853,15 +853,15 @@ These universities, along with various project grants, supported the development
 
 Ginkgo 1.0.0 contains contributions from:
 
-**Hartwig Anzt**, Karlsruhe Institute of Technology
-**Yenchen Chen**, National Taiwan University
-**Terry Cojean**, Karlsruhe Institute of Technology
-**Goran Flegar**, Universitat Jaume I
-**Fritz Göbel**, Karlsruhe Institute of Technology
-**Thomas Grützmacher**, Karlsruhe Institute of Technology
-**Pratik Nayak**, Karlsruhe Institute of Technology
-**Tobias Ribizel**, Karlsruhe Institute of Technology
-**Yuhsiang Tsai**, National Taiwan University
+**Hartwig Anzt**, Karlsruhe Institute of Technology  
+**Yenchen Chen**, National Taiwan University  
+**Terry Cojean**, Karlsruhe Institute of Technology  
+**Goran Flegar**, Universitat Jaume I  
+**Fritz Göbel**, Karlsruhe Institute of Technology  
+**Thomas Grützmacher**, Karlsruhe Institute of Technology  
+**Pratik Nayak**, Karlsruhe Institute of Technology  
+**Tobias Ribizel**, Karlsruhe Institute of Technology  
+**Yuhsiang Tsai**, National Taiwan University  
 
 Supporting materials are provided by the following individuals:
 
