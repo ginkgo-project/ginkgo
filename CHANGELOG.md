@@ -110,6 +110,7 @@ Supported systems and requirements:
 + Fix the cuSPARSE CSR SpMM issue on single strided vector when cuda >= 11.6 [#1322](https://github.com/ginkgo-project/ginkgo/pull/1322) [#1331](https://github.com/ginkgo-project/ginkgo/pull/1331)
 + Fix Isai generation for large sparsity powers [#1327](https://github.com/ginkgo-project/ginkgo/pull/1327)
 + Fix Ginkgo compilation and test with NVHPC >= 22.7 [#1331](https://github.com/ginkgo-project/ginkgo/pull/1331)
++ Fix Ginkgo compilation of 32 bit binaries with MSVC [#1349](https://github.com/ginkgo-project/ginkgo/pull/1349)
 
 
 ## Version 1.5.0
