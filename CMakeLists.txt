@@ -50,7 +50,7 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
+elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
@@ -298,6 +298,8 @@ endif()
 if(GINKGO_BUILD_DPCPP)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    get_filename_component(GINKGO_SYCL_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
+    set(SYCL_INCLUDE_PATH "${GINKGO_SYCL_DIR}/../include;${GINKGO_SYCL_DIR}/../include/sycl")
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
