@@ -731,16 +731,6 @@ public:
                                             operation, root_rank, this->get()));
     }
 
-    template <typename ReduceType>
-    void reduce(std::shared_ptr<const Executor> exec, ReduceType* recv_buffer,
-                int count, MPI_Op operation, int root_rank) const
-    {
-        auto guard = exec->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(MPI_IN_PLACE, recv_buffer, count,
-                                            type_impl<ReduceType>::get_type(),
-                                            operation, root_rank, this->get()));
-    }
-
     /**
      * (Non-blocking) Reduce data into root from all calling processes on the
      * same communicator.
