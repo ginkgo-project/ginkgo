@@ -177,7 +177,7 @@ void Matrix<ValueType, LocalIndexType,
     MPI_Comm graph;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create(
         comm.get(), 1, &source, &degree, destinations.data(), weight.data(),
-        MPI_INFO_NULL, true, &graph));
+        MPI_INFO_NULL, false, &graph));
     neighbor_comm_ = mpi::communicator{graph}.duplicate();
 
     comm_index_type num_in_neighbors;
