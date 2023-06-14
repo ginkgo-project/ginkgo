@@ -167,7 +167,7 @@ public:
     [[deprecated("Use set_complex_subspace instead")]] void
     set_complex_subpsace(const bool other)
     {
-        set_complex_subspace(other);
+        this->set_complex_subspace(other);
     }
 
     /**
