@@ -202,14 +202,6 @@ void Matrix<ValueType, LocalIndexType,
     std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
     std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
 
-    bool reordered = comm.rank() != neighbor_comm_->rank();
-    comm.all_reduce(this->get_executor(), &reordered, 1, MPI_LOR);
-
-    if (comm.rank() == 0 && reordered) {
-        std::cerr << "Reordered" << std::endl;
-    }
-
-
     for (int r = 0; r < in_neighbors.size(); ++r) {
         comp_recv_offsets[r] = recv_offsets_[in_neighbors[r]];
         comp_recv_sizes[r] = recv_sizes_[in_neighbors[r]];
