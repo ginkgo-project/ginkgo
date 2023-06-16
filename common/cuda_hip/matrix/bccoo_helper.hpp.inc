@@ -41,7 +41,7 @@ template <typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
 __forceinline__ __device__ void loop_block_single_row_spmv(
-    const uint8* __restrict__ chunk_data, IndexType block_size_local,
+    const uint8* __restrict__ compressed_data, IndexType block_size_local,
     const ValueType* __restrict__ b, const IndexType b_stride,
     const IndexType column_id, ValueType* __restrict__ c,
     const IndexType c_stride, compr_idxs<IndexType>& idxs,
@@ -59,10 +59,10 @@ __forceinline__ __device__ void loop_block_single_row_spmv(
          pos += jump_in_blk) {
         idxs.col =
             blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(
-                chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
-        val = get_value_chunk<ValueType>(
-            chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+            get_value_compressed_data<IndexTypeCol>(
+                compressed_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
+        val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
         new_value = true;
     }
@@ -82,7 +82,7 @@ template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           int subwarp_size = config::warp_size, typename ValueType,
           typename Closure>
 __forceinline__ __device__ void loop_block_multi_row_spmv(
-    const uint8* __restrict__ chunk_data, IndexType block_size_local,
+    const uint8* __restrict__ compressed_data, IndexType block_size_local,
     const ValueType* __restrict__ b, const IndexType b_stride,
     const IndexType column_id, ValueType* __restrict__ c,
     const IndexType c_stride, compr_idxs<IndexType>& idxs,
@@ -97,29 +97,29 @@ __forceinline__ __device__ void loop_block_multi_row_spmv(
 
     auto last_row =
         blk_idxs.row_frst +
-        get_value_chunk<IndexTypeRow>(
-            chunk_data,
+        get_value_compressed_data<IndexTypeRow>(
+            compressed_data,
             blk_idxs.shf_row + (block_size_local - 1) * sizeof(IndexTypeRow));
-    auto next_row =
-        blk_idxs.row_frst +
-        get_value_chunk<IndexTypeRow>(
-            chunk_data, blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));
+    auto next_row = blk_idxs.row_frst +
+                    get_value_compressed_data<IndexTypeRow>(
+                        compressed_data,
+                        blk_idxs.shf_row + start_in_blk * sizeof(IndexTypeRow));
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         idxs.row = next_row;
         idxs.col =
             blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(
-                chunk_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
-        val = get_value_chunk<ValueType>(
-            chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+            get_value_compressed_data<IndexTypeCol>(
+                compressed_data, blk_idxs.shf_col + pos * sizeof(IndexTypeCol));
+        val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val + pos * sizeof(ValueType));
         temp_val += val * b[idxs.col * b_stride + column_id];
         new_value = true;
         next_row = ((pos + jump_in_blk) >= block_size_local)
                        ? last_row
                        : (blk_idxs.row_frst +
-                          get_value_chunk<IndexTypeRow>(
-                              chunk_data,
+                          get_value_compressed_data<IndexTypeRow>(
+                              compressed_data,
                               blk_idxs.shf_row +
                                   (pos + jump_in_blk) * sizeof(IndexTypeRow)));
         // segmented scan
@@ -150,7 +150,7 @@ __forceinline__ __device__ void loop_block_multi_row_spmv(
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 __forceinline__ __device__ void loop_block_single_row_extract(
-    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    const uint8* compressed_data, compr_blk_idxs<IndexType>& blk_idxs,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     ValueType* __restrict__ diag)
 {
@@ -158,11 +158,11 @@ __forceinline__ __device__ void loop_block_single_row_extract(
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
         if (row == col) {
-            diag[col] =
-                get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            diag[col] = get_value_compressed_data<ValueType>(
+                compressed_data, blk_idxs.shf_val, pos);
         }
     }
 }
@@ -171,21 +171,21 @@ __forceinline__ __device__ void loop_block_single_row_extract(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 __forceinline__ __device__ void loop_block_multi_row_extract(
-    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    const uint8* compressed_data, compr_blk_idxs<IndexType>& blk_idxs,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     ValueType* __restrict__ diag)
 {
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
-            blk_idxs.row_frst +
-            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+            blk_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
+                                    compressed_data, blk_idxs.shf_row, pos);
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
         if (row == col) {
-            diag[col] =
-                get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            diag[col] = get_value_compressed_data<ValueType>(
+                compressed_data, blk_idxs.shf_val, pos);
         }
     }
 }
@@ -193,16 +193,17 @@ __forceinline__ __device__ void loop_block_multi_row_extract(
 
 template <typename IndexType, typename ValueType, typename Closure>
 __forceinline__ __device__ void loop_block_absolute(
-    uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    uint8* compressed_data, compr_blk_idxs<IndexType>& blk_idxs,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     Closure finalize_op)
 {
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+        ValueType val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val, pos);
         auto new_val = finalize_op(val);
-        set_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos, new_val);
+        set_value_compressed_data<ValueType>(compressed_data, blk_idxs.shf_val,
+                                             pos, new_val);
     }
 }
 
@@ -210,22 +211,22 @@ __forceinline__ __device__ void loop_block_absolute(
 template <typename IndexTypeCol, typename IndexType, typename ValueTypeSrc,
           typename ValueTypeRes, typename Closure>
 __forceinline__ __device__ void loop_block_single_row_absolute(
-    const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
+    const uint8* compressed_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
+    uint8* compressed_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
     Closure finalize_op)
 {
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        IndexTypeCol col_diff = get_value_chunk<IndexTypeCol>(
-            chunk_data_src, blk_idxs_src.shf_col, pos);
-        set_value_chunk<IndexTypeCol>(chunk_data_res, blk_idxs_res.shf_col, pos,
-                                      col_diff);
-        ValueTypeSrc val = get_value_chunk<ValueTypeSrc>(
-            chunk_data_src, blk_idxs_src.shf_val, pos);
+        IndexTypeCol col_diff = get_value_compressed_data<IndexTypeCol>(
+            compressed_data_src, blk_idxs_src.shf_col, pos);
+        set_value_compressed_data<IndexTypeCol>(
+            compressed_data_res, blk_idxs_res.shf_col, pos, col_diff);
+        ValueTypeSrc val = get_value_compressed_data<ValueTypeSrc>(
+            compressed_data_src, blk_idxs_src.shf_val, pos);
         ValueTypeRes new_val = finalize_op(val);
-        set_value_chunk<ValueTypeRes>(chunk_data_res, blk_idxs_res.shf_val, pos,
-                                      new_val);
+        set_value_compressed_data<ValueTypeRes>(
+            compressed_data_res, blk_idxs_res.shf_val, pos, new_val);
     }
 }
 
@@ -233,33 +234,33 @@ __forceinline__ __device__ void loop_block_single_row_absolute(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueTypeSrc, typename ValueTypeRes, typename Closure>
 __forceinline__ __device__ void loop_block_multi_row_absolute(
-    const uint8* chunk_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
+    const uint8* compressed_data_src, compr_blk_idxs<IndexType>& blk_idxs_src,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
-    uint8* chunk_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
+    uint8* compressed_data_res, compr_blk_idxs<IndexType>& blk_idxs_res,
     Closure finalize_op)
 {
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
-        IndexTypeRow row_diff = get_value_chunk<IndexTypeRow>(
-            chunk_data_src, blk_idxs_src.shf_row, pos);
-        set_value_chunk<IndexTypeRow>(chunk_data_res, blk_idxs_res.shf_row, pos,
-                                      row_diff);
-        IndexTypeCol col_diff = get_value_chunk<IndexTypeCol>(
-            chunk_data_src, blk_idxs_src.shf_col, pos);
-        set_value_chunk<IndexTypeCol>(chunk_data_res, blk_idxs_res.shf_col, pos,
-                                      col_diff);
-        ValueTypeSrc val = get_value_chunk<ValueTypeSrc>(
-            chunk_data_src, blk_idxs_src.shf_val, pos);
+        IndexTypeRow row_diff = get_value_compressed_data<IndexTypeRow>(
+            compressed_data_src, blk_idxs_src.shf_row, pos);
+        set_value_compressed_data<IndexTypeRow>(
+            compressed_data_res, blk_idxs_res.shf_row, pos, row_diff);
+        IndexTypeCol col_diff = get_value_compressed_data<IndexTypeCol>(
+            compressed_data_src, blk_idxs_src.shf_col, pos);
+        set_value_compressed_data<IndexTypeCol>(
+            compressed_data_res, blk_idxs_res.shf_col, pos, col_diff);
+        ValueTypeSrc val = get_value_compressed_data<ValueTypeSrc>(
+            compressed_data_src, blk_idxs_src.shf_val, pos);
         ValueTypeRes new_val = finalize_op(val);
-        set_value_chunk<ValueTypeRes>(chunk_data_res, blk_idxs_res.shf_val, pos,
-                                      new_val);
+        set_value_compressed_data<ValueTypeRes>(
+            compressed_data_res, blk_idxs_res.shf_val, pos, new_val);
     }
 }
 
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 __forceinline__ __device__ void loop_block_single_row_fill_in_coo(
-    const uint8* chunk_data, const IndexType blk,
+    const uint8* compressed_data, const IndexType blk,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
     IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
     IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
@@ -269,10 +270,10 @@ __forceinline__ __device__ void loop_block_single_row_fill_in_coo(
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
+        ValueType val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val, pos);
         auto index = blk * block_size + pos;
         rows_idxs[index] = row;
         cols_idxs[index] = col;
@@ -284,7 +285,7 @@ __forceinline__ __device__ void loop_block_single_row_fill_in_coo(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 __forceinline__ __device__ void loop_block_multi_row_fill_in_coo(
-    const uint8* chunk_data, const IndexType blk,
+    const uint8* compressed_data, const IndexType blk,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType start_in_blk,
     IndexType jump_in_blk, IndexType block_size, IndexType block_size_local,
     IndexType* __restrict__ rows_idxs, IndexType* __restrict__ cols_idxs,
@@ -293,13 +294,13 @@ __forceinline__ __device__ void loop_block_multi_row_fill_in_coo(
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
-            blk_idxs.row_frst +
-            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+            blk_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
+                                    compressed_data, blk_idxs.shf_row, pos);
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
+        ValueType val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val, pos);
         auto index = blk * block_size + pos;
         rows_idxs[index] = row;
         cols_idxs[index] = col;
@@ -310,7 +311,7 @@ __forceinline__ __device__ void loop_block_multi_row_fill_in_coo(
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
 __forceinline__ __device__ void loop_block_single_row_fill_in_dense(
-    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    const uint8* compressed_data, compr_blk_idxs<IndexType>& blk_idxs,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     IndexType stride, ValueType* __restrict__ result)
 {
@@ -318,10 +319,10 @@ __forceinline__ __device__ void loop_block_single_row_fill_in_dense(
          pos += jump_in_blk) {
         IndexType row = blk_idxs.row_frst;
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
+        ValueType val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val, pos);
         result[row * stride + col] = val;
     }
 }
@@ -330,20 +331,20 @@ __forceinline__ __device__ void loop_block_single_row_fill_in_dense(
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
 __forceinline__ __device__ void loop_block_multi_row_fill_in_dense(
-    const uint8* chunk_data, compr_blk_idxs<IndexType>& blk_idxs,
+    const uint8* compressed_data, compr_blk_idxs<IndexType>& blk_idxs,
     IndexType start_in_blk, IndexType jump_in_blk, IndexType block_size_local,
     IndexType stride, ValueType* __restrict__ result)
 {
     for (IndexType pos = start_in_blk; pos < block_size_local;
          pos += jump_in_blk) {
         IndexType row =
-            blk_idxs.row_frst +
-            get_value_chunk<IndexTypeRow>(chunk_data, blk_idxs.shf_row, pos);
+            blk_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
+                                    compressed_data, blk_idxs.shf_row, pos);
         IndexType col =
-            blk_idxs.col_frst +
-            get_value_chunk<IndexTypeCol>(chunk_data, blk_idxs.shf_col, pos);
-        ValueType val =
-            get_value_chunk<ValueType>(chunk_data, blk_idxs.shf_val, pos);
+            blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                    compressed_data, blk_idxs.shf_col, pos);
+        ValueType val = get_value_compressed_data<ValueType>(
+            compressed_data, blk_idxs.shf_val, pos);
         result[row * stride + col] = val;
     }
 }
@@ -351,7 +352,7 @@ __forceinline__ __device__ void loop_block_multi_row_fill_in_dense(
 
 template <typename IndexType, typename ValueType>
 __forceinline__ __device__ void get_block_position_value(
-    const IndexType pos, const uint8* chunk_data,
+    const IndexType pos, const uint8* compressed_data,
     compr_blk_idxs<IndexType>& blk_idxs, IndexType& row, IndexType& col,
     ValueType& val)
 {
@@ -359,29 +360,31 @@ __forceinline__ __device__ void get_block_position_value(
     col = blk_idxs.col_frst;
     if (blk_idxs.is_multi_row()) {
         if (blk_idxs.is_row_16bits()) {
-            row += get_value_chunk<uint16>(
-                chunk_data, blk_idxs.shf_row + pos * sizeof(uint16));
+            row += get_value_compressed_data<uint16>(
+                compressed_data, blk_idxs.shf_row + pos * sizeof(uint16));
         } else {
-            row += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+            row += get_value_compressed_data<uint8>(compressed_data,
+                                                    blk_idxs.shf_row + pos);
         }
     }
     if (blk_idxs.is_column_8bits()) {
-        col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
+        col += get_value_compressed_data<uint8>(compressed_data,
+                                                blk_idxs.shf_col + pos);
     } else if (blk_idxs.is_column_16bits()) {
-        col += get_value_chunk<uint16>(chunk_data,
-                                       blk_idxs.shf_col + pos * sizeof(uint16));
+        col += get_value_compressed_data<uint16>(
+            compressed_data, blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
-        col += get_value_chunk<uint32>(chunk_data,
-                                       blk_idxs.shf_col + pos * sizeof(uint32));
+        col += get_value_compressed_data<uint32>(
+            compressed_data, blk_idxs.shf_col + pos * sizeof(uint32));
     }
-    val = get_value_chunk<ValueType>(
-        chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+    val = get_value_compressed_data<ValueType>(
+        compressed_data, blk_idxs.shf_val + pos * sizeof(ValueType));
 }
 
 
 template <typename IndexType, typename ValueType>
 __forceinline__ __device__ void get_block_position_value(
-    const IndexType pos, const uint8* chunk_data,
+    const IndexType pos, const uint8* compressed_data,
     compr_blk_idxs<IndexType>& blk_idxs, compr_idxs<IndexType>& idxs,
     ValueType& val)
 {
@@ -389,24 +392,25 @@ __forceinline__ __device__ void get_block_position_value(
     idxs.col = blk_idxs.col_frst;
     if (blk_idxs.is_multi_row()) {
         if (blk_idxs.is_row_16bits()) {
-            idxs.row += get_value_chunk<uint16>(
-                chunk_data, blk_idxs.shf_row + pos * sizeof(uint16));
+            idxs.row += get_value_compressed_data<uint16>(
+                compressed_data, blk_idxs.shf_row + pos * sizeof(uint16));
         } else {
-            idxs.row +=
-                get_value_chunk<uint8>(chunk_data, blk_idxs.shf_row + pos);
+            idxs.row += get_value_compressed_data<uint8>(
+                compressed_data, blk_idxs.shf_row + pos);
         }
     }
     if (blk_idxs.is_column_8bits()) {
-        idxs.col += get_value_chunk<uint8>(chunk_data, blk_idxs.shf_col + pos);
+        idxs.col += get_value_compressed_data<uint8>(compressed_data,
+                                                     blk_idxs.shf_col + pos);
     } else if (blk_idxs.is_column_16bits()) {
-        idxs.col += get_value_chunk<uint16>(
-            chunk_data, blk_idxs.shf_col + pos * sizeof(uint16));
+        idxs.col += get_value_compressed_data<uint16>(
+            compressed_data, blk_idxs.shf_col + pos * sizeof(uint16));
     } else {
-        idxs.col += get_value_chunk<uint32>(
-            chunk_data, blk_idxs.shf_col + pos * sizeof(uint32));
+        idxs.col += get_value_compressed_data<uint32>(
+            compressed_data, blk_idxs.shf_col + pos * sizeof(uint32));
     }
-    val = get_value_chunk<ValueType>(
-        chunk_data, blk_idxs.shf_val + pos * sizeof(ValueType));
+    val = get_value_compressed_data<ValueType>(
+        compressed_data, blk_idxs.shf_val + pos * sizeof(ValueType));
 }
 
 

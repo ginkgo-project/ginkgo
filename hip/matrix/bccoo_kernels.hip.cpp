@@ -158,7 +158,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
 
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_hip_type(a->get_const_chunk()),
+                as_hip_type(a->get_const_compressed_data()),
                 as_hip_type(a->get_const_offsets()),
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
@@ -203,7 +203,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(alpha->get_const_values()),
-                as_hip_type(a->get_const_chunk()),
+                as_hip_type(a->get_const_compressed_data()),
                 as_hip_type(a->get_const_offsets()),
                 as_hip_type(a->get_const_types()),
                 as_hip_type(a->get_const_cols()),
@@ -280,7 +280,7 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
 
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_hip_type(source->get_const_chunk()),
+                as_hip_type(source->get_const_compressed_data()),
                 as_hip_type(source->get_const_offsets()),
                 as_hip_type(source->get_const_types()),
                 as_hip_type(source->get_const_cols()),
@@ -328,7 +328,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
 
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_hip_type(source->get_const_chunk()),
+                as_hip_type(source->get_const_compressed_data()),
                 as_hip_type(source->get_const_offsets()),
                 as_hip_type(source->get_const_types()),
                 as_hip_type(source->get_const_cols()),
@@ -381,7 +381,7 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
             kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_hip_type(source->get_const_chunk()),
+                as_hip_type(source->get_const_compressed_data()),
                 as_hip_type(source->get_const_offsets()),
                 as_hip_type(source->get_const_types()),
                 as_hip_type(source->get_const_cols()),
@@ -419,7 +419,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 
             kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_hip_type(orig->get_const_chunk()),
+                as_hip_type(orig->get_const_compressed_data()),
                 as_hip_type(orig->get_const_offsets()),
                 as_hip_type(orig->get_const_types()),
                 as_hip_type(orig->get_const_cols()),
@@ -458,7 +458,7 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
                 config::warp_size, hip_type<ValueType>, hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
-                    as_hip_type(matrix->get_chunk()),
+                    as_hip_type(matrix->get_compressed_data()),
                     as_hip_type(matrix->get_const_offsets()),
                     as_hip_type(matrix->get_const_types()),
                     as_hip_type(matrix->get_const_cols()),
@@ -498,12 +498,12 @@ void compute_absolute(
                                       hip_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
-                    as_hip_type(source->get_const_chunk()),
+                    as_hip_type(source->get_const_compressed_data()),
                     as_hip_type(source->get_const_offsets()),
                     as_hip_type(source->get_const_types()),
                     as_hip_type(source->get_const_cols()),
                     as_hip_type(source->get_const_rows()),
-                    as_hip_type(result->get_chunk()),
+                    as_hip_type(result->get_compressed_data()),
                     as_hip_type(result->get_offsets()),
                     as_hip_type(result->get_types()),
                     as_hip_type(result->get_cols()),

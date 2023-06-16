@@ -67,7 +67,7 @@ struct compr_idxs {
     IndexType blk;   // active block
     IndexType row;   // row index
     IndexType col;   // column index
-    size_type shf;   // shift on the chunk
+    size_type shf;   // shift on the compressed data
 
     GKO_ATTRIBUTES compr_idxs() : nblk(0), blk(0), row(0), col(0), shf(0) {}
 
@@ -90,15 +90,13 @@ template <typename IndexType>
 struct compr_blk_idxs {
     IndexType row_frst;  // minimum row index in a block
     IndexType col_frst;  // minimum column index in a block
-    IndexType row_diff;  // maximum difference between row indices
-                         // in a block
-    IndexType col_diff;  // maximum difference between column indices
-                         // in a block
-    size_type shf_row;   // shift in chunk where the rows vector starts
-    size_type shf_col;   // shift in chunk where the cols vector starts
-    size_type shf_val;   // shift in chunk where the vals vector starts
-    uint8 rows_cols;     // combination of several bool conditions: multi_row,
-                         // row_16_bits, column_16_bits, column_8_bits
+    IndexType row_diff;  // maximum difference between row indices in a block
+    IndexType col_diff;  // maximum difference between column indices in a block
+    size_type shf_row;  // shift in compressed data where the rows vector starts
+    size_type shf_col;  // shift in compressed data where the cols vector starts
+    size_type shf_val;  // shift in compressed data where the vals vector starts
+    uint8 rows_cols;    // combination of several bool conditions: multi_row,
+                        // row_16_bits, column_16_bits, column_8_bits
 
     GKO_ATTRIBUTES compr_blk_idxs()
         : row_frst(0),
@@ -129,8 +127,10 @@ struct compr_blk_idxs {
                  ? ((rows_cols & type_mask_rows_16bits) ? sizeof(uint16) : 1) *
                        block_size
                  : 0);
-        shf_val = shf_col + block_size * ((rows_cols & type_mask_cols_8bits) ? 1
-                                          : (rows_cols & type_mask_cols_16bits)
+        shf_val =
+            shf_col + block_size * ((rows_cols & type_mask_cols_8bits)
+                                        ? 1
+                                        : (rows_cols & type_mask_cols_16bits)
                                               ? sizeof(uint16)
                                               : sizeof(uint32));
     }

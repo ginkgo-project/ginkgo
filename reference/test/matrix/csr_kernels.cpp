@@ -325,7 +325,7 @@ protected:
     {
         auto rows_data = m->get_const_rows();
         auto offsets_data = m->get_const_offsets();
-        auto chunk_data = m->get_const_chunk();
+        auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -347,41 +347,41 @@ protected:
 
         index_type ind = {};
 
-        EXPECT_EQ(chunk_data[ind], 0x00);
+        EXPECT_EQ(compressed_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(
-            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
-            value_type{1.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                      compressed_data, ind),
+                  value_type{1.0});
         ind += sizeof(value_type);
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
+        EXPECT_EQ(compressed_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(
-            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
-            value_type{3.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                      compressed_data, ind),
+                  value_type{3.0});
         ind += sizeof(value_type);
 
         if (block_size < 3) {
-            EXPECT_EQ(chunk_data[ind], 0x02);
+            EXPECT_EQ(compressed_data[ind], 0x02);
         } else {
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
         }
         ind++;
-        EXPECT_EQ(
-            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
-            value_type{2.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                      compressed_data, ind),
+                  value_type{2.0});
         ind += sizeof(value_type);
 
         if ((block_size == 2) || (block_size >= 4)) {
-            EXPECT_EQ(chunk_data[ind], 0xFF);
+            EXPECT_EQ(compressed_data[ind], 0xFF);
             ind++;
         }
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
+        EXPECT_EQ(compressed_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(
-            gko::matrix::bccoo::get_value_chunk<value_type>(chunk_data, ind),
-            value_type{5.0});
+        EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                      compressed_data, ind),
+                  value_type{5.0});
         ind += sizeof(value_type);
     }
 
@@ -391,7 +391,7 @@ protected:
         auto cols_data = m->get_const_cols();
         auto types_data = m->get_const_types();
         auto offsets_data = m->get_const_offsets();
-        auto chunk_data = m->get_const_chunk();
+        auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -428,132 +428,132 @@ protected:
 
         switch (block_size) {
         case 1:
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
 
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         case 2:
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
 
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x00);
+            ind++;
+
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         case 3:
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x02);
+            EXPECT_EQ(compressed_data[ind], 0x02);
             ind++;
 
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
 
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         default:
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-
-            EXPECT_EQ(chunk_data[ind], 0x00);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x02);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(compressed_data[ind], 0x00);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x02);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(gko::matrix::bccoo::get_value_chunk<value_type>(
-                          chunk_data, ind),
+            EXPECT_EQ(gko::matrix::bccoo::get_value_compressed_data<value_type>(
+                          compressed_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
 

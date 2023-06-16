@@ -284,18 +284,21 @@ public:
      *
      * @return the vector where the data of each block are stored.
      */
-    uint8* get_chunk() noexcept { return chunk_.get_data(); }
+    uint8* get_compressed_data() noexcept
+    {
+        return compressed_data_.get_data();
+    }
 
     /**
-     * @copydoc Bccoo::get_chunk()
+     * @copydoc Bccoo::get_compressed_data()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const uint8* get_const_chunk() const noexcept
+    const uint8* get_const_compressed_data() const noexcept
     {
-        return chunk_.get_const_data();
+        return compressed_data_.get_const_data();
     }
 
     /**
@@ -323,13 +326,16 @@ public:
     index_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
 
     /**
-     * Returns the number of bytes of chunk vector used in the definition of the
-     * matrix.
+     * Returns the number of bytes of compressed_data vector used in the
+     * definition of the matrix.
      *
-     * @return the number of bytes of chunk vector used in the definition of the
-     * matrix.
+     * @return the number of bytes of compressed_data vector used in the
+     * definition of the matrix.
      */
-    size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
+    size_type get_num_bytes() const noexcept
+    {
+        return compressed_data_.get_num_elems();
+    }
 
     /**
      * Returns the compression used in the definition of the matrix.
@@ -457,7 +463,7 @@ protected:
           cols_(exec, 0),
           types_(exec, 0),
           offsets_(exec, 0),
-          chunk_(exec, 0),
+          compressed_data_(exec, 0),
           num_nonzeros_{0},
           block_size_{0},
           compression_{bccoo::compression::def_value}
@@ -475,7 +481,7 @@ protected:
           cols_(exec, 0),
           types_(exec, 0),
           offsets_(exec, 0),
-          chunk_(exec, 0),
+          compressed_data_(exec, 0),
           num_nonzeros_{0},
           block_size_{block_size},
           compression_{compression}
@@ -484,7 +490,7 @@ protected:
     /**
      * Creates an uninitialized BCCOO matrix of the specified sizes.
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
@@ -508,7 +514,7 @@ protected:
           offsets_(exec, (block_size == 0)
                              ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
-          chunk_(exec, num_bytes),
+          compressed_data_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
           compression_{compression}
@@ -516,29 +522,30 @@ protected:
 
     /**
      * Creates an element compression variant of the BCCOO matrix from
-     * already allocated (and initialized) rows, offsets and chunk arrays.
+     * already allocated (and initialized) rows, offsets and compressed_data
+     * arrays.
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  executor associated to the matrix
      * @param size  size of the matrix
-     * @param chunk  array of matrix indexes and matrix values
-     * @param offsets  array of positions of the first entry of each block in
-     *                 chunk array
+     * @param compressed_data  array of matrix indexes and matrix values
+     * @param offsets          array of positions of the first entry of each
+     *block in compressed_data array
      * @param rows  array of row index of the first entry of each block in
-     *              chunk array
-     * @param num_nonzeros  number of nonzeros
-     * @param block_size    number of nonzeros in each block
+     *              compressed_data array
+     * @param num_nonzeros    number of nonzeros
+     * @param block_size      number of nonzeros in each block
      *
-     * @note If one of `chunk`, `offsets` or `rows` is not an rvalue, not
-     *       an array of uint8, IndexType or IndexType, respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array chunk will not be used in the
-     *       matrix.
+     * @note If one of `compressed_data`, `offsets` or `rows` is not an rvalue,
+     *			 not an array of uint8, IndexType or IndexType,
+     *respectively, or is on the wrong executor, an internal copy of that array
+     *will be created, and the original array compressed_data will not be used
+     *in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<uint8> chunk, array<size_type> offsets, array<IndexType> rows,
-          index_type num_nonzeros, index_type block_size)
+          array<uint8> compressed_data, array<size_type> offsets,
+          array<IndexType> rows, index_type num_nonzeros, index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
-          chunk_{exec, std::move(chunk)},
+          compressed_data_{exec, std::move(compressed_data)},
           offsets_{exec, std::move(offsets)},
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
@@ -550,34 +557,35 @@ protected:
 
     /**
      * Creates a block compression variant of the BCCOO matrix from already
-     * allocated (and initialized) rows, cols, types, offsets and chunk arrays.
+     * allocated (and initialized) rows, cols, types, offsets and
+     * compressed_data arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param chunk   array of matrix indexes and matrix values
+     * @param compressed_data   array of matrix indexes and matrix values
      * @param offsets array of positions of the first entry of each block in
-     *                chunk array
+     *                compressed_data array
      * @param types   array of compression type for each block in
-     *                chunk array
+     *                compressed_data array
      * @param cols    array of minimum column indices for each block in
-     *                chunk array
+     *                compressed_data array
      * @param rows    array of minimum row indices for each block in
-     *                chunk array
+     *                compressed_data array
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      *
-     * @note If one of `chunk`, `offsets`, `types`, `cols` or `rows` is not
-     * 			 an rvalue, not an array of uint8, IndexType, uint8,
-     *       IndexType or IndexType, respectively, or is on the wrong executor,
-     *       an internal copy of that array will be created, and the original
-     *       array will not be used in the matrix.
+     * @note If one of `compressed_data`, `offsets`, `types`, `cols` or `rows`
+     * is not an rvalue, not an array of uint8, IndexType, uint8, IndexType or
+     * IndexType, respectively, or is on the wrong executor, an internal copy of
+     * that array will be created, and the original array will not be used in
+     * the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<uint8> chunk, array<size_type> offsets, array<uint8> types,
-          array<IndexType> cols, array<IndexType> rows, index_type num_nonzeros,
-          index_type block_size)
+          array<uint8> compressed_data, array<size_type> offsets,
+          array<uint8> types, array<IndexType> cols, array<IndexType> rows,
+          index_type num_nonzeros, index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
-          chunk_{exec, std::move(chunk)},
+          compressed_data_{exec, std::move(compressed_data)},
           offsets_{exec, std::move(offsets)},
           types_{exec, std::move(types)},
           cols_{exec, std::move(cols)},
@@ -605,7 +613,7 @@ private:
     array<index_type> cols_;
     array<uint8> types_;
     array<size_type> offsets_;
-    array<uint8> chunk_;
+    array<uint8> compressed_data_;
     index_type block_size_;
     index_type num_nonzeros_;
     bccoo::compression compression_;

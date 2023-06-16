@@ -95,7 +95,7 @@ namespace kernel {
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data  the array where the data are
+ * @param compressed_data  the array where the data are
  * @param offsets_data  the array where the offset of each block is
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
@@ -114,7 +114,7 @@ template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 void spmv_kernel(const IndexType nnz, const IndexType num_blks,
                  const IndexType block_size, const IndexType num_lines,
-                 const uint8* __restrict__ chunk_data,
+                 const uint8* __restrict__ compressed_data,
                  const size_type* __restrict__ offsets_data,
                  const uint8* __restrict__ types_data,
                  const IndexType* __restrict__ cols_data,
@@ -145,54 +145,54 @@ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_spmv<uint16, uint8, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_spmv<uint16, uint16, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 } else {
                     loop_block_multi_row_spmv<uint16, uint32, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 }
             } else {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_spmv<uint8, uint8, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_spmv<uint8, uint16, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 } else {
                     loop_block_multi_row_spmv<uint8, uint32, IndexType>(
-                        chunk_data, block_size_local, b, b_stride, column_id, c,
-                        c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
-                        scale, item_ct1);
+                        compressed_data, block_size_local, b, b_stride,
+                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        jump_in_blk, scale, item_ct1);
                 }
             }
         } else {
             if (blk_idxs.is_column_8bits()) {
                 loop_block_single_row_spmv<uint8, IndexType>(
-                    chunk_data, block_size_local, b, b_stride, column_id, c,
-                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
-                    item_ct1);
+                    compressed_data, block_size_local, b, b_stride, column_id,
+                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    scale, item_ct1);
             } else if (blk_idxs.is_column_16bits()) {
                 loop_block_single_row_spmv<uint16, IndexType>(
-                    chunk_data, block_size_local, b, b_stride, column_id, c,
-                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
-                    item_ct1);
+                    compressed_data, block_size_local, b, b_stride, column_id,
+                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    scale, item_ct1);
             } else {
                 loop_block_single_row_spmv<uint32, IndexType>(
-                    chunk_data, block_size_local, b, b_stride, column_id, c,
-                    c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk, scale,
-                    item_ct1);
+                    compressed_data, block_size_local, b, b_stride, column_id,
+                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    scale, item_ct1);
             }
         }
     }
@@ -245,7 +245,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data  the array where the data are
+ * @param compressed_data  the array where the data are
  * @param offsets_data  the array where the offset of each block is
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
@@ -260,7 +260,7 @@ template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void abstract_extract(const IndexType nnz, const IndexType num_blks,
                       const IndexType block_size, const IndexType num_lines,
-                      const uint8* __restrict__ chunk_data,
+                      const uint8* __restrict__ compressed_data,
                       const size_type* __restrict__ offsets_data,
                       const uint8* __restrict__ types_data,
                       const IndexType* __restrict__ cols_data,
@@ -286,43 +286,43 @@ void abstract_extract(const IndexType nnz, const IndexType num_blks,
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_extract<uint16, uint8>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_extract<uint16, uint16>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else {
                     loop_block_multi_row_extract<uint16, uint32>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 }
             } else {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_extract<uint8, uint8>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_extract<uint8, uint16>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else {
                     loop_block_multi_row_extract<uint8, uint32>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 }
             }
         } else {
             if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row_extract<uint8>(chunk_data, blk_idxs,
+                loop_block_single_row_extract<uint8>(compressed_data, blk_idxs,
                                                      start_in_blk, jump_in_blk,
                                                      block_size_local, diag);
             } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row_extract<uint16>(chunk_data, blk_idxs,
+                loop_block_single_row_extract<uint16>(compressed_data, blk_idxs,
                                                       start_in_blk, jump_in_blk,
                                                       block_size_local, diag);
             } else {
-                loop_block_single_row_extract<uint32>(chunk_data, blk_idxs,
+                loop_block_single_row_extract<uint32>(compressed_data, blk_idxs,
                                                       start_in_blk, jump_in_blk,
                                                       block_size_local, diag);
             }
@@ -340,7 +340,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_extract, abstract_extract);
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data  the array where the data are
+ * @param compressed_data  the array where the data are
  * @param offsets_data  the array where the offset of each block is
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
@@ -354,13 +354,16 @@ GKO_ENABLE_DEFAULT_HOST(abstract_extract, abstract_extract);
  */
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
-void abstract_absolute_inplace(
-    const ValueType val, const IndexType nnz, const IndexType num_blks,
-    const IndexType block_size, const IndexType num_lines,
-    uint8* __restrict__ chunk_data, const size_type* __restrict__ offsets_data,
-    const uint8* __restrict__ types_data,
-    const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, sycl::nd_item<3> item_ct1)
+void abstract_absolute_inplace(const ValueType val, const IndexType nnz,
+                               const IndexType num_blks,
+                               const IndexType block_size,
+                               const IndexType num_lines,
+                               uint8* __restrict__ compressed_data,
+                               const size_type* __restrict__ offsets_data,
+                               const uint8* __restrict__ types_data,
+                               const IndexType* __restrict__ cols_data,
+                               const IndexType* __restrict__ rows_data,
+                               sycl::nd_item<3> item_ct1)
 
 {
     const IndexType column_id = item_ct1.get_group(1);
@@ -379,8 +382,8 @@ void abstract_absolute_inplace(
         compr_blk_idxs<IndexType> blk_idxs(
             rows_data, cols_data, block_size_local, idxs, types_data[blk]);
         loop_block_absolute<IndexType, ValueType>(
-            chunk_data, blk_idxs, start_in_blk, jump_in_blk, block_size_local,
-            [](ValueType x) { return abs(x); });
+            compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+            block_size_local, [](ValueType x) { return abs(x); });
     }
 }
 
@@ -394,7 +397,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data_src  the array where the data of source are
+ * @param compressed_data_src  the array where the data of source are
  * @param offsets_data_src  the array where the offset of each block of source
  * is
  * @param types_data_src  the array where the sorce type of each block of source
@@ -403,7 +406,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute_inplace, abstract_absolute_inplace);
  * source is
  * @param rows_data_src  the array where the initial row of each block of source
  * is
- * @param chunk_data_res  the array where the data of result are
+ * @param compressed_data_res  the array where the data of result are
  * @param offsets_data_res  the array where the offset of each block of result
  * is
  * @param types_data_res  the array where the sorce type of each block of result
@@ -424,12 +427,12 @@ template <int subgroup_size = config::warp_size, typename ValueType,
 void abstract_absolute(const ValueType val, const IndexType nnz,
                        const IndexType num_blks, const IndexType block_size,
                        const IndexType num_lines,
-                       const uint8* __restrict__ chunk_data_src,
+                       const uint8* __restrict__ compressed_data_src,
                        const size_type* __restrict__ offsets_data_src,
                        const uint8* __restrict__ types_data_src,
                        const IndexType* __restrict__ cols_data_src,
                        const IndexType* __restrict__ rows_data_src,
-                       uint8* __restrict__ chunk_data_res,
+                       uint8* __restrict__ compressed_data_res,
                        size_type* __restrict__ offsets_data_res,
                        uint8* __restrict__ types_data_res,
                        IndexType* __restrict__ cols_data_res,
@@ -484,64 +487,67 @@ void abstract_absolute(const ValueType val, const IndexType nnz,
                     loop_block_multi_row_absolute<uint16, uint8, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 } else if (blk_idxs_src.is_column_16bits()) {
                     loop_block_multi_row_absolute<uint16, uint16, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 } else {
                     loop_block_multi_row_absolute<uint16, uint32, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 }
             } else {
                 if (blk_idxs_src.is_column_8bits()) {
                     loop_block_multi_row_absolute<uint8, uint8, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 } else if (blk_idxs_src.is_column_16bits()) {
                     loop_block_multi_row_absolute<uint8, uint16, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 } else {
                     loop_block_multi_row_absolute<uint8, uint32, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                        block_size_local, chunk_data_res, blk_idxs_res,
-                        comp_abs);
+                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        jump_in_blk, block_size_local, compressed_data_res,
+                        blk_idxs_res, comp_abs);
                 }
             }
         } else {
             if (blk_idxs_src.is_column_8bits()) {
                 loop_block_single_row_absolute<uint8, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    jump_in_blk, block_size_local, compressed_data_res,
+                    blk_idxs_res, comp_abs);
             } else if (blk_idxs_src.is_column_16bits()) {
                 loop_block_single_row_absolute<uint16, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    jump_in_blk, block_size_local, compressed_data_res,
+                    blk_idxs_res, comp_abs);
             } else {
                 loop_block_single_row_absolute<uint32, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    chunk_data_src, blk_idxs_src, start_in_blk, jump_in_blk,
-                    block_size_local, chunk_data_res, blk_idxs_res, comp_abs);
+                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    jump_in_blk, block_size_local,
+                    compressed_datcompressed_data_idxs_res, comp_abs);
             }
         }
     }
@@ -557,7 +563,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_absolute, abstract_absolute);
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data  the array where the data are
+ * @param compressed_data  the array where the data are
  * @param offsets_data  the array where the offset of each block is
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
@@ -572,7 +578,7 @@ template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void abstract_fill_in_coo(const IndexType nnz, const IndexType num_blks,
                           const IndexType block_size, const IndexType num_lines,
-                          const uint8* __restrict__ chunk_data,
+                          const uint8* __restrict__ compressed_data,
                           const size_type* __restrict__ offsets_data,
                           const uint8* __restrict__ types_data,
                           const IndexType* __restrict__ cols_data,
@@ -601,50 +607,50 @@ void abstract_fill_in_coo(const IndexType nnz, const IndexType num_blks,
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_fill_in_coo<uint16, uint8>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_fill_in_coo<uint16, uint16>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 } else {
                     loop_block_multi_row_fill_in_coo<uint16, uint32>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 }
             } else {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_fill_in_coo<uint8, uint8>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_fill_in_coo<uint8, uint16>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 } else {
                     loop_block_multi_row_fill_in_coo<uint8, uint32>(
-                        chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
-                        block_size, block_size_local, rows_idxs, cols_idxs,
-                        values);
+                        compressed_data, blk, blk_idxs, start_in_blk,
+                        jump_in_blk, block_size, block_size_local, rows_idxs,
+                        cols_idxs, values);
                 }
             }
         } else {
             if (blk_idxs.is_column_8bits()) {
                 loop_block_single_row_fill_in_coo<uint8>(
-                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
             } else if (blk_idxs.is_column_16bits()) {
                 loop_block_single_row_fill_in_coo<uint16>(
-                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
             } else {
                 loop_block_single_row_fill_in_coo<uint32>(
-                    chunk_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
             }
         }
@@ -661,7 +667,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_fill_in_coo, abstract_fill_in_coo);
  * @param num_blks  the number of blocks in the matrix
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
- * @param chunk_data  the array where the data are
+ * @param compressed_data  the array where the data are
  * @param offsets_data  the array where the offset of each block is
  * @param types_data  the array where the type of each block is
  * @param cols_data  the array where the initial column of each block is
@@ -677,7 +683,7 @@ template <int subgroup_size = config::warp_size, typename ValueType,
 void abstract_fill_in_dense(const IndexType nnz, const IndexType num_blks,
                             const IndexType block_size,
                             const IndexType num_lines,
-                            const uint8* __restrict__ chunk_data,
+                            const uint8* __restrict__ compressed_data,
                             const size_type* __restrict__ offsets_data,
                             const uint8* __restrict__ types_data,
                             const IndexType* __restrict__ cols_data,
@@ -704,44 +710,44 @@ void abstract_fill_in_dense(const IndexType nnz, const IndexType num_blks,
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_fill_in_dense<uint16, uint8>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_fill_in_dense<uint16, uint16>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else {
                     loop_block_multi_row_fill_in_dense<uint16, uint32>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 }
             } else {
                 if (blk_idxs.is_column_8bits()) {
                     loop_block_multi_row_fill_in_dense<uint8, uint8>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else if (blk_idxs.is_column_16bits()) {
                     loop_block_multi_row_fill_in_dense<uint8, uint16>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else {
                     loop_block_multi_row_fill_in_dense<uint8, uint32>(
-                        chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 }
             }
         } else {
             if (blk_idxs.is_column_8bits()) {
                 loop_block_single_row_fill_in_dense<uint8>(
-                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
             } else if (blk_idxs.is_column_16bits()) {
                 loop_block_single_row_fill_in_dense<uint16>(
-                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
             } else {
                 loop_block_single_row_fill_in_dense<uint32>(
-                    chunk_data, blk_idxs, start_in_blk, jump_in_blk,
+                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
             }
         }
@@ -822,11 +828,11 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
 
             kernel::abstract_spmv(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
-                num_blocks_matrix, block_size, num_lines, a->get_const_chunk(),
-                a->get_const_offsets(), a->get_const_types(),
-                a->get_const_cols(), a->get_const_rows(), b->get_const_values(),
-                static_cast<IndexType>(b->get_stride()), c->get_values(),
-                static_cast<IndexType>(c->get_stride()));
+                num_blocks_matrix, block_size, num_lines,
+                a->get_const_compressed_data(), a->get_const_offsets(),
+                a->get_const_types(), a->get_const_cols(), a->get_const_rows(),
+                b->get_const_values(), static_cast<IndexType>(b->get_stride()),
+                c->get_values(), static_cast<IndexType>(c->get_stride()));
         } else {
             GKO_NOT_SUPPORTED(a);
         }
@@ -862,7 +868,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             kernel::abstract_spmv(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
-                alpha->get_const_values(), a->get_const_chunk(),
+                alpha->get_const_values(), a->get_const_compressed_data(),
                 a->get_const_offsets(), a->get_const_types(),
                 a->get_const_cols(), a->get_const_rows(), b->get_const_values(),
                 static_cast<IndexType>(b->get_stride()), c->get_values(),
@@ -936,10 +942,11 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
             kernel::abstract_fill_in_coo(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
-                source->get_const_chunk(), source->get_const_offsets(),
-                source->get_const_types(), source->get_const_cols(),
-                source->get_const_rows(), result->get_row_idxs(),
-                result->get_col_idxs(), result->get_values());
+                source->get_const_compressed_data(),
+                source->get_const_offsets(), source->get_const_types(),
+                source->get_const_cols(), source->get_const_rows(),
+                result->get_row_idxs(), result->get_col_idxs(),
+                result->get_values());
         } else {
             GKO_NOT_SUPPORTED(source);
         }
@@ -981,10 +988,11 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
             kernel::abstract_fill_in_coo(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
-                source->get_const_chunk(), source->get_const_offsets(),
-                source->get_const_types(), source->get_const_cols(),
-                source->get_const_rows(), row_idxs.get_data(),
-                result->get_col_idxs(), result->get_values());
+                source->get_const_compressed_data(),
+                source->get_const_offsets(), source->get_const_types(),
+                source->get_const_cols(), source->get_const_rows(),
+                row_idxs.get_data(), result->get_col_idxs(),
+                result->get_values());
 
             components::convert_idxs_to_ptrs(exec, row_idxs.get_data(), nnz,
                                              num_rows + 1, row_ptrs);
@@ -1031,9 +1039,10 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
             kernel::abstract_fill_in_dense(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
-                source->get_const_chunk(), source->get_const_offsets(),
-                source->get_const_types(), source->get_const_cols(),
-                source->get_const_rows(), stride, result->get_values());
+                source->get_const_compressed_data(),
+                source->get_const_offsets(), source->get_const_types(),
+                source->get_const_cols(), source->get_const_rows(), stride,
+                result->get_values());
         } else {
             GKO_NOT_SUPPORTED(source);
         }
@@ -1067,7 +1076,7 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
             kernel::abstract_extract(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), nnz,
                 num_blocks_matrix, block_size, num_lines,
-                orig->get_const_chunk(), orig->get_const_offsets(),
+                orig->get_const_compressed_data(), orig->get_const_offsets(),
                 orig->get_const_types(), orig->get_const_cols(),
                 orig->get_const_rows(), diag->get_values());
         } else {
@@ -1103,9 +1112,10 @@ void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,
 
             kernel::abstract_absolute_inplace(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), val, nnz,
-                num_blocks_matrix, block_size, num_lines, matrix->get_chunk(),
-                matrix->get_const_offsets(), matrix->get_const_types(),
-                matrix->get_const_cols(), matrix->get_const_rows());
+                num_blocks_matrix, block_size, num_lines,
+                matrix->get_compressed_data(), matrix->get_const_offsets(),
+                matrix->get_const_types(), matrix->get_const_cols(),
+                matrix->get_const_rows());
         } else {
             GKO_NOT_SUPPORTED(matrix);
         }
@@ -1142,11 +1152,11 @@ void compute_absolute(
             kernel::abstract_absolute(
                 bccoo_grid, bccoo_block, 0, exec->get_queue(), val, nnz,
                 num_blocks_matrix, block_size, num_lines,
-                source->get_const_chunk(), source->get_const_offsets(),
-                source->get_const_types(), source->get_const_cols(),
-                source->get_const_rows(), result->get_chunk(),
-                result->get_offsets(), result->get_types(), result->get_cols(),
-                result->get_rows());
+                source->get_const_compressed_data(),
+                source->get_const_offsets(), source->get_const_types(),
+                source->get_const_cols(), source->get_const_rows(),
+                result->get_compressed_data(), result->get_offsets(),
+                result->get_types(), result->get_cols(), result->get_rows());
         } else {
             GKO_NOT_SUPPORTED(source);
         }

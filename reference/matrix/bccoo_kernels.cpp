@@ -118,7 +118,7 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = a->get_const_rows();
     auto* offsets_data = a->get_const_offsets();
-    auto* chunk_data = a->get_const_chunk();
+    auto* compressed_data = a->get_const_compressed_data();
 
     auto block_size = a->get_block_size();
     auto num_stored_elements = a->get_num_stored_elements();
@@ -132,8 +132,8 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (IndexType j = 0; j < num_cols; j++) {
@@ -154,7 +154,7 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (IndexType k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += val * b->at(idxs.col, k);
@@ -178,7 +178,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = a->get_const_rows();
     auto* offsets_data = a->get_const_offsets();
-    auto* chunk_data = a->get_const_chunk();
+    auto* compressed_data = a->get_const_compressed_data();
 
     auto num_stored_elements = a->get_num_stored_elements();
     auto block_size = a->get_block_size();
@@ -193,8 +193,8 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (IndexType j = 0; j < num_cols; j++) {
@@ -215,7 +215,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (IndexType k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += alpha_val * val * b->at(idxs.col, k);
@@ -238,7 +238,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     size_type* mem_size)
 {
     // If source and result have the same block_size and compression
-    // size of the chunk will also be the same
+    // size of the compressed data will also be the same
     if ((source->get_block_size() == block_size_res) &&
         (source->get_compression() == compress_res)) {
         *mem_size = source->get_num_bytes();
@@ -322,7 +322,7 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
-    auto* chunk_data = source->get_const_chunk();
+    auto* compressed_data = source->get_const_compressed_data();
 
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
@@ -339,8 +339,8 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             row_idxs[i] = idxs.row;
@@ -361,7 +361,7 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 row_idxs[i + j] = idxs.row;
                 col_idxs[i + j] = idxs.col;
@@ -384,7 +384,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
-    auto* chunk_data = source->get_const_chunk();
+    auto* compressed_data = source->get_const_compressed_data();
 
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
@@ -403,8 +403,9 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             // Reading (row,col,val) from source
             get_detect_newblock_csr<IndexType>(rows_data, offsets_data,
                                                row_ptrs, i, idxs);
-            uint8 ind = get_position_newrow_csr(chunk_data, row_ptrs, i, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind =
+                get_position_newrow_csr(compressed_data, row_ptrs, i, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             col_idxs[i] = idxs.col;
@@ -426,7 +427,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 if (row_prv < idxs.row) {
                     row_ptrs[idxs.row] = i + j;
@@ -455,7 +456,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
-    auto* chunk_data = source->get_const_chunk();
+    auto* compressed_data = source->get_const_compressed_data();
 
     auto block_size = source->get_block_size();
     auto num_stored_elements = source->get_num_stored_elements();
@@ -478,8 +479,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             result->at(idxs.row, idxs.col) += val;
@@ -498,7 +499,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 result->at(idxs.row, idxs.col) += val;
             }
@@ -519,7 +520,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = orig->get_const_rows();
     auto* offsets_data = orig->get_const_offsets();
-    auto* chunk_data = orig->get_const_chunk();
+    auto* compressed_data = orig->get_const_compressed_data();
 
     auto block_size = orig->get_block_size();
     auto num_stored_elements = orig->get_num_stored_elements();
@@ -539,8 +540,8 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from orig
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value(chunk_data, ind, idxs, val);
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, ind, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to diag
             if (idxs.row == idxs.col) {
@@ -561,7 +562,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from orig
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val);
+                    compressed_data, blk_idxs, idxs, val);
                 // Writing (row,col,val) to diag
                 if (idxs.row == idxs.col) {
                     diag_values[idxs.row] = val;
@@ -583,7 +584,7 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto* rows_data = matrix->get_const_rows();
     auto* offsets_data = matrix->get_const_offsets();
-    auto* chunk_data = matrix->get_chunk();
+    auto* compressed_data = matrix->get_compressed_data();
 
     auto block_size = matrix->get_block_size();
     auto num_stored_elements = matrix->get_num_stored_elements();
@@ -596,8 +597,8 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading/Writing (row,col,val) from/to matrix
             get_detect_newblock<IndexType>(rows_data, offsets_data, idxs);
-            uint8 ind = get_position_newrow(chunk_data, idxs);
-            get_next_position_value_put(chunk_data, ind, idxs, val,
+            uint8 ind = get_position_newrow(compressed_data, idxs);
+            get_next_position_value_put(compressed_data, ind, idxs, val,
                                         [](ValueType val) { return abs(val); });
             get_detect_endblock(block_size, idxs);
         }
@@ -615,7 +616,7 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading/Writing (row,col,val) from/to matrix
                 get_block_position_value_put<IndexType, ValueType>(
-                    chunk_data, blk_idxs, idxs, val,
+                    compressed_data, blk_idxs, idxs, val,
                     [](ValueType val) { return abs(val); });
             }
             idxs.blk++;

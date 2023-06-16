@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @note The memory does not need to be aligned to be read.
  */
 template <typename T>
-__device__ void set_value_chunk(void* ptr, size_type dspl, T value)
+__device__ void set_value_compressed_data(void* ptr, size_type dspl, T value)
 {
     memcpy(static_cast<unsigned char*>(ptr) + dspl, &value, sizeof(T));
 }
@@ -61,10 +61,10 @@ __device__ void set_value_chunk(void* ptr, size_type dspl, T value)
  * @param value  the value
  */
 template <typename T>
-__device__ void set_value_chunk(void* ptr, size_type dspl, size_type pos,
-                                T value)
+__device__ void set_value_compressed_data(void* ptr, size_type dspl,
+                                          size_type pos, T value)
 {
-    set_value_chunk<T>(ptr, dspl + pos * sizeof(T), value);
+    set_value_compressed_data<T>(ptr, dspl + pos * sizeof(T), value);
 }
 
 
@@ -81,7 +81,7 @@ __device__ void set_value_chunk(void* ptr, size_type dspl, size_type pos,
  * @note The memory does not need to be aligned to be written.
  */
 template <typename T>
-__device__ T get_value_chunk(const void* ptr, size_type dspl)
+__device__ T get_value_compressed_data(const void* ptr, size_type dspl)
 {
     T value;
     memcpy(&value, static_cast<const unsigned char*>(ptr) + dspl, sizeof(T));
@@ -105,9 +105,10 @@ __device__ T get_value_chunk(const void* ptr, size_type dspl)
  * @note The memory does not need to be aligned to be written or read.
  */
 template <typename T>
-__device__ T get_value_chunk(const void* ptr, size_type dspl, size_type pos)
+__device__ T get_value_compressed_data(const void* ptr, size_type dspl,
+                                       size_type pos)
 {
-    return get_value_chunk<T>(ptr, dspl + pos * sizeof(T));
+    return get_value_compressed_data<T>(ptr, dspl + pos * sizeof(T));
 }
 
 
@@ -127,9 +128,9 @@ __device__ T get_value_chunk(const void* ptr, size_type dspl, size_type pos)
  * @note The memory does not need to be aligned to be written or read.
  */
 template <typename T>
-__device__ void copy_array_chunk(void* ptr_res, size_type dspl_res,
-                                 const void* ptr_src, size_type dspl_src,
-                                 size_type num)
+__device__ void copy_array_compressed_data(void* ptr_res, size_type dspl_res,
+                                           const void* ptr_src,
+                                           size_type dspl_src, size_type num)
 {
     memcpy(static_cast<unsigned char*>(ptr_res) + dspl_res,
            static_cast<const unsigned char*>(ptr_src) + dspl_src,

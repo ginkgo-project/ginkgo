@@ -91,7 +91,7 @@ protected:
     {
         auto rows_data = m->get_const_rows();
         auto offsets_data = m->get_const_offsets();
-        auto chunk_data = m->get_const_chunk();
+        auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -113,36 +113,36 @@ protected:
 
         index_type ind = {};
 
-        EXPECT_EQ(chunk_data[ind], 0x00);
+        EXPECT_EQ(compressed_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_compressed_data<value_type>(compressed_data, ind),
                   value_type{1.0});
         ind += sizeof(value_type);
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
+        EXPECT_EQ(compressed_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_compressed_data<value_type>(compressed_data, ind),
                   value_type{3.0});
         ind += sizeof(value_type);
 
         if (block_size < 3) {
-            EXPECT_EQ(chunk_data[ind], 0x02);
+            EXPECT_EQ(compressed_data[ind], 0x02);
         } else {
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
         }
         ind++;
-        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_compressed_data<value_type>(compressed_data, ind),
                   value_type{2.0});
         ind += sizeof(value_type);
 
         if ((block_size == 2) || (block_size >= 4)) {
-            EXPECT_EQ(chunk_data[ind], 0xFF);
+            EXPECT_EQ(compressed_data[ind], 0xFF);
             ind++;
         }
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
+        EXPECT_EQ(compressed_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
+        EXPECT_EQ(get_value_compressed_data<value_type>(compressed_data, ind),
                   value_type{5.0});
         ind += sizeof(value_type);
     }
@@ -153,7 +153,7 @@ protected:
         auto cols_data = m->get_const_cols();
         auto types_data = m->get_const_types();
         auto offsets_data = m->get_const_offsets();
-        auto chunk_data = m->get_const_chunk();
+        auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -190,125 +190,141 @@ protected:
         switch (block_size) {
         case 1:
             // block 0
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{1.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{1.0});
             ind += sizeof(value_type);
 
             // block 1
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{3.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{3.0});
             ind += sizeof(value_type);
 
             // block 2
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{2.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{2.0});
             ind += sizeof(value_type);
 
             // block 3
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{5.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         case 2:
             // block 0
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{1.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{3.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{3.0});
             ind += sizeof(value_type);
 
             // block 1
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{2.0});
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x00);
+            ind++;
+
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{5.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         case 3:
             // block 0
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x02);
+            EXPECT_EQ(compressed_data[ind], 0x02);
             ind++;
 
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{1.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{3.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{2.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{2.0});
             ind += sizeof(value_type);
 
             // block 1
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{5.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{5.0});
             ind += sizeof(value_type);
 
             break;
         default:
             // block 0
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x00);
+            EXPECT_EQ(compressed_data[ind], 0x00);
             ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-
-            EXPECT_EQ(chunk_data[ind], 0x00);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x02);
-            ind++;
-            EXPECT_EQ(chunk_data[ind], 0x01);
+            EXPECT_EQ(compressed_data[ind], 0x01);
             ind++;
 
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{1.0});
+            EXPECT_EQ(compressed_data[ind], 0x00);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x02);
+            ind++;
+            EXPECT_EQ(compressed_data[ind], 0x01);
+            ind++;
+
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{1.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{3.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{3.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{2.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{2.0});
             ind += sizeof(value_type);
-            EXPECT_EQ(get_value_chunk<value_type>(chunk_data, ind),
-                      value_type{5.0});
+            EXPECT_EQ(
+                get_value_compressed_data<value_type>(compressed_data, ind),
+                value_type{5.0});
             ind += sizeof(value_type);
 
             break;
@@ -327,7 +343,7 @@ protected:
         ASSERT_EQ(m->get_const_cols(), nullptr);
         ASSERT_EQ(m->get_const_types(), nullptr);
         ASSERT_EQ(m->get_const_offsets(), nullptr);
-        ASSERT_EQ(m->get_const_chunk(), nullptr);
+        ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
     void assert_empty_elm(const Mtx* m)
@@ -341,7 +357,7 @@ protected:
         ASSERT_EQ(m->get_const_cols(), nullptr);
         ASSERT_EQ(m->get_const_types(), nullptr);
         ASSERT_EQ(m->get_const_offsets(), nullptr);
-        ASSERT_EQ(m->get_const_chunk(), nullptr);
+        ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
     void assert_empty_blk(const Mtx* m)
@@ -355,7 +371,7 @@ protected:
         ASSERT_EQ(m->get_const_cols(), nullptr);
         ASSERT_EQ(m->get_const_types(), nullptr);
         ASSERT_EQ(m->get_const_offsets(), nullptr);
-        ASSERT_EQ(m->get_const_chunk(), nullptr);
+        ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 };
 
@@ -425,28 +441,28 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     const index_type block_size = 10;
     const gko::size_type num_bytes = 6 + 4 * sizeof(value_type);
     index_type ind = {};
-    gko::uint8 chunk[num_bytes] = {};
+    gko::uint8 compressed_data[num_bytes] = {};
     gko::size_type offsets[] = {0, num_bytes};
     index_type rows[] = {0};
     // Fill the vectors
-    chunk[ind++] = 0x00;
-    set_value_chunk<value_type>(chunk, ind, 1.0);
+    compressed_data[ind++] = 0x00;
+    set_value_compressed_data<value_type>(compressed_data, ind, 1.0);
     ind += sizeof(value_type);
-    chunk[ind++] = 0x01;
-    set_value_chunk<value_type>(chunk, ind, 2.0);
+    compressed_data[ind++] = 0x01;
+    set_value_compressed_data<value_type>(compressed_data, ind, 2.0);
     ind += sizeof(value_type);
-    chunk[ind++] = 0xFF;
-    chunk[ind++] = 0x01;
-    set_value_chunk<value_type>(chunk, ind, 3.0);
+    compressed_data[ind++] = 0xFF;
+    compressed_data[ind++] = 0x01;
+    set_value_compressed_data<value_type>(compressed_data, ind, 3.0);
     ind += sizeof(value_type);
-    chunk[ind++] = 0xFF;
-    chunk[ind++] = 0x00;
-    set_value_chunk<value_type>(chunk, ind, 4.0);
+    compressed_data[ind++] = 0xFF;
+    compressed_data[ind++] = 0x00;
+    set_value_compressed_data<value_type>(compressed_data, ind, 4.0);
     ind += sizeof(value_type);
 
     auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
+        gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
         gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
 
@@ -466,34 +482,34 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     const index_type block_size = 10;
     const gko::size_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
     index_type ind = {};
-    gko::uint8 chunk[num_bytes] = {};
+    gko::uint8 compressed_data[num_bytes] = {};
     gko::size_type offsets[] = {0, num_bytes};
     gko::uint8 types[] = {3};
     index_type cols[] = {0};
     index_type rows[] = {0};
     // Fill the rows
-    chunk[ind++] = 0x00;
-    chunk[ind++] = 0x00;
-    chunk[ind++] = 0x01;
-    chunk[ind++] = 0x02;
+    compressed_data[ind++] = 0x00;
+    compressed_data[ind++] = 0x00;
+    compressed_data[ind++] = 0x01;
+    compressed_data[ind++] = 0x02;
     // Fill the colums
-    chunk[ind++] = 0x00;
-    chunk[ind++] = 0x01;
-    chunk[ind++] = 0x01;
-    chunk[ind++] = 0x00;
+    compressed_data[ind++] = 0x00;
+    compressed_data[ind++] = 0x01;
+    compressed_data[ind++] = 0x01;
+    compressed_data[ind++] = 0x00;
     // Fill the values
-    set_value_chunk<value_type>(chunk, ind, 1.0);
+    set_value_compressed_data<value_type>(compressed_data, ind, 1.0);
     ind += sizeof(value_type);
-    set_value_chunk<value_type>(chunk, ind, 2.0);
+    set_value_compressed_data<value_type>(compressed_data, ind, 2.0);
     ind += sizeof(value_type);
-    set_value_chunk<value_type>(chunk, ind, 3.0);
+    set_value_compressed_data<value_type>(compressed_data, ind, 3.0);
     ind += sizeof(value_type);
-    set_value_chunk<value_type>(chunk, ind, 4.0);
+    set_value_compressed_data<value_type>(compressed_data, ind, 4.0);
     ind += sizeof(value_type);
 
     auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
+        gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
         gko::array<gko::size_type>::view(this->exec, 2, offsets),
         gko::array<gko::uint8>::view(this->exec, 1, types),
         gko::array<index_type>::view(this->exec, 1, cols),
@@ -519,8 +535,8 @@ TYPED_TEST(Bccoo, CanBeCopiedElmElm)
     copy->copy_from(this->mtx_elm.get());
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    set_value_chunk<value_type>(this->mtx_elm->get_chunk(),
-                                2 + sizeof(value_type), 5.0);
+    set_value_compressed_data<value_type>(this->mtx_elm->get_compressed_data(),
+                                          2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(copy.get());
 }
 
@@ -536,8 +552,8 @@ TYPED_TEST(Bccoo, CanBeCopiedElmBlk)
     copy->copy_from(this->mtx_elm.get());
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    set_value_chunk<value_type>(this->mtx_elm->get_chunk(),
-                                2 + sizeof(value_type), 5.0);
+    set_value_compressed_data<value_type>(this->mtx_elm->get_compressed_data(),
+                                          2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(copy.get());
 }
 
@@ -553,8 +569,8 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkElm)
     copy->copy_from(this->mtx_blk.get());
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
-    set_value_chunk<value_type>(
-        this->mtx_blk->get_chunk(),
+    set_value_compressed_data<value_type>(
+        this->mtx_blk->get_compressed_data(),
         this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(copy.get());
 }
@@ -571,8 +587,8 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkBlk)
     copy->copy_from(this->mtx_blk.get());
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
-    set_value_chunk<value_type>(
-        this->mtx_blk->get_chunk(),
+    set_value_compressed_data<value_type>(
+        this->mtx_blk->get_compressed_data(),
         this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(copy.get());
 }
@@ -613,8 +629,8 @@ TYPED_TEST(Bccoo, CanBeClonedElm)
 
     this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
 
-    set_value_chunk<value_type>(this->mtx_blk->get_chunk(),
-                                2 + sizeof(value_type), 5.0);
+    set_value_compressed_data<value_type>(this->mtx_blk->get_compressed_data(),
+                                          2 + sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_elm(dynamic_cast<Mtx*>(clone.get()));
 }
 
@@ -627,8 +643,8 @@ TYPED_TEST(Bccoo, CanBeClonedBlk)
 
     this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
 
-    set_value_chunk<value_type>(
-        this->mtx_blk->get_chunk(),
+    set_value_compressed_data<value_type>(
+        this->mtx_blk->get_compressed_data(),
         this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
     this->assert_equal_to_original_mtx_blk(dynamic_cast<Mtx*>(clone.get()));
 }

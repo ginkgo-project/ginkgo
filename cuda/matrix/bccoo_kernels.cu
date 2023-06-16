@@ -155,7 +155,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
 
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_cuda_type(a->get_const_chunk()),
+                as_cuda_type(a->get_const_compressed_data()),
                 as_cuda_type(a->get_const_offsets()),
                 as_cuda_type(a->get_const_types()),
                 as_cuda_type(a->get_const_cols()),
@@ -199,7 +199,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_cuda_type(alpha->get_const_values()),
-                as_cuda_type(a->get_const_chunk()),
+                as_cuda_type(a->get_const_compressed_data()),
                 as_cuda_type(a->get_const_offsets()),
                 as_cuda_type(a->get_const_types()),
                 as_cuda_type(a->get_const_cols()),
@@ -276,7 +276,7 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
 
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_compressed_data()),
                 as_cuda_type(source->get_const_offsets()),
                 as_cuda_type(source->get_const_types()),
                 as_cuda_type(source->get_const_cols()),
@@ -324,7 +324,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_compressed_data()),
                 as_cuda_type(source->get_const_offsets()),
                 as_cuda_type(source->get_const_types()),
                 as_cuda_type(source->get_const_cols()),
@@ -377,7 +377,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
             kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_compressed_data()),
                 as_cuda_type(source->get_const_offsets()),
                 as_cuda_type(source->get_const_types()),
                 as_cuda_type(source->get_const_cols()),
@@ -415,7 +415,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 
             kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
-                as_cuda_type(orig->get_const_chunk()),
+                as_cuda_type(orig->get_const_compressed_data()),
                 as_cuda_type(orig->get_const_offsets()),
                 as_cuda_type(orig->get_const_types()),
                 as_cuda_type(orig->get_const_cols()),
@@ -454,7 +454,7 @@ void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
                 config::warp_size, cuda_type<ValueType>, cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
-                    as_cuda_type(matrix->get_chunk()),
+                    as_cuda_type(matrix->get_compressed_data()),
                     as_cuda_type(matrix->get_const_offsets()),
                     as_cuda_type(matrix->get_const_types()),
                     as_cuda_type(matrix->get_const_cols()),
@@ -494,12 +494,12 @@ void compute_absolute(
                                       cuda_type<IndexType>>
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
-                    as_cuda_type(source->get_const_chunk()),
+                    as_cuda_type(source->get_const_compressed_data()),
                     as_cuda_type(source->get_const_offsets()),
                     as_cuda_type(source->get_const_types()),
                     as_cuda_type(source->get_const_cols()),
                     as_cuda_type(source->get_const_rows()),
-                    as_cuda_type(result->get_chunk()),
+                    as_cuda_type(result->get_compressed_data()),
                     as_cuda_type(result->get_offsets()),
                     as_cuda_type(result->get_types()),
                     as_cuda_type(result->get_cols()),

@@ -56,7 +56,7 @@ namespace bccoo {
 
 
 /**
- *  Returns the size of the chunk, which it is need
+ *  Returns the size of the compressed data, which it is needed
  *  to store the data included in an element compression object
  *  into an element compression object whose block_size is specified
  */
@@ -72,7 +72,7 @@ inline void mem_size_bccoo_elm_elm(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
 
     const IndexType num_stored_elements = source->get_num_stored_elements();
     const IndexType block_size_src = source->get_block_size();
@@ -85,8 +85,9 @@ inline void mem_size_bccoo_elm_elm(
     for (IndexType i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
         get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
-        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
-        get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+        uint8 ind_src = get_position_newrow(compressed_data_src, idxs_src);
+        get_next_position_value(compressed_data_src, ind_src, idxs_src,
+                                val_src);
         get_detect_endblock(block_size_src, idxs_src);
         // Counting bytes to write (row,col,val) on result
         cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
@@ -100,7 +101,7 @@ inline void mem_size_bccoo_elm_elm(
 
 
 /**
- *  Returns the size of the chunk, which it is need
+ *  Returns the size of the compressed data, which it is needed
  *  to store the data included in an element compression object
  *  into a block compression object whose block_size is specified
  */
@@ -116,7 +117,7 @@ inline void mem_size_bccoo_elm_blk(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
 
     const IndexType num_stored_elements = source->get_num_stored_elements();
     const IndexType block_size_src = source->get_block_size();
@@ -135,8 +136,9 @@ inline void mem_size_bccoo_elm_blk(
         for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
-            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
-            get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+            uint8 ind_src = get_position_newrow(compressed_data_src, idxs_src);
+            get_next_position_value(compressed_data_src, ind_src, idxs_src,
+                                    val_src);
             get_detect_endblock(block_size_src, idxs_src);
             // Analyzing the impact of (row,col,val) in the block
             idxs_res.nblk = j;
@@ -152,7 +154,7 @@ inline void mem_size_bccoo_elm_blk(
 
 
 /**
- *  Returns the size of the chunk, which it is need
+ *  Returns the size of the compressed data, which it is needed
  *  to store the data included in a blok compression object
  *  into an element compression object whose block_size is specified
  */
@@ -168,7 +170,7 @@ inline void mem_size_bccoo_blk_elm(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
     const IndexType* cols_data_src = source->get_const_cols();
     const uint8* types_data_src = source->get_const_types();
 
@@ -190,7 +192,7 @@ inline void mem_size_bccoo_blk_elm(
         for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
-                chunk_data_src, blk_idxs_src, idxs_src, val_src);
+                compressed_data_src, blk_idxs_src, idxs_src, val_src);
             // Counting bytes to write (row,col,val) on result
             cnt_detect_newblock(idxs_src.row - idxs_res.row, idxs_res);
             IndexType col_src_res = cnt_position_newrow_mat_data(
@@ -206,7 +208,7 @@ inline void mem_size_bccoo_blk_elm(
 
 
 /**
- *  Returns the size of the chunk, which it is need
+ *  Returns the size of the compressed data, which it is needed
  *  to store the data included in a block compression object
  *  into a block compression object whose block_size is specified
  */
@@ -222,7 +224,7 @@ inline void mem_size_bccoo_blk_blk(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
     const IndexType* cols_data_src = source->get_const_cols();
     const uint8* types_data_src = source->get_const_types();
 
@@ -235,7 +237,7 @@ inline void mem_size_bccoo_blk_blk(
 
     const IndexType* rows_data_res = source->get_const_rows();
     const size_type* offsets_data_res = source->get_const_offsets();
-    const uint8* chunk_data_res = source->get_const_chunk();
+    const uint8* compressed_data_res = source->get_const_compressed_data();
     const IndexType* cols_data_res = source->get_const_cols();
     const uint8* types_data_res = source->get_const_types();
 
@@ -256,7 +258,7 @@ inline void mem_size_bccoo_blk_blk(
         for (IndexType j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType>(
-                chunk_data_src, blk_idxs_src, idxs_src, val_src);
+                compressed_data_src, blk_idxs_src, idxs_src, val_src);
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
                                           blk_idxs_res);
             idxs_res.nblk++;
@@ -305,9 +307,10 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
             size_type* offsets_data_res = result->get_offsets();
             std::memcpy(offsets_data_res, offsets_data_src,
                         (source->get_num_blocks() + 1) * sizeof(size_type));
-            const uint8* chunk_data_src = source->get_const_chunk();
-            uint8* chunk_data_res = result->get_chunk();
-            std::memcpy(chunk_data_res, chunk_data_src,
+            const uint8* compressed_data_src =
+                source->get_const_compressed_data();
+            uint8* compressed_data_res = result->get_compressed_data();
+            std::memcpy(compressed_data_res, compressed_data_src,
                         source->get_num_bytes() * sizeof(uint8));
         } else {
             std::memcpy(result->get_rows(), source->get_const_rows(),
@@ -318,7 +321,8 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
                         source->get_num_blocks() * sizeof(uint8));
             std::memcpy(result->get_offsets(), source->get_const_offsets(),
                         (source->get_num_blocks() + 1) * sizeof(size_type));
-            std::memcpy(result->get_chunk(), source->get_const_chunk(),
+            std::memcpy(result->get_compressed_data(),
+                        source->get_const_compressed_data(),
                         source->get_num_bytes() * sizeof(uint8));
         }
     }
@@ -343,7 +347,7 @@ void convert_to_bccoo_elm_elm(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
 
     const IndexType num_stored_elements = source->get_num_stored_elements();
     const IndexType block_size_src = source->get_block_size();
@@ -353,7 +357,7 @@ void convert_to_bccoo_elm_elm(
 
     IndexType* rows_data_res = result->get_rows();
     size_type* offsets_data_res = result->get_offsets();
-    uint8* chunk_data_res = result->get_chunk();
+    uint8* compressed_data_res = result->get_compressed_data();
 
     IndexType block_size_res = result->get_block_size();
 
@@ -366,16 +370,18 @@ void convert_to_bccoo_elm_elm(
     for (IndexType i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
         get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
-        uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
-        get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+        uint8 ind_src = get_position_newrow(compressed_data_src, idxs_src);
+        get_next_position_value(compressed_data_src, ind_src, idxs_src,
+                                val_src);
         get_detect_endblock(block_size_src, idxs_src);
         // Writing (row,col,val) to result
         val_res = finalize_op(val_src);
         put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
                             idxs_res);
         IndexType col_src_res = put_position_newrow_mat_data(
-            idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
-        put_next_position_value(chunk_data_res, col_src_res, val_res, idxs_res);
+            idxs_src.row, idxs_src.col, compressed_data_res, idxs_res);
+        put_next_position_value(compressed_data_res, col_src_res, val_res,
+                                idxs_res);
         put_detect_endblock(offsets_data_res, block_size_res, idxs_res);
     }
     if (idxs_res.nblk > 0) {
@@ -401,7 +407,7 @@ void convert_to_bccoo_elm_blk(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
 
     const IndexType num_stored_elements = source->get_num_stored_elements();
     const IndexType block_size_src = source->get_block_size();
@@ -411,7 +417,7 @@ void convert_to_bccoo_elm_blk(
 
     IndexType* rows_data_res = result->get_rows();
     size_type* offsets_data_res = result->get_offsets();
-    uint8* chunk_data_res = result->get_chunk();
+    uint8* compressed_data_res = result->get_compressed_data();
     IndexType* cols_data_res = result->get_cols();
     uint8* types_data_res = result->get_types();
 
@@ -438,8 +444,9 @@ void convert_to_bccoo_elm_blk(
         for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_detect_newblock(rows_data_src, offsets_data_src, idxs_src);
-            uint8 ind_src = get_position_newrow(chunk_data_src, idxs_src);
-            get_next_position_value(chunk_data_src, ind_src, idxs_src, val_src);
+            uint8 ind_src = get_position_newrow(compressed_data_src, idxs_src);
+            get_next_position_value(compressed_data_src, ind_src, idxs_src,
+                                    val_src);
             get_detect_endblock(block_size_src, idxs_src);
             // Analyzing the impact of (row,col,val) in the block
             idxs_res.nblk = j;
@@ -451,8 +458,9 @@ void convert_to_bccoo_elm_blk(
         }
         // Writing block on result
         idxs_res.nblk = block_size_local;
-        type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res, rows_blk,
-                                        cols_blk, vals_blk, chunk_data_res);
+        type_blk = write_compressed_data_blk_type(idxs_res, blk_idxs_res,
+                                                  rows_blk, cols_blk, vals_blk,
+                                                  compressed_data_res);
         rows_data_res[idxs_res.blk] = blk_idxs_res.row_frst;
         cols_data_res[idxs_res.blk] = blk_idxs_res.col_frst;
         types_data_res[idxs_res.blk] = type_blk;
@@ -478,7 +486,7 @@ void convert_to_bccoo_blk_elm(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
     const IndexType* cols_data_src = source->get_const_cols();
     const uint8* types_data_src = source->get_const_types();
 
@@ -491,7 +499,7 @@ void convert_to_bccoo_blk_elm(
 
     IndexType* rows_data_res = result->get_rows();
     size_type* offsets_data_res = result->get_offsets();
-    uint8* chunk_data_res = result->get_chunk();
+    uint8* compressed_data_res = result->get_compressed_data();
     IndexType block_size_res = result->get_block_size();
 
     compr_idxs<IndexType> idxs_res;
@@ -510,14 +518,14 @@ void convert_to_bccoo_blk_elm(
         for (IndexType j = 0; j < block_size_local; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
-                chunk_data_src, blk_idxs_src, idxs_src, val_src);
+                compressed_data_src, blk_idxs_src, idxs_src, val_src);
             // Writing (row,col,val) to result
             val_res = val_src;
             put_detect_newblock(rows_data_res, idxs_src.row - idxs_res.row,
                                 idxs_res);
             IndexType col_src_res = put_position_newrow_mat_data(
-                idxs_src.row, idxs_src.col, chunk_data_res, idxs_res);
-            put_next_position_value(chunk_data_res, col_src_res, val_res,
+                idxs_src.row, idxs_src.col, compressed_data_res, idxs_res);
+            put_next_position_value(compressed_data_res, col_src_res, val_res,
                                     idxs_res);
             put_detect_endblock(offsets_data_res, block_size_res, idxs_res);
         }
@@ -548,7 +556,7 @@ void convert_to_bccoo_blk_blk(
 
     const IndexType* rows_data_src = source->get_const_rows();
     const size_type* offsets_data_src = source->get_const_offsets();
-    const uint8* chunk_data_src = source->get_const_chunk();
+    const uint8* compressed_data_src = source->get_const_compressed_data();
     const IndexType* cols_data_src = source->get_const_cols();
     const uint8* types_data_src = source->get_const_types();
 
@@ -561,7 +569,7 @@ void convert_to_bccoo_blk_blk(
 
     IndexType* rows_data_res = result->get_rows();
     size_type* offsets_data_res = result->get_offsets();
-    uint8* chunk_data_res = result->get_chunk();
+    uint8* compressed_data_res = result->get_compressed_data();
     IndexType* cols_data_res = result->get_cols();
     uint8* types_data_res = result->get_types();
 
@@ -593,7 +601,7 @@ void convert_to_bccoo_blk_blk(
         for (IndexType j = 0; j < block_size_local_src; j++) {
             // Reading (row,col,val) from source
             get_block_position_value<IndexType, ValueType_src>(
-                chunk_data_src, blk_idxs_src, idxs_src, val_src);
+                compressed_data_src, blk_idxs_src, idxs_src, val_src);
             // Analyzing the impact of (row,col,val) in the block
             proc_block_indices<IndexType>(idxs_src.row, idxs_src.col, idxs_res,
                                           blk_idxs_res);
@@ -605,9 +613,9 @@ void convert_to_bccoo_blk_blk(
             if (idxs_res.nblk == block_size_local_res) {
                 // Writing block on result
                 idxs_res.nblk = block_size_local_res;
-                type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res,
-                                                rows_blk_res, cols_blk_res,
-                                                vals_blk_res, chunk_data_res);
+                type_blk = write_compressed_data_blk_type(
+                    idxs_res, blk_idxs_res, rows_blk_res, cols_blk_res,
+                    vals_blk_res, compressed_data_res);
                 rows_data_res[idxs_res.blk] = blk_idxs_res.row_frst;
                 cols_data_res[idxs_res.blk] = blk_idxs_res.col_frst;
                 types_data_res[idxs_res.blk] = type_blk;

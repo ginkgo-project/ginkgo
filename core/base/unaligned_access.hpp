@@ -56,7 +56,7 @@ namespace bccoo {
  * @param value  the value
  */
 template <typename T>
-void set_value_chunk(void* ptr, size_type dspl, T value)
+void set_value_compressed_data(void* ptr, size_type dspl, T value)
 {
     std::memcpy(static_cast<unsigned char*>(ptr) + dspl, &value, sizeof(T));
 }
@@ -74,9 +74,10 @@ void set_value_chunk(void* ptr, size_type dspl, T value)
  * @param value  the value
  */
 template <typename T>
-void set_value_chunk(void* ptr, size_type dspl, size_type pos, T value)
+void set_value_compressed_data(void* ptr, size_type dspl, size_type pos,
+                               T value)
 {
-    set_value_chunk<T>(ptr, dspl + pos * sizeof(T), value);
+    set_value_compressed_data<T>(ptr, dspl + pos * sizeof(T), value);
 }
 
 
@@ -91,9 +92,10 @@ void set_value_chunk(void* ptr, size_type dspl, size_type pos, T value)
  * @param value  the value
  */
 template <typename T>
-void set_value_chunk_and_increment(void* ptr, size_type& dspl, T value)
+void set_value_compressed_data_and_increment(void* ptr, size_type& dspl,
+                                             T value)
 {
-    set_value_chunk<T>(ptr, dspl, value);
+    set_value_compressed_data<T>(ptr, dspl, value);
     dspl += sizeof(T);
 }
 
@@ -111,7 +113,7 @@ void set_value_chunk_and_increment(void* ptr, size_type& dspl, T value)
  * @note The memory does not need to be aligned to be written.
  */
 template <typename T>
-T get_value_chunk(const void* ptr, size_type dspl)
+T get_value_compressed_data(const void* ptr, size_type dspl)
 {
     T val{};
     std::memcpy(&val, static_cast<const unsigned char*>(ptr) + dspl, sizeof(T));
@@ -132,9 +134,10 @@ T get_value_chunk(const void* ptr, size_type dspl)
  * @return the value in the m-th byte of ptr, which is adjusting to T class.
  */
 template <typename T>
-T get_value_chunk(const void* ptr, const size_type dspl, const size_type pos)
+T get_value_compressed_data(const void* ptr, const size_type dspl,
+                            const size_type pos)
 {
-    return get_value_chunk<T>(ptr, dspl + pos * sizeof(T));
+    return get_value_compressed_data<T>(ptr, dspl + pos * sizeof(T));
 }
 
 
@@ -151,9 +154,9 @@ T get_value_chunk(const void* ptr, const size_type dspl, const size_type pos)
  *         at byte dspl from ptr.
  */
 template <typename T>
-T get_value_chunk_and_increment(const void* ptr, size_type& dspl)
+T get_value_compressed_data_and_increment(const void* ptr, size_type& dspl)
 {
-    T val = get_value_chunk<T>(ptr, dspl);
+    T val = get_value_compressed_data<T>(ptr, dspl);
     dspl += sizeof(T);
     return val;
 }
@@ -175,8 +178,9 @@ T get_value_chunk_and_increment(const void* ptr, size_type& dspl)
  * @note The memory does not need to be aligned to be written or read.
  */
 template <typename T>
-void copy_array_chunk(void* ptr_res, size_type dspl_res, const void* ptr_src,
-                      size_type dspl_src, size_type num)
+void copy_array_compressed_data(void* ptr_res, size_type dspl_res,
+                                const void* ptr_src, size_type dspl_src,
+                                size_type num)
 {
     memcpy(static_cast<unsigned char*>(ptr_res) + dspl_res,
            static_cast<const unsigned char*>(ptr_src) + dspl_src,
@@ -201,12 +205,14 @@ void copy_array_chunk(void* ptr_res, size_type dspl_res, const void* ptr_src,
  * @note The memory does not need to be aligned to be written or read.
  */
 template <typename T>
-void copy_array_chunk_and_increment(void* ptr_res, size_type& dspl_res,
-                                    const void* ptr_src, size_type& dspl_src,
-                                    size_type num)
+void copy_array_compressed_data_and_increment(void* ptr_res,
+                                              size_type& dspl_res,
+                                              const void* ptr_src,
+                                              size_type& dspl_src,
+                                              size_type num)
 {
     size_type num_bytes = sizeof(T) * num;
-    copy_array_chunk<T>(ptr_res, dspl_res, ptr_src, dspl_src, num);
+    copy_array_compressed_data<T>(ptr_res, dspl_res, ptr_src, dspl_src, num);
     dspl_src += num_bytes;
     dspl_res += num_bytes;
 }
